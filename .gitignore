@@ -1,0 +1,32 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Operating-system and editor files
+.DS_Store
+
+# Go build and test output
+/bin/
+/foliopath
+*.test
+coverage.out
+
+# Frontend dependencies and generated output
+/web/node_modules/
+/web/dist/
+/web/coverage/
+/internal/webassets/dist/
+/playwright-report/
+/test-results/
+
+# Runtime state
+/data/
+foliopath-data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.log
