@@ -28,26 +28,32 @@ const (
 )
 
 type capacityMetrics struct {
-	GOOS                    string `json:"goos"`
-	GOARCH                  string `json:"goarch"`
-	GOMAXPROCS              int    `json:"gomaxprocs"`
-	DirectoryCount          int    `json:"directoryCount"`
-	AssetCount              int    `json:"assetCount"`
-	FixtureMaxDepth         int    `json:"fixtureMaxDepth"`
-	FixtureDeepBranches     int    `json:"fixtureDeepBranches"`
-	FixtureAssetTargets     int    `json:"fixtureAssetTargets"`
-	FixtureDurationMS       int64  `json:"fixtureDurationMs"`
-	ScanDurationMS          int64  `json:"scanDurationMs"`
-	ConcurrentReads         int    `json:"concurrentReads"`
-	ConcurrentReadP95US     int64  `json:"concurrentReadP95Us"`
-	ConcurrentReadMaxUS     int64  `json:"concurrentReadMaxUs"`
-	DirectoryListP50US      int64  `json:"directoryListP50Us"`
-	DirectoryListP95US      int64  `json:"directoryListP95Us"`
-	AssetListP50US          int64  `json:"assetListP50Us"`
-	AssetListP95US          int64  `json:"assetListP95Us"`
-	PeakGoHeapAllocBytes    uint64 `json:"peakGoHeapAllocBytes"`
-	DatabaseAndWALSizeBytes int64  `json:"databaseAndWalSizeBytes"`
+	GOOS                    string   `json:"goos"`
+	GOARCH                  string   `json:"goarch"`
+	GOMAXPROCS              int      `json:"gomaxprocs"`
+	DirectoryCount          int      `json:"directoryCount"`
+	AssetCount              int      `json:"assetCount"`
+	FixtureMaxDepth         int      `json:"fixtureMaxDepth"`
+	FixtureDeepBranches     int      `json:"fixtureDeepBranches"`
+	FixtureAssetTargets     int      `json:"fixtureAssetTargets"`
+	FixtureDurationMS       int64    `json:"fixtureDurationMs"`
+	ScanDurationMS          int64    `json:"scanDurationMs"`
+	ConcurrentReads         int      `json:"concurrentReads"`
+	ConcurrentReadP95US     int64    `json:"concurrentReadP95Us"`
+	ConcurrentReadMaxUS     int64    `json:"concurrentReadMaxUs"`
+	DirectoryListP50US      int64    `json:"directoryListP50Us"`
+	DirectoryListP95US      int64    `json:"directoryListP95Us"`
+	AssetListP50US          int64    `json:"assetListP50Us"`
+	AssetListP95US          int64    `json:"assetListP95Us"`
+	PeakGoHeapAllocBytes    uint64   `json:"peakGoHeapAllocBytes"`
+	PeakRSSBytes            uint64   `json:"peakRssBytes,omitempty"`
+	PeakRSSSource           string   `json:"peakRssSource,omitempty"`
+	DatabaseAndWALSizeBytes int64    `json:"databaseAndWalSizeBytes"`
+	BudgetProfile           string   `json:"budgetProfile"`
+	BudgetViolations        []string `json:"budgetViolations"`
 }
+
+const capacityBudgetProfile = "stage0-comparable-v1"
 
 type capacityFixtureShape struct {
 	maxDepth                int
@@ -216,6 +222,10 @@ scanLoop:
 		t.Fatalf("checkpoint SQLite WAL: %v", err)
 	}
 
+	peakRSS, peakRSSSource, rssErr := processPeakRSS()
+	if rssErr != nil {
+		t.Fatalf("read process peak RSS: %v", rssErr)
+	}
 	metrics := capacityMetrics{
 		GOOS:                    runtime.GOOS,
 		GOARCH:                  runtime.GOARCH,
@@ -235,13 +245,21 @@ scanLoop:
 		AssetListP50US:          percentile(assetLatencies, 50).Microseconds(),
 		AssetListP95US:          percentile(assetLatencies, 95).Microseconds(),
 		PeakGoHeapAllocBytes:    peakHeap.Load(),
+		PeakRSSBytes:            peakRSS,
+		PeakRSSSource:           peakRSSSource,
 		DatabaseAndWALSizeBytes: databaseFamilySize(t, databasePath),
+		BudgetProfile:           capacityBudgetProfile,
 	}
+	metrics.BudgetViolations = capacityBudgetViolations(metrics)
 	encoded, err := json.Marshal(metrics)
 	if err != nil {
 		t.Fatalf("encode capacity metrics: %v", err)
 	}
 	t.Logf("FOLIOPATH_CAPACITY_METRICS %s", encoded)
+	if os.Getenv("FOLIOPATH_CAPACITY_ENFORCE_BUDGET") == "1" &&
+		len(metrics.BudgetViolations) > 0 {
+		t.Fatalf("%s budget violations: %v", capacityBudgetProfile, metrics.BudgetViolations)
+	}
 }
 
 func TestDirectoryRollupDeepChainBaseline(t *testing.T) {
@@ -368,6 +386,31 @@ func TestDirectoryRollupDeepChainBaseline(t *testing.T) {
 			"finalizeDurationMs": finalizeDuration.Milliseconds(),
 		}),
 	)
+}
+
+func TestCapacityBudgetViolations(t *testing.T) {
+	if violations := capacityBudgetViolations(capacityMetrics{
+		ScanDurationMS:          120_000,
+		ConcurrentReadP95US:     250_000,
+		DirectoryListP95US:      100_000,
+		AssetListP95US:          100_000,
+		PeakRSSBytes:            1 << 30,
+		DatabaseAndWALSizeBytes: 1 << 30,
+	}); len(violations) != 0 {
+		t.Fatalf("budget boundary violations = %v, want none", violations)
+	}
+
+	violations := capacityBudgetViolations(capacityMetrics{
+		ScanDurationMS:          120_001,
+		ConcurrentReadP95US:     250_001,
+		DirectoryListP95US:      100_001,
+		AssetListP95US:          100_001,
+		PeakRSSBytes:            1<<30 + 1,
+		DatabaseAndWALSizeBytes: 1<<30 + 1,
+	})
+	if len(violations) != 6 {
+		t.Fatalf("budget violations = %v, want all six limits", violations)
+	}
 }
 
 func positiveEnv(t *testing.T, name string, fallback int) int {
@@ -713,4 +756,27 @@ func databaseFamilySize(t *testing.T, databasePath string) int64 {
 		total += info.Size()
 	}
 	return total
+}
+
+func capacityBudgetViolations(metrics capacityMetrics) []string {
+	violations := make([]string, 0)
+	if metrics.ScanDurationMS > 120_000 {
+		violations = append(violations, "scanDurationMs > 120000")
+	}
+	if metrics.ConcurrentReadP95US > 250_000 {
+		violations = append(violations, "concurrentReadP95Us > 250000")
+	}
+	if metrics.DirectoryListP95US > 100_000 {
+		violations = append(violations, "directoryListP95Us > 100000")
+	}
+	if metrics.AssetListP95US > 100_000 {
+		violations = append(violations, "assetListP95Us > 100000")
+	}
+	if metrics.PeakRSSBytes > 0 && metrics.PeakRSSBytes > 1<<30 {
+		violations = append(violations, "peakRssBytes > 1073741824")
+	}
+	if metrics.DatabaseAndWALSizeBytes > 1<<30 {
+		violations = append(violations, "databaseAndWalSizeBytes > 1073741824")
+	}
+	return violations
 }
