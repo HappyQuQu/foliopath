@@ -21,7 +21,7 @@ docker run --rm \
   "$syft_image" "$image" -o spdx-json >"$output_dir/image.spdx.json"
 
 for sbom in "$output_dir"/*.spdx.json; do
-  grep '"spdxVersion": "SPDX-2.3"' "$sbom" >/dev/null
+  jq -e '.spdxVersion == "SPDX-2.3"' "$sbom" >/dev/null
 done
 
 sha256sum "$output_dir"/*.spdx.json
