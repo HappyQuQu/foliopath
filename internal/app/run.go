@@ -78,6 +78,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	authentication, err := auth.NewService(
 		database,
 		auth.NewArgon2idPasswordManager(nil),
+		auth.ServiceOptions{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("construct authentication service: %w", err)

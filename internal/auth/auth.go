@@ -4,17 +4,24 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	"time"
 )
 
 var (
-	ErrSetupClosed        = errors.New("administrator setup is closed")
-	ErrSetupInProgress    = errors.New("administrator setup is in progress")
-	ErrRepositoryNotReady = errors.New("authentication repository is not ready")
-	ErrInvalidUsername    = errors.New("invalid administrator username")
-	ErrInvalidDisplayName = errors.New("invalid administrator display name")
-	ErrInvalidPassword    = errors.New("invalid administrator password")
+	ErrSetupClosed            = errors.New("administrator setup is closed")
+	ErrSetupInProgress        = errors.New("administrator setup is in progress")
+	ErrRepositoryNotReady     = errors.New("authentication repository is not ready")
+	ErrInvalidUsername        = errors.New("invalid administrator username")
+	ErrInvalidDisplayName     = errors.New("invalid administrator display name")
+	ErrInvalidPassword        = errors.New("invalid administrator password")
+	ErrInvalidCredentials     = errors.New("invalid administrator credentials")
+	ErrAdministratorNotFound  = errors.New("administrator does not exist")
+	ErrAuthenticationRequired = errors.New("administrator authentication is required")
+	ErrSessionExpired         = errors.New("administrator session has expired")
 )
 
 type SetupState string
@@ -53,7 +60,16 @@ type CreateAdministratorParams struct {
 
 type Repository interface {
 	AdministratorInitialized(context.Context) (bool, error)
-	CreateAdministrator(context.Context, CreateAdministratorParams) (Administrator, error)
+	CreateAdministratorWithSession(
+		context.Context,
+		CreateAdministratorParams,
+		CreateSessionParams,
+	) (Administrator, StoredSession, error)
+	FindAdministratorCredential(context.Context, string) (AdministratorCredential, error)
+	CreateSession(context.Context, CreateSessionParams, int64) (StoredSession, error)
+	FindSession(context.Context, [sessionDigestBytes]byte) (StoredSession, error)
+	TouchSession(context.Context, TouchSessionParams) (bool, error)
+	RevokeSession(context.Context, RevokeSessionParams) (bool, error)
 }
 
 type PasswordManager interface {
@@ -64,19 +80,38 @@ type PasswordManager interface {
 type Service struct {
 	repository Repository
 	passwords  PasswordManager
+	random     io.Reader
+	now        func() time.Time
 	setupGate  chan struct{}
 }
 
-func NewService(repository Repository, passwords PasswordManager) (*Service, error) {
+type ServiceOptions struct {
+	Random io.Reader
+	Now    func() time.Time
+}
+
+func NewService(
+	repository Repository,
+	passwords PasswordManager,
+	options ServiceOptions,
+) (*Service, error) {
 	if repository == nil {
 		return nil, errors.New("authentication repository is required")
 	}
 	if passwords == nil {
 		return nil, errors.New("password manager is required")
 	}
+	if options.Random == nil {
+		options.Random = rand.Reader
+	}
+	if options.Now == nil {
+		options.Now = time.Now
+	}
 	return &Service{
 		repository: repository,
 		passwords:  passwords,
+		random:     options.Random,
+		now:        options.Now,
 		setupGate:  make(chan struct{}, 1),
 	}, nil
 }
@@ -98,47 +133,53 @@ func (service *Service) SetupState(ctx context.Context) (SetupState, error) {
 func (service *Service) Initialize(
 	ctx context.Context,
 	params InitializeParams,
-) (Administrator, error) {
+) (EstablishedSession, error) {
 	if ctx == nil {
-		return Administrator{}, errors.New("authentication context is nil")
+		return EstablishedSession{}, errors.New("authentication context is nil")
 	}
 
 	username, usernameKey, err := NormalizeUsername(params.Username)
 	if err != nil {
-		return Administrator{}, err
+		return EstablishedSession{}, err
 	}
 	displayName, err := NormalizeDisplayName(params.DisplayName)
 	if err != nil {
-		return Administrator{}, err
+		return EstablishedSession{}, err
 	}
 	if err := ValidatePassword(params.Password); err != nil {
-		return Administrator{}, err
+		return EstablishedSession{}, err
 	}
 
 	select {
 	case service.setupGate <- struct{}{}:
 		defer func() { <-service.setupGate }()
 	default:
-		return Administrator{}, ErrSetupInProgress
+		return EstablishedSession{}, ErrSetupInProgress
 	}
 
 	state, err := service.SetupState(ctx)
 	if err != nil {
-		return Administrator{}, err
+		return EstablishedSession{}, err
 	}
 	if state == SetupComplete {
-		return Administrator{}, ErrSetupClosed
+		return EstablishedSession{}, ErrSetupClosed
 	}
 
 	verifier, err := service.passwords.Hash(ctx, params.Password)
 	if err != nil {
-		return Administrator{}, fmt.Errorf("create password verifier: %w", err)
+		return EstablishedSession{}, fmt.Errorf("create password verifier: %w", err)
 	}
 	if ctx.Err() != nil {
-		return Administrator{}, ctx.Err()
+		return EstablishedSession{}, ctx.Err()
 	}
 
-	administrator, err := service.repository.CreateAdministrator(
+	secrets, err := issueSessionSecrets(service.random)
+	if err != nil {
+		return EstablishedSession{}, err
+	}
+	now := service.now().UTC()
+	sessionParams := newCreateSessionParams(0, 1, secrets, now)
+	administrator, session, err := service.repository.CreateAdministratorWithSession(
 		ctx,
 		CreateAdministratorParams{
 			Username:         username,
@@ -146,9 +187,10 @@ func (service *Service) Initialize(
 			DisplayName:      displayName,
 			PasswordVerifier: verifier,
 		},
+		sessionParams,
 	)
 	if err != nil {
-		return Administrator{}, fmt.Errorf("persist administrator: %w", err)
+		return EstablishedSession{}, fmt.Errorf("persist administrator and session: %w", err)
 	}
-	return administrator, nil
+	return establishedSession(administrator, session, secrets), nil
 }

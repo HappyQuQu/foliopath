@@ -32,9 +32,20 @@ func TestAuthenticationRepositoryPersistsAdministratorAtomically(t *testing.T) {
 			Parameters:  "v=19,m=65536,t=3,p=4",
 		},
 	}
-	administrator, err := store.CreateAdministrator(ctx, params)
+	sessionParams := auth.CreateSessionParams{
+		AuthVersion:   1,
+		TokenHash:     [32]byte{0x11},
+		CSRFTokenHash: [32]byte{0x22},
+		CreatedAtMS:   now.UnixMilli(),
+		ExpiresAtMS:   now.Add(auth.SessionLifetime).UnixMilli(),
+	}
+	administrator, session, err := store.CreateAdministratorWithSession(
+		ctx,
+		params,
+		sessionParams,
+	)
 	if err != nil {
-		t.Fatalf("CreateAdministrator() error = %v", err)
+		t.Fatalf("CreateAdministratorWithSession() error = %v", err)
 	}
 	if administrator.ID <= 0 ||
 		administrator.Username != params.Username ||
@@ -42,6 +53,16 @@ func TestAuthenticationRepositoryPersistsAdministratorAtomically(t *testing.T) {
 		administrator.CreatedAtMS != now.UnixMilli() ||
 		administrator.UpdatedAtMS != now.UnixMilli() {
 		t.Fatalf("administrator = %#v", administrator)
+	}
+	if session.ID <= 0 || session.ExpiresAtMS != sessionParams.ExpiresAtMS {
+		t.Fatalf("session = %#v", session)
+	}
+	var sessionCount int
+	if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sessions`).Scan(&sessionCount); err != nil {
+		t.Fatalf("count initial sessions: %v", err)
+	}
+	if sessionCount != 1 {
+		t.Fatalf("initial session count = %d, want 1", sessionCount)
 	}
 
 	var (
@@ -84,8 +105,191 @@ func TestAuthenticationRepositoryPersistsAdministratorAtomically(t *testing.T) {
 	if err != nil || !initialized {
 		t.Fatalf("completed AdministratorInitialized() = %t, %v", initialized, err)
 	}
-	if _, err := store.CreateAdministrator(ctx, params); !errors.Is(err, auth.ErrSetupClosed) {
-		t.Fatalf("second CreateAdministrator() error = %v, want ErrSetupClosed", err)
+	if _, _, err := store.CreateAdministratorWithSession(
+		ctx,
+		params,
+		sessionParams,
+	); !errors.Is(err, auth.ErrSetupClosed) {
+		t.Fatalf("second CreateAdministratorWithSession() error = %v, want ErrSetupClosed", err)
+	}
+}
+
+func TestAuthenticationRepositoryManagesSessionLifecycle(t *testing.T) {
+	now := time.UnixMilli(1700000000000)
+	store, _ := openTestStoreWithOptions(t, Options{})
+	ctx := context.Background()
+	administrator, _, err := store.CreateAdministratorWithSession(
+		ctx,
+		testAdministratorParams(),
+		testSessionParams(0, 0x11, now, now.Add(auth.SessionLifetime)),
+	)
+	if err != nil {
+		t.Fatalf("create administrator: %v", err)
+	}
+
+	credential, err := store.FindAdministratorCredential(ctx, "administrator")
+	if err != nil {
+		t.Fatalf("FindAdministratorCredential() error = %v", err)
+	}
+	if credential.ID != administrator.ID ||
+		credential.AuthVersion != 1 ||
+		credential.Disabled ||
+		credential.PasswordVerifier != testAdministratorParams().PasswordVerifier {
+		t.Fatalf("credential = %#v", credential)
+	}
+	if _, err := store.FindAdministratorCredential(
+		ctx,
+		"missing",
+	); !errors.Is(err, auth.ErrAdministratorNotFound) {
+		t.Fatalf("missing credential error = %v", err)
+	}
+
+	oldSession := testSessionParams(
+		administrator.ID,
+		0x31,
+		now.Add(-72*time.Hour),
+		now.Add(-48*time.Hour),
+	)
+	if _, err := store.CreateSession(
+		ctx,
+		oldSession,
+		now.Add(-96*time.Hour).UnixMilli(),
+	); err != nil {
+		t.Fatalf("create old session: %v", err)
+	}
+	activeParams := testSessionParams(
+		administrator.ID,
+		0x41,
+		now,
+		now.Add(auth.SessionLifetime),
+	)
+	active, err := store.CreateSession(
+		ctx,
+		activeParams,
+		now.Add(-24*time.Hour).UnixMilli(),
+	)
+	if err != nil {
+		t.Fatalf("create active session: %v", err)
+	}
+
+	record, err := store.FindSession(ctx, activeParams.TokenHash)
+	if err != nil {
+		t.Fatalf("FindSession() error = %v", err)
+	}
+	if record.ID != active.ID ||
+		record.Administrator.ID != administrator.ID ||
+		record.AuthVersion != 1 ||
+		record.UserAuthVersion != 1 ||
+		record.RevokedAtMS != nil {
+		t.Fatalf("session record = %#v", record)
+	}
+
+	usedAt := now.Add(time.Minute).UnixMilli()
+	touched, err := store.TouchSession(ctx, auth.TouchSessionParams{
+		SessionID:       active.ID,
+		TokenHash:       activeParams.TokenHash,
+		ExpectedVersion: 1,
+		UsedAtMS:        usedAt,
+	})
+	if err != nil || !touched {
+		t.Fatalf("TouchSession() = %t, %v", touched, err)
+	}
+	var (
+		storedCSRF []byte
+		lastSeen   int64
+	)
+	if err := store.db.QueryRowContext(
+		ctx,
+		`SELECT csrf_token_hash, last_seen_at_ms FROM sessions WHERE id = ?`,
+		active.ID,
+	).Scan(&storedCSRF, &lastSeen); err != nil {
+		t.Fatalf("inspect touched session: %v", err)
+	}
+	if string(storedCSRF) != string(activeParams.CSRFTokenHash[:]) || lastSeen != usedAt {
+		t.Fatal("touch changed CSRF or did not persist last-seen time")
+	}
+
+	revokedAt := now.Add(2 * time.Minute).UnixMilli()
+	revoked, err := store.RevokeSession(ctx, auth.RevokeSessionParams{
+		SessionID:   active.ID,
+		TokenHash:   activeParams.TokenHash,
+		RevokedAtMS: revokedAt,
+	})
+	if err != nil || !revoked {
+		t.Fatalf("RevokeSession() = %t, %v", revoked, err)
+	}
+	record, err = store.FindSession(ctx, activeParams.TokenHash)
+	if err != nil || record.RevokedAtMS == nil || *record.RevokedAtMS != revokedAt {
+		t.Fatalf("revoked session = %#v, %v", record, err)
+	}
+	if revoked, err := store.RevokeSession(ctx, auth.RevokeSessionParams{
+		SessionID:   active.ID,
+		TokenHash:   activeParams.TokenHash,
+		RevokedAtMS: revokedAt,
+	}); err != nil || revoked {
+		t.Fatalf("second RevokeSession() = %t, %v; want false", revoked, err)
+	}
+
+	var obsoleteCount int
+	if err := store.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*) FROM sessions WHERE token_hash = ?`,
+		oldSession.TokenHash[:],
+	).Scan(&obsoleteCount); err != nil {
+		t.Fatalf("inspect obsolete session: %v", err)
+	}
+	if obsoleteCount != 0 {
+		t.Fatal("obsolete expired session was not cleaned up")
+	}
+}
+
+func TestAuthenticationRepositoryRollsBackAdministratorWhenInitialSessionFails(t *testing.T) {
+	now := time.UnixMilli(1700000000000)
+	store, _ := openTestStoreWithOptions(t, Options{})
+	invalidSession := testSessionParams(0, 0x51, now, now)
+
+	if _, _, err := store.CreateAdministratorWithSession(
+		context.Background(),
+		testAdministratorParams(),
+		invalidSession,
+	); err == nil {
+		t.Fatal("CreateAdministratorWithSession() unexpectedly succeeded")
+	}
+	initialized, err := store.AdministratorInitialized(context.Background())
+	if err != nil {
+		t.Fatalf("AdministratorInitialized() error = %v", err)
+	}
+	if initialized {
+		t.Fatal("failed initial session left an administrator behind")
+	}
+}
+
+func testAdministratorParams() auth.CreateAdministratorParams {
+	return auth.CreateAdministratorParams{
+		Username:    "Administrator",
+		UsernameKey: "administrator",
+		DisplayName: "Home Admin",
+		PasswordVerifier: auth.PasswordVerifier{
+			EncodedHash: "$argon2id$encoded",
+			Scheme:      "argon2id",
+			Parameters:  "v=19,m=65536,t=3,p=4",
+		},
+	}
+}
+
+func testSessionParams(
+	userID int64,
+	value byte,
+	createdAt time.Time,
+	expiresAt time.Time,
+) auth.CreateSessionParams {
+	return auth.CreateSessionParams{
+		UserID:        userID,
+		AuthVersion:   1,
+		TokenHash:     [32]byte{value},
+		CSRFTokenHash: [32]byte{value + 1},
+		CreatedAtMS:   createdAt.UnixMilli(),
+		ExpiresAtMS:   expiresAt.UnixMilli(),
 	}
 }
 

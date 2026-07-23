@@ -95,17 +95,79 @@ func (service *databaseService) AdministratorInitialized(ctx context.Context) (b
 	return store.AdministratorInitialized(ctx)
 }
 
-func (service *databaseService) CreateAdministrator(
+func (service *databaseService) CreateAdministratorWithSession(
 	ctx context.Context,
 	params auth.CreateAdministratorParams,
-) (auth.Administrator, error) {
+	session auth.CreateSessionParams,
+) (auth.Administrator, auth.StoredSession, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 	store := service.store
 	if store == nil {
-		return auth.Administrator{}, auth.ErrRepositoryNotReady
+		return auth.Administrator{}, auth.StoredSession{}, auth.ErrRepositoryNotReady
 	}
-	return store.CreateAdministrator(ctx, params)
+	return store.CreateAdministratorWithSession(ctx, params, session)
+}
+
+func (service *databaseService) FindAdministratorCredential(
+	ctx context.Context,
+	usernameKey string,
+) (auth.AdministratorCredential, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.AdministratorCredential{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.FindAdministratorCredential(ctx, usernameKey)
+}
+
+func (service *databaseService) CreateSession(
+	ctx context.Context,
+	params auth.CreateSessionParams,
+	obsoleteCutoffMS int64,
+) (auth.StoredSession, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.StoredSession{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.CreateSession(ctx, params, obsoleteCutoffMS)
+}
+
+func (service *databaseService) FindSession(
+	ctx context.Context,
+	tokenHash [32]byte,
+) (auth.StoredSession, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.StoredSession{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.FindSession(ctx, tokenHash)
+}
+
+func (service *databaseService) TouchSession(
+	ctx context.Context,
+	params auth.TouchSessionParams,
+) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return false, auth.ErrRepositoryNotReady
+	}
+	return service.store.TouchSession(ctx, params)
+}
+
+func (service *databaseService) RevokeSession(
+	ctx context.Context,
+	params auth.RevokeSessionParams,
+) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return false, auth.ErrRepositoryNotReady
+	}
+	return service.store.RevokeSession(ctx, params)
 }
 
 func prepareDataRoot(dataRoot string) error {

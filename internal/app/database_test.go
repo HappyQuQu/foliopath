@@ -29,9 +29,10 @@ func TestDatabaseServiceRejectsAuthenticationAccessOutsideLifecycle(t *testing.T
 	if err := component.stop(context.Background()); err != nil {
 		t.Fatalf("stop database: %v", err)
 	}
-	if _, err := service.CreateAdministrator(
+	if _, _, err := service.CreateAdministratorWithSession(
 		context.Background(),
 		auth.CreateAdministratorParams{},
+		auth.CreateSessionParams{},
 	); !errors.Is(err, auth.ErrRepositoryNotReady) {
 		t.Fatalf("create after stop error = %v, want repository not ready", err)
 	}

@@ -32,6 +32,11 @@ var (
 		argon2idIterations,
 		argon2idParallelism,
 	)
+	dummyPasswordVerifier = PasswordVerifier{
+		EncodedHash: "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		Scheme:      argon2idScheme,
+		Parameters:  argon2idParameters,
+	}
 )
 
 type Argon2idPasswordManager struct {
