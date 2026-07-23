@@ -192,7 +192,7 @@ jobs:
           image="foliopath-fs05:${GITHUB_SHA}-${{ matrix.arch }}"
           docker run --rm --entrypoint ffmpeg "$image" -hide_banner -version
           docker run --rm --entrypoint sh "$image" -c \
-            "dpkg-query -W ffmpeg libvips42 && du -sh /"
+            "dpkg-query -W ffmpeg libvips42"
           docker image inspect "$image" \
             --format 'platform={{.Os}}/{{.Architecture}} size={{.Size}} digest={{.Id}}'
 

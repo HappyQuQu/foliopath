@@ -11,8 +11,10 @@ docker run --rm \
   --mount "type=bind,src=$PWD,dst=/src,readonly" \
   "$syft_image" dir:/src -o spdx-json >"$output_dir/source.spdx.json"
 
-npm sbom --prefix web --package-lock-only --sbom-format spdx \
-  >"$output_dir/npm.spdx.json"
+(
+  cd web
+  npm sbom --package-lock-only --sbom-format spdx
+) >"$output_dir/npm.spdx.json"
 
 docker run --rm \
   --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
