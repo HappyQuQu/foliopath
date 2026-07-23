@@ -23,7 +23,7 @@
 当前两个工作流分别看：
 
 ```text
-后端：S1-001 ✅ → S1-002 应用组合 ← 当前 → 认证 Backend Ready
+后端：S1-001～002 ✅ → S1-003 启动配置 ← 当前 → 认证 Backend Ready
 前端：静态原型（独立任务）→ S1-201 应用壳 → 登录界面
 共同：Contract Ready → Backend Ready → Integrated Done
 ```
@@ -146,7 +146,7 @@
 
 [查看后端开发清单](backend-task-list.md)
 
-- 当前：`S1-002` 应用组合根与生命周期。
+- 当前：`S1-003` 经过验证的启动配置。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 
