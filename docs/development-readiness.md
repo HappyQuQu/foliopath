@@ -12,9 +12,10 @@ Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成�
 双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令和退出码已经建立；
 `internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
 有界停机；启动配置已固定 `/library`、`/app/data`、单监听地址和认证前回环限制。当前还没有
-健康/状态或业务 handler、数据库启动接线、React 产品应用、正式 Dockerfile、浏览器 E2E 或
-可发布镜像；HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离与
-在途请求排空。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
+业务 handler、数据库启动接线、React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；
+HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
+liveness/readiness 和受保护系统状态；数据库接线前 readiness 保持 503，系统状态在认证前默认
+拒绝。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
 
@@ -31,7 +32,7 @@ ADR 流程。
 | 领域 | 开始实现前所需产物 | 当前判断 |
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
-| 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件与生命周期已有单元测试，数据库运行拓扑尚未验证 |
+| 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态与生命周期已有单元测试，数据库运行拓扑尚未验证 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；FS-05 已验证离线恢复、重复 migration 和损坏/满盘失败关闭；真实版本升级仍待 Release Gate |

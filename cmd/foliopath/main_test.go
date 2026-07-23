@@ -36,6 +36,9 @@ func TestExecuteDelegatesDefaultServeInput(t *testing.T) {
 	if want := []string{"FOLIOPATH_TEST=value"}; !reflect.DeepEqual(received.Environ, want) {
 		t.Fatalf("delegated environment = %q, want %q", received.Environ, want)
 	}
+	if received.Version != "test" {
+		t.Fatalf("delegated version = %q, want test", received.Version)
+	}
 	if stdout.Len() != 0 || stderr.Len() != 0 {
 		t.Fatalf("unexpected output: stdout = %q, stderr = %q", stdout.String(), stderr.String())
 	}

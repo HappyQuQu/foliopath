@@ -19,8 +19,9 @@
 `cmd/foliopath` 已建立并只调用 `internal/app.Run`；`internal/app` 已拥有经过验证的固定
 `/library`、`/app/data` 和认证前回环监听配置，以及进程根取消、唯一组合入口、顺序启动、
 失败回滚、运行故障传播、反向关闭和有界停机。当前已接入单 HTTP listener、服务端 request ID、
-统一安全错误、JSON 日志与在途请求排空，但尚无健康/状态路由、数据库或业务 handler，因此仍
-不是可用的产品服务。认证、React 产品应用、
+统一安全错误、JSON 日志、在途请求排空、liveness/readiness 和受保护的系统状态路由。数据库与
+migration 尚未接线，因此 readiness 正确返回 503；系统状态在认证实现前保持默认拒绝。当前仍
+没有可用的业务 handler。认证、React 产品应用、
 完整媒体 adapter、Docker 和发布运维链路仍未建立。
 详细状态见[开发就绪评审](../development-readiness.md)。
 

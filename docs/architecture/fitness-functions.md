@@ -35,7 +35,7 @@ make test-e2e
 | AF-001 | Go 依赖只向内，handler 不依赖 SQLite/files，能力包不依赖 adapter/app | `make arch-check` 解析实际 Go import graph | **本地与 CI 已执行**：首次原生 amd64/arm64 PR CI 通过 | 持续强制 |
 | AF-002 | 不出现无所有权的 `utils/common/helpers/base` 或无外部消费者的 `pkg/` | `make arch-check` 检查 Go package | **本地与 CI 已执行**：首次原生 amd64/arm64 PR CI 通过 | 持续强制 |
 | AF-003 | 冻结 scope revision 不被静默改写；每项工作关联需求、目标版本、capability 与 Gate | scope manifest/revision、Change Record、Gate/PR 链接检查 | 计划门禁 | 首个产品 PR 前 |
-| AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；生产 request ID 与统一安全错误基础已有测试，具体路由实现一致性尚未证明 | 首个 handler 前 |
+| AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；生产 request ID、统一安全错误、health/readiness/status handler 已有契约形状测试，其余业务路由实现一致性尚未证明 | 首个 handler 前 |
 | AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | 部分执行；已有初始迁移与 SQLite 测试 | 首个预览版前 |
 | AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **Stage 0 范围已执行**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、HTTP harness 已通过；生产 handler/auth 由首个受保护 API Backend Gate 强制，发布 volume/unmount 由 FS-05/Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | 部分执行；FS-02 当前 scope 通过 | 持续，发布前补强杀/磁盘故障 |

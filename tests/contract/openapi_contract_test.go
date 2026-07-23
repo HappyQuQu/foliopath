@@ -748,11 +748,19 @@ func TestScanAndAssetContractMatchesDomainAndMigration(t *testing.T) {
 		}
 	}
 
-	formatSource := readRepositoryFile(t, "internal", "scanner", "formats.go")
+	formatSource := readRepositoryFile(t, "internal", "media", "formats.go")
 	if !regexp.MustCompile(
-		`"\.gif"\s*:\s*\{\s*AssetKindAnimated\s*,\s*MediaFormatGIF\s*,\s*"image/gif"\s*\}`,
+		`"\.gif"\s*:\s*\{\s*KindAnimated\s*,\s*FormatGIF\s*,\s*"image/gif"\s*\}`,
 	).MatchString(formatSource) {
-		t.Error("scanner format classification does not map GIF to the animated asset kind")
+		t.Error("canonical media format registry does not map GIF to the animated asset kind")
+	}
+
+	scannerFormatSource := readRepositoryFile(t, "internal", "scanner", "formats.go")
+	if !regexp.MustCompile(`media\.ClassifyPath\(relativePath\)`).MatchString(scannerFormatSource) {
+		t.Error("scanner format classification must delegate to the canonical media registry")
+	}
+	if strings.Contains(scannerFormatSource, "supportedExtensions") {
+		t.Error("scanner must not maintain a second supported media format registry")
 	}
 
 	migration := readRepositoryFile(t, "migrations", "00001_initial.sql")

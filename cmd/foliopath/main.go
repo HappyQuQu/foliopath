@@ -69,6 +69,7 @@ func execute(
 	if err := run(app.Input{
 		Args:    slices.Clone(appArgs),
 		Environ: slices.Clone(environ),
+		Version: normalizedVersion(buildVersion),
 	}); err != nil {
 		// Detailed startup errors belong to the structured application logger.
 		// The process boundary emits a stable message so paths, SQL, or secrets

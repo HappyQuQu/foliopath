@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-004` Go 入口、组合生命周期、启动配置和 HTTP 运行边界
-- 当前任务：`S1-005` liveness、readiness 与安全状态接口
+- 已完成：`S1-001`～`S1-005` Go/HTTP 运行骨架和健康状态边界
+- 当前任务：`S1-006` 空数据目录启动、migration 与重复启动
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -25,7 +25,9 @@
 - [x] `S1-004` 实现结构化日志、request ID、错误脱敏和优雅停机。
   - 完成证据：JSON 结构化日志与敏感属性脱敏、服务端 request ID、统一安全 JSON
     404/500、panic 前后响应提交行为、HTTP runtime 错误隐藏、监听失败和在途请求有界排空测试。
-- [ ] `S1-005` 实现 `/health/live`、`/health/ready` 与 `/api/v1/status`。
+- [x] `S1-005` 实现 `/health/live`、`/health/ready` 与 `/api/v1/status`。
+  - 完成证据：liveness 最小披露、readiness 安全原因/未知原因脱敏/Retry-After/停机转换、
+    status 默认拒绝未认证及授权成功/内部失败测试；数据库接线前生产 readiness 明确返回 503。
 - [ ] `S1-006` 从空数据目录启动并执行嵌入 migration；验证重复启动和迁移失败行为。
 - [ ] `S1-007` 建立 `sqlc` 配置、查询源、生成目录和确定性 `generate-check`。
 - [ ] `S1-008` 增加运行应用的集成测试、取消测试和最小容器 smoke。
