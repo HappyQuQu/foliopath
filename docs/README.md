@@ -12,8 +12,8 @@
 | 了解项目 | [项目 README](../README.md) | [产品需求](product-requirements.md)、[可行性研究](feasibility-study.md)、[路线图](roadmap.md) |
 | 确认产品范围 | [MVP scope manifest](releases/MVP-2026-07-23-scope.md) | [需求确认清单](requirements-checklist.md)、[产品需求](product-requirements.md)、[用户流程](user-flows.md) |
 | 设计界面 | [界面设计规范](ui-design.md) | [前端架构](architecture/frontend.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
-| 开发后端或扫描器 | [系统架构档案](architecture/README.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
-| 开发前端 | [前端架构](architecture/frontend.md) | [界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
+| 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
+| 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
 | 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
@@ -27,7 +27,9 @@
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。
-- [开发任务清单](task-list.md)：按 Gate 和后端优先顺序组织的可勾选任务、依赖与完成证据。
+- [开发任务清单](task-list.md)：总进度、前后端交接点和共同发布任务。
+- [后端开发清单](backend-task-list.md)：Go、API、SQLite、认证、扫描与媒体服务任务。
+- [前端开发清单](frontend-task-list.md)：React、设计系统、页面、交互与浏览器测试任务。
 - [术语表](glossary.md)：统一 `/library`、媒体库、目录、递归浏览、扫描和派生数据等词义。
 
 ## 可行性与开工准备
