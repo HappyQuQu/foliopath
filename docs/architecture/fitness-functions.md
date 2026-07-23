@@ -37,7 +37,7 @@ make test-e2e
 | AF-003 | 冻结 scope revision 不被静默改写；每项工作关联需求、目标版本、capability 与 Gate | scope manifest/revision、Change Record、Gate/PR 链接检查 | 计划门禁 | 首个产品 PR 前 |
 | AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；生产实现一致性尚未证明 | 首个 handler 前 |
 | AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | 部分执行；已有初始迁移与 SQLite 测试 | 首个预览版前 |
-| AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **部分执行**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、HTTP test harness 已通过；生产 handler/认证错误边界、只读发布 volume 与运行期 unmount 未测，FS-01 仍 Conditional | 首个受保护文件 API 前 |
+| AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **Stage 0 范围已执行**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、HTTP harness 已通过；生产 handler/auth 由首个受保护 API Backend Gate 强制，发布 volume/unmount 由 FS-05/Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | 部分执行；FS-02 当前 scope 通过 | 持续，发布前补强杀/磁盘故障 |
 | AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | 计划门禁 | 对应 worker 合入前 |
 | AF-009 | 前端依赖方向、共享组件唯一所有权与 token 单一来源 | TypeScript boundary/cycle lint、受限基础库/import 位置 allowlist、token lint、组件目录检查 | **部分执行**：strict TypeScript、唯一生成 client 边界及禁止散落 `fetch` 的架构测试已通过；React、组件/token/cycle 门禁尚未建立 | 首个业务 feature 前 |

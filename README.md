@@ -10,7 +10,7 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 
 > [!IMPORTANT]
 > FolioPath 目前处于规划与早期开发阶段，尚无可启动的应用或发布镜像。FS-01 已在
-> Linux/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
+> 原生 Linux amd64/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
 > FS-02 当前正确性范围通过，FS-03/FS-04 取得局部证据；OpenAPI 生成类型、唯一 Web API
 > 客户端边界和 CI 工作流已建立，首次原生 amd64/arm64 CI 全部通过。这些结果仍不足以进入产品功能开发，
 > Stage 0 整体保持 Conditional Go。本文档中的功能和配置可能会调整。
@@ -179,10 +179,10 @@ FolioPath 采用单体、单进程、单端口架构：
 入口、React 产品前端、Dockerfile、认证实现或媒体处理链路。仓库已有契约生成基础与 CI
 工作流定义，首次原生 amd64/arm64 CI 已通过；这仍不是可发布应用证据。
 
-- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Conditional**。Darwin 与原生
+- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Passed（Stage 0 范围）**。Darwin 与原生
   Linux amd64/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
-  HTTP test harness 已通过；生产 handler、认证/错误 envelope、只读发布 volume、运行期
-  unmount 和 Linux/amd64 仍未验证。
+  HTTP test harness 已通过；生产 handler/auth 转入首个受保护 API Backend Gate，只读发布
+  volume 与运行期 unmount 转入 FS-05/Release Gate。
 - [FS-02 SQLite 与扫描 generation](docs/spikes/fs-02-sqlite-generation.md)：**当前正确性范围通过**。真实文件 SQLite、Goose、WAL、故障/取消/离线/重启保留、原子 finalize 与跨媒体库隔离已有自动化证据；磁盘满、真实强杀、长期 WAL 压力及备份恢复仍未验证。
 - [FS-03 媒体矩阵](docs/spikes/fs-03-media-matrix.md)：**Conditional**。本机合成格式、
   FFmpeg 探测、视频封面、动画 GIF 和截断视频拒绝已有证据；libvips、生产任务隔离、浏览器
@@ -201,10 +201,10 @@ FolioPath 采用单体、单进程、单端口架构：
 - [x] 确认 MVP 需求基线（RQ-001～RQ-014 全部采用 A）
 - [x] FS-02 SQLite/generation 当前正确性验证
 - [x] 第一版权威 OpenAPI 契约与离线契约检查
-- [x] FS-01 Linux/arm64 `openat2` mount 边界与 HTTP test harness 子范围
+- [x] FS-01 原生 Linux amd64/arm64 `openat2` mount 边界与 Stage 0 HTTP harness 范围
 - [x] FS-04 目标档的扫描/索引子范围
-- [ ] 完成 FS-01 生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount 与
-  Linux/amd64 验证
+- [ ] 在对应 Backend/Release Gate 完成生产 handler/auth、只读发布 volume、运行期 unmount
+  与长期 churn；不反向阻断 FS-01 Stage 0 可行性结论
 - [ ] 完成 FS-03 libvips、媒体任务、浏览器和双架构矩阵（首轮为 Conditional）
 - [ ] 完成 FS-04 代表性存储与完整媒体/搜索/HTTP/前端容量验证
 - [ ] 项目脚手架、数据库迁移和基础 API

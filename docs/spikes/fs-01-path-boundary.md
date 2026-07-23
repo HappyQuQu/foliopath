@@ -2,7 +2,7 @@
 
 ## 结论
 
-- **状态：Conditional（有条件通过）**
+- **状态：Passed（Stage 0 路径可行性范围）**
 - **验证日期：2026-07-23**
 - **验证环境：macOS（Darwin/arm64）、Linux 6.12.76-linuxkit/arm64，以及 GitHub-hosted
   原生 Linux amd64/arm64 runners；Go 1.26.4**
@@ -22,9 +22,11 @@ RESOLVE_NO_XDEV` 打开所有实际文件和目录句柄。高权限 mount names
 `VerifyAt`、从挂载点开始的 `Walk` 以及从媒体根遍历时都不会进入挂载内容。
 修复前同设备用例曾确定失败，修复后相同探针通过。
 
-FS-01 仍为 Conditional：生产 HTTP handler、认证/错误 envelope、只读发布 volume和
-运行期挂载消失尚未验证；非 Linux fallback 也不宣称具备 Linux
-`openat2` 的原子 no-mount-crossing 保证。
+依据 [S0-105 Gate allocation record](../gates/MVP-2026-07-23/s0-105-gate-order.md)，
+生产 HTTP handler、认证/错误 envelope 被分配到首个受保护文件 API 的 Backend Gate；
+只读发布 volume 和运行期挂载消失被分配到 FS-05/Release Gate。这些要求仍是强制阻断项，
+但不再与禁止生产 handler 的 Stage 0 可行性范围形成循环。非 Linux fallback 也不宣称具备
+Linux `openat2` 的原子 no-mount-crossing 保证。
 
 ## 目标与范围
 
@@ -219,8 +221,8 @@ docker run --rm --platform linux/arm64 \
 ## 决策与下一步
 
 - 保留 `internal/files` 作为唯一文件系统访问边界。Linux 同设备 bind mount 缺陷
-  已修复并有内核级验收证据；FS-01 仍因生产 HTTP 与发布容器证据缺失而保持
-  Conditional，不能以本 spike 代替完整发布门槛。
+  已修复并有内核级双架构验收证据；FS-01 的 Stage 0 路径可行性范围通过，但不能以本
+  spike 代替生产 HTTP Backend Gate 或完整发布门槛。
 - 保留 `fsboundary` tagged acceptance probe，并仅在隔离的 privileged CI 测试容器中运行；
   普通应用容器本身不获得任何 mount capability。
 - 将 Linux `openat2` 支持与 seccomp compatibility 纳入发布环境检查；不允许在

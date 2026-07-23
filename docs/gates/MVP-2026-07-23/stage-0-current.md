@@ -13,13 +13,14 @@
   - [FS-02 SQLite/generation](../../spikes/fs-02-sqlite-generation.md)
   - [FS-03 媒体矩阵](../../spikes/fs-03-media-matrix.md)
   - [FS-04 容量基线](../../spikes/fs-04-capacity-baseline.md)
+  - [S0-105 Gate allocation record](s0-105-gate-order.md)
   - [权威 OpenAPI 契约](../../../api/openapi.yaml)
   - [架构适配度检查](../../architecture/fitness-functions.md)
   - [测试策略](../../testing-strategy.md)
   - [风险登记](../../risk-register.md)
 - 已验证事实：
   - FS-01：Darwin 与原生 Linux amd64/arm64 路径矩阵、Linux `openat2` 同/跨设备及 self-bind mount
-    拒绝、真实 HTTP test harness 子范围通过，结论仍为 Conditional
+    拒绝、真实 HTTP test harness 的 Stage 0 路径可行性范围通过
   - FS-02：当前 SQLite/generation 正确性 scope 通过
   - FS-03：合成媒体与本机 FFmpeg 子范围有证据，结论仍为 Conditional
   - FS-04：Linux/arm64 四核、4 GiB、10 万媒体/1 万目录扫描/索引子范围通过，结论仍为
@@ -34,7 +35,6 @@
     amd64/arm64 Go/race、合成媒体、mount-boundary 和 Web contract 7 个 jobs 全部通过；
     Web contract 对真实 base branch 的语义兼容比较通过
 - 未关闭条件：
-  - FS-01：生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount
   - FS-03：libvips/govips、生产任务隔离、浏览器直放、双架构最终镜像
   - FS-04：代表性存储、RSS、完整媒体/缩略图、FTS/keyset、生产 HTTP/前端并发与趋势
   - FS-05：双架构镜像、非 root/只读挂载、健康检查、备份恢复、升级和许可证追踪
@@ -43,8 +43,10 @@
 - Fallback：失败时缩小已承诺的平台、格式或规模并记录变更/Gate；不得降低原文件只读、路径
   失败关闭、失败扫描不清理旧索引或认证边界
 - 结论：`Conditional Go`
-- Conditional Owner 与复审触发：FS-01/安全负责人、FS-03/媒体处理负责人、FS-04/技术负责人、
-  FS-05/发布负责人、契约与 CI/架构负责人；上述缺失证据写回对应报告、风险和本 Gate 后复审
+- Conditional Owner 与复审触发：FS-03/媒体处理负责人、FS-04/技术负责人、
+  FS-05/发布负责人、契约与 CI/架构负责人；上述缺失证据写回对应报告、风险和本 Gate 后复审。
+  FS-01 的生产 HTTP/auth 要求转入首个受保护 API Backend Gate，发布挂载/运行期故障转入
+  FS-05/Release Gate，仍由安全负责人签署
 - 下一步获准范围：剩余 spike、完善生成/兼容性/CI 契约护栏、架构检查，以及不进入生产
   import graph且不扩大信任边界的时间盒实验脚手架；**不允许产品功能开发、生产 feature
   handler、业务 UI 或稳定发布**

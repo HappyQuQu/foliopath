@@ -46,7 +46,8 @@ Stage 0 剩余证据
 - [x] `S0-007` 建立固定 Node/npm/Go 工具链、lockfile 和 high-severity npm audit。
 - [x] `S0-008` 定义原生 linux/amd64 与 linux/arm64 Go、媒体和 mount-boundary CI jobs。
 - [x] `S0-009` FS-02 当前 SQLite/generation 正确性范围通过。
-- [x] `S0-010` FS-01 Linux/arm64 `openat2` mount 边界与真实 HTTP harness 子范围通过。
+- [x] `S0-010` FS-01 原生 Linux amd64/arm64 `openat2` mount 边界与真实 HTTP harness
+  的 Stage 0 可行性范围通过。
 - [x] `S0-011` FS-03 Darwin/arm64 与 Linux/amd64 QEMU 合成 FFmpeg 子范围通过。
 - [x] `S0-012` FS-04 Linux/arm64 目标容量扫描/索引子范围通过。
 
@@ -67,10 +68,11 @@ Stage 0 剩余证据
   - 依赖：`S0-101`、`S0-103`。
   - 当前证据：合成 FFmpeg/webp 子矩阵已在 PR #1 两架构通过。
   - 完成证据：加入 `S0-103` 的 libvips/govips 后，两架构完整 codec、失败行为和依赖版本对比记录。
-- [ ] `S0-105` 解决 Stage 0 与 FS-01“生产 handler 证据”的门禁顺序。
+- [x] `S0-105` 解决 Stage 0 与 FS-01“生产 handler 证据”的门禁顺序。
   - 当前冲突：Stage 0 禁止生产 feature handler，但 FS-01 完整关闭条件包含生产 handler。
-  - 完成方式：通过 Gate/治理记录，将该证据明确放入获准的最小安全纵向切片，或批准一个
-    不承载业务能力的边界验证入口；不得静默绕过。
+  - 完成证据：[S0-105 Gate allocation record](gates/MVP-2026-07-23/s0-105-gate-order.md)
+    将生产 HTTP/auth 证据分配到首次受保护 API Backend Gate，将发布挂载/运行期故障分配到
+    FS-05/Release Gate；要求保持强制。
 - [ ] `S0-106` 完成 FS-04 剩余的代表性存储、RSS、FTS/keyset 和趋势预算。
   - 完成证据：可重复环境、预算、结果与超限 fallback 写回 FS-04 和风险登记。
 - [ ] `S0-107` 完成 FS-05 双架构镜像与恢复 spike。

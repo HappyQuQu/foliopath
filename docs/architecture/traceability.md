@@ -13,8 +13,9 @@
 - 已有证据只以 [spike 报告](../spikes/)、[测试策略](../testing-strategy.md)和 Gate 记录明确链接的 scope 为准。
 
 表中的“计划 API/流程”和“必需验证”是交付目标，不得据此宣称功能已可用。具体切片必须遵守[交付与架构治理](delivery-governance.md)。
-当前 Stage 0 Gate 为 `Conditional Go`：OpenAPI 已成为结构权威，FS-01/03/04 只有报告所列
-子范围证据，不允许据此开始产品功能开发或把任何切片标为 Backend Ready。
+当前 Stage 0 Gate 为 `Conditional Go`：OpenAPI 已成为结构权威，FS-01 的 Stage 0 路径范围
+和 FS-02 当前正确性范围通过；FS-03/04 只有报告所列子范围证据，不允许据此开始产品功能开发
+或把任何切片标为 Backend Ready。
 
 ## 功能需求追踪
 
@@ -34,7 +35,7 @@
 | 需求族 | 目标版本 | 范围状态 | Change Record | 架构落点 | 关键响应或约束 | 决策与风险 | 必需证据 | 适用阶段 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `NFR-SAFE-001` 原文件安全 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | `internal/files` 单一媒体访问边界；容器 `/library:ro`；服务能力不提供写原件接口 | 创建、扫描、浏览、查看、取消和移除媒体库都不能改变原媒体 | ADR-0002、ADR-0009；R-002、R-003 | [FS-01](../spikes/fs-01-path-boundary.md) 系统调用边界子范围；仍需原文件快照/哈希、生产 capability/handler 与只读发布挂载 | 0、2、5 |
-| `NFR-SEC-001～002` 路径与网络安全；`NFR-PRIV-001` 信息披露 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | `internal/files`、`internal/auth`、API middleware、错误/日志适配器、反向代理信任配置 | 逃逸与后代 mount crossing 失败关闭；无有效会话不返回业务数据；错误不泄露路径、SQL、stderr、Cookie 或令牌 | ADR-0002、ADR-0005、ADR-0009；R-002、R-010、R-012、R-016 | [FS-01](../spikes/fs-01-path-boundary.md) 已验证 Linux/arm64 openat2 同/跨设备/self-bind 与 HTTP harness；仍需生产 handler/认证错误 envelope、只读发布 volume、运行期 unmount、Linux/amd64、认证/CSRF/限流、日志与代理配置、依赖安全测试 | 0、1、2、5 |
+| `NFR-SEC-001～002` 路径与网络安全；`NFR-PRIV-001` 信息披露 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | `internal/files`、`internal/auth`、API middleware、错误/日志适配器、反向代理信任配置 | 逃逸与后代 mount crossing 失败关闭；无有效会话不返回业务数据；错误不泄露路径、SQL、stderr、Cookie 或令牌 | ADR-0002、ADR-0005、ADR-0009；R-002、R-010、R-012、R-016 | [FS-01](../spikes/fs-01-path-boundary.md) 已验证原生 Linux amd64/arm64 openat2 mount 与 HTTP harness；生产 handler/auth 由 Backend Gate 强制，发布 volume/unmount 由 FS-05/Release Gate 强制；仍需认证/CSRF/限流、日志、代理和依赖安全测试 | 0、1、2、5 |
 | `NFR-REL-001` 扫描与恢复一致性 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | scanner generation 状态机、SQLite 短事务、restart-safe jobs、原子缓存落盘 | 只有完整成功扫描可清理；崩溃、取消、离线和部分错误保留可靠状态并可收敛 | ADR-0003；R-003、R-004、R-011、R-013 | 故障注入、强杀/重启、磁盘满、迁移失败、备份恢复、完整性检查 | 0、2、5 |
 | `NFR-PERF-001～002` 资源与容量 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | 有界队列/并发、串行批量写、keyset、虚拟化、缓存水位、全局工作调度 | 四核/4 GiB、约 10 万媒体/1 万目录为主验收档；扫描时浏览仍可用，准确预算由 FS-04 固定 | ADR-0001、ADR-0003；R-005、R-009、R-013、R-015 | [FS-04](../spikes/fs-04-capacity-baseline.md) 当前扫描/索引子范围；后续 RSS/队列/WAL/媒体/HTTP/前端延迟与趋势 | 0/FS-04、2～4 |
 | `NFR-ACC-001` 可访问性 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | 语义 HTML、DOM 顺序、焦点管理、状态文案、主题与 reduced-motion token | 核心流程键盘可完成，状态不只依赖颜色，目标 WCAG 2.2 AA | UI 设计；R-015、R-016 | 键盘/焦点、读屏、对比度、缩放、forced-colors/reduced-motion 和关键 E2E | 1、3、4、5 |

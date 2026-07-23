@@ -34,8 +34,8 @@ FS-01～FS-04 的局部 spike 证据、权威 OpenAPI 契约和自动化测试�
 
 - [可行性研究](feasibility-study.md)：产品、技术、性能、媒体、SQLite、安全、运维、跨架构和许可证的条件 Go 结论。
 - [FS-01 路径边界 spike](spikes/fs-01-path-boundary.md)：Darwin 与原生 Linux amd64/arm64 路径证据、
-  Linux `openat2` 同/跨设备及 self-bind mount 拒绝、真实 HTTP test harness，以及仍缺生产
-  handler、发布 volume、运行期 unmount 的 Conditional 结论。
+  Linux `openat2` 同/跨设备及 self-bind mount 拒绝和真实 HTTP harness；Stage 0 范围已通过，
+  生产 handler/auth 与发布 volume/unmount 分别转入后续 Backend/Release Gate。
 - [FS-02 SQLite 与扫描 generation spike](spikes/fs-02-sqlite-generation.md)：真实文件数据库、WAL、迁移、故障保留和原子清理的当前正确性证据。
 - [FS-03 媒体矩阵 spike](spikes/fs-03-media-matrix.md)：合成格式矩阵、Darwin/arm64 与
   Linux/amd64 QEMU FFmpeg 探测、视频封面与损坏样本证据，以及 libvips/浏览器/原生双架构缺口。
