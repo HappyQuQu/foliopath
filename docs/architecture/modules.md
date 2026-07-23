@@ -42,7 +42,9 @@
 - `internal/media/formats.go` 已成为 MVP 扩展名、格式与 MIME 的单一注册表；scanner 通过
   `media.ClassifyPath` 使用它，系统状态通过只读副本公开同一组 MIME 能力。不得再在 scanner、
   API 或前端维护第二套独立 allowlist。
-- 当前手写 SQLite 代码和 migration 证明有限的 generation/WAL 语义；未来引入 `sqlc` 后，以 SQL 源与生成检查为准，不手改生成结果。
+- `internal/store/sqlite/queries/` 已成为迁移到生产 adapter 的 SQL 唯一来源，`dbgen/` 只由
+  固定版本 sqlc 生成。媒体库 adapter 已完成迁移；scanner 的 Stage 0 复杂批处理 SQL 在
+  Stage 2 查询/事务语义定型时迁移，不得在迁移后的 adapter 中保留同组 SQL 副本。
 
 ## 依赖矩阵
 

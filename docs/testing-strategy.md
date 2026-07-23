@@ -212,9 +212,10 @@ Range，以及 scanner/migration 的选择性关键不变量（当前为 `queued
 `startedAt`）；这不是完整领域实现一致性证明，其余 ScanRun phase/issues/cancel 等语义仍须在
 对应 handler 前的 Contract/Backend Gate 补齐。运行时不依赖 Ruby、Node 或网络。权威 OpenAPI 还通过了
 Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 4xx 响应的规则 warning，
-没有结构错误。`generate-check`、`web-check`、摘要锁和语义兼容入口已在本地通过，CI 已定义
-PR 基线比较与原生 amd64/arm64 jobs，但尚无一次执行证据。`sqlc` 生成、前端组件/token 门禁
-与 `test-e2e` 尚不存在。阶段 1 必须随相关源码补齐缺口，并保证本地与 CI 使用同一入口。
+没有结构错误。`generate-check` 同时验证固定版本 sqlc 和 OpenAPI TypeScript 生成无漂移，
+`web-check`、摘要锁和语义兼容入口已在本地通过；CI 已定义同一生成入口、PR 基线比较与原生
+amd64/arm64 jobs。前端组件/token 门禁与 `test-e2e` 尚不存在。阶段 1 必须随相关源码补齐
+缺口，并保证本地与 CI 使用同一入口。
 
 计划中的每次合并至少要求：
 
@@ -254,7 +255,7 @@ PR 基线比较与原生 amd64/arm64 jobs，但尚无一次执行证据。`sqlc`
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
-`make test-e2e`、`sqlc` 生成检查、前端 import/token lint、Storybook/组件/视觉回归、
+`make test-e2e`、前端 import/token lint、Storybook/组件/视觉回归、
 生产 HTTP/认证错误边界测试、只读发布 volume/运行期 unmount、浏览器测试、
 完整媒体/搜索/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查

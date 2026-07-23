@@ -48,6 +48,7 @@ make test-e2e
 | AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **部分执行**：FS-05 离线恢复、重复 migration、只读/满盘/损坏失败关闭通过；在线备份、强杀和真实版本升级未测 | Release Candidate 前 |
 | AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **部分执行**：Linux/arm64 tmpfs 的扫描/索引子范围通过；完整媒体/HTTP/前端与代表性存储未测 | 阶段 0 FS-04 与发布前复测 |
 | AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行**：source/npm/image SPDX 与关键 codec/license 审查通过；最终 digest attestation、漏洞与 notices 未完成 | Release Candidate 前 |
+| AF-017 | SQLite 查询以 adapter 内的 SQL 源为唯一事实，生成代码不可手改或漂移 | sqlc 固定版本、临时目录重生成 diff、生成标记与 adapter 重复 SQL 检查 | **本地执行，CI 已接线**：媒体库查询已由 `queries/` 生成到 `dbgen/` 并被 adapter 消费；scanner SQL 待 Stage 2 定型迁移 | 持续强制 |
 
 ## 前后端门禁顺序
 
