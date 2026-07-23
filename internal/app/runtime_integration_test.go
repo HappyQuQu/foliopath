@@ -71,7 +71,7 @@ func runComposedApplication(
 	})
 
 	address := waitForListenAddress(t, application.http)
-	client := &http.Client{Timeout: time.Second}
+	client := &http.Client{Timeout: runtimeIntegrationTimeout}
 	assertRuntimeResponse(t, client, address, "/health/ready", http.StatusOK, "ready")
 	assertRuntimeResponse(t, client, address, "/health/live", http.StatusOK, "live")
 	assertRuntimeResponse(
