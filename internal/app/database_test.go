@@ -9,9 +9,33 @@ import (
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
+	"github.com/HappyQuQu/foliopath/internal/auth"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 	_ "modernc.org/sqlite"
 )
+
+func TestDatabaseServiceRejectsAuthenticationAccessOutsideLifecycle(t *testing.T) {
+	component, service := newDatabaseComponent(t.TempDir(), newReadinessState())
+
+	if _, err := service.AdministratorInitialized(context.Background()); !errors.Is(
+		err,
+		auth.ErrRepositoryNotReady,
+	) {
+		t.Fatalf("state before start error = %v, want repository not ready", err)
+	}
+	if err := component.start(context.Background()); err != nil {
+		t.Fatalf("start database: %v", err)
+	}
+	if err := component.stop(context.Background()); err != nil {
+		t.Fatalf("stop database: %v", err)
+	}
+	if _, err := service.CreateAdministrator(
+		context.Background(),
+		auth.CreateAdministratorParams{},
+	); !errors.Is(err, auth.ErrRepositoryNotReady) {
+		t.Fatalf("create after stop error = %v, want repository not ready", err)
+	}
+}
 
 func TestDatabaseComponentStartsFromEmptyDataRootAndRestarts(t *testing.T) {
 	dataRoot := filepath.Join(t.TempDir(), "empty-data")
@@ -53,7 +77,15 @@ func TestDatabaseComponentStartsFromEmptyDataRootAndRestarts(t *testing.T) {
 
 	inspector := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer inspector.Close()
-	for _, table := range []string{"libraries", "scan_runs", "directories", "assets", "goose_db_version"} {
+	for _, table := range []string{
+		"libraries",
+		"scan_runs",
+		"directories",
+		"assets",
+		"users",
+		"sessions",
+		"goose_db_version",
+	} {
 		var count int
 		if err := inspector.QueryRow(
 			`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`,
@@ -65,14 +97,14 @@ func TestDatabaseComponentStartsFromEmptyDataRootAndRestarts(t *testing.T) {
 			t.Errorf("table %q count = %d, want 1", table, count)
 		}
 	}
-	var appliedInitialMigration int
+	var appliedMigrations int
 	if err := inspector.QueryRow(
-		`SELECT COUNT(*) FROM goose_db_version WHERE version_id = 1 AND is_applied = 1`,
-	).Scan(&appliedInitialMigration); err != nil {
-		t.Fatalf("inspect applied migration: %v", err)
+		`SELECT COUNT(*) FROM goose_db_version WHERE version_id IN (1, 2) AND is_applied = 1`,
+	).Scan(&appliedMigrations); err != nil {
+		t.Fatalf("inspect applied migrations: %v", err)
 	}
-	if appliedInitialMigration != 1 {
-		t.Fatalf("applied initial migration rows = %d, want 1", appliedInitialMigration)
+	if appliedMigrations != 2 {
+		t.Fatalf("applied migration rows = %d, want 2", appliedMigrations)
 	}
 }
 

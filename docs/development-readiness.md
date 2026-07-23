@@ -13,8 +13,10 @@ Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成�
 `internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
 有界停机；启动配置已固定 `/library`、`/app/data`、单监听地址和认证前回环限制。正式应用已
 接入 SQLite WAL、嵌入 migration、空数据目录准备、重复启动和迁移失败关闭，并由真实
-composition root 集成测试和测试专用非 root 容器 smoke 覆盖。当前还没有
-认证/业务 handler、React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；
+composition root 集成测试和测试专用非 root 容器 smoke 覆盖。`internal/auth` 已实现
+Argon2id 密码存储、Unicode 管理员身份规范化、单管理员原子初始化和重启状态恢复，并经
+SQLite adapter 接入 composition root。当前还没有登录/session/CSRF 或业务 handler、
+React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态在认证前默认拒绝。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
@@ -40,7 +42,7 @@ ADR 流程。
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 初始媒体 schema 与追加认证 schema 已由 Goose 执行；认证 migration 固定 singleton/password verifier/session digest/期限/撤销，真实文件数据库、重复 migration 与约束测试已通过；真实版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
-| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；生产 handler/auth 由首个受保护 API Backend Gate 阻断，发布 volume/unmount 由 FS-05/Release Gate 阻断；媒体解析和认证控制未完成 |
+| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；S1-102 已完成 Argon2id 与原子首次初始化，session/CSRF/限流/handler 仍由认证 Backend Gate 阻断；发布 volume/unmount 由 FS-05/Release Gate 阻断 |
 
 ## 环境与工具链状态
 

@@ -54,8 +54,18 @@ MVP 没有分享链接；上条只约束未来功能。除健康检查与受限�
 `S1-101` 已冻结认证 HTTP 与持久化边界：数据库唯一 `singleton_key` 阻止第二个管理员；
 密码只保存带 scheme/参数的 verifier；随机会话 Cookie 与 CSRF 值只保存 32 字节摘要；
 session 具有绝对过期、撤销和 `auth_version`。认证 JSON 不允许缓存，setup/login 校验同源
-`Origin`，状态修改同时校验 Cookie 与 CSRF。具体密码算法成本、随机数生成、期限、轮换和限流
-必须在 `S1-102～105` 实现并验证，不能把 Contract Ready 描述成认证已经可用。
+`Origin`，状态修改同时校验 Cookie 与 CSRF。
+
+`S1-102` 已实现密码存储与首次初始化领域边界：使用 Argon2id v19、64 MiB、3 次迭代、
+4 lanes、16 字节密码学随机 salt 和 32 字节派生 key；验证器只接受这一组已知参数和严格
+长度，不接受调用方提供成本参数。该选择采用
+[RFC 9106 的内存受限推荐配置](https://www.rfc-editor.org/rfc/rfc9106.html#section-7.4)和
+[Go `x/crypto/argon2` 的 Argon2id 指引](https://pkg.go.dev/golang.org/x/crypto/argon2)。
+用户名使用 NFKC 和 Unicode full case folding 形成唯一比较键；创建前进程内串行，最终由
+SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错误不包含密码或 verifier。
+
+安全 Cookie、期限、轮换、退出失效、CSRF、限流和代理规则仍必须在 `S1-103～105` 实现并
+验证；完成 `S1-102` 不表示认证 API 已经可用。
 
 反向代理负责公网 TLS 时，应用必须正确处理受信代理范围，不能无条件信任客户端提交的转发头。
 

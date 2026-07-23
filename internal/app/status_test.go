@@ -2,15 +2,18 @@ package app
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
+	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 func TestSystemStatusProviderUsesRuntimeAndCanonicalCapabilities(t *testing.T) {
 	readiness := newReadinessState()
-	provider := systemStatusProvider("v0.1.0", readiness)
+	setup := &setupStatusStub{state: auth.SetupRequired}
+	provider := systemStatusProvider("v0.1.0", readiness, setup)
 
 	degraded, err := provider(context.Background())
 	if err != nil {
@@ -46,6 +49,7 @@ func TestSystemStatusProviderUsesRuntimeAndCanonicalCapabilities(t *testing.T) {
 	}
 
 	readiness.set(api.Readiness{Ready: true})
+	setup.state = auth.SetupComplete
 	ready, err := provider(context.Background())
 	if err != nil {
 		t.Fatalf("ready system status: %v", err)
@@ -53,14 +57,42 @@ func TestSystemStatusProviderUsesRuntimeAndCanonicalCapabilities(t *testing.T) {
 	if ready.RuntimeState != "ready" {
 		t.Fatalf("runtime state = %q, want ready", ready.RuntimeState)
 	}
+	if !ready.Initialized {
+		t.Fatal("initialized system is reported as uninitialized")
+	}
 }
 
 func TestSystemStatusProviderDefaultsEmptyVersion(t *testing.T) {
-	status, err := systemStatusProvider("", newReadinessState())(context.Background())
+	status, err := systemStatusProvider(
+		"",
+		newReadinessState(),
+		&setupStatusStub{state: auth.SetupRequired},
+	)(context.Background())
 	if err != nil {
 		t.Fatalf("system status: %v", err)
 	}
 	if status.Version != "dev" {
 		t.Fatalf("version = %q, want dev", status.Version)
 	}
+}
+
+func TestSystemStatusProviderPropagatesSetupStateFailure(t *testing.T) {
+	setupFailure := errors.New("setup state unavailable")
+	_, err := systemStatusProvider(
+		"v0.1.0",
+		newReadinessState(),
+		&setupStatusStub{err: setupFailure},
+	)(context.Background())
+	if !errors.Is(err, setupFailure) {
+		t.Fatalf("system status error = %v, want setup state failure", err)
+	}
+}
+
+type setupStatusStub struct {
+	state auth.SetupState
+	err   error
+}
+
+func (stub *setupStatusStub) SetupState(context.Context) (auth.SetupState, error) {
+	return stub.state, stub.err
 }
