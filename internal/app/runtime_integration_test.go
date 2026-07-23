@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 const runtimeIntegrationTimeout = 5 * time.Second
@@ -68,6 +70,7 @@ func runComposedApplication(
 	})
 
 	address := waitForListenAddress(t, application.http)
+	assertAdministratorInitialization(t, application.authentication, runNumber)
 	client := &http.Client{Timeout: time.Second}
 	assertRuntimeResponse(t, client, address, "/health/ready", http.StatusOK, "ready")
 	assertRuntimeResponse(t, client, address, "/health/live", http.StatusOK, "live")
@@ -94,6 +97,44 @@ func runComposedApplication(
 	if err == nil {
 		connection.Close()
 		t.Fatalf("run %d HTTP listener %q remained open after shutdown", runNumber, address)
+	}
+}
+
+func assertAdministratorInitialization(
+	t *testing.T,
+	authentication *auth.Service,
+	runNumber int,
+) {
+	t.Helper()
+	if authentication == nil {
+		t.Fatal("composed application has no authentication service")
+	}
+
+	state, err := authentication.SetupState(context.Background())
+	if err != nil {
+		t.Fatalf("run %d read setup state: %v", runNumber, err)
+	}
+	if runNumber == 1 {
+		if state != auth.SetupRequired {
+			t.Fatalf("initial setup state = %q, want %q", state, auth.SetupRequired)
+		}
+		if _, err := authentication.Initialize(
+			context.Background(),
+			auth.InitializeParams{
+				Username:    "Administrator",
+				DisplayName: "Administrator",
+				Password:    "correct horse battery staple",
+			},
+		); err != nil {
+			t.Fatalf("initialize administrator: %v", err)
+		}
+		state, err = authentication.SetupState(context.Background())
+		if err != nil {
+			t.Fatalf("read initialized setup state: %v", err)
+		}
+	}
+	if state != auth.SetupComplete {
+		t.Fatalf("run %d setup state = %q, want %q", runNumber, state, auth.SetupComplete)
 	}
 }
 

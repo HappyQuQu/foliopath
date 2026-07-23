@@ -7,6 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 type component struct {
@@ -20,6 +22,7 @@ type application struct {
 	configuration   configuration
 	logger          *slog.Logger
 	http            *httpService
+	authentication  *auth.Service
 	components      []component
 	shutdownTimeout time.Duration
 }

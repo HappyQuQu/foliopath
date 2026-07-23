@@ -130,17 +130,33 @@ func TestSQLiteQuerySourceAndGeneratedBoundary(t *testing.T) {
 	sqliteRoot := filepath.Join(root, "internal", "store", "sqlite")
 	configPath := filepath.Join(sqliteRoot, "sqlc.yaml")
 	queryPath := filepath.Join(sqliteRoot, "queries", "libraries.sql")
+	authQueryPath := filepath.Join(sqliteRoot, "queries", "auth.sql")
 	generatedRoot := filepath.Join(sqliteRoot, "dbgen")
 
 	for _, required := range []string{
 		configPath,
 		queryPath,
+		authQueryPath,
 		filepath.Join(generatedRoot, "db.go"),
+		filepath.Join(generatedRoot, "auth.sql.go"),
 		filepath.Join(generatedRoot, "libraries.sql.go"),
 		filepath.Join(generatedRoot, "models.go"),
 	} {
 		if _, err := os.Stat(required); err != nil {
 			t.Fatalf("required sqlc boundary %s: %v", required, err)
+		}
+	}
+
+	authQueries, err := os.ReadFile(authQueryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"-- name: IsAdministratorInitialized :one",
+		"-- name: InsertAdministrator :one",
+	} {
+		if !strings.Contains(string(authQueries), required) {
+			t.Errorf("canonical authentication queries are missing %q", required)
 		}
 	}
 
@@ -208,6 +224,20 @@ func TestSQLiteQuerySourceAndGeneratedBoundary(t *testing.T) {
 	for _, forbidden := range []string{"SELECT ", "INSERT INTO libraries", "UPDATE libraries"} {
 		if strings.Contains(normalizedAdapterSource, strings.ToUpper(forbidden)) {
 			t.Errorf("library adapter duplicates canonical SQL containing %q", forbidden)
+		}
+	}
+
+	authAdapterSource, err := os.ReadFile(filepath.Join(sqliteRoot, "auth.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(authAdapterSource), `/store/sqlite/dbgen"`) {
+		t.Error("authentication adapter does not consume the generated SQL package")
+	}
+	normalizedAuthAdapterSource := strings.ToUpper(string(authAdapterSource))
+	for _, forbidden := range []string{"SELECT ", "INSERT INTO users", "UPDATE users"} {
+		if strings.Contains(normalizedAuthAdapterSource, strings.ToUpper(forbidden)) {
+			t.Errorf("authentication adapter duplicates canonical SQL containing %q", forbidden)
 		}
 	}
 }

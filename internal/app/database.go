@@ -9,12 +9,14 @@ import (
 	"sync"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
+	"github.com/HappyQuQu/foliopath/internal/auth"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	auth.Repository
 	Close() error
 }
 
@@ -25,7 +27,7 @@ type databaseService struct {
 	readiness *readinessState
 	open      databaseOpener
 
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	store databaseStore
 }
 
@@ -81,6 +83,29 @@ func (service *databaseService) stop(context.Context) error {
 		return nil
 	}
 	return store.Close()
+}
+
+func (service *databaseService) AdministratorInitialized(ctx context.Context) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	store := service.store
+	if store == nil {
+		return false, auth.ErrRepositoryNotReady
+	}
+	return store.AdministratorInitialized(ctx)
+}
+
+func (service *databaseService) CreateAdministrator(
+	ctx context.Context,
+	params auth.CreateAdministratorParams,
+) (auth.Administrator, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	store := service.store
+	if store == nil {
+		return auth.Administrator{}, auth.ErrRepositoryNotReady
+	}
+	return store.CreateAdministrator(ctx, params)
 }
 
 func prepareDataRoot(dataRoot string) error {

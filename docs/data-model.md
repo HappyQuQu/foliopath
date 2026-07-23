@@ -82,11 +82,15 @@
 - setup 后存储的 `username` 使用 Unicode NFKC；`username_key` 是对 NFKC 值执行
   Unicode full case folding 的结果。认证只比较 `username_key`。
 - 密码只保存 `password_hash` verifier、`password_scheme` 和 `password_parameters`，
-  不保存明文密码。
+  不保存明文密码。当前 verifier 为严格 Argon2id v19：64 MiB、3 次迭代、4 lanes、
+  16 字节随机 salt、32 字节派生 key。
 - `auth_version`、`created_at_ms`、`updated_at_ms`、`password_changed_at_ms` 和可空
   `disabled_at_ms`。
 
-MVP 只允许创建一个管理员。首次初始化必须以事务方式防止并发创建多个账号；是否允许未来多用户不能通过绕过该约束提前实现。认证边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
+MVP 只允许创建一个管理员。首次初始化已通过 `internal/auth` 状态机、SQLite 写事务和
+singleton 约束防止并发创建多个账号；应用重启后从数据库恢复 setup 状态。是否允许未来
+多用户不能通过绕过该约束提前实现。认证边界见
+[ADR-0005](adr/0005-built-in-single-admin-auth.md)。
 
 ### `sessions`
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
+	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -73,11 +74,18 @@ func compose(input Input) (*application, error) {
 func composeConfiguration(input Input, configuration configuration) (*application, error) {
 	logger := newJSONLogger(os.Stdout)
 	readiness := newReadinessState()
-	databaseComponent, _ := newDatabaseComponent(configuration.dataRoot, readiness)
+	databaseComponent, database := newDatabaseComponent(configuration.dataRoot, readiness)
+	authentication, err := auth.NewService(
+		database,
+		auth.NewArgon2idPasswordManager(nil),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct authentication service: %w", err)
+	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:       readiness.snapshot,
 		AuthorizeStatus: denySystemStatus,
-		SystemStatus:    systemStatusProvider(input.Version, readiness),
+		SystemStatus:    systemStatusProvider(input.Version, readiness, authentication),
 	})
 	if err != nil {
 		return nil, err
@@ -101,5 +109,6 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	application.configuration = configuration
 	application.logger = logger
 	application.http = httpService
+	application.authentication = authentication
 	return application, nil
 }
