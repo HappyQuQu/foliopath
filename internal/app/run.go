@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/api"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -61,10 +63,20 @@ func compose(input Input) (*application, error) {
 		return nil, err
 	}
 
-	application, err := newApplication(nil, defaultShutdownTimeout)
+	logger := newJSONLogger(os.Stdout)
+	httpComponent, _ := newHTTPComponent(
+		configuration.listenAddress,
+		api.NewHandler(nil, logger),
+		logger,
+	)
+	application, err := newApplication(
+		[]component{httpComponent},
+		defaultShutdownTimeout,
+	)
 	if err != nil {
 		return nil, err
 	}
 	application.configuration = configuration
+	application.logger = logger
 	return application, nil
 }
