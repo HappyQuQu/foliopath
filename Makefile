@@ -3,7 +3,7 @@ NPM ?= npm
 OASDIFF_VERSION ?= v1.17.0
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity
+.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity spike-vips
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -48,3 +48,6 @@ test-integration:
 
 spike-capacity:
 	FOLIOPATH_CAPACITY=1 GOMAXPROCS=4 $(GO) test -timeout=20m -count=1 -run '^Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)$$' -v ./tests/performance
+
+spike-vips:
+	cd spikes/fs03-vips && MALLOC_ARENA_MAX=2 timeout 2m $(GO) test -count=1 -v ./...
