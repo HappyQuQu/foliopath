@@ -1,0 +1,17 @@
+services:
+  foliopath-runtime-spike:
+    image: ${FOLIOPATH_IMAGE:-foliopath-fs05:local}
+    container_name: foliopath-runtime-spike
+    user: "65532:65532"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ${FOLIOPATH_LIBRARY_PATH:?set FOLIOPATH_LIBRARY_PATH}:/library:ro
+      - ${FOLIOPATH_DATA_PATH:?set FOLIOPATH_DATA_PATH}:/app/data

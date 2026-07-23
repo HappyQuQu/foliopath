@@ -164,3 +164,69 @@ jobs:
               -run '^TestFS01Rejects.*BindMount$' &&
               go test -race -count=1 -tags fsboundary ./tests/integration \
               -run '^TestFS01Rejects.*BindMount$'"
+
+  runtime-spike:
+    name: Runtime and recovery (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Build the native runtime spike image
+        run: |
+          docker build -f spikes/fs05-runtime/Dockerfile \
+            -t "foliopath-fs05:${GITHUB_SHA}-${{ matrix.arch }}" \
+            --build-arg VERSION="${GITHUB_SHA}" .
+      - name: Verify runtime, recovery, and failure semantics
+        run: spikes/fs05-runtime/verify.sh "foliopath-fs05:${GITHUB_SHA}-${{ matrix.arch }}"
+      - name: Record native dependency versions and image size
+        run: |
+          image="foliopath-fs05:${GITHUB_SHA}-${{ matrix.arch }}"
+          docker run --rm --entrypoint ffmpeg "$image" -hide_banner -version
+          docker run --rm --entrypoint sh "$image" -c \
+            "dpkg-query -W ffmpeg libvips42"
+          docker image inspect "$image" \
+            --format 'platform={{.Os}}/{{.Architecture}} size={{.Size}} digest={{.Id}}'
+
+  supply-chain:
+    name: SBOM and license evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build the runtime spike image
+        run: |
+          docker build -f spikes/fs05-runtime/Dockerfile \
+            -t "foliopath-fs05:${GITHUB_SHA}-sbom" \
+            --build-arg VERSION="${GITHUB_SHA}" .
+      - name: Generate and validate SPDX SBOMs
+        run: |
+          scripts/generate-sbom.sh \
+            "foliopath-fs05:${GITHUB_SHA}-sbom" "${RUNNER_TEMP}/sbom"
+          jq -e '.packages | length > 0' "${RUNNER_TEMP}/sbom/source.spdx.json"
+          jq -e '.packages | length > 0' "${RUNNER_TEMP}/sbom/npm.spdx.json"
+          jq -e \
+            '[.packages[].name] | index("ffmpeg") != null and index("libvips42") != null' \
+            "${RUNNER_TEMP}/sbom/image.spdx.json"
+      - name: Record codec build and packaged license evidence
+        run: |
+          image="foliopath-fs05:${GITHUB_SHA}-sbom"
+          docker run --rm --entrypoint ffmpeg "$image" -hide_banner -buildconf
+          docker run --rm --entrypoint sh "$image" -c \
+            "grep -E '^(Files:|License:)' /usr/share/doc/ffmpeg/copyright \
+              /usr/share/doc/libvips42/copyright | head -80"

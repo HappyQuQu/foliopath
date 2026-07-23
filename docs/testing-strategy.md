@@ -7,12 +7,14 @@ scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目
 契约测试，真实 `httptest.Server` 边界 harness、合成媒体 fixture 和显式容量测试。尚无可启动
 应用、React 产品界面、生产 HTTP handler、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
-工作流；首次原生 amd64/arm64 PR CI 已通过。只有实际执行成功的目标才能声称可用。
+工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
+只有实际执行成功的目标才能声称可用。
 
 当前证据分别见 [FS-01 路径边界](spikes/fs-01-path-boundary.md)、
 [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md)、
 [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 和
-[FS-04 容量基线](spikes/fs-04-capacity-baseline.md)。FS-01 路径和 FS-02 当前正确性 scope
+[FS-04 容量基线](spikes/fs-04-capacity-baseline.md)与
+[FS-05 运行恢复](spikes/fs-05-runtime-recovery.md)。FS-01 路径和 FS-02 当前正确性 scope
 已通过；FS-04 的 Stage 0 扫描/索引范围通过，FS-03 与 FS-04 完整产品/发布范围保持
 Conditional，不能替代完整媒体、容量、浏览器
 和发布验证。FS-01 的 Stage 0 范围包括原生 Linux amd64/arm64 `openat2` mount 拒绝和 HTTP

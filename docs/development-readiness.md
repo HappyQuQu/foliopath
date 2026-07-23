@@ -2,25 +2,25 @@
 
 ## 当前结论
 
-项目目前 **尚未达到功能开发就绪**。阶段 0 已完成需求确认；FS-01 的原生 Linux amd64/arm64
-`openat2` mount 边界和 HTTP test harness 子范围、FS-02 当前正确性范围已通过，FS-03/04
-取得局部证据；FS-01/04 的 Stage 0 范围已通过，FS-03 完整范围仍为 Conditional。只可继续剩余 spike、契约/生成护栏与不扩大
-信任边界的实验脚手架；产品功能开发仍未获准。
+项目已通过 **Stage 0 开发就绪 Gate**，允许进入 Stage 1 的后端优先实施：先建立正式 Go
+运行骨架，再完成单管理员认证后端。该结论不授权 Stage 2～5、共享预览或发布；认证后端达到
+`Backend Ready` 前不得开始产品 UI。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
 边界、OpenAPI 摘要锁与语义兼容检查、契约/HTTP 边界/容量 harness、固定 Node/npm 工具链和
 双架构 CI 工作流。仍无 `cmd/foliopath` 可启动进程、`internal/app` 组装、生产 HTTP handler、
-React 产品应用、Dockerfile、浏览器 E2E 或可发布镜像；首次原生 amd64/arm64 PR CI 已通过。
+React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；隔离 FS-05 Dockerfile 只用于
+Stage 0 probe。原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014
 全部采用 A。产品冻结门槛已经满足，[系统架构档案](architecture/README.md)也已形成目标
 视图、所有权、交付治理和 fitness function 基线；权威 OpenAPI、强制离线解析/结构/引用/
 ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`animated`、可空
-`startedAt`）与外部 lint 已经存在；这不代表完整 ScanRun 领域实现。项目仍因 FS-03/04
-剩余门槛、FS-05、完整脚手架、容器与发布级验证缺失而
-未达到功能开发就绪。架构约束变更仍必须遵循 ADR 流程。
+`startedAt`）与外部 lint 已经存在；这不代表完整 ScanRun 领域实现。FS-03/04 的完整产品
+范围与发布级验证已被分配到对应后续 Gate，不反向阻断 Stage 1。架构约束变更仍必须遵循
+ADR 流程。
 
 ## 开发启动门槛
 
@@ -30,9 +30,9 @@ ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`a
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成，后端部分边界已有实验代码；应用组装与运行拓扑未验证 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
-| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；备份恢复、升级、磁盘满和容量演练缺失 |
-| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生 amd64/arm64 Go/race、Web 契约、合成媒体与 mount-boundary CI 已通过；尚无生产 HTTP、前端/浏览器 E2E 或完整发布容器验证 |
-| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | 尚无镜像或演练证据 |
+| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；FS-05 已验证离线恢复、重复 migration 和损坏/满盘失败关闭；真实版本升级仍待 Release Gate |
+| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；尚无生产 HTTP、前端/浏览器 E2E 或最终发布容器验证 |
+| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 已验证目标模式；正式应用镜像、真实版本升级和发布签署未完成 |
 | 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；生产 handler/auth 由首个受保护 API Backend Gate 阻断，发布 volume/unmount 由 FS-05/Release Gate 阻断；媒体解析和认证控制未完成 |
 
 ## 环境与工具链状态
@@ -59,7 +59,8 @@ ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`a
 
 当前可声称的证据只限各报告明确写出的环境与子范围，详见
 [FS-01](spikes/fs-01-path-boundary.md)、[FS-02](spikes/fs-02-sqlite-generation.md)、
-[FS-03](spikes/fs-03-media-matrix.md) 与 [FS-04](spikes/fs-04-capacity-baseline.md)。
+[FS-03](spikes/fs-03-media-matrix.md)、[FS-04](spikes/fs-04-capacity-baseline.md) 与
+[FS-05](spikes/fs-05-runtime-recovery.md)。
 权威 OpenAPI、生成 TypeScript client 基础与真实 HTTP test harness 是契约/测试证据，不是
 生产 API 实现；真实 PR 基线兼容检查和原生双架构 CI 已通过，前端产品、浏览器和发布容器
 检查仍未执行，不能用已有测试代替“完整测试”。
@@ -67,10 +68,10 @@ ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`a
 ## 开发启动实施顺序
 
 1. **记录已确认基线**：RQ-001～RQ-014 已全部采用 A，并同步 PRD、UX、API、数据、安全与交付文档。
-2. **运行可行性 spike**：FS-01 Stage 0 路径范围、FS-02 当前 scope 已通过；FS-03/04
-   已取得局部证据但保持 Conditional；继续完成 FS-03/04 剩余门槛、跨架构镜像与恢复，见
-   [可行性研究](feasibility-study.md)。
-3. **进入路线图阶段 1 后先建立后端运行骨架**：创建 Go 入口与 `internal/app`、配置、生命周期、健康检查、认证基础边界、统一构建命令和基础 CI；不预建空业务包。
+2. **运行可行性 spike**：Stage 0 所需 FS-01～05 范围已经完成；完整产品/发布缺口已写入
+   后续 Gate，见[可行性研究](feasibility-study.md)。
+3. **Stage 1 先建立后端运行骨架**：创建 Go 入口与 `internal/app`、配置、生命周期、健康检查、
+   认证基础边界、统一构建命令和基础 CI；不预建空业务包。
 4. **契约先行**：首个 SQLite migration、`api/openapi.yaml`、TypeScript 类型/client、
    摘要锁、兼容性和确定性漂移检查已建立；仍需建立 `sqlc` 生成方案并让 PR 基线比较在 CI
    实际通过，再实现首个 handler。
@@ -114,7 +115,8 @@ ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`a
 ## 阶段 0 出场条件
 
 - P0 需求已经确认；MVP 范围、格式、认证、容量和验收口径没有架构级歧义。
-- [可行性研究](feasibility-study.md)中的必做 spike 有可复现实验和结论，Conditional Go 已转为允许进入 MVP 实施，或范围已明确缩减。当前 FS-01/02/04 的 Stage 0 范围通过；FS-03 完整范围仍 Conditional，FS-05 未完成，因此本项未满足。
+- [可行性研究](feasibility-study.md)中的 Stage 0 必做 spike 有可复现实验和结论；完整产品/
+  发布缺口已有 Owner、Fallback 和后续阻断 Gate。此项已满足。
 - [风险登记册](risk-register.md)中的阶段 0 阻断风险已有 owner、验证计划和可接受 fallback。
 - OpenAPI 与迁移输入已建立；UI 原型、生成流程和完整 fixture 的阶段 1 输入仍需补齐，不能通过正式实现猜需求。
 

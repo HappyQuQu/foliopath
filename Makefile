@@ -3,7 +3,7 @@ NPM ?= npm
 OASDIFF_VERSION ?= v1.17.0
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity spike-vips capacity-trend
+.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity spike-vips spike-runtime sbom capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -51,6 +51,15 @@ spike-capacity:
 
 spike-vips:
 	cd spikes/fs03-vips && MALLOC_ARENA_MAX=2 timeout 2m $(GO) test -count=1 -v ./...
+
+spike-runtime:
+	docker build -f spikes/fs05-runtime/Dockerfile \
+		-t foliopath-fs05:local --build-arg VERSION=stage0-local .
+	spikes/fs05-runtime/verify.sh foliopath-fs05:local
+
+sbom:
+	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
+	scripts/generate-sbom.sh "$(IMAGE)" "$${SBOM_OUTPUT:-build/sbom}"
 
 capacity-trend:
 	@set -e; for tier in "1000 10000" "5000 50000" "10000 100000"; do \

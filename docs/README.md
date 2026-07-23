@@ -1,8 +1,8 @@
 # FolioPath 文档索引
 
 这里保存 FolioPath 在编码前与开发过程中的产品、交互和工程约束。用户已于 2026-07-23
-确认 `RQ-001`～`RQ-014` 全部采用 A；项目仍处于规划与早期开发阶段。仓库已有
-FS-01～FS-04 的局部 spike 证据、权威 OpenAPI 契约和自动化测试，但尚无可启动应用；
+确认 `RQ-001`～`RQ-014` 全部采用 A；Stage 0 Gate 已通过并进入后端优先的 Stage 1。
+仓库已有 FS-01～FS-05、供应链、权威 OpenAPI 和自动化证据，但尚无可启动产品应用；
 已确认范围、契约与 spike 证据都不代表功能已经发布。
 
 ## 从哪里开始
@@ -15,7 +15,7 @@ FS-01～FS-04 的局部 spike 证据、权威 OpenAPI 契约和自动化测试�
 | 开发后端或扫描器 | [系统架构档案](architecture/README.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
 | 开发前端 | [前端架构](architecture/frontend.md) | [界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
-| 判断能否开工 | [开发就绪评审](development-readiness.md) | [可行性研究](feasibility-study.md)、[FS-01](spikes/fs-01-path-boundary.md)、[FS-02](spikes/fs-02-sqlite-generation.md)、[FS-03](spikes/fs-03-media-matrix.md)、[FS-04](spikes/fs-04-capacity-baseline.md)、[风险登记](risk-register.md) |
+| 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
 | 修改架构或范围 | [交付与架构治理](architecture/delivery-governance.md) | [系统架构档案](architecture/README.md)、[Agent 约束](../AGENTS.md)、[ADR](adr/README.md) |
 
@@ -41,6 +41,10 @@ FS-01～FS-04 的局部 spike 证据、权威 OpenAPI 契约和自动化测试�
   Linux/amd64 QEMU FFmpeg 探测、视频封面与损坏样本证据，以及 libvips/浏览器/原生双架构缺口。
 - [FS-04 容量基线 spike](spikes/fs-04-capacity-baseline.md)：Linux/arm64 四核、4 GiB 目标
   数据档的扫描/索引结果、已修复瓶颈和仍待完整产品验证的边界。
+- [FS-05 运行与恢复 spike](spikes/fs-05-runtime-recovery.md)：原生双架构镜像、非 root/
+  只读边界、健康、退出、离线恢复、重复迁移和故障关闭证据。
+- [供应链与许可证审查](supply-chain-review.md)：source/npm/image SPDX、FFmpeg codec/GPL
+  组合与 Release Gate 未决项。
 - [风险登记](risk-register.md)：概率、影响、触发信号、缓解、fallback、Owner 角色和发布阻断风险。
 - [开发就绪评审](development-readiness.md)：开工门槛、阶段 0 顺序、Definition of Ready 与 Definition of Done。
 - [路线图](roadmap.md)：从需求/spike 到发布安全的阶段依赖和出口条件。
