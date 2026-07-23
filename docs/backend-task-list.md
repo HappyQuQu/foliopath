@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001` 正式 Go 进程入口
-- 当前任务：`S1-002` 应用组合根与生命周期
+- 已完成：`S1-001` 正式 Go 进程入口、`S1-002` 应用组合根与生命周期
+- 当前任务：`S1-003` 经过验证的启动配置
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -16,7 +16,9 @@
 
 - [x] `S1-001` 创建最小 `cmd/foliopath`，只负责参数解析、启动委托和退出码。
   - 完成证据：默认/`serve` 委托、`version`、help、usage/失败退出码与错误脱敏测试。
-- [ ] `S1-002` 创建 `internal/app` composition root，集中组装依赖和生命周期。
+- [x] `S1-002` 创建 `internal/app` composition root，集中组装依赖和生命周期。
+  - 完成证据：进程根取消上下文、唯一 `compose` 接线点、顺序启动、启动失败回滚、运行期
+    故障传播、反向关闭和有界停机测试。
 - [ ] `S1-003` 实现经过验证的配置加载；固定 `/library`、`/app/data` 和单 HTTP 端口边界。
 - [ ] `S1-004` 实现结构化日志、request ID、错误脱敏和优雅停机。
 - [ ] `S1-005` 实现 `/health/live`、`/health/ready` 与 `/api/v1/status`。

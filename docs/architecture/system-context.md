@@ -16,7 +16,8 @@
 `internal/store/sqlite` 已有 [C]/[S] 代码与测试；FS-01 已取得 Darwin、Linux/arm64
 `openat2` mount-boundary 与 HTTP test harness 子范围证据，SQLite/generation 通过当前
 正确性范围，`api/openapi.yaml` 已成为 HTTP 结构权威。最小进程入口已经存在并把控制交给
-`internal/app.Run`，但应用组合根仍显式失败；生产 HTTP handler、认证、React 产品应用、
+`internal/app.Run`；应用组合根已拥有根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
+有界停机，但尚未接入配置、HTTP、数据库与健康检查。生产 HTTP handler、认证、React 产品应用、
 完整媒体工具链与发布容器仍未形成产品。生成 TypeScript
 契约/client 与 CI 工作流已建立，首次原生 amd64/arm64 PR CI 已通过。准确状态以
 [开发就绪评审](../development-readiness.md)和[可行性研究](../feasibility-study.md)为准。

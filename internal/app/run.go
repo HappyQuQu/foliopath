@@ -1,13 +1,22 @@
 // Package app is the application's sole composition and lifecycle boundary.
 package app
 
-import "errors"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
 
-// ErrCompositionRootUnavailable is returned until the Stage 1 composition root
-// is implemented. Returning an error is intentional: the process entry must not
-// report a successful start before configuration, storage, and HTTP lifecycle
-// ownership exist.
-var ErrCompositionRootUnavailable = errors.New("application composition root is unavailable")
+const defaultShutdownTimeout = 10 * time.Second
+
+var (
+	errInvalidComponent = errors.New("invalid application component")
+	errComponentStopped = errors.New("application component stopped unexpectedly")
+)
 
 // Input contains the process values that the minimal command entry hands to the
 // application. Configuration parsing and validation remain owned by this
@@ -17,8 +26,35 @@ type Input struct {
 	Environ []string
 }
 
-// Run is the stable process-to-application boundary. Stage 1 composition,
-// lifecycle, and graceful shutdown work will replace the explicit failure.
-func Run(Input) error {
-	return ErrCompositionRootUnavailable
+// Run owns the process root context. All concrete dependency construction and
+// lifecycle wiring stays below this boundary.
+func Run(input Input) error {
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	return run(ctx, input)
+}
+
+func run(ctx context.Context, input Input) error {
+	if ctx == nil {
+		return errors.New("application context is nil")
+	}
+
+	application, err := compose(input)
+	if err != nil {
+		return fmt.Errorf("compose application: %w", err)
+	}
+
+	return application.run(ctx)
+}
+
+// compose is the only function that may know the complete concrete dependency
+// graph. Later Stage 1 tasks add configuration, storage, HTTP, and workers here
+// without moving their construction into cmd or capability packages.
+func compose(Input) (*application, error) {
+	return newApplication(nil, defaultShutdownTimeout)
 }

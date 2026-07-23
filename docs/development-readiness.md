@@ -9,10 +9,11 @@
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
 边界、OpenAPI 摘要锁与语义兼容检查、契约/HTTP 边界/容量 harness、固定 Node/npm 工具链和
-双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令、退出码和 `internal/app.Run`
-边界已经建立；组合根当前显式失败，不能伪装为已启动服务。仍无应用组装、生产 HTTP handler、
-React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；隔离 FS-05 Dockerfile 只用于
-Stage 0 probe。原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
+双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令和退出码已经建立；
+`internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
+有界停机。当前还没有经过验证的启动配置、生产 HTTP handler、数据库启动接线、React 产品应用、
+正式 Dockerfile、浏览器 E2E 或可发布镜像；隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
+原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014
@@ -28,7 +29,7 @@ ADR 流程。
 | 领域 | 开始实现前所需产物 | 当前判断 |
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
-| 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成，后端部分边界已有实验代码；应用组装与运行拓扑未验证 |
+| 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成，后端部分边界已有实验代码；应用组合与生命周期骨架已有单元测试，真实 HTTP/数据库运行拓扑未验证 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；FS-05 已验证离线恢复、重复 migration 和损坏/满盘失败关闭；真实版本升级仍待 Release Gate |
