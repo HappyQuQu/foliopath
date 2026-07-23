@@ -18,7 +18,7 @@
   - [测试策略](../../testing-strategy.md)
   - [风险登记](../../risk-register.md)
 - 已验证事实：
-  - FS-01：Darwin 与 Linux/arm64 路径矩阵、Linux `openat2` 同/跨设备及 self-bind mount
+  - FS-01：Darwin 与原生 Linux amd64/arm64 路径矩阵、Linux `openat2` 同/跨设备及 self-bind mount
     拒绝、真实 HTTP test harness 子范围通过，结论仍为 Conditional
   - FS-02：当前 SQLite/generation 正确性 scope 通过
   - FS-03：合成媒体与本机 FFmpeg 子范围有证据，结论仍为 Conditional
@@ -30,14 +30,16 @@
     无结构错误，保留两条 health endpoint 4xx 规则 warning
   - Node/npm 版本与 lockfile 已固定；TypeScript 类型和唯一 Web API client 可确定性生成，
     strict typecheck、npm high-severity audit、摘要锁与语义兼容自比较在本地通过
-  - 双架构 Go、媒体与 mount-boundary CI 工作流已定义；尚无远端执行结果，不能记为通过
+  - [PR #1 CI](https://github.com/HappyQuQu/foliopath/actions/runs/29985018814) 的原生
+    amd64/arm64 Go/race、合成媒体、mount-boundary 和 Web contract 7 个 jobs 全部通过；
+    Web contract 对真实 base branch 的语义兼容比较通过
 - 未关闭条件：
-  - FS-01：生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount、Linux/amd64
+  - FS-01：生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount
   - FS-03：libvips/govips、生产任务隔离、浏览器直放、双架构最终镜像
   - FS-04：代表性存储、RSS、完整媒体/缩略图、FTS/keyset、生产 HTTP/前端并发与趋势
   - FS-05：双架构镜像、非 root/只读挂载、健康检查、备份恢复、升级和许可证追踪
-  - 契约/工程：首次原生双架构 CI 与真实 PR base-branch 兼容比较、`sqlc` 生成、
-    `test-e2e`；完整运行骨架、生产 handler、认证、React 产品前端和可发布容器均不存在
+  - 契约/工程：`sqlc` 生成、`test-e2e`；完整运行骨架、生产 handler、认证、React 产品前端
+    和可发布容器均不存在
 - Fallback：失败时缩小已承诺的平台、格式或规模并记录变更/Gate；不得降低原文件只读、路径
   失败关闭、失败扫描不清理旧索引或认证边界
 - 结论：`Conditional Go`

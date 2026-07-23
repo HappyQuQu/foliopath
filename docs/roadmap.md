@@ -8,9 +8,9 @@
 当前仍在阶段 0：
 
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
-- [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与 Linux/arm64 路径矩阵、
+- [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、
   Linux `openat2` 同/跨设备及 self-bind mount 拒绝和真实 HTTP test harness 子范围；生产
-  handler、认证/错误 envelope、只读发布 volume、运行期 unmount 与 Linux/amd64 未完成，
+  handler、认证/错误 envelope、只读发布 volume 与运行期 unmount 未完成，
   因此仍为 Conditional。
 - [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 已取得本机 FFmpeg/合成 fixture 局部证据，
   但 libvips、生产任务、浏览器与双架构门槛未完成。
@@ -19,7 +19,7 @@
   镜像与恢复尚未开始。
 - Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
   TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
-  建立，但工作流尚未实际运行。尚无可启动应用、生产 API handler、React 产品前端或
+  建立，首次原生 amd64/arm64 PR CI 已通过。尚无可启动应用、生产 API handler、React 产品前端或
   Dockerfile，不能据此宣布进入阶段 1 或功能开发就绪。
 
 ## 阶段 0：基线同步与可行性验证
@@ -37,8 +37,8 @@
   引用/结构、ECMAScript pattern、AST/Schema 与 scanner/migration 选择性关键不变量检查
   （`queued`、`animated`、可空 `startedAt`）已通过；这不是完整领域实现一致性证明。
   Redocly 无结构错误，当前保留两条 health endpoint 4xx 规则 warning；TypeScript 生成类型、
-  唯一 client、摘要锁、语义兼容入口与 PR 漂移工作流已建立，本地自比较通过，首次远端 CI
-  与真实 base-branch 比较仍待完成。
+  唯一 client、摘要锁、语义兼容入口与 PR 漂移工作流已建立；本地自比较和首次真实
+  base-branch PR 比较均通过。
 
 出口条件：
 

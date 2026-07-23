@@ -12,7 +12,7 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 > FolioPath 目前处于规划与早期开发阶段，尚无可启动的应用或发布镜像。FS-01 已在
 > Linux/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
 > FS-02 当前正确性范围通过，FS-03/FS-04 取得局部证据；OpenAPI 生成类型、唯一 Web API
-> 客户端边界和 CI 工作流已建立，但 CI 尚未实际运行。这些结果仍不足以进入产品功能开发，
+> 客户端边界和 CI 工作流已建立，首次原生 amd64/arm64 CI 全部通过。这些结果仍不足以进入产品功能开发，
 > Stage 0 整体保持 Conditional Go。本文档中的功能和配置可能会调整。
 
 ## Why FolioPath?
@@ -177,10 +177,10 @@ FolioPath 采用单体、单进程、单端口架构：
 权威 [`api/openapi.yaml`](api/openapi.yaml)，以及 Go 单元、契约、集成和显式容量测试；这批
 代码仍是可行性/契约证据，不是可供用户部署的 FolioPath 服务。当前还没有生产 HTTP 应用
 入口、React 产品前端、Dockerfile、认证实现或媒体处理链路。仓库已有契约生成基础与 CI
-工作流定义，但尚无一次远端 CI 执行证据。
+工作流定义，首次原生 amd64/arm64 CI 已通过；这仍不是可发布应用证据。
 
-- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Conditional**。Darwin 与
-  Linux/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
+- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Conditional**。Darwin 与原生
+  Linux amd64/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
   HTTP test harness 已通过；生产 handler、认证/错误 envelope、只读发布 volume、运行期
   unmount 和 Linux/amd64 仍未验证。
 - [FS-02 SQLite 与扫描 generation](docs/spikes/fs-02-sqlite-generation.md)：**当前正确性范围通过**。真实文件 SQLite、Goose、WAL、故障/取消/离线/重启保留、原子 finalize 与跨媒体库隔离已有自动化证据；磁盘满、真实强杀、长期 WAL 压力及备份恢复仍未验证。

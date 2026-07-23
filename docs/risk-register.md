@@ -9,7 +9,7 @@
 | ID | 风险 | 概率 | 影响 | 触发信号 | 缓解措施 | Fallback | Owner 角色 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | R-001 | MVP 需求持续变化导致架构和 UI 返工 | 中 | 高 | 已确认基线被重新打开；同一行为在文档中定义不一 | RQ-001～014 已全部确认 A；变更必须留新决策记录，纵向切片前先做 spike | 缩减为创建媒体库、扫描和目录浏览的最小闭环 | 产品负责人 | 缓解中 |
-| R-002 | 路径遍历、编码绕过或符号链接导致越界读取 | 中 | 严重 | 安全测试能读取媒体库或 `/library` 之外路径；路径校验散落多个包 | 所有真实路径访问集中到 `internal/files`；[FS-01](spikes/fs-01-path-boundary.md) 已验证 Darwin/Linux arm64 路径矩阵、Linux `openat2` 同/跨设备与 self-bind mount 拒绝、HTTP harness 和错误脱敏；继续补生产 handler/认证错误边界、只读发布 volume、运行期 unmount、Linux/amd64 与长期 churn | 停止发布并禁用相关入口；不以 UI 隐藏代替修复 | 安全负责人 | 缓解中 |
+| R-002 | 路径遍历、编码绕过或符号链接导致越界读取 | 中 | 严重 | 安全测试能读取媒体库或 `/library` 之外路径；路径校验散落多个包 | 所有真实路径访问集中到 `internal/files`；[FS-01](spikes/fs-01-path-boundary.md) 已验证 Darwin 与原生 Linux amd64/arm64 路径矩阵、Linux `openat2` 同/跨设备与 self-bind mount 拒绝、HTTP harness 和错误脱敏；继续补生产 handler/认证错误边界、只读发布 volume、运行期 unmount 与长期 churn | 停止发布并禁用相关入口；不以 UI 隐藏代替修复 | 安全负责人 | 缓解中 |
 | R-003 | 离线、权限失败或中断扫描误清理索引 | 中 | 严重 | 失败代次删除旧记录；挂载消失后资产数骤降 | [FS-02](spikes/fs-02-sqlite-generation.md) 已验证 generation 仅成功时原子清理，失败/取消/离线/根替换/A → B → A/受控重启保留，以及损坏的当前代次 → 陈旧目录关系在 cleanup 前失败关闭；继续补真实强杀、磁盘与 I/O 故障 | 禁用自动陈旧清理，保留索引并要求完整重扫 | 后端负责人 | 缓解中 |
 | R-004 | `/app/data` 位于 SMB/NFS，SQLite WAL 锁或同步失效 | 中 | 高 | `SQLITE_BUSY`、损坏、checkpoint 异常或恢复后不一致 | 文档要求本地文件系统；[FS-02](spikes/fs-02-sqlite-generation.md) 已验证文件型 WAL、实际模式、外键、busy timeout、SQLite 3.53.3 和基础 checkpoint；SMB/NFS、长期压力与备份恢复尚未演练 | 停机迁移数据目录到本地盘后重建派生索引 | 运维负责人 | 缓解中 |
 | R-005 | 10 万媒体/1 万目录目标超出四核、4 GiB 环境的扫描、查询或内存能力 | 高 | 高 | 队列持续增长、首次扫描不可接受、列表延迟或 RSS 超预算 | [FS-04](spikes/fs-04-capacity-baseline.md) 已在 Linux/arm64 受限容器完成混合深度/宽度目标档和独立 1,000 层 finalize 档；当前叶到根批量 rollup 去掉 O(D×A) 与 O(A×depth) 路径，循环/跨库损坏失败关闭。单个深度档不构成增长率证明；继续验证多档趋势、代表性存储、RSS、媒体/FTS/HTTP/前端并发 | 降低并发/缩略图规格，声明实测支持上限；架构变更须 ADR | 技术负责人 | 缓解中 |
@@ -38,8 +38,8 @@
 R-002～R-007、R-014 与 R-016 已因实验实现、契约或 spike 证据转为“缓解中”，但对应
 报告列出的生产 HTTP/认证错误边界、只读发布挂载与运行期 unmount、Linux/amd64、真实
 强杀/磁盘故障、网络存储/恢复、媒体任务隔离、libvips、双架构、浏览器、代表性存储、
-首次原生双架构 CI、真实 PR 基线兼容比较、SBOM 和发布门禁缺口仍在，均未关闭；本地
-TypeScript 生成、摘要锁、语义兼容自比较和 CI 定义只降低漂移风险，尚不足以关闭风险。
+SBOM、最终镜像与发布门禁缺口仍在，均未关闭；原生双架构 CI、真实 PR 基线兼容比较、
+TypeScript 生成和摘要锁已经降低工程与漂移风险，但尚不足以关闭发布风险。
 R-009 的 10 GiB LRU 策略只有产品约束
 而无实现证据，仍保持开放。不得把产品确认或局部 spike 误写成完整技术可行性证明。
 

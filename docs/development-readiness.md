@@ -2,7 +2,7 @@
 
 ## 当前结论
 
-项目目前 **尚未达到功能开发就绪**。阶段 0 已完成需求确认；FS-01 的 Linux/arm64
+项目目前 **尚未达到功能开发就绪**。阶段 0 已完成需求确认；FS-01 的原生 Linux amd64/arm64
 `openat2` mount 边界和 HTTP test harness 子范围、FS-02 当前正确性范围已通过，FS-03/04
 取得局部证据，但 FS-01/03/04 仍为 Conditional。只可继续剩余 spike、契约/生成护栏与不扩大
 信任边界的实验脚手架；产品功能开发仍未获准。
@@ -11,16 +11,16 @@
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
 边界、OpenAPI 摘要锁与语义兼容检查、契约/HTTP 边界/容量 harness、固定 Node/npm 工具链和
 双架构 CI 工作流。仍无 `cmd/foliopath` 可启动进程、`internal/app` 组装、生产 HTTP handler、
-React 产品应用、Dockerfile、浏览器 E2E 或可发布镜像；CI 工作流也尚未实际运行。现有代码是
-spike 与契约工程证据，不是已经可运行的产品能力。
+React 产品应用、Dockerfile、浏览器 E2E 或可发布镜像；首次原生 amd64/arm64 PR CI 已通过。
+现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014
 全部采用 A。产品冻结门槛已经满足，[系统架构档案](architecture/README.md)也已形成目标
 视图、所有权、交付治理和 fitness function 基线；权威 OpenAPI、强制离线解析/结构/引用/
 ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`animated`、可空
 `startedAt`）与外部 lint 已经存在；这不代表完整 ScanRun 领域实现。项目仍因 FS-01 的生产
-handler/认证错误边界/发布挂载/Linux amd64 证据、
-FS-03/04 剩余门槛、FS-05、首次原生双架构 CI 证据、完整脚手架、容器与发布级验证缺失而
+handler/认证错误边界/发布挂载证据、
+FS-03/04 剩余门槛、FS-05、完整脚手架、容器与发布级验证缺失而
 未达到功能开发就绪。架构约束变更仍必须遵循 ADR 流程。
 
 ## 开发启动门槛
@@ -29,12 +29,12 @@ FS-03/04 剩余门槛、FS-05、首次原生双架构 CI 证据、完整脚手�
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成，后端部分边界已有实验代码；应用组装与运行拓扑未验证 |
-| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和语义兼容入口已就绪；PR 基线比较工作流尚未运行，生产 handler 未就绪 |
+| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；备份恢复、升级、磁盘满和容量演练缺失 |
-| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | Go 单元/契约/集成/race、Web 契约生成/typecheck/audit、真实 HTTP harness、FS-03 fixture 和显式容量档已可运行；CI 已定义但未执行，尚无生产 HTTP、前端/浏览器 E2E 或完整发布容器验证 |
+| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生 amd64/arm64 Go/race、Web 契约、合成媒体与 mount-boundary CI 已通过；尚无生产 HTTP、前端/浏览器 E2E 或完整发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | 尚无镜像或演练证据 |
-| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Darwin/Linux arm64、openat2 mount 与 HTTP harness 子范围已验证但仍为 Conditional；生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount、Linux/amd64、媒体解析和认证控制未完成 |
+| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Darwin 与原生 Linux amd64/arm64 openat2 mount、HTTP harness 子范围已验证但仍为 Conditional；生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount、媒体解析和认证控制未完成 |
 
 ## 环境与工具链状态
 
@@ -62,8 +62,8 @@ FS-03/04 剩余门槛、FS-05、首次原生双架构 CI 证据、完整脚手�
 [FS-01](spikes/fs-01-path-boundary.md)、[FS-02](spikes/fs-02-sqlite-generation.md)、
 [FS-03](spikes/fs-03-media-matrix.md) 与 [FS-04](spikes/fs-04-capacity-baseline.md)。
 权威 OpenAPI、生成 TypeScript client 基础与真实 HTTP test harness 是契约/测试证据，不是
-生产 API 实现；PR 基线兼容检查和原生双架构 CI 尚未实际运行，前端产品、浏览器和发布容器
-检查也未执行，不能用已有测试代替“完整测试”。
+生产 API 实现；真实 PR 基线兼容检查和原生双架构 CI 已通过，前端产品、浏览器和发布容器
+检查仍未执行，不能用已有测试代替“完整测试”。
 
 ## 开发启动实施顺序
 

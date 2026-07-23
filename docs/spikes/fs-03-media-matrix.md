@@ -21,7 +21,7 @@ MP4、MOV、MKV 进入 MVP 索引候选；SVG、HEIC/HEIF、AVIF、DNG、CR3 和
 
 同一脚本也在 Debian linux/amd64 的 QEMU 容器中通过，证明 fixture 和发行版 FFmpeg/webp
 组合在该模拟环境可运行；这不是原生 amd64、最终镜像或跨架构性能证据。仓库已经定义原生
-linux/amd64 与 linux/arm64 CI runner 矩阵，但尚未实际执行。
+linux/amd64 与 linux/arm64 CI runner 矩阵；PR #1 的同一合成脚本已在两个原生 runner 通过。
 
 FS-03 不能记为 Passed。本机没有 libvips，Go 模块也尚未引入 govips，因此没有
 执行合同要求的图片元数据与缩略图链路；项目尚无媒体工具 adapter、任务队列、
@@ -59,7 +59,8 @@ HTTP Range 或浏览器 E2E，因而也没有验证超时/取消/并发上限、
 | FolioPath 媒体 adapter / jobs | 尚不存在 | 不能验证参数数组、超时、取消、进程组回收、输入/输出上限和全局有界并发 |
 | HTTP / 浏览器 E2E | 尚不存在 | 不能验证 Range、条件请求、浏览器解码、播放失败状态或跨浏览器差异 |
 | Linux amd64 QEMU fixture | Debian 容器中安装 `ffmpeg` 与 `webp` 后，同一脚本通过 | 只证明模拟环境的合成 CLI 矩阵可运行，不证明原生架构、最终镜像或性能 |
-| Linux 双架构最终镜像 | 尚不存在；原生 CI jobs 已定义但未运行 | 不能把 Darwin 或 QEMU 结果泛化为最终 `linux/amd64` / `linux/arm64` 发布能力 |
+| Linux 原生双架构 CI fixture | PR #1 的 amd64/arm64 合成 FFmpeg/webp 脚本均通过 | 证明发行版 CLI 子矩阵可在两个原生 runner 运行；不证明 libvips、产品 adapter、最终镜像或性能 |
+| Linux 双架构最终镜像 | 尚不存在 | 不能把 runner 结果泛化为最终 `linux/amd64` / `linux/arm64` 发布能力 |
 
 FFmpeg 配置启用了 GPL 与 `libx264` 等组件。本报告只记录构建事实，不作许可证或
 分发结论；SBOM、完整构建选项和 R-014 仍须在发布镜像上审查。
@@ -127,7 +128,9 @@ go test -race -count=1 ./internal/scanner
 
 - shell 语法检查、合成媒体矩阵、scanner 单元测试与 scanner race detector 均通过。
 - 同一合成媒体脚本在 Linux/amd64 QEMU 容器中通过；该结果不包含 Go `openat2` 路径测试，
-  也不替代原生 CI。
+  原生平台证据另由 PR #1 CI 提供。
+- [PR #1 CI run 29985018814](https://github.com/HappyQuQu/foliopath/actions/runs/29985018814)
+  的 Synthetic media amd64/arm64 jobs 均通过。
 - 合成矩阵生成 96×64 的 JPEG、PNG、WebP、4 帧 GIF，以及各 1 秒的
   MP4/H.264、MOV/H.264、MKV/H.264 和 MKV/FFV1。
 - H.264 与 FFV1 视频均为 `yuv420p`；三个 MVP 容器和 FFV1 候选均成功产生

@@ -52,18 +52,21 @@ Stage 0 剩余证据
 
 ### 当前待办
 
-- [ ] `S0-101` 在真实 PR 上运行首次 CI，并保存原生 amd64/arm64 job 结果。
+- [x] `S0-101` 在真实 PR 上运行首次 CI，并保存原生 amd64/arm64 job 结果。
   - 依赖：当前变更形成可审查分支和 PR。
-  - 完成证据：Go、race、Web contract、media matrix、mount boundary jobs 全绿。
-- [ ] `S0-102` 验证真实 base branch → 当前 OpenAPI 的语义兼容检查。
+  - 完成证据：[PR #1 CI run 29985018814](https://github.com/HappyQuQu/foliopath/actions/runs/29985018814)
+    的 Go、race、Web contract、media matrix、mount boundary 7 个 jobs 全绿。
+- [x] `S0-102` 验证真实 base branch → 当前 OpenAPI 的语义兼容检查。
   - 依赖：`S0-101`。
-  - 完成证据：PR 中 `oasdiff` 执行成功；破坏性变更测试能可靠阻断。
+  - 完成证据：PR #1 的 Generated web contract job 对真实 base branch 执行 `oasdiff`
+    成功；工具配置使用 `--fail-on WARN` 阻断检测到的破坏性变化。
 - [ ] `S0-103` 完成 FS-03 libvips/govips 图片链路 spike。
   - 范围：JPEG/PNG/WebP/GIF 元数据、方向、色彩、透明度、动画和缩略图限制。
   - 完成证据：固定依赖、合成 fixture、超时/损坏输入结果写回 FS-03。
 - [ ] `S0-104` 在原生 linux/amd64 与 linux/arm64 环境运行相同媒体 fixture。
   - 依赖：`S0-101`、`S0-103`。
-  - 完成证据：两架构 codec、失败行为和依赖版本对比记录。
+  - 当前证据：合成 FFmpeg/webp 子矩阵已在 PR #1 两架构通过。
+  - 完成证据：加入 `S0-103` 的 libvips/govips 后，两架构完整 codec、失败行为和依赖版本对比记录。
 - [ ] `S0-105` 解决 Stage 0 与 FS-01“生产 handler 证据”的门禁顺序。
   - 当前冲突：Stage 0 禁止生产 feature handler，但 FS-01 完整关闭条件包含生产 handler。
   - 完成方式：通过 Gate/治理记录，将该证据明确放入获准的最小安全纵向切片，或批准一个

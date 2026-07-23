@@ -17,7 +17,7 @@
 `openat2` mount-boundary 与 HTTP test harness 子范围证据，SQLite/generation 通过当前
 正确性范围，`api/openapi.yaml` 已成为 HTTP 结构权威。可启动进程、应用组合根、生产 HTTP
 handler、认证、React 产品应用、完整媒体工具链与发布容器仍未形成产品；生成 TypeScript
-契约/client 与 CI 工作流已建立，但 CI 尚未实际运行。准确状态以
+契约/client 与 CI 工作流已建立，首次原生 amd64/arm64 PR CI 已通过。准确状态以
 [开发就绪评审](../development-readiness.md)和[可行性研究](../feasibility-study.md)为准。
 
 发生冲突时，先按[交付与架构治理](delivery-governance.md)暂停受影响工作：已确认产品基线决定范围，

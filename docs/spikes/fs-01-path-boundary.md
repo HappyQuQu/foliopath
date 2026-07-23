@@ -4,9 +4,11 @@
 
 - **状态：Conditional（有条件通过）**
 - **验证日期：2026-07-23**
-- **验证环境：macOS（Darwin/arm64）与 Linux 6.12.76-linuxkit/arm64、Go 1.26.4**
+- **验证环境：macOS（Darwin/arm64）、Linux 6.12.76-linuxkit/arm64，以及 GitHub-hosted
+  原生 Linux amd64/arm64 runners；Go 1.26.4**
 
-当前实现已在 Darwin 和官方 `golang:1.26.4-bookworm` Linux/arm64
+当前实现已在 Darwin、官方 `golang:1.26.4-bookworm` Linux/arm64 容器和原生 Linux
+amd64/arm64 CI
 容器中验证相对路径与多重百分号编码拒绝、符号链接拒绝、根目录移除/替换检测、
 特殊节点跳过、设备号/inode 身份捕获、遍历取消和错误脱敏。新增的真实
 `httptest.Server` harness 还验证了不透明 asset ID 到测试 media capability
@@ -20,8 +22,8 @@ RESOLVE_NO_XDEV` 打开所有实际文件和目录句柄。高权限 mount names
 `VerifyAt`、从挂载点开始的 `Walk` 以及从媒体根遍历时都不会进入挂载内容。
 修复前同设备用例曾确定失败，修复后相同探针通过。
 
-FS-01 仍为 Conditional：生产 HTTP handler、认证/错误 envelope、只读发布 volume、
-运行期挂载消失和 Linux/amd64 尚未存在或验证；非 Linux fallback 也不宣称具备 Linux
+FS-01 仍为 Conditional：生产 HTTP handler、认证/错误 envelope、只读发布 volume和
+运行期挂载消失尚未验证；非 Linux fallback 也不宣称具备 Linux
 `openat2` 的原子 no-mount-crossing 保证。
 
 ## 目标与范围
@@ -163,12 +165,12 @@ package，而不只 FS-01 定向用例。
 
 默认测试不编译 `fsboundary` probe，因此应用与普通 CI 容器不需要
 `CAP_SYS_ADMIN`。显式启用 tag 时，探针要求可用的独立 mount namespace；缺少权限
-会直接失败。验证时只在隔离测试容器中增加 `SYS_ADMIN` 并关闭该容器的默认
-seccomp 过滤：
+会直接失败。本地验证曾在隔离测试容器中增加 `SYS_ADMIN` 并关闭默认 seccomp；GitHub-hosted
+runner 的默认容器安全 profile 仍阻止 mount，因此 CI 只对该隔离探针容器使用 `--privileged`：
 
 ```sh
 docker run --rm --platform linux/arm64 \
-  --cap-add SYS_ADMIN --security-opt seccomp=unconfined \
+  --privileged \
   --mount type=bind,src="$REPOSITORY",dst=/src,readonly \
   -w /src golang:1.26.4-bookworm \
   go test -count=1 -v -tags fsboundary ./tests/integration \
@@ -192,6 +194,9 @@ docker run --rm --platform linux/arm64 \
   `OpenDir`、`CaptureAt`、`VerifyAt`、定点 `Walk` 和根遍历全部按各自公开语义
   失败关闭，且没有观察到 `mounted/secret.jpg`。
 - 同一 tagged suite 的 race detector 运行也通过。
+- [PR #1 CI run 29985018814](https://github.com/HappyQuQu/foliopath/actions/runs/29985018814)
+  在原生 linux/amd64 与 linux/arm64 runner 上重复上述三类 bind mount 及 race suite，
+  两个架构均通过；普通 Go/race jobs 也均通过。
 
 所有测试均使用 `t.TempDir()` 动态创建合成目录，没有读取开发者真实媒体库。未运行 benchmark，因此本报告不提供吞吐、延迟或内存数字。
 
@@ -208,17 +213,16 @@ docker run --rm --platform linux/arm64 \
    `api/openapi.yaml` 的实现，也没有验证认证/CSRF 中间件、API 错误 envelope 或反向代理。
 4. **容器权限与挂载消失**：已验证普通非 root Linux 执行，但尚未以真实
    `/library:ro` volume 模拟运行期 unmount、权限变化、`EIO` 或 `ESTALE`。
-5. **平台范围**：已执行 Darwin/arm64 与 linux/arm64；非 Linux fallback 不具备
-   已证明的 no-mount-crossing 保证，也不能据此声明 linux/amd64、NAS 文件系统或
-   任意内核版本已通过。
+5. **平台范围**：已执行 Darwin/arm64 与原生 linux/amd64、linux/arm64；非 Linux fallback
+   不具备已证明的 no-mount-crossing 保证，当前结果也不能泛化到 NAS 文件系统或任意内核版本。
 
 ## 决策与下一步
 
 - 保留 `internal/files` 作为唯一文件系统访问边界。Linux 同设备 bind mount 缺陷
   已修复并有内核级验收证据；FS-01 仍因生产 HTTP 与发布容器证据缺失而保持
   Conditional，不能以本 spike 代替完整发布门槛。
-- 保留 `fsboundary` tagged acceptance probe，并在具备独立 mount namespace 和
-  `CAP_SYS_ADMIN` 的安全 CI job 中运行；普通应用容器本身不获得该 capability。
+- 保留 `fsboundary` tagged acceptance probe，并仅在隔离的 privileged CI 测试容器中运行；
+  普通应用容器本身不获得任何 mount capability。
 - 将 Linux `openat2` 支持与 seccomp compatibility 纳入发布环境检查；不允许在
   Linux 上回退到 `os.Root`。
 - 权威 OpenAPI 已建立；下一步创建 media capability 与生产 handler 时，把当前 HTTP 恶意
