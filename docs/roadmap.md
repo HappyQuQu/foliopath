@@ -22,8 +22,9 @@
   恢复和失败关闭范围通过。
 - Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
   TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
-  建立，runtime/recovery 与 SBOM/license CI 已通过。尚无可启动产品应用、生产 API handler、
-  React 产品前端或正式 Dockerfile，因此 Stage 1 仍从运行骨架开始，不能跳到后续阶段。
+  建立，runtime/recovery 与 SBOM/license CI 已通过。后端运行骨架现已可启动并执行 migration，
+  但尚无生产业务 API handler、React 产品前端或正式 Dockerfile，因此 Stage 1 仍未完成，
+  不能跳到后续阶段。
 
 ## 阶段 0：基线同步与可行性验证
 

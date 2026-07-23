@@ -37,6 +37,7 @@ func readinessLifecycle(state *readinessState) component {
 	return component{
 		name: "readiness",
 		start: func(context.Context) error {
+			state.set(api.Readiness{Ready: true})
 			return nil
 		},
 		stop: func(context.Context) error {
