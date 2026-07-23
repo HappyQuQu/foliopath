@@ -5,23 +5,23 @@
 路线图按依赖和可验证出口组织，不承诺发布日期。用户已于 2026-07-23 确认 RQ-001～RQ-014 全部采用 A；后续阶段按该基线执行，新的范围变化必须遵守[交付与架构治理](architecture/delivery-governance.md)。路线图阶段是实施顺序，不是发布版本；阶段 0～5 和发布门槛全部通过后才能称为稳定 MVP。
 逐项执行、依赖和完成证据见[开发任务清单](task-list.md)；任务清单不能改变本文阶段顺序或冻结 scope。
 
-当前仍在阶段 0：
+当前已通过 Stage 0 Gate，进入阶段 1：
 
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
 - [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、
   Linux `openat2` 同/跨设备及 self-bind mount 拒绝和真实 HTTP test harness 子范围；生产
   handler/auth 转入首个受保护 API Backend Gate，发布 volume/unmount 转入 FS-05/Release
   Gate；FS-01 的 Stage 0 路径范围已通过。
-- [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 已取得本机 FFmpeg/合成 fixture 局部证据，
-  但 libvips、生产任务、浏览器与双架构门槛未完成。
+- [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 的原生双架构 govips/FFmpeg Stage 0 范围通过；
+  生产任务、更多敌意输入、浏览器与最终发布门槛转入后续 Gate。
 - [FS-04 目标容量](spikes/fs-04-capacity-baseline.md) 的 Linux/arm64 四核、4 GiB
   Stage 0 扫描/索引范围、Linux RSS 与三档趋势通过；代表性存储、媒体、FTS、HTTP 与前端
-  容量按 S0-106 转入后续 Gate。FS-05 双架构
-  镜像与恢复尚未开始。
+  容量按 S0-106 转入后续 Gate。[FS-05](spikes/fs-05-runtime-recovery.md) 双架构运行、
+  恢复和失败关闭范围通过。
 - Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
   TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
-  建立，首次原生 amd64/arm64 PR CI 已通过。尚无可启动应用、生产 API handler、React 产品前端或
-  Dockerfile，不能据此宣布进入阶段 1 或功能开发就绪。
+  建立，runtime/recovery 与 SBOM/license CI 已通过。尚无可启动产品应用、生产 API handler、
+  React 产品前端或正式 Dockerfile，因此 Stage 1 仍从运行骨架开始，不能跳到后续阶段。
 
 ## 阶段 0：基线同步与可行性验证
 

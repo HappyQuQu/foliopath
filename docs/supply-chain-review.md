@@ -2,7 +2,7 @@
 
 ## 状态
 
-**状态：Conditional（本机证据通过；等待 PR SBOM/license job）**
+**状态：Passed（Stage 0 可生成性与关键许可证识别范围）**
 
 **验证日期：2026-07-23**
 
@@ -23,6 +23,10 @@ scripts/generate-sbom.sh IMAGE OUTPUT_DIRECTORY
 生成物是 CI artifact/evidence，不提交到源码树；每次构建记录 SHA-256，发布时应把平台 SBOM
 作为 OCI attestation 随 digest 发布。Stage 0 只证明清单可生成和关键依赖可追踪，不等于
 漏洞或法律审查已经永久完成。
+
+[CI run 29990480565](https://github.com/HappyQuQu/foliopath/actions/runs/29990480565)
+在 Linux runner 上重新构建 FS-05 镜像、生成并校验三份 SPDX，并记录 codec build 与 Debian
+copyright；全部 jobs 已通过，构成 S0-108 的正式证据。
 
 ## 关键依赖结论
 

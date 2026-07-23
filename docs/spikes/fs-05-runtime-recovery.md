@@ -2,7 +2,7 @@
 
 ## 结论
 
-**状态：Conditional（本机 Linux/arm64 通过；等待原生 amd64/arm64 PR CI）**
+**状态：Passed（Stage 0 运行与恢复可行性范围）**
 
 **验证日期：2026-07-23**
 
@@ -12,8 +12,9 @@
 不提供业务 API，也不提前关闭 S1 的正式配置、认证、日志和健康契约任务。探针复用真实
 SQLite store 与嵌入 migration，验证最终镜像所需的系统依赖和容器故障语义。
 
-本机 Docker Desktop Linux/arm64 已通过完整矩阵。只有 PR 的原生 amd64/arm64 jobs 都通过后，
-才关闭 S0-107。
+[CI run 29990148384](https://github.com/HappyQuQu/foliopath/actions/runs/29990148384)
+的原生 linux/amd64 与 linux/arm64 jobs 已构建同一 Dockerfile 并通过相同完整矩阵，
+S0-107 的 Stage 0 范围关闭。
 
 ## 镜像边界
 
@@ -25,16 +26,18 @@ SQLite store 与嵌入 migration，验证最终镜像所需的系统依赖和容
 - 只读根文件系统、`/tmp` 受限 tmpfs、全部 Linux capabilities 丢弃；
 - `/library` 只读 bind mount，`/app/data` 为唯一持久可写目录。
 
-本机 arm64 构建解析到：
+原生 CI 构建解析到：
 
-| 项目 | 结果 |
-| --- | --- |
-| image | 206,224,898 B；linux/arm64 |
-| Go | 1.26.4；`CGO_ENABLED=0` 的探针二进制 |
-| Debian | bookworm slim digest `sha256:7b140f…5818` |
-| libvips | `libvips42` 8.14.1-3+deb12u3 |
-| FFmpeg | 5.1.9-0+deb12u1 |
-| tzdata | 2026b-0+deb12u1 |
+| 项目 | linux/amd64 | linux/arm64 |
+| --- | --- | --- |
+| image | 590,228,942 B；`sha256:4f04e5…d5cd` | 551,053,699 B；`sha256:5a04d2…f22a` |
+| Go | 1.26.4；`CGO_ENABLED=0` | 1.26.4；`CGO_ENABLED=0` |
+| Debian | bookworm slim digest `sha256:7b140f…5818` | 同一 manifest digest |
+| libvips | `libvips42:amd64` 8.14.1-3+deb12u3 | `libvips42:arm64` 8.14.1-3+deb12u3 |
+| FFmpeg | 5.1.9-0+deb12u1 | 5.1.9-0+deb12u1 |
+
+本机 Docker Desktop arm64 的镜像报告为 206,224,898 B；Docker 存储后端的 size 口径不同，
+因此 Stage 0 只记录各环境结果，不把它作为发布体积预算。
 
 这些版本是本次 Debian snapshot 解析结果。发布镜像仍必须按版本构建并附 SBOM，不能把
 浮动 apt repository 结果当作永久锁。
@@ -74,9 +77,12 @@ spikes/fs05-runtime/verify.sh foliopath-fs05:local
 Compose 结构可用 `spikes/fs05-runtime/compose.spike.yaml` 检查；它仍标明 spike，不是正式发布
 Compose。
 
-## 完成条件
+## Stage 0 完成判断
 
 - 原生 linux/amd64 与 linux/arm64 构建同一 Dockerfile；
 - 两边运行相同 runtime/recovery/failure fixture；
 - 记录两边 image、libvips、FFmpeg 版本与大小；
-- S0-108 生成 source/npm/image SBOM 并审查 codec/许可证。
+- S0-108 已生成 source/npm/image SBOM 并审查 codec/许可证。
+
+以上条件全部满足。真实版本间升级、在线备份、运行期 NAS 断连、最终多平台 manifest 与
+发布体积仍由对应 Backend/Release Gate 强制。

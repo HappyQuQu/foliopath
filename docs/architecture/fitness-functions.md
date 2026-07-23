@@ -43,11 +43,11 @@ make test-e2e
 | AF-009 | 前端依赖方向、共享组件唯一所有权与 token 单一来源 | TypeScript boundary/cycle lint、受限基础库/import 位置 allowlist、token lint、组件目录检查 | **部分执行**：strict TypeScript、唯一生成 client 边界及禁止散落 `fetch` 的架构测试已通过；React、组件/token/cycle 门禁尚未建立 | 首个业务 feature 前 |
 | AF-010 | 前端稳定原语在主题、语言、宽度和异步状态下行为一致 | component workbench build、Testing Library、axe、聚焦视觉回归 | 计划门禁 | 行为/axe 在首次消费前；视觉基线在 API 稳定或第二消费者前；完整矩阵在 RC 前 |
 | AF-011 | 大列表只使用游标分页和统一虚拟化模式 | API 契约测试、前端 pattern 测试、E2E DOM/请求上限 | 计划门禁 | 浏览切片前 |
-| AF-012 | 单容器、非 root、`/library:ro`、本地 `/app/data` 运行 | 双架构容器 smoke、安全挂载和健康检查 | 计划门禁 | 首个预览镜像前 |
+| AF-012 | 单容器、非 root、`/library:ro`、本地 `/app/data` 运行 | 双架构容器 smoke、安全挂载和健康检查 | **Stage 0 probe 已执行**：原生双架构 FS-05 通过；正式应用镜像仍待验证 | 首个预览镜像前 |
 | AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | 计划门禁 | 首个可共享预览版前 |
-| AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | 计划门禁 | Release Candidate 前 |
+| AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **部分执行**：FS-05 离线恢复、重复 migration、只读/满盘/损坏失败关闭通过；在线备份、强杀和真实版本升级未测 | Release Candidate 前 |
 | AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **部分执行**：Linux/arm64 tmpfs 的扫描/索引子范围通过；完整媒体/HTTP/前端与代表性存储未测 | 阶段 0 FS-04 与发布前复测 |
-| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | 计划门禁 | Release Candidate 前 |
+| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行**：source/npm/image SPDX 与关键 codec/license 审查通过；最终 digest attestation、漏洞与 notices 未完成 | Release Candidate 前 |
 
 ## 前后端门禁顺序
 
@@ -62,9 +62,9 @@ make test-e2e
 `Release Ready` 是版本级 Gate：所有版本内切片完成后，再统一执行 AF-012～AF-016、全量 E2E、
 恢复、容量、安全、合规与发布文档门槛。
 
-`Conditional Go` 只允许继续不依赖未满足条件的工作。当前 FS-01 虽已有 Linux/arm64
-`openat2` 与 HTTP harness 证据，但生产 handler、认证/错误 envelope 和发布容器证据仍缺，
-因此可以完善纯领域契约和验证护栏，不能把真实文件读取 API 标记为 Backend Ready。
+Stage 0 Gate 已通过并只授权 Stage 1。生产 handler、认证/错误 envelope 和正式发布容器证据
+仍缺，必须按切片 Gate 顺序补齐；本次 Stage 0 Go 不能把真实文件读取 API 标记为
+`Backend Ready`，也不能跳过后端直接实现业务 UI。
 
 ## 失败与豁免
 

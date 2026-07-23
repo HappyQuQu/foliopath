@@ -11,9 +11,9 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 > [!IMPORTANT]
 > FolioPath 目前处于规划与早期开发阶段，尚无可启动的应用或发布镜像。FS-01 已在
 > 原生 Linux amd64/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
-> FS-02 当前正确性范围通过，FS-03/FS-04 取得局部证据；OpenAPI 生成类型、唯一 Web API
-> 客户端边界和 CI 工作流已建立，首次原生 amd64/arm64 CI 全部通过。这些结果仍不足以进入产品功能开发，
-> Stage 0 整体保持 Conditional Go。本文档中的功能和配置可能会调整。
+> FS-02 当前正确性范围、FS-03 双架构媒体链路、FS-04 Stage 0 容量范围和 FS-05 双架构
+> 运行/恢复范围均通过；OpenAPI、生成类型、唯一 Web API 客户端和供应链 CI 已建立。
+> Stage 0 Gate 已通过并只授权后端优先的 Stage 1；这不代表应用、业务 UI 或发布镜像已完成。
 
 ## Why FolioPath?
 
@@ -176,22 +176,26 @@ FolioPath 采用单体、单进程、单端口架构：
 仓库已经有固定的 Go toolchain、SQLite 初始迁移、路径边界与 generation 扫描实验代码、
 权威 [`api/openapi.yaml`](api/openapi.yaml)，以及 Go 单元、契约、集成和显式容量测试；这批
 代码仍是可行性/契约证据，不是可供用户部署的 FolioPath 服务。当前还没有生产 HTTP 应用
-入口、React 产品前端、Dockerfile、认证实现或媒体处理链路。仓库已有契约生成基础与 CI
-工作流定义，首次原生 amd64/arm64 CI 已通过；这仍不是可发布应用证据。
+入口、React 产品前端、正式 Dockerfile、认证实现或生产媒体处理链路。仓库已有隔离的
+FS-05 probe Dockerfile、契约生成和 CI，原生双架构 runtime/recovery 与 SBOM jobs 已通过；
+这仍不是可发布应用证据。
 
 - [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Passed（Stage 0 范围）**。Darwin 与原生
   Linux amd64/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
   HTTP test harness 已通过；生产 handler/auth 转入首个受保护 API Backend Gate，只读发布
   volume 与运行期 unmount 转入 FS-05/Release Gate。
 - [FS-02 SQLite 与扫描 generation](docs/spikes/fs-02-sqlite-generation.md)：**当前正确性范围通过**。真实文件 SQLite、Goose、WAL、故障/取消/离线/重启保留、原子 finalize 与跨媒体库隔离已有自动化证据；磁盘满、真实强杀、长期 WAL 压力及备份恢复仍未验证。
-- [FS-03 媒体矩阵](docs/spikes/fs-03-media-matrix.md)：**Conditional**。本机合成格式、
-  FFmpeg 探测、视频封面、动画 GIF 和截断视频拒绝已有证据；libvips、生产任务隔离、浏览器
-  与双架构镜像仍未验证。
+- [FS-03 媒体矩阵](docs/spikes/fs-03-media-matrix.md)：**Stage 0 范围通过，完整范围
+  Conditional**。govips/FFmpeg fixture 已在原生双架构通过；生产任务隔离、更多敌意输入、
+  浏览器和最终镜像仍由后续 Gate 验证。
 - [FS-04 容量基线](docs/spikes/fs-04-capacity-baseline.md)：**扫描/索引子范围通过，整体
   Conditional**。Linux/arm64、四核/4 GiB 下完成 10 万媒体/1 万目录档并修复 finalize
   复杂度问题；代表性存储、FTS、媒体/缩略图、HTTP 和前端并发仍未验证。
+- [FS-05 运行与恢复](docs/spikes/fs-05-runtime-recovery.md)：**Stage 0 范围通过**。原生
+  双架构同 Dockerfile 已验证非 root/只读、health、退出、离线恢复、重复迁移与故障关闭。
 
-项目整体仍是[有条件推进](docs/feasibility-study.md)，也仍[未达到功能开发就绪](docs/development-readiness.md)。上述 spike 结果不能解释为应用功能已可用或发布门槛已满足。
+项目已获准进入[后端优先的 Stage 1](docs/gates/MVP-2026-07-23/stage-0-current.md)，但上述
+spike 结果不能解释为应用功能已可用或发布门槛已满足。
 
 ## Roadmap
 
@@ -203,9 +207,11 @@ FolioPath 采用单体、单进程、单端口架构：
 - [x] 第一版权威 OpenAPI 契约与离线契约检查
 - [x] FS-01 原生 Linux amd64/arm64 `openat2` mount 边界与 Stage 0 HTTP harness 范围
 - [x] FS-04 目标档的扫描/索引子范围
+- [x] FS-05 原生双架构运行、恢复和失败关闭范围
+- [x] Stage 0 SBOM/license 与风险复审，Gate 允许进入 Stage 1
 - [ ] 在对应 Backend/Release Gate 完成生产 handler/auth、只读发布 volume、运行期 unmount
   与长期 churn；不反向阻断 FS-01 Stage 0 可行性结论
-- [ ] 完成 FS-03 libvips、媒体任务、浏览器和双架构矩阵（首轮为 Conditional）
+- [ ] 在对应 Gate 完成 FS-03 生产媒体任务、更多敌意输入、浏览器与最终镜像矩阵
 - [ ] 完成 FS-04 代表性存储与完整媒体/搜索/HTTP/前端容量验证
 - [ ] 项目脚手架、数据库迁移和基础 API
 - [ ] 安全媒体根目录与多媒体库管理

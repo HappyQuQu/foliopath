@@ -7,8 +7,8 @@
 [路线图](roadmap.md)为准，架构与交付门禁以
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
-当前里程碑：**Stage 0 / Conditional Go**。在 Stage 0 Gate 复审通过前，只允许完成本节列出的
-可行性、契约、CI、容器和架构护栏任务，不开始生产 feature handler 或业务 UI。
+当前里程碑：**Stage 1 / 后端优先**。Stage 0 Gate 已于 2026-07-23 通过，只授权 Stage 1：
+先完成 Go 运行骨架与认证后端；认证 `Backend Ready` 前不开始产品 UI，Stage 2～5 仍未授权。
 
 执行约束：
 
@@ -23,9 +23,8 @@
 ## 当前关键路径
 
 ```text
-Stage 0 剩余证据
-  → Stage 0 Gate 复审
-  → Go 可运行基础与认证后端
+Go 可运行基础
+  → 认证后端 Backend Ready
   → 媒体库与可靠扫描后端
   → 媒体库设置 UI
   → 文件夹浏览与缩略图
@@ -51,7 +50,7 @@ Stage 0 剩余证据
 - [x] `S0-011` FS-03 Darwin/arm64 与 Linux/amd64 QEMU 合成 FFmpeg 子范围通过。
 - [x] `S0-012` FS-04 Linux/arm64 目标容量扫描/索引子范围通过。
 
-### 当前待办
+### Stage 0 关闭记录
 
 - [x] `S0-101` 在真实 PR 上运行首次 CI，并保存原生 amd64/arm64 job 结果。
   - 依赖：当前变更形成可审查分支和 PR。
@@ -81,17 +80,22 @@ Stage 0 剩余证据
     及 FS-04 的 Linux RSS、三档趋势、`stage0-comparable-v1` 暂定回归预算和 fallback。
   - 后续强制条件：代表性存储和最终镜像由 Performance/Release Gate 阻断；生产媒体队列、
     FTS/keyset、HTTP 和前端并发分别由对应 Backend/UI Gate 阻断。
-- [ ] `S0-107` 完成 FS-05 双架构镜像与恢复 spike。
+- [x] `S0-107` 完成 FS-05 双架构镜像与恢复 spike。
   - 范围：多阶段 Debian slim、非 root、`/library:ro`、`/app/data`、健康检查、优雅停机、
     SQLite 备份/恢复、升级和磁盘满。
-  - 完成证据：两架构 smoke、恢复演练和失败注入报告。
-- [ ] `S0-108` 生成 Go/npm/镜像 SBOM，审查 libvips、FFmpeg codec 与许可证。
+  - 完成证据：[FS-05 报告](spikes/fs-05-runtime-recovery.md)与
+    [原生双架构 CI](https://github.com/HappyQuQu/foliopath/actions/runs/29990148384)；
+    两边相同 fixture 验证非 root/只读、health、退出、恢复、重复迁移和故障关闭。
+- [x] `S0-108` 生成 Go/npm/镜像 SBOM，审查 libvips、FFmpeg codec 与许可证。
   - 依赖：`S0-103`、`S0-107`。
-  - 完成证据：依赖清单、构建选项、许可证结论和未决风险。
-- [ ] `S0-109` 复审风险 R-002～R-016，并更新 owner、状态和 fallback。
-- [ ] `S0-110` 复审 Stage 0 Gate。
+  - 完成证据：[供应链与许可证审查](supply-chain-review.md)及
+    [SBOM/license CI](https://github.com/HappyQuQu/foliopath/actions/runs/29990480565)。
+- [x] `S0-109` 复审风险 R-002～R-016，并更新 owner、状态和 fallback。
+  - 完成证据：[S0-109 风险复审](gates/MVP-2026-07-23/s0-109-risk-review.md)逐项分配最迟 Gate。
+- [x] `S0-110` 复审 Stage 0 Gate。
   - 依赖：`S0-101`～`S0-109` 完成，或每个未完成项有正式缩减范围/延期 Gate。
-  - 完成证据：Gate 结论从 `Conditional Go` 更新为允许进入 Stage 1，或明确 `No-Go`。
+  - 完成证据：[Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)结论为
+    `Go — 允许进入 Stage 1`，并保留后端优先、风险和 Release Gate 约束。
 
 ## Stage 1：后端优先的可运行基础
 
