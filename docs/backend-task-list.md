@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-007` Go/HTTP/SQLite 运行骨架和生成护栏
-- 当前任务：`S1-008` 运行应用集成测试、取消测试和最小容器 smoke
+- 已完成：`S1-001`～`S1-008` Go/HTTP/SQLite 运行骨架、生成护栏和真实应用 smoke
+- 当前任务：`S1-101` 固定管理员认证 OpenAPI/数据契约
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -36,7 +36,12 @@
   - 完成证据：固定 sqlc `v1.31.1`；`queries/` 为媒体库 SQL 唯一来源，`dbgen/` 为提交的
     生成包；library adapter 已消费生成查询；临时目录重生成 diff、生成标记和禁止 adapter
     复制同组 SQL 的架构检查已接入 `make generate-check` 与 CI。
-- [ ] `S1-008` 增加运行应用的集成测试、取消测试和最小容器 smoke。
+- [x] `S1-008` 增加运行应用的集成测试、取消测试和最小容器 smoke。
+  - 完成证据：真实 composition root 使用临时数据卷和随机回环端口连续启动两次；验证
+    migration、live/ready、status 默认 401、根取消、listener 关闭和数据目录。测试专用
+    非 root 容器以 `/library:ro`、`/app/data` 运行正式 `cmd/foliopath`，验证内部 health、
+    SIGTERM 零退出、停机日志、重复启动和媒体 sentinel 不变；`make test-e2e` 与原生
+    amd64/arm64 CI job 使用同一脚本。该镜像仅为测试证据，不是 Stage 5 发布镜像。
 
 ### 单管理员认证后端
 

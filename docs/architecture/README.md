@@ -21,9 +21,10 @@
 失败回滚、运行故障传播、反向关闭和有界停机。当前已接入单 HTTP listener、服务端 request ID、
 统一安全错误、JSON 日志、在途请求排空、liveness/readiness 和受保护的系统状态路由。正式应用
 已按数据库 → HTTP → readiness 顺序接入固定 `/app/data`、SQLite WAL 和嵌入 migration，
-迁移成功后才进入 ready；数据目录、数据库或迁移失败都会失败关闭。系统状态在认证实现前保持
-默认拒绝，当前仍没有可用的业务 handler。认证、React 产品应用、
-完整媒体 adapter、Docker 和发布运维链路仍未建立。
+迁移成功后才进入 ready；数据目录、数据库或迁移失败都会失败关闭。真实组合测试和测试专用
+非 root 容器已覆盖 health、根取消/SIGTERM、重复启动与 `/library:ro` 媒体不变。系统状态在
+认证实现前保持默认拒绝，当前仍没有可用的业务 handler。认证、React 产品应用、
+完整媒体 adapter、正式发布 Dockerfile 和发布运维链路仍未建立。
 详细状态见[开发就绪评审](../development-readiness.md)。
 
 ## 架构档案导航

@@ -214,8 +214,9 @@ Range，以及 scanner/migration 的选择性关键不变量（当前为 `queued
 Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 4xx 响应的规则 warning，
 没有结构错误。`generate-check` 同时验证固定版本 sqlc 和 OpenAPI TypeScript 生成无漂移，
 `web-check`、摘要锁和语义兼容入口已在本地通过；CI 已定义同一生成入口、PR 基线比较与原生
-amd64/arm64 jobs。前端组件/token 门禁与 `test-e2e` 尚不存在。阶段 1 必须随相关源码补齐
-缺口，并保证本地与 CI 使用同一入口。
+amd64/arm64 jobs。`test-e2e` 已使用测试专用容器启动真实 `cmd/foliopath`，覆盖非 root、
+固定 volumes、health、默认 401、重复 migration、SIGTERM 和媒体只读 sentinel，并接入原生
+amd64/arm64 CI。前端组件/token、浏览器产品 E2E 仍不存在，必须随相关源码补齐。
 
 计划中的每次合并至少要求：
 
@@ -249,14 +250,15 @@ amd64/arm64 jobs。前端组件/token 门禁与 `test-e2e` 尚不存在。阶段
 - `make test`
 - `make test-race`
 - `make test-integration`
+- `make test-e2e`（真实后端进程的测试专用容器 smoke；不是浏览器或发布镜像验收）
 - `make spike-capacity`（显式重型目标档）
 - `git diff --check`
 - 仓库内 Markdown 相对链接检查
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
-`make test-e2e`、前端 import/token lint、Storybook/组件/视觉回归、
-生产 HTTP/认证错误边界测试、只读发布 volume/运行期 unmount、浏览器测试、
+前端 import/token lint、Storybook/组件/视觉回归、认证实现及其错误边界测试、
+只读发布 volume/运行期 unmount、浏览器产品 E2E、
 完整媒体/搜索/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
 的完整状态与最晚落地阶段见[架构适配度检查](architecture/fitness-functions.md)。
