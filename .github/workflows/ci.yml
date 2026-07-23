@@ -105,6 +105,37 @@ jobs:
       - name: Run the synthetic media matrix
         run: tests/fixtures/media-matrix/verify.sh
 
+  vips-spike:
+    name: Govips spike (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: .go-version
+          cache-dependency-path: spikes/fs03-vips/go.sum
+      - name: Install libvips
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libvips-dev
+          pkg-config --modversion vips
+      - name: Run the bounded govips fixture
+        working-directory: spikes/fs03-vips
+        env:
+          MALLOC_ARENA_MAX: "2"
+        run: timeout 2m go test -count=1 -v ./...
+
   mount-boundary:
     name: Linux mount boundary (${{ matrix.arch }})
     strategy:

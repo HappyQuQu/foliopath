@@ -10,7 +10,8 @@
 
 **验证环境：macOS 26.5.2（Darwin 25.5.0/arm64）、Go 1.26.4、FFmpeg/ffprobe 8.1.2、
 cwebp 1.6.0；另在 arm64 Docker Desktop 上以 QEMU 运行 Debian linux/amd64 的
-FFmpeg/webp 包重跑同一 fixture**
+FFmpeg/webp 包重跑同一 fixture；Debian bookworm arm64 容器中使用 libvips 8.14.1 与
+govips 2.18.0 运行隔离图片链路**
 
 固定扩展名契约已经由 scanner 单元测试完整锁定：JPEG、PNG、WebP、GIF 与
 MP4、MOV、MKV 进入 MVP 索引候选；SVG、HEIC/HEIF、AVIF、DNG、CR3 和无扩展名
@@ -23,11 +24,11 @@ MP4、MOV、MKV 进入 MVP 索引候选；SVG、HEIC/HEIF、AVIF、DNG、CR3 和
 组合在该模拟环境可运行；这不是原生 amd64、最终镜像或跨架构性能证据。仓库已经定义原生
 linux/amd64 与 linux/arm64 CI runner 矩阵；PR #1 的同一合成脚本已在两个原生 runner 通过。
 
-FS-03 不能记为 Passed。本机没有 libvips，Go 模块也尚未引入 govips，因此没有
-执行合同要求的图片元数据与缩略图链路；项目尚无媒体工具 adapter、任务队列、
-HTTP Range 或浏览器 E2E，因而也没有验证超时/取消/并发上限、损坏输入隔离以及
-目标浏览器直放。当前证据只允许继续完成媒体后端边界，不足以关闭 R-006～R-008，
-也不替代原生 linux/amd64、linux/arm64 最终容器矩阵。
+隔离的 `spikes/fs03-vips` module 已在 Debian arm64 验证 JPEG/PNG/WebP 元数据与缩略图、
+PNG/WebP alpha、orientation、四帧 GIF/首帧策略和截断 PNG 拒绝。该 module 不进入生产
+Go module；项目尚无媒体 adapter、任务队列、HTTP Range 或浏览器 E2E，因而也没有验证
+单资产 native call 取消、生产并发上限、像素/帧炸弹隔离、ICC fixture 或目标浏览器直放。
+当前证据只允许继续完成媒体后端边界，不足以关闭 R-006～R-008，也不替代最终容器矩阵。
 
 ## 目标与证据边界
 
@@ -54,8 +55,8 @@ HTTP Range 或浏览器 E2E，因而也没有验证超时/取消/并发上限、
 | --- | --- | --- |
 | FFmpeg / ffprobe | 8.1.2，Homebrew arm64 构建；包含 `libx264`、FFV1、MJPEG、PNG、GIF 解码/编码能力 | 可合成与探测视频，抽取视频封面，验证直接 CLI 的损坏输入返回 |
 | cwebp | 1.6.0 | 只用于把合成 PNG 转成合成 WebP fixture |
-| libvips CLI / pkg-config | 不存在 | 不能验证 libvips 图片探测、缩略图、方向、色彩或动画策略 |
-| govips | `go list -m all` 中不存在 | 不能验证生产要求的 Go → govips → libvips 调用边界 |
+| libvips / pkg-config | Debian arm64：8.14.1 | JPEG/PNG/WebP/GIF loader、缩略图、alpha、orientation 与损坏 PNG 子范围通过 |
+| govips | 隔离 module 固定 v2.18.0；不进入主 Go module | Go → govips → libvips 基础调用可行；不证明生产 adapter、取消或并发隔离 |
 | FolioPath 媒体 adapter / jobs | 尚不存在 | 不能验证参数数组、超时、取消、进程组回收、输入/输出上限和全局有界并发 |
 | HTTP / 浏览器 E2E | 尚不存在 | 不能验证 Range、条件请求、浏览器解码、播放失败状态或跨浏览器差异 |
 | Linux amd64 QEMU fixture | Debian 容器中安装 `ffmpeg` 与 `webp` 后，同一脚本通过 | 只证明模拟环境的合成 CLI 矩阵可运行，不证明原生架构、最终镜像或性能 |
@@ -122,6 +123,8 @@ bash -n tests/fixtures/media-matrix/verify.sh
 # 另在 --platform linux/amd64 的 Debian 容器中安装 ffmpeg/webp 后运行同一 verify.sh
 go test -count=1 -v ./internal/scanner
 go test -race -count=1 ./internal/scanner
+# Debian arm64 + libvips-dev
+make spike-vips
 ```
 
 结果：
@@ -131,6 +134,11 @@ go test -race -count=1 ./internal/scanner
   原生平台证据另由 PR #1 CI 提供。
 - [PR #1 CI run 29985018814](https://github.com/HappyQuQu/foliopath/actions/runs/29985018814)
   的 Synthetic media amd64/arm64 jobs 均通过。
+- Debian arm64 容器的 `make spike-vips` 在 libvips 8.14.1/govips 2.18.0 上通过；固定
+  concurrency=1、cache memory=32 MiB，govips 报告测试 high-water mark 544.50 KiB。
+- still-image 子测试覆盖 JPEG/PNG/WebP 96×64 load/export、PNG/WebP alpha 和最大 48×32
+  thumbnail；orientation 6 归一化后尺寸为 64×96；GIF 报告 4 页并可显式只加载首帧；
+  截断 PNG 返回错误。
 - 合成矩阵生成 96×64 的 JPEG、PNG、WebP、4 帧 GIF，以及各 1 秒的
   MP4/H.264、MOV/H.264、MKV/H.264 和 MKV/FFV1。
 - H.264 与 FFV1 视频均为 `yuv420p`；三个 MVP 容器和 FFV1 候选均成功产生
@@ -145,8 +153,8 @@ go test -race -count=1 ./internal/scanner
 
 ## 剩余门槛
 
-1. **libvips/govips 图片链路**：在固定的目标镜像中加入并固定依赖版本，逐项验证
-   JPEG/PNG/WebP/GIF 元数据、缩略图、EXIF 方向、ICC/色彩、透明度和动画策略。
+1. **libvips/govips 完整图片链路**：基础元数据、缩略图、方向、透明度和 GIF 首帧策略
+   已有隔离 arm64 证据；仍需原生双架构 CI、ICC fixture、像素/帧限制与最终镜像版本锁。
 2. **生产媒体边界**：实现 capability-owned 接口和受控 adapter 后，验证参数数组、
    deadline、取消、子进程回收、输出上限、像素/帧限制、并发 limiter、失败退避与
    不泄露原始 stderr；损坏输入必须隔离到单个资产。

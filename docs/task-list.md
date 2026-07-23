@@ -63,7 +63,8 @@ Stage 0 剩余证据
     成功；工具配置使用 `--fail-on WARN` 阻断检测到的破坏性变化。
 - [ ] `S0-103` 完成 FS-03 libvips/govips 图片链路 spike。
   - 范围：JPEG/PNG/WebP/GIF 元数据、方向、色彩、透明度、动画和缩略图限制。
-  - 完成证据：固定依赖、合成 fixture、超时/损坏输入结果写回 FS-03。
+  - 当前证据：Debian arm64 的隔离 govips 2.18.0/libvips 8.14.1 fixture 已通过。
+  - 完成证据：原生双架构 CI 通过后，固定依赖、合成 fixture、超时/损坏输入结果写回 FS-03。
 - [ ] `S0-104` 在原生 linux/amd64 与 linux/arm64 环境运行相同媒体 fixture。
   - 依赖：`S0-101`、`S0-103`。
   - 当前证据：合成 FFmpeg/webp 子矩阵已在 PR #1 两架构通过。
