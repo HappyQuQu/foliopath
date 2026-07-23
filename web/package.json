@@ -1,0 +1,28 @@
+{
+  "name": "@foliopath/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0 <23"
+  },
+  "packageManager": "npm@10.9.7",
+  "scripts": {
+    "generate:api": "node scripts/generate-api.mjs",
+    "generate:check": "node scripts/generate-api.mjs --check",
+    "lint:openapi": "redocly lint ../api/openapi.yaml",
+    "check:types": "tsc --noEmit",
+    "check": "npm run generate:check && npm run check:types"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.40.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "js-yaml": "4.3.0"
+  }
+}

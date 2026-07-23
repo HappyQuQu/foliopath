@@ -2,7 +2,9 @@
 
 ## 状态
 
-本文描述首个可用版本的目标仓库结构。源码脚手架尚未创建；目录应在出现首个真实文件时建立，不为“以后可能会用”预建空包。
+本文描述首个可用版本的目标仓库结构。当前已有部分 Go spike 包，以及 `web/` 下的 OpenAPI
+生成类型、唯一 client、strict TypeScript 和目录级约束；应用、生产 API 与 React 产品脚手架
+尚未完整创建。目录应在出现首个真实文件时建立，不为“以后可能会用”预建空包。
 
 具体代码必须同时遵守根目录的 [`AGENTS.md`](../AGENTS.md)。改变模块边界、部署单元或依赖方向前，应先更新架构并在需要时新增 ADR。
 
@@ -15,12 +17,14 @@
 ├── internal/
 │   ├── app/                   依赖组装、配置、生命周期、优雅退出
 │   ├── api/                   HTTP 路由、处理器、DTO、中间件
+│   ├── auth/                  管理员初始化、会话与 CSRF 边界
 │   ├── library/               媒体库配置、状态与重叠规则
 │   ├── catalog/               目录、媒体、浏览与搜索
 │   ├── scanner/               遍历、扫描代次与校准
 │   ├── thumbnail/             缩略图任务与缓存语义
 │   ├── media/                 媒体探测与原文件响应
 │   ├── jobs/                  有界、可恢复的后台任务
+│   ├── pathpolicy/            不接触 I/O 的相对路径词法策略
 │   ├── files/                 `/library` 路径安全边界
 │   ├── store/sqlite/          SQLite 适配器和生成查询代码
 │   └── webassets/             Vite 产物的 Go 嵌入包装
@@ -28,8 +32,10 @@
 │   ├── src/
 │   │   ├── app/               应用壳、路由、Provider 与启动
 │   │   ├── routes/            路由级页面组装
-│   │   ├── features/          library、browse、search、viewer、settings
-│   │   ├── components/        无业务归属的可复用 UI 原语
+│   │   ├── features/          auth、libraries、browse、search、viewer、settings
+│   │   ├── components/
+│   │   │   ├── ui/            唯一共享 UI 原语
+│   │   │   └── patterns/      唯一跨 feature 交互模式
 │   │   ├── lib/               API 客户端和小型基础设施适配
 │   │   └── styles/            token、全局样式与主题
 │   └── tests/                 前端共享测试支持
@@ -56,7 +62,7 @@ cmd/foliopath
  internal/app ─────► internal/api
       │                    │
       ├────────────► capability packages
-      │               library / catalog / scanner / thumbnail / media / jobs
+      │               auth / library / catalog / scanner / thumbnail / media / jobs
       │                    ▲
       └────────────► adapters
                       files / store/sqlite / media-tool implementations
@@ -66,7 +72,10 @@ cmd/foliopath
 
 - `cmd/foliopath` 依赖 `internal/app`，不包含业务逻辑。
 - `internal/api` 依赖能力服务与公开业务类型，不依赖 SQLite、真实路径或 FFmpeg 调用。
+- `internal/auth` 拥有管理员初始化与会话规则；API 中间件只调用其服务，不直接读取用户或会话表。
 - `internal/store/sqlite` 和其他适配器可以依赖能力包定义的接口与类型。
+- `internal/pathpolicy` 是无 I/O 的内层策略；library、scanner 和 files 可以复用它。只有
+  `internal/files` 可以把策略通过的路径解析为真实文件并验证身份。
 - 能力包之间只通过明确的服务或窄接口协作；出现循环依赖时重新划分职责，不用共享包掩盖。
 - 只有 `internal/app` 知道完整的具体实现图。
 
@@ -80,17 +89,25 @@ cmd/foliopath
 
 ## 前端组织规则
 
+完整依赖图、组件所有权、API/Query/URL 状态和自动门禁见[前端子系统架构](architecture/frontend.md)。
+
 - `routes/` 负责读取 URL、加载路由级数据和组合页面，不堆放所有交互逻辑。
 - `features/` 按用户能力组织。每个 feature 可包含组件、query、hook、类型和测试，但不能绕过统一 API 客户端。
 - `components/` 只放确实跨 feature 使用的基础组件；业务专用组件留在所属 feature。
+- `components/ui` 中每种基础语义只有一个规范实现，包括 Dialog/Sheet 的焦点、Escape、inert 与滚动锁；
+  `components/patterns` 统一 ConfirmDialog、异步状态、分页/虚拟集合等跨 feature 流程。已有所有者时新增
+  variant，不复制近似组件。
 - TanStack Query 保存服务端状态；媒体库、目录、搜索、排序和递归开关等可导航状态保存在 URL。
 - 短暂 UI 状态优先保持在最近组件。新增全局状态库需要 ADR。
 - token 与主题集中在 `styles/`；组件不得各自发明相近但不一致的颜色、间距或动效常量。
+- 业务代码不直接导入生成客户端或调用 `fetch`；只通过 `lib/api` adapter。Query key、URL codec、
+  错误映射与失效策略各自只有一个 owner。
 
 建议的 feature 起点如下，只有实施对应范围时才创建：
 
 ```text
 web/src/features/
+├── auth/
 ├── libraries/
 ├── browse/
 ├── search/
@@ -132,4 +149,3 @@ web/src/features/
 5. 是否需要同步更新 API、数据模型、安全、测试或部署文档？
 
 如果前两项没有明确答案，先完善职责定义，再创建目录。
-

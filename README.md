@@ -9,7 +9,11 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 你的文件夹，就是你的相册。
 
 > [!IMPORTANT]
-> FolioPath 目前处于规划与早期开发阶段。本文档中的功能和配置可能会调整。
+> FolioPath 目前处于规划与早期开发阶段，尚无可启动的应用或发布镜像。FS-01 已在
+> Linux/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
+> FS-02 当前正确性范围通过，FS-03/FS-04 取得局部证据；OpenAPI 生成类型、唯一 Web API
+> 客户端边界和 CI 工作流已建立，但 CI 尚未实际运行。这些结果仍不足以进入产品功能开发，
+> Stage 0 整体保持 Conditional Go。本文档中的功能和配置可能会调整。
 
 ## Why FolioPath?
 
@@ -28,24 +32,26 @@ FolioPath 选择另一条路线：
 
 ### Planned core features
 
-- 🌲 清晰、可折叠的文件夹树
+- 🌲 清晰、可折叠的完整文件夹树，包括没有媒体的可读目录
 - 📚 在 Web 设置中创建和管理多个媒体库
-- 🖼️ 自适应网格与瀑布流布局
+- 🖼️ 默认自适应网格，并可切换为记忆的瀑布流布局
 - 🔭 递归浏览当前目录及所有子目录
 - 📍 面包屑导航与媒体库内相对路径显示
-- ⚡ 缩略图缓存、虚拟滚动和增量扫描
+- ⚡ 默认 10 GiB 可配置缩略图缓存、虚拟滚动和增量扫描
 - 🔎 按文件名、类型、日期和路径搜索
-- 🎞️ 支持常见图片格式、GIF 和视频
+- 🎞️ JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV 索引与封面
 - 🌙 明暗主题
+- 🌐 简体中文与英文，默认跟随浏览器
 - 📱 响应式 Web 界面
 - 🐳 Docker 与 Docker Compose 部署
 - 🔒 默认支持只读媒体目录
+- 🔐 稳定版内建首次设置的单管理员认证
 
 ### Possible future features
 
 - EXIF 和媒体信息面板
 - 收藏、评分和浏览历史
-- RAW、HEIC 及更多格式的缩略图
+- SVG、HEIC/HEIF、AVIF、RAW 及更多格式的缩略图
 - 文件系统变更监控
 - 分享链接和细粒度访问控制
 - 重复文件检测
@@ -63,9 +69,11 @@ Docker 挂载只负责划定 FolioPath 可以读取的媒体根目录。具体�
 手机备份  → /library/mobile
 ```
 
-媒体库默认包含所选目录下的全部子目录，并保留原始目录层级。FolioPath 只保存媒体库内的相对路径；删除媒体库只会移除索引、设置和派生缓存，不会修改原始文件。
+媒体库可以选择 `/library` 本身或其任一安全后代，默认包含所选目录下的全部子目录，并保留原始层级。选择 `/library` 本身会与所有其他媒体库重叠，因此该实例不能再创建第二个库。FolioPath 将库根保存为相对于 `/library` 的路径，将目录和媒体保存为相对于具体库根的路径；删除媒体库只会移除索引、设置和派生缓存，不会修改原始文件。
 
 为避免重复索引，首个版本默认不允许媒体库根目录互相包含。如果挂载暂时不可用，媒体库会被标记为离线，而不会被视为空目录并清除索引。
+
+媒体库名称必须在实例内唯一且可以改名；首版不允许原地修改根路径，更换路径通过从 FolioPath 移除后重新创建完成。创建后立即扫描，应用启动时校准，并默认每 24 小时完整扫描；周期可以在设置中修改或关闭。
 
 ## Recursive View
 
@@ -87,6 +95,8 @@ Photos/
 
 选择 `Photos` 并开启递归模式时，将连续显示所有子目录中的图片和视频，同时保留每个文件的来源路径，方便随时定位回原目录。
 
+普通目录默认按文件名自然升序；递归视图和搜索结果默认按文件修改时间倒序。搜索默认作用于当前媒体库，并可切换当前目录（可递归）或全部媒体库。
+
 ## Docker
 
 > [!NOTE]
@@ -95,7 +105,7 @@ Photos/
 ```yaml
 services:
   foliopath:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/foliopath:latest
+    image: ghcr.io/YOUR_GITHUB_USERNAME/foliopath:VERSION
     container_name: foliopath
     restart: unless-stopped
     ports:
@@ -127,7 +137,12 @@ http://localhost:8080
 
 这样 FolioPath 可以在 Web 设置中选择 `/library` 下的子目录作为媒体库，但不能修改或删除原始内容。`/app/data` 用于保存设置、SQLite 索引和缩略图缓存。
 
-默认端口仅绑定本机回环地址，适合配合认证反向代理使用。在身份认证功能完成前，不建议将服务直接暴露到互联网。
+`/library` 是唯一媒体挂载目标；它下面只能是普通目录，不能再嵌套 Docker volume、
+bind mount 或其他挂载点。媒体位于多个独立宿主卷时，需要先由宿主机提供一个经过验证的
+单一呈现根，再将该根一次性只读挂载到 `/library`。详细约束见
+[ADR-0009](docs/adr/0009-linux-openat2-single-media-root.md)。
+
+默认端口仅绑定本机回环地址，适合配合认证反向代理使用。在单管理员认证功能完成前，不得将开发预览版直接暴露到局域网或互联网；首个稳定版将提供内建管理员初始化、会话和退出登录。
 
 ## Design Principles
 
@@ -147,15 +162,51 @@ FolioPath 采用单体、单进程、单端口架构：
 - **Video processing:** ffprobe 提取信息，FFmpeg 生成封面；首版不转码
 - **Frontend:** React、TypeScript、Vite、TanStack Query 与 TanStack Virtual
 - **API:** 同源 REST API、游标分页和媒体 ID
+- **Authentication:** 首次设置的单管理员账号与安全 Cookie 会话
 - **Deployment:** 前端产物嵌入 Go 服务，以单个 Docker 容器发布
 
 完整入口参阅[项目文档索引](docs/README.md)。架构、数据模型、安全、API、界面、部署、测试和路线图都从该页进入；重要决策记录在 [`docs/adr`](docs/adr) 中。
+
+项目使用[系统架构档案](docs/architecture/README.md)约束模块所有权、依赖、数据、任务、前端设计系统和
+质量门禁。当前 MVP 范围由[版本 scope manifest](docs/releases/MVP-2026-07-23-scope.md)冻结；新能力默认进入后续版本。每个纵向切片按“需求/架构 → OpenAPI 与
+数据契约 → 后端及集成证据 → 前端消费 → 发布验证”推进，不允许由页面临时实现反向定义系统行为。
+
+## Development Status
+
+仓库已经有固定的 Go toolchain、SQLite 初始迁移、路径边界与 generation 扫描实验代码、
+权威 [`api/openapi.yaml`](api/openapi.yaml)，以及 Go 单元、契约、集成和显式容量测试；这批
+代码仍是可行性/契约证据，不是可供用户部署的 FolioPath 服务。当前还没有生产 HTTP 应用
+入口、React 产品前端、Dockerfile、认证实现或媒体处理链路。仓库已有契约生成基础与 CI
+工作流定义，但尚无一次远端 CI 执行证据。
+
+- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Conditional**。Darwin 与
+  Linux/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
+  HTTP test harness 已通过；生产 handler、认证/错误 envelope、只读发布 volume、运行期
+  unmount 和 Linux/amd64 仍未验证。
+- [FS-02 SQLite 与扫描 generation](docs/spikes/fs-02-sqlite-generation.md)：**当前正确性范围通过**。真实文件 SQLite、Goose、WAL、故障/取消/离线/重启保留、原子 finalize 与跨媒体库隔离已有自动化证据；磁盘满、真实强杀、长期 WAL 压力及备份恢复仍未验证。
+- [FS-03 媒体矩阵](docs/spikes/fs-03-media-matrix.md)：**Conditional**。本机合成格式、
+  FFmpeg 探测、视频封面、动画 GIF 和截断视频拒绝已有证据；libvips、生产任务隔离、浏览器
+  与双架构镜像仍未验证。
+- [FS-04 容量基线](docs/spikes/fs-04-capacity-baseline.md)：**扫描/索引子范围通过，整体
+  Conditional**。Linux/arm64、四核/4 GiB 下完成 10 万媒体/1 万目录档并修复 finalize
+  复杂度问题；代表性存储、FTS、媒体/缩略图、HTTP 和前端并发仍未验证。
+
+项目整体仍是[有条件推进](docs/feasibility-study.md)，也仍[未达到功能开发就绪](docs/development-readiness.md)。上述 spike 结果不能解释为应用功能已可用或发布门槛已满足。
 
 ## Roadmap
 
 详细阶段、依赖和出口条件见[项目路线图](docs/roadmap.md)；编码前的条件 Go 结论与必做验证见[可行性研究](docs/feasibility-study.md)。
 
 - [x] 确定技术栈和基础架构
+- [x] 确认 MVP 需求基线（RQ-001～RQ-014 全部采用 A）
+- [x] FS-02 SQLite/generation 当前正确性验证
+- [x] 第一版权威 OpenAPI 契约与离线契约检查
+- [x] FS-01 Linux/arm64 `openat2` mount 边界与 HTTP test harness 子范围
+- [x] FS-04 目标档的扫描/索引子范围
+- [ ] 完成 FS-01 生产 handler、认证/错误 envelope、只读发布 volume、运行期 unmount 与
+  Linux/amd64 验证
+- [ ] 完成 FS-03 libvips、媒体任务、浏览器和双架构矩阵（首轮为 Conditional）
+- [ ] 完成 FS-04 代表性存储与完整媒体/搜索/HTTP/前端容量验证
 - [ ] 项目脚手架、数据库迁移和基础 API
 - [ ] 安全媒体根目录与多媒体库管理
 - [ ] 目录扫描与媒体索引

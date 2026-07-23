@@ -13,21 +13,23 @@
 ### `libraries`
 
 - `id`：不透明稳定 ID。
-- `name`：用户设置的显示名称。
-- `root_rel_path`：相对于 `/library` 的规范化根路径。
+- `name`：用户设置的非空显示名称，在当前实例内唯一。
+- `root_rel_path`：相对于 `/library` 的规范化根路径；空字符串唯一表示 `/library` 本身。
 - `status`：`pending`、`scanning`、`ready`、`offline` 或 `error`。
 - `current_generation`：最近一次成功完整扫描的代次。
 - `created_at`、`updated_at`。
 
-`root_rel_path` 必须唯一。业务层还必须拒绝任意两个媒体库根路径的祖先/后代重叠。
+`root_rel_path` 必须唯一。业务层还必须拒绝任意两个媒体库根路径的祖先/后代重叠。MVP 允许更新 `name`，但 `root_rel_path` 创建后不可修改；更换根路径通过移除媒体库并重新创建完成，详见 [ADR-0004](adr/0004-library-root-immutable.md)。
 
 ### `directories`
 
 - `id`、`library_id`、`parent_id`。
 - `relative_path`：相对于媒体库根目录。
 - `name`。
+- `natural_name_key`：与媒体自然文件名排序使用同一经过验证的规则。
 - `last_seen_generation`。
-- 可选的目录修改时间和聚合统计。
+- `direct_asset_count`、`recursive_asset_count`：成功 finalize 时维护的必需、可重建聚合统计；扫描中可保持上次可靠值。
+- 可选的目录修改时间和直接子目录数；是否持久化由查询/容量证据决定。
 
 唯一约束为 `(library_id, relative_path)`。`parent_id` 用于目录树和面包屑，根目录的相对路径使用统一的空路径表示。
 
@@ -35,6 +37,7 @@
 
 - `id`、`library_id`、`directory_id`。
 - `relative_path`、`name`。
+- `natural_name_key`：服务端定义并经 fixture 验证的自然文件名排序键。
 - `kind`：图片、动画图片或视频。
 - `mime_type`、`size_bytes`、`mtime_ns`。
 - `width`、`height`、`duration_ms` 等可空媒体属性。
@@ -57,11 +60,12 @@
 ### `scan_runs`
 
 - `id`、`library_id`、`generation`。
-- `status`：`queued`、`running`、`succeeded`、`failed`、`cancelled` 或 `interrupted`。
-- 开始、结束和心跳时间。
+- `status`：`queued`、`running`、`succeeded`、`failed`、`cancelled`、`offline` 或 `interrupted`。
+- 创建时间，以及可空的开始、结束和心跳时间；排队任务尚无开始时间。
 - 已发现目录数、媒体数、错误数和可安全展示的错误摘要。
+- 跳过目录/文件数、取消请求时间和安全取消原因。
 
-同一媒体库最多有一个运行中的完整扫描。失败代次不能执行媒体库级陈旧记录清理。
+同一媒体库最多有一个 `queued` 或 `running` 的完整扫描。失败代次不能执行媒体库级陈旧记录清理。
 
 ### `media_jobs`
 
@@ -71,15 +75,32 @@
 
 任务必须幂等。进程重启时，超时的 `running` 任务可以安全返回队列；源指纹已变化的任务应被丢弃或替换。
 
+### `users`
+
+- `id`、唯一规范化登录名、显示名。
+- 密码哈希及其算法/参数版本，不保存明文密码。
+- `created_at`、`updated_at`、`password_changed_at`、`disabled_at`。
+
+MVP 只允许创建一个管理员。首次初始化必须以事务方式防止并发创建多个账号；是否允许未来多用户不能通过绕过该约束提前实现。认证边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
+
+### `sessions`
+
+- `id`、`user_id`、服务端只保存的令牌哈希或等价不可回放标识。
+- `created_at`、`last_seen_at`、绝对过期时间和可空撤销时间。
+- 会话版本或认证事件信息，用于改密、退出和安全事件后撤销。
+
+浏览器只持有高熵 Cookie 值，数据库不得保存可直接复用的明文会话令牌。CSRF 状态采用的具体方案在认证安全设计中固定。
+
 ### `settings`
 
-只保存应用级设置和 schema 已知的配置。秘密值不得以明文日志输出。用户、会话和分享数据在对应功能进入范围后通过独立迁移增加。
+只保存 schema 已知的应用级配置，包括默认 24 小时完整扫描周期（可修改或关闭）、默认 10 GiB 缩略图缓存配额，以及默认跟随浏览器的中英语言偏好。秘密值不得以明文日志输出。设置必须经过类型、范围和权限校验，不能成为任意键值存储。
 
 ## 索引与查询
 
 至少建立：
 
 - 目录树：`(library_id, parent_id, name, id)`。
+- 目录自然排序：`(library_id, parent_id, natural_name_key, id)`。
 - 稳定路径浏览：`(library_id, relative_path, id)`。
 - 目录媒体列表：`(library_id, directory_id, name, id)`。
 - 日期排序：`(library_id, mtime_ns DESC, id DESC)`。
@@ -88,7 +109,7 @@
 
 媒体列表统一使用 keyset cursor，不使用 `OFFSET` 承担大型列表分页。游标编码当前排序字段和稳定 ID，并视为不透明、可校验的 API 值。
 
-文件名和路径搜索使用 FTS5 派生索引，并与 `assets` 变更保持同一事务语义。短查询、多语言大小写和自然排序需要单独定义行为，不能假设 SQLite 默认排序能覆盖所有 Unicode 语义。
+文件名和路径搜索使用 FTS5 派生索引，并与 `assets` 变更保持同一事务语义。索引必须支持当前目录（可递归）、当前媒体库和全部媒体库三种作用域。短查询、多语言大小写和自然排序需要通过 spike 明确定义行为，不能假设 SQLite 默认排序能覆盖所有 Unicode 语义。
 
 ## 扫描一致性
 
@@ -105,5 +126,4 @@
 
 ## 迁移与备份
 
-数据库迁移只向前自动执行，已发布迁移不得修改。备份 SQLite WAL 数据库时必须使用 SQLite 认可的在线备份或先完成安全 checkpoint/停机流程，不能只复制主数据库文件而忽略相关状态。缩略图缓存可重建，可以与不可丢的配置和未来用户元数据采用不同备份策略。
-
+数据库迁移只向前自动执行，已发布迁移不得修改。备份 SQLite WAL 数据库时必须使用 SQLite 认可的在线备份或先完成安全 checkpoint/停机流程，不能只复制主数据库文件而忽略相关状态。缩略图缓存可重建，可以与不可丢的配置、管理员凭据和应用设置采用不同备份策略。
