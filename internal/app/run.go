@@ -84,9 +84,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct authentication service: %w", err)
 	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
-		Readiness:       readiness.snapshot,
-		AuthorizeStatus: denySystemStatus,
-		SystemStatus:    systemStatusProvider(input.Version, readiness, authentication),
+		Readiness:      readiness.snapshot,
+		Authentication: authentication,
+		SystemStatus:   systemStatusProvider(input.Version, readiness, authentication),
 	})
 	if err != nil {
 		return nil, err

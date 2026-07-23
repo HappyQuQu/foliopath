@@ -71,6 +71,84 @@ func TestNoGenericCatchAllGoPackages(t *testing.T) {
 	}
 }
 
+func TestAuthenticationHTTPBoundaryIsCentralizedAndFailClosed(t *testing.T) {
+	root := repositoryRoot(t)
+	apiRoot := filepath.Join(root, "internal", "api")
+	routePath := filepath.Join(apiRoot, "auth_http.go")
+	middlewarePath := filepath.Join(apiRoot, "auth_middleware.go")
+	appRunPath := filepath.Join(root, "internal", "app", "run.go")
+
+	routeSource, err := os.ReadFile(routePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, operation := range []string{
+		`GET /api/v1/auth/status`,
+		`POST /api/v1/auth/setup`,
+		`POST /api/v1/auth/login`,
+		`GET /api/v1/auth/session`,
+		`POST /api/v1/auth/logout`,
+	} {
+		if !strings.Contains(string(routeSource), operation) {
+			t.Errorf("canonical authentication routes are missing %q", operation)
+		}
+	}
+
+	middlewareSource, err := os.ReadFile(middlewarePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"requireAPIAuthentication",
+		"anonymousAuthenticationOperation",
+		"stateChangingMethod",
+		"constantTimeTokenEqual",
+		"requestHasSameOrigin",
+	} {
+		if !strings.Contains(string(middlewareSource), required) {
+			t.Errorf("authentication middleware is missing %q", required)
+		}
+	}
+
+	appRunSource, err := os.ReadFile(appRunPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(appRunSource), "Authentication: authentication") {
+		t.Error("composition root does not wire the canonical authentication service into HTTP")
+	}
+	if strings.Contains(string(appRunSource), "denySystemStatus") {
+		t.Error("composition root still uses the pre-authentication deny stub")
+	}
+
+	if err := filepath.WalkDir(apiRoot, func(
+		path string,
+		entry fs.DirEntry,
+		walkErr error,
+	) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() ||
+			filepath.Ext(path) != ".go" ||
+			strings.HasSuffix(path, "_test.go") ||
+			path == routePath {
+			return nil
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(source), `HandleFunc("GET /api/v1/auth/`) ||
+			strings.Contains(string(source), `HandleFunc("POST /api/v1/auth/`) {
+			t.Errorf("authentication route registration is duplicated outside %s: %s", routePath, path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("inspect authentication route ownership: %v", err)
+	}
+}
+
 func TestWebUsesSingleGeneratedAPIClientBoundary(t *testing.T) {
 	root := repositoryRoot(t)
 	webSource := filepath.Join(root, "web", "src")

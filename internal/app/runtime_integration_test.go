@@ -9,10 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 const runtimeIntegrationTimeout = 5 * time.Second
@@ -72,7 +71,6 @@ func runComposedApplication(
 	})
 
 	address := waitForListenAddress(t, application.http)
-	assertAdministratorSession(t, application.authentication, runNumber, sessionCookie)
 	client := &http.Client{Timeout: time.Second}
 	assertRuntimeResponse(t, client, address, "/health/ready", http.StatusOK, "ready")
 	assertRuntimeResponse(t, client, address, "/health/live", http.StatusOK, "live")
@@ -84,6 +82,7 @@ func runComposedApplication(
 		http.StatusUnauthorized,
 		"authentication_required",
 	)
+	assertAdministratorSessionHTTP(t, application, client, address, runNumber, sessionCookie)
 
 	cancel()
 	select {
@@ -102,72 +101,209 @@ func runComposedApplication(
 	}
 }
 
-func assertAdministratorSession(
+func assertAdministratorSessionHTTP(
 	t *testing.T,
-	authentication *auth.Service,
+	application *application,
+	client *http.Client,
+	address string,
 	runNumber int,
 	sessionCookie *string,
 ) {
 	t.Helper()
-	if authentication == nil {
+	if application.authentication == nil {
 		t.Fatal("composed application has no authentication service")
 	}
 
-	state, err := authentication.SetupState(context.Background())
-	if err != nil {
-		t.Fatalf("run %d read setup state: %v", runNumber, err)
-	}
+	status := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		"/api/v1/auth/status",
+		"",
+		"",
+		"",
+	)
 	if runNumber == 1 {
-		if state != auth.SetupRequired {
-			t.Fatalf("initial setup state = %q, want %q", state, auth.SetupRequired)
+		if status.StatusCode != http.StatusOK || !status.SetupRequired {
+			t.Fatalf("initial authentication status = %#v", status)
 		}
-		established, err := authentication.Initialize(
-			context.Background(),
-			auth.InitializeParams{
-				Username:    "Administrator",
-				DisplayName: "Administrator",
-				Password:    "correct horse battery staple",
-			},
+		established := runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodPost,
+			"/api/v1/auth/setup",
+			`{"username":"Administrator","displayName":"Administrator","password":"correct horse battery staple"}`,
+			"",
+			"",
 		)
-		if err != nil {
-			t.Fatalf("initialize administrator: %v", err)
+		if established.StatusCode != http.StatusCreated ||
+			established.Cookie == "" ||
+			established.CSRFToken == "" {
+			t.Fatalf("setup response = %#v", established)
 		}
-		*sessionCookie = established.CookieToken
-		state, err = authentication.SetupState(context.Background())
-		if err != nil {
-			t.Fatalf("read initialized setup state: %v", err)
-		}
+		*sessionCookie = established.Cookie
+		status = runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodGet,
+			"/api/v1/auth/status",
+			"",
+			"",
+			"",
+		)
 	}
-	if state != auth.SetupComplete {
-		t.Fatalf("run %d setup state = %q, want %q", runNumber, state, auth.SetupComplete)
+	if status.StatusCode != http.StatusOK || status.SetupRequired {
+		t.Fatalf("run %d authentication status = %#v", runNumber, status)
 	}
-	if _, err := authentication.Session(
-		context.Background(),
+
+	current := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		"/api/v1/auth/session",
+		"",
 		*sessionCookie,
-	); err != nil {
-		t.Fatalf("run %d restore initialized session: %v", runNumber, err)
+		"",
+	)
+	if current.StatusCode != http.StatusOK || current.CSRFToken == "" {
+		t.Fatalf("run %d restore HTTP session = %#v", runNumber, current)
 	}
+
+	authorizedStatus := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		"/api/v1/status",
+		"",
+		*sessionCookie,
+		"",
+	)
+	if authorizedStatus.StatusCode != http.StatusOK {
+		t.Fatalf("run %d authorized status = %#v", runNumber, authorizedStatus)
+	}
+
 	if runNumber == 2 {
-		loggedIn, err := authentication.Login(context.Background(), auth.LoginParams{
-			Username: "administrator",
-			Password: "correct horse battery staple",
-		})
-		if err != nil {
-			t.Fatalf("login administrator after restart: %v", err)
+		loggedIn := runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodPost,
+			"/api/v1/auth/login",
+			`{"username":"administrator","password":"correct horse battery staple"}`,
+			"",
+			"",
+		)
+		if loggedIn.StatusCode != http.StatusOK ||
+			loggedIn.Cookie == "" ||
+			loggedIn.CSRFToken == "" {
+			t.Fatalf("login administrator after restart = %#v", loggedIn)
 		}
-		if err := authentication.Logout(
-			context.Background(),
-			loggedIn.CookieToken,
-		); err != nil {
-			t.Fatalf("logout administrator: %v", err)
+		loggedOut := runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodPost,
+			"/api/v1/auth/logout",
+			"",
+			loggedIn.Cookie,
+			loggedIn.CSRFToken,
+		)
+		if loggedOut.StatusCode != http.StatusNoContent || !loggedOut.CookieExpired {
+			t.Fatalf("logout response = %#v", loggedOut)
 		}
-		if _, err := authentication.Session(
-			context.Background(),
-			loggedIn.CookieToken,
-		); !errors.Is(err, auth.ErrSessionExpired) {
-			t.Fatalf("revoked session error = %v, want session expired", err)
+		revoked := runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodGet,
+			"/api/v1/auth/session",
+			"",
+			loggedIn.Cookie,
+			"",
+		)
+		if revoked.StatusCode != http.StatusUnauthorized ||
+			revoked.ErrorCode != "session_expired" {
+			t.Fatalf("revoked session response = %#v", revoked)
 		}
 	}
+}
+
+type runtimeAuthenticationResponse struct {
+	StatusCode    int
+	SetupRequired bool
+	CSRFToken     string
+	Cookie        string
+	CookieExpired bool
+	ErrorCode     string
+}
+
+func runtimeAuthenticationRequest(
+	t *testing.T,
+	client *http.Client,
+	address string,
+	method string,
+	path string,
+	body string,
+	cookie string,
+	csrfToken string,
+) runtimeAuthenticationResponse {
+	t.Helper()
+	request, err := http.NewRequestWithContext(
+		context.Background(),
+		method,
+		"http://"+address+path,
+		strings.NewReader(body),
+	)
+	if err != nil {
+		t.Fatalf("create %s %s request: %v", method, path, err)
+	}
+	if body != "" {
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Origin", "http://"+address)
+	}
+	if cookie != "" {
+		request.AddCookie(&http.Cookie{Name: "foliopath_session", Value: cookie})
+	}
+	if csrfToken != "" {
+		request.Header.Set("X-CSRF-Token", csrfToken)
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, path, err)
+	}
+	defer response.Body.Close()
+	document := struct {
+		SetupRequired bool   `json:"setupRequired"`
+		CSRFToken     string `json:"csrfToken"`
+		Error         struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}{}
+	if response.StatusCode != http.StatusNoContent {
+		if err := json.NewDecoder(response.Body).Decode(&document); err != nil {
+			t.Fatalf("decode %s %s response: %v", method, path, err)
+		}
+	}
+	result := runtimeAuthenticationResponse{
+		StatusCode:    response.StatusCode,
+		SetupRequired: document.SetupRequired,
+		CSRFToken:     document.CSRFToken,
+		ErrorCode:     document.Error.Code,
+	}
+	for _, responseCookie := range response.Cookies() {
+		if responseCookie.Name != "foliopath_session" {
+			continue
+		}
+		result.Cookie = responseCookie.Value
+		result.CookieExpired = responseCookie.MaxAge < 0
+	}
+	return result
 }
 
 func waitForListenAddress(t *testing.T, service *httpService) string {

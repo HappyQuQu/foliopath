@@ -16,11 +16,13 @@ Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成�
 composition root 集成测试和测试专用非 root 容器 smoke 覆盖。`internal/auth` 已实现
 Argon2id 密码存储、Unicode 管理员身份规范化、单管理员原子初始化，以及高熵摘要化会话、
 7 天绝对期限、重启恢复、退出撤销和 Cookie 策略，并经 SQLite adapter 接入 composition
-root。当前还没有认证 HTTP handler、CSRF/default-deny middleware、限流或业务 handler、
-React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；
+root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 API 默认拒绝、
+防缓存、受限 JSON 和按直连 peer 的有界限流已经接入真实 composition root；当前还没有
+认证 Backend Ready Gate、可信代理配置、业务 handler、React 产品应用、正式 Dockerfile、
+浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
-系统状态在认证前默认拒绝。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
+系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
 
@@ -38,7 +40,7 @@ ADR 流程。
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
-| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
+| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证 handler 已就绪，其余业务 handler 尚未实现 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 初始媒体 schema 与追加认证 schema 已由 Goose 执行；认证 migration 固定 singleton/password verifier/session digest/期限/撤销，真实文件数据库、重复 migration 与约束测试已通过；真实版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |

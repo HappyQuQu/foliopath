@@ -82,8 +82,23 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 建议的 30 天总体上限。随机源使用
 [Go `crypto/rand`](https://pkg.go.dev/crypto/rand)。
 
-CSRF 请求校验、防缓存 middleware、全部业务 API 默认拒绝、限流和代理信任仍必须在
-`S1-104～105` 实现并验证；完成会话领域层不表示认证 HTTP API 已经可用。
+`S1-104` 已实现认证 HTTP handler 和集中 middleware：
+
+- 仅 health 与精确匹配的 auth status/setup/login 操作匿名；其余 `/api/v1` 请求必须先
+  通过唯一 Cookie 的服务端 session 验证，未实现的业务路径也不会在认证前泄露存在性。
+- 所有状态修改在执行业务 handler 前常量时间比较 session-bound `X-CSRF-Token`；
+  setup/login 尚无 session，因此在解析 JSON 凭据前对实际请求 scheme/host/port 执行
+  完整 Origin 同源比较。缺失、`null`、多值、userinfo、path 和不等端口均失败关闭。
+- 所有认证 JSON 与公共错误使用 `Cache-Control: no-store`；JSON 只接受
+  `application/json`、单个值、已知字段和最多 4 KiB。
+- setup/login 每个直连 peer 每分钟 10 次，status/session 120 次，logout 60 次；内存
+  bucket 上限 4096，满载失败关闭。限流和同源判断只使用直连地址与真实 TLS，不信任客户端
+  转发头。
+
+这符合 [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+关于有状态同步 token、自定义 header、同源 Origin 完整比较和缺失时阻断的建议。`S1-105`
+仍需完成扩大后的错误、过期、并发和时间矩阵；在 `S1-106 Backend Ready` 前仍不把认证
+流程标记为可交付前端。
 
 反向代理负责公网 TLS 时，应用必须正确处理受信代理范围，不能无条件信任客户端提交的转发头。
 
