@@ -123,8 +123,7 @@ jobs:
       - name: Run isolated privileged probes
         run: |
           docker run --rm \
-            --cap-add SYS_ADMIN \
-            --security-opt seccomp=unconfined \
+            --privileged \
             --mount type=bind,src="${GITHUB_WORKSPACE}",dst=/src,readonly \
             --workdir /src \
             --env GOMODCACHE=/tmp/mod \
