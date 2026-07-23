@@ -4,8 +4,9 @@
 
 本文同时定义目标验证体系和当前已落地的最小 Go 验证面。仓库已有路径边界、媒体库、
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
-契约测试，真实 `httptest.Server` 边界 harness、合成媒体 fixture 和显式容量测试。尚无可启动
-应用、React 产品界面、生产 HTTP handler、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
+契约测试，真实 `httptest.Server` 边界 harness、合成媒体 fixture 和显式容量测试。最小
+`cmd/foliopath` 的命令、委托和退出码已有单元测试，但应用组合根尚未实现；仍无可启动服务、
+React 产品界面、生产 HTTP handler、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
 工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
 只有实际执行成功的目标才能声称可用。

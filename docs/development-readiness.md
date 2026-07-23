@@ -9,7 +9,8 @@
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
 边界、OpenAPI 摘要锁与语义兼容检查、契约/HTTP 边界/容量 harness、固定 Node/npm 工具链和
-双架构 CI 工作流。仍无 `cmd/foliopath` 可启动进程、`internal/app` 组装、生产 HTTP handler、
+双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令、退出码和 `internal/app.Run`
+边界已经建立；组合根当前显式失败，不能伪装为已启动服务。仍无应用组装、生产 HTTP handler、
 React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；隔离 FS-05 Dockerfile 只用于
 Stage 0 probe。原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
