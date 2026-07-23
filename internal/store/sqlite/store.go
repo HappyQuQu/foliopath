@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/store/sqlite/dbgen"
 	_ "modernc.org/sqlite"
 )
 
@@ -31,6 +32,7 @@ type Options struct {
 
 type Store struct {
 	db           *sql.DB
+	queries      *dbgen.Queries
 	writeGate    chan struct{}
 	maxBatchSize int
 	now          func() time.Time
@@ -91,6 +93,7 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 
 	return &Store{
 		db:           db,
+		queries:      dbgen.New(db),
 		writeGate:    make(chan struct{}, 1),
 		maxBatchSize: options.MaxBatchSize,
 		now:          options.Now,

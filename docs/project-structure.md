@@ -118,7 +118,8 @@ web/src/features/
 ## API、数据库与生成代码
 
 - REST 契约开始编码后以 `api/openapi.yaml` 为唯一结构化来源；设计阶段参阅 [API 设计](api-design.md)。
-- SQL 源查询与生成配置放在 `internal/store/sqlite` 的明确子目录中；生成输出不得手改。
+- SQL 生成配置固定为 `internal/store/sqlite/sqlc.yaml`，权威查询放在同目录的 `queries/`，
+  提交的生成输出只放在 `dbgen/`；adapter 调用生成包并负责领域类型/错误映射，不复制同组 SQL。
 - 迁移按连续版本追加到 `migrations/`。已经进入发布版本的迁移不能覆盖或重排。
 - Vite 生产输出写入 `internal/webassets/dist`，供同目录 Go 文件嵌入；该构建产物不提交。
 - 需要参与离线构建的生成 Go/TypeScript 源码应提交，并通过生成一致性检查防止漂移。

@@ -23,7 +23,7 @@
 当前两个工作流分别看：
 
 ```text
-后端：S1-001～006 ✅ → S1-007 sqlc 生成 ← 当前 → 认证 Backend Ready
+后端：S1-001～007 ✅ → S1-008 运行集成/smoke ← 当前 → 认证 Backend Ready
 前端：静态原型（独立任务）→ S1-201 应用壳 → 登录界面
 共同：Contract Ready → Backend Ready → Integrated Done
 ```
@@ -146,7 +146,7 @@
 
 [查看后端开发清单](backend-task-list.md)
 
-- 当前：`S1-007` sqlc 配置、查询源与确定性生成检查。
+- 当前：`S1-008` 运行应用集成测试、取消测试和最小容器 smoke。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 

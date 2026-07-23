@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-006` Go/HTTP/SQLite 运行骨架和健康状态边界
-- 当前任务：`S1-007` sqlc 配置、查询源与确定性生成
+- 已完成：`S1-001`～`S1-007` Go/HTTP/SQLite 运行骨架和生成护栏
+- 当前任务：`S1-008` 运行应用集成测试、取消测试和最小容器 smoke
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -32,7 +32,10 @@
   - 完成证据：固定 `/app/data` 下创建 `cache`/`tmp`/`foliopath.db`，数据库 → HTTP →
     readiness 顺序启动并反向关闭；空目录迁移、重复启动、冲突 schema 迁移失败分类和
     不可用数据目录失败关闭测试。
-- [ ] `S1-007` 建立 `sqlc` 配置、查询源、生成目录和确定性 `generate-check`。
+- [x] `S1-007` 建立 `sqlc` 配置、查询源、生成目录和确定性 `generate-check`。
+  - 完成证据：固定 sqlc `v1.31.1`；`queries/` 为媒体库 SQL 唯一来源，`dbgen/` 为提交的
+    生成包；library adapter 已消费生成查询；临时目录重生成 diff、生成标记和禁止 adapter
+    复制同组 SQL 的架构检查已接入 `make generate-check` 与 CI。
 - [ ] `S1-008` 增加运行应用的集成测试、取消测试和最小容器 smoke。
 
 ### 单管理员认证后端

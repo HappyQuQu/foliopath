@@ -65,8 +65,8 @@ jobs:
         run: npm ci --prefix web
       - name: Reject high-severity Node dependency findings
         run: npm audit --prefix web --audit-level=high
-      - name: Verify generated types and the typed client boundary
-        run: make web-check
+      - name: Verify generated SQL, API types, and the typed client boundary
+        run: make generate-check web-check
       - name: Cross-check the OpenAPI document
         run: make openapi-lint
       - name: Reject breaking OpenAPI changes

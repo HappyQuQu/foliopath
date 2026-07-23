@@ -15,6 +15,10 @@ const scanRunColumns = `
     discovered_directories, discovered_assets, skipped_count, error_code,
     created_at_ms, started_at_ms, finished_at_ms`
 
+type rowScanner interface {
+	Scan(...any) error
+}
+
 func (s *Store) GetLibraryRoot(ctx context.Context, libraryID int64) (string, error) {
 	if libraryID <= 0 {
 		return "", scanner.ErrLibraryNotFound

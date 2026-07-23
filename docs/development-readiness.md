@@ -47,6 +47,8 @@ ADR 流程。
 
 - Go 版本已写入 `go.mod`，`.go-version` 为 1.26.4；CI 直接读取该文件，但尚需首次远端执行证明。
 - SQLite 使用 `modernc.org/sqlite`，迁移使用 Goose；初始迁移通过 `go:embed` 运行。
+- sqlc 固定为 `v1.31.1`；配置、媒体库 SQL 源和提交的生成包归属
+  `internal/store/sqlite`，`make generate-check` 在临时目录重生成并比较。
 - `Makefile` 当前提供 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`generate`、
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
   `test-race`、`test-integration` 和显式 `spike-capacity`；CI 已复用这些入口。
@@ -55,11 +57,10 @@ ADR 流程。
 
 仍待阶段 1 固定或补齐：
 
-- `sqlc` 已由 ADR-0001 接受；其配置、SQL 源查询、生成输出位置和确定性 `generate-check` 尚未建立。当前只有手写 migration 与 spike store。
 - 系统依赖固定 libvips、FFmpeg/ffprobe 版本及构建选项，并记录 amd64/arm64 差异。
 - Docker Buildx 构建发布镜像；SQLite CLI 可用于诊断，但应用不得依赖宿主机已安装 SQLite。
-- 补上与 `AGENTS.md` 对齐的 `test-e2e`；`generate-check` 当前只覆盖 OpenAPI TypeScript
-  产物，后续还要纳入 `sqlc`。
+- 补上与 `AGENTS.md` 对齐的 `test-e2e`；`generate-check` 已覆盖 sqlc 与 OpenAPI
+  TypeScript 产物。
 - 前端在首个业务 feature 前补齐 React/Vite、import/token lint、组件测试、axe、Storybook
   构建和聚焦视觉回归门禁。
 
@@ -79,8 +80,8 @@ ADR 流程。
 3. **Stage 1 先建立后端运行骨架**：创建 Go 入口与 `internal/app`、配置、生命周期、健康检查、
    认证基础边界、统一构建命令和基础 CI；不预建空业务包。
 4. **契约先行**：首个 SQLite migration、`api/openapi.yaml`、TypeScript 类型/client、
-   摘要锁、兼容性和确定性漂移检查已建立；仍需建立 `sqlc` 生成方案并让 PR 基线比较在 CI
-   实际通过，再实现首个 handler。
+   sqlc 查询/生成包、摘要锁、兼容性和确定性漂移检查已建立；相关 PR 仍须让 CI 实际执行
+   同一生成入口，再实现首个业务 handler。
 5. **建立前端基础而非业务替身**：只为已批准 S0/S1 切片按时间盒创建最小 React/Vite 应用壳、路由、token、共享原语和组件工作台；原型不进入生产 import graph，业务 feature 等待对应后端契约与集成证据。
 6. **完成安全纵向切片**：只实现“列出允许目录 → 创建媒体库 → 安全扫描 → 索引一页媒体 → 返回缩略图状态”；先通过 Backend Ready，再实现对应 UI，全程使用合成 fixture。
 7. **补齐故障路径**：验证重叠库、离线挂载、中断扫描、路径逃逸、损坏媒体和进程重启。
