@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-103` 认证契约、初始化与安全会话
-- 当前任务：`S1-104` CSRF、防缓存和业务 API 默认拒绝未认证访问
+- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-104` 认证契约、领域与 HTTP 防护
+- 当前任务：`S1-105` 认证故障、安全、并发与时间测试
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -63,7 +63,15 @@
     过期/撤销记录保留 24 小时后随新会话清理。单元、SQLite、composition root 重启和
     race 测试已覆盖，`internal/api` 固定 host-only、Path=/、HttpOnly、SameSite=Strict
     以及经验证 HTTPS 下 Secure 的 Cookie 策略。
-- [ ] `S1-104` 实现 CSRF、防缓存和全部业务 API 默认拒绝未认证访问。
+- [x] `S1-104` 实现 CSRF、防缓存和全部业务 API 默认拒绝未认证访问。
+  - 完成证据：五个认证端点已接入真实 `internal/auth` service；仅 health、精确方法匹配的
+    auth status/setup/login 匿名，其余 `/api/v1` 请求先验证唯一会话 Cookie，未知业务路由
+    同样默认拒绝。状态修改使用会话绑定 `X-CSRF-Token` 常量时间比较；setup/login 在读取
+    JSON 凭据前验证完整同源 Origin。认证 JSON 和公共错误统一 `no-store`，请求体有大小、
+    MIME、未知字段和单 JSON 值限制；登录/setup 具备按直连 peer 的有界并发安全限流，
+    不信任转发头。真实 composition root HTTP 集成测试覆盖 setup、跨重启 session、
+    受保护 status、重新登录、CSRF logout 与撤销后失败；架构检查约束唯一认证路由和
+    middleware 所有者。
 - [ ] `S1-105` 覆盖错误脱敏、重复初始化、错误密码、过期会话和并发请求测试。
 - [ ] `S1-106` 记录认证切片 `Backend Ready` Gate，允许前端连接真实认证 API。
 

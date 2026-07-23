@@ -3,18 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
-
-// denySystemStatus is replaced by the session service wiring in S1-103. Until
-// then, the implemented status handler remains fail-closed in production.
-func denySystemStatus(*http.Request) bool {
-	return false
-}
 
 type setupStatus interface {
 	SetupState(context.Context) (auth.SetupState, error)

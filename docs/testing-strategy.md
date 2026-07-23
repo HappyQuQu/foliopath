@@ -2,11 +2,11 @@
 
 ## 状态
 
-本文同时定义目标验证体系和当前已落地的最小 Go 验证面。仓库已有路径边界、媒体库、
+本文同时定义目标验证体系和当前已落地的 Go 验证面。仓库已有路径边界、媒体库、
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
-契约测试，真实 `httptest.Server` 边界 harness、合成媒体 fixture 和显式容量测试。最小
-`cmd/foliopath` 的命令、委托和退出码已有单元测试，但应用组合根尚未实现；仍无可启动服务、
-React 产品界面、生产 HTTP handler、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
+契约测试，真实 HTTP 边界、合成媒体 fixture 和显式容量测试。正式 `cmd/foliopath`、
+composition root、SQLite 生命周期、health 与认证 HTTP handler 已可启动和测试；仍无
+业务 API handler、React 产品界面、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
 工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
 只有实际执行成功的目标才能声称可用。
@@ -62,12 +62,17 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 初始化与初始会话同事务回滚、统一登录失败与虚拟 verifier、高熵 Cookie/CSRF 摘要、
   7 天绝对过期、auth version/禁用失败关闭、last-seen、退出撤销、清理、Cookie 属性，以及
   登录和会话跨 composition root 重启；
+- 认证 HTTP status/setup/login/session/logout、严格 JSON、完整同源 Origin、重复 Cookie
+  拒绝、业务 API 默认认证、状态修改 CSRF、统一 no-store/错误映射、Secure Cookie 真实 TLS
+  判定，以及有界并发安全的直连 peer 固定窗口限流；
+- 真实 composition root HTTP 流覆盖首次 setup、认证 status/session、跨进程重启恢复、
+  大小写兼容重新登录、CSRF logout、过期 Cookie 和撤销后 `session_expired`；
 - generation 的失败、取消、离线、受控重启、原子 finalize 回滚、活动扫描竞争与 complete/cancel 竞态；
 - 128 层目录链的逐级直接/递归计数，以及同库循环、跨库目录/资产损坏、当前代次条目指向
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
-游标、缓存、认证 handler/middleware、调度和 fuzz 仍是目标项；已完成的认证
-OpenAPI/数据契约、初始化/密码和会话 service 测试不能替代 CSRF、限流与中间件实现。
+游标、缓存、调度和 fuzz 仍是目标项；S1-105 继续扩大重复初始化、错误密码、过期时间边界、
+并发 HTTP 与故障脱敏矩阵，当前 S1-104 证据不提前代表 Backend Ready。
 
 ### 前端单元与组件测试
 

@@ -192,7 +192,15 @@ MVP 的日期语义是文件修改时间；不提供完整 EXIF 面板。未可�
 | `GET` | `/api/v1/auth/session` | 返回当前管理员的安全会话摘要 |
 | `POST` | `/api/v1/auth/logout` | 撤销当前会话并清理 Cookie |
 
-初始化完成后 `setup` 永久关闭并安全失败。除 `auth/status`、`auth/setup`、`auth/login` 和健康检查外，所有业务端点都要求有效会话；状态修改还要求会话绑定的 `X-CSRF-Token`。首次初始化和登录尚无会话令牌，因此必须校验同源 `Origin`。Cookie wire 名称和安全属性已由 OpenAPI 固定；S1-103 已固定 7 天服务端绝对期限、每次认证整体轮换、摘要存储、退出撤销和 24 小时过期记录宽限。登录限流阈值与可信代理清单仍由 S1-104～105 固定并测试。认证架构边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
+初始化完成后 `setup` 永久关闭并安全失败。除 `auth/status`、`auth/setup`、`auth/login` 和健康检查外，所有业务端点都要求有效会话；状态修改还要求会话绑定的 `X-CSRF-Token`。首次初始化和登录尚无会话令牌，因此必须校验同源 `Origin`。Cookie wire 名称和安全属性已由 OpenAPI 固定；S1-103 已固定 7 天服务端绝对期限、每次认证整体轮换、摘要存储、退出撤销和 24 小时过期记录宽限。
+
+S1-104 已实现上述 HTTP 边界：匿名白名单同时匹配方法和路径，其余 `/api/v1`（包括未知
+业务路由）先认证；非 GET/HEAD/OPTIONS 请求再校验 session-bound CSRF。Origin 按实际
+请求 scheme、完整 host 和有效端口比较，不接受缺失、`null`、userinfo、path 或多值；
+当前只使用真实 TLS 与直连 peer，不信任 `Forwarded`/`X-Forwarded-*`。setup/login 每个
+直连 peer 每分钟最多 10 次，status/session 每分钟 120 次，logout 每分钟 60 次；限流
+bucket 最多 4096 个并在满载时失败关闭。可信代理解析与发布网络拓扑仍由 Stage 5 固定。
+认证架构边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
 
 认证端点按状态码声明稳定 `x-error-codes`；未知账号与错误密码统一为
 `invalid_credentials`。setup、login、session、logout 与认证状态成功响应，以及统一 JSON

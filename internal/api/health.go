@@ -37,14 +37,14 @@ type SupportedMedia struct {
 }
 
 type RouteDependencies struct {
-	Readiness       func() Readiness
-	AuthorizeStatus func(*http.Request) bool
-	SystemStatus    func(context.Context) (SystemStatus, error)
+	Readiness      func() Readiness
+	Authentication AuthenticationService
+	SystemStatus   func(context.Context) (SystemStatus, error)
 }
 
 func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	if dependencies.Readiness == nil ||
-		dependencies.AuthorizeStatus == nil ||
+		dependencies.Authentication == nil ||
 		dependencies.SystemStatus == nil {
 		return nil, errInvalidRouteDependencies
 	}
@@ -54,18 +54,8 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	mux.HandleFunc("GET /health/ready", func(writer http.ResponseWriter, request *http.Request) {
 		handleReadiness(writer, request, dependencies.Readiness())
 	})
+	registerAuthenticationRoutes(mux, dependencies.Authentication)
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
-		if !dependencies.AuthorizeStatus(request) {
-			writePublicError(
-				writer,
-				request,
-				http.StatusUnauthorized,
-				"authentication_required",
-				"An authenticated administrator session is required.",
-			)
-			return
-		}
-
 		status, err := dependencies.SystemStatus(request.Context())
 		if err != nil {
 			writeInternalError(writer, request)
@@ -74,7 +64,14 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		writeJSON(writer, http.StatusOK, status)
 	})
 
-	return routeFallback{mux: mux}, nil
+	protected := requireAPIAuthentication(
+		routeFallback{mux: mux},
+		dependencies.Authentication,
+	)
+	return limitAuthenticationRequests(
+		protected,
+		newAuthenticationRateLimiter(nil),
+	), nil
 }
 
 func handleLiveness(writer http.ResponseWriter, _ *http.Request) {

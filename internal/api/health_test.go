@@ -11,6 +11,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
 func TestHealthRoutesMatchContract(t *testing.T) {
@@ -22,9 +25,7 @@ func TestHealthRoutesMatchContract(t *testing.T) {
 		Readiness: func() Readiness {
 			return readiness
 		},
-		AuthorizeStatus: func(*http.Request) bool {
-			return false
-		},
+		Authentication: rejectingAuthentication(),
 		SystemStatus: func(context.Context) (SystemStatus, error) {
 			t.Fatal("unauthenticated status request reached provider")
 			return SystemStatus{}, nil
@@ -74,8 +75,8 @@ func TestReadinessMasksUnknownReason(t *testing.T) {
 		Readiness: func() Readiness {
 			return Readiness{ReasonCode: "/app/data/foliopath.db failed"}
 		},
-		AuthorizeStatus: denyStatus,
-		SystemStatus:    unusedStatus,
+		Authentication: rejectingAuthentication(),
+		SystemStatus:   unusedStatus,
 	})
 
 	response := performRequest(handler, "/health/ready")
@@ -94,7 +95,7 @@ func TestSystemStatusRequiresAuthorization(t *testing.T) {
 		Readiness: func() Readiness {
 			return Readiness{Ready: true}
 		},
-		AuthorizeStatus: denyStatus,
+		Authentication: rejectingAuthentication(),
 		SystemStatus: func(context.Context) (SystemStatus, error) {
 			providerCalled = true
 			return SystemStatus{}, nil
@@ -138,9 +139,7 @@ func TestAuthorizedSystemStatusMatchesContract(t *testing.T) {
 		Readiness: func() Readiness {
 			return Readiness{Ready: true}
 		},
-		AuthorizeStatus: func(*http.Request) bool {
-			return true
-		},
+		Authentication: acceptingAuthentication(),
 		SystemStatus: func(context.Context) (SystemStatus, error) {
 			return want, nil
 		},
@@ -164,9 +163,7 @@ func TestSystemStatusFailureIsMasked(t *testing.T) {
 		Readiness: func() Readiness {
 			return Readiness{Ready: true}
 		},
-		AuthorizeStatus: func(*http.Request) bool {
-			return true
-		},
+		Authentication: acceptingAuthentication(),
 		SystemStatus: func(context.Context) (SystemStatus, error) {
 			return SystemStatus{}, errors.New("SELECT failed at /app/data/foliopath.db")
 		},
@@ -191,8 +188,8 @@ func TestRoutesRejectIncompleteDependencies(t *testing.T) {
 			Readiness: func() Readiness { return Readiness{} },
 		},
 		{
-			Readiness:       func() Readiness { return Readiness{} },
-			AuthorizeStatus: denyStatus,
+			Readiness:      func() Readiness { return Readiness{} },
+			Authentication: rejectingAuthentication(),
 		},
 	}
 	for _, dependencies := range tests {
@@ -204,9 +201,9 @@ func TestRoutesRejectIncompleteDependencies(t *testing.T) {
 
 func TestUnsupportedMethodUsesSafeFallback(t *testing.T) {
 	handler := testRoutes(t, RouteDependencies{
-		Readiness:       func() Readiness { return Readiness{Ready: true} },
-		AuthorizeStatus: denyStatus,
-		SystemStatus:    unusedStatus,
+		Readiness:      func() Readiness { return Readiness{Ready: true} },
+		Authentication: rejectingAuthentication(),
+		SystemStatus:   unusedStatus,
 	})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(
@@ -234,10 +231,9 @@ func testRoutes(t *testing.T, dependencies RouteDependencies) http.Handler {
 
 func performRequest(handler http.Handler, path string) *httptest.ResponseRecorder {
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(
-		response,
-		httptest.NewRequest(http.MethodGet, path, nil),
-	)
+	request := httptest.NewRequest(http.MethodGet, path, nil)
+	request.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "test-cookie"})
+	handler.ServeHTTP(response, request)
 	return response
 }
 
@@ -252,8 +248,16 @@ func assertJSONEquals(t *testing.T, response *httptest.ResponseRecorder, want ma
 	}
 }
 
-func denyStatus(*http.Request) bool {
-	return false
+func rejectingAuthentication() *authenticationStub {
+	return &authenticationStub{sessionErr: auth.ErrAuthenticationRequired}
+}
+
+func acceptingAuthentication() *authenticationStub {
+	return &authenticationStub{session: auth.CurrentSession{
+		Administrator: auth.Administrator{ID: 1},
+		CSRFToken:     testCSRFToken,
+		ExpiresAtMS:   time.Now().Add(time.Hour).UnixMilli(),
+	}}
 }
 
 func unusedStatus(context.Context) (SystemStatus, error) {
