@@ -55,6 +55,16 @@ func run(ctx context.Context, input Input) error {
 // compose is the only function that may know the complete concrete dependency
 // graph. Later Stage 1 tasks add configuration, storage, HTTP, and workers here
 // without moving their construction into cmd or capability packages.
-func compose(Input) (*application, error) {
-	return newApplication(nil, defaultShutdownTimeout)
+func compose(input Input) (*application, error) {
+	configuration, err := loadConfiguration(input)
+	if err != nil {
+		return nil, err
+	}
+
+	application, err := newApplication(nil, defaultShutdownTimeout)
+	if err != nil {
+		return nil, err
+	}
+	application.configuration = configuration
+	return application, nil
 }
