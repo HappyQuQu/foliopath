@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"time"
 )
 
@@ -16,6 +18,7 @@ type component struct {
 
 type application struct {
 	configuration   configuration
+	logger          *slog.Logger
 	components      []component
 	shutdownTimeout time.Duration
 }
@@ -43,18 +46,29 @@ func newApplication(components []component, shutdownTimeout time.Duration) (*app
 	}
 
 	return &application{
+		logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		components:      owned,
 		shutdownTimeout: shutdownTimeout,
 	}, nil
 }
 
 func (application *application) run(ctx context.Context) error {
+	application.logger.InfoContext(
+		ctx,
+		"application.starting",
+		slog.Int("component_count", len(application.components)),
+	)
 	started := make([]component, 0, len(application.components))
 	for _, candidate := range application.components {
 		if ctx.Err() != nil {
 			return application.shutdown(started)
 		}
 		if err := candidate.start(ctx); err != nil {
+			application.logger.ErrorContext(
+				ctx,
+				"application.component_start_failed",
+				slog.String("component", candidate.name),
+			)
 			startErr := fmt.Errorf("start component %q: %w", candidate.name, err)
 			return errors.Join(startErr, application.shutdown(started))
 		}
@@ -62,7 +76,20 @@ func (application *application) run(ctx context.Context) error {
 	}
 
 	runErr := waitForStop(ctx, started)
-	return errors.Join(runErr, application.shutdown(started))
+	if runErr != nil {
+		application.logger.ErrorContext(
+			ctx,
+			"application.component_stopped",
+		)
+	}
+	shutdownErr := application.shutdown(started)
+	if shutdownErr != nil {
+		application.logger.Error(
+			"application.shutdown_failed",
+		)
+	}
+	application.logger.Info("application.stopped")
+	return errors.Join(runErr, shutdownErr)
 }
 
 func waitForStop(ctx context.Context, components []component) error {

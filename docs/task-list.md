@@ -23,7 +23,7 @@
 当前两个工作流分别看：
 
 ```text
-后端：S1-001～003 ✅ → S1-004 日志与停机 ← 当前 → 认证 Backend Ready
+后端：S1-001～004 ✅ → S1-005 健康与状态 ← 当前 → 认证 Backend Ready
 前端：静态原型（独立任务）→ S1-201 应用壳 → 登录界面
 共同：Contract Ready → Backend Ready → Integrated Done
 ```
@@ -146,7 +146,7 @@
 
 [查看后端开发清单](backend-task-list.md)
 
-- 当前：`S1-004` 结构化日志、request ID、错误脱敏和优雅停机。
+- 当前：`S1-005` `/health/live`、`/health/ready` 与 `/api/v1/status`。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 
