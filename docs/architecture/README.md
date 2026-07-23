@@ -15,9 +15,10 @@
 
 目前模块化 Go spike、SQLite/generation、Darwin 与原生 Linux amd64/arm64 `openat2` 路径边界已有局部
 证据，`api/openapi.yaml` 已成为 HTTP 结构权威，TypeScript 类型、唯一 Web API client、
-摘要锁、语义兼容检查和双架构 CI 工作流已建立；这些 scope 仍不能等同于产品完成。首次原生
-amd64/arm64 PR CI 已通过。可启动应用、生产 handler、认证、React 产品应用、完整媒体 adapter、
-Docker 和发布运维链路仍未建立。详细状态见[开发就绪评审](../development-readiness.md)。
+摘要锁、语义兼容检查和双架构 CI 工作流已建立；这些 scope 仍不能等同于产品完成。最小
+`cmd/foliopath` 已建立并只调用 `internal/app.Run`，但组合根仍显式失败，尚不是可启动服务。
+生产 handler、认证、React 产品应用、完整媒体 adapter、Docker 和发布运维链路仍未建立。
+详细状态见[开发就绪评审](../development-readiness.md)。
 
 ## 架构档案导航
 
