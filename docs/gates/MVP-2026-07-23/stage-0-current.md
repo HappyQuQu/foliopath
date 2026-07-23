@@ -22,7 +22,8 @@
   - FS-01：Darwin 与原生 Linux amd64/arm64 路径矩阵、Linux `openat2` 同/跨设备及 self-bind mount
     拒绝、真实 HTTP test harness 的 Stage 0 路径可行性范围通过
   - FS-02：当前 SQLite/generation 正确性 scope 通过
-  - FS-03：合成媒体与本机 FFmpeg 子范围有证据，结论仍为 Conditional
+  - FS-03：合成 FFmpeg 子矩阵和隔离 govips/libvips 图片 fixture 已在原生 amd64/arm64
+    通过，S0-103/S0-104 关闭；完整结论仍为 Conditional
   - FS-04：Linux/arm64 四核、4 GiB、10 万媒体/1 万目录扫描/索引子范围通过，结论仍为
     Conditional
   - `api/openapi.yaml` 已为 HTTP 结构权威；不依赖 Ruby/Node/网络的 Go YAML 解析、引用/
@@ -35,7 +36,7 @@
     amd64/arm64 Go/race、合成媒体、mount-boundary 和 Web contract 7 个 jobs 全部通过；
     Web contract 对真实 base branch 的语义兼容比较通过
 - 未关闭条件：
-  - FS-03：libvips/govips、生产任务隔离、浏览器直放、双架构最终镜像
+  - FS-03：ICC/敌意输入与资源限制、生产任务隔离、浏览器直放、双架构最终镜像
   - FS-04：代表性存储、RSS、完整媒体/缩略图、FTS/keyset、生产 HTTP/前端并发与趋势
   - FS-05：双架构镜像、非 root/只读挂载、健康检查、备份恢复、升级和许可证追踪
   - 契约/工程：`sqlc` 生成、`test-e2e`；完整运行骨架、生产 handler、认证、React 产品前端
