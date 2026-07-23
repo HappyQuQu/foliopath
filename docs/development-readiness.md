@@ -4,7 +4,7 @@
 
 项目目前 **尚未达到功能开发就绪**。阶段 0 已完成需求确认；FS-01 的原生 Linux amd64/arm64
 `openat2` mount 边界和 HTTP test harness 子范围、FS-02 当前正确性范围已通过，FS-03/04
-取得局部证据；FS-01 的 Stage 0 范围已通过，FS-03/04 仍为 Conditional。只可继续剩余 spike、契约/生成护栏与不扩大
+取得局部证据；FS-01/04 的 Stage 0 范围已通过，FS-03 完整范围仍为 Conditional。只可继续剩余 spike、契约/生成护栏与不扩大
 信任边界的实验脚手架；产品功能开发仍未获准。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
@@ -114,7 +114,7 @@ ECMAScript pattern 验证、选择性跨源关键不变量检查（`queued`、`a
 ## 阶段 0 出场条件
 
 - P0 需求已经确认；MVP 范围、格式、认证、容量和验收口径没有架构级歧义。
-- [可行性研究](feasibility-study.md)中的必做 spike 有可复现实验和结论，Conditional Go 已转为允许进入 MVP 实施，或范围已明确缩减。当前 FS-01/02 的 Stage 0 范围通过；FS-03、FS-04 仍为 Conditional，FS-05 未完成，因此本项未满足。
+- [可行性研究](feasibility-study.md)中的必做 spike 有可复现实验和结论，Conditional Go 已转为允许进入 MVP 实施，或范围已明确缩减。当前 FS-01/02/04 的 Stage 0 范围通过；FS-03 完整范围仍 Conditional，FS-05 未完成，因此本项未满足。
 - [风险登记册](risk-register.md)中的阶段 0 阻断风险已有 owner、验证计划和可接受 fallback。
 - OpenAPI 与迁移输入已建立；UI 原型、生成流程和完整 fixture 的阶段 1 输入仍需补齐，不能通过正式实现猜需求。
 

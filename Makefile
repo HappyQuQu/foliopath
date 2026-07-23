@@ -3,7 +3,7 @@ NPM ?= npm
 OASDIFF_VERSION ?= v1.17.0
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity spike-vips
+.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity spike-vips capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -51,3 +51,12 @@ spike-capacity:
 
 spike-vips:
 	cd spikes/fs03-vips && MALLOC_ARENA_MAX=2 timeout 2m $(GO) test -count=1 -v ./...
+
+capacity-trend:
+	@set -e; for tier in "1000 10000" "5000 50000" "10000 100000"; do \
+		set -- $$tier; \
+		FOLIOPATH_CAPACITY=1 FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 \
+		FOLIOPATH_CAPACITY_DIRS=$$1 FOLIOPATH_CAPACITY_ASSETS=$$2 \
+		GOMAXPROCS=4 $(GO) test -timeout=20m -count=1 \
+		-run '^TestCapacityBaseline$$' -v ./tests/performance; \
+	done

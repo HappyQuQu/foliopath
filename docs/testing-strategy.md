@@ -13,7 +13,8 @@ scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目
 [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md)、
 [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 和
 [FS-04 容量基线](spikes/fs-04-capacity-baseline.md)。FS-01 路径和 FS-02 当前正确性 scope
-已通过；FS-03/04 只在明确子范围取得证据并保持 Conditional，不能替代完整媒体、容量、浏览器
+已通过；FS-04 的 Stage 0 扫描/索引范围通过，FS-03 与 FS-04 完整产品/发布范围保持
+Conditional，不能替代完整媒体、容量、浏览器
 和发布验证。FS-01 的 Stage 0 范围包括原生 Linux amd64/arm64 `openat2` mount 拒绝和 HTTP
 harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/Release Gate 强制。
 
@@ -151,8 +152,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 
 主要容量验收档已经确认为约 10 万媒体、1 万目录、4 GiB 内存的四核 NAS/家庭服务器。
 FS-04 当前在 Linux/arm64 Docker Desktop VM 与 tmpfs 上完成混合宽度、最大深度 32 的
-扫描/索引目标档：generation 扫描/finalize 为 10.449 秒，扫描期间库内页读取 P95 为
-3.193 ms，采样 Go heap 峰值约 39.2 MB。测试还对账根 recursive count、全树 direct count
+扫描/索引目标档；首次记录 generation 扫描/finalize 为 10.449 秒，扫描期间库内页读取
+P95 为 3.193 ms，采样 Go heap 峰值约 39.2 MB。后续三档趋势记录 Linux `VmHWM` RSS，
+并以 `stage0-comparable-v1` 提供同环境回归护栏。测试还对账根 recursive count、全树 direct count
 及选定 32 层链的每一级聚合。独立的 1,000 层 SQLite-only 档在同一受限 Linux 容器中
 finalize 为 147 ms；它不创建宿主深目录，只证明目录 rollup 算法而不证明文件系统遍历。
 该环境不是代表性 NAS 存储，且未包含媒体、FTS、正式 HTTP 或前端，因此这些数字不是发布

@@ -76,8 +76,11 @@ Stage 0 剩余证据
   - 完成证据：[S0-105 Gate allocation record](gates/MVP-2026-07-23/s0-105-gate-order.md)
     将生产 HTTP/auth 证据分配到首次受保护 API Backend Gate，将发布挂载/运行期故障分配到
     FS-05/Release Gate；要求保持强制。
-- [ ] `S0-106` 完成 FS-04 剩余的代表性存储、RSS、FTS/keyset 和趋势预算。
-  - 完成证据：可重复环境、预算、结果与超限 fallback 写回 FS-04 和风险登记。
+- [x] `S0-106` 关闭 FS-04 的 Stage 0 容量可行性范围并分配后续证据。
+  - 完成证据：[S0-106 容量证据 Gate 分配记录](gates/MVP-2026-07-23/s0-106-capacity-gate-order.md)
+    及 FS-04 的 Linux RSS、三档趋势、`stage0-comparable-v1` 暂定回归预算和 fallback。
+  - 后续强制条件：代表性存储和最终镜像由 Performance/Release Gate 阻断；生产媒体队列、
+    FTS/keyset、HTTP 和前端并发分别由对应 Backend/UI Gate 阻断。
 - [ ] `S0-107` 完成 FS-05 双架构镜像与恢复 spike。
   - 范围：多阶段 Debian slim、非 root、`/library:ro`、`/app/data`、健康检查、优雅停机、
     SQLite 备份/恢复、升级和磁盘满。

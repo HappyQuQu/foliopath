@@ -2,7 +2,7 @@
 
 ## 状态
 
-**状态：Conditional（当前扫描/索引子范围通过）**
+**状态：Passed（Stage 0 扫描/索引可行性范围）；完整产品/发布范围仍为 Conditional**
 
 **验证日期：2026-07-23**
 
@@ -18,12 +18,16 @@
 - 扫描期间索引读取次数、P95 与最大延迟；
 - 扫描完成后的目录页与媒体页查询延迟；
 - Go heap 的采样峰值；
+- Linux 进程 RSS 高水位（`/proc/self/status` 的 `VmHWM`）；
 - checkpoint 后数据库、WAL 与 SHM 的总尺寸；
 - 根目录、每个目录的 direct count，以及选定深链每一级的 recursive count 正确性。
 
 本轮只验证当前已经实现的目录遍历、格式扩展名分类、generation 写入、目录计数与基础索引读取。
 它不验证尚未实现的媒体探测、缩略图、FTS5 搜索、正式 catalog API、HTTP 并发或前端虚拟化，
-因此即使目标规模运行成功也不能把完整 FS-04 标记为 Passed。
+因此即使目标规模运行成功也不能把完整 FS-04 标记为 Passed。依据
+[S0-106 容量证据 Gate 分配记录](../gates/MVP-2026-07-23/s0-106-capacity-gate-order.md)，
+这些生产能力在最早能产生真实证据的 Backend/UI Gate 验证，代表性设备与最终镜像在
+Performance/Release Gate 验证；它们不再与禁止提前实现生产功能的 Stage 0 形成循环。
 
 ## 已执行目标档与结果
 
@@ -86,7 +90,28 @@ asset×ancestor 展开；它不经过真实文件系统，所以不证明宿主�
 的一致性边界。原两层浅树数字只保留为问题定位历史，不再作为当前容量接受证据。
 
 以上时间只适用于该 Docker Desktop Linux VM 与 tmpfs，不是发布 SLA；采样值是 Go heap，
-不是容器 RSS。结果没有证明真实媒体探测、缩略图、FTS、HTTP 或浏览器并发能力。
+不是容器 RSS。后续三档运行已补进程 RSS 高水位，但结果仍没有证明真实媒体探测、缩略图、
+FTS、HTTP 或浏览器并发能力。
+
+## 三档趋势、RSS 与暂定预算
+
+同一 `golang:1.26.4-bookworm` 镜像、Linux/arm64、四核、4 GiB、2 GiB tmpfs 环境中，
+`make capacity-trend` 为每档启动独立测试进程并强制 `stage0-comparable-v1`：
+
+| 目录 / 资产 | fixture | 扫描/finalize | 并发读取 P95 | 目录/资产页 P95 | Go heap 采样峰值 | 进程 RSS 高水位 | DB 族 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 / 10,000 | 28 ms | 1,079 ms | 468 µs | 27 / 83 µs | 30.4 MiB | 41.4 MiB | 3.0 MiB |
+| 5,000 / 50,000 | 142 ms | 6,353 ms | 433 µs | 35 / 66 µs | 37.9 MiB | 50.1 MiB | 14.7 MiB |
+| 10,000 / 100,000 | 283 ms | 11,675 ms | 545 µs | 44 / 68 µs | 23.2 MiB | 37.0 MiB | 29.3 MiB |
+
+三档均无预算超限。资产数量扩大十倍时，本次扫描时间约扩大 10.8 倍，DB 族约扩大 9.9 倍，
+没有出现数量级恶化。heap 与 RSS 来自三个独立进程，受 GC、allocator 和采样时机影响且不单调；
+它们只证明本轮均远低于 4 GiB，不用于拟合每资产内存公式。
+
+`stage0-comparable-v1` 的上限是：扫描 120 秒、扫描期间基础资产页读取 P95 250 ms、
+扫描后目录/资产页读取 P95 各 100 ms、Linux 进程 RSS 高水位 1 GiB、checkpoint 后数据库族
+1 GiB。它们是相同容器/tmpfs 条件下的宽松回归护栏，不是用户可见 SLA，也不能替代
+Performance/Release Gate 在代表性设备上冻结的发布预算。
 
 ## 运行方式
 
@@ -117,6 +142,12 @@ GOMAXPROCS=4 \
   -run '^TestDirectoryRollupDeepChainBaseline$' -v ./tests/performance
 ```
 
+三档趋势和暂定预算：
+
+```sh
+make capacity-trend
+```
+
 测试输出一行 `FOLIOPATH_CAPACITY_METRICS` JSON。所有目录、媒体占位内容和数据库均在
 `t.TempDir()` 中创建，不读取真实媒体库。合成 `.jpg` 只用于测量当前索引路径，不是有效图片
 兼容性 fixture；媒体真实性与解码由 FS-03 单独验证。独立深链档输出
@@ -137,14 +168,19 @@ Docker Desktop 的 Linux VM 和 tmpfs 不是代表性 NAS 磁盘。该结果可�
 `exec` 是必需的，因为 Go 会从临时构建目录执行测试二进制；Docker 的默认 tmpfs 选项会以
 `permission denied` 终止测试，不能形成有效容量证据。
 
-## 通过条件
+## 后续 Gate 条件
 
-完整 FS-04 至少还需要：
+Stage 0 扫描/索引可行性范围已通过。完整 FS-04 仍至少需要：
 
-1. 在记录清楚的四核、4 GiB 代表性设备和本地可靠文件系统运行目标档；
-2. 增加媒体探测与缩略图队列后复测全局并发、RSS、队列深度和磁盘增长；
-3. FTS5、自然排序、稳定 keyset catalog API 完成后测量列表与搜索；
-4. 扫描、缩略图和 HTTP 浏览并发时记录尾延迟、WAL/checkpoint 与失败行为；
-5. 根据实测结果固定可验收预算，未达标时降低并发、缩略图规格或声明支持上限。
+1. **扫描/媒体 Backend Gate**：增加生产媒体探测与缩略图队列后复测全局并发、RSS、
+   队列深度、磁盘增长和失败行为；
+2. **浏览/搜索 Backend Gate**：FTS5、自然排序、稳定 keyset catalog API 完成后测量列表、
+   搜索、扫描并发和 cursor 稳定性；
+3. **Browse/Search UI Gate**：通过真实 API 测虚拟化 DOM 上限、焦点/滚动稳定性与用户可感知
+   延迟；
+4. **Performance/Release Gate**：在记录清楚的四核、4 GiB 代表性设备、本地可靠文件系统和
+   最终镜像运行目标档，记录生产 RSS、WAL/checkpoint、HTTP 并发和退化行为；
+5. 根据代表性设备实测固定发布预算，未达标时降低并发、缩略图规格或声明支持上限。
 
-在这些条件满足前，FS-04 保持 Conditional，不以单次本机结果承诺产品性能。
+在这些条件满足前，完整 FS-04 保持 Conditional，不以本轮数据承诺产品性能；但它们不再
+反向阻断已完成的 Stage 0 可行性范围。

@@ -15,7 +15,8 @@
 - [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 已取得本机 FFmpeg/合成 fixture 局部证据，
   但 libvips、生产任务、浏览器与双架构门槛未完成。
 - [FS-04 目标容量](spikes/fs-04-capacity-baseline.md) 的 Linux/arm64 四核、4 GiB
-  扫描/索引子范围通过；代表性存储、媒体、FTS、HTTP 与前端容量仍未完成。FS-05 双架构
+  Stage 0 扫描/索引范围、Linux RSS 与三档趋势通过；代表性存储、媒体、FTS、HTTP 与前端
+  容量按 S0-106 转入后续 Gate。FS-05 双架构
   镜像与恢复尚未开始。
 - Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
   TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
