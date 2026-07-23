@@ -12,11 +12,10 @@ scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目
 当前证据分别见 [FS-01 路径边界](spikes/fs-01-path-boundary.md)、
 [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md)、
 [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 和
-[FS-04 容量基线](spikes/fs-04-capacity-baseline.md)。除 FS-02 当前正确性 scope 外，其余报告
-均只在明确子范围取得证据并保持 Conditional，不能替代完整平台、媒体、浏览器和发布验证。
-FS-01 的已验证子范围包括 Linux/arm64 `openat2` 同/跨设备与 self-bind mount 拒绝，以及
-真实 HTTP test harness；不包括生产 handler、认证/错误 envelope、只读发布 volume、运行期
-unmount 或 Linux/amd64。
+[FS-04 容量基线](spikes/fs-04-capacity-baseline.md)。FS-01 路径和 FS-02 当前正确性 scope
+已通过；FS-03/04 只在明确子范围取得证据并保持 Conditional，不能替代完整媒体、容量、浏览器
+和发布验证。FS-01 的 Stage 0 范围包括原生 Linux amd64/arm64 `openat2` mount 拒绝和 HTTP
+harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/Release Gate 强制。
 
 ## 质量目标
 
@@ -92,9 +91,9 @@ unmount 或 Linux/amd64。
 `internal/files` 的 GET、HEAD、条件请求、单 Range、416、路径攻击和错误脱敏。FS-03 另以
 运行时合成 fixture 调用真实 FFmpeg CLI；当前仍没有生产 handler/media adapter、真实
 `SIGKILL`、磁盘满或备份恢复集成测试，“重启”证据仅为关闭并重新打开同一数据库文件。
-带 `linux && fsboundary` tag 的隔离高权限探针已在 Linux/arm64 覆盖同设备、跨设备和
-self-bind mount，普通非 root Linux/arm64 集成回归也已通过；这些证据不覆盖 Linux/amd64、
-真实只读发布 volume 或运行期 unmount。
+带 `linux && fsboundary` tag 的隔离高权限探针已在原生 Linux amd64/arm64 覆盖同设备、
+跨设备和 self-bind mount，普通非 root 双架构 Go/race 回归也已通过；这些证据不覆盖最终
+只读发布 volume 或运行期 unmount。
 
 ### 浏览器端到端测试
 
@@ -251,7 +250,7 @@ PR 基线比较与原生 amd64/arm64 jobs，但尚无一次执行证据。`sqlc`
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
 `make test-e2e`、`sqlc` 生成检查、前端 import/token lint、Storybook/组件/视觉回归、
-生产 HTTP/认证错误边界测试、只读发布 volume/运行期 unmount、Linux/amd64、浏览器测试、
+生产 HTTP/认证错误边界测试、只读发布 volume/运行期 unmount、浏览器测试、
 完整媒体/搜索/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；定义好的 CI
-也须首次成功运行。执行现有 Go、Linux/arm64 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
+执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
 的完整状态与最晚落地阶段见[架构适配度检查](architecture/fitness-functions.md)。

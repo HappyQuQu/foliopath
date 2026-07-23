@@ -222,6 +222,9 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - Gate 结论必须链接证据；复述计划不算证据，口头同意不能关闭风险。
 - 适用检查未执行或检查入口尚不存在时不得给出 `Go`；只能给出有范围限制的 `Conditional Go`
   或停止推进的 `No-Go`。
+- 前置 Gate 不得要求只有通过该 Gate 后才允许创建的生产产物。发现循环证据依赖时，必须用
+  Gate allocation record 把要求分配到最早能真实产生证据的切片/发布 Gate，同时保留其
+  Owner、阻断效果和复审触发；“后移”不等于删除或弱化要求。
 
 ## 角色与决策职责
 

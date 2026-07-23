@@ -10,8 +10,8 @@
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
 - [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、
   Linux `openat2` 同/跨设备及 self-bind mount 拒绝和真实 HTTP test harness 子范围；生产
-  handler、认证/错误 envelope、只读发布 volume 与运行期 unmount 未完成，
-  因此仍为 Conditional。
+  handler/auth 转入首个受保护 API Backend Gate，发布 volume/unmount 转入 FS-05/Release
+  Gate；FS-01 的 Stage 0 路径范围已通过。
 - [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) 已取得本机 FFmpeg/合成 fixture 局部证据，
   但 libvips、生产任务、浏览器与双架构门槛未完成。
 - [FS-04 目标容量](spikes/fs-04-capacity-baseline.md) 的 Linux/arm64 四核、4 GiB
@@ -30,8 +30,8 @@
 
 - 已完成：确认并同步[需求清单](requirements-checklist.md)中的认证、格式、扫描、隐藏目录、搜索、布局、目标规模等决策。
 - 完成[可行性研究](feasibility-study.md)要求的路径/扫描、SQLite、媒体工具、Range 与前端虚拟化
-  spike；FS-01 的 Linux/openat2 与 HTTP harness 子范围、FS-02 当前 scope 已完成，FS-01
-  仍因生产 HTTP/发布容器证据缺失而为 Conditional。
+  spike；FS-01 的 Stage 0 路径范围、FS-02 当前 scope 已完成。生产 HTTP/发布容器证据按
+  [S0-105](gates/MVP-2026-07-23/s0-105-gate-order.md)由后续 Gate 强制。
 - 把 spike 数据写回性能预算、支持矩阵与风险登记。
 - 已以确认 PRD、用户流程和 UI 方向建立第一版权威 `api/openapi.yaml`；强制离线解析、
   引用/结构、ECMAScript pattern、AST/Schema 与 scanner/migration 选择性关键不变量检查

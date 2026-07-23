@@ -15,3 +15,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 当前记录：
 
 - [MVP-2026-07-23 / 阶段 0 当前判断](MVP-2026-07-23/stage-0-current.md)
+- [S0-105：路径证据与生产切片顺序](MVP-2026-07-23/s0-105-gate-order.md)
