@@ -1,0 +1,2715 @@
+openapi: 3.0.3
+info:
+  title: FolioPath HTTP API
+  version: 0.1.0
+  description: |
+    Authoritative HTTP contract for the FolioPath MVP-2026-07-23 scope,
+    revision 1.
+
+    All business endpoints use an authenticated same-origin browser session.
+    State-changing authenticated operations additionally require the
+    session-bound `X-CSRF-Token`. First-run setup and login do not yet have a
+    session, so they require a validated same-origin `Origin` header.
+
+    IDs and cursors are opaque. Media content endpoints accept only resource
+    IDs, never filesystem paths. Management responses may expose a library
+    root relative to the allowed `/library` container mount and a server-built
+    `/library/...` display label; no response may expose a host path.
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+x-foliopath-contract:
+  status: authoritative
+  targetVersion: MVP-2026-07-23
+  scopeRevision: 1
+  baselineEvent: BASELINE-2026-07-23
+servers:
+  - url: /
+    description: Same-origin FolioPath server
+security:
+  - cookieAuth: []
+tags:
+  - name: Health
+    description: Unauthenticated process and dependency readiness without sensitive details.
+  - name: Authentication
+    description: First-run administrator setup and revocable browser sessions.
+  - name: System
+    description: Authenticated runtime capability and initialization state.
+  - name: Settings
+    description: Schema-bound administrator settings with optimistic concurrency.
+  - name: Library paths
+    description: Restricted browsing of selectable directories below the allowed media root.
+  - name: Libraries
+    description: Media-library configuration, status, and safe removal.
+  - name: Scans
+    description: Restart-safe full reconciliation scans and cooperative cancellation.
+  - name: Catalog
+    description: Bounded indexed directory browsing and media search.
+  - name: Media
+    description: Indexed media metadata, thumbnails, and read-only original content.
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Check whether the process is alive
+      description: |
+        Process-level liveness only. It does not disclose configuration,
+        database paths, media paths, account details, or dependency errors.
+      security: []
+      x-requirements: [FR-DEP-004, NFR-OPS-001, NFR-PRIV-001]
+      responses:
+        '200':
+          description: The process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+              example:
+                status: live
+                reasonCode: null
+
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      summary: Check whether the HTTP service can accept application traffic
+      description: |
+        Readiness depends on writable application data and successful
+        migrations. An unavailable media mount is reported as degraded by the
+        authenticated system status and does not reveal a filesystem path here.
+      security: []
+      x-requirements: [FR-DEP-004, NFR-OPS-001, NFR-PRIV-001]
+      responses:
+        '200':
+          description: The service can accept application traffic.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: ready
+                reasonCode: null
+        '503':
+          description: The service is not ready. The reason code is safe for logs and orchestration.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotReadyResponse'
+              example:
+                status: not_ready
+                reasonCode: application_data_unavailable
+
+  /api/v1/auth/status:
+    get:
+      tags: [Authentication]
+      operationId: getAuthenticationStatus
+      summary: Get first-run authentication status
+      description: |
+        Returns only whether the one-time administrator setup is still
+        available. It never returns a username or any other account detail.
+      security: []
+      x-requirements: [FR-AUTH-001, FR-AUTH-002, NFR-SEC-002, NFR-PRIV-001]
+      responses:
+        '200':
+          description: Authentication status.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthStatus'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/setup:
+    post:
+      tags: [Authentication]
+      operationId: setupAdministrator
+      summary: Atomically create the only administrator
+      description: |
+        Available only while `setupRequired` is true. Concurrent setup
+        attempts can create at most one account. A successful response creates
+        a server-side session, sets the session cookie, and returns the
+        session-bound CSRF token. Later calls fail with `setup_closed`.
+      security: []
+      x-requirements: [FR-AUTH-001, FR-AUTH-002, FR-AUTH-004, NFR-SEC-002]
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupRequest'
+      responses:
+        '201':
+          description: Administrator and session created.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Create an administrator session
+      description: |
+        Uses one generic `invalid_credentials` failure for an unknown account
+        and an incorrect password. A successful response sets the session
+        cookie and returns a session-bound CSRF token.
+      security: []
+      x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002, NFR-PRIV-001]
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session created.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/session:
+    get:
+      tags: [Authentication]
+      operationId: getSession
+      summary: Get the current administrator session
+      description: Returns a safe administrator summary and a current CSRF token.
+      x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002]
+      responses:
+        '200':
+          description: Current session.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Revoke the current session
+      description: Revokes the server-side session and expires the browser cookie.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002]
+      responses:
+        '204':
+          description: Session revoked.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/ExpiredSessionCookie'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/status:
+    get:
+      tags: [System]
+      operationId: getSystemStatus
+      summary: Get safe application status and capability flags
+      description: |
+        Requires an authenticated session. Values are safe for the application
+        shell and never include database, cache, container-internal, or host paths.
+      x-requirements: [FR-DEP-004, FR-AUTH-002, NFR-OPS-001, NFR-PRIV-001]
+      responses:
+        '200':
+          description: Application status.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/settings:
+    get:
+      tags: [Settings]
+      operationId: getSettings
+      summary: Get administrator-configurable application settings
+      x-requirements: [FR-DEP-003, FR-SCN-007, FR-MED-008, FR-UI-006]
+      responses:
+        '200':
+          description: Current settings. The ETag is required for a later update.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [Settings]
+      operationId: updateSettings
+      summary: Update known application settings
+      description: |
+        Only fields declared by `SettingsUpdate` are accepted. A null scheduled
+        scan interval disables scheduled full scans; manual scans remain enabled.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-DEP-003, FR-SCN-007, FR-MED-008, FR-UI-006]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Updated settings.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/library-paths:
+    get:
+      tags: [Library paths]
+      operationId: listLibraryPaths
+      summary: List approved direct child directories below the allowed media root
+      description: |
+        `parent` is relative to `/library`; omit it or pass the empty string for
+        `/library` itself. The server rejects absolute paths, dot segments,
+        encoded traversal, NUL bytes, unsupported separators, and symlink
+        escapes. It does not follow directory symlinks. Results never include
+        files or host paths, and creation repeats all safety and overlap checks.
+      x-requirements: [FR-LIB-001, FR-LIB-002, FR-LIB-004, NFR-SEC-001, NFR-PRIV-001]
+      parameters:
+        - $ref: '#/components/parameters/LibraryParentPathParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: A naturally sorted page of direct child directories.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryPathPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries:
+    get:
+      tags: [Libraries]
+      operationId: listLibraries
+      summary: List configured media libraries
+      description: Libraries are naturally sorted by their unique display name and stable ID.
+      x-requirements: [FR-LIB-001, FR-LIB-006, FR-LIB-008]
+      parameters:
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: A stable page of media libraries.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Libraries]
+      operationId: createLibrary
+      summary: Create a media library and queue its first full scan
+      description: |
+        `rootPath` is relative to `/library`; the empty string selects
+        `/library` itself and therefore conflicts with every other possible
+        library. Name uniqueness, root readability, path containment, symlink
+        safety, and ancestor/descendant overlap are rechecked atomically.
+
+        An idempotency key is retained for at least 24 hours. Reusing the same
+        key and identical body returns the original result; reusing it with a
+        different body fails with `idempotency_conflict`.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-LIB-001, FR-LIB-002, FR-LIB-003, FR-LIB-004, FR-LIB-008, FR-SCN-001, NFR-SAFE-001, NFR-SEC-001]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLibraryRequest'
+      responses:
+        '201':
+          description: Library created and its first scan queued. Idempotent replay returns this same representation.
+          headers:
+            Location:
+              description: Relative URL of the created library.
+              schema:
+                type: string
+                example: /api/v1/libraries/lib_01JZ8Y7QVK
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateLibraryResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [Libraries]
+      operationId: getLibrary
+      summary: Get a media library and its latest scan summary
+      x-requirements: [FR-LIB-001, FR-LIB-005, FR-LIB-006, FR-SCN-003]
+      responses:
+        '200':
+          description: Media library. The ETag is required for rename or removal.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Library'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [Libraries]
+      operationId: renameLibrary
+      summary: Rename a media library
+      description: |
+        The MVP request schema intentionally has no root path field. Changing a
+        root requires removing and recreating the library.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-LIB-008]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameLibraryRequest'
+      responses:
+        '200':
+          description: Renamed media library.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Library'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Libraries]
+      operationId: removeLibrary
+      summary: Remove a media library from FolioPath
+      description: |
+        Accepts an asynchronous, restart-safe cleanup of configuration, index,
+        jobs, and derived cache only. It never moves, edits, or deletes original
+        media. The library remains identifiable until cleanup succeeds; poll
+        the returned removal resource.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-LIB-007, NFR-SAFE-001, MVP-AC-008]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '202':
+          description: Removal accepted.
+          headers:
+            Location:
+              description: Relative URL of the removal operation.
+              schema:
+                type: string
+                example: /api/v1/library-removals/rmv_01JZ8YEF9A
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryRemoval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/library-removals/{removalId}:
+    get:
+      tags: [Libraries]
+      operationId: getLibraryRemoval
+      summary: Get asynchronous media-library removal status
+      x-requirements: [FR-LIB-007, NFR-SAFE-001, MVP-AC-008]
+      parameters:
+        - $ref: '#/components/parameters/RemovalIDParameter'
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+      responses:
+        '200':
+          description: Current removal operation.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryRemoval'
+        '304':
+          description: The operation has not changed for the supplied conditional request.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/scans:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [Scans]
+      operationId: listLibraryScans
+      summary: List full-scan history for a media library
+      x-requirements: [FR-SCN-003, FR-SCN-004, FR-SCN-008]
+      parameters:
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Scans sorted by creation time descending and stable scan ID.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Scans]
+      operationId: requestLibraryScan
+      summary: Request a full reconciliation scan
+      description: |
+        A new scan returns `202`. If the library already has a queued or running
+        full scan, the service coalesces the request and returns that existing
+        scan with `200`; it never starts a parallel full scan for the same library.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-LIB-006, FR-SCN-001, FR-SCN-004, FR-SCN-005]
+      responses:
+        '200':
+          description: An existing queued or running scan was returned.
+          headers:
+            Location:
+              description: Relative URL of the existing scan.
+              schema:
+                type: string
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanRun'
+        '202':
+          description: A new full scan was queued.
+          headers:
+            Location:
+              description: Relative URL of the new scan.
+              schema:
+                type: string
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanRun'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/scans/{scanId}:
+    get:
+      tags: [Scans]
+      operationId: getScan
+      summary: Get a scan's stage, counters, and safe issue summary
+      description: |
+        Clients should use bounded polling with conditional requests and
+        backoff. Counters are monotonic within a run; `progressRatio` is null
+        unless the server has a reliable denominator.
+      x-requirements: [FR-SCN-003, FR-SCN-004, FR-SCN-008, FR-SCN-009]
+      parameters:
+        - $ref: '#/components/parameters/ScanIDParameter'
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+      responses:
+        '200':
+          description: Current scan state.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanRun'
+        '304':
+          description: The scan has not changed for the supplied validator.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/scans/{scanId}/cancel:
+    post:
+      tags: [Scans]
+      operationId: cancelScan
+      summary: Request cooperative scan cancellation
+      description: |
+        Cancellation is idempotent and cooperative. It preserves the last
+        reliable index and safely committed additions. A terminal scan fails
+        with `scan_already_finished`.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-SCN-004, FR-SCN-008, NFR-REL-001]
+      parameters:
+        - $ref: '#/components/parameters/ScanIDParameter'
+      responses:
+        '202':
+          description: Cancellation requested or already requested.
+          headers:
+            Location:
+              description: Relative URL of the scan.
+              schema:
+                type: string
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanRun'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/directories:
+    get:
+      tags: [Catalog]
+      operationId: listDirectories
+      summary: List direct child directories from the reliable index
+      description: |
+        Omit `parentId` for the library root. Every readable indexed directory
+        is returned, including directories with no supported media. The request
+        never traverses the filesystem.
+      x-requirements: [FR-BRW-001, FR-BRW-005, FR-BRW-008, FR-BRW-009]
+      parameters:
+        - $ref: '#/components/parameters/LibraryIDParameter'
+        - $ref: '#/components/parameters/ParentDirectoryIDParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Direct children in natural-name ascending order with stable ID tie-breaker.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/directories/{directoryId}:
+    get:
+      tags: [Catalog]
+      operationId: getDirectory
+      summary: Get an indexed directory and safe breadcrumbs
+      x-requirements: [FR-BRW-001, FR-BRW-003, FR-BRW-008, NFR-PRIV-001]
+      parameters:
+        - $ref: '#/components/parameters/DirectoryIDParameter'
+      responses:
+        '200':
+          description: Directory detail. All paths are relative to its media-library root.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoryDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/assets:
+    get:
+      tags: [Catalog]
+      operationId: listLibraryAssets
+      summary: Browse or search media within a media library
+      description: |
+        Omit `directoryId` to use the library root. With no search and
+        `recursive=false`, the default order is natural name ascending.
+        Recursive or searched results default to file modification time
+        descending. Any change to library, directory, recursive mode, query,
+        kind, sort, or order invalidates an old cursor.
+      x-requirements: [FR-BRW-002, FR-BRW-003, FR-BRW-005, FR-BRW-009, FR-SRH-001, FR-SRH-002, FR-SRH-004]
+      parameters:
+        - $ref: '#/components/parameters/LibraryIDParameter'
+        - $ref: '#/components/parameters/DirectoryFilterParameter'
+        - $ref: '#/components/parameters/RecursiveParameter'
+        - $ref: '#/components/parameters/SearchQueryParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/SortParameter'
+        - $ref: '#/components/parameters/OrderParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable indexed media page.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets:
+    get:
+      tags: [Catalog]
+      operationId: searchAssets
+      summary: Search indexed media across all libraries
+      description: |
+        Searches filename and media-library-relative path only. It never scans
+        the filesystem during a request. Results default to file modification
+        time descending and include a safe media-library name and relative path.
+      x-requirements: [FR-SRH-001, FR-SRH-002, FR-SRH-003, FR-SRH-004]
+      parameters:
+        - $ref: '#/components/parameters/RequiredSearchQueryParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/SortParameter'
+        - $ref: '#/components/parameters/OrderParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable cross-library search page.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}:
+    get:
+      tags: [Media]
+      operationId: getAsset
+      summary: Get indexed media details and derived-state status
+      x-requirements: [FR-MED-005, FR-MED-006, FR-MED-007]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+      responses:
+        '200':
+          description: Asset details. `relativePath` is relative to the media-library root.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/thumbnail:
+    get:
+      tags: [Media]
+      operationId: getAssetThumbnail
+      summary: Get a generated thumbnail or its bounded pending state
+      description: |
+        A ready transform is returned as WebP. If work is queued or running,
+        the endpoint returns a structured `202` response and `Retry-After`; the
+        frontend uses its canonical local placeholder and retries with backoff.
+        A failed transform returns a stable safe error and never raw tool output.
+      x-requirements: [FR-MED-001, FR-MED-002, FR-MED-008, NFR-PERF-001]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+        - $ref: '#/components/parameters/ThumbnailVariantParameter'
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+      responses:
+        '200':
+          description: Ready WebP thumbnail.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              description: Private immutable caching for a fingerprinted transform.
+              schema:
+                type: string
+                example: private, max-age=31536000, immutable
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: Thumbnail work is pending; no placeholder bytes are returned.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThumbnailPending'
+        '304':
+          description: The ready thumbnail has not changed.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/content:
+    get:
+      tags: [Media]
+      operationId: getAssetContent
+      summary: Read supported original media with validators and one byte range
+      description: |
+        Resolves the asset ID through the reliable index and opens the source
+        through the filesystem boundary. The request never accepts a path.
+
+        The endpoint supports a full response or exactly one RFC 9110 byte
+        range, including open-ended and suffix ranges. Multiple, malformed, or
+        unsatisfiable ranges return `416` and `Content-Range: bytes */<length>`;
+        the server never silently serves a different range. `If-Range` selects
+        a full `200` response when its validator no longer matches. Conditional
+        requests can return `304`.
+      x-requirements: [FR-MED-004, FR-MED-005, FR-MED-006, NFR-SAFE-001, NFR-SEC-001, NFR-PRIV-001]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+        - $ref: '#/components/parameters/RangeHeader'
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+        - $ref: '#/components/parameters/IfModifiedSinceHeader'
+        - $ref: '#/components/parameters/IfRangeHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/FullMediaContent'
+        '206':
+          $ref: '#/components/responses/PartialMediaContent'
+        '304':
+          $ref: '#/components/responses/MediaNotModified'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '416':
+          $ref: '#/components/responses/RangeNotSatisfiable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    head:
+      tags: [Media]
+      operationId: headAssetContent
+      summary: Get original-media validators and length without a body
+      description: |
+        Returns the same representation metadata as a full GET and ignores a
+        Range header. No response body is sent.
+      x-requirements: [FR-MED-004, FR-MED-006, NFR-SAFE-001, NFR-SEC-001]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+        - $ref: '#/components/parameters/IfModifiedSinceHeader'
+      responses:
+        '200':
+          description: Original-media metadata.
+          headers:
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            Content-Length:
+              $ref: '#/components/headers/ContentLength'
+            Content-Type:
+              $ref: '#/components/headers/MediaContentType'
+            Content-Disposition:
+              $ref: '#/components/headers/InlineContentDisposition'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '304':
+          $ref: '#/components/responses/MediaNotModified'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: foliopath_session
+      description: |
+        High-entropy, opaque session cookie backed by a revocable server-side
+        session. It is HttpOnly and SameSite=Strict; deployments using HTTPS
+        set Secure. The database stores no replayable plaintext token.
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: |
+        Session-bound token returned by setup, login, and session responses.
+        It is required together with `cookieAuth` on authenticated
+        state-changing operations. It must never be placed in a URL.
+
+  parameters:
+    OriginHeader:
+      name: Origin
+      in: header
+      required: true
+      description: |
+        Browser origin. Setup and login have no session-bound CSRF token yet,
+        so the server requires and validates this as same-origin before reading
+        credentials or changing authentication state.
+      schema:
+        type: string
+        format: uri
+        maxLength: 2048
+    LibraryIDParameter:
+      name: libraryId
+      in: path
+      required: true
+      description: Opaque media-library ID. It contains no path information.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    DirectoryIDParameter:
+      name: directoryId
+      in: path
+      required: true
+      description: Opaque indexed-directory ID. It contains no path information.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    AssetIDParameter:
+      name: assetId
+      in: path
+      required: true
+      description: Opaque indexed-media ID. It contains no path information.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    ScanIDParameter:
+      name: scanId
+      in: path
+      required: true
+      description: Opaque full-scan run ID.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    RemovalIDParameter:
+      name: removalId
+      in: path
+      required: true
+      description: Opaque library-removal operation ID.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    ParentDirectoryIDParameter:
+      name: parentId
+      in: query
+      required: false
+      description: Opaque parent directory ID. Omit it for the media-library root.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    DirectoryFilterParameter:
+      name: directoryId
+      in: query
+      required: false
+      description: Opaque directory ID that defines the browse or search root. Omit it for the media-library root.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    LibraryParentPathParameter:
+      name: parent
+      in: query
+      required: false
+      description: |
+        Canonical path relative to `/library`, used only by the authenticated
+        administrator path picker. Empty or omitted means `/library`. It is not
+        a host path and is never accepted by media-content endpoints.
+      schema:
+        $ref: '#/components/schemas/AllowedRootRelativePath'
+    CursorParameter:
+      name: cursor
+      in: query
+      required: false
+      description: |
+        Opaque, versioned, integrity-protected keyset cursor containing a query
+        fingerprint, final sort value, and stable resource-ID tie-breaker. It
+        contains no plaintext filesystem path. A cursor from any different
+        scope, filter, search, sort, or order fails with `invalid_cursor`;
+        the server never falls back to the first page.
+      schema:
+        $ref: '#/components/schemas/Cursor'
+    LimitParameter:
+      name: limit
+      in: query
+      required: false
+      description: Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 200
+        default: 50
+    RecursiveParameter:
+      name: recursive
+      in: query
+      required: false
+      description: Include media from all descendant directories of the selected browse root.
+      schema:
+        type: boolean
+        default: false
+    SearchQueryParameter:
+      name: q
+      in: query
+      required: false
+      description: Search filename and media-library-relative path. Empty or omitted means browse without search.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    RequiredSearchQueryParameter:
+      name: q
+      in: query
+      required: true
+      description: Search filename and media-library-relative path across all libraries.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    KindFilterParameter:
+      name: kind
+      in: query
+      required: false
+      description: One or more media-kind filters. Omit it to include every supported kind.
+      style: form
+      explode: false
+      schema:
+        type: array
+        uniqueItems: true
+        maxItems: 3
+        items:
+          $ref: '#/components/schemas/AssetKind'
+    SortParameter:
+      name: sort
+      in: query
+      required: false
+      description: |
+        Explicit sort field. When omitted, direct non-search browse uses `name`;
+        recursive browse and every search use `modifiedAt`.
+      schema:
+        type: string
+        enum: [name, modifiedAt]
+    OrderParameter:
+      name: order
+      in: query
+      required: false
+      description: |
+        Explicit sort direction. When omitted, `name` uses ascending and
+        `modifiedAt` uses descending.
+      schema:
+        type: string
+        enum: [asc, desc]
+    ThumbnailVariantParameter:
+      name: variant
+      in: query
+      required: false
+      description: Bounded, server-defined transform variant.
+      schema:
+        type: string
+        enum: [grid]
+        default: grid
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Client-generated opaque key retained for at least 24 hours. Use a new
+        key for a different logical action. Reuse with a different request body
+        fails with `idempotency_conflict`.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._~-]+$'
+    IfMatchHeader:
+      name: If-Match
+      in: header
+      required: true
+      description: Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412.
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 256
+    IfNoneMatchHeader:
+      name: If-None-Match
+      in: header
+      required: false
+      description: Representation validator from an earlier response.
+      schema:
+        type: string
+        maxLength: 512
+    IfModifiedSinceHeader:
+      name: If-Modified-Since
+      in: header
+      required: false
+      description: HTTP-date validator. If both validators are sent, If-None-Match takes precedence.
+      schema:
+        type: string
+        maxLength: 128
+    IfRangeHeader:
+      name: If-Range
+      in: header
+      required: false
+      description: Strong ETag or HTTP date controlling whether a Range request can return 206.
+      schema:
+        type: string
+        maxLength: 512
+    RangeHeader:
+      name: Range
+      in: header
+      required: false
+      description: |
+        Exactly one byte range (`bytes=start-end`, `bytes=start-`, or
+        `bytes=-suffixLength`). Multiple, malformed, and unsatisfiable ranges
+        receive 416.
+      schema:
+        type: string
+        maxLength: 128
+        pattern: '^bytes=(?:[0-9]+-[0-9]*|-[0-9]+)$'
+
+  headers:
+    RequestID:
+      description: Server-generated opaque correlation ID. Client-supplied values are not trusted.
+      schema:
+        type: string
+        pattern: '^req_[A-Za-z0-9_-]+$'
+        maxLength: 128
+    RetryAfter:
+      description: Non-negative delay in seconds before a bounded retry.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    SessionCookie:
+      description: |
+        Opaque `foliopath_session` cookie with HttpOnly, SameSite=Strict,
+        Path=/, bounded Max-Age, and Secure whenever HTTPS is in use.
+      schema:
+        type: string
+    ExpiredSessionCookie:
+      description: Expired `foliopath_session` cookie with Max-Age=0.
+      schema:
+        type: string
+    IdempotencyReplayed:
+      description: True only when this representation is a replay of a previously completed idempotent request.
+      schema:
+        type: boolean
+    ETag:
+      description: Strong opaque representation validator.
+      schema:
+        type: string
+        example: '"fp-8b51cdd5"'
+    LastModified:
+      description: Source modification time formatted as an HTTP date.
+      schema:
+        type: string
+        example: Thu, 23 Jul 2026 12:00:00 GMT
+    AcceptRanges:
+      description: The original-media endpoint supports byte ranges.
+      schema:
+        type: string
+        enum: [bytes]
+    ContentRange:
+      description: Exact bytes returned and complete source length.
+      schema:
+        type: string
+        example: bytes 0-1048575/3145728
+    UnsatisfiedContentRange:
+      description: Complete source length for an unsatisfied range.
+      schema:
+        type: string
+        example: bytes */3145728
+    ContentLength:
+      description: Number of response-body bytes, or full representation length for HEAD.
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+    MediaContentType:
+      description: Server-verified MIME type from the supported MVP media allowlist.
+      schema:
+        type: string
+        enum:
+          - image/jpeg
+          - image/png
+          - image/webp
+          - image/gif
+          - video/mp4
+          - video/quicktime
+          - video/x-matroska
+    InlineContentDisposition:
+      description: |
+        Safe inline disposition with a server-encoded filename. It never
+        contains CR/LF or an unescaped media path.
+      schema:
+        type: string
+        example: inline; filename*=UTF-8''IMG_0001.jpg
+    NoSniff:
+      description: Prevents browser MIME sniffing.
+      schema:
+        type: string
+        enum: [nosniff]
+
+  responses:
+    BadRequest:
+      description: The request syntax, cursor, query combination, or encoded input is invalid.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: A valid administrator session is required or the session has expired.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: CSRF or same-origin validation failed. No protected action was executed.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: The requested opaque resource ID does not identify a visible resource.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: |
+        The request conflicts with durable state, such as closed setup,
+        duplicate library name, overlapping root, active removal, offline
+        source, terminal scan, or idempotency-key body mismatch.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PreconditionFailed:
+      description: The supplied If-Match no longer identifies the current representation.
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PreconditionRequired:
+      description: A current If-Match validator is required.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntity:
+      description: The JSON shape is valid but one or more values violate the accepted contract.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: A per-endpoint authentication, browse, scan, thumbnail, or media limit was reached.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Unexpected failure represented by a safe public code and request ID.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    FullMediaContent:
+      description: Complete original supported media.
+      headers:
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptRanges'
+        Content-Length:
+          $ref: '#/components/headers/ContentLength'
+        Content-Type:
+          $ref: '#/components/headers/MediaContentType'
+        Content-Disposition:
+          $ref: '#/components/headers/InlineContentDisposition'
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+        X-Content-Type-Options:
+          $ref: '#/components/headers/NoSniff'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/webp:
+          schema:
+            type: string
+            format: binary
+        image/gif:
+          schema:
+            type: string
+            format: binary
+        video/mp4:
+          schema:
+            type: string
+            format: binary
+        video/quicktime:
+          schema:
+            type: string
+            format: binary
+        video/x-matroska:
+          schema:
+            type: string
+            format: binary
+    PartialMediaContent:
+      description: Exact single byte range of original supported media.
+      headers:
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptRanges'
+        Content-Range:
+          $ref: '#/components/headers/ContentRange'
+        Content-Length:
+          $ref: '#/components/headers/ContentLength'
+        Content-Type:
+          $ref: '#/components/headers/MediaContentType'
+        Content-Disposition:
+          $ref: '#/components/headers/InlineContentDisposition'
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+        X-Content-Type-Options:
+          $ref: '#/components/headers/NoSniff'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/webp:
+          schema:
+            type: string
+            format: binary
+        image/gif:
+          schema:
+            type: string
+            format: binary
+        video/mp4:
+          schema:
+            type: string
+            format: binary
+        video/quicktime:
+          schema:
+            type: string
+            format: binary
+        video/x-matroska:
+          schema:
+            type: string
+            format: binary
+    MediaNotModified:
+      description: The original-media representation has not changed. No body is sent.
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+    RangeNotSatisfiable:
+      description: The single requested range is malformed, multiple, or unsatisfiable.
+      headers:
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptRanges'
+        Content-Range:
+          $ref: '#/components/headers/UnsatisfiedContentRange'
+        ETag:
+          $ref: '#/components/headers/ETag'
+        X-Content-Type-Options:
+          $ref: '#/components/headers/NoSniff'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ResourceID:
+      type: string
+      description: Opaque stable resource identifier with no client-visible encoding semantics.
+      minLength: 3
+      maxLength: 128
+      pattern: '^[A-Za-z][A-Za-z0-9_-]+$'
+      example: asset_01JZ8YRAVQ
+
+    NullableResourceID:
+      type: string
+      nullable: true
+      description: Opaque stable resource identifier, or null when no related resource exists.
+      minLength: 3
+      maxLength: 128
+      pattern: '^[A-Za-z][A-Za-z0-9_-]+$'
+
+    Cursor:
+      type: string
+      description: |
+        Opaque, integrity-protected, query-bound keyset cursor. It contains no
+        plaintext media-library or filesystem path and must not be parsed by a client.
+      minLength: 8
+      maxLength: 2048
+
+    NullableCursor:
+      type: string
+      nullable: true
+      description: Opaque next-page cursor, or null when no next page exists.
+      minLength: 8
+      maxLength: 2048
+
+    AllowedRootRelativePath:
+      type: string
+      description: |
+        Canonical UTF-8 path relative to the allowed `/library` mount, carried
+        as a JSON string rather than a URL path. The empty string means
+        `/library` itself. It never begins with `/`, never uses a backslash,
+        and contains no empty, dot, dot-dot, or NUL component. The server
+        preserves safe literal percent characters, iteratively checks
+        percent-decoded views, and rejects any view that produces invalid
+        UTF-8, NUL, a separator, or a dot component; it never uses a decoded
+        view for filesystem access. The schema pattern is an input-shape aid,
+        not a security boundary. On Linux, actual filesystem access is anchored
+        at the `/library` directory descriptor with openat2 and
+        RESOLVE_BENEATH, RESOLVE_NO_SYMLINKS, and RESOLVE_NO_XDEV.
+      minLength: 0
+      maxLength: 4096
+      pattern: '^(?!/)(?!.*\/$)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*//)(?!.*\\)(?!.*\x00).*$'
+      example: family/2026
+
+    LibraryRelativePath:
+      type: string
+      description: |
+        Canonical path relative to one media-library root. It is display data,
+        not a path accepted by original-content endpoints, and never contains a
+        host or container absolute path.
+      minLength: 0
+      maxLength: 4096
+      pattern: '^(?!/)(?!.*\/$)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*//)(?!.*\\)(?!.*\x00).*$'
+      example: 2026/Shanghai/IMG_0001.jpg
+
+    NullableLibraryRelativePath:
+      type: string
+      nullable: true
+      description: Optional canonical media-library-relative path, never an absolute or host path.
+      minLength: 0
+      maxLength: 4096
+      pattern: '^(?!/)(?!.*\/$)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*//)(?!.*\\)(?!.*\x00).*$'
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: UTC RFC 3339 timestamp.
+
+    NullableTimestamp:
+      type: string
+      format: date-time
+      nullable: true
+      description: UTC RFC 3339 timestamp, or null when the event has not occurred.
+
+    LivenessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, reasonCode]
+      properties:
+        status:
+          type: string
+          enum: [live]
+        reasonCode:
+          type: string
+          nullable: true
+          enum: [null]
+          description: Always null when the process answers its liveness probe.
+
+    ReadinessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, reasonCode]
+      properties:
+        status:
+          type: string
+          enum: [ready]
+        reasonCode:
+          type: string
+          nullable: true
+          enum: [null]
+          description: Always null when the service is ready.
+
+    NotReadyResponse:
+      type: object
+      additionalProperties: false
+      required: [status, reasonCode]
+      properties:
+        status:
+          type: string
+          enum: [not_ready]
+        reasonCode:
+          type: string
+          enum:
+            - application_data_unavailable
+            - migration_failed
+            - database_unavailable
+            - shutting_down
+          description: Safe operational reason for a failed readiness probe.
+
+    AuthStatus:
+      type: object
+      additionalProperties: false
+      required: [setupRequired, authenticationRequired]
+      properties:
+        setupRequired:
+          type: boolean
+          description: True only before the one-time administrator setup commits.
+        authenticationRequired:
+          type: boolean
+          enum: [true]
+          description: Stable MVP capability flag. Anonymous LAN mode is not supported.
+
+    SetupRequest:
+      type: object
+      additionalProperties: false
+      required: [username, displayName, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[^\s\x00-\x1F\x7F]+$'
+          description: Administrator login name. The server applies its documented normalization before uniqueness checks.
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Safe display text; never used for authentication decisions.
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          writeOnly: true
+          description: Password accepted only over the same-origin setup request and never logged or returned.
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 64
+        password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 128
+          writeOnly: true
+
+    Administrator:
+      type: object
+      additionalProperties: false
+      required: [id, username, displayName]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        username:
+          type: string
+          minLength: 1
+          maxLength: 64
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 128
+
+    Session:
+      type: object
+      additionalProperties: false
+      required: [administrator, expiresAt, csrfToken]
+      properties:
+        administrator:
+          $ref: '#/components/schemas/Administrator'
+        expiresAt:
+          $ref: '#/components/schemas/Timestamp'
+        csrfToken:
+          type: string
+          minLength: 32
+          maxLength: 512
+          description: |
+            Opaque session-bound token for the `X-CSRF-Token` header. It is not
+            an authentication credential by itself and must never be put in a URL.
+
+    SystemStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - apiVersion
+        - runtimeState
+        - initialized
+        - readOnlyMedia
+        - supportedLocales
+        - supportedMedia
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 128
+          example: 0.1.0
+        apiVersion:
+          type: string
+          enum: [v1]
+        runtimeState:
+          type: string
+          enum: [ready, degraded]
+          description: Degraded means the authenticated UI should inspect library and setting states.
+        initialized:
+          type: boolean
+        readOnlyMedia:
+          type: boolean
+          enum: [true]
+        supportedLocales:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum: [zh-CN, en]
+        supportedMedia:
+          $ref: '#/components/schemas/SupportedMedia'
+
+    SupportedMedia:
+      type: object
+      additionalProperties: false
+      required: [imageMimeTypes, videoMimeTypes, videoTranscoding]
+      properties:
+        imageMimeTypes:
+          type: array
+          minItems: 4
+          maxItems: 4
+          uniqueItems: true
+          items:
+            type: string
+            enum: [image/jpeg, image/png, image/webp, image/gif]
+        videoMimeTypes:
+          type: array
+          minItems: 3
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum: [video/mp4, video/quicktime, video/x-matroska]
+        videoTranscoding:
+          type: boolean
+          enum: [false]
+
+    Settings:
+      type: object
+      additionalProperties: false
+      required:
+        - scheduledScanIntervalHours
+        - thumbnailCacheQuotaBytes
+        - language
+        - updatedAt
+      properties:
+        scheduledScanIntervalHours:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8760
+          nullable: true
+          default: 24
+          description: Full-scan interval in hours. Null disables scheduled scans.
+        thumbnailCacheQuotaBytes:
+          type: integer
+          format: int64
+          minimum: 1
+          default: 10737418240
+          description: Cache quota. Eviction also preserves the server's independent safe-free-space margin.
+        language:
+          $ref: '#/components/schemas/LanguagePreference'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    SettingsUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        scheduledScanIntervalHours:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8760
+          nullable: true
+          description: Full-scan interval in hours. Null disables scheduled scans.
+        thumbnailCacheQuotaBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        language:
+          $ref: '#/components/schemas/LanguagePreference'
+
+    LanguagePreference:
+      type: string
+      enum: [browser, zh-CN, en]
+      default: browser
+
+    LibraryPathLocation:
+      type: object
+      additionalProperties: false
+      required: [name, relativePath]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Display name. The root location uses the localized conceptual name for the media root.
+        relativePath:
+          $ref: '#/components/schemas/AllowedRootRelativePath'
+
+    LibraryPathEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - relativePath
+        - hasChildren
+        - selectable
+        - selectionBlockedReason
+        - conflictingLibraryId
+        - conflictingLibraryName
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        relativePath:
+          $ref: '#/components/schemas/AllowedRootRelativePath'
+        hasChildren:
+          type: boolean
+          description: Best-effort direct-child hint; selecting still revalidates the directory.
+        selectable:
+          type: boolean
+        selectionBlockedReason:
+          type: string
+          nullable: true
+          enum:
+            - overlapping_library
+            - ancestor_of_library
+            - descendant_of_library
+            - unreadable
+            - symlink
+            - mount_boundary
+            - unavailable
+          description: |
+            Null when selectable is true. `mount_boundary` means the entry
+            crosses a descendant mount below `/library`; it never reveals the
+            mount source, device identity, or a host path.
+        conflictingLibraryId:
+          $ref: '#/components/schemas/NullableResourceID'
+        conflictingLibraryName:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: Present only for a library-overlap reason; safe administrator-visible text.
+
+    LibraryPathPage:
+      type: object
+      additionalProperties: false
+      required: [location, breadcrumbs, items, nextCursor]
+      properties:
+        location:
+          $ref: '#/components/schemas/LibraryPathLocation'
+        breadcrumbs:
+          type: array
+          maxItems: 256
+          items:
+            $ref: '#/components/schemas/LibraryPathLocation'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/LibraryPathEntry'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    LibraryStatus:
+      type: string
+      enum: [pending, scanning, ready, offline, error]
+
+    Library:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - rootPath
+        - displayPath
+        - status
+        - lastSuccessfulScanAt
+        - latestScanId
+        - assetCount
+        - directoryCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        rootPath:
+          $ref: '#/components/schemas/AllowedRootRelativePath'
+        displayPath:
+          type: string
+          minLength: 8
+          maxLength: 4105
+          pattern: '^/library(?:/.*)?$'
+          readOnly: true
+          description: |
+            Server-built administrator label inside the container's allowed
+            mount, never a host path and never accepted as request input.
+          example: /library/family
+        status:
+          $ref: '#/components/schemas/LibraryStatus'
+        lastSuccessfulScanAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        latestScanId:
+          $ref: '#/components/schemas/NullableResourceID'
+        assetCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Snapshot from the last reliable index state.
+        directoryCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Snapshot including empty indexed directories.
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    CreateLibraryRequest:
+      type: object
+      additionalProperties: false
+      required: [name, rootPath]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Instance-unique name after server normalization.
+        rootPath:
+          $ref: '#/components/schemas/AllowedRootRelativePath'
+
+    RenameLibraryRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: New instance-unique name. A root path is deliberately not accepted.
+
+    CreateLibraryResult:
+      type: object
+      additionalProperties: false
+      required: [library, scan]
+      properties:
+        library:
+          $ref: '#/components/schemas/Library'
+        scan:
+          $ref: '#/components/schemas/ScanRun'
+
+    LibraryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Library'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    LibraryRemoval:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - libraryName
+        - status
+        - createdAt
+        - startedAt
+        - finishedAt
+        - errorCode
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        libraryName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        startedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        finishedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        errorCode:
+          type: string
+          nullable: true
+          enum:
+            - cleanup_interrupted
+            - application_data_unavailable
+            - internal_error
+          description: Safe retry-oriented code. Original-media operations are never part of this workflow.
+
+    ScanStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, cancelled, offline, interrupted]
+
+    ScanPhase:
+      type: string
+      enum: [queued, checking_root, walking, indexing, finalizing, completed]
+
+    ScanTrigger:
+      type: string
+      enum: [library_created, startup, manual, scheduled]
+
+    ScanIssue:
+      type: object
+      additionalProperties: false
+      required: [code, message, count, sampleRelativePath]
+      properties:
+        code:
+          type: string
+          enum:
+            - unreadable_directory
+            - unsupported_file
+            - invalid_media
+            - media_probe_failed
+            - symlink_skipped
+            - maintained_directory_skipped
+            - source_changed
+            - io_error
+        message:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Localizable and sanitized. Clients branch only on code.
+        count:
+          type: integer
+          format: int64
+          minimum: 1
+        sampleRelativePath:
+          $ref: '#/components/schemas/NullableLibraryRelativePath'
+
+    ScanRun:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - trigger
+        - status
+        - phase
+        - generation
+        - discoveredDirectories
+        - discoveredAssets
+        - processedAssets
+        - skippedDirectories
+        - skippedFiles
+        - errorCount
+        - issues
+        - progressRatio
+        - createdAt
+        - startedAt
+        - finishedAt
+        - cancelRequestedAt
+        - canCancel
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        trigger:
+          $ref: '#/components/schemas/ScanTrigger'
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        phase:
+          $ref: '#/components/schemas/ScanPhase'
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        discoveredDirectories:
+          type: integer
+          format: int64
+          minimum: 0
+        discoveredAssets:
+          type: integer
+          format: int64
+          minimum: 0
+        processedAssets:
+          type: integer
+          format: int64
+          minimum: 0
+        skippedDirectories:
+          type: integer
+          format: int64
+          minimum: 0
+        skippedFiles:
+          type: integer
+          format: int64
+          minimum: 0
+        errorCount:
+          type: integer
+          format: int64
+          minimum: 0
+        issues:
+          type: array
+          maxItems: 50
+          description: Bounded aggregated safe summaries, not raw stderr or an unbounded log.
+          items:
+            $ref: '#/components/schemas/ScanIssue'
+        progressRatio:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          nullable: true
+          description: Null unless a reliable denominator exists.
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        startedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        finishedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        cancelRequestedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        canCancel:
+          type: boolean
+
+    ScanPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ScanRun'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    Breadcrumb:
+      type: object
+      additionalProperties: false
+      required: [id, name, relativePath]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        relativePath:
+          $ref: '#/components/schemas/LibraryRelativePath'
+
+    Directory:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - parentId
+        - name
+        - relativePath
+        - directAssetCount
+        - recursiveAssetCount
+        - hasChildren
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        parentId:
+          $ref: '#/components/schemas/NullableResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        relativePath:
+          $ref: '#/components/schemas/LibraryRelativePath'
+        directAssetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        recursiveAssetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        hasChildren:
+          type: boolean
+
+    DirectoryDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - parentId
+        - name
+        - relativePath
+        - directAssetCount
+        - recursiveAssetCount
+        - hasChildren
+        - breadcrumbs
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        parentId:
+          $ref: '#/components/schemas/NullableResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        relativePath:
+          $ref: '#/components/schemas/LibraryRelativePath'
+        directAssetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        recursiveAssetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        hasChildren:
+          type: boolean
+        breadcrumbs:
+          type: array
+          maxItems: 256
+          items:
+            $ref: '#/components/schemas/Breadcrumb'
+
+    DirectoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Directory'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    AssetKind:
+      type: string
+      enum: [image, animated, video]
+
+    ProbeStatus:
+      type: string
+      enum: [pending, ready, failed, unsupported]
+
+    PlaybackStatus:
+      type: string
+      enum: [playable, unsupported_codec, not_applicable, unknown]
+
+    SourceAvailability:
+      type: string
+      enum: [available, offline, missing, unreadable]
+
+    ThumbnailReference:
+      type: object
+      additionalProperties: false
+      required: [status, url, errorCode]
+      properties:
+        status:
+          type: string
+          enum: [pending, ready, failed, unavailable]
+        url:
+          type: string
+          nullable: true
+          pattern: '^/api/v1/assets/[A-Za-z][A-Za-z0-9_-]+/thumbnail\?variant=grid$'
+          description: Same-origin relative URL, present only when status is ready.
+        errorCode:
+          type: string
+          nullable: true
+          enum:
+            - source_offline
+            - source_missing
+            - unsupported_media
+            - invalid_media
+            - media_processing_failed
+            - media_processing_timeout
+          description: Safe stable code when status is failed or unavailable.
+
+    Asset:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - libraryName
+        - directoryId
+        - name
+        - relativePath
+        - kind
+        - mimeType
+        - sizeBytes
+        - width
+        - height
+        - durationMs
+        - modifiedAt
+        - probeStatus
+        - playbackStatus
+        - sourceAvailability
+        - thumbnail
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        libraryName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Safe display name needed to distinguish cross-library search results.
+        directoryId:
+          $ref: '#/components/schemas/ResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        relativePath:
+          $ref: '#/components/schemas/LibraryRelativePath'
+        kind:
+          $ref: '#/components/schemas/AssetKind'
+        mimeType:
+          type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - image/webp
+            - image/gif
+            - video/mp4
+            - video/quicktime
+            - video/x-matroska
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        width:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
+        height:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
+        durationMs:
+          type: integer
+          format: int64
+          minimum: 0
+          nullable: true
+        modifiedAt:
+          $ref: '#/components/schemas/Timestamp'
+        probeStatus:
+          $ref: '#/components/schemas/ProbeStatus'
+        playbackStatus:
+          $ref: '#/components/schemas/PlaybackStatus'
+        sourceAvailability:
+          $ref: '#/components/schemas/SourceAvailability'
+        thumbnail:
+          $ref: '#/components/schemas/ThumbnailReference'
+
+    AssetPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Asset'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    ThumbnailPending:
+      type: object
+      additionalProperties: false
+      required: [assetId, variant, status, retryAfterMs]
+      properties:
+        assetId:
+          $ref: '#/components/schemas/ResourceID'
+        variant:
+          type: string
+          enum: [grid]
+        status:
+          type: string
+          enum: [queued, running]
+        retryAfterMs:
+          type: integer
+          format: int32
+          minimum: 100
+          maximum: 60000
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      additionalProperties: false
+      description: |
+        Stable sanitized public error. It carries no arbitrary details object
+        and is never a host or container path, SQL, stack trace, raw subprocess
+        output, cookie, CSRF token, password, or secret.
+      required: [code, message, requestId]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Localizable safe text. Clients must branch on code, never message.
+        requestId:
+          type: string
+          pattern: '^req_[A-Za-z0-9_-]+$'
+          maxLength: 128
+
+    ErrorCode:
+      type: string
+      description: Stable machine-readable code. New public codes require a contract change.
+      enum:
+        - invalid_request
+        - validation_failed
+        - invalid_cursor
+        - invalid_credentials
+        - setup_closed
+        - setup_in_progress
+        - authentication_required
+        - session_expired
+        - csrf_invalid
+        - origin_invalid
+        - forbidden
+        - rate_limited
+        - resource_not_found
+        - library_not_found
+        - directory_not_found
+        - asset_not_found
+        - scan_not_found
+        - removal_not_found
+        - library_name_conflict
+        - library_path_overlap
+        - library_root_unavailable
+        - library_root_outside_allowed
+        - library_root_symlink
+        - library_root_mount_boundary
+        - idempotency_conflict
+        - precondition_required
+        - precondition_failed
+        - settings_invalid
+        - scan_already_finished
+        - source_offline
+        - source_missing
+        - source_unreadable
+        - unsupported_media
+        - invalid_media
+        - thumbnail_failed
+        - media_processing_timeout
+        - invalid_range
+        - range_not_satisfiable
+        - service_not_ready
+        - application_data_unavailable
+        - internal_error

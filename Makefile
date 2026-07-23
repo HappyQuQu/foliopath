@@ -1,0 +1,50 @@
+GO ?= go
+NPM ?= npm
+OASDIFF_VERSION ?= v1.17.0
+GO_FILES := $(shell rg --files -g '*.go')
+
+.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-check web-check openapi-lint lint test test-race test-integration spike-capacity
+
+fmt:
+	gofmt -w $(GO_FILES)
+
+fmt-check:
+	@test -z "$$(gofmt -l $(GO_FILES))"
+
+arch-check:
+	$(GO) test ./tests/architecture/...
+
+contract-check:
+	$(GO) test -count=1 ./tests/contract/...
+
+compatibility-check:
+	@test -n "$(OPENAPI_BASELINE)" || (echo "OPENAPI_BASELINE is required" >&2; exit 2)
+	$(GO) run github.com/oasdiff/oasdiff@$(OASDIFF_VERSION) breaking \
+		--fail-on WARN "$(OPENAPI_BASELINE)" api/openapi.yaml
+
+generate:
+	cd web && $(NPM) run generate:api
+
+generate-check:
+	cd web && $(NPM) run generate:check
+
+web-check:
+	cd web && $(NPM) run check
+
+openapi-lint:
+	cd web && $(NPM) run lint:openapi
+
+lint: arch-check contract-check
+	$(GO) vet ./...
+
+test:
+	$(GO) test ./...
+
+test-race:
+	$(GO) test -race ./...
+
+test-integration:
+	$(GO) test ./tests/integration/...
+
+spike-capacity:
+	FOLIOPATH_CAPACITY=1 GOMAXPROCS=4 $(GO) test -timeout=20m -count=1 -run '^Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)$$' -v ./tests/performance

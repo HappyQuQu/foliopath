@@ -1,32 +1,46 @@
 # FolioPath 文档索引
 
-这里保存 FolioPath 在编码前与开发过程中的产品、交互和工程约束。项目仍处于规划与早期开发阶段；标为“提案”或“待确认”的内容不是已经发布的能力。
+这里保存 FolioPath 在编码前与开发过程中的产品、交互和工程约束。用户已于 2026-07-23
+确认 `RQ-001`～`RQ-014` 全部采用 A；项目仍处于规划与早期开发阶段。仓库已有
+FS-01～FS-04 的局部 spike 证据、权威 OpenAPI 契约和自动化测试，但尚无可启动应用；
+已确认范围、契约与 spike 证据都不代表功能已经发布。
 
 ## 从哪里开始
 
 | 读者 / 任务 | 首先阅读 | 继续阅读 |
 | --- | --- | --- |
 | 了解项目 | [项目 README](../README.md) | [产品需求](product-requirements.md)、[可行性研究](feasibility-study.md)、[路线图](roadmap.md) |
-| 确认产品范围 | [需求确认清单](requirements-checklist.md) | [产品需求](product-requirements.md)、[用户流程](user-flows.md) |
-| 设计界面 | [界面设计规范](ui-design.md) | [用户流程](user-flows.md)、[API 设计](api-design.md) |
-| 开发后端或扫描器 | [架构](architecture.md) | [目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
-| 开发前端 | [界面设计规范](ui-design.md) | [用户流程](user-flows.md)、[API 设计](api-design.md) |
+| 确认产品范围 | [MVP scope manifest](releases/MVP-2026-07-23-scope.md) | [需求确认清单](requirements-checklist.md)、[产品需求](product-requirements.md)、[用户流程](user-flows.md) |
+| 设计界面 | [界面设计规范](ui-design.md) | [前端架构](architecture/frontend.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
+| 开发后端或扫描器 | [系统架构档案](architecture/README.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
+| 开发前端 | [前端架构](architecture/frontend.md) | [界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
-| 判断能否开工 | [开发就绪评审](development-readiness.md) | [可行性研究](feasibility-study.md)、[风险登记](risk-register.md) |
-| 修改架构 | [Agent 约束](../AGENTS.md) | [ADR](adr/)、[架构](architecture.md) |
+| 判断能否开工 | [开发就绪评审](development-readiness.md) | [可行性研究](feasibility-study.md)、[FS-01](spikes/fs-01-path-boundary.md)、[FS-02](spikes/fs-02-sqlite-generation.md)、[FS-03](spikes/fs-03-media-matrix.md)、[FS-04](spikes/fs-04-capacity-baseline.md)、[风险登记](risk-register.md) |
+| 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
+| 修改架构或范围 | [交付与架构治理](architecture/delivery-governance.md) | [系统架构档案](architecture/README.md)、[Agent 约束](../AGENTS.md)、[ADR](adr/README.md) |
 
 ## 产品与体验
 
 - [产品需求](product-requirements.md)：愿景、用户、范围、需求编号和验收标准。
-- [需求确认清单](requirements-checklist.md)：已确认基线和仍需要产品决策的事项。
+- [MVP scope manifest](releases/MVP-2026-07-23-scope.md)：冻结版本、revision、精确需求/非目标/验收 ID；已合入 revision 不原地改写。
+- [需求确认清单](requirements-checklist.md)：全部 14 项 A 方案的确认记录与未采用备选。
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。
+- [开发任务清单](task-list.md)：按 Gate 和后端优先顺序组织的可勾选任务、依赖与完成证据。
 - [术语表](glossary.md)：统一 `/library`、媒体库、目录、递归浏览、扫描和派生数据等词义。
 
 ## 可行性与开工准备
 
 - [可行性研究](feasibility-study.md)：产品、技术、性能、媒体、SQLite、安全、运维、跨架构和许可证的条件 Go 结论。
+- [FS-01 路径边界 spike](spikes/fs-01-path-boundary.md)：Darwin 与原生 Linux amd64/arm64 路径证据、
+  Linux `openat2` 同/跨设备及 self-bind mount 拒绝、真实 HTTP test harness，以及仍缺生产
+  handler、发布 volume、运行期 unmount 的 Conditional 结论。
+- [FS-02 SQLite 与扫描 generation spike](spikes/fs-02-sqlite-generation.md)：真实文件数据库、WAL、迁移、故障保留和原子清理的当前正确性证据。
+- [FS-03 媒体矩阵 spike](spikes/fs-03-media-matrix.md)：合成格式矩阵、Darwin/arm64 与
+  Linux/amd64 QEMU FFmpeg 探测、视频封面与损坏样本证据，以及 libvips/浏览器/原生双架构缺口。
+- [FS-04 容量基线 spike](spikes/fs-04-capacity-baseline.md)：Linux/arm64 四核、4 GiB 目标
+  数据档的扫描/索引结果、已修复瓶颈和仍待完整产品验证的边界。
 - [风险登记](risk-register.md)：概率、影响、触发信号、缓解、fallback、Owner 角色和发布阻断风险。
 - [开发就绪评审](development-readiness.md)：开工门槛、阶段 0 顺序、Definition of Ready 与 Definition of Done。
 - [路线图](roadmap.md)：从需求/spike 到发布安全的阶段依赖和出口条件。
@@ -34,9 +48,19 @@
 ## 工程与交付
 
 - [架构](architecture.md)：运行拓扑、技术栈、代码布局和核心流程。
+- [系统架构档案](architecture/README.md)：系统级视图、模块所有权、范围/交付治理、需求追踪、前端架构与可执行门禁的入口。
+- [系统上下文与运行视图](architecture/system-context.md)：Current/Target 状态、C4、部署/信任边界和关键时序。
+- [模块、数据与运行时边界](architecture/modules.md)：capability、adapter、事务、任务、错误、配置与并发的唯一所有权。
+- [交付与架构治理](architecture/delivery-governance.md)：MVP scope lock、变更分级、版本、后端优先切片与 Gate。
+- [需求—架构追踪](architecture/traceability.md)：FR/NFR 到 capability、契约、数据、风险、测试和阶段的映射。
+- [前端架构](architecture/frontend.md)：层次、设计系统、组件/模式复用、状态与前端质量门禁。
+- [架构适配度检查](architecture/fitness-functions.md)：已执行与计划中的架构自动化检查。
+- [Gate 记录](gates/README.md)：切片、阶段和版本的 Go/Conditional/No-Go 决策与证据。
+- [版本范围清单](releases/README.md)：冻结 scope manifest 与后续 revision/版本关系。
 - [目录与依赖约束](project-structure.md)：后端、前端、生成代码和测试文件的放置规则。
 - [数据模型](data-model.md)：SQLite 领域对象、索引、扫描一致性和迁移语义。
-- [API 设计](api-design.md)：计划中的 `/api/v1` 资源、请求约定和错误模型。
+- [权威 OpenAPI 契约](../api/openapi.yaml)：`/api/v1` 请求、响应、认证、错误、分页与 Range 的结构化事实来源。
+- [API 设计与契约说明](api-design.md)：资源边界、已固定 wire 决策和仍待实现的内部参数。
 - [安全模型](security.md)：路径、网络、媒体解析、容器和日志的信任边界。
 - [部署](deployment.md)：计划中的单容器部署、权限、备份、恢复和升级。
 - [测试策略](testing-strategy.md)：测试层次、风险覆盖、测试数据和发布门槛。
@@ -47,8 +71,14 @@
 - [ADR-0001：采用 Go、React 与 SQLite 的模块化单体架构](adr/0001-go-react-sqlite.md)
 - [ADR-0002：以单一允许根目录管理多个媒体库](adr/0002-library-path-model.md)
 - [ADR-0003：使用扫描代次保证索引最终一致性](adr/0003-scan-consistency.md)
+- [ADR-0004：MVP 媒体库根路径创建后不可变](adr/0004-library-root-immutable.md)
+- [ADR-0005：稳定版内建单管理员认证](adr/0005-built-in-single-admin-auth.md)
+- [ADR-0006：契约驱动、切片内后端优先交付](adr/0006-contract-driven-backend-first.md)
+- [ADR-0007：单一共享前端设计系统](adr/0007-shared-frontend-system.md)
+- [ADR-0008：统一应用组合根并分离纯路径策略](adr/0008-composition-root-and-path-policy.md)
+- [ADR-0009：Linux `openat2` 与单一媒体根挂载](adr/0009-linux-openat2-single-media-root.md)
 
-新的架构决策使用连续编号。已接受 ADR 不直接改写；方向改变时新增 ADR，并将旧记录标记为被替代。
+新的架构决策使用连续编号和 [ADR 模板](adr/template.md)。已接受 ADR 不直接改写；方向改变时新增 ADR，并将旧记录标记为被替代。
 
 ## 状态与优先级
 
@@ -56,7 +86,7 @@
 
 - **已接受 / 已确认**：当前实现必须遵守；改变架构约束需要 ADR，改变产品基线需要需求确认。
 - **MVP 计划**：首个可用版本的目标，但在实现并验证前不能描述为已经可用。
-- **提案 / 推荐默认**：用于评审的具体建议，等待确认后才转成基线。
+- **提案**：不改变已确认产品范围的实现或视觉细节，仍需原型、spike 或评审收敛。
 - **未来**：明确不属于 MVP，不应为其预先增加部署或架构复杂度。
 
 发生冲突时不要静默选择其中一份文档。先检查已接受 ADR 和已确认需求，再同步修改所有受影响文档；不确定时把问题加入[需求确认清单](requirements-checklist.md)。

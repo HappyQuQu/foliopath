@@ -2,7 +2,7 @@
 
 ## 状态
 
-已接受（2026-07-23）
+已接受（2026-07-23）；`cmd/foliopath` 与 `internal/app` 的组合根责任由 [ADR-0008](0008-composition-root-and-path-policy.md) 修正
 
 ## 背景
 
@@ -12,7 +12,7 @@ FolioPath 是面向 NAS、家庭服务器和个人设备的自托管媒体浏览
 
 ## 决策
 
-- 采用模块化 Go 单体作为后端和运行时入口。`cmd/foliopath` 只负责配置、依赖组装、启动与优雅退出，业务能力放在 `internal/` 下按领域划分。
+- 采用模块化 Go 单体作为后端和运行时入口。`cmd/foliopath` 只负责最小进程入口并把控制交给唯一组合根 `internal/app`；依赖组装、启动与优雅退出由 `internal/app` 统一管理，业务能力放在 `internal/` 下按领域划分。具体责任以 ADR-0008 为准。
 - 使用 Go 标准库 `net/http` 提供版本化 REST API（`/api/v1`）和原始媒体的条件请求、Range 请求支持。
 - 使用 React、TypeScript 和 Vite 构建单页应用。服务端状态由 TanStack Query 管理，长列表与瀑布流由 TanStack Virtual 虚拟化，可导航状态写入 URL。
 - 前端产物嵌入 Go 可执行文件并由同一 HTTP 服务提供，不引入 Nginx、服务端渲染或独立前端容器。
@@ -31,4 +31,3 @@ FolioPath 是面向 NAS、家庭服务器和个人设备的自托管媒体浏览
 - 前后端仍使用两种语言和两套构建工具，但运行时只保留一个服务，且 API 契约可以降低两端漂移。
 - libvips 与 FFmpeg 提供成熟的媒体能力，同时增加了镜像体积、跨架构构建和系统依赖维护成本。
 - 不做视频转码可显著控制首版复杂度和资源消耗，但浏览器不兼容的编码只能显示元数据或封面，无法保证直接播放。
-
