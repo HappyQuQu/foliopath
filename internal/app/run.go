@@ -26,6 +26,7 @@ var (
 type Input struct {
 	Args    []string
 	Environ []string
+	Version string
 }
 
 // Run owns the process root context. All concrete dependency construction and
@@ -55,8 +56,8 @@ func run(ctx context.Context, input Input) error {
 }
 
 // compose is the only function that may know the complete concrete dependency
-// graph. Later Stage 1 tasks add configuration, storage, HTTP, and workers here
-// without moving their construction into cmd or capability packages.
+// graph. Later Stage 1 tasks add storage and workers here without moving their
+// construction into cmd or capability packages.
 func compose(input Input) (*application, error) {
 	configuration, err := loadConfiguration(input)
 	if err != nil {
@@ -64,13 +65,22 @@ func compose(input Input) (*application, error) {
 	}
 
 	logger := newJSONLogger(os.Stdout)
+	readiness := newReadinessState()
+	routes, err := api.NewRoutes(api.RouteDependencies{
+		Readiness:       readiness.snapshot,
+		AuthorizeStatus: denySystemStatus,
+		SystemStatus:    systemStatusProvider(input.Version, readiness),
+	})
+	if err != nil {
+		return nil, err
+	}
 	httpComponent, _ := newHTTPComponent(
 		configuration.listenAddress,
-		api.NewHandler(nil, logger),
+		api.NewHandler(routes, logger),
 		logger,
 	)
 	application, err := newApplication(
-		[]component{httpComponent},
+		[]component{httpComponent, readinessLifecycle(readiness)},
 		defaultShutdownTimeout,
 	)
 	if err != nil {

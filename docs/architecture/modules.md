@@ -39,7 +39,9 @@
 ### 当前过渡代码的归属
 
 - 纯词法策略已按 [ADR-0008](../adr/0008-composition-root-and-path-policy.md) 从文件适配器命名空间收口到 `internal/pathpolicy`。它是内层、无 I/O 的策略叶子，不是可继续扩张的通用共享包；不得加入 OS 文件访问、数据库、HTTP 或业务状态。
-- `internal/scanner/formats.go` 当前是扫描 spike 的固定扩展名证据。目标架构中，MVP 格式与识别策略由 `internal/media` 作为单一注册表拥有，scanner 通过窄分类接口使用；媒体能力落地后不能保留第二套独立 allowlist。
+- `internal/media/formats.go` 已成为 MVP 扩展名、格式与 MIME 的单一注册表；scanner 通过
+  `media.ClassifyPath` 使用它，系统状态通过只读副本公开同一组 MIME 能力。不得再在 scanner、
+  API 或前端维护第二套独立 allowlist。
 - 当前手写 SQLite 代码和 migration 证明有限的 generation/WAL 语义；未来引入 `sqlc` 后，以 SQL 源与生成检查为准，不手改生成结果。
 
 ## 依赖矩阵

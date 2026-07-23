@@ -33,11 +33,7 @@ func writePublicError(
 		writer.Header().Set(RequestIDHeader, requestID)
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Header().Set("Cache-Control", "no-store")
-	writer.Header().Set("X-Content-Type-Options", "nosniff")
-	writer.WriteHeader(status)
-	_ = json.NewEncoder(writer).Encode(errorResponse{
+	writeJSON(writer, status, errorResponse{
 		Error: publicError{
 			Code:      code,
 			Message:   message,
@@ -54,6 +50,14 @@ func writeInternalError(writer http.ResponseWriter, request *http.Request) {
 		codeInternalError,
 		"An unexpected error occurred.",
 	)
+}
+
+func writeJSON(writer http.ResponseWriter, status int, payload any) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	writer.WriteHeader(status)
+	_ = json.NewEncoder(writer).Encode(payload)
 }
 
 func notFoundHandler() http.Handler {
