@@ -5,7 +5,133 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 )
+
+const deleteObsoleteSessions = `-- name: DeleteObsoleteSessions :execrows
+DELETE FROM sessions
+WHERE expires_at_ms <= ?1
+   OR (revoked_at_ms IS NOT NULL AND revoked_at_ms <= ?1)
+`
+
+func (q *Queries) DeleteObsoleteSessions(ctx context.Context, cutoffMs int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteObsoleteSessions, cutoffMs)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const findAdministratorCredential = `-- name: FindAdministratorCredential :one
+SELECT
+    id,
+    username,
+    username_key,
+    display_name,
+    password_hash,
+    password_scheme,
+    password_parameters,
+    auth_version,
+    created_at_ms,
+    updated_at_ms,
+    disabled_at_ms
+FROM users
+WHERE username_key = ?1
+  AND singleton_key = 1
+`
+
+type FindAdministratorCredentialRow struct {
+	ID                 int64
+	Username           string
+	UsernameKey        string
+	DisplayName        string
+	PasswordHash       string
+	PasswordScheme     string
+	PasswordParameters string
+	AuthVersion        int64
+	CreatedAtMs        int64
+	UpdatedAtMs        int64
+	DisabledAtMs       sql.NullInt64
+}
+
+func (q *Queries) FindAdministratorCredential(ctx context.Context, usernameKey string) (FindAdministratorCredentialRow, error) {
+	row := q.db.QueryRowContext(ctx, findAdministratorCredential, usernameKey)
+	var i FindAdministratorCredentialRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.UsernameKey,
+		&i.DisplayName,
+		&i.PasswordHash,
+		&i.PasswordScheme,
+		&i.PasswordParameters,
+		&i.AuthVersion,
+		&i.CreatedAtMs,
+		&i.UpdatedAtMs,
+		&i.DisabledAtMs,
+	)
+	return i, err
+}
+
+const findSession = `-- name: FindSession :one
+SELECT
+    sessions.id,
+    sessions.auth_version,
+    sessions.created_at_ms,
+    sessions.last_seen_at_ms,
+    sessions.expires_at_ms,
+    sessions.csrf_token_hash,
+    sessions.revoked_at_ms,
+    users.id AS user_id,
+    users.username,
+    users.display_name,
+    users.auth_version AS user_auth_version,
+    users.created_at_ms AS user_created_at_ms,
+    users.updated_at_ms AS user_updated_at_ms,
+    users.disabled_at_ms AS user_disabled_at_ms
+FROM sessions
+JOIN users ON users.id = sessions.user_id
+WHERE sessions.token_hash = ?1
+`
+
+type FindSessionRow struct {
+	ID               int64
+	AuthVersion      int64
+	CreatedAtMs      int64
+	LastSeenAtMs     int64
+	ExpiresAtMs      int64
+	CsrfTokenHash    []byte
+	RevokedAtMs      sql.NullInt64
+	UserID           int64
+	Username         string
+	DisplayName      string
+	UserAuthVersion  int64
+	UserCreatedAtMs  int64
+	UserUpdatedAtMs  int64
+	UserDisabledAtMs sql.NullInt64
+}
+
+func (q *Queries) FindSession(ctx context.Context, tokenHash []byte) (FindSessionRow, error) {
+	row := q.db.QueryRowContext(ctx, findSession, tokenHash)
+	var i FindSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.AuthVersion,
+		&i.CreatedAtMs,
+		&i.LastSeenAtMs,
+		&i.ExpiresAtMs,
+		&i.CsrfTokenHash,
+		&i.RevokedAtMs,
+		&i.UserID,
+		&i.Username,
+		&i.DisplayName,
+		&i.UserAuthVersion,
+		&i.UserCreatedAtMs,
+		&i.UserUpdatedAtMs,
+		&i.UserDisabledAtMs,
+	)
+	return i, err
+}
 
 const insertAdministrator = `-- name: InsertAdministrator :one
 INSERT INTO users (
@@ -84,6 +210,69 @@ func (q *Queries) InsertAdministrator(ctx context.Context, arg InsertAdministrat
 	return i, err
 }
 
+const insertSession = `-- name: InsertSession :one
+INSERT INTO sessions (
+    user_id,
+    token_hash,
+    csrf_token_hash,
+    auth_version,
+    created_at_ms,
+    last_seen_at_ms,
+    expires_at_ms
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?5,
+    ?6
+)
+RETURNING
+    id,
+    auth_version,
+    created_at_ms,
+    last_seen_at_ms,
+    expires_at_ms
+`
+
+type InsertSessionParams struct {
+	UserID        int64
+	TokenHash     []byte
+	CsrfTokenHash []byte
+	AuthVersion   int64
+	CreatedAtMs   int64
+	ExpiresAtMs   int64
+}
+
+type InsertSessionRow struct {
+	ID           int64
+	AuthVersion  int64
+	CreatedAtMs  int64
+	LastSeenAtMs int64
+	ExpiresAtMs  int64
+}
+
+func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (InsertSessionRow, error) {
+	row := q.db.QueryRowContext(ctx, insertSession,
+		arg.UserID,
+		arg.TokenHash,
+		arg.CsrfTokenHash,
+		arg.AuthVersion,
+		arg.CreatedAtMs,
+		arg.ExpiresAtMs,
+	)
+	var i InsertSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.AuthVersion,
+		&i.CreatedAtMs,
+		&i.LastSeenAtMs,
+		&i.ExpiresAtMs,
+	)
+	return i, err
+}
+
 const isAdministratorInitialized = `-- name: IsAdministratorInitialized :one
 SELECT EXISTS (
     SELECT 1
@@ -97,4 +286,63 @@ func (q *Queries) IsAdministratorInitialized(ctx context.Context) (bool, error) 
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const revokeSession = `-- name: RevokeSession :execrows
+UPDATE sessions
+SET revoked_at_ms = ?1
+WHERE id = ?2
+  AND token_hash = ?3
+  AND revoked_at_ms IS NULL
+`
+
+type RevokeSessionParams struct {
+	RevokedAtMs sql.NullInt64
+	ID          int64
+	TokenHash   []byte
+}
+
+func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, revokeSession, arg.RevokedAtMs, arg.ID, arg.TokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const touchSession = `-- name: TouchSession :execrows
+UPDATE sessions
+SET last_seen_at_ms = ?1
+WHERE sessions.id = ?2
+  AND sessions.token_hash = ?3
+  AND sessions.auth_version = ?4
+  AND sessions.revoked_at_ms IS NULL
+  AND sessions.expires_at_ms > ?1
+  AND EXISTS (
+      SELECT 1
+      FROM users
+      WHERE users.id = sessions.user_id
+        AND users.auth_version = sessions.auth_version
+        AND users.disabled_at_ms IS NULL
+  )
+`
+
+type TouchSessionParams struct {
+	UsedAtMs        int64
+	ID              int64
+	TokenHash       []byte
+	ExpectedVersion int64
+}
+
+func (q *Queries) TouchSession(ctx context.Context, arg TouchSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, touchSession,
+		arg.UsedAtMs,
+		arg.ID,
+		arg.TokenHash,
+		arg.ExpectedVersion,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

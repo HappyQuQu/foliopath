@@ -154,6 +154,12 @@ func TestSQLiteQuerySourceAndGeneratedBoundary(t *testing.T) {
 	for _, required := range []string{
 		"-- name: IsAdministratorInitialized :one",
 		"-- name: InsertAdministrator :one",
+		"-- name: FindAdministratorCredential :one",
+		"-- name: InsertSession :one",
+		"-- name: FindSession :one",
+		"-- name: TouchSession :execrows",
+		"-- name: RevokeSession :execrows",
+		"-- name: DeleteObsoleteSessions :execrows",
 	} {
 		if !strings.Contains(string(authQueries), required) {
 			t.Errorf("canonical authentication queries are missing %q", required)

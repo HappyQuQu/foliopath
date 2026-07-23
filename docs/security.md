@@ -64,8 +64,26 @@ session 具有绝对过期、撤销和 `auth_version`。认证 JSON 不允许缓
 用户名使用 NFKC 和 Unicode full case folding 形成唯一比较键；创建前进程内串行，最终由
 SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错误不包含密码或 verifier。
 
-安全 Cookie、期限、轮换、退出失效、CSRF、限流和代理规则仍必须在 `S1-103～105` 实现并
-验证；完成 `S1-102` 不表示认证 API 已经可用。
+`S1-103` 已实现服务端会话：
+
+- 每次初始化或登录使用 Go `crypto/rand` 发放两个独立的 32-byte 随机秘密；复合
+  `foliopath_session` Cookie 为 host-only、`Path=/`、HttpOnly、SameSite=Strict，并在经
+  验证的 HTTPS 传输上设置 Secure。浏览器脚本只收到 CSRF 部分，不能从它还原 Cookie。
+- SQLite 只保存整个 Cookie 和 CSRF 部分各自的 SHA-256 摘要；不存在可直接重放的明文列。
+- 固定 7 天服务端绝对期限，不因活动滑动续期；重新认证发放全新 Cookie/CSRF。退出立即
+  写入撤销时间，`auth_version` 变化或管理员禁用也使会话失败关闭。
+- 过期和撤销记录保留 24 小时用于稳定识别过期状态，随后在创建新会话时有界清理。
+- 未知账号、非法用户名和错误密码统一失败；未知账号仍执行虚拟 Argon2id 校验，降低账号
+  枚举的时间差。
+
+该设计满足 [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+关于 CSPRNG、高熵标识、服务端绝对过期和退出撤销的要求；7 天短于
+[NIST SP 800-63B AAL1](https://pages.nist.gov/800-63-4/sp800-63b.html#reauthentication-1)
+建议的 30 天总体上限。随机源使用
+[Go `crypto/rand`](https://pkg.go.dev/crypto/rand)。
+
+CSRF 请求校验、防缓存 middleware、全部业务 API 默认拒绝、限流和代理信任仍必须在
+`S1-104～105` 实现并验证；完成会话领域层不表示认证 HTTP API 已经可用。
 
 反向代理负责公网 TLS 时，应用必须正确处理受信代理范围，不能无条件信任客户端提交的转发头。
 
