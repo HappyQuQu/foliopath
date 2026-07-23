@@ -64,6 +64,13 @@ func compose(input Input) (*application, error) {
 		return nil, err
 	}
 
+	return composeConfiguration(input, configuration)
+}
+
+// composeConfiguration keeps the production dependency graph reusable by
+// package-level integration tests without exposing configurable filesystem
+// roots at the process boundary.
+func composeConfiguration(input Input, configuration configuration) (*application, error) {
 	logger := newJSONLogger(os.Stdout)
 	readiness := newReadinessState()
 	databaseComponent, _ := newDatabaseComponent(configuration.dataRoot, readiness)
@@ -75,7 +82,7 @@ func compose(input Input) (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpComponent, _ := newHTTPComponent(
+	httpComponent, httpService := newHTTPComponent(
 		configuration.listenAddress,
 		api.NewHandler(routes, logger),
 		logger,
@@ -93,5 +100,6 @@ func compose(input Input) (*application, error) {
 	}
 	application.configuration = configuration
 	application.logger = logger
+	application.http = httpService
 	return application, nil
 }

@@ -12,7 +12,8 @@ Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成�
 双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令和退出码已经建立；
 `internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
 有界停机；启动配置已固定 `/library`、`/app/data`、单监听地址和认证前回环限制。正式应用已
-接入 SQLite WAL、嵌入 migration、空数据目录准备、重复启动和迁移失败关闭。当前还没有
+接入 SQLite WAL、嵌入 migration、空数据目录准备、重复启动和迁移失败关闭，并由真实
+composition root 集成测试和测试专用非 root 容器 smoke 覆盖。当前还没有
 业务 handler、React 产品应用、正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
@@ -37,8 +38,8 @@ ADR 流程。
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；生产 handler 未就绪 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 首个 schema/Goose/WAL/generation 已有真实文件数据库测试；FS-05 已验证离线恢复、重复 migration 和损坏/满盘失败关闭；真实版本升级仍待 Release Gate |
-| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；尚无生产 HTTP、前端/浏览器 E2E 或最终发布容器验证 |
-| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 已验证目标模式；正式应用镜像、真实版本升级和发布签署未完成 |
+| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
+| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
 | 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；生产 handler/auth 由首个受保护 API Backend Gate 阻断，发布 volume/unmount 由 FS-05/Release Gate 阻断；媒体解析和认证控制未完成 |
 
 ## 环境与工具链状态
@@ -51,7 +52,8 @@ ADR 流程。
   `internal/store/sqlite`，`make generate-check` 在临时目录重生成并比较。
 - `Makefile` 当前提供 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`generate`、
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
-  `test-race`、`test-integration` 和显式 `spike-capacity`；CI 已复用这些入口。
+  `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；CI 已
+  复用这些入口。
 - `.node-version`、`packageManager` 和 lockfile 固定 Node 22.22.2/npm 10.9.7；strict
   TypeScript、生成文件漂移检查与 high-severity npm audit 已在本地通过。
 
@@ -59,8 +61,8 @@ ADR 流程。
 
 - 系统依赖固定 libvips、FFmpeg/ffprobe 版本及构建选项，并记录 amd64/arm64 差异。
 - Docker Buildx 构建发布镜像；SQLite CLI 可用于诊断，但应用不得依赖宿主机已安装 SQLite。
-- 补上与 `AGENTS.md` 对齐的 `test-e2e`；`generate-check` 已覆盖 sqlc 与 OpenAPI
-  TypeScript 产物。
+- 为产品 UI 增加浏览器 E2E；现有 `test-e2e` 只覆盖真实后端进程的测试专用容器，
+  `generate-check` 已覆盖 sqlc 与 OpenAPI TypeScript 产物。
 - 前端在首个业务 feature 前补齐 React/Vite、import/token lint、组件测试、axe、Storybook
   构建和聚焦视觉回归门禁。
 

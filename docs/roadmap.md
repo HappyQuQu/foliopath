@@ -23,6 +23,7 @@
 - Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
   TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
   建立，runtime/recovery 与 SBOM/license CI 已通过。后端运行骨架现已可启动并执行 migration，
+  真实 composition root 与测试专用非 root 容器已覆盖 health、取消、重复启动和只读媒体，
   但尚无生产业务 API handler、React 产品前端或正式 Dockerfile，因此 Stage 1 仍未完成，
   不能跳到后续阶段。
 

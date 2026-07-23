@@ -19,6 +19,7 @@ type component struct {
 type application struct {
 	configuration   configuration
 	logger          *slog.Logger
+	http            *httpService
 	components      []component
 	shutdownTimeout time.Duration
 }

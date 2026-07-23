@@ -9,10 +9,11 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 你的文件夹，就是你的相册。
 
 > [!IMPORTANT]
-> FolioPath 目前处于早期开发阶段，已有可启动和迁移的后端运行骨架，但尚无可用产品界面或发布镜像。FS-01 已在
+> FolioPath 目前处于早期开发阶段，后端运行骨架已通过真实组合与测试容器 smoke，但尚无可用产品界面或发布镜像。FS-01 已在
 > 原生 Linux amd64/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
 > FS-02 当前正确性范围、FS-03 双架构媒体链路、FS-04 Stage 0 容量范围和 FS-05 双架构
 > 运行/恢复范围均通过；OpenAPI、生成类型、唯一 Web API 客户端和供应链 CI 已建立。
+> 测试容器不是可供部署的正式镜像。
 > Stage 0 Gate 已通过并只授权后端优先的 Stage 1；这不代表应用、业务 UI 或发布镜像已完成。
 
 ## Why FolioPath?
@@ -175,10 +176,11 @@ FolioPath 采用单体、单进程、单端口架构：
 
 仓库已经有固定的 Go toolchain、SQLite 初始迁移、路径边界与 generation 扫描实验代码、
 权威 [`api/openapi.yaml`](api/openapi.yaml)，以及 Go 单元、契约、集成和显式容量测试；这批
-代码仍是可行性/契约证据，不是可供用户部署的 FolioPath 服务。当前还没有生产 HTTP 应用
-入口、React 产品前端、正式 Dockerfile、认证实现或生产媒体处理链路。仓库已有隔离的
-FS-05 probe Dockerfile、契约生成和 CI，原生双架构 runtime/recovery 与 SBOM jobs 已通过；
-这仍不是可发布应用证据。
+代码仍是运行骨架、可行性和契约证据，不是可供用户部署的完整 FolioPath。正式
+`cmd/foliopath` 入口、HTTP health/status、SQLite migration 和优雅停机已经建立，并由真实
+composition root 与测试专用容器覆盖；当前还没有 React 产品前端、正式发布 Dockerfile、
+认证实现或生产媒体处理链路。仓库已有隔离的 FS-05 probe/应用 smoke Dockerfile、契约生成
+和 CI，原生双架构 runtime/recovery 与 SBOM jobs 已通过；这仍不是可发布应用证据。
 
 - [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Passed（Stage 0 范围）**。Darwin 与原生
   Linux amd64/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
@@ -209,11 +211,12 @@ spike 结果不能解释为应用功能已可用或发布门槛已满足。
 - [x] FS-04 目标档的扫描/索引子范围
 - [x] FS-05 原生双架构运行、恢复和失败关闭范围
 - [x] Stage 0 SBOM/license 与风险复审，Gate 允许进入 Stage 1
+- [x] Stage 1 后端运行骨架、SQLite migration、health、取消与真实应用容器 smoke
 - [ ] 在对应 Backend/Release Gate 完成生产 handler/auth、只读发布 volume、运行期 unmount
   与长期 churn；不反向阻断 FS-01 Stage 0 可行性结论
 - [ ] 在对应 Gate 完成 FS-03 生产媒体任务、更多敌意输入、浏览器与最终镜像矩阵
 - [ ] 完成 FS-04 代表性存储与完整媒体/搜索/HTTP/前端容量验证
-- [ ] 项目脚手架、数据库迁移和基础 API
+- [ ] 单管理员认证契约与后端
 - [ ] 安全媒体根目录与多媒体库管理
 - [ ] 目录扫描与媒体索引
 - [ ] 缩略图生成和缓存
