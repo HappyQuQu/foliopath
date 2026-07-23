@@ -535,7 +535,7 @@ export interface components {
         Administrator: {
             displayName: string;
             id: components["schemas"]["ResourceID"];
-            username: string;
+            username: components["schemas"]["Username"];
         };
         /**
          * @description Canonical UTF-8 path relative to the allowed `/library` mount, carried
@@ -758,8 +758,15 @@ export interface components {
         LoginRequest: {
             /** Format: password */
             password: string;
-            username: string;
+            username: components["schemas"]["LoginUsername"];
         };
+        /**
+         * @description Login identifier. The service derives the same NFKC plus Unicode
+         *     full-case-folded `username_key` used during setup. Inputs that cannot
+         *     identify the configured administrator use the same
+         *     `invalid_credentials` response as an incorrect password.
+         */
+        LoginUsername: string;
         NotReadyResponse: {
             /**
              * @description Safe operational reason for a failed readiness probe.
@@ -897,8 +904,7 @@ export interface components {
              * @description Password accepted only over the same-origin setup request and never logged or returned.
              */
             password: string;
-            /** @description Administrator login name. The server applies its documented normalization before uniqueness checks. */
-            username: string;
+            username: components["schemas"]["Username"];
         };
         /** @enum {string} */
         SourceAvailability: "available" | "offline" | "missing" | "unreadable";
@@ -949,11 +955,19 @@ export interface components {
          * @description UTC RFC 3339 timestamp.
          */
         Timestamp: string;
+        /**
+         * @description Administrator login name accepted during setup. The service stores its
+         *     Unicode NFKC form for display and derives `username_key` by applying
+         *     Unicode full case folding to that NFKC value. Validation is repeated
+         *     after normalization. Authentication compares only `username_key`.
+         */
+        Username: string;
     };
     responses: {
         /** @description The request syntax, cursor, query combination, or encoded input is invalid. */
         BadRequest: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -968,6 +982,7 @@ export interface components {
          */
         Conflict: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -978,6 +993,7 @@ export interface components {
         /** @description CSRF or same-origin validation failed. No protected action was executed. */
         Forbidden: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1011,6 +1027,7 @@ export interface components {
         /** @description Unexpected failure represented by a safe public code and request ID. */
         InternalError: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1031,6 +1048,7 @@ export interface components {
         /** @description The requested opaque resource ID does not identify a visible resource. */
         NotFound: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1065,6 +1083,7 @@ export interface components {
         /** @description The supplied If-Match no longer identifies the current representation. */
         PreconditionFailed: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 ETag: components["headers"]["ETag"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
@@ -1076,6 +1095,7 @@ export interface components {
         /** @description A current If-Match validator is required. */
         PreconditionRequired: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1100,6 +1120,7 @@ export interface components {
         /** @description A per-endpoint authentication, browse, scan, thumbnail, or media limit was reached. */
         TooManyRequests: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "Retry-After": components["headers"]["RetryAfter"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
@@ -1111,6 +1132,7 @@ export interface components {
         /** @description A valid administrator session is required or the session has expired. */
         Unauthorized: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1121,6 +1143,7 @@ export interface components {
         /** @description The JSON shape is valid but one or more values violate the accepted contract. */
         UnprocessableEntity: {
             headers: {
+                "Cache-Control": components["headers"]["NoStore"];
                 "X-Request-ID": components["headers"]["RequestID"];
                 [name: string]: unknown;
             };
@@ -1232,6 +1255,8 @@ export interface components {
         MediaContentType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "video/mp4" | "video/quicktime" | "video/x-matroska";
         /** @description Prevents browser MIME sniffing. */
         NoSniff: "nosniff";
+        /** @description Authentication state and credentials must not be stored by browsers or intermediaries. */
+        NoStore: "no-store";
         /** @description Server-generated opaque correlation ID. Client-supplied values are not trusted. */
         RequestID: string;
         /** @description Non-negative delay in seconds before a bounded retry. */
@@ -1485,6 +1510,7 @@ export interface operations {
             /** @description Authenticated session created. */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
                     "Set-Cookie": components["headers"]["SessionCookie"];
                     "X-Request-ID": components["headers"]["RequestID"];
                     [name: string]: unknown;
@@ -1512,6 +1538,7 @@ export interface operations {
             /** @description Session revoked. */
             204: {
                 headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
                     "Set-Cookie": components["headers"]["ExpiredSessionCookie"];
                     "X-Request-ID": components["headers"]["RequestID"];
                     [name: string]: unknown;
@@ -1536,6 +1563,7 @@ export interface operations {
             /** @description Current session. */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
                     "X-Request-ID": components["headers"]["RequestID"];
                     [name: string]: unknown;
                 };
@@ -1571,6 +1599,7 @@ export interface operations {
             /** @description Administrator and session created. */
             201: {
                 headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
                     "Set-Cookie": components["headers"]["SessionCookie"];
                     "X-Request-ID": components["headers"]["RequestID"];
                     [name: string]: unknown;
@@ -1599,6 +1628,7 @@ export interface operations {
             /** @description Authentication status. */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
                     "X-Request-ID": components["headers"]["RequestID"];
                     [name: string]: unknown;
                 };

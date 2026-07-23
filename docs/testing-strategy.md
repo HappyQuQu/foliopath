@@ -55,12 +55,14 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 媒体库根规范化、组件边界重叠判断、唯一名称、改名与根不可变；
 - 固定 MVP 扩展名/MIME 正向矩阵、SVG/HEIC/HEIF/AVIF/RAW 负向矩阵与系统目录跳过清单；
 - 真实文件 SQLite、Goose migration、WAL/外键/busy timeout、SQLite 安全版本门槛、integrity/foreign-key/checkpoint；
+- 认证 version 1 → 2 migration、并发单管理员约束、密码 verifier 字段、会话/CSRF 摘要、
+  正的绝对期限、禁止明文令牌列和 session 级联；
 - generation 的失败、取消、离线、受控重启、原子 finalize 回滚、活动扫描竞争与 complete/cancel 竞态；
 - 128 层目录链的逐级直接/递归计数，以及同库循环、跨库目录/资产损坏、当前代次条目指向
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
-游标、缓存、认证、生产 HTTP handler、调度和 fuzz 仍是目标项；测试专用 HTTP seam 不能
-替代 handler 与中间件实现。
+游标、缓存、认证 service/handler/middleware、调度和 fuzz 仍是目标项；已完成的认证
+OpenAPI/数据契约测试不能替代密码、会话、CSRF、限流与中间件实现。
 
 ### 前端单元与组件测试
 

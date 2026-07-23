@@ -23,7 +23,8 @@
 已按数据库 → HTTP → readiness 顺序接入固定 `/app/data`、SQLite WAL 和嵌入 migration，
 迁移成功后才进入 ready；数据目录、数据库或迁移失败都会失败关闭。真实组合测试和测试专用
 非 root 容器已覆盖 health、根取消/SIGTERM、重复启动与 `/library:ro` 媒体不变。系统状态在
-认证实现前保持默认拒绝，当前仍没有可用的业务 handler。认证、React 产品应用、
+认证实现前保持默认拒绝；认证 OpenAPI 与追加 `users`/`sessions` migration 已达到
+S1-101 Contract Ready，但当前仍没有可用的业务 handler。认证 service、React 产品应用、
 完整媒体 adapter、正式发布 Dockerfile 和发布运维链路仍未建立。
 详细状态见[开发就绪评审](../development-readiness.md)。
 

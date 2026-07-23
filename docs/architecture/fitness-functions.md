@@ -37,7 +37,7 @@ make test-e2e
 | AF-002 | 不出现无所有权的 `utils/common/helpers/base` 或无外部消费者的 `pkg/` | `make arch-check` 检查 Go package | **本地与 CI 已执行**：首次原生 amd64/arm64 PR CI 通过 | 持续强制 |
 | AF-003 | 冻结 scope revision 不被静默改写；每项工作关联需求、目标版本、capability 与 Gate | scope manifest/revision、Change Record、Gate/PR 链接检查 | 计划门禁 | 首个产品 PR 前 |
 | AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；生产 request ID、统一安全错误、health/readiness/status handler 已有契约形状测试，其余业务路由实现一致性尚未证明 | 首个 handler 前 |
-| AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | **部分执行**：正式应用已有空目录迁移、重复启动、冲突 schema 失败关闭、外键和完整性测试；migration checksum 与真实上一版本升级仍待实现 | 首个预览版前 |
+| AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | **部分执行**：正式应用已有空目录/重复迁移、冲突 schema 失败关闭、外键和完整性测试；追加认证 migration 已验证单管理员、摘要、期限与级联约束。migration checksum 与真实上一版本升级仍待实现 | 首个预览版前 |
 | AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **Stage 0 范围已执行**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、HTTP harness 已通过；生产 handler/auth 由首个受保护 API Backend Gate 强制，发布 volume/unmount 由 FS-05/Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | 部分执行；FS-02 当前 scope 通过 | 持续，发布前补强杀/磁盘故障 |
 | AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | 计划门禁 | 对应 worker 合入前 |
@@ -45,7 +45,7 @@ make test-e2e
 | AF-010 | 前端稳定原语在主题、语言、宽度和异步状态下行为一致 | component workbench build、Testing Library、axe、聚焦视觉回归 | 计划门禁 | 行为/axe 在首次消费前；视觉基线在 API 稳定或第二消费者前；完整矩阵在 RC 前 |
 | AF-011 | 大列表只使用游标分页和统一虚拟化模式 | API 契约测试、前端 pattern 测试、E2E DOM/请求上限 | 计划门禁 | 浏览切片前 |
 | AF-012 | 单容器、非 root、`/library:ro`、本地 `/app/data` 运行 | 双架构容器 smoke、安全挂载和健康检查 | **部分执行**：原生双架构 FS-05 已通过；真实 `cmd/foliopath` 的测试专用镜像已接入双架构 CI，并验证 health、重复启动、SIGTERM 与媒体不变；正式发布镜像及发布级权限组合仍待验证 | 首个预览镜像前 |
-| AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | 计划门禁 | 首个可共享预览版前 |
+| AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | **部分执行**：S1-101 已固定匿名边界、逐状态错误码、Origin、Cookie/CSRF、防缓存与认证数据约束，并通过兼容性/契约测试；服务、middleware、限流、代理和 E2E 尚未实现 | 首个可共享预览版前 |
 | AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **部分执行**：FS-05 离线恢复、重复 migration、只读/满盘/损坏失败关闭通过；在线备份、强杀和真实版本升级未测 | Release Candidate 前 |
 | AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **部分执行**：Linux/arm64 tmpfs 的扫描/索引子范围通过；完整媒体/HTTP/前端与代表性存储未测 | 阶段 0 FS-04 与发布前复测 |
 | AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行**：source/npm/image SPDX 与关键 codec/license 审查通过；最终 digest attestation、漏洞与 notices 未完成 | Release Candidate 前 |
