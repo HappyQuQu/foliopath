@@ -137,7 +137,7 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 
 | 配置类别 | 示例 | 来源与所有者 | 变更方式 |
 | --- | --- | --- | --- |
-| 启动/信任配置 | 监听地址、数据目录、允许媒体根、可信代理、时区、安全启动模式 | 环境/参数 → `internal/app`；安全相关值在启动时验证 | 通常重启生效；UI 不得扩大 `/library` 或代理信任范围 |
+| 启动/信任配置 | 监听地址、固定数据目录、固定允许媒体根、可信代理、时区、安全启动模式 | 监听等允许项：环境/参数 → `internal/app`；`/library` 与 `/app/data`：代码固定边界；安全相关值在启动时验证 | 通常重启生效；UI 不得扩大 `/library`、`/app/data` 或代理信任范围 |
 | 媒体库配置 | 名称、`root_rel_path`、状态 | `internal/library` + SQLite | UI/API 创建和改名；MVP 根路径不可更新 |
 | 用户可调应用设置 | 完整扫描周期、缓存配额、语言偏好 | 消费该值的 capability 拥有 schema/default/范围，SQLite adapter 持久化，API 聚合展示 | 认证后的 typed API；不允许任意 key/value |
 | 认证秘密与会话 | 密码哈希、session token hash、CSRF 状态 | `internal/auth` + SQLite | 专用认证流程；不通过普通 settings API 暴露 |

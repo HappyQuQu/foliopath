@@ -64,6 +64,29 @@ func TestExecuteDelegatesServeArguments(t *testing.T) {
 	}
 }
 
+func TestExecuteDelegatesImplicitServeArguments(t *testing.T) {
+	var received app.Input
+
+	code := execute(
+		[]string{"--listen=127.0.0.1:8080"},
+		nil,
+		"test",
+		&bytes.Buffer{},
+		&bytes.Buffer{},
+		func(input app.Input) error {
+			received = input
+			return nil
+		},
+	)
+
+	if code != exitOK {
+		t.Fatalf("execute() code = %d, want %d", code, exitOK)
+	}
+	if want := []string{"--listen=127.0.0.1:8080"}; !reflect.DeepEqual(received.Args, want) {
+		t.Fatalf("delegated args = %q, want %q", received.Args, want)
+	}
+}
+
 func TestExecuteVersionDoesNotStartApplication(t *testing.T) {
 	var stdout bytes.Buffer
 	called := false
@@ -113,6 +136,9 @@ func TestExecuteHelpDoesNotStartApplication(t *testing.T) {
 			}
 			if !strings.Contains(stdout.String(), "foliopath [serve]") {
 				t.Fatalf("help output missing usage: %q", stdout.String())
+			}
+			if !strings.Contains(stdout.String(), "FOLIOPATH_LISTEN") {
+				t.Fatalf("help output missing listen environment: %q", stdout.String())
 			}
 			if called {
 				t.Fatal("help command started the application")

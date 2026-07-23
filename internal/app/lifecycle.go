@@ -15,6 +15,7 @@ type component struct {
 }
 
 type application struct {
+	configuration   configuration
 	components      []component
 	shutdownTimeout time.Duration
 }

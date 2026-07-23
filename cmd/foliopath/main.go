@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/HappyQuQu/foliopath/internal/app"
 )
@@ -14,9 +15,12 @@ const (
 	exitFailure  = 1
 	exitUsage    = 2
 	usageMessage = `Usage:
-  foliopath [serve] [options]
+  foliopath [serve] [--listen=IP:PORT]
   foliopath version
   foliopath help
+
+Environment:
+  FOLIOPATH_LISTEN  Numeric loopback IP and port (default 127.0.0.1:8080)
 `
 )
 
@@ -49,12 +53,13 @@ func execute(
 
 	appArgs := args
 	if len(args) > 0 {
-		if args[0] != "serve" {
+		if args[0] == "serve" {
+			appArgs = args[1:]
+		} else if !strings.HasPrefix(args[0], "-") {
 			fmt.Fprintf(stderr, "foliopath: unknown command %q\n", args[0])
 			fmt.Fprint(stderr, usageMessage)
 			return exitUsage
 		}
-		appArgs = args[1:]
 	}
 
 	if run == nil {
