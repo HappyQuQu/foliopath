@@ -9,7 +9,7 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 你的文件夹，就是你的相册。
 
 > [!IMPORTANT]
-> FolioPath 目前处于规划与早期开发阶段，尚无可启动的应用或发布镜像。FS-01 已在
+> FolioPath 目前处于早期开发阶段，已有可启动和迁移的后端运行骨架，但尚无可用产品界面或发布镜像。FS-01 已在
 > 原生 Linux amd64/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
 > FS-02 当前正确性范围、FS-03 双架构媒体链路、FS-04 Stage 0 容量范围和 FS-05 双架构
 > 运行/恢复范围均通过；OpenAPI、生成类型、唯一 Web API 客户端和供应链 CI 已建立。

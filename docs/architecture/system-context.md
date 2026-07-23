@@ -17,10 +17,12 @@
 `openat2` mount-boundary 与 HTTP test harness 子范围证据，SQLite/generation 通过当前
 正确性范围，`api/openapi.yaml` 已成为 HTTP 结构权威。最小进程入口已经存在并把控制交给
 `internal/app.Run`；应用组合根已拥有固定 `/library`、`/app/data` 与认证前回环监听配置，以及
-根取消、顺序启动、失败回滚、运行故障传播、反向关闭和有界停机，但尚未接入数据库。
+根取消、顺序启动、失败回滚、运行故障传播、反向关闭和有界停机。正式 SQLite adapter 与嵌入
+migration 已接入数据库 → HTTP → readiness 启动链路。
 HTTP 运行边界已具备单 listener、服务端 request ID、统一安全错误、JSON 日志和
-在途请求排空、liveness/readiness 和受保护系统状态路由。数据库接线前 readiness 返回安全
-503，系统状态在认证实现前默认拒绝；当前还没有业务路由。数据库、认证、React 产品应用、
+在途请求排空、liveness/readiness 和受保护系统状态路由；只有数据目录可用、数据库打开且
+migration 成功后才进入 ready，失败时进程不提供业务服务。系统状态在认证实现前默认拒绝；
+当前还没有业务路由。认证、React 产品应用、
 完整媒体工具链与发布容器仍未形成产品。生成 TypeScript
 契约/client 与 CI 工作流已建立，首次原生 amd64/arm64 PR CI 已通过。准确状态以
 [开发就绪评审](../development-readiness.md)和[可行性研究](../feasibility-study.md)为准。

@@ -66,6 +66,7 @@ func compose(input Input) (*application, error) {
 
 	logger := newJSONLogger(os.Stdout)
 	readiness := newReadinessState()
+	databaseComponent, _ := newDatabaseComponent(configuration.dataRoot, readiness)
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:       readiness.snapshot,
 		AuthorizeStatus: denySystemStatus,
@@ -80,7 +81,11 @@ func compose(input Input) (*application, error) {
 		logger,
 	)
 	application, err := newApplication(
-		[]component{httpComponent, readinessLifecycle(readiness)},
+		[]component{
+			databaseComponent,
+			httpComponent,
+			readinessLifecycle(readiness),
+		},
 		defaultShutdownTimeout,
 	)
 	if err != nil {

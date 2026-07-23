@@ -153,6 +153,13 @@ func TestComposeOwnsValidatedConfiguration(t *testing.T) {
 			application.configuration.listenAddress,
 		)
 	}
+	componentNames := make([]string, 0, len(application.components))
+	for _, candidate := range application.components {
+		componentNames = append(componentNames, candidate.name)
+	}
+	if got, want := strings.Join(componentNames, ","), "database,http,readiness"; got != want {
+		t.Fatalf("composed components = %q, want %q", got, want)
+	}
 
 	_, err = compose(Input{Args: []string{"--listen=0.0.0.0:9090"}})
 	if !errors.Is(err, errInvalidConfiguration) {
