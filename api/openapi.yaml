@@ -113,10 +113,15 @@ paths:
         available. It never returns a username or any other account detail.
       security: []
       x-requirements: [FR-AUTH-001, FR-AUTH-002, NFR-SEC-002, NFR-PRIV-001]
+      x-error-codes:
+        '429': [rate_limited]
+        '500': [internal_error]
       responses:
         '200':
           description: Authentication status.
           headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
             X-Request-ID:
               $ref: '#/components/headers/RequestID'
           content:
@@ -141,6 +146,13 @@ paths:
         session-bound CSRF token. Later calls fail with `setup_closed`.
       security: []
       x-requirements: [FR-AUTH-001, FR-AUTH-002, FR-AUTH-004, NFR-SEC-002]
+      x-error-codes:
+        '400': [invalid_request]
+        '403': [origin_invalid]
+        '409': [setup_closed, setup_in_progress]
+        '422': [validation_failed]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/OriginHeader'
       requestBody:
@@ -153,6 +165,8 @@ paths:
         '201':
           description: Administrator and session created.
           headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
             Set-Cookie:
               $ref: '#/components/headers/SessionCookie'
             X-Request-ID:
@@ -185,6 +199,12 @@ paths:
         cookie and returns a session-bound CSRF token.
       security: []
       x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002, NFR-PRIV-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [invalid_credentials]
+        '403': [origin_invalid]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/OriginHeader'
       requestBody:
@@ -197,6 +217,8 @@ paths:
         '200':
           description: Authenticated session created.
           headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
             Set-Cookie:
               $ref: '#/components/headers/SessionCookie'
             X-Request-ID:
@@ -223,10 +245,16 @@ paths:
       summary: Get the current administrator session
       description: Returns a safe administrator summary and a current CSRF token.
       x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
       responses:
         '200':
           description: Current session.
           headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
             X-Request-ID:
               $ref: '#/components/headers/RequestID'
           content:
@@ -250,10 +278,17 @@ paths:
         - cookieAuth: []
           csrfToken: []
       x-requirements: [FR-AUTH-001, FR-AUTH-004, NFR-SEC-002]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '429': [rate_limited]
+        '500': [internal_error]
       responses:
         '204':
           description: Session revoked.
           headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
             Set-Cookie:
               $ref: '#/components/headers/ExpiredSessionCookie'
             X-Request-ID:
@@ -1384,6 +1419,11 @@ components:
         pattern: '^bytes=(?:[0-9]+-[0-9]*|-[0-9]+)$'
 
   headers:
+    NoStore:
+      description: Authentication state and credentials must not be stored by browsers or intermediaries.
+      schema:
+        type: string
+        enum: [no-store]
     RequestID:
       description: Server-generated opaque correlation ID. Client-supplied values are not trusted.
       schema:
@@ -1470,6 +1510,8 @@ components:
     BadRequest:
       description: The request syntax, cursor, query combination, or encoded input is invalid.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1479,6 +1521,8 @@ components:
     Unauthorized:
       description: A valid administrator session is required or the session has expired.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1488,6 +1532,8 @@ components:
     Forbidden:
       description: CSRF or same-origin validation failed. No protected action was executed.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1497,6 +1543,8 @@ components:
     NotFound:
       description: The requested opaque resource ID does not identify a visible resource.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1509,6 +1557,8 @@ components:
         duplicate library name, overlapping root, active removal, offline
         source, terminal scan, or idempotency-key body mismatch.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1518,6 +1568,8 @@ components:
     PreconditionFailed:
       description: The supplied If-Match no longer identifies the current representation.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         ETag:
           $ref: '#/components/headers/ETag'
         X-Request-ID:
@@ -1529,6 +1581,8 @@ components:
     PreconditionRequired:
       description: A current If-Match validator is required.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1538,6 +1592,8 @@ components:
     UnprocessableEntity:
       description: The JSON shape is valid but one or more values violate the accepted contract.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1547,6 +1603,8 @@ components:
     TooManyRequests:
       description: A per-endpoint authentication, browse, scan, thumbnail, or media limit was reached.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         Retry-After:
           $ref: '#/components/headers/RetryAfter'
         X-Request-ID:
@@ -1558,6 +1616,8 @@ components:
     InternalError:
       description: Unexpected failure represented by a safe public code and request ID.
       headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
         X-Request-ID:
           $ref: '#/components/headers/RequestID'
       content:
@@ -1834,11 +1894,7 @@ components:
       required: [username, displayName, password]
       properties:
         username:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: '^[^\s\x00-\x1F\x7F]+$'
-          description: Administrator login name. The server applies its documented normalization before uniqueness checks.
+          $ref: '#/components/schemas/Username'
         displayName:
           type: string
           minLength: 1
@@ -1858,9 +1914,7 @@ components:
       required: [username, password]
       properties:
         username:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/LoginUsername'
         password:
           type: string
           format: password
@@ -1876,9 +1930,7 @@ components:
         id:
           $ref: '#/components/schemas/ResourceID'
         username:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/Username'
         displayName:
           type: string
           minLength: 1
@@ -1900,6 +1952,27 @@ components:
           description: |
             Opaque session-bound token for the `X-CSRF-Token` header. It is not
             an authentication credential by itself and must never be put in a URL.
+
+    Username:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: '^[^\s\x00-\x1F\x7F]+$'
+      description: |
+        Administrator login name accepted during setup. The service stores its
+        Unicode NFKC form for display and derives `username_key` by applying
+        Unicode full case folding to that NFKC value. Validation is repeated
+        after normalization. Authentication compares only `username_key`.
+
+    LoginUsername:
+      type: string
+      minLength: 1
+      maxLength: 64
+      description: |
+        Login identifier. The service derives the same NFKC plus Unicode
+        full-case-folded `username_key` used during setup. Inputs that cannot
+        identify the configured administrator use the same
+        `invalid_credentials` response as an incorrect password.
 
     SystemStatus:
       type: object

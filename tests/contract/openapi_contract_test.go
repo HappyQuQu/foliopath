@@ -263,6 +263,200 @@ func TestAuthenticationAndCSRFBoundaries(t *testing.T) {
 	}
 }
 
+func TestAuthenticationWireContractIsCompleteAndNonCacheable(t *testing.T) {
+	t.Parallel()
+
+	operations := map[string][]string{
+		"GET /api/v1/auth/status": {
+			"'429': [rate_limited]",
+			"'500': [internal_error]",
+		},
+		"POST /api/v1/auth/setup": {
+			"'400': [invalid_request]",
+			"'403': [origin_invalid]",
+			"'409': [setup_closed, setup_in_progress]",
+			"'422': [validation_failed]",
+			"'429': [rate_limited]",
+			"'500': [internal_error]",
+		},
+		"POST /api/v1/auth/login": {
+			"'400': [invalid_request]",
+			"'401': [invalid_credentials]",
+			"'403': [origin_invalid]",
+			"'429': [rate_limited]",
+			"'500': [internal_error]",
+		},
+		"GET /api/v1/auth/session": {
+			"'401': [authentication_required, session_expired]",
+			"'429': [rate_limited]",
+			"'500': [internal_error]",
+		},
+		"POST /api/v1/auth/logout": {
+			"'401': [authentication_required, session_expired]",
+			"'403': [csrf_invalid]",
+			"'429': [rate_limited]",
+			"'500': [internal_error]",
+		},
+	}
+	for key, errorMappings := range operations {
+		block := operationByKey(t, key).block
+		if !strings.Contains(block, "\n      x-error-codes:") {
+			t.Errorf("%s has no stable error-code mapping", key)
+		}
+		if !strings.Contains(block, "#/components/headers/NoStore") {
+			t.Errorf("%s success response is cacheable", key)
+		}
+		for _, mapping := range errorMappings {
+			if !strings.Contains(block, mapping) {
+				t.Errorf("%s is missing error mapping %s", key, mapping)
+			}
+		}
+	}
+
+	for _, response := range []string{
+		"BadRequest",
+		"Unauthorized",
+		"Forbidden",
+		"NotFound",
+		"Conflict",
+		"PreconditionFailed",
+		"PreconditionRequired",
+		"UnprocessableEntity",
+		"TooManyRequests",
+		"InternalError",
+	} {
+		if !strings.Contains(
+			componentBlock(t, "responses", response),
+			"#/components/headers/NoStore",
+		) {
+			t.Errorf("error response %s is cacheable", response)
+		}
+	}
+
+	sessionCookie := componentBlock(t, "headers", "SessionCookie")
+	for _, requirement := range []string{
+		"foliopath_session",
+		"HttpOnly",
+		"SameSite=Strict",
+		"Path=/",
+		"bounded Max-Age",
+		"Secure whenever HTTPS is in use",
+	} {
+		if !strings.Contains(sessionCookie, requirement) {
+			t.Errorf("session cookie contract is missing %q", requirement)
+		}
+	}
+	expiredCookie := componentBlock(t, "headers", "ExpiredSessionCookie")
+	if !strings.Contains(expiredCookie, "foliopath_session") ||
+		!strings.Contains(expiredCookie, "Max-Age=0") {
+		t.Error("logout does not contract an expired FolioPath session cookie")
+	}
+}
+
+func TestAuthenticationSchemasUseOneDeterministicUsernameRule(t *testing.T) {
+	t.Parallel()
+
+	document := loadOpenAPIDocument(t)
+	usernameRef := document.Components.Schemas["Username"]
+	if usernameRef == nil || usernameRef.Value == nil {
+		t.Fatal("Username schema is missing or unresolved")
+	}
+	for _, valid := range []string{
+		"admin",
+		"Administrator",
+		"admin.user-1",
+		"管理员",
+		"-admin",
+	} {
+		if err := usernameRef.Value.VisitJSON(
+			valid,
+			openapi3.VisitAsRequest(),
+			openapi3.MultiErrors(),
+			openapi3.SetSchemaRegexCompiler(compileECMAScriptPattern),
+		); err != nil {
+			t.Errorf("Username rejected valid value %q: %v", valid, err)
+		}
+	}
+	for _, invalid := range []string{
+		"",
+		"admin user",
+		"admin\nuser",
+		strings.Repeat("a", 65),
+	} {
+		if err := usernameRef.Value.VisitJSON(
+			invalid,
+			openapi3.VisitAsRequest(),
+			openapi3.MultiErrors(),
+			openapi3.SetSchemaRegexCompiler(compileECMAScriptPattern),
+		); err == nil {
+			t.Errorf("Username accepted invalid value %q", invalid)
+		}
+	}
+
+	for _, schemaName := range []string{"SetupRequest", "Administrator"} {
+		if !strings.Contains(
+			schemaBlock(t, schemaName),
+			"#/components/schemas/Username",
+		) {
+			t.Errorf("%s does not reuse the canonical Username schema", schemaName)
+		}
+	}
+	if !strings.Contains(
+		schemaBlock(t, "LoginRequest"),
+		"#/components/schemas/LoginUsername",
+	) {
+		t.Error("LoginRequest does not use its compatibility-preserving username schema")
+	}
+	usernameBlock := schemaBlock(t, "Username") + schemaBlock(t, "LoginUsername")
+	for _, rule := range []string{
+		"Unicode NFKC",
+		"full case folding",
+		"`username_key`",
+		"`invalid_credentials`",
+	} {
+		if !strings.Contains(usernameBlock, rule) {
+			t.Errorf("Username schema is missing normalization statement %q", rule)
+		}
+	}
+}
+
+func TestAuthenticationMigrationMatchesThePublicContract(t *testing.T) {
+	t.Parallel()
+
+	migration := readRepositoryFile(t, "migrations", "00002_authentication.sql")
+	for _, required := range []string{
+		"CREATE TABLE users",
+		"singleton_key",
+		"CHECK (singleton_key = 1)",
+		"username_key",
+		"password_hash",
+		"password_scheme",
+		"password_parameters",
+		"auth_version",
+		"CREATE TABLE sessions",
+		"token_hash",
+		"csrf_token_hash",
+		"CHECK (length(token_hash) = 32)",
+		"CHECK (length(csrf_token_hash) = 32)",
+		"expires_at_ms",
+		"revoked_at_ms",
+		"REFERENCES users(id) ON DELETE CASCADE",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Errorf("authentication migration is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"password_plaintext",
+		"session_token TEXT",
+		"csrf_token TEXT",
+	} {
+		if strings.Contains(migration, forbidden) {
+			t.Errorf("authentication migration stores forbidden secret %q", forbidden)
+		}
+	}
+}
+
 func TestCursorPaginationIsBoundedAndQueryBound(t *testing.T) {
 	t.Parallel()
 

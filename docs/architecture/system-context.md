@@ -23,7 +23,8 @@ HTTP 运行边界已具备单 listener、服务端 request ID、统一安全错�
 在途请求排空、liveness/readiness 和受保护系统状态路由；只有数据目录可用、数据库打开且
 migration 成功后才进入 ready，失败时进程不提供业务服务。系统状态在认证实现前默认拒绝；
 真实组合测试与测试专用应用容器已覆盖取消、重复启动、非 root、固定 volume 和内部 health；
-当前还没有业务路由。认证、React 产品应用、
+认证 HTTP 与 `users`/`sessions` 数据契约已达到 S1-101 Contract Ready，但当前还没有业务
+路由或认证 service。React 产品应用、
 完整媒体工具链与正式发布容器仍未形成产品。生成 TypeScript
 契约/client 与 CI 工作流已建立，首次原生 amd64/arm64 PR CI 已通过。准确状态以
 [开发就绪评审](../development-readiness.md)和[可行性研究](../feasibility-study.md)为准。

@@ -4,9 +4,9 @@
 
 [`api/openapi.yaml`](../api/openapi.yaml) 已建立，并且是请求、响应、状态码、认证边界和生成
 类型的权威结构化事实来源。本文保留设计动机、资源边界与人类可读语义；与 OpenAPI 冲突时
-必须先停止实现并修复契约或本文，不能让 handler 成为第三个事实来源。当前仍没有生产 handler、
-Go server 实现或可启动应用；仓库已有确定性生成的 TypeScript 类型和唯一 Web API client
-基础，但它们只是消费者契约边界。因此“契约已建立”不等于 API 已实现。
+必须先停止实现并修复契约或本文，不能让 handler 成为第三个事实来源。Go/HTTP 运行骨架已经
+可启动，但当前仍没有认证或其他业务 handler；仓库已有确定性生成的 TypeScript 类型和唯一
+Web API client 基础，但它们只是消费者契约边界。因此“认证 Contract Ready”不等于认证 API 已实现。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的全部 A 方案。
 单管理员认证、三种搜索范围、格式矩阵、默认排序、扫描取消、不可修改媒体库根路径、分页
@@ -194,6 +194,13 @@ MVP 的日期语义是文件修改时间；不提供完整 EXIF 面板。未可�
 
 初始化完成后 `setup` 永久关闭并安全失败。除 `auth/status`、`auth/setup`、`auth/login` 和健康检查外，所有业务端点都要求有效会话；状态修改还要求会话绑定的 `X-CSRF-Token`。首次初始化和登录尚无会话令牌，因此必须校验同源 `Origin`。Cookie wire 名称和安全属性已由 OpenAPI 固定；密码哈希参数、会话绝对期限、登录限流阈值与可信代理清单仍属于实现安全配置，必须在认证切片 S1/S2 固定并测试。认证架构边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
 
+认证端点按状态码声明稳定 `x-error-codes`；未知账号与错误密码统一为
+`invalid_credentials`。setup、login、session、logout 与认证状态成功响应，以及统一 JSON
+错误响应，都要求 `Cache-Control: no-store`。用户名 setup 保持已冻结的 Unicode 输入范围；
+服务保存 NFKC 显示值，并使用 NFKC 后 Unicode full case folding 的 `username_key` 登录，
+避免 handler、service 和 SQLite 各自实现不同的比较规则。完整冻结证据见
+[认证 Contract Ready](gates/MVP-2026-07-23/s1-auth-contract-ready.md)。
+
 ### 允许目录选择器
 
 | 方法 | 路径 | 用途 |
@@ -302,7 +309,8 @@ OpenAPI 第一版已经固定：
 6. 原媒体支持完整响应或单一 Range，以及 `200`、`206`、`304`、`416`；多段、畸形和
    不可满足 Range 都返回 `416`。
 
-仍需在各切片 S1/S2 固定并验证的实现内部参数包括：密码哈希算法与成本、会话绝对期限、
+认证 HTTP/数据契约已在 `S1-101` 固定。仍需在后续实现任务固定并验证的内部参数包括：
+密码哈希算法与成本、会话绝对期限、
 登录限流阈值、可信代理清单、轮询退避曲线、自然排序键、游标签名密钥轮换和缓存安全余量。
 这些参数不得改变已固定 wire 行为；若必须改变外部契约，先更新 OpenAPI、契约测试和受影响
 Gate，再实现 handler。生产 handler 与生成客户端不得反向改写本说明。

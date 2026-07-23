@@ -77,19 +77,28 @@
 
 ### `users`
 
-- `id`、唯一规范化登录名、显示名。
-- 密码哈希及其算法/参数版本，不保存明文密码。
-- `created_at`、`updated_at`、`password_changed_at`、`disabled_at`。
+- `id`、固定且唯一的 `singleton_key=1`、原始规范化登录名 `username`、唯一比较键
+  `username_key` 和显示名。
+- setup 后存储的 `username` 使用 Unicode NFKC；`username_key` 是对 NFKC 值执行
+  Unicode full case folding 的结果。认证只比较 `username_key`。
+- 密码只保存 `password_hash` verifier、`password_scheme` 和 `password_parameters`，
+  不保存明文密码。
+- `auth_version`、`created_at_ms`、`updated_at_ms`、`password_changed_at_ms` 和可空
+  `disabled_at_ms`。
 
 MVP 只允许创建一个管理员。首次初始化必须以事务方式防止并发创建多个账号；是否允许未来多用户不能通过绕过该约束提前实现。认证边界见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
 
 ### `sessions`
 
-- `id`、`user_id`、服务端只保存的令牌哈希或等价不可回放标识。
-- `created_at`、`last_seen_at`、绝对过期时间和可空撤销时间。
-- 会话版本或认证事件信息，用于改密、退出和安全事件后撤销。
+- `id`、`user_id`、唯一 32 字节 `token_hash` 和 32 字节 `csrf_token_hash`；数据库不保存
+  浏览器持有的明文令牌。
+- `created_at_ms`、`last_seen_at_ms`、`expires_at_ms` 和可空 `revoked_at_ms`，由检查约束
+  保证正的绝对期限与时间顺序。
+- `auth_version` 必须与管理员当前认证版本匹配，用于改密、退出和安全事件后的整体撤销；
+  删除管理员会级联删除 session。
 
-浏览器只持有高熵 Cookie 值，数据库不得保存可直接复用的明文会话令牌。CSRF 状态采用的具体方案在认证安全设计中固定。
+浏览器只持有高熵 Cookie/CSRF 值，数据库不得保存可直接复用的明文令牌。随机数长度、
+摘要计算、会话期限和轮换由 `S1-103` 实现并测试，不能改变这里的不可回放存储边界。
 
 ### `settings`
 
