@@ -87,10 +87,21 @@
 }
 
 .results {
+  min-width: 0;
   display: grid;
   gap: var(--space-5);
   padding-top: var(--space-7);
   padding-bottom: var(--space-12);
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.workspace[data-has-preview] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(var(--preview-width), 48vw);
+  align-items: start;
 }
 
 .results > :only-child {
@@ -131,6 +142,11 @@
 }
 
 @media (max-width: 64rem) {
+  .workspace[data-has-preview] {
+    display: flex;
+    flex-direction: column;
+  }
+
   .filters {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -23,7 +23,6 @@ import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
   MediaCollection,
   MediaCollectionSkeleton,
-  type MediaCollectionHandle,
   type MediaCollectionItem,
   type MediaCollectionLayout,
 } from "../../../components/patterns/MediaCollection/MediaCollection";
@@ -31,6 +30,8 @@ import {
   MediaPreview,
   type MediaPreviewItem,
 } from "../../../components/patterns/MediaPreview/MediaPreview";
+import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
+import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
 import {
   Button,
   EmptyState,
@@ -87,15 +88,7 @@ export function BrowsePage({
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
-  const [previewAssetId, setPreviewAssetId] = useState<string>();
-  const [selectedAssetId, setSelectedAssetId] = useState<string>();
-  const [previewPinned, setPreviewPinned] = useState(false);
-  const [previewWidth, setPreviewWidth] = useState(406);
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === "undefined" ? 1280 : window.innerWidth,
-  );
   const toast = useToast();
-  const mediaCollectionRef = useRef<MediaCollectionHandle>(null);
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
     [searchParams],
@@ -162,14 +155,28 @@ export function BrowsePage({
       width: asset.width,
     }));
   }, [assets, browseState.recursive, libraryId, locale, t]);
-  const previewIndex = assets.findIndex((asset) => asset.id === previewAssetId);
-  const previewAsset = previewIndex >= 0 ? assets[previewIndex] : undefined;
+  const preview = useMediaPreviewController({
+    items: assets,
+    resetKey: `${libraryId}:${directoryId ?? "root"}`,
+  });
+  const previewAsset = preview.previewItem;
   const previewItem = useMemo<MediaPreviewItem | undefined>(
     () =>
       previewAsset
         ? {
             contentUrl: assetContentUrl(previewAsset.id),
-            details: mediaPreviewDetails(previewAsset, locale, t),
+            details: mediaPreviewDetails(previewAsset, locale, {
+              animated: t("browse.kindAnimated"),
+              dimensions: t("browse.detailDimensions"),
+              duration: t("browse.detailDuration"),
+              image: t("browse.kindImage"),
+              modified: t("browse.detailModified"),
+              path: t("browse.detailPath"),
+              size: t("browse.detailSize"),
+              type: t("browse.detailType"),
+              unknown: t("browse.detailUnknown"),
+              video: t("browse.kindVideo"),
+            }),
             id: previewAsset.id,
             kind: previewAsset.kind,
             name: previewAsset.name,
@@ -177,10 +184,6 @@ export function BrowsePage({
         : undefined,
     [locale, previewAsset, t],
   );
-  const previewMaxWidth =
-    viewportWidth <= 1024
-      ? 620
-      : Math.max(360, Math.min(620, Math.floor(viewportWidth * 0.48)));
   const currentLibrary = libraryQuery.data?.library;
   const breadcrumbs: Breadcrumb[] = directoryQuery.data?.breadcrumbs ?? [];
   const selectedPathIds = useMemo(
@@ -200,24 +203,6 @@ export function BrowsePage({
     }
   }, [canonicalSearch, searchParams, setSearchParams]);
 
-  useEffect(() => {
-    setPreviewAssetId(undefined);
-    setPreviewPinned(false);
-    setSelectedAssetId(undefined);
-  }, [directoryId, libraryId]);
-
-  useEffect(() => {
-    const updateViewportWidth = () => setViewportWidth(window.innerWidth);
-    window.addEventListener("resize", updateViewportWidth);
-    return () => window.removeEventListener("resize", updateViewportWidth);
-  }, []);
-
-  useEffect(() => {
-    setPreviewWidth((currentWidth) =>
-      Math.min(currentWidth, previewMaxWidth),
-    );
-  }, [previewMaxWidth]);
-
   function updateBrowseState(nextState: BrowseUrlState) {
     setSearchParams(serializeBrowseUrlState(nextState));
   }
@@ -225,41 +210,6 @@ export function BrowsePage({
   function updateMediaLayout(nextLayout: MediaCollectionLayout) {
     setMediaLayout(nextLayout);
     writeMediaLayoutPreference(nextLayout);
-  }
-
-  function activateMedia(
-    assetId: string,
-    activation: "single" | "double",
-  ) {
-    setSelectedAssetId(assetId);
-    if (!previewPinned || activation === "double") {
-      setPreviewAssetId(assetId);
-    }
-  }
-
-  function updatePreviewPinned(nextPinned: boolean) {
-    setPreviewPinned(nextPinned);
-    if (!nextPinned && selectedAssetId) {
-      setPreviewAssetId(selectedAssetId);
-    }
-  }
-
-  function movePreview(nextAssetId: string | undefined) {
-    if (!nextAssetId) return;
-    setPreviewAssetId(nextAssetId);
-    setSelectedAssetId(nextAssetId);
-  }
-
-  function closePreview() {
-    const restoreAssetId = previewAssetId;
-    setPreviewAssetId(undefined);
-    setPreviewPinned(false);
-    if (!restoreAssetId) return;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        mediaCollectionRef.current?.restoreItem(restoreAssetId);
-      });
-    });
   }
 
   async function copyDirectLink() {
@@ -337,7 +287,7 @@ export function BrowsePage({
         <div
           className={styles.workspace}
           data-has-preview={previewItem ? "" : undefined}
-          style={{ "--preview-width": `${previewWidth}px` } as CSSProperties}
+          style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
         >
         <div className={styles.content}>
           {(libraryQuery.isPending || (directoryId && directoryQuery.isPending)) && (
@@ -467,12 +417,12 @@ export function BrowsePage({
                   )}
                   {assets.length > 0 && (
                     <MediaCollection
-                      ref={mediaCollectionRef}
+                      ref={preview.collectionRef}
                       hasNextPage={assetsQuery.hasNextPage}
                       isFetchingNextPage={assetsQuery.isFetchingNextPage}
                       items={mediaItems}
                       labels={{
-                        activatePreview: previewPinned
+                        activatePreview: preview.pinned
                           ? t("browse.selectPinnedPreview")
                           : t("browse.activatePreview"),
                         animated: t("browse.kindAnimated"),
@@ -489,16 +439,16 @@ export function BrowsePage({
                       }}
                       layout={mediaLayout}
                       onItemActivate={(assetId, activation) =>
-                        activateMedia(assetId, activation)
+                        preview.activate(assetId, activation)
                       }
                       onLoadMore={loadMoreAssets}
                       onRetryLoadMore={() => void loadMoreAssets()}
                       paginationError={assetsQuery.isFetchNextPageError}
-                      {...(previewAssetId
-                        ? { previewItemId: previewAssetId }
+                      {...(previewAsset
+                        ? { previewItemId: previewAsset.id }
                         : {})}
-                      {...(selectedAssetId
-                        ? { selectedItemId: selectedAssetId }
+                      {...(preview.selectedItemId
+                        ? { selectedItemId: preview.selectedItemId }
                         : {})}
                     />
                   )}
@@ -508,8 +458,11 @@ export function BrowsePage({
         </div>
         {previewItem && (
           <MediaPreview
-            canGoNext={previewIndex < assets.length - 1}
-            canGoPrevious={previewIndex > 0}
+            canGoNext={
+              preview.previewIndex >= 0 &&
+              preview.previewIndex < assets.length - 1
+            }
+            canGoPrevious={preview.previewIndex > 0}
             item={previewItem}
             labels={{
               close: t("browse.closePreview"),
@@ -521,7 +474,7 @@ export function BrowsePage({
               pinnedDescription: t("browse.previewPinnedDescription"),
               pinnedTitle: t("browse.previewPinnedTitle"),
               position: t("browse.previewPosition")
-                .replace("{current}", String(previewIndex + 1))
+                .replace("{current}", String(preview.previewIndex + 1))
                 .replace("{total}", String(assets.length)),
               previous: t("browse.previousMedia"),
               preview: t("browse.preview"),
@@ -529,83 +482,20 @@ export function BrowsePage({
               unpin: t("browse.unpinPreview"),
               videoFailed: t("browse.previewVideoFailed"),
             }}
-            maxWidth={previewMaxWidth}
-            onClose={closePreview}
-            onNext={() => movePreview(assets[previewIndex + 1]?.id)}
-            onPinnedChange={updatePreviewPinned}
-            onPrevious={() => movePreview(assets[previewIndex - 1]?.id)}
-            onWidthChange={setPreviewWidth}
-            pinned={previewPinned}
-            width={previewWidth}
+            maxWidth={preview.maxWidth}
+            onClose={preview.close}
+            onNext={() => preview.moveTo(assets[preview.previewIndex + 1])}
+            onPinnedChange={preview.updatePinned}
+            onPrevious={() => preview.moveTo(assets[preview.previewIndex - 1])}
+            onWidthChange={preview.setWidth}
+            pinned={preview.pinned}
+            width={preview.width}
           />
         )}
         </div>
       </section>
     </AppShell>
   );
-}
-
-function mediaPreviewDetails(
-  asset: Asset,
-  locale: string,
-  t: ReturnType<typeof useLocale>["t"],
-): MediaPreviewItem["details"] {
-  const number = new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 1,
-  });
-  const modified = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(asset.modifiedAt));
-  const dimensions =
-    asset.width && asset.height
-      ? `${number.format(asset.width)} × ${number.format(asset.height)} px`
-      : t("browse.detailUnknown");
-  const kind =
-    asset.kind === "video"
-      ? t("browse.kindVideo")
-      : asset.kind === "animated"
-        ? t("browse.kindAnimated")
-        : t("browse.kindImage");
-  const details = [
-    { label: t("browse.detailType"), value: `${kind} · ${asset.mimeType}` },
-    { label: t("browse.detailPath"), value: asset.relativePath },
-    { label: t("browse.detailModified"), value: modified },
-    { label: t("browse.detailDimensions"), value: dimensions },
-    {
-      label: t("browse.detailSize"),
-      value: formatBytes(asset.sizeBytes, locale),
-    },
-  ];
-  if (asset.durationMs !== null) {
-    details.push({
-      label: t("browse.detailDuration"),
-      value: formatDuration(asset.durationMs),
-    });
-  }
-  return details;
-}
-
-function formatBytes(bytes: number, locale: string): string {
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const unitIndex =
-    bytes > 0
-      ? Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
-      : 0;
-  const value = bytes / 1024 ** unitIndex;
-  return `${new Intl.NumberFormat(locale, {
-    maximumFractionDigits: unitIndex === 0 ? 0 : 1,
-  }).format(value)} ${units[unitIndex]}`;
-}
-
-function formatDuration(durationMs: number): string {
-  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function BrowseToolbar({

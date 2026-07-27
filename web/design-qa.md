@@ -469,8 +469,6 @@ S3-107 owns the 100k-media DOM/request/scroll/playback-resource budget. S3-108 o
 the complete Stage 3 Integrated Done browser gate. S4-006～009 own the full viewer,
 fullscreen/zoom, Range/codec/offline/deleted states and target-browser verification.
 
-final result: passed
-
 ## Stage 3 / S3-105 shared media-preview QA
 
 ### Findings
@@ -690,5 +688,42 @@ Integrated Done browser gate.
   links use server IDs and never expose absolute filesystem paths.
 - Real Chromium E2E reports zero axe serious/critical violations and no page-level
   horizontal overflow for the reviewed search flow.
+
+## Stage 4 / S4-005 shared search-preview QA
+
+### Reviewed state
+
+- Selected source: the accepted Stage 3 dark pinned-preview capture
+  `qa/s3-106-source-pinned-dark.jpg`.
+- Production state: an isolated real backend/library/search flow at 1265×712 with
+  a real indexed JPEG, search controls and results visible beside the pinned preview.
+- Interaction matrix: unpinned click, pinned single selection, pinned double-click
+  switch, filter replacement, outside-current-results status, clear filter, close,
+  Escape and virtual focus restoration.
+
+### Same-state comparison
+
+- Search uses the exact shared preview header, pin/close controls, media stage,
+  previous/next navigation, basic details and persistent pin explanation already
+  accepted for browse; it does not introduce a search-only panel or modal overlay.
+- The desktop workspace preserves the source relationship of a scrollable parent
+  collection beside a bounded right preview. At ≤1024px the existing shared
+  responsive rule moves the preview into document flow.
+- The search command remains full width above the results/preview workspace so query,
+  scope, kind, date and sort stay operable while media is visible or playing.
+- The isolated browser console contained only Vite connection and React development
+  information; no warning or error was introduced.
+
+### Findings and resolution
+
+- The first real E2E assertion found duplicate visible filename text after the preview
+  opened. This was test ambiguity, not a product defect; the assertion now targets the
+  semantic media article and therefore protects the intended card surface.
+- Filtering a pinned image out of search initially risked losing result-position
+  context. The shared controller now retains the media snapshot, disables unavailable
+  previous/next movement and shows “Pinned preview is outside the current results”.
+- No actionable P0, P1 or P2 visual, interaction or accessibility difference remains.
+  Real Chromium reports no page-level horizontal overflow and zero axe
+  serious/critical violations in the reviewed search path.
 
 final result: passed

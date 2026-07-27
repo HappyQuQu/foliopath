@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
 } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -15,6 +16,12 @@ import {
   type MediaCollectionItem,
 } from "../../../components/patterns/MediaCollection/MediaCollection";
 import {
+  MediaPreview,
+  type MediaPreviewItem,
+} from "../../../components/patterns/MediaPreview/MediaPreview";
+import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
+import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
+import {
   Button,
   EmptyState,
   ErrorState,
@@ -23,7 +30,7 @@ import {
   SearchInput,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import type { Asset } from "../../../lib/api/catalog";
+import { assetContentUrl, type Asset } from "../../../lib/api/catalog";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import {
   readMediaLayoutPreference,
@@ -69,6 +76,35 @@ export function SearchPage({
   const assets = useMemo(
     () => resultsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [resultsQuery.data],
+  );
+  const preview = useMediaPreviewController({
+    items: assets,
+    resetKey: libraryId ?? "all-libraries",
+  });
+  const previewAsset = preview.previewItem;
+  const previewItem = useMemo<MediaPreviewItem | undefined>(
+    () =>
+      previewAsset
+        ? {
+            contentUrl: assetContentUrl(previewAsset.id),
+            details: mediaPreviewDetails(previewAsset, locale, {
+              animated: t("browse.kindAnimated"),
+              dimensions: t("browse.detailDimensions"),
+              duration: t("browse.detailDuration"),
+              image: t("browse.kindImage"),
+              modified: t("browse.detailModified"),
+              path: t("browse.detailPath"),
+              size: t("browse.detailSize"),
+              type: t("browse.detailType"),
+              unknown: t("browse.detailUnknown"),
+              video: t("browse.kindVideo"),
+            }),
+            id: previewAsset.id,
+            kind: previewAsset.kind,
+            name: previewAsset.name,
+          }
+        : undefined,
+    [locale, previewAsset, t],
   );
   const mediaItems = useMemo(
     () => mapSearchItems(assets, locale, t("search.source")),
@@ -154,6 +190,11 @@ export function SearchPage({
           />
         </div>
 
+        <div
+          className={styles.workspace}
+          data-has-preview={previewItem ? "" : undefined}
+          style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
+        >
         <div className={styles.results}>
           {!state.q && (
             <EmptyState
@@ -230,11 +271,14 @@ export function SearchPage({
                 )}
               </div>
               <MediaCollection
+                ref={preview.collectionRef}
                 hasNextPage={resultsQuery.hasNextPage}
                 isFetchingNextPage={resultsQuery.isFetchingNextPage}
                 items={mediaItems}
                 labels={{
-                  activatePreview: t("browse.activatePreview"),
+                  activatePreview: preview.pinned
+                    ? t("browse.selectPinnedPreview")
+                    : t("browse.activatePreview"),
                   animated: t("browse.kindAnimated"),
                   failedThumbnail: t("browse.thumbnailFailed"),
                   image: t("browse.kindImage"),
@@ -248,12 +292,64 @@ export function SearchPage({
                   video: t("browse.kindVideo"),
                 }}
                 layout={layout}
+                onItemActivate={(assetId, activation) =>
+                  preview.activate(assetId, activation)
+                }
                 onLoadMore={() => void resultsQuery.fetchNextPage()}
                 onRetryLoadMore={() => void resultsQuery.fetchNextPage()}
                 paginationError={resultsQuery.isFetchNextPageError}
+                {...(previewAsset
+                  ? { previewItemId: previewAsset.id }
+                  : {})}
+                {...(preview.selectedItemId
+                  ? { selectedItemId: preview.selectedItemId }
+                  : {})}
               />
             </>
           )}
+        </div>
+        {previewItem && (
+          <MediaPreview
+            canGoNext={
+              preview.previewIndex >= 0 &&
+              preview.previewIndex < assets.length - 1
+            }
+            canGoPrevious={preview.previewIndex > 0}
+            item={previewItem}
+            labels={{
+              close: t("browse.closePreview"),
+              followingDescription: t("browse.previewFollowingDescription"),
+              followingTitle: t("browse.previewFollowingTitle"),
+              imageFailed: t("browse.previewImageFailed"),
+              next: t("browse.nextMedia"),
+              pin: t("browse.pinPreview"),
+              pinnedDescription: t("browse.previewPinnedDescription"),
+              pinnedTitle: t("browse.previewPinnedTitle"),
+              position:
+                preview.previewIndex >= 0
+                  ? t("browse.previewPosition")
+                      .replace(
+                        "{current}",
+                        String(preview.previewIndex + 1),
+                      )
+                      .replace("{total}", String(assets.length))
+                  : t("search.previewOutsideResults"),
+              previous: t("browse.previousMedia"),
+              preview: t("browse.preview"),
+              resize: t("browse.resizePreview"),
+              unpin: t("browse.unpinPreview"),
+              videoFailed: t("browse.previewVideoFailed"),
+            }}
+            maxWidth={preview.maxWidth}
+            onClose={preview.close}
+            onNext={() => preview.moveTo(assets[preview.previewIndex + 1])}
+            onPinnedChange={preview.updatePinned}
+            onPrevious={() => preview.moveTo(assets[preview.previewIndex - 1])}
+            onWidthChange={preview.setWidth}
+            pinned={preview.pinned}
+            width={preview.width}
+          />
+        )}
         </div>
       </section>
     </AppShell>

@@ -455,23 +455,43 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/libraries/${createdLibraryId}/search?q=direct-photo`);
   await expect(page.getByRole("heading", { name: "Search media" })).toBeVisible();
-  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "direct-photo.jpg · Image" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: `${longLibraryName} · /` }),
   ).toHaveAttribute(
     "href",
     new RegExp(`^/libraries/${createdLibraryId}/browse/dir_`),
   );
+  const searchPreviewTrigger = page.getByRole("button", {
+    name: "Preview direct-photo.jpg",
+  });
+  await searchPreviewTrigger.click();
+  const searchPreview = page.getByRole("complementary", {
+    name: "Preview: direct-photo.jpg",
+  });
+  await expect(searchPreview).toBeVisible();
+  await searchPreview.getByRole("button", { name: "Pin preview" }).click();
   await page.getByLabel("Media type").selectOption("video");
   await expect(page).toHaveURL(
     `/libraries/${createdLibraryId}/search?q=direct-photo&kind=video`,
   );
   await expect(page.getByText("No search results")).toBeVisible();
+  await expect(searchPreview).toBeVisible();
+  await expect(searchPreview).toContainText(
+    "Pinned preview is outside the current results",
+  );
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(
     `/libraries/${createdLibraryId}/search?q=direct-photo`,
   );
-  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "direct-photo.jpg · Image" }),
+  ).toBeVisible();
+  await searchPreview.getByRole("button", { name: "Close preview" }).click();
+  await expect(searchPreview).toHaveCount(0);
+  await expect(searchPreviewTrigger).toBeFocused();
 
   await page.getByLabel("Scope").selectOption("all");
   await expect(page).toHaveURL(

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -60,6 +60,19 @@ const result: Asset = {
   sourceAvailability: "available",
   thumbnail: { errorCode: null, status: "pending", url: null },
   width: 1200,
+};
+
+const videoResult: Asset = {
+  ...result,
+  durationMs: 42_000,
+  height: 1080,
+  id: "ast_video",
+  kind: "video",
+  mimeType: "video/mp4",
+  name: "京都散步.mp4",
+  playbackStatus: "playable",
+  relativePath: "旅行/日本/京都散步.mp4",
+  width: 1920,
 };
 
 beforeEach(() => {
@@ -150,6 +163,61 @@ it("preserves an empty query state and clears only active filters", async () => 
     ),
   );
   expect(screen.getByRole("searchbox")).toHaveValue("不存在");
+});
+
+it("reuses the pinned non-modal preview state machine", async () => {
+  const user = userEvent.setup();
+  vi.mocked(searchLibraryAssets).mockResolvedValue({
+    items: [result, videoResult],
+    nextCursor: null,
+  });
+  renderSearch("/libraries/lib_family/search?q=京都");
+
+  const firstTrigger = await screen.findByRole("button", {
+    name: "预览 京都夜景.jpg",
+  });
+  await user.click(firstTrigger);
+  const imagePreview = screen.getByRole("complementary", {
+    name: "预览: 京都夜景.jpg",
+  });
+  await user.click(
+    within(imagePreview).getByRole("button", { name: "固定预览" }),
+  );
+
+  const videoTrigger = screen.getByRole("button", {
+    name: "选择 京都散步.mp4，双击切换固定预览",
+  });
+  await user.click(videoTrigger);
+  expect(imagePreview).toBeVisible();
+  await user.dblClick(videoTrigger);
+  expect(
+    screen.getByRole("complementary", { name: "预览: 京都散步.mp4" }),
+  ).toBeVisible();
+
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(videoTrigger).toHaveFocus());
+});
+
+it("keeps a pinned preview while filters replace the result set", async () => {
+  const user = userEvent.setup();
+  vi.mocked(searchLibraryAssets).mockImplementation(async (input) => ({
+    items: input.kinds?.includes("video") ? [] : [result],
+    nextCursor: null,
+  }));
+  renderSearch("/libraries/lib_family/search?q=京都");
+
+  await user.click(
+    await screen.findByRole("button", { name: "预览 京都夜景.jpg" }),
+  );
+  const preview = screen.getByRole("complementary", {
+    name: "预览: 京都夜景.jpg",
+  });
+  await user.click(within(preview).getByRole("button", { name: "固定预览" }));
+  await user.selectOptions(screen.getByLabelText("媒体类型"), "video");
+
+  expect(await screen.findByText("没有搜索结果")).toBeVisible();
+  expect(preview).toBeVisible();
+  expect(preview).toHaveTextContent("固定预览不在当前结果中");
 });
 
 function renderSearch(initialEntry: string) {
