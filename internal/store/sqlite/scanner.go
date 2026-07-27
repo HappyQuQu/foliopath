@@ -422,9 +422,13 @@ func notSeenInGeneration(
 	return previous != generation, nil
 }
 
-func (s *Store) CompleteFullScan(ctx context.Context, runID, skippedCount int64) (scanner.ScanRun, error) {
-	if skippedCount < 0 {
-		return scanner.ScanRun{}, errors.New("skipped count cannot be negative")
+func (s *Store) CompleteFullScan(
+	ctx context.Context,
+	runID int64,
+	skipped scanner.SkipCounts,
+) (scanner.ScanRun, error) {
+	if !skipped.Valid() {
+		return scanner.ScanRun{}, errors.New("skipped counts cannot be negative")
 	}
 	var completed scanner.ScanRun
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
@@ -472,12 +476,12 @@ func (s *Store) CompleteFullScan(ctx context.Context, runID, skippedCount int64)
 		result, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
             SET status = 'succeeded', phase = 'completed',
-                skipped_count = ?, skipped_files = ?,
+                skipped_count = ?, skipped_directories = ?, skipped_files = ?,
                 error_code = NULL, finished_at_ms = ?,
                 heartbeat_at_ms = NULL, lease_expires_at_ms = NULL,
                 revision = revision + 1
             WHERE id = ? AND status = 'running'`,
-			skippedCount, skippedCount, now, run.ID)
+			skipped.Total(), skipped.Directories, skipped.Files, now, run.ID)
 		if err != nil {
 			return fmt.Errorf("complete scan run: %w", err)
 		}
@@ -762,28 +766,50 @@ func recalculateDirectoryCountsTx(
 	return nil
 }
 
-func (s *Store) FailFullScan(ctx context.Context, runID, skippedCount int64, errorCode string) (scanner.ScanRun, error) {
-	return s.finishWithoutCleanup(ctx, runID, skippedCount, scanner.RunStatusFailed, normalizeErrorCode(errorCode), "error")
+func (s *Store) FailFullScan(
+	ctx context.Context,
+	runID int64,
+	skipped scanner.SkipCounts,
+	errorCode string,
+) (scanner.ScanRun, error) {
+	return s.finishWithoutCleanup(
+		ctx, runID, skipped, scanner.RunStatusFailed,
+		normalizeErrorCode(errorCode), "error",
+	)
 }
 
-func (s *Store) CancelFullScan(ctx context.Context, runID, skippedCount int64) (scanner.ScanRun, error) {
-	return s.finishWithoutCleanup(ctx, runID, skippedCount, scanner.RunStatusCancelled, "", "previous")
+func (s *Store) CancelFullScan(
+	ctx context.Context,
+	runID int64,
+	skipped scanner.SkipCounts,
+) (scanner.ScanRun, error) {
+	return s.finishWithoutCleanup(
+		ctx, runID, skipped, scanner.RunStatusCancelled, "", "previous",
+	)
 }
 
-func (s *Store) OfflineFullScan(ctx context.Context, runID, skippedCount int64, errorCode string) (scanner.ScanRun, error) {
-	return s.finishWithoutCleanup(ctx, runID, skippedCount, scanner.RunStatusOffline, normalizeErrorCode(errorCode), "offline")
+func (s *Store) OfflineFullScan(
+	ctx context.Context,
+	runID int64,
+	skipped scanner.SkipCounts,
+	errorCode string,
+) (scanner.ScanRun, error) {
+	return s.finishWithoutCleanup(
+		ctx, runID, skipped, scanner.RunStatusOffline,
+		normalizeErrorCode(errorCode), "offline",
+	)
 }
 
 func (s *Store) finishWithoutCleanup(
 	ctx context.Context,
 	runID int64,
-	skippedCount int64,
+	skipped scanner.SkipCounts,
 	status scanner.RunStatus,
 	errorCode string,
 	libraryStatus string,
 ) (scanner.ScanRun, error) {
-	if skippedCount < 0 {
-		return scanner.ScanRun{}, errors.New("skipped count cannot be negative")
+	if !skipped.Valid() {
+		return scanner.ScanRun{}, errors.New("skipped counts cannot be negative")
 	}
 	var finished scanner.ScanRun
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
@@ -822,12 +848,13 @@ func (s *Store) finishWithoutCleanup(
 		result, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
             SET status = ?, phase = 'completed',
-                skipped_count = ?, skipped_files = ?,
+                skipped_count = ?, skipped_directories = ?, skipped_files = ?,
                 error_code = ?, finished_at_ms = ?,
                 heartbeat_at_ms = NULL, lease_expires_at_ms = NULL,
                 revision = revision + 1
             WHERE id = ? AND status = 'running'`,
-			string(status), skippedCount, skippedCount, nullableCode, now, run.ID)
+			string(status), skipped.Total(), skipped.Directories, skipped.Files,
+			nullableCode, now, run.ID)
 		if err != nil {
 			return fmt.Errorf("finish scan without cleanup: %w", err)
 		}

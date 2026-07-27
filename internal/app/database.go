@@ -434,7 +434,8 @@ func (service *databaseService) UpsertCatalogBatch(
 
 func (service *databaseService) CompleteFullScan(
 	ctx context.Context,
-	runID, skipped int64,
+	runID int64,
+	skipped scanner.SkipCounts,
 ) (scanner.ScanRun, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
@@ -446,7 +447,8 @@ func (service *databaseService) CompleteFullScan(
 
 func (service *databaseService) FailFullScan(
 	ctx context.Context,
-	runID, skipped int64,
+	runID int64,
+	skipped scanner.SkipCounts,
 	code string,
 ) (scanner.ScanRun, error) {
 	service.mutex.RLock()
@@ -459,7 +461,8 @@ func (service *databaseService) FailFullScan(
 
 func (service *databaseService) CancelFullScan(
 	ctx context.Context,
-	runID, skipped int64,
+	runID int64,
+	skipped scanner.SkipCounts,
 ) (scanner.ScanRun, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
@@ -471,7 +474,8 @@ func (service *databaseService) CancelFullScan(
 
 func (service *databaseService) OfflineFullScan(
 	ctx context.Context,
-	runID, skipped int64,
+	runID int64,
+	skipped scanner.SkipCounts,
 	code string,
 ) (scanner.ScanRun, error) {
 	service.mutex.RLock()

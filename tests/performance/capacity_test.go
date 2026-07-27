@@ -332,7 +332,7 @@ func TestDirectoryRollupDeepChainBaseline(t *testing.T) {
 	}
 
 	finalizeStarted := time.Now()
-	completed, err := store.CompleteFullScan(context.Background(), run.ID, 0)
+	completed, err := store.CompleteFullScan(context.Background(), run.ID, scanner.SkipCounts{})
 	finalizeDuration := time.Since(finalizeStarted)
 	if err != nil {
 		t.Fatalf("finalize %d-level deep chain: %v", depth, err)

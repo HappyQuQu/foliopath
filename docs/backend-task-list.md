@@ -5,8 +5,8 @@
 
 - 当前阶段：Stage 2 扫描后端；媒体库 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
-  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～102` 扫描契约与有界 worker
-- 当前任务：`S2-103` 全部可读目录与直接/递归计数
+  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～103` 扫描契约、worker 与目录计数
+- 当前任务：`S2-104` 媒体候选、fingerprint、增量 upsert 与成功后 stale cleanup
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)
   已完成媒体库后端交接；[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)
   已允许并完成 `S2-102` 唯一 durable queue 实现；不得建立临时队列或第二套扫描状态机
@@ -147,7 +147,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     `internal/jobs` 统一拥有 lease queue、2-worker 全局并发、15 秒 heartbeat/120 秒 lease
     和取消传播，SQLite 按 available/created/ID 原子领取并执行最多三次恢复；正式
     composition 已消费 creation scan，单元、SQLite、架构、真实应用与完整仓库门禁通过。
-- [ ] `S2-103` 索引全部可读目录，包括空目录，并维护直接/递归计数。
+- [x] `S2-103` 索引全部可读目录，包括空目录，并维护直接/递归计数。
+  - 完成证据：[S2-103 目录索引与计数](gates/MVP-2026-07-23/s2-directory-counts.md)；
+    scanner 流式发射根和全部可读/空/隐藏目录，SQLite 在成功 finalize 中以 O(D) 有界叶批次
+    发布全部直接/递归计数。production creation scan、128 层链、失败保留、损坏拓扑回滚和
+    分类型跳过统计均有自动证据。
 - [ ] `S2-104` 实现媒体候选识别、fingerprint、增量 upsert 和成功后陈旧清理。
 - [ ] `S2-105` 实现取消、离线、权限失败、重启恢复和失败保留旧索引。
 - [ ] `S2-106` 覆盖并发扫描、队列上限、深目录、损坏拓扑和容量回归。
