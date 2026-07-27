@@ -65,15 +65,28 @@ SELECT
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 FROM libraries
 WHERE id = ?1
 `
 
-func (q *Queries) GetLibrary(ctx context.Context, id int64) (Library, error) {
+type GetLibraryRow struct {
+	ID                int64
+	Name              string
+	NameKey           string
+	RootRelPath       string
+	Status            string
+	CurrentGeneration int64
+	Revision          int64
+	CreatedAtMs       int64
+	UpdatedAtMs       int64
+}
+
+func (q *Queries) GetLibrary(ctx context.Context, id int64) (GetLibraryRow, error) {
 	row := q.db.QueryRowContext(ctx, getLibrary, id)
-	var i Library
+	var i GetLibraryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -81,6 +94,7 @@ func (q *Queries) GetLibrary(ctx context.Context, id int64) (Library, error) {
 		&i.RootRelPath,
 		&i.Status,
 		&i.CurrentGeneration,
+		&i.Revision,
 		&i.CreatedAtMs,
 		&i.UpdatedAtMs,
 	)
@@ -94,6 +108,7 @@ INSERT INTO libraries(
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 ) VALUES (
@@ -102,6 +117,7 @@ INSERT INTO libraries(
     ?3,
     'pending',
     0,
+    1,
     ?4,
     ?5
 )
@@ -112,6 +128,7 @@ RETURNING
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 `
@@ -124,7 +141,19 @@ type InsertLibraryParams struct {
 	UpdatedAtMs int64
 }
 
-func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (Library, error) {
+type InsertLibraryRow struct {
+	ID                int64
+	Name              string
+	NameKey           string
+	RootRelPath       string
+	Status            string
+	CurrentGeneration int64
+	Revision          int64
+	CreatedAtMs       int64
+	UpdatedAtMs       int64
+}
+
+func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (InsertLibraryRow, error) {
 	row := q.db.QueryRowContext(ctx, insertLibrary,
 		arg.Name,
 		arg.NameKey,
@@ -132,7 +161,7 @@ func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (L
 		arg.CreatedAtMs,
 		arg.UpdatedAtMs,
 	)
-	var i Library
+	var i InsertLibraryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -140,6 +169,7 @@ func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (L
 		&i.RootRelPath,
 		&i.Status,
 		&i.CurrentGeneration,
+		&i.Revision,
 		&i.CreatedAtMs,
 		&i.UpdatedAtMs,
 	)
@@ -154,21 +184,34 @@ SELECT
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 FROM libraries
 ORDER BY name_key, id
 `
 
-func (q *Queries) ListLibraries(ctx context.Context) ([]Library, error) {
+type ListLibrariesRow struct {
+	ID                int64
+	Name              string
+	NameKey           string
+	RootRelPath       string
+	Status            string
+	CurrentGeneration int64
+	Revision          int64
+	CreatedAtMs       int64
+	UpdatedAtMs       int64
+}
+
+func (q *Queries) ListLibraries(ctx context.Context) ([]ListLibrariesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listLibraries)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Library{}
+	items := []ListLibrariesRow{}
 	for rows.Next() {
-		var i Library
+		var i ListLibrariesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -176,6 +219,7 @@ func (q *Queries) ListLibraries(ctx context.Context) ([]Library, error) {
 			&i.RootRelPath,
 			&i.Status,
 			&i.CurrentGeneration,
+			&i.Revision,
 			&i.CreatedAtMs,
 			&i.UpdatedAtMs,
 		); err != nil {
@@ -196,6 +240,7 @@ const renameLibrary = `-- name: RenameLibrary :execrows
 UPDATE libraries
 SET name = ?1,
     name_key = ?2,
+    revision = revision + 1,
     updated_at_ms = ?3
 WHERE id = ?4
 `

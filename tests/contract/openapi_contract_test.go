@@ -457,6 +457,117 @@ func TestAuthenticationMigrationMatchesThePublicContract(t *testing.T) {
 	}
 }
 
+func TestMediaLibraryOperationsHaveStableFailureSemantics(t *testing.T) {
+	t.Parallel()
+
+	operations := map[string][]string{
+		"GET /api/v1/library-paths": {
+			"'400': [invalid_request, invalid_cursor]",
+			"'409': [library_root_unavailable, library_root_outside_allowed, library_root_symlink, library_root_mount_boundary]",
+		},
+		"GET /api/v1/libraries": {
+			"'400': [invalid_request, invalid_cursor]",
+			"'401': [authentication_required, session_expired]",
+		},
+		"POST /api/v1/libraries": {
+			"'403': [csrf_invalid]",
+			"library_name_conflict",
+			"library_path_overlap",
+			"idempotency_conflict",
+			"'422': [validation_failed]",
+		},
+		"GET /api/v1/libraries/{libraryId}": {
+			"'404': [library_not_found]",
+		},
+		"PATCH /api/v1/libraries/{libraryId}": {
+			"'409': [library_name_conflict, idempotency_conflict]",
+			"'412': [precondition_failed]",
+			"'428': [precondition_required]",
+		},
+		"DELETE /api/v1/libraries/{libraryId}": {
+			"idempotency_conflict",
+			"'412': [precondition_failed]",
+			"'428': [precondition_required]",
+		},
+		"GET /api/v1/library-removals/{removalId}": {
+			"'404': [removal_not_found]",
+		},
+	}
+	for key, required := range operations {
+		block := operationByKey(t, key).block
+		if !strings.Contains(block, "\n      x-error-codes:") {
+			t.Errorf("%s has no stable error-code mapping", key)
+		}
+		for _, value := range required {
+			if !strings.Contains(block, value) {
+				t.Errorf("%s is missing fixed failure semantic %q", key, value)
+			}
+		}
+	}
+
+	create := operationByKey(t, "POST /api/v1/libraries").block
+	for _, required := range []string{
+		"one short transaction",
+		"library_created",
+		"Idempotency-Replayed:",
+		"ETag:",
+	} {
+		if !strings.Contains(create, required) {
+			t.Errorf("create-library contract is missing %q", required)
+		}
+	}
+
+	remove := operationByKey(t, "DELETE /api/v1/libraries/{libraryId}").block
+	normalizedRemove := strings.Join(strings.Fields(remove), " ")
+	for _, required := range []string{
+		"prevents new scans",
+		"cooperative cancellation",
+		"safe terminal point",
+		"bounded idempotent steps",
+		"never opens an original-media deletion capability",
+	} {
+		if !strings.Contains(normalizedRemove, required) {
+			t.Errorf("remove-library contract is missing %q", required)
+		}
+	}
+
+	document := loadOpenAPIDocument(t)
+	requireSchemaEnumValue(t, document, "ErrorCode", "idempotency_conflict")
+}
+
+func TestMediaLibraryMigrationMatchesThePublicContract(t *testing.T) {
+	t.Parallel()
+
+	migration := readRepositoryFile(t, "migrations", "00003_library_contract.sql")
+	for _, required := range []string{
+		"ADD COLUMN revision INTEGER NOT NULL DEFAULT 1",
+		"CREATE UNIQUE INDEX scan_runs_one_creation_per_library",
+		"WHERE trigger_kind = 'library_created'",
+		"CREATE TABLE library_removals",
+		"CREATE UNIQUE INDEX library_removals_one_active_per_library",
+		"WHERE status IN ('queued', 'running')",
+		"CREATE TABLE idempotency_records",
+		"CHECK (length(key_hash) = 32)",
+		"CHECK (length(request_hash) = 32)",
+		"CHECK (expires_at_ms >= created_at_ms + 86400000)",
+		"UNIQUE (operation, key_hash)",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Errorf("media-library migration is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"idempotency_key TEXT",
+		"request_body",
+		"host_path",
+		"absolute_path",
+	} {
+		if strings.Contains(strings.ToLower(migration), forbidden) {
+			t.Errorf("media-library migration stores forbidden value %q", forbidden)
+		}
+	}
+}
+
 func TestCursorPaginationIsBoundedAndQueryBound(t *testing.T) {
 	t.Parallel()
 

@@ -412,6 +412,12 @@ paths:
         escapes. It does not follow directory symlinks. Results never include
         files or host paths, and creation repeats all safety and overlap checks.
       x-requirements: [FR-LIB-001, FR-LIB-002, FR-LIB-004, NFR-SEC-001, NFR-PRIV-001]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '409': [library_root_unavailable, library_root_outside_allowed, library_root_symlink, library_root_mount_boundary]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/LibraryParentPathParameter'
         - $ref: '#/components/parameters/CursorParameter'
@@ -444,6 +450,11 @@ paths:
       summary: List configured media libraries
       description: Libraries are naturally sorted by their unique display name and stable ID.
       x-requirements: [FR-LIB-001, FR-LIB-006, FR-LIB-008]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/CursorParameter'
         - $ref: '#/components/parameters/LimitParameter'
@@ -476,12 +487,25 @@ paths:
         safety, and ancestor/descendant overlap are rechecked atomically.
 
         An idempotency key is retained for at least 24 hours. Reusing the same
-        key and identical body returns the original result; reusing it with a
-        different body fails with `idempotency_conflict`.
+        key and identical body returns the original logical result and never
+        creates a duplicate. If that result has since been removed, replay
+        fails with `idempotency_conflict` until retention expires.
+        Reusing a key with a different body fails with
+        `idempotency_conflict`. The library row, its `library_created` queued
+        full scan, and the idempotency record commit in one short transaction
+        before a worker is notified.
       security:
         - cookieAuth: []
           csrfToken: []
       x-requirements: [FR-LIB-001, FR-LIB-002, FR-LIB-003, FR-LIB-004, FR-LIB-008, FR-SCN-001, NFR-SAFE-001, NFR-SEC-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '409': [library_name_conflict, library_path_overlap, library_root_unavailable, library_root_outside_allowed, library_root_symlink, library_root_mount_boundary, idempotency_conflict]
+        '422': [validation_failed]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
       requestBody:
@@ -501,6 +525,8 @@ paths:
                 example: /api/v1/libraries/lib_01JZ8Y7QVK
             Idempotency-Replayed:
               $ref: '#/components/headers/IdempotencyReplayed'
+            ETag:
+              $ref: '#/components/headers/ETag'
             X-Request-ID:
               $ref: '#/components/headers/RequestID'
           content:
@@ -530,6 +556,11 @@ paths:
       operationId: getLibrary
       summary: Get a media library and its latest scan summary
       x-requirements: [FR-LIB-001, FR-LIB-005, FR-LIB-006, FR-SCN-003]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
       responses:
         '200':
           description: Media library. The ETag is required for rename or removal.
@@ -556,11 +587,25 @@ paths:
       summary: Rename a media library
       description: |
         The MVP request schema intentionally has no root path field. Changing a
-        root requires removing and recreating the library.
+        root requires removing and recreating the library. A strong ETag
+        changes whenever any represented library field changes. Renaming to
+        the current normalized name is a no-op and returns the current
+        representation without advancing the validator.
       security:
         - cookieAuth: []
           csrfToken: []
       x-requirements: [FR-LIB-008]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [library_not_found]
+        '409': [library_name_conflict, idempotency_conflict]
+        '412': [precondition_failed]
+        '422': [validation_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
@@ -610,10 +655,28 @@ paths:
         jobs, and derived cache only. It never moves, edits, or deletes original
         media. The library remains identifiable until cleanup succeeds; poll
         the returned removal resource.
+
+        Acceptance atomically creates the durable removal, prevents new scans,
+        and requests cooperative cancellation of a queued or running scan.
+        Cleanup waits for that scan to reach a safe terminal point, deletes
+        database/cache state in bounded idempotent steps, and never opens an
+        original-media deletion capability. An identical idempotency replay
+        returns the same removal. A different key while a removal is active
+        fails with `idempotency_conflict`.
       security:
         - cookieAuth: []
           csrfToken: []
       x-requirements: [FR-LIB-007, NFR-SAFE-001, MVP-AC-008]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [library_not_found]
+        '409': [idempotency_conflict]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/IfMatchHeader'
         - $ref: '#/components/parameters/IdempotencyKeyHeader'
@@ -659,6 +722,11 @@ paths:
       operationId: getLibraryRemoval
       summary: Get asynchronous media-library removal status
       x-requirements: [FR-LIB-007, NFR-SAFE-001, MVP-AC-008]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '404': [removal_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/RemovalIDParameter'
         - $ref: '#/components/parameters/IfNoneMatchHeader'
@@ -1366,7 +1434,8 @@ components:
       description: |
         Client-generated opaque key retained for at least 24 hours. Use a new
         key for a different logical action. Reuse with a different request body
-        fails with `idempotency_conflict`.
+        fails with `idempotency_conflict`. The server stores only a fixed-size
+        digest of this value and never writes the plaintext key to logs.
       schema:
         type: string
         minLength: 8
@@ -1451,7 +1520,9 @@ components:
       schema:
         type: boolean
     ETag:
-      description: Strong opaque representation validator.
+      description: |
+        Strong opaque representation validator. For a Library it changes when
+        any represented field changes, including scan-derived status/counts.
       schema:
         type: string
         example: '"fp-8b51cdd5"'
@@ -2299,6 +2370,9 @@ components:
         status:
           type: string
           enum: [queued, running, succeeded, failed]
+          description: |
+            A failed operation remains pollable and may be safely retried by
+            the worker or by a later delete request with a new idempotency key.
         createdAt:
           $ref: '#/components/schemas/Timestamp'
         startedAt:

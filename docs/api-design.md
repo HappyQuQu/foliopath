@@ -322,3 +322,9 @@ OpenAPI 第一版已经固定：
 登录限流阈值、可信代理清单、轮询退避曲线、自然排序键、游标签名密钥轮换和缓存安全余量。
 这些参数不得改变已固定 wire 行为；若必须改变外部契约，先更新 OpenAPI、契约测试和受影响
 Gate，再实现 handler。生产 handler 与生成客户端不得反向改写本说明。
+
+媒体库 HTTP/数据契约已在
+[S2-001 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)完成切片评审：
+创建库、唯一 creation scan 与摘要化幂等记录同事务；改名/移除使用强 ETag；异步 removal
+先阻止新扫描并协作取消活动扫描，只清理应用数据。扫描详情、取消与 schedule 的完整契约
+仍由 `S2-101` 冻结。
