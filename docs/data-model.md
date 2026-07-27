@@ -72,10 +72,21 @@
 - 创建时间，以及可空的开始、结束和心跳时间；排队任务尚无开始时间。
 - 已发现目录数、媒体数、错误数和可安全展示的错误摘要。
 - 跳过目录/文件数、取消请求时间和安全取消原因。
+- `revision`、`phase`、`processed_assets`、分离的 skipped directory/file 与 error 计数，
+  以及 issues 是否截断。
+- `available_at_ms`、heartbeat、lease、attempt count 共同构成 restart-safe durable
+  admission；进程内 channel 只负责唤醒。
 
 同一媒体库最多有一个 `queued` 或 `running` 的完整扫描。失败代次不能执行媒体库级陈旧记录清理。
 创建媒体库时，库记录、唯一 `library_created` queued scan 与创建幂等记录在同一个短事务
 提交；提交后才唤醒 worker。
+
+### `scan_issues`
+
+- 归属于 `scan_run_id`，只保存稳定 code、正的聚合 count、可空且有界的媒体库相对示例
+  路径和创建时间。
+- 每个 scan 最多 50 个聚合组；超额由 `scan_runs.issues_truncated` 表示。
+- 不保存本地化 message、errno、stack、媒体工具 stderr、宿主机或容器绝对路径。
 
 ### `library_removals`
 
@@ -138,7 +149,10 @@ singleton 约束防止并发创建多个账号；应用重启后从数据库恢�
 
 ### `settings`
 
-只保存 schema 已知的应用级配置，包括默认 24 小时完整扫描周期（可修改或关闭）、默认 10 GiB 缩略图缓存配额，以及默认跟随浏览器的中英语言偏好。秘密值不得以明文日志输出。设置必须经过类型、范围和权限校验，不能成为任意键值存储。
+使用固定 `singleton_key=1` 的 typed row，只保存 schema 已知的应用级配置，包括默认
+24 小时完整扫描周期（允许 1～8760 小时或 null 关闭）、默认 10 GiB 缩略图缓存配额，
+以及默认跟随浏览器的中英语言偏好。`revision` 支持强 ETag/If-Match，提交后才唤醒
+scheduler。秘密值不得以明文日志输出；设置不能成为任意键值存储。
 
 ## 索引与查询
 

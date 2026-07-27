@@ -1090,6 +1090,148 @@ func TestScanAndAssetContractMatchesDomainAndMigration(t *testing.T) {
 	}
 }
 
+func TestReliableScanContractHasStableAdmissionObservationAndCancellation(t *testing.T) {
+	t.Parallel()
+
+	operations := map[string][]string{
+		"GET /api/v1/libraries/{libraryId}/scans": {
+			"'400': [invalid_request, invalid_cursor]",
+			"'404': [library_not_found]",
+			"createdAt` descending",
+		},
+		"POST /api/v1/libraries/{libraryId}/scans": {
+			"'200':",
+			"'202':",
+			"'409': [idempotency_conflict]",
+			"durable `manual` run",
+			"Offline libraries may be queued",
+			"ETag:",
+		},
+		"GET /api/v1/scans/{scanId}": {
+			"'404': [scan_not_found]",
+			"IfNoneMatchHeader",
+			"'304':",
+			"strong ETag changes",
+		},
+		"POST /api/v1/scans/{scanId}/cancel": {
+			"'409': [scan_already_finished]",
+			"queued run it",
+			"cancelRequestedAt",
+			"bounded batch/checkpoint boundaries",
+			"ETag:",
+		},
+	}
+	for key, required := range operations {
+		block := operationByKey(t, key).block
+		if !strings.Contains(block, "\n      x-error-codes:") {
+			t.Errorf("%s has no stable error-code mapping", key)
+		}
+		for _, value := range required {
+			if !strings.Contains(block, value) {
+				t.Errorf("%s is missing scan contract %q", key, value)
+			}
+		}
+	}
+
+	scanRun := schemaBlock(t, "ScanRun")
+	for _, required := range []string{
+		"- issuesTruncated",
+		"- errorCode",
+		"maxItems: 50",
+		"#/components/schemas/ScanFailureCode",
+		"Null unless a reliable denominator exists",
+	} {
+		if !strings.Contains(scanRun, required) {
+			t.Errorf("ScanRun is missing %q", required)
+		}
+	}
+	for _, value := range []string{
+		"library_root_identity_changed",
+		"partial_tree_unreadable",
+		"scan_interrupted",
+	} {
+		if !strings.Contains(schemaBlock(t, "ScanFailureCode"), value) {
+			t.Errorf("ScanFailureCode is missing %q", value)
+		}
+	}
+
+	settings := schemaBlock(t, "Settings")
+	update := schemaBlock(t, "SettingsUpdate")
+	for _, block := range []string{settings, update} {
+		for _, required := range []string{
+			"scheduledScanIntervalHours",
+			"maximum: 8760",
+			"nullable: true",
+		} {
+			if !strings.Contains(block, required) {
+				t.Errorf("scan schedule setting is missing %q", required)
+			}
+		}
+	}
+}
+
+func TestReliableScanMigrationFixesDurableResourceBounds(t *testing.T) {
+	t.Parallel()
+
+	migration := readRepositoryFile(t, "migrations", "00004_scan_contract.sql")
+	for _, required := range []string{
+		"ADD COLUMN revision INTEGER NOT NULL DEFAULT 1",
+		"ADD COLUMN phase TEXT NOT NULL DEFAULT 'queued'",
+		"ADD COLUMN cancel_requested_at_ms INTEGER",
+		"ADD COLUMN heartbeat_at_ms INTEGER",
+		"ADD COLUMN lease_expires_at_ms INTEGER",
+		"ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0",
+		"CREATE INDEX scan_runs_ready_queue",
+		"CREATE INDEX scan_runs_expired_lease",
+		"CREATE TABLE scan_issues",
+		"CREATE TRIGGER scan_issues_bounded",
+		">= 50",
+		"CREATE TABLE settings",
+		"scheduled_scan_interval_hours",
+		"VALUES (1, 24, 10737418240, 'browser', 1, 0)",
+	} {
+		if !strings.Contains(migration, required) {
+			t.Errorf("scan contract migration is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"host_path",
+		"absolute_path",
+		"raw_error",
+		"stderr",
+	} {
+		if strings.Contains(strings.ToLower(migration), forbidden) {
+			t.Errorf("scan contract migration stores forbidden value %q", forbidden)
+		}
+	}
+
+	queries := readRepositoryFile(
+		t,
+		"internal",
+		"store",
+		"sqlite",
+		"queries",
+		"scans.sql",
+	)
+	for _, required := range []string{
+		"-- name: FindActiveScanForLibrary :one",
+		"-- name: InsertQueuedScan :one",
+		"-- name: ClaimNextQueuedScan :one",
+		"ORDER BY available_at_ms, created_at_ms, id",
+		"-- name: RequestRunningScanCancellation :one",
+		"-- name: CancelQueuedScan :one",
+		"-- name: RecoverNextExpiredScan :one",
+		"attempt_count >= 3",
+		"-- name: ListLibraryScanContractRuns :many",
+		"ORDER BY created_at_ms DESC, id DESC",
+		"-- name: UpdateScheduledScanInterval :one",
+	} {
+		if !strings.Contains(queries, required) {
+			t.Errorf("scan query contract is missing %q", required)
+		}
+	}
+}
+
 func TestFirstContractDecisionsCannotSilentlyDrift(t *testing.T) {
 	t.Parallel()
 

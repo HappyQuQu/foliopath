@@ -49,8 +49,8 @@
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
 当前里程碑：**Stage 2 / 媒体库后端**。`S2-002` 安全目录枚举和 `S2-003` 媒体库领域
-规则已完成，当前后端任务是 `S2-004` 媒体库生命周期；扫描仍只允许 `S2-101` 契约
-设计。Stage 3～5 仍未授权。
+规则已完成，`S2-101` 扫描 Contract Ready 已通过；当前后端任务是 `S2-004` 媒体库
+生命周期。Stage 3～5 仍未授权。
 
 执行约束：
 
@@ -148,8 +148,8 @@
 [查看后端开发清单](backend-task-list.md)
 
 - 当前：媒体库 `S2-001` Contract Ready、`S2-002` 安全目录枚举和 `S2-003` 领域规则
-  已完成；进入 `S2-004`。
-  首次扫描执行、取消和 schedule 仍须等待 `S2-101`。
+  已完成，扫描 `S2-101` Contract Ready 已通过；进入 `S2-004`，并复用唯一 durable
+  scan admission。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 

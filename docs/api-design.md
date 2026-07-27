@@ -238,6 +238,10 @@ bucket 最多 4096 个并在满载时失败关闭。可信代理解析与发布�
 
 ### 扫描
 
+扫描 wire contract 已由 `S2-101` 冻结，以下说明以
+[`api/openapi.yaml`](../api/openapi.yaml)为权威来源，完整 admission/恢复预算见
+[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)。
+
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | `POST` | `/api/v1/libraries/{libraryId}/scans` | 请求完整扫描 |
@@ -246,6 +250,9 @@ bucket 最多 4096 个并在满载时失败关闭。可信代理解析与发布�
 | `POST` | `/api/v1/scans/{scanId}/cancel` | 请求协作式取消，非立即强杀；保留可靠索引与安全提交的新增记录 |
 
 MVP 使用条件轮询或普通轮询，不引入 WebSocket。SSE 只有在实测轮询造成问题且通过 ADR 接受后才增加。
+手动请求先持久化 queued run，再唤醒全局 worker；同库 active run 返回 `200` 合并结果，
+新 run 返回 `202`。离线库允许请求以作为重试入口。取消 queued run 立即终止，取消 running
+run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都不能触发 stale cleanup。
 
 ### 目录与媒体列表
 
@@ -327,4 +334,4 @@ Gate，再实现 handler。生产 handler 与生成客户端不得反向改写�
 [S2-001 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)完成切片评审：
 创建库、唯一 creation scan 与摘要化幂等记录同事务；改名/移除使用强 ETag；异步 removal
 先阻止新扫描并协作取消活动扫描，只清理应用数据。扫描详情、取消与 schedule 的完整契约
-仍由 `S2-101` 冻结。
+已由 [S2-101 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)冻结。

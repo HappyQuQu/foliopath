@@ -7,7 +7,8 @@
 允许认证产品 UI 连接真实 API。[Stage 2 Architecture
 Ready](gates/MVP-2026-07-23/stage-2-architecture-ready.md)另行结论为 `Go`，但只授权
 契约设计。[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)
-现已允许 `S2-002`/`S2-003` 实现；扫描执行仍须等待 `S2-101`。
+与[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)现已共同允许
+`S2-004` 媒体库生命周期和 `S2-102` 扫描服务按唯一 durable admission 实现。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
