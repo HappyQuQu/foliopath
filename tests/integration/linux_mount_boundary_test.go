@@ -164,6 +164,15 @@ func assertBindMountRejected(t *testing.T, allowedPath, sourcePath, mountTarget 
 	if err != nil {
 		t.Fatalf("NewDirectorySource: %v", err)
 	}
+	if err := directorySource.ValidateLibraryRoot(
+		context.Background(),
+		"mounted",
+	); !errors.Is(err, files.ErrCrossDevice) {
+		t.Fatalf(
+			"ValidateLibraryRoot(mounted) error = %v, want ErrCrossDevice",
+			err,
+		)
+	}
 	if err := directorySource.EnumerateDirectories(
 		context.Background(),
 		"mounted",
