@@ -1,0 +1,562 @@
+// Package catalog owns indexed directory and asset browse semantics.
+package catalog
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+	"unicode/utf8"
+
+	cursorcodec "github.com/HappyQuQu/foliopath/internal/cursor"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
+)
+
+const (
+	DefaultPageSize = 50
+	MaxPageSize     = 200
+	MaxCursorBytes  = 2048
+
+	queryVersion     = 1
+	directoryOrderV1 = 1
+	assetOrderV1     = 1
+)
+
+var (
+	ErrLibraryNotFound   = errors.New("catalog library not found")
+	ErrDirectoryNotFound = errors.New("catalog directory not found")
+	ErrInvalidQuery      = errors.New("invalid catalog query")
+	ErrInvalidCursor     = errors.New("invalid catalog cursor")
+	ErrSearchUnavailable = errors.New("catalog search is not implemented")
+)
+
+type SourceAvailability string
+
+const (
+	SourceAvailable SourceAvailability = "available"
+	SourceOffline   SourceAvailability = "offline"
+)
+
+type SortField string
+
+const (
+	SortDefault    SortField = ""
+	SortName       SortField = "name"
+	SortModifiedAt SortField = "modifiedAt"
+)
+
+type SortOrder string
+
+const (
+	OrderDefault SortOrder = ""
+	OrderAsc     SortOrder = "asc"
+	OrderDesc    SortOrder = "desc"
+)
+
+type AssetKind string
+
+const (
+	KindImage    AssetKind = "image"
+	KindAnimated AssetKind = "animated"
+	KindVideo    AssetKind = "video"
+)
+
+func (kind AssetKind) valid() bool {
+	switch kind {
+	case KindImage, KindAnimated, KindVideo:
+		return true
+	default:
+		return false
+	}
+}
+
+type Scope struct {
+	LibraryID            int64
+	RootDirectoryID      int64
+	DirectoryID          int64
+	CanonicalDirectoryID int64
+	Generation           int64
+	Availability         SourceAvailability
+}
+
+// NormalizeRootScope maps the indexed root ID and omitted-root form to the
+// same canonical scope ID. Non-root directories retain their opaque ID.
+func NormalizeRootScope(rootDirectoryID, selectedDirectoryID int64) (int64, error) {
+	if rootDirectoryID == 0 && selectedDirectoryID == 0 {
+		return 0, nil
+	}
+	if rootDirectoryID <= 0 || selectedDirectoryID <= 0 {
+		return 0, ErrDirectoryNotFound
+	}
+	if selectedDirectoryID == rootDirectoryID {
+		return 0, nil
+	}
+	return selectedDirectoryID, nil
+}
+
+type Directory struct {
+	ID                  int64
+	LibraryID           int64
+	ParentID            int64
+	RelativePath        string
+	Name                string
+	NaturalNameKey      []byte
+	DirectAssetCount    int64
+	RecursiveAssetCount int64
+}
+
+type Asset struct {
+	ID                int64
+	LibraryID         int64
+	DirectoryID       int64
+	RelativePath      string
+	Name              string
+	NaturalNameKey    []byte
+	Kind              AssetKind
+	MediaFormat       string
+	MIMEType          string
+	SizeBytes         int64
+	ModifiedAtNS      int64
+	SourceFingerprint string
+	Availability      SourceAvailability
+}
+
+type DirectoryPosition struct {
+	NaturalNameKey []byte
+	Name           string
+	ID             int64
+}
+
+type AssetPosition struct {
+	NaturalNameKey []byte
+	Name           string
+	RelativePath   string
+	ModifiedAtNS   int64
+	ID             int64
+}
+
+type DirectoryListParams struct {
+	Scope Scope
+	After *DirectoryPosition
+	Limit int
+}
+
+type AssetQuery struct {
+	Scope       Scope
+	Recursive   bool
+	SearchQuery string
+	Kinds       []AssetKind
+	Sort        SortField
+	Order       SortOrder
+}
+
+type AssetListParams struct {
+	Query AssetQuery
+	After *AssetPosition
+	Limit int
+}
+
+type Repository interface {
+	ResolveScope(context.Context, int64, int64) (Scope, error)
+	ListDirectoryPage(context.Context, DirectoryListParams) ([]Directory, error)
+	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
+}
+
+type DirectoryRequest struct {
+	LibraryID         int64
+	ParentDirectoryID int64
+	Cursor            string
+	Limit             int
+}
+
+type AssetRequest struct {
+	LibraryID   int64
+	DirectoryID int64
+	Recursive   bool
+	SearchQuery *string
+	Kinds       []AssetKind
+	Sort        SortField
+	Order       SortOrder
+	Cursor      string
+	Limit       int
+}
+
+type DirectoryPage struct {
+	Items      []Directory
+	NextCursor string
+}
+
+type AssetPage struct {
+	Items      []Asset
+	NextCursor string
+}
+
+type Service struct {
+	repository Repository
+	codec      *cursorcodec.Codec
+}
+
+func NewService(repository Repository, cursorKey []byte) (*Service, error) {
+	if repository == nil {
+		return nil, errors.New("catalog repository is required")
+	}
+	codec, err := cursorcodec.New(cursorKey)
+	if err != nil {
+		return nil, fmt.Errorf("construct catalog cursor codec: %w", err)
+	}
+	return &Service{repository: repository, codec: codec}, nil
+}
+
+func (service *Service) ListDirectories(
+	ctx context.Context,
+	request DirectoryRequest,
+) (DirectoryPage, error) {
+	if err := ctx.Err(); err != nil {
+		return DirectoryPage{}, err
+	}
+	limit, err := normalizeLimit(request.Limit)
+	if err != nil {
+		return DirectoryPage{}, err
+	}
+	scope, err := service.resolveScope(ctx, request.LibraryID, request.ParentDirectoryID)
+	if err != nil {
+		return DirectoryPage{}, err
+	}
+	fingerprint := directoryFingerprint(scope)
+	var after *DirectoryPosition
+	if request.Cursor != "" {
+		position, decodeErr := service.decodeDirectoryCursor(request.Cursor, scope.Generation, fingerprint)
+		if decodeErr != nil {
+			return DirectoryPage{}, decodeErr
+		}
+		after = &position
+	}
+	items, err := service.repository.ListDirectoryPage(ctx, DirectoryListParams{
+		Scope: scope,
+		After: after,
+		Limit: limit + 1,
+	})
+	if err != nil {
+		return DirectoryPage{}, err
+	}
+	if len(items) <= limit {
+		return DirectoryPage{Items: items}, nil
+	}
+	items = items[:limit]
+	last := items[len(items)-1]
+	next, err := service.encodeDirectoryCursor(scope.Generation, fingerprint, DirectoryPosition{
+		NaturalNameKey: last.NaturalNameKey,
+		Name:           last.Name,
+		ID:             last.ID,
+	})
+	if err != nil {
+		return DirectoryPage{}, err
+	}
+	return DirectoryPage{Items: items, NextCursor: next}, nil
+}
+
+func (service *Service) ListAssets(ctx context.Context, request AssetRequest) (AssetPage, error) {
+	if err := ctx.Err(); err != nil {
+		return AssetPage{}, err
+	}
+	limit, err := normalizeLimit(request.Limit)
+	if err != nil {
+		return AssetPage{}, err
+	}
+	query, searchRequested, err := normalizeAssetQuery(request)
+	if err != nil {
+		return AssetPage{}, err
+	}
+	if searchRequested {
+		return AssetPage{}, ErrSearchUnavailable
+	}
+	scope, err := service.resolveScope(ctx, request.LibraryID, request.DirectoryID)
+	if err != nil {
+		return AssetPage{}, err
+	}
+	query.Scope = scope
+	fingerprint := assetFingerprint(query)
+	var after *AssetPosition
+	if request.Cursor != "" {
+		position, decodeErr := service.decodeAssetCursor(
+			request.Cursor, scope.Generation, fingerprint, query.Sort,
+		)
+		if decodeErr != nil {
+			return AssetPage{}, decodeErr
+		}
+		after = &position
+	}
+	items, err := service.repository.ListAssetPage(ctx, AssetListParams{
+		Query: query,
+		After: after,
+		Limit: limit + 1,
+	})
+	if err != nil {
+		return AssetPage{}, err
+	}
+	if len(items) <= limit {
+		return AssetPage{Items: items}, nil
+	}
+	items = items[:limit]
+	last := items[len(items)-1]
+	next, err := service.encodeAssetCursor(scope.Generation, fingerprint, query.Sort, AssetPosition{
+		NaturalNameKey: last.NaturalNameKey,
+		Name:           last.Name,
+		RelativePath:   last.RelativePath,
+		ModifiedAtNS:   last.ModifiedAtNS,
+		ID:             last.ID,
+	})
+	if err != nil {
+		return AssetPage{}, err
+	}
+	return AssetPage{Items: items, NextCursor: next}, nil
+}
+
+func (service *Service) resolveScope(
+	ctx context.Context,
+	libraryID, selectedDirectoryID int64,
+) (Scope, error) {
+	if libraryID <= 0 || selectedDirectoryID < 0 {
+		return Scope{}, ErrInvalidQuery
+	}
+	scope, err := service.repository.ResolveScope(ctx, libraryID, selectedDirectoryID)
+	if err != nil {
+		return Scope{}, err
+	}
+	if scope.LibraryID != libraryID || scope.RootDirectoryID < 0 ||
+		scope.DirectoryID < 0 || scope.Generation < 0 ||
+		(scope.RootDirectoryID == 0) != (scope.DirectoryID == 0) {
+		return Scope{}, errors.New("catalog repository returned an invalid scope")
+	}
+	canonical, err := NormalizeRootScope(scope.RootDirectoryID, scope.DirectoryID)
+	if err != nil {
+		return Scope{}, errors.New("catalog repository returned an invalid root scope")
+	}
+	scope.CanonicalDirectoryID = canonical
+	return scope, nil
+}
+
+func normalizeLimit(limit int) (int, error) {
+	if limit == 0 {
+		return DefaultPageSize, nil
+	}
+	if limit < 1 || limit > MaxPageSize {
+		return 0, ErrInvalidQuery
+	}
+	return limit, nil
+}
+
+func normalizeAssetQuery(request AssetRequest) (AssetQuery, bool, error) {
+	searchRequested := request.SearchQuery != nil
+	searchQuery := ""
+	if searchRequested {
+		searchQuery = *request.SearchQuery
+		if !utf8.ValidString(searchQuery) || searchQuery == "" ||
+			utf8.RuneCountInString(searchQuery) > 256 {
+			return AssetQuery{}, false, ErrInvalidQuery
+		}
+	}
+
+	kinds := append([]AssetKind(nil), request.Kinds...)
+	slices.Sort(kinds)
+	kinds = slices.Compact(kinds)
+	if len(kinds) > 3 {
+		return AssetQuery{}, false, ErrInvalidQuery
+	}
+	for _, kind := range kinds {
+		if !kind.valid() {
+			return AssetQuery{}, false, ErrInvalidQuery
+		}
+	}
+
+	sortField := request.Sort
+	if sortField == SortDefault {
+		if request.Recursive || searchRequested {
+			sortField = SortModifiedAt
+		} else {
+			sortField = SortName
+		}
+	}
+	if sortField != SortName && sortField != SortModifiedAt {
+		return AssetQuery{}, false, ErrInvalidQuery
+	}
+	order := request.Order
+	if order == OrderDefault {
+		if sortField == SortName {
+			order = OrderAsc
+		} else {
+			order = OrderDesc
+		}
+	}
+	if order != OrderAsc && order != OrderDesc {
+		return AssetQuery{}, false, ErrInvalidQuery
+	}
+	return AssetQuery{
+		Recursive:   request.Recursive,
+		SearchQuery: searchQuery,
+		Kinds:       kinds,
+		Sort:        sortField,
+		Order:       order,
+	}, searchRequested, nil
+}
+
+type queryFingerprint struct {
+	Version      int         `json:"v"`
+	OrderVersion int         `json:"o"`
+	LibraryID    int64       `json:"l"`
+	DirectoryID  int64       `json:"d"`
+	Generation   int64       `json:"g"`
+	Recursive    bool        `json:"r,omitempty"`
+	Query        string      `json:"q,omitempty"`
+	Kinds        []AssetKind `json:"k,omitempty"`
+	Sort         SortField   `json:"s,omitempty"`
+	Order        SortOrder   `json:"a,omitempty"`
+}
+
+func directoryFingerprint(scope Scope) [sha256.Size]byte {
+	return hashFingerprint(queryFingerprint{
+		Version: queryVersion, OrderVersion: directoryOrderV1,
+		LibraryID: scope.LibraryID, DirectoryID: scope.CanonicalDirectoryID,
+		Generation: scope.Generation,
+	})
+}
+
+func assetFingerprint(query AssetQuery) [sha256.Size]byte {
+	return hashFingerprint(queryFingerprint{
+		Version: queryVersion, OrderVersion: assetOrderV1,
+		LibraryID: query.Scope.LibraryID, DirectoryID: query.Scope.CanonicalDirectoryID,
+		Generation: query.Scope.Generation, Recursive: query.Recursive,
+		Query: query.SearchQuery, Kinds: query.Kinds, Sort: query.Sort, Order: query.Order,
+	})
+}
+
+func hashFingerprint(value queryFingerprint) [sha256.Size]byte {
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		panic("catalog query fingerprint is not serializable")
+	}
+	return sha256.Sum256(encoded)
+}
+
+type directoryCursor struct {
+	Version     int    `json:"v"`
+	Generation  int64  `json:"g"`
+	Fingerprint []byte `json:"f"`
+	Key         []byte `json:"k"`
+	Name        string `json:"n"`
+	ID          int64  `json:"i"`
+}
+
+func (service *Service) encodeDirectoryCursor(
+	generation int64,
+	fingerprint [sha256.Size]byte,
+	position DirectoryPosition,
+) (string, error) {
+	if generation < 0 || len(position.NaturalNameKey) == 0 ||
+		position.Name == "" || position.ID <= 0 {
+		return "", errors.New("catalog repository returned an invalid directory position")
+	}
+	value, err := service.codec.Encode(directoryCursor{
+		Version: queryVersion, Generation: generation, Fingerprint: fingerprint[:],
+		Key: position.NaturalNameKey, Name: position.Name, ID: position.ID,
+	}, "foliopath:catalog-directories:v1")
+	if err != nil {
+		return "", fmt.Errorf("encode directory cursor: %w", err)
+	}
+	return value, nil
+}
+
+func (service *Service) decodeDirectoryCursor(
+	value string,
+	generation int64,
+	fingerprint [sha256.Size]byte,
+) (DirectoryPosition, error) {
+	if len(value) < 8 || len(value) > MaxCursorBytes {
+		return DirectoryPosition{}, ErrInvalidCursor
+	}
+	var decoded directoryCursor
+	if err := service.codec.Decode(value, "foliopath:catalog-directories:v1", &decoded); err != nil ||
+		decoded.Version != queryVersion || decoded.Generation != generation ||
+		!bytes.Equal(decoded.Fingerprint, fingerprint[:]) || len(decoded.Key) == 0 ||
+		decoded.Name == "" || decoded.ID <= 0 {
+		return DirectoryPosition{}, ErrInvalidCursor
+	}
+	return DirectoryPosition{NaturalNameKey: decoded.Key, Name: decoded.Name, ID: decoded.ID}, nil
+}
+
+type assetCursor struct {
+	Version      int       `json:"v"`
+	Generation   int64     `json:"g"`
+	Fingerprint  []byte    `json:"f"`
+	Sort         SortField `json:"s"`
+	Key          []byte    `json:"k,omitempty"`
+	Name         string    `json:"n,omitempty"`
+	RelativePath string    `json:"p,omitempty"`
+	ModifiedAtNS int64     `json:"m,omitempty"`
+	ID           int64     `json:"i"`
+}
+
+func (service *Service) encodeAssetCursor(
+	generation int64,
+	fingerprint [sha256.Size]byte,
+	sortField SortField,
+	position AssetPosition,
+) (string, error) {
+	if generation < 0 || position.ID <= 0 ||
+		(sortField == SortName &&
+			(len(position.NaturalNameKey) == 0 || position.Name == "" ||
+				position.RelativePath == "")) {
+		return "", errors.New("catalog repository returned an invalid asset position")
+	}
+	value, err := service.codec.Encode(assetCursor{
+		Version: queryVersion, Generation: generation, Fingerprint: fingerprint[:],
+		Sort: sortField, Key: position.NaturalNameKey, Name: position.Name,
+		RelativePath: position.RelativePath, ModifiedAtNS: position.ModifiedAtNS,
+		ID: position.ID,
+	}, "foliopath:catalog-assets:v1")
+	if err != nil {
+		return "", fmt.Errorf("encode asset cursor: %w", err)
+	}
+	return value, nil
+}
+
+func (service *Service) decodeAssetCursor(
+	value string,
+	generation int64,
+	fingerprint [sha256.Size]byte,
+	sortField SortField,
+) (AssetPosition, error) {
+	if len(value) < 8 || len(value) > MaxCursorBytes {
+		return AssetPosition{}, ErrInvalidCursor
+	}
+	var decoded assetCursor
+	if err := service.codec.Decode(value, "foliopath:catalog-assets:v1", &decoded); err != nil ||
+		decoded.Version != queryVersion || decoded.Generation != generation ||
+		decoded.Sort != sortField || !bytes.Equal(decoded.Fingerprint, fingerprint[:]) ||
+		decoded.ID <= 0 {
+		return AssetPosition{}, ErrInvalidCursor
+	}
+	if sortField == SortName &&
+		(len(decoded.Key) == 0 || decoded.Name == "" || decoded.RelativePath == "") {
+		return AssetPosition{}, ErrInvalidCursor
+	}
+	return AssetPosition{
+		NaturalNameKey: decoded.Key, Name: decoded.Name, RelativePath: decoded.RelativePath,
+		ModifiedAtNS: decoded.ModifiedAtNS, ID: decoded.ID,
+	}, nil
+}
+
+// NaturalNameKey is the canonical locale-neutral, numeric-aware catalog key.
+func NaturalNameKey(name string) []byte {
+	collator := collate.New(language.Und, collate.Loose, collate.Numeric)
+	buffer := &collate.Buffer{}
+	key := append([]byte(nil), collator.KeyFromString(buffer, name)...)
+	if len(key) == 0 {
+		return []byte{0}
+	}
+	return key
+}

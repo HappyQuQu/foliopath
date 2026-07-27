@@ -43,8 +43,8 @@
 
 唯一约束为 `(library_id, relative_path)`。`parent_id` 用于目录树和面包屑，根目录的相对路径使用统一的空路径表示。
 根目录数据库行的 `name` 可以为空，但 API 必须由 catalog capability 将其映射为当前媒体库显示名；
-不得由 HTTP handler 或 SQLite adapter 各自发明根节点表示。S3-002 必须通过追加 migration
-建立 `natural_name_key` 及目录 keyset 索引，不能修改已发布的初始 migration。
+不得由 HTTP handler 或 SQLite adapter 各自发明根节点表示。migration 7 已追加
+`natural_name_key` 及目录 keyset 索引，没有修改已发布的初始 migration。
 
 ### `assets`
 
@@ -61,7 +61,7 @@
 
 唯一约束为 `(library_id, relative_path)`。重命名在首版表现为新路径新增，并在成功完整扫描后清理旧路径；不承诺依赖 inode 自动识别跨路径移动。
 S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`，修改时间序使用
-`(mtime_ns, id)`；S3-002 必须用追加 migration 建立与两个 tuple 和目录 scope 相符的索引。
+`(mtime_ns, id)`；migration 7 已建立与两个 tuple 和目录 scope 相符的索引。
 `OFFSET` 不是容量档下的可接受实现。
 
 ### `thumbnails`

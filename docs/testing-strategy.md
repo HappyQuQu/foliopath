@@ -98,7 +98,10 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   通过认证 HTTP 消费设置、历史、详情和 terminal 取消。
 - S3-001 契约测试固定 indexed root 的公开映射、root-to-current breadcrumb（1～2049 项）、
   direct/recursive 目录 scope、自然名称/修改时间排序 tuple、reliable generation-bound
-  cursor、跨库目录 404、offline preserved index 和 browse 请求不遍历文件系统。
+  cursor、跨库目录 404、offline preserved index 和 browse 请求不遍历文件系统。S3-002 的
+  catalog/SQLite 测试进一步固定自然数字排序、完整 tuple keyset、query fingerprint、
+  跨 scope/generation 失效、offline availability、migration 6→7 回填和 context
+  cancellation；architecture test 阻止生产 SQLite 浏览查询使用 `OFFSET`。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体

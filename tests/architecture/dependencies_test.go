@@ -751,6 +751,7 @@ func TestDirectoryIndexAndCountPolicyHasCanonicalOwners(t *testing.T) {
 	root := repositoryRoot(t)
 	scannerPath := filepath.Join(root, "internal", "scanner", "scanner.go")
 	storePath := filepath.Join(root, "internal", "store", "sqlite", "scanner.go")
+	catalogReadPath := filepath.Join(root, "internal", "store", "sqlite", "catalog.go")
 
 	scannerSource, err := os.ReadFile(scannerPath)
 	if err != nil {
@@ -801,6 +802,14 @@ func TestDirectoryIndexAndCountPolicyHasCanonicalOwners(t *testing.T) {
 		source, err := os.ReadFile(path)
 		if err != nil {
 			return err
+		}
+		if path == catalogReadPath {
+			if strings.Contains(string(source), "UPDATE directories") ||
+				strings.Contains(string(source), "SET direct_asset_count") ||
+				strings.Contains(string(source), "SET recursive_asset_count") {
+				t.Errorf("catalog read adapter mutates canonical directory counts: %s", path)
+			}
+			return nil
 		}
 		if strings.Contains(string(source), "direct_asset_count") ||
 			strings.Contains(string(source), "recursive_asset_count") {

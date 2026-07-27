@@ -179,7 +179,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     已固定可序列化 root、root-to-current breadcrumb、direct/recursive scope、自然名称/
     修改时间 tuple、generation-bound cursor、跨库 404、offline preserved index 与请求不访问
     文件系统。允许进入 S3-002/003，不授权缩略图、搜索、前端集成或发布。
-- [ ] `S3-002` 实现稳定排序、opaque cursor、查询指纹和请求取消。
+- [x] `S3-002` 实现稳定排序、opaque cursor、查询指纹和请求取消。
+  - 完成证据：[Catalog 排序与游标](gates/MVP-2026-07-23/s3-catalog-keyset.md)；
+    migration 7、唯一 catalog query/root owner、目录/资产完整 tuple keyset、
+    generation-bound 指纹、跨库隔离、offline 保留与 context cancellation 已由真实
+    SQLite 测试固定；搜索明确 fail closed，未被静默忽略。当前进入 S3-003。
 - [ ] `S3-003` 实现包含空目录及直接/递归计数的目录树。
 - [ ] `S3-004` 实现 govips/FFmpeg 媒体探测、缩略图/视频封面和损坏状态。
 - [ ] `S3-005` 实现有界媒体任务队列、fingerprint 失效、默认 10 GiB LRU 和磁盘余量保护。

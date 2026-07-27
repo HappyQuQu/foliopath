@@ -2,8 +2,8 @@
 
 ## 先看这里：项目现在到哪了
 
-一句话：**认证、媒体库管理和可靠扫描后端已经 Backend Ready；浏览契约已固定，
-后端下一项是 `S3-002` catalog 排序与游标实现，前端可以接入真实扫描 API。**
+一句话：**认证、媒体库管理和可靠扫描后端已经 Backend Ready；浏览契约与 keyset 已完成，
+后端下一项是 `S3-003` 目录树/详情实现，前端可以接入真实扫描 API。**
 
 目前还没有可供用户使用的 FolioPath。开发工作现拆成独立的
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
@@ -53,7 +53,8 @@
 扫描 `S2-101～107` 已完成契约、worker、全部可读目录/计数、媒体候选、fingerprint、
 增量收敛、故障恢复、容量并发、观察/取消 HTTP 和定时设置，并通过 Backend Ready；
 `S3-001` 已固定 root、breadcrumb、direct/recursive scope、排序 tuple、generation cursor
-和 offline 语义；当前后端任务是 `S3-002` catalog 排序与游标实现。Stage 4～5 仍未授权。
+和 offline 语义；`S3-002` 已实现 migration 7、自然排序、严格 keyset、query fingerprint
+与取消传播；当前后端任务是 `S3-003` 目录树/详情实现。Stage 4～5 仍未授权。
 
 执行约束：
 

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/store/sqlite/dbgen"
 	_ "modernc.org/sqlite"
@@ -102,6 +103,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.backfillLibrarySortKeys(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.backfillCatalogSortKeys(ctx); err != nil {
+		return closeOnError(err)
+	}
 	return store, nil
 }
 
@@ -147,6 +151,69 @@ func (s *Store) backfillLibrarySortKeys(ctx context.Context) error {
 					library.NaturalNameSortKey(item.name), item.id,
 				); err != nil {
 					return fmt.Errorf("backfill library sort key: %w", err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *Store) backfillCatalogSortKeys(ctx context.Context) error {
+	for _, table := range []string{"directories", "assets"} {
+		if err := s.backfillCatalogTableSortKeys(ctx, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) backfillCatalogTableSortKeys(ctx context.Context, table string) error {
+	if table != "directories" && table != "assets" {
+		return errors.New("invalid catalog sort-key table")
+	}
+	type missingKey struct {
+		id   int64
+		name string
+	}
+	for {
+		rows, err := s.db.QueryContext(ctx, `
+            SELECT id, name
+            FROM `+table+`
+            WHERE length(natural_name_key) = 0
+            ORDER BY id
+            LIMIT ?`,
+			s.maxBatchSize,
+		)
+		if err != nil {
+			return fmt.Errorf("find missing %s sort keys: %w", table, err)
+		}
+		missing := make([]missingKey, 0, s.maxBatchSize)
+		for rows.Next() {
+			var item missingKey
+			if err := rows.Scan(&item.id, &item.name); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("read missing %s sort key: %w", table, err)
+			}
+			missing = append(missing, item)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close missing %s sort keys: %w", table, err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate missing %s sort keys: %w", table, err)
+		}
+		if len(missing) == 0 {
+			return nil
+		}
+		if err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+			for _, item := range missing {
+				if _, err := tx.ExecContext(ctx,
+					`UPDATE `+table+` SET natural_name_key = ? WHERE id = ?`,
+					catalog.NaturalNameKey(item.name), item.id,
+				); err != nil {
+					return fmt.Errorf("backfill %s sort key: %w", table, err)
 				}
 			}
 			return nil
