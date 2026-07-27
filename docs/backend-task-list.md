@@ -5,8 +5,8 @@
 
 - 当前阶段：Stage 2 媒体库后端；媒体库 Contract Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
-- 当前任务：`S2-004` 媒体库生命周期；`S2-101` 扫描 Contract Ready 已完成，可使用
-  唯一 durable admission 实现创建/重试/removal 交接
+- 当前任务：`S2-005` 媒体库路径与离线故障矩阵；`S2-004` 媒体库生命周期已完成，
+  `S2-101` 扫描 Contract Ready 已完成
 - 授权边界：[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)
   与[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)共同允许
   `S2-004`/`S2-102` 按冻结交接实现；不得建立临时队列或第二套扫描状态机
@@ -114,7 +114,12 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     `UPDATE ... RETURNING` 返回自身提交表示，无变化改名不推进 revision。目录选择器使用
     权威库快照标注相同/祖先/后代冲突并在快照损坏或不可用时失败关闭；Unicode、边界值、
     两个 Store 并发创建/改名与 picker 冲突矩阵均有 race 回归。
-- [ ] `S2-004` 实现媒体库创建、改名、离线状态、重试和只删除派生数据的移除。
+- [x] `S2-004` 实现媒体库创建、改名、离线状态、重试和只删除派生数据的移除。
+  - 完成证据：[S2-004 实现记录](gates/MVP-2026-07-23/s2-library-lifecycle-implemented.md)；
+    创建在同一短事务提交媒体库、唯一 creation scan 与摘要幂等记录，真实根检查位于事务外，
+    提交后只发送有界 wake hint。已认证 API 提供自然 keyset 列表、详情、强 ETag 改名、
+    offline manual durable admission，以及 restart-safe removal；移除取消/等待活动扫描并分批
+    清理 SQLite 与 `/app/data/cache`，没有 `/library` 写入/删除端口。
 - [ ] `S2-005` 覆盖 traversal、symlink、nested mount、TOCTOU、重叠、离线和权限失败。
 - [ ] `S2-006` 证明移除媒体库前后 fixture 原文件逐字节不变。
 - [ ] `S2-007` 记录媒体库后端 `Backend Ready` Gate。

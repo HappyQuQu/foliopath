@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"sync"
 
 	"github.com/HappyQuQu/foliopath/internal/files"
@@ -77,4 +78,35 @@ func (service *mediaRootService) EnumerateDirectories(
 		return library.ErrParentUnavailable
 	}
 	return service.source.EnumerateDirectories(ctx, parent, visit)
+}
+
+func (service *mediaRootService) ValidateLibraryRoot(
+	ctx context.Context,
+	relative string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.source == nil {
+		return library.ErrRootUnavailable
+	}
+	err := service.source.ValidateLibraryRoot(ctx, relative)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, files.ErrInvalidPath):
+		return library.ErrRootOutsideAllowed
+	case errors.Is(err, files.ErrSymlink):
+		return library.ErrRootSymlink
+	case errors.Is(err, files.ErrCrossDevice),
+		errors.Is(err, files.ErrKernelBoundaryUnavailable):
+		return library.ErrRootMountBoundary
+	case errors.Is(err, files.ErrOffline),
+		errors.Is(err, files.ErrRootChanged),
+		errors.Is(err, files.ErrNotDirectory),
+		errors.Is(err, fs.ErrNotExist),
+		errors.Is(err, fs.ErrPermission):
+		return library.ErrRootUnavailable
+	default:
+		return err
+	}
 }

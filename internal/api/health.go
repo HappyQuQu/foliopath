@@ -41,6 +41,8 @@ type RouteDependencies struct {
 	Authentication AuthenticationService
 	SystemStatus   func(context.Context) (SystemStatus, error)
 	LibraryPaths   LibraryPathService
+	Libraries      LibraryLifecycleService
+	ScanAdmission  ScanAdmissionService
 }
 
 func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
@@ -58,6 +60,12 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	})
 	registerAuthenticationRoutes(mux, dependencies.Authentication)
 	registerLibraryPathRoutes(mux, dependencies.LibraryPaths)
+	if dependencies.Libraries != nil {
+		registerLibraryRoutes(mux, dependencies.Libraries)
+	}
+	if dependencies.ScanAdmission != nil {
+		registerScanAdmissionRoute(mux, dependencies.ScanAdmission)
+	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())
 		if err != nil {

@@ -25,6 +25,23 @@ func NewDirectorySource(root *Root) (*DirectorySource, error) {
 	return &DirectorySource{root: root}, nil
 }
 
+// ValidateLibraryRoot reopens a configured relative root through the anchored
+// filesystem boundary. The caller may use the returned classified error, but
+// never receives a path handle or filesystem identity.
+func (source *DirectorySource) ValidateLibraryRoot(
+	ctx context.Context,
+	relative string,
+) error {
+	if ctx == nil {
+		return fs.ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	_, err := source.root.CaptureAt(relative)
+	return err
+}
+
 func (source *DirectorySource) EnumerateDirectories(
 	ctx context.Context,
 	parent string,

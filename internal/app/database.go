@@ -11,6 +11,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
@@ -19,6 +20,9 @@ const databaseFilename = "foliopath.db"
 type databaseStore interface {
 	auth.Repository
 	library.Repository
+	library.LifecycleRepository
+	library.RemovalRepository
+	scanner.AdmissionRepository
 	Close() error
 }
 
@@ -218,6 +222,153 @@ func (service *databaseService) RenameLibrary(
 		return library.Library{}, library.ErrRepositoryNotReady
 	}
 	return service.store.RenameLibrary(ctx, id, name)
+}
+
+func (service *databaseService) FindCreateReplay(
+	ctx context.Context,
+	keyHash [32]byte,
+	requestHash [32]byte,
+) (library.CreateResult, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.CreateResult{}, false, library.ErrRepositoryNotReady
+	}
+	return service.store.FindCreateReplay(ctx, keyHash, requestHash)
+}
+
+func (service *databaseService) CreateLibraryWithScan(
+	ctx context.Context,
+	command library.CreateCommand,
+) (library.CreateResult, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.CreateResult{}, library.ErrRepositoryNotReady
+	}
+	return service.store.CreateLibraryWithScan(ctx, command)
+}
+
+func (service *databaseService) ListLibraryPage(
+	ctx context.Context,
+	params library.ListParams,
+) ([]library.Details, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.ListLibraryPage(ctx, params)
+}
+
+func (service *databaseService) GetLibraryDetails(
+	ctx context.Context,
+	id int64,
+) (library.Details, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Details{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetLibraryDetails(ctx, id)
+}
+
+func (service *databaseService) RenameLibraryIfRevision(
+	ctx context.Context,
+	command library.RenameCommand,
+) (library.Details, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Details{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RenameLibraryIfRevision(ctx, command)
+}
+
+func (service *databaseService) RequestLibraryRemoval(
+	ctx context.Context,
+	command library.RemoveCommand,
+) (library.RemoveResult, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.RemoveResult{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RequestLibraryRemoval(ctx, command)
+}
+
+func (service *databaseService) GetLibraryRemoval(
+	ctx context.Context,
+	id int64,
+) (library.Removal, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Removal{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetLibraryRemoval(ctx, id)
+}
+
+func (service *databaseService) ClaimNextLibraryRemoval(
+	ctx context.Context,
+) (library.Removal, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Removal{}, false, library.ErrRepositoryNotReady
+	}
+	return service.store.ClaimNextLibraryRemoval(ctx)
+}
+
+func (service *databaseService) LibraryRemovalReady(
+	ctx context.Context,
+	id int64,
+) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return false, library.ErrRepositoryNotReady
+	}
+	return service.store.LibraryRemovalReady(ctx, id)
+}
+
+func (service *databaseService) CleanupLibraryRemovalBatch(
+	ctx context.Context,
+	id int64,
+	limit int,
+) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return false, library.ErrRepositoryNotReady
+	}
+	return service.store.CleanupLibraryRemovalBatch(ctx, id, limit)
+}
+
+func (service *databaseService) FailLibraryRemoval(
+	ctx context.Context,
+	id int64,
+	code string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.ErrRepositoryNotReady
+	}
+	return service.store.FailLibraryRemoval(ctx, id, code)
+}
+
+func (service *databaseService) AdmitFullScan(
+	ctx context.Context,
+	libraryID int64,
+	trigger scanner.Trigger,
+) (scanner.AdmissionResult, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.AdmissionResult{}, library.ErrRepositoryNotReady
+	}
+	return service.store.AdmitFullScan(ctx, libraryID, trigger)
 }
 
 func prepareDataRoot(dataRoot string) error {

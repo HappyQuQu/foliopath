@@ -56,6 +56,75 @@ func countCatalog(t *testing.T, store *Store, libraryID int64) (directories, ass
 	return directories, assets
 }
 
+func TestScanAdmissionIsDurableCoalescedAndAllowsOfflineRetry(t *testing.T) {
+	store, _ := openTestStore(t)
+	ctx := context.Background()
+	record := createTestLibrary(t, store)
+
+	first, err := store.AdmitFullScan(ctx, record.ID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatalf("AdmitFullScan() error = %v", err)
+	}
+	if first.Coalesced || first.Run.Status != scanner.RunStatusQueued ||
+		first.Run.Phase != "queued" || first.Run.Generation != 1 {
+		t.Fatalf("first admission = %#v", first)
+	}
+	replayed, err := store.AdmitFullScan(ctx, record.ID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatalf("coalesced AdmitFullScan() error = %v", err)
+	}
+	if !replayed.Coalesced || replayed.Run.ID != first.Run.ID {
+		t.Fatalf("coalesced admission = %#v, first = %#v", replayed, first)
+	}
+
+	if _, err := store.db.ExecContext(ctx, `
+        UPDATE scan_runs
+        SET status = 'offline', phase = 'completed', finished_at_ms = created_at_ms,
+            error_code = 'library_root_unavailable', revision = revision + 1
+        WHERE id = ?`,
+		first.Run.ID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(ctx,
+		`UPDATE libraries SET status = 'offline' WHERE id = ?`,
+		record.ID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	retry, err := store.AdmitFullScan(ctx, record.ID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatalf("offline retry admission error = %v", err)
+	}
+	if retry.Coalesced || retry.Run.Generation != 2 ||
+		retry.Run.Status != scanner.RunStatusQueued {
+		t.Fatalf("offline retry = %#v", retry)
+	}
+
+	if _, err := store.db.ExecContext(ctx, `
+        UPDATE scan_runs
+        SET status = 'cancelled', phase = 'completed', finished_at_ms = created_at_ms
+        WHERE id = ?`,
+		retry.Run.ID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(ctx, `
+        INSERT INTO library_removals(
+            library_id, library_name, status, created_at_ms
+        ) VALUES (?, ?, 'queued', 1000)`,
+		record.ID, record.Name,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.AdmitFullScan(ctx, record.ID, scanner.TriggerManual); !errors.Is(
+		err,
+		scanner.ErrAdmissionConflict,
+	) {
+		t.Fatalf("admission during removal error = %v", err)
+	}
+}
+
 func TestQueuedScanReservesLibraryAndHasNoStartedTime(t *testing.T) {
 	store, _ := openTestStore(t)
 	libraryRecord := createTestLibrary(t, store)

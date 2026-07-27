@@ -66,6 +66,14 @@ type ScanRun struct {
 	CreatedAtMS           int64
 	StartedAtMS           *int64
 	FinishedAtMS          *int64
+	Revision              int64
+	Phase                 string
+	ProcessedAssets       int64
+	SkippedDirectories    int64
+	SkippedFiles          int64
+	ErrorCount            int64
+	IssuesTruncated       bool
+	CancelRequestedAtMS   *int64
 }
 
 type CatalogEntryKind string
