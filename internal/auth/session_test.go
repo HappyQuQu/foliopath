@@ -272,6 +272,40 @@ func TestServiceSessionRecoversCSRFAndTouchesWithoutExtendingExpiry(t *testing.T
 	}
 }
 
+func TestServiceAcceptsSessionUntilAbsoluteExpiryBoundary(t *testing.T) {
+	now := time.UnixMilli(1700000000000)
+	cookieToken := encodedSessionCookie(0x75, 0x76)
+	repository := &sessionRepository{
+		session: StoredSession{
+			ID:              11,
+			Administrator:   Administrator{ID: 7},
+			AuthVersion:     1,
+			UserAuthVersion: 1,
+			ExpiresAtMS:     now.Add(time.Millisecond).UnixMilli(),
+			CSRFTokenHash:   mustDigestSecret(t, encodedSecret(0x76)),
+		},
+		touchResult: true,
+	}
+	service := newSessionTestService(
+		t,
+		repository,
+		&verifyingPasswordManager{},
+		now,
+		0x50,
+	)
+
+	current, err := service.Session(context.Background(), cookieToken)
+	if err != nil {
+		t.Fatalf("Session() one millisecond before expiry error = %v", err)
+	}
+	if current.ExpiresAtMS != now.Add(time.Millisecond).UnixMilli() {
+		t.Fatalf("session expiry = %d", current.ExpiresAtMS)
+	}
+	if repository.touched.UsedAtMS != now.UnixMilli() {
+		t.Fatalf("touch time = %d, want %d", repository.touched.UsedAtMS, now.UnixMilli())
+	}
+}
+
 func TestServiceRejectsInactiveSessionsBeforeTouch(t *testing.T) {
 	now := time.UnixMilli(1700000000000)
 	revokedAt := now.Add(-time.Minute).UnixMilli()

@@ -294,6 +294,119 @@ func TestAuthenticationDomainErrorsHaveStableSafeMapping(t *testing.T) {
 	}
 }
 
+func TestAuthenticationFailuresMaskServiceDetailsInHTTPResponses(t *testing.T) {
+	const sensitiveDetail = "SELECT password_hash FROM /app/data/foliopath.db secret-token"
+	tests := []struct {
+		name    string
+		method  string
+		path    string
+		body    string
+		headers map[string]string
+		service *authenticationStub
+	}{
+		{
+			name:   "status",
+			method: http.MethodGet,
+			path:   "/api/v1/auth/status",
+			service: &authenticationStub{
+				setupStateErr: errors.New(sensitiveDetail),
+			},
+		},
+		{
+			name:   "setup",
+			method: http.MethodPost,
+			path:   "/api/v1/auth/setup",
+			body:   `{"username":"admin","displayName":"Admin","password":"do not expose"}`,
+			headers: map[string]string{
+				"Origin":       "http://foliopath.test",
+				"Content-Type": "application/json",
+			},
+			service: &authenticationStub{
+				initialize: func(
+					context.Context,
+					auth.InitializeParams,
+				) (auth.EstablishedSession, error) {
+					return auth.EstablishedSession{}, errors.New(sensitiveDetail)
+				},
+			},
+		},
+		{
+			name:   "login",
+			method: http.MethodPost,
+			path:   "/api/v1/auth/login",
+			body:   `{"username":"admin","password":"do not expose"}`,
+			headers: map[string]string{
+				"Origin":       "http://foliopath.test",
+				"Content-Type": "application/json",
+			},
+			service: &authenticationStub{
+				login: func(
+					context.Context,
+					auth.LoginParams,
+				) (auth.EstablishedSession, error) {
+					return auth.EstablishedSession{}, errors.New(sensitiveDetail)
+				},
+			},
+		},
+		{
+			name:   "session",
+			method: http.MethodGet,
+			path:   "/api/v1/auth/session",
+			headers: map[string]string{
+				"Cookie": SessionCookieName + "=" + testCookieToken,
+			},
+			service: &authenticationStub{sessionErr: errors.New(sensitiveDetail)},
+		},
+		{
+			name:   "logout",
+			method: http.MethodPost,
+			path:   "/api/v1/auth/logout",
+			headers: map[string]string{
+				"Cookie":        SessionCookieName + "=" + testCookieToken,
+				csrfTokenHeader: testCSRFToken,
+			},
+			service: func() *authenticationStub {
+				service := acceptingAuthentication()
+				service.logout = func(context.Context, string) error {
+					return errors.New(sensitiveDetail)
+				}
+				return service
+			}(),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			response := requestAuthentication(
+				authenticationTestRoutes(t, test.service),
+				test.method,
+				test.path,
+				test.body,
+				test.headers,
+			)
+			if response.Code != http.StatusInternalServerError {
+				t.Fatalf(
+					"status = %d, want %d; body = %s",
+					response.Code,
+					http.StatusInternalServerError,
+					response.Body,
+				)
+			}
+			assertSafeErrorResponse(t, response, codeInternalError)
+			assertNoStore(t, response)
+			for _, forbidden := range []string{
+				"SELECT",
+				"/app/data",
+				"secret-token",
+				"do not expose",
+			} {
+				if strings.Contains(response.Body.String(), forbidden) {
+					t.Fatalf("HTTP error leaked %q: %s", forbidden, response.Body)
+				}
+			}
+		})
+	}
+}
+
 func TestProtectedAPIDefaultsToSessionAndCSRFEnforcement(t *testing.T) {
 	service := acceptingAuthentication()
 	handler := authenticationTestRoutes(t, service)
@@ -371,6 +484,36 @@ func TestProtectedAPIDefaultsToSessionAndCSRFEnforcement(t *testing.T) {
 			t.Fatalf("status = %d, want %d", response.Code, http.StatusNotFound)
 		}
 	})
+}
+
+func TestCSRFRejectionNeverInvokesLogout(t *testing.T) {
+	var logoutCalls int
+	service := acceptingAuthentication()
+	service.logout = func(context.Context, string) error {
+		logoutCalls++
+		return nil
+	}
+	handler := authenticationTestRoutes(t, service)
+
+	for _, csrfToken := range []string{"", "wrong-token"} {
+		response := requestAuthentication(
+			handler,
+			http.MethodPost,
+			"/api/v1/auth/logout",
+			"",
+			map[string]string{
+				"Cookie":        SessionCookieName + "=" + testCookieToken,
+				csrfTokenHeader: csrfToken,
+			},
+		)
+		if response.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want %d", response.Code, http.StatusForbidden)
+		}
+		assertSafeErrorResponse(t, response, codeCSRFInvalid)
+	}
+	if logoutCalls != 0 {
+		t.Fatalf("CSRF failures invoked logout %d times", logoutCalls)
+	}
 }
 
 func TestSessionAndLogoutUseAuthenticatedContext(t *testing.T) {
