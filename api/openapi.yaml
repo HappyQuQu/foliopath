@@ -1371,6 +1371,14 @@ paths:
         a full `200` response when its validator no longer matches. Conditional
         requests can return `304`.
       x-requirements: [FR-MED-004, FR-MED-005, FR-MED-006, NFR-SAFE-001, NFR-SEC-001, NFR-PRIV-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '409': [source_offline, source_missing, source_unreadable]
+        '416': [range_not_satisfiable]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/AssetIDParameter'
         - $ref: '#/components/parameters/RangeHeader'
@@ -1384,6 +1392,8 @@ paths:
           $ref: '#/components/responses/PartialMediaContent'
         '304':
           $ref: '#/components/responses/MediaNotModified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1404,6 +1414,13 @@ paths:
         Returns the same representation metadata as a full GET and ignores a
         Range header. No response body is sent.
       x-requirements: [FR-MED-004, FR-MED-006, NFR-SAFE-001, NFR-SEC-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '409': [source_offline, source_missing, source_unreadable]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/AssetIDParameter'
         - $ref: '#/components/parameters/IfNoneMatchHeader'
@@ -1430,6 +1447,8 @@ paths:
               $ref: '#/components/headers/RequestID'
         '304':
           $ref: '#/components/responses/MediaNotModified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

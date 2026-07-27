@@ -6,7 +6,7 @@
 - 当前阶段：Stage 4 搜索与媒体内容后端；Stage 3 浏览与缩略图 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S4-005` 资产详情与原内容契约/实现
+- 当前任务：`S4-005B` 媒体内容正确性、安全性与 Backend Ready
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
   Stage 3 浏览/缩略图及 Stage 4 搜索也已 Backend Ready，可分别交由前端接入
@@ -227,7 +227,12 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     100k/10k 主档覆盖扫描并发搜索、FTS/短词/全局/keyset、取消收敛和 rebuild，
     macOS arm64 四核与 Linux arm64 2 CPU/4 GiB 均无预算超限；启动 integrity repair
     可取消、失败关闭且保留权威资产索引。搜索 operation 已获准交接前端。
-- [ ] `S4-005` 固定并实现资产详情、原内容、HEAD、单 Range、条件请求和 416 契约。
+- [x] `S4-005` 固定并实现资产详情、原内容、HEAD、单 Range、条件请求和 416 契约。
+  - 完成证据：[S4-005 原媒体内容实现记录](gates/MVP-2026-07-23/s4-media-content.md)；
+    `internal/media` 校验索引/source fingerprint，SQLite 与 `internal/files` adapter 接入
+    production composition，认证路由支持完整 GET、HEAD、强 ETag/日期条件、closed/open/
+    suffix 单 Range、If-Range fallback、稳定 416 和有界读取槽。当前只授权进入 S4-005B，
+    尚未达到 Backend Ready，前端不得接入 content operation。
 - [ ] `S4-005B` 覆盖认证、路径边界、Range、取消、损坏/离线资产并记录媒体内容
   `Backend Ready` Gate。
 

@@ -38,9 +38,22 @@ type databaseStore interface {
 	thumbnail.CacheRepository
 	thumbnail.JobCompletionRepository
 	thumbnail.DeliveryRepository
+	media.ContentRepository
 	scanQueueStore
 	mediaQueueStore
 	Close() error
+}
+
+func (service *databaseService) GetContentAsset(
+	ctx context.Context,
+	assetID int64,
+) (media.ContentAsset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return media.ContentAsset{}, media.ErrContentUnavailable
+	}
+	return service.store.GetContentAsset(ctx, assetID)
 }
 
 func (service *databaseService) ResolveScope(

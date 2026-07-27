@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"os"
 	"path"
 	"sync"
 
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
@@ -30,16 +32,41 @@ func (service *mediaRootService) OpenAsset(
 	ctx context.Context,
 	libraryRoot, relativePath string,
 ) (thumbnail.SourceFile, error) {
+	file, err := service.openMediaFile(ctx, libraryRoot, relativePath)
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, thumbnail.ErrSourceUnavailable
+	}
+	return file, nil
+}
+
+func (service *mediaRootService) OpenContent(
+	ctx context.Context,
+	libraryRoot, relativePath string,
+) (media.ContentFile, error) {
+	file, err := service.openMediaFile(ctx, libraryRoot, relativePath)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func (service *mediaRootService) openMediaFile(
+	ctx context.Context,
+	libraryRoot, relativePath string,
+) (*os.File, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	normalizedRoot, err := pathpolicy.Normalize(libraryRoot)
 	if err != nil || normalizedRoot != libraryRoot {
-		return nil, thumbnail.ErrSourceUnavailable
+		return nil, media.ErrContentUnavailable
 	}
 	normalizedAsset, err := pathpolicy.Normalize(relativePath)
 	if err != nil || normalizedAsset == "" || normalizedAsset != relativePath {
-		return nil, thumbnail.ErrSourceUnavailable
+		return nil, media.ErrContentUnavailable
 	}
 	target := normalizedAsset
 	if normalizedRoot != "" {
@@ -48,11 +75,11 @@ func (service *mediaRootService) OpenAsset(
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 	if service.root == nil {
-		return nil, thumbnail.ErrSourceUnavailable
+		return nil, media.ErrContentUnavailable
 	}
 	file, err := service.root.Open(target)
 	if err != nil {
-		return nil, thumbnail.ErrSourceUnavailable
+		return nil, media.ErrContentUnavailable
 	}
 	return file, nil
 }

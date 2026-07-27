@@ -357,6 +357,11 @@ composition，并用自动 fixture 固定中文、英文、大小写、组合字
 - 缩略图未生成时返回 `202`、结构化 `ThumbnailPending` 和 `Retry-After`，不返回伪装成图片的
   占位字节；前端使用统一的本地占位状态并按退避规则轮询。
 
+S4-005 已把上述内容契约接入 production capability、SQLite、`internal/files`、HTTP 与
+composition，并固定强 ETag、HEAD、三种单 Range、If-Range fallback、结构化 416、稳定离线/
+源变化错误和 16 个并发读取槽。该 operation 仍等待 S4-005B 的真实认证、Linux path boundary、
+取消和故障矩阵，因此尚未达到 Backend Ready，产品前端不得提前接入。
+
 ## 游标规则
 
 - 游标是不透明、带版本且可校验的编码，至少包含当前排序值、稳定 ID 和查询语义指纹。

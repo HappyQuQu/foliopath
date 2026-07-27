@@ -16,6 +16,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/media/imagevips"
 	"github.com/HappyQuQu/foliopath/internal/media/videoffmpeg"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
@@ -146,6 +147,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct catalog service: %w", err)
 	}
+	contentService, err := media.NewContentService(database, directorySource)
+	if err != nil {
+		return nil, fmt.Errorf("construct media content service: %w", err)
+	}
 	scanService, err := scanner.NewService(
 		mediaWakeScanRepository{Repository: database, waker: mediaSignal},
 		scanner.Config{},
@@ -254,6 +259,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Settings:       settingsService,
 		Catalog:        catalogService,
 		Thumbnails:     thumbnailDelivery,
+		Content:        contentService,
 	})
 	if err != nil {
 		return nil, err

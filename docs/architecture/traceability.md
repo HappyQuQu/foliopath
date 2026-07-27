@@ -30,6 +30,15 @@ Stage 0 范围及供应链识别已有报告证据；这不把任何生产切片
 | `FR-MED-001～008` 缩略图、查看器与视频 | `MVP-2026-07-23` | Frozen r1；[S3-004 媒体处理](../gates/MVP-2026-07-23/s3-media-processing.md)；[S3-005 媒体任务/缓存](../gates/MVP-2026-07-23/s3-media-jobs-cache.md)；[S3-006 资源安全](../gates/MVP-2026-07-23/s3-media-resource-safety.md)；[S3-007 Backend Ready](../gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md) | `BASELINE-2026-07-23` | `internal/media` 拥有结果/错误/fingerprint/资源上限；`internal/thumbnail` 拥有派生键、交付状态和缓存策略；`internal/jobs` 拥有 worker/lease；`internal/app` 拥有 native lifecycle；`internal/files`、SQLite/cache、govips、FFmpeg adapter；`web` viewer | 资产详情、thumbnail、原内容/Range；图片查看器、原生视频、不兼容/损坏状态、缓存设置 | migration 8 `assets`/`thumbnails`；migration 9 `media_jobs`/fairness/`cache_deletions`；source fingerprint/transform version；缓存文件在 `/app/data/cache` | [ADR-0001](../adr/0001-go-react-sqlite.md)、[安全模型](../security.md)、[数据模型](../data-model.md) | R-006、R-007、R-008、R-009、R-014、R-016 | S3-004～007 已实现 production adapter、原子 cache→DB、2-worker/3-attempt durable queue、公平、失效/LRU、资源边界及认证 202/200/304/409/422 thumbnail；原内容/Range、查看器、浏览器和发布验证仍待 Stage 4～5 | 0/FS-01/03；3（thumbnail Backend Ready）、4（内容/查看器） |
 | `FR-UI-001～007` 界面与可访问性 | `MVP-2026-07-23` | Frozen r1 | `BASELINE-2026-07-23` | `web` 的 auth/libraries/browse/search/viewer/settings feature；统一 API client | 欢迎/认证、设置、扫描状态、浏览/搜索/查看器；桌面侧栏、移动抽屉、中英与主题 | 服务端状态不复制为独立事实；URL 保存导航状态，`settings` 保存受控偏好 | [ADR-0001](../adr/0001-go-react-sqlite.md)、[用户流程](../user-flows.md)、[界面设计](../ui-design.md) | R-005、R-010、R-015、R-016 | loading/empty/error/offline/cancel、键盘/焦点/读屏、主题/语言/reduced-motion、响应式、虚拟化、关键 E2E | 1（认证 UI）、3、4；5（发布加固） |
 
+### Stage 4 媒体内容实现增量
+
+- `FR-MED-004～006` / `NFR-SAFE-001` / `NFR-SEC-001` / `NFR-PRIV-001`：
+  [S4-005 原媒体内容实现](../gates/MVP-2026-07-23/s4-media-content.md)已经接入
+  `internal/media` capability、SQLite、`internal/files`、认证 HTTP route 与 composition；
+  GET/HEAD/条件请求/单 Range/416 的 owner 和有界读取槽已有自动证据。当前状态仅为
+  **Implemented**，仍由 S4-005B 关闭 Linux path boundary、真实认证 integration、取消与
+  故障矩阵后才可标记 Backend Ready 或交接前端。
+
 ## 非功能需求追踪
 
 | 需求族 | 目标版本 | 范围状态 | Change Record | 架构落点 | 关键响应或约束 | 决策与风险 | 必需证据 | 适用阶段 |

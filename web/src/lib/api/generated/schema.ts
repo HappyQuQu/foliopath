@@ -1582,6 +1582,7 @@ export interface operations {
             200: components["responses"]["FullMediaContent"];
             206: components["responses"]["PartialMediaContent"];
             304: components["responses"]["MediaNotModified"];
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
@@ -1623,6 +1624,7 @@ export interface operations {
                 content?: never;
             };
             304: components["responses"]["MediaNotModified"];
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
