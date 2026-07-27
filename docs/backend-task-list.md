@@ -5,9 +5,9 @@
 
 - 当前阶段：Stage 2 扫描后端；媒体库 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
-  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～104` 扫描契约、worker、目录计数与
-  媒体增量收敛
-- 当前任务：`S2-105` 取消、离线、权限失败、重启恢复与失败保留
+  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～105` 扫描契约、worker、目录计数、
+  媒体增量收敛与故障恢复
+- 当前任务：`S2-106` 并发、队列上限、深目录、损坏拓扑与容量回归
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)
   已完成媒体库后端交接；[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)
   已允许并完成 `S2-102` 唯一 durable queue 实现；不得建立临时队列或第二套扫描状态机
@@ -158,7 +158,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     唯一媒体注册表固定 MVP 候选，version 6 migration 回填大小/纳秒 mtime fingerprint；
     真实 walker、SQLite 与 production creation worker 已验证同路径 ID 保持、变化失效、
     重命名新 ID、processed counter 以及仅成功 generation 的 stale cleanup。
-- [ ] `S2-105` 实现取消、离线、权限失败、重启恢复和失败保留旧索引。
+- [x] `S2-105` 实现取消、离线、权限失败、重启恢复和失败保留旧索引。
+  - 完成证据：[S2-105 扫描故障与重启恢复](gates/MVP-2026-07-23/s2-scan-recovery.md)；
+    启动时按媒体库 ID 分页 admission/coalesce startup scan，worker 持续恢复后来到期的
+    lease；取消、离线、部分不可读、nested mount、根替换和任意内部失败只写稳定错误码，
+    不执行 stale cleanup。真实应用重启验证 startup scan 与晚到期 lease 都能收敛。
 - [ ] `S2-106` 覆盖并发扫描、队列上限、深目录、损坏拓扑和容量回归。
 - [ ] `S2-107` 记录扫描后端 `Backend Ready` Gate。
 

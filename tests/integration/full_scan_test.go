@@ -486,7 +486,7 @@ func TestAbortedScansPreserveIndexUntilSuccessfulConvergence(t *testing.T) {
 	}
 	newPath := filepath.Join(albumPath, "new.jpg")
 	writeSyntheticFile(t, newPath, "new")
-	injectedFailure := errors.New("injected walker failure")
+	injectedFailure := scanner.ErrPartialTreeUnreadable
 	failedWalker := &hookedWalker{
 		Walker: environment.walker,
 		afterVisit: func(entry scanner.WalkEntry) error {
@@ -506,6 +506,9 @@ func TestAbortedScansPreserveIndexUntilSuccessfulConvergence(t *testing.T) {
 	}
 	if failed.Generation != 2 || failed.Status != scanner.RunStatusFailed {
 		t.Fatalf("failed run = generation %d status %q, want generation 2 failed", failed.Generation, failed.Status)
+	}
+	if failed.ErrorCode != "partial_tree_unreadable" {
+		t.Fatalf("failed run error code = %q, want partial_tree_unreadable", failed.ErrorCode)
 	}
 	// The new one-entry batch is safe to keep; the old generation is not stale-
 	// cleaned because the traversal did not finish.
@@ -598,8 +601,8 @@ func TestAbortedScansPreserveIndexUntilSuccessfulConvergence(t *testing.T) {
 		t.Fatalf("replacement scan error = %v, want root identity changed", replacementErr)
 	}
 	if replacedRun.Generation != 5 || replacedRun.Status != scanner.RunStatusFailed ||
-		replacedRun.ErrorCode != "root_identity_changed" {
-		t.Fatalf("replacement run = generation %d status %q code %q, want generation 5 failed/root_identity_changed",
+		replacedRun.ErrorCode != "library_root_identity_changed" {
+		t.Fatalf("replacement run = generation %d status %q code %q, want generation 5 failed/library_root_identity_changed",
 			replacedRun.Generation, replacedRun.Status, replacedRun.ErrorCode)
 	}
 	assertAssetPaths(t, readCatalog(t, environment.inspector, libraryRecord.ID),
@@ -658,7 +661,8 @@ func TestRootABAReplacementCannotGainCleanupEligibility(t *testing.T) {
 	if !errors.Is(err, scanner.ErrRootIdentityChanged) {
 		t.Fatalf("ABA scan error = %v, want ErrRootIdentityChanged", err)
 	}
-	if run.Status != scanner.RunStatusFailed || run.ErrorCode != "root_identity_changed" {
+	if run.Status != scanner.RunStatusFailed ||
+		run.ErrorCode != "library_root_identity_changed" {
 		t.Fatalf("ABA run = %#v", run)
 	}
 	assertAssetPaths(t, readCatalog(t, environment.inspector, libraryRecord.ID), "old.jpg")

@@ -105,7 +105,8 @@ func TestScannerServiceRootIdentityChangeCannotCleanStaleRows(t *testing.T) {
 	if !errors.Is(err, scanner.ErrRootIdentityChanged) {
 		t.Fatalf("changed-root RunFullScan() error = %v", err)
 	}
-	if run.Status != scanner.RunStatusFailed || run.ErrorCode != "root_identity_changed" {
+	if run.Status != scanner.RunStatusFailed ||
+		run.ErrorCode != "library_root_identity_changed" {
 		t.Fatalf("changed-root run = %#v", run)
 	}
 	_, assets := countCatalog(t, store, libraryRecord.ID)
@@ -128,7 +129,8 @@ func TestScannerServiceOfflineCaptureRecordsOfflineWithoutCleanup(t *testing.T) 
 	if !errors.Is(err, scanner.ErrLibraryOffline) {
 		t.Fatalf("RunFullScan() error = %v, want ErrLibraryOffline", err)
 	}
-	if run.Status != scanner.RunStatusOffline || run.ErrorCode != "library_offline" {
+	if run.Status != scanner.RunStatusOffline ||
+		run.ErrorCode != "library_root_unavailable" {
 		t.Fatalf("offline run = %#v", run)
 	}
 }
@@ -156,7 +158,7 @@ func TestScannerServiceRecordsFinalizationFailureWithoutCleanup(t *testing.T) {
 	if err == nil {
 		t.Fatal("RunFullScan succeeded despite injected finalization failure")
 	}
-	if run.Status != scanner.RunStatusFailed || run.ErrorCode != "scan_failed" {
+	if run.Status != scanner.RunStatusFailed || run.ErrorCode != "internal_error" {
 		t.Fatalf("run after finalization failure = %#v", run)
 	}
 	current, getErr := store.GetLibrary(context.Background(), libraryRecord.ID)

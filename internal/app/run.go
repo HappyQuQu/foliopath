@@ -132,7 +132,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct scan worker: %w", err)
 	}
-	scanComponent, err := newScanWorkerComponent(scanWorker)
+	scanComponent, err := newScanWorkerComponent(scanWorker, scanAdmission)
 	if err != nil {
 		return nil, err
 	}

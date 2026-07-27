@@ -381,6 +381,19 @@ func (service *databaseService) AdmitFullScan(
 	return service.store.AdmitFullScan(ctx, libraryID, trigger)
 }
 
+func (service *databaseService) ListStartupLibraryIDs(
+	ctx context.Context,
+	afterID int64,
+	limit int,
+) ([]int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.ListStartupLibraryIDs(ctx, afterID, limit)
+}
+
 func (service *databaseService) GetLibraryRoot(
 	ctx context.Context,
 	libraryID int64,

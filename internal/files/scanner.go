@@ -39,7 +39,7 @@ func (walker *ScanWalker) CaptureRoot(
 	}
 	identity, err := walker.root.CaptureAt(relativeRoot)
 	if err != nil {
-		return scanner.RootIdentity{}, scannerError(err)
+		return scanner.RootIdentity{}, scannerRootError(err)
 	}
 	device, inode, ok := identity.Key()
 	if !ok || inode == 0 {
@@ -78,12 +78,12 @@ func (walker *ScanWalker) Walk(
 				})
 				return err
 			}
-			return scannerError(walkErr)
+			return scannerWalkError(walkErr)
 		}
 
 		info, err := entry.Info()
 		if err != nil {
-			return scannerError(err)
+			return scannerWalkError(err)
 		}
 		decision, err := visit(scanner.WalkEntry{
 			RelativePath: libraryRelative,
@@ -99,7 +99,7 @@ func (walker *ScanWalker) Walk(
 		}
 		return nil
 	})
-	return scannerError(err)
+	return scannerWalkError(err)
 }
 
 func (walker *ScanWalker) VerifyRoot(
@@ -122,7 +122,7 @@ func (walker *ScanWalker) VerifyRoot(
 		return scanner.ErrRootIdentityChanged
 	}
 	if err := walker.root.VerifyAt(relativeRoot, identity); err != nil {
-		return scannerError(err)
+		return scannerRootError(err)
 	}
 	return nil
 }
@@ -144,11 +144,10 @@ func relativeToLibrary(root, walked string) (string, error) {
 func isPolicySkip(err error) bool {
 	return errors.Is(err, ErrInvalidPath) ||
 		errors.Is(err, ErrSymlink) ||
-		errors.Is(err, ErrCrossDevice) ||
 		errors.Is(err, ErrSpecialFile)
 }
 
-func scannerError(err error) error {
+func scannerRootError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -158,5 +157,41 @@ func scannerError(err error) error {
 	if errors.Is(err, ErrOffline) {
 		return scanner.ErrLibraryOffline
 	}
-	return err
+	switch {
+	case errors.Is(err, ErrSymlink):
+		return scanner.ErrLibraryRootSymlink
+	case errors.Is(err, ErrCrossDevice):
+		return scanner.ErrLibraryMountBoundary
+	default:
+		return scanner.ErrScanIO
+	}
+}
+
+func scannerWalkError(err error) error {
+	if err == nil {
+		return nil
+	}
+	for _, known := range []error{
+		context.Canceled,
+		context.DeadlineExceeded,
+		scanner.ErrInvalidEntry,
+		scanner.ErrRootIdentityChanged,
+		scanner.ErrLibraryMountBoundary,
+		scanner.ErrPartialTreeUnreadable,
+		scanner.ErrScanIO,
+	} {
+		if errors.Is(err, known) {
+			return known
+		}
+	}
+	switch {
+	case errors.Is(err, ErrRootChanged):
+		return scanner.ErrRootIdentityChanged
+	case errors.Is(err, ErrCrossDevice):
+		return scanner.ErrLibraryMountBoundary
+	case errors.Is(err, fs.ErrPermission), errors.Is(err, ErrOffline):
+		return scanner.ErrPartialTreeUnreadable
+	default:
+		return scanner.ErrScanIO
+	}
 }

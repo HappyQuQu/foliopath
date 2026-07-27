@@ -12,7 +12,8 @@ import (
 )
 
 type scanWorkerComponent struct {
-	worker *jobs.WorkerPool[scanner.ScanRun]
+	worker    *jobs.WorkerPool[scanner.ScanRun]
+	admission *scanner.AdmissionService
 
 	mutex   sync.Mutex
 	cancel  context.CancelFunc
@@ -20,14 +21,21 @@ type scanWorkerComponent struct {
 	stopped chan struct{}
 }
 
-func newScanWorkerComponent(worker *jobs.WorkerPool[scanner.ScanRun]) (component, error) {
-	if worker == nil {
-		return component{}, fmt.Errorf("%w: scan worker is required", errInvalidComponent)
+func newScanWorkerComponent(
+	worker *jobs.WorkerPool[scanner.ScanRun],
+	admission *scanner.AdmissionService,
+) (component, error) {
+	if worker == nil || admission == nil {
+		return component{}, fmt.Errorf(
+			"%w: scan worker and startup admission are required",
+			errInvalidComponent,
+		)
 	}
 	service := &scanWorkerComponent{
-		worker:  worker,
-		done:    make(chan error, 1),
-		stopped: make(chan struct{}),
+		worker:    worker,
+		admission: admission,
+		done:      make(chan error, 1),
+		stopped:   make(chan struct{}),
 	}
 	return component{
 		name:  "scan-worker",
@@ -77,12 +85,36 @@ func (service *scanWorkerComponent) start(context.Context) error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	service.cancel = cancel
-	go func() {
-		err := service.worker.Run(ctx)
-		close(service.stopped)
-		service.done <- err
-	}()
+	go service.run(ctx, cancel)
 	return nil
+}
+
+func (service *scanWorkerComponent) run(ctx context.Context, cancel context.CancelFunc) {
+	defer close(service.stopped)
+	workerDone := make(chan error, 1)
+	startupDone := make(chan error, 1)
+	go func() {
+		workerDone <- service.worker.Run(ctx)
+	}()
+	go func() {
+		_, err := service.admission.RequestStartup(ctx)
+		startupDone <- err
+	}()
+
+	select {
+	case startupErr := <-startupDone:
+		if startupErr != nil {
+			cancel()
+			<-workerDone
+			service.done <- fmt.Errorf("admit startup scans: %w", startupErr)
+			return
+		}
+		service.done <- <-workerDone
+	case workerErr := <-workerDone:
+		cancel()
+		<-startupDone
+		service.done <- workerErr
+	}
 }
 
 func (service *scanWorkerComponent) stop(ctx context.Context) error {

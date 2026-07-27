@@ -18,9 +18,249 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/files"
+	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
+	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
 const runtimeIntegrationTimeout = 10 * time.Second
+
+func seedRuntimeLibrary(
+	t *testing.T,
+	dataRoot string,
+	mediaRoot string,
+) int64 {
+	t.Helper()
+	store, err := sqlitestore.Open(
+		context.Background(),
+		filepath.Join(dataRoot, databaseFilename),
+		sqlitestore.Options{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := files.OpenRoot(mediaRoot)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	walker, err := files.NewScanWalker(root)
+	if err != nil {
+		_ = root.Close()
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	libraries, err := library.NewService(store)
+	if err != nil {
+		_ = root.Close()
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	record, err := libraries.Create(context.Background(), "Family", "family")
+	if err != nil {
+		_ = root.Close()
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	scans, err := scanner.NewService(store, scanner.Config{})
+	if err != nil {
+		_ = root.Close()
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	if _, err := scans.RunFullScan(context.Background(), scanner.FullScanRequest{
+		LibraryID: record.ID,
+		Trigger:   scanner.TriggerCreation,
+		Walker:    walker,
+	}); err != nil {
+		_ = root.Close()
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	if err := root.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return record.ID
+}
+
+func runUntilRuntimeScanConverges(
+	t *testing.T,
+	dataRoot string,
+	mediaRoot string,
+	libraryID int64,
+	wantTrigger scanner.Trigger,
+) {
+	t.Helper()
+	application, err := composeConfiguration(
+		Input{Version: "integration"},
+		configuration{
+			listenAddress: "127.0.0.1:0",
+			mediaRoot:     mediaRoot,
+			dataRoot:      dataRoot,
+		},
+	)
+	if err != nil {
+		t.Fatalf("composeConfiguration() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() { result <- application.run(ctx) }()
+	defer func() {
+		cancel()
+		select {
+		case runErr := <-result:
+			if runErr != nil {
+				t.Errorf("application.run() error = %v", runErr)
+			}
+		case <-time.After(runtimeIntegrationTimeout):
+			t.Error("application did not stop after scan recovery")
+		}
+	}()
+
+	inspector, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer inspector.Close()
+	deadline := time.Now().Add(runtimeIntegrationTimeout)
+	for time.Now().Before(deadline) {
+		var generation int64
+		var status string
+		var trigger string
+		var newCount, oldCount int
+		err := inspector.QueryRow(`
+			SELECT current_generation, status
+			FROM libraries WHERE id = ?`,
+			libraryID,
+		).Scan(&generation, &status)
+		if err == nil && generation == 2 && status == "ready" {
+			err = inspector.QueryRow(`
+				SELECT trigger_kind
+				FROM scan_runs
+				WHERE library_id = ? AND generation = 2`,
+				libraryID,
+			).Scan(&trigger)
+			if err == nil {
+				err = inspector.QueryRow(`
+					SELECT
+						COUNT(*) FILTER (WHERE relative_path = 'new.jpg'),
+						COUNT(*) FILTER (WHERE relative_path = 'old.jpg')
+					FROM assets
+					WHERE library_id = ?`,
+					libraryID,
+				).Scan(&newCount, &oldCount)
+			}
+			if err == nil && trigger == string(wantTrigger) &&
+				newCount == 1 && oldCount == 0 {
+				return
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("runtime scan did not converge with trigger %q", wantTrigger)
+}
+
+func TestComposedApplicationReconcilesLibrariesAndLateExpiredLeases(t *testing.T) {
+	t.Run("startup admission", func(t *testing.T) {
+		mediaRoot := t.TempDir()
+		dataRoot := t.TempDir()
+		writeRuntimeFixture(t, mediaRoot, "family/old.jpg", "old")
+		libraryID := seedRuntimeLibrary(t, dataRoot, mediaRoot)
+		if err := os.Remove(filepath.Join(mediaRoot, "family", "old.jpg")); err != nil {
+			t.Fatal(err)
+		}
+		writeRuntimeFixture(t, mediaRoot, "family/new.jpg", "new")
+
+		runUntilRuntimeScanConverges(
+			t,
+			dataRoot,
+			mediaRoot,
+			libraryID,
+			scanner.TriggerStartup,
+		)
+	})
+
+	t.Run("late expired lease", func(t *testing.T) {
+		mediaRoot := t.TempDir()
+		dataRoot := t.TempDir()
+		writeRuntimeFixture(t, mediaRoot, "family/old.jpg", "old")
+		libraryID := seedRuntimeLibrary(t, dataRoot, mediaRoot)
+		if err := os.Remove(filepath.Join(mediaRoot, "family", "old.jpg")); err != nil {
+			t.Fatal(err)
+		}
+		writeRuntimeFixture(t, mediaRoot, "family/new.jpg", "new")
+
+		store, err := sqlitestore.Open(
+			context.Background(),
+			filepath.Join(dataRoot, databaseFilename),
+			sqlitestore.Options{},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		admitted, err := store.AdmitFullScan(
+			context.Background(),
+			libraryID,
+			scanner.TriggerManual,
+		)
+		if err != nil {
+			_ = store.Close()
+			t.Fatal(err)
+		}
+		claimed, found, err := store.ClaimNextFullScan(
+			context.Background(),
+			2*time.Minute,
+		)
+		if err != nil || !found || claimed.ID != admitted.Run.ID {
+			_ = store.Close()
+			t.Fatalf("claimed scan = %#v, found %t, err %v", claimed, found, err)
+		}
+		if err := store.Close(); err != nil {
+			t.Fatal(err)
+		}
+		inspector, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := inspector.Exec(`
+			UPDATE scan_runs
+			SET lease_expires_at_ms = ?
+			WHERE id = ?`,
+			time.Now().Add(250*time.Millisecond).UnixMilli(),
+			claimed.ID,
+		); err != nil {
+			_ = inspector.Close()
+			t.Fatal(err)
+		}
+		if err := inspector.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		runUntilRuntimeScanConverges(
+			t,
+			dataRoot,
+			mediaRoot,
+			libraryID,
+			scanner.TriggerManual,
+		)
+	})
+}
+
+func writeRuntimeFixture(t *testing.T, root string, relative string, contents string) {
+	t.Helper()
+	filename := filepath.Join(root, filepath.FromSlash(relative))
+	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filename, []byte(contents), 0o640); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 	mediaRoot := t.TempDir()

@@ -12,6 +12,51 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/store/sqlite/dbgen"
 )
 
+func (s *Store) ListStartupLibraryIDs(
+	ctx context.Context,
+	afterID int64,
+	limit int,
+) ([]int64, error) {
+	if afterID < 0 {
+		return nil, errors.New("startup library cursor must not be negative")
+	}
+	if limit < 1 || limit > 256 {
+		return nil, errors.New("startup library page limit must be between 1 and 256")
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT libraries.id
+		FROM libraries
+		WHERE libraries.id > ?
+			AND NOT EXISTS (
+				SELECT 1
+				FROM library_removals
+				WHERE library_removals.library_id = libraries.id
+					AND library_removals.status IN ('queued', 'running')
+			)
+		ORDER BY libraries.id
+		LIMIT ?`,
+		afterID,
+		limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list startup scan libraries: %w", err)
+	}
+	defer rows.Close()
+
+	ids := make([]int64, 0, limit)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("read startup scan library: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate startup scan libraries: %w", err)
+	}
+	return ids, nil
+}
+
 func (s *Store) ClaimNextFullScan(
 	ctx context.Context,
 	leaseDuration time.Duration,
