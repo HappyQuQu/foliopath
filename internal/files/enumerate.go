@@ -76,10 +76,7 @@ func (source *DirectorySource) inspectDirectory(
 	info, err := parent.root.Lstat(name)
 	if err != nil {
 		if raw.IsDir() || raw.Type()&fs.ModeSymlink != 0 {
-			return library.DirectoryCandidate{
-				Name:          name,
-				BlockedReason: library.SelectionBlockedUnavailable,
-			}, true, nil
+			return blockedDirectoryCandidate(name, err), true, nil
 		}
 		return library.DirectoryCandidate{}, false, nil
 	}
