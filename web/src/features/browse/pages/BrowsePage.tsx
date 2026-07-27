@@ -2,11 +2,10 @@ import {
   CaretDown,
   CaretRight,
   CheckSquare,
+  Columns,
   Copy,
-  FileImage,
-  FilmSlate,
   Folder,
-  FolderOpen,
+  GridFour,
   House,
   ImageSquare,
   Square,
@@ -16,6 +15,11 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
+  MediaCollection,
+  type MediaCollectionItem,
+  type MediaCollectionLayout,
+} from "../../../components/patterns/MediaCollection/MediaCollection";
+import {
   Button,
   ErrorState,
   IconButton,
@@ -24,12 +28,12 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import type {
-  Asset,
-  Breadcrumb,
-  Directory,
-} from "../../../lib/api/catalog";
+import type { Breadcrumb, Directory } from "../../../lib/api/catalog";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import {
+  readMediaLayoutPreference,
+  writeMediaLayoutPreference,
+} from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
 import {
   useLibrariesQuery,
@@ -61,6 +65,9 @@ export function BrowsePage({
   const { locale, t } = useLocale();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
+    readMediaLayoutPreference,
+  );
   const toast = useToast();
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
@@ -99,6 +106,35 @@ export function BrowsePage({
     () => assetsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [assetsQuery.data],
   );
+  const mediaItems = useMemo<MediaCollectionItem[]>(() => {
+    const formatter = new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    return assets.map((asset) => ({
+      height: asset.height,
+      id: asset.id,
+      kind: asset.kind,
+      modifiedLabel: formatter.format(new Date(asset.modifiedAt)),
+      name: asset.name,
+      ...(browseState.recursive
+        ? {
+            sourceHref: browseUrl(
+              libraryId,
+              asset.directoryId,
+              defaultBrowseUrlState(),
+            ),
+            sourceLabel: t("browse.openSourceDirectory").replace(
+              "{path}",
+              sourceDirectory(asset.relativePath),
+            ),
+          }
+        : {}),
+      thumbnailStatus: asset.thumbnail.status,
+      thumbnailUrl: asset.thumbnail.url,
+      width: asset.width,
+    }));
+  }, [assets, browseState.recursive, libraryId, locale, t]);
   const currentLibrary = libraryQuery.data?.library;
   const breadcrumbs: Breadcrumb[] = directoryQuery.data?.breadcrumbs ?? [];
   const selectedPathIds = useMemo(
@@ -120,6 +156,11 @@ export function BrowsePage({
 
   function updateBrowseState(nextState: BrowseUrlState) {
     setSearchParams(serializeBrowseUrlState(nextState));
+  }
+
+  function updateMediaLayout(nextLayout: MediaCollectionLayout) {
+    setMediaLayout(nextLayout);
+    writeMediaLayoutPreference(nextLayout);
   }
 
   async function copyDirectLink() {
@@ -181,7 +222,9 @@ export function BrowsePage({
 
         <BrowseToolbar
           browseState={browseState}
+          mediaLayout={mediaLayout}
           onChange={updateBrowseState}
+          onLayoutChange={updateMediaLayout}
         />
 
         <div className={styles.content}>
@@ -200,27 +243,31 @@ export function BrowsePage({
           {libraryQuery.isSuccess &&
             (!directoryId || directoryQuery.isSuccess) && (
               <>
-                <div className={styles.headingRow}>
-                  <div>
-                    <p className={styles.eyebrow}>{t("browse.currentDirectory")}</p>
-                    <h1 id="browse-heading">{currentName}</h1>
-                    <p>
-                      {t("browse.directorySummary")
-                        .replace(
-                          "{directories}",
-                          String(children.length),
-                        )
-                        .replace(
-                          "{media}",
-                          String(currentMediaCount),
-                        )}
-                    </p>
-                  </div>
-                </div>
-                <section aria-labelledby="child-directories-heading">
-                  <h2 id="child-directories-heading">
-                    {t("browse.childDirectories")}
-                  </h2>
+                <h1 className={styles.screenReaderOnly} id="browse-heading">
+                  {currentName}
+                </h1>
+                {(childrenQuery.isPending ||
+                  childrenQuery.isError ||
+                  children.length > 0) && (
+                  <section aria-labelledby="child-directories-heading">
+                    <div className={styles.sectionHeading}>
+                      <div>
+                        <h2 id="child-directories-heading">
+                          {t("browse.childDirectories")}
+                        </h2>
+                        <p>
+                          {t("browse.directorySummary")
+                            .replace(
+                              "{directories}",
+                              String(children.length),
+                            )
+                            .replace(
+                              "{media}",
+                              String(currentMediaCount),
+                            )}
+                        </p>
+                      </div>
+                    </div>
                   {childrenQuery.isPending && (
                     <LoadingState label={t("browse.loadingDirectories")} />
                   )}
@@ -229,12 +276,6 @@ export function BrowsePage({
                       message={t("browse.directoriesFailed")}
                       onRetry={() => void refreshChildren()}
                     />
-                  )}
-                  {childrenQuery.isSuccess && children.length === 0 && (
-                    <div className={styles.empty}>
-                      <FolderOpen aria-hidden="true" size={34} />
-                      <p>{t("browse.noChildDirectories")}</p>
-                    </div>
                   )}
                   {children.length > 0 && (
                     <div className={styles.folderGrid}>
@@ -265,7 +306,8 @@ export function BrowsePage({
                       {t("browse.loadMoreDirectories")}
                     </Button>
                   )}
-                </section>
+                  </section>
+                )}
                 <section aria-labelledby="media-heading">
                   <div className={styles.sectionHeading}>
                     <div>
@@ -302,21 +344,23 @@ export function BrowsePage({
                     />
                   )}
                   {assets.length > 0 && (
-                    <AssetSummaryList
-                      assets={assets}
-                      browseState={browseState}
-                      dateLocale={locale}
-                      libraryId={libraryId}
+                    <MediaCollection
+                      hasNextPage={assetsQuery.hasNextPage}
+                      isFetchingNextPage={assetsQuery.isFetchingNextPage}
+                      items={mediaItems}
+                      labels={{
+                        animated: t("browse.kindAnimated"),
+                        failedThumbnail: t("browse.thumbnailFailed"),
+                        image: t("browse.kindImage"),
+                        loadMore: t("browse.loadMoreMedia"),
+                        loadingMore: t("browse.loadingMoreMedia"),
+                        pendingThumbnail: t("browse.thumbnailPending"),
+                        unavailableThumbnail: t("browse.thumbnailUnavailable"),
+                        video: t("browse.kindVideo"),
+                      }}
+                      layout={mediaLayout}
+                      onLoadMore={loadMoreAssets}
                     />
-                  )}
-                  {assetsQuery.hasNextPage && (
-                    <Button
-                      className={styles.loadMore}
-                      loading={assetsQuery.isFetchingNextPage}
-                      onClick={() => void loadMoreAssets()}
-                    >
-                      {t("browse.loadMoreMedia")}
-                    </Button>
                   )}
                 </section>
               </>
@@ -329,10 +373,14 @@ export function BrowsePage({
 
 function BrowseToolbar({
   browseState,
+  mediaLayout,
   onChange,
+  onLayoutChange,
 }: {
   browseState: BrowseUrlState;
+  mediaLayout: MediaCollectionLayout;
   onChange: (state: BrowseUrlState) => void;
+  onLayoutChange: (layout: MediaCollectionLayout) => void;
 }) {
   const { t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
@@ -357,6 +405,22 @@ function BrowseToolbar({
         )}
         {t("browse.includeSubdirectories")}
       </Button>
+      <div className={styles.layoutControls} role="group" aria-label={t("browse.layout")}>
+        <IconButton
+          label={t("browse.layoutGrid")}
+          onClick={() => onLayoutChange("grid")}
+          pressed={mediaLayout === "grid"}
+        >
+          <GridFour aria-hidden="true" size={18} />
+        </IconButton>
+        <IconButton
+          label={t("browse.layoutMasonry")}
+          onClick={() => onLayoutChange("masonry")}
+          pressed={mediaLayout === "masonry"}
+        >
+          <Columns aria-hidden="true" size={18} />
+        </IconButton>
+      </div>
       <label className={styles.sortControl}>
         <span>{t("browse.sort")}</span>
         <select
@@ -430,70 +494,6 @@ function EmptyMedia({
         </Button>
       )}
     </div>
-  );
-}
-
-function AssetSummaryList({
-  assets,
-  browseState,
-  dateLocale,
-  libraryId,
-}: {
-  assets: Asset[];
-  browseState: BrowseUrlState;
-  dateLocale: string;
-  libraryId: string;
-}) {
-  const { t } = useLocale();
-  const formatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(dateLocale === "browser" ? undefined : dateLocale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
-    [dateLocale],
-  );
-
-  return (
-    <ul className={styles.assetList}>
-      {assets.map((asset) => (
-        <li key={asset.id}>
-          <span className={styles.assetIcon}>
-            {asset.kind === "video" ? (
-              <FilmSlate aria-hidden="true" size={21} />
-            ) : (
-              <FileImage aria-hidden="true" size={21} />
-            )}
-          </span>
-          <div className={styles.assetIdentity}>
-            <strong>{asset.name}</strong>
-            {browseState.recursive ? (
-              <Link
-                to={browseUrl(
-                  libraryId,
-                  asset.directoryId,
-                  defaultBrowseUrlState(),
-                )}
-              >
-                {t("browse.openSourceDirectory").replace(
-                  "{path}",
-                  sourceDirectory(asset.relativePath),
-                )}
-              </Link>
-            ) : (
-              <span>{formatter.format(new Date(asset.modifiedAt))}</span>
-            )}
-          </div>
-          <span className={styles.assetKind}>
-            {asset.kind === "video"
-              ? t("browse.kindVideo")
-              : asset.kind === "animated"
-                ? t("browse.kindAnimated")
-                : t("browse.kindImage")}
-          </span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

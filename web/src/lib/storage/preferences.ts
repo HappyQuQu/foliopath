@@ -2,9 +2,11 @@ const preferenceNamespace = "foliopath.preferences.v1";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
+export type MediaLayoutPreference = "grid" | "masonry";
 
 interface Preferences {
   locale?: LocalePreference;
+  mediaLayout?: MediaLayoutPreference;
   theme?: ThemePreference;
 }
 
@@ -44,4 +46,15 @@ export function readLocalePreference(): LocalePreference | undefined {
 
 export function writeLocalePreference(locale: LocalePreference): void {
   writePreferences({ ...readPreferences(), locale });
+}
+
+export function readMediaLayoutPreference(): MediaLayoutPreference {
+  const layout = readPreferences().mediaLayout;
+  return layout === "masonry" ? "masonry" : "grid";
+}
+
+export function writeMediaLayoutPreference(
+  mediaLayout: MediaLayoutPreference,
+): void {
+  writePreferences({ ...readPreferences(), mediaLayout });
 }

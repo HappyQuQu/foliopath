@@ -25,6 +25,11 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+Object.defineProperty(window, "scrollTo", {
+  configurable: true,
+  value: () => undefined,
+});
+
 if (typeof HTMLDialogElement !== "undefined") {
   HTMLDialogElement.prototype.showModal = function showModal() {
     this.setAttribute("open", "");

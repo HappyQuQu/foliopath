@@ -1,0 +1,115 @@
+.host {
+  min-width: 0;
+}
+
+.collection {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.virtualItem {
+  position: absolute;
+  top: 0;
+  left: var(--collection-left);
+  width: var(--collection-width);
+}
+
+.card {
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+
+.card:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
+}
+
+.thumbnail {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.thumbnailPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: var(--font-size-1);
+}
+
+.videoBadge {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  min-width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-surface);
+  border-radius: var(--radius-round);
+  background: var(--color-scrim);
+}
+
+.identity {
+  height: 3.375rem;
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.identity strong,
+.identity a,
+.identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity strong {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+}
+
+.identity a,
+.identity span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.identity a:hover {
+  color: var(--color-accent);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-5);
+}
+
+@media (max-width: 30rem) {
+  .identity {
+    padding-inline: var(--space-2);
+  }
+}

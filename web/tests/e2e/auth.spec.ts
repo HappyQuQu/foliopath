@@ -164,6 +164,23 @@ test("administrator and library-management vertical slice", async ({
   await expect(page.getByText("direct-photo.jpg")).toBeVisible({
     timeout: 15_000,
   });
+  await expect(
+    page
+      .getByRole("article", { name: "direct-photo.jpg · Image" })
+      .locator("img"),
+  ).toBeVisible({ timeout: 15_000 });
+  const gridLayout = page.getByRole("button", { name: "Adaptive grid" });
+  const masonryLayout = page.getByRole("button", { name: "Masonry" });
+  await expect(gridLayout).toHaveAttribute("aria-pressed", "true");
+  await masonryLayout.click();
+  await expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.localStorage.getItem("foliopath.preferences.v1")),
+    )
+    .toContain('"mediaLayout":"masonry"');
+  await page.reload();
+  await expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("nested-photo.jpg")).toHaveCount(0);
   const childDirectoryCard = page.getByRole("link", {
     name: /visible-child.*1 item/i,
@@ -179,6 +196,11 @@ test("administrator and library-management vertical slice", async ({
     `/libraries/${createdLibraryId}/browse?recursive=1`,
   );
   await expect(page.getByText("nested-photo.jpg")).toBeVisible();
+  await expect(
+    page
+      .getByRole("article", { name: "nested-photo.jpg · Image" })
+      .locator("img"),
+  ).toBeVisible();
   const sourceLink = page.getByRole("link", {
     name: "Source: visible-child",
   });

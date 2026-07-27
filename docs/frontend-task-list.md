@@ -142,7 +142,12 @@
     冻结契约的不同默认排序并重置 cursor。真实有界资产摘要显示来源路径，来源链接返回
     所属目录并关闭递归，浏览器返回/刷新可恢复。证据见
     [S3-102 前端浏览范围](gates/MVP-2026-07-23/s3-frontend-browse-scope.md)。
-- [ ] `S3-103` 实现默认自适应网格、可记忆瀑布流和统一虚拟化集合。
+- [x] `S3-103` 实现默认自适应网格、可记忆瀑布流和统一虚拟化集合。
+  - 共享 `MediaCollection`/`MediaCard` 使用 TanStack Virtual 的同一 lanes controller，
+    以索引宽高预留 grid/masonry 空间并只挂载可视窗口；布局偏好写入统一
+    `foliopath.preferences.v1`，不污染可复制浏览 URL。真实 libvips 浏览器链验证
+    ready WebP 缩略图、切换/刷新记忆、主题、响应式与 axe。证据见
+    [S3-103 前端媒体集合](gates/MVP-2026-07-23/s3-frontend-media-collection.md)。
 - [ ] `S3-104` 实现 skeleton、空、错误、离线、缩略图 pending/failed 状态。
 - [ ] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。
 - [ ] `S3-106` 实现 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)：

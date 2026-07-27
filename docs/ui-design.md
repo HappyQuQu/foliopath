@@ -188,8 +188,10 @@ FolioPath
   默认排序并生成一个浏览历史项；排序、刷新和浏览器前进/后退恢复同一查询指纹。
 - 递归结果必须显示可读来源目录。来源是用 `Asset.directoryId` 生成的可聚焦链接，
   文案只显示 library-relative path；点击后进入来源目录 direct 模式，不保留递归或旧
-  cursor。S3-102 使用有界索引摘要验证语义，缩略图网格、布局偏好和虚拟化继续由
-  S3-103 的唯一集合实现拥有。
+  cursor。S3-103 已将摘要替换为唯一共享 `MediaCollection`：默认 grid、记忆
+  masonry，二者复用同一 query、item identity 和 TanStack Virtual lanes controller。
+  布局属于 `foliopath.preferences.v1` 显示偏好，不进入 URL；每项按索引宽高预留空间，
+  未知比例回退 4:3，有限 overscan 随列数集中计算。
 - 媒体网格保持 DOM 排序；方向键移动空间焦点，`Enter` 打开，Tab 不遍历成千上万的卸载项目。卡片按钮的可访问名称包含文件名，递归和搜索结果再包含相对目录；内部图片可使用空 `alt` 避免重复朗读。
 - 查看器打开时焦点进入关闭按钮或查看器容器，关闭后回到触发卡片；`Esc` 关闭、左右键切换，视频控件或输入框获得焦点时不拦截冲突按键。
 - 对话框和移动面板限制焦点在当前任务内，关闭后返回触发点；背景使用 `inert` 或等价机制。

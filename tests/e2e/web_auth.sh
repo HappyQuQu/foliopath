@@ -31,8 +31,11 @@ trap cleanup EXIT HUP INT TERM
 mkdir -p "${data_root}" "${media_root}"
 mkdir -p \
 	"${media_root}/${long_path_one}/${long_path_two}/visible-child"
-touch \
-	"${media_root}/${long_path_one}/${long_path_two}/direct-photo.jpg" \
+cp \
+	"${repo_root}/prototypes/foliopath-static-ui/public/media/kyoto-pagoda.jpg" \
+	"${media_root}/${long_path_one}/${long_path_two}/direct-photo.jpg"
+cp \
+	"${repo_root}/prototypes/foliopath-static-ui/public/media/golden-pavilion.jpg" \
 	"${media_root}/${long_path_one}/${long_path_two}/visible-child/nested-photo.jpg"
 ln -s "visible-child" \
 	"${media_root}/${long_path_one}/${long_path_two}/linked-child"

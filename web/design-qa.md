@@ -338,4 +338,82 @@ layout preference, full collection states, non-modal preview, capacity budgets, 
 Stage 3 Integrated Done. Release-wide browser and visual regression matrices remain
 Stage 5 work.
 
+## Stage 3 / S3-103 media-collection QA
+
+### Source and implementation
+
+- Source visual truth:
+  `prototypes/foliopath-static-ui`, confirmed catalog screen `5/15`, captured as
+  `web/qa/s3-103-source-grid-light.png`.
+- Production implementation: authenticated `BrowsePage` at
+  `/libraries/lib_1/browse/dir_3`, connected to a disposable real backend built
+  with libvips and an 11-item read-only JPEG library.
+- Browser CSS viewport: 1280 × 720 at device scale factor 1. The source capture is
+  1280 × 720 pixels. The browser-rendered implementation capture is 1265 × 712
+  pixels because the in-app browser excludes its native scrollbar/chrome inset; the
+  comparison pads it without scaling to 1280 × 720.
+- State: Simplified Chinese, light theme, direct directory, filename ascending,
+  adaptive grid. Additional captures cover remembered masonry and dark theme.
+
+### Full-view comparison evidence
+
+- Side-by-side truth:
+  `web/qa/s3-103-comparison-grid-light-v2.png`.
+- The fixed library rail, selected path, breadcrumb/tool rows, 5-column media density,
+  4:3 image crop, compact two-line identity, system type stack, blue selected state,
+  light canvas/surface balance, border radii and native scroll all remain coherent
+  with the confirmed source.
+- Source-only search/filter/list controls, scanning banner, item selection and preview
+  chrome remain intentionally absent because S3-103 owns only the media collection;
+  those surfaces are assigned to S3-104～106.
+
+### Focused media comparison
+
+- Focused side-by-side:
+  `web/qa/s3-103-comparison-media-focus-v2.png`.
+- Typography: production filename and timestamp weights/sizes preserve the source's
+  scan hierarchy and truncate safely.
+- Spacing/layout: both render five stable columns and two complete rows at desktop;
+  production keeps a slightly stronger card boundary as accepted P3 polish.
+- Colors/tokens: light/dark surfaces, muted metadata, accent selection and focus rings
+  use the central theme tokens with readable contrast.
+- Image quality: production displays real libvips-generated WebP from the same
+  reference JPEG family, preserving crop, sharpness and subjects; no CSS/HTML image
+  approximations are used.
+- Copy/content: production uses real indexed filenames and filesystem modification
+  times. Prototype-only counts and controls are not fabricated.
+
+### Interaction and accessibility evidence
+
+- Grid and masonry share one query and virtualized DOM; the selected IconButton exposes
+  `aria-pressed`, survives reload through the canonical preference namespace, and does
+  not alter the browse URL.
+- The live page rendered all 11 ready thumbnail references, switched light/dark and
+  grid/masonry, retained the active layout, and preserved source order.
+- Unit evidence uses 200 items and proves the rendered list remains bounded. The
+  repository E2E uses the libvips test image and real read-only JPEGs for ready WebP,
+  390px/1024px overflow and axe serious/critical checks.
+- Browser console review found no production warning or error; only Vite connection,
+  React development information and expected hot-update debug entries were present.
+
+### Comparison history
+
+1. Initial comparison found a P2 vertical-density mismatch: a duplicated current
+   directory heading and large “no subdirectories” card pushed the first media row
+   below the fold. Evidence:
+   `web/qa/s3-103-comparison-grid-light-v1.png`.
+2. The visible heading became an accessible screen-reader heading, child-directory
+   content now renders only when it exists/loads/errors, and content padding/gaps were
+   tightened using existing tokens.
+3. The revised same-state comparison
+   `web/qa/s3-103-comparison-grid-light-v2.png` shows the media heading and two media
+   rows above the fold; no actionable P0/P1/P2 difference remains.
+
+### Residual Stage 3 work
+
+S3-104 still owns the complete collection/thumbnail state and retry matrix. S3-105～106
+own click/double-click, docked/pinned non-modal preview and focus restoration. S3-107
+owns the 100k capacity budget, so this slice does not promote the 200-item component
+test into a release-scale performance claim.
+
 final result: passed

@@ -199,6 +199,17 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
 
   renderBrowse("?recursive=1");
 
+  const gridLayout = screen.getByRole("button", { name: "自适应网格" });
+  const masonryLayout = screen.getByRole("button", { name: "瀑布流" });
+  expect(gridLayout).toHaveAttribute("aria-pressed", "true");
+  await user.click(masonryLayout);
+  expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
+  expect(
+    JSON.parse(
+      window.localStorage.getItem("foliopath.preferences.v1") ?? "{}",
+    ),
+  ).toMatchObject({ mediaLayout: "masonry" });
+
   const recursiveToggle = await screen.findByRole("button", {
     name: "包含子目录",
   });
