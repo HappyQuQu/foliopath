@@ -1,11 +1,13 @@
 import { SignOut } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom";
 
+import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import { Button } from "../../../components/ui/Button/Button";
 import { LocaleSelect } from "../../../components/ui/LocaleSelect/LocaleSelect";
 import { ThemeToggle } from "../../../components/ui/ThemeToggle/ThemeToggle";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { paths } from "../../../routes/paths";
 import { useToast } from "../../../components/ui/Toast/ToastProvider";
 import { useLogoutMutation } from "../queries";
 import styles from "./AccountPage.module.css";
@@ -26,18 +28,14 @@ export function AccountPage({ session }: { session: AuthenticatedSession }) {
   }
 
   return (
-    <div className={styles.page}>
-      <a className={styles.skipLink} href="#main">
-        {t("common.skipToMain")}
-      </a>
-      <header className={styles.header}>
-        <strong>FolioPath</strong>
-        <div>
-          <span className={styles.identity}>{session.administrator.displayName}</span>
-          <ThemeToggle />
-        </div>
-      </header>
-      <main className={styles.main} id="main" tabIndex={-1}>
+    <AppShell
+      active="settings"
+      identity={session.administrator.displayName}
+      librariesHref={paths.libraries}
+      settingsHref={paths.generalSettings}
+      title={t("account.title")}
+    >
+      <div className={styles.main}>
         <header className={styles.heading}>
           <p>{t("account.eyebrow")}</p>
           <h1>{t("account.title")}</h1>
@@ -85,7 +83,7 @@ export function AccountPage({ session }: { session: AuthenticatedSession }) {
             </Button>
           </div>
         </section>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

@@ -1,0 +1,278 @@
+.page {
+  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  margin: var(--space-10) auto 6.25rem;
+}
+
+.heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.375rem);
+  letter-spacing: -0.035em;
+}
+
+.heading p:last-child {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.stepper {
+  max-width: 43.75rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 auto var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.stepper li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.stepper li::before {
+  position: absolute;
+  z-index: 0;
+  top: 1rem;
+  right: 50%;
+  width: 100%;
+  height: var(--border-width);
+  content: "";
+  background: var(--color-border);
+}
+
+.stepper li:first-child::before {
+  display: none;
+}
+
+.stepper li > span {
+  z-index: 1;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  display: grid;
+  place-items: center;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-round);
+  background: var(--color-surface);
+}
+
+.stepper li.activeStep {
+  color: var(--color-accent);
+}
+
+.stepper li.activeStep > span {
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.card {
+  max-width: 43.75rem;
+  min-height: 26rem;
+  margin-inline: auto;
+  padding: clamp(var(--space-6), 5vw, var(--space-10));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.card h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-5);
+}
+
+.card > p,
+.card form > p {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.pathPicker {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.breadcrumbs {
+  min-height: var(--size-control-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+  overflow-x: auto;
+  color: var(--color-text-muted);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface-subtle);
+  white-space: nowrap;
+}
+
+.breadcrumbs span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.breadcrumbs button {
+  padding: var(--space-1);
+  color: var(--color-text);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pathRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+}
+
+.currentPath {
+  min-height: 4rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text);
+  text-align: left;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-accent-soft);
+  cursor: pointer;
+}
+
+.currentPath > span {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.currentPath small {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.selectedPath {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 var(--border-width) var(--color-accent);
+}
+
+.selectPath {
+  min-width: 0;
+  min-height: 4rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text);
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.selectPath > span {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.selectPath strong,
+.selectPath small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectPath small {
+  color: var(--color-text-muted);
+}
+
+.selectPath:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.emptyPaths {
+  min-height: 8rem;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.review {
+  margin: var(--space-6) 0;
+}
+
+.review div {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.review dt {
+  color: var(--color-text-muted);
+}
+
+.review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+@media (max-width: 40rem) {
+  .page {
+    width: calc(100% - var(--space-8));
+    margin-top: var(--space-8);
+  }
+
+  .heading {
+    flex-direction: column;
+  }
+
+  .card {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .review div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}

@@ -103,4 +103,19 @@ comparison is already a focused single-card view.
 Stage 5 still owns the full target-browser matrix, final deployment image, trusted
 proxy/network configuration, and release-candidate visual regression matrix.
 
+## Stage 2 implemented-slice check
+
+- Compared the confirmed `/welcome` source and production empty-library state at
+  1440×1024 in the same browser. Sidebar width, top bar, dashed panel, icon treatment,
+  typography, spacing, and primary/secondary actions align after the token correction.
+- Checked the production welcome and three-step creation flow at 390×844 with no
+  page-level horizontal overflow. The mobile navigation opens with a semantic button,
+  closes with Escape, and restores focus.
+- Exercised the real authenticated backend from the UI: name → approved `/library`
+  root → safety review → CSRF/idempotent create → initial full-scan admission → library
+  list. No host path or raw backend diagnostic was displayed.
+- The production shell intentionally replaces the prototype's fictional online-library
+  footer with the truthful read-only-media statement and keeps the accepted theme
+  control in the top bar.
+
 final result: passed

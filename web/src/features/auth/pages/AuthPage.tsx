@@ -10,6 +10,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { paths } from "../../../routes/paths";
 import {
   useLoginMutation,
   useSetupAdministratorMutation,
@@ -65,7 +66,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
       } else {
         await loginMutation.mutateAsync({ password, username });
       }
-      navigate("/settings/general", { replace: true });
+      navigate(paths.root, { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.code === "setup_closed") {
         navigate("/login", { replace: true });

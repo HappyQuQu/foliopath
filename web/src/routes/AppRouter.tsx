@@ -9,6 +9,7 @@ import {
   useAuthenticationStatusQuery,
   useSessionQuery,
 } from "../features/auth";
+import { LibrariesPage, NewLibraryPage } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
 import {
   messageForReadiness,
@@ -34,6 +35,8 @@ export function AppRoutes() {
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
+        <Route path={paths.libraries} element={<ProtectedLibrariesRoute />} />
+        <Route path={paths.newLibrary} element={<ProtectedNewLibraryRoute />} />
         <Route path={paths.unavailable} element={<StandaloneUnavailableRoute />} />
         <Route path="*" element={<Navigate replace to={paths.root} />} />
       </Routes>
@@ -81,7 +84,7 @@ function RootRoute() {
   if (statusQuery.isError) return <RouteError error={statusQuery.error} retry={statusQuery.refetch} />;
   if (statusQuery.data.setupRequired) return <Navigate replace to={paths.setup} />;
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <Navigate replace to={paths.generalSettings} />;
+  if (sessionQuery.isSuccess) return <Navigate replace to={paths.libraries} />;
   if (isAuthenticationError(sessionQuery.error)) return <Navigate replace to={paths.login} />;
 
   return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
@@ -103,7 +106,7 @@ function PublicAuthRoute({ mode }: { mode: "login" | "setup" }) {
   }
   if (mode === "login" && sessionQuery.isPending) return <RouteLoading />;
   if (mode === "login" && sessionQuery.isSuccess) {
-    return <Navigate replace to={paths.generalSettings} />;
+    return <Navigate replace to={paths.libraries} />;
   }
   if (mode === "login" && sessionQuery.isError && !isAuthenticationError(sessionQuery.error)) {
     return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
@@ -121,6 +124,30 @@ function ProtectedAccountRoute() {
 
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) return <AccountPage session={sessionQuery.data} />;
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedLibrariesRoute() {
+  const sessionQuery = useSessionQuery();
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) return <LibrariesPage session={sessionQuery.data} />;
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedNewLibraryRoute() {
+  const sessionQuery = useSessionQuery();
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) return <NewLibraryPage session={sessionQuery.data} />;
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }

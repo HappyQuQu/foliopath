@@ -15,6 +15,7 @@ import {
 } from "../lib/api/auth";
 import { ApiError } from "../lib/api/errors";
 import { getSystemReadiness } from "../lib/api/readiness";
+import { listLibraries } from "../lib/api/libraries";
 import { ThemeProvider } from "../lib/theme/ThemeProvider";
 import { AppRoutes } from "./AppRouter";
 
@@ -35,6 +36,14 @@ vi.mock("../lib/api/readiness", async (importOriginal) => {
   return {
     ...actual,
     getSystemReadiness: vi.fn(),
+  };
+});
+
+vi.mock("../lib/api/libraries", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/api/libraries")>();
+  return {
+    ...actual,
+    listLibraries: vi.fn(),
   };
 });
 
@@ -60,6 +69,11 @@ describe("authentication routes", () => {
     vi.mocked(login).mockReset();
     vi.mocked(logout).mockReset();
     vi.mocked(setupAdministrator).mockReset();
+    vi.mocked(listLibraries).mockReset();
+    vi.mocked(listLibraries).mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
   });
 
   it("shows a safe application-data failure without exposing a host path", async () => {
@@ -94,8 +108,8 @@ describe("authentication routes", () => {
       password: "a-secure-password",
       username: "admin",
     });
-    expect(await screen.findByRole("heading", { name: "通用设置" })).toBeVisible();
-    expect(screen.getAllByText("家庭管理员")).toHaveLength(2);
+    expect(await screen.findByRole("heading", { name: "还没有媒体库" })).toBeVisible();
+    expect(screen.getByText("家庭管理员")).toBeVisible();
   });
 
   it("returns an expired protected session to login with a safe notice", async () => {

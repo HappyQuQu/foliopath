@@ -25,6 +25,18 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
   await page.getByLabel("Confirm password *").fill(administrator.password);
   await page.getByRole("button", { name: "Create account" }).click();
 
+  await expect(page).toHaveURL(/\/settings\/libraries$/);
+  await expect(page.getByRole("heading", { name: "No libraries yet" })).toBeVisible();
+  await page.getByRole("button", { name: "New library" }).click();
+  await page.getByLabel("Library name *").fill("Browser acceptance library");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: /Select this directory/ }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Create and scan" }).click();
+  await expect(page.getByRole("heading", { name: "Browser acceptance library" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/settings\/general$/);
   await expect(page.getByRole("heading", { name: "General settings" })).toBeVisible();
   await expect(
@@ -56,6 +68,8 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
   await page.getByLabel("用户名 *").fill(administrator.username);
   await page.getByLabel("密码 *").fill(administrator.password);
   await page.getByRole("button", { name: "登录" }).click();
+  await expect(page).toHaveURL(/\/settings\/libraries$/);
+  await page.goto("/settings/general");
   await expect(page).toHaveURL(/\/settings\/general$/);
 
   for (const viewport of [
