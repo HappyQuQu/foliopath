@@ -81,11 +81,16 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   目录，分别记录跳过目录/文件，并发布逐级直接/递归计数；128 层链、同库循环、跨库
   目录/资产损坏、当前代次条目指向同库陈旧目录等损坏在 stale cleanup 前失败关闭且不
   丢失当前行或影响另一媒体库。
+- S2-104 以真实 version 5 catalog 验证 migration 6 的 source fingerprint 回填，并通过
+  真实文件 walker、SQLite 与 production creation worker 验证固定格式候选、同路径 ID/
+  fingerprint 保持、纳秒 mtime 变化失效、重命名新 ID、processed counter 和成功后的
+  stale 收敛；架构测试禁止复制候选注册表、fingerprint 编码或 stale SQL owner。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
-不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103 已完成
-目录/计数切片；fingerprint、故障/重启与容量矩阵、浏览器流程和发布网络边界仍在后续 Gate。
+不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～104
+已完成目录/计数与媒体增量收敛；故障/重启与容量矩阵、浏览器流程和发布网络边界仍在后续
+Gate。
 
 ### 前端单元与组件测试
 

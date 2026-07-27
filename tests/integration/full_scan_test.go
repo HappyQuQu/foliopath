@@ -14,6 +14,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
@@ -299,6 +300,34 @@ func assertDirectoryCounts(t *testing.T, snapshot catalogSnapshot, path string, 
 	}
 }
 
+type assetState struct {
+	id          int64
+	sizeBytes   int64
+	mtimeNS     int64
+	fingerprint string
+	generation  int64
+}
+
+func readAssetState(t *testing.T, database *sql.DB, libraryID int64, relativePath string) assetState {
+	t.Helper()
+	var state assetState
+	if err := database.QueryRowContext(context.Background(), `
+		SELECT id, size_bytes, mtime_ns, source_fingerprint, last_seen_generation
+		FROM assets
+		WHERE library_id = ? AND relative_path = ?`,
+		libraryID, relativePath,
+	).Scan(
+		&state.id,
+		&state.sizeBytes,
+		&state.mtimeNS,
+		&state.fingerprint,
+		&state.generation,
+	); err != nil {
+		t.Fatalf("read asset %q: %v", relativePath, err)
+	}
+	return state
+}
+
 func writeSyntheticFile(t *testing.T, filename, contents string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
@@ -366,6 +395,76 @@ func TestFullScanIndexesRecursiveTreeAndCounts(t *testing.T) {
 		t.Fatalf("library after first scan = status %q generation %d, want ready generation 1",
 			current.Status, current.CurrentGeneration)
 	}
+}
+
+func TestFullScanFingerprintUpsertAndRenameConverge(t *testing.T) {
+	environment := newTestEnvironment(t)
+	libraryRecord := environment.createLibrary(t, "Fingerprint", "fingerprint")
+	originalPath := filepath.Join(environment.allowedPath, "fingerprint", "photo.jpg")
+	writeSyntheticFile(t, originalPath, "same-size")
+
+	firstMTime := time.Unix(1_700_000_000, 123)
+	if err := os.Chtimes(originalPath, firstMTime, firstMTime); err != nil {
+		t.Fatalf("set first source mtime: %v", err)
+	}
+	firstRun := environment.runScan(t, libraryRecord, scanner.TriggerCreation, nil)
+	if firstRun.DiscoveredAssets != 1 || firstRun.ProcessedAssets != 1 {
+		t.Fatalf(
+			"first asset counters = discovered %d processed %d, want 1 and 1",
+			firstRun.DiscoveredAssets,
+			firstRun.ProcessedAssets,
+		)
+	}
+	first := readAssetState(t, environment.inspector, libraryRecord.ID, "photo.jpg")
+	firstExpected, err := media.NewSourceFingerprint(first.sizeBytes, first.mtimeNS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.fingerprint != firstExpected.String() || first.generation != 1 {
+		t.Fatalf("first asset = %#v, want fingerprint %q generation 1", first, firstExpected)
+	}
+
+	unchangedRun := environment.runScan(t, libraryRecord, scanner.TriggerManual, nil)
+	unchanged := readAssetState(t, environment.inspector, libraryRecord.ID, "photo.jpg")
+	if unchangedRun.ProcessedAssets != 1 ||
+		unchanged.id != first.id ||
+		unchanged.fingerprint != first.fingerprint ||
+		unchanged.generation != 2 {
+		t.Fatalf("unchanged upsert = run %#v asset %#v, first %#v", unchangedRun, unchanged, first)
+	}
+
+	secondMTime := firstMTime.Add(time.Second)
+	if err := os.Chtimes(originalPath, secondMTime, secondMTime); err != nil {
+		t.Fatalf("set changed source mtime: %v", err)
+	}
+	changedRun := environment.runScan(t, libraryRecord, scanner.TriggerManual, nil)
+	changed := readAssetState(t, environment.inspector, libraryRecord.ID, "photo.jpg")
+	if changedRun.ProcessedAssets != 1 ||
+		changed.id != first.id ||
+		changed.fingerprint == first.fingerprint ||
+		changed.generation != 3 {
+		t.Fatalf("changed upsert = run %#v asset %#v, first %#v", changedRun, changed, first)
+	}
+
+	renamedPath := filepath.Join(environment.allowedPath, "fingerprint", "renamed.jpg")
+	if err := os.Rename(originalPath, renamedPath); err != nil {
+		t.Fatalf("rename source fixture: %v", err)
+	}
+	renamedRun := environment.runScan(t, libraryRecord, scanner.TriggerManual, nil)
+	if renamedRun.ProcessedAssets != 1 {
+		t.Fatalf("renamed processed assets = %d, want 1", renamedRun.ProcessedAssets)
+	}
+	renamed := readAssetState(t, environment.inspector, libraryRecord.ID, "renamed.jpg")
+	if renamed.id == first.id ||
+		renamed.fingerprint != changed.fingerprint ||
+		renamed.generation != 4 {
+		t.Fatalf("renamed asset = %#v, changed asset %#v", renamed, changed)
+	}
+	assertAssetPaths(
+		t,
+		readCatalog(t, environment.inspector, libraryRecord.ID),
+		"renamed.jpg",
+	)
 }
 
 func TestAbortedScansPreserveIndexUntilSuccessfulConvergence(t *testing.T) {

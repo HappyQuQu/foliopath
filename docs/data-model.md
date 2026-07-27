@@ -51,7 +51,8 @@
 - `kind`：图片、动画图片或视频。
 - `mime_type`、`size_bytes`、`mtime_ns`。
 - `width`、`height`、`duration_ms` 等可空媒体属性。
-- `source_fingerprint`：至少包含大小和高精度修改时间，用于派生数据失效。
+- `source_fingerprint`：migration 6 起为非空版本化
+  `v1:<size_bytes>:<mtime_ns>`，用于派生数据失效；它不是内容哈希或去重身份。
 - `probe_status`、`probe_error_code`。
 - `last_seen_generation`。
 

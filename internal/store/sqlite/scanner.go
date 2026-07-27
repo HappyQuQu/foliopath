@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
@@ -305,8 +306,10 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
             UPDATE scan_runs
             SET discovered_directories = discovered_directories + ?,
                 discovered_assets = discovered_assets + ?,
+                processed_assets = processed_assets + ?,
                 revision = revision + 1
-            WHERE id = ? AND status = 'running'`, newDirectories, newAssets, runID); err != nil {
+            WHERE id = ? AND status = 'running'`,
+			newDirectories, newAssets, newAssets, runID); err != nil {
 			return fmt.Errorf("update scan progress: %w", err)
 		}
 		return nil
@@ -358,6 +361,10 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	if entry.RelativePath == "" || entry.Name == "" || entry.SizeBytes < 0 {
 		return false, scanner.ErrInvalidEntry
 	}
+	sourceFingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
+	if err != nil {
+		return false, fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
+	}
 	newlySeen, err := notSeenInGeneration(ctx, tx, "assets", run.LibraryID, entry.RelativePath, run.Generation)
 	if err != nil {
 		return false, err
@@ -378,8 +385,8 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	if _, err := tx.ExecContext(ctx, `
         INSERT INTO assets(
             library_id, directory_id, relative_path, name, kind, media_format,
-            mime_type, size_bytes, mtime_ns, last_seen_generation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            mime_type, size_bytes, mtime_ns, source_fingerprint, last_seen_generation
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(library_id, relative_path) DO UPDATE SET
             directory_id = excluded.directory_id,
             name = excluded.name,
@@ -388,10 +395,12 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
             mime_type = excluded.mime_type,
             size_bytes = excluded.size_bytes,
             mtime_ns = excluded.mtime_ns,
+            source_fingerprint = excluded.source_fingerprint,
             last_seen_generation = excluded.last_seen_generation`,
 		run.LibraryID, directoryID, entry.RelativePath, entry.Name,
 		string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
-		entry.SizeBytes, entry.MTimeNS, run.Generation); err != nil {
+		entry.SizeBytes, entry.MTimeNS, sourceFingerprint.String(),
+		run.Generation); err != nil {
 		return false, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
 	}
 	return newlySeen, nil

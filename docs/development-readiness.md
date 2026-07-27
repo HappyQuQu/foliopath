@@ -8,8 +8,8 @@
 Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)也已结论为 `Go`，允许前端为
 7 个媒体库管理 operation 建立真实 client adapter；依赖扫描实际执行的产品流程继续等待
 `S2-107`。[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)允许
-`S2-102` 已完成有界 worker，`S2-103` 已完成全部可读目录与直接/递归计数；当前进入
-`S2-104` 媒体候选与增量收敛。
+`S2-102` 已完成有界 worker，`S2-103～104` 已完成全部可读目录、直接/递归计数、媒体
+fingerprint 与成功后增量收敛；当前进入 `S2-105` 故障与重启恢复矩阵。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
@@ -26,7 +26,8 @@ root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 A
 防缓存、受限 JSON 和按直连 peer 的有界限流已经接入真实 composition root，并通过认证
 Backend Ready Gate；安全目录选择、媒体库生命周期、manual scan admission 与异步移除
 handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。生产扫描 worker
-已消费 creation scan，目录与计数切片已完成，但完整扫描 Backend Ready 仍待 S2-104～107；
+已消费 creation scan，目录/计数与媒体增量收敛切片已完成，但完整扫描 Backend Ready
+仍待 S2-105～107；
 当前还没有可信代理配置、
 完整认证产品 UI、正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
@@ -34,8 +35,8 @@ liveness/readiness 和受保护系统状态；数据库及 migration 成功后 r
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
 认证与媒体库管理后端是已通过各自 Gate 的正式后端能力；扫描已有 Contract Ready、
-durable admission、S2-102 worker 与 S2-103 目录计数，但还不是 Backend Ready，静态原型
-也仍不是可用产品。
+durable admission、S2-102 worker、S2-103 目录计数与 S2-104 媒体收敛，但还不是
+Backend Ready，静态原型也仍不是可用产品。
 不得把媒体库 Gate 扩张为扫描、浏览、
 缩略图、前端集成或发布完成。
 
@@ -55,7 +56,7 @@ ADR 流程。
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证、媒体库生命周期、安全目录选择与 manual scan admission handler 已实现，其余业务 handler 尚未实现 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
-| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～5 已执行；媒体库 revision/removal/idempotency、扫描 durable contract、typed settings 和自然名称 keyset 派生键具备真实升级与约束测试；发布版本升级仍待 Release Gate |
+| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～6 已执行；媒体库 revision/removal/idempotency、扫描 durable contract、typed settings、自然名称 keyset 派生键和 asset source fingerprint 具备真实升级与约束测试；发布版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
 | 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；认证 Backend Gate 已覆盖密码、原子 setup、安全会话、CSRF/default-deny、直连 peer 限流、错误脱敏和依赖 audit。可信代理、非回环暴露和发布 volume/unmount 仍由 Stage 5 Gate 阻断 |

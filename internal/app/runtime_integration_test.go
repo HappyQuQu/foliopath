@@ -189,12 +189,26 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		t.Fatalf("directory counts = %#v, want %#v", seen, expected)
 	}
 
-	var skippedTotal, skippedDirectories, skippedFiles int64
+	var discoveredAssets, processedAssets, skippedTotal, skippedDirectories, skippedFiles int64
 	if err := inspector.QueryRow(`
-		SELECT skipped_count, skipped_directories, skipped_files
+		SELECT discovered_assets, processed_assets,
+		       skipped_count, skipped_directories, skipped_files
 		FROM scan_runs WHERE id = 1`,
-	).Scan(&skippedTotal, &skippedDirectories, &skippedFiles); err != nil {
+	).Scan(
+		&discoveredAssets,
+		&processedAssets,
+		&skippedTotal,
+		&skippedDirectories,
+		&skippedFiles,
+	); err != nil {
 		t.Fatal(err)
+	}
+	if discoveredAssets != 3 || processedAssets != 3 {
+		t.Fatalf(
+			"asset counters = discovered %d, processed %d; want 3 and 3",
+			discoveredAssets,
+			processedAssets,
+		)
 	}
 	if skippedTotal != 1 || skippedDirectories != 0 || skippedFiles != 1 {
 		t.Fatalf(
@@ -203,6 +217,18 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 			skippedDirectories,
 			skippedFiles,
 		)
+	}
+	var fingerprintedAssets int64
+	if err := inspector.QueryRow(`
+		SELECT COUNT(*)
+		FROM assets
+		WHERE source_fingerprint =
+		      'v1:' || size_bytes || ':' || mtime_ns`,
+	).Scan(&fingerprintedAssets); err != nil {
+		t.Fatal(err)
+	}
+	if fingerprintedAssets != 3 {
+		t.Fatalf("canonically fingerprinted assets = %d, want 3", fingerprintedAssets)
 	}
 }
 

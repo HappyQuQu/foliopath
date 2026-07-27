@@ -5,8 +5,9 @@
 
 - 当前阶段：Stage 2 扫描后端；媒体库 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
-  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～103` 扫描契约、worker 与目录计数
-- 当前任务：`S2-104` 媒体候选、fingerprint、增量 upsert 与成功后 stale cleanup
+  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～104` 扫描契约、worker、目录计数与
+  媒体增量收敛
+- 当前任务：`S2-105` 取消、离线、权限失败、重启恢复与失败保留
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)
   已完成媒体库后端交接；[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)
   已允许并完成 `S2-102` 唯一 durable queue 实现；不得建立临时队列或第二套扫描状态机
@@ -152,7 +153,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     scanner 流式发射根和全部可读/空/隐藏目录，SQLite 在成功 finalize 中以 O(D) 有界叶批次
     发布全部直接/递归计数。production creation scan、128 层链、失败保留、损坏拓扑回滚和
     分类型跳过统计均有自动证据。
-- [ ] `S2-104` 实现媒体候选识别、fingerprint、增量 upsert 和成功后陈旧清理。
+- [x] `S2-104` 实现媒体候选识别、fingerprint、增量 upsert 和成功后陈旧清理。
+  - 完成证据：[S2-104 媒体候选与增量收敛](gates/MVP-2026-07-23/s2-media-convergence.md)；
+    唯一媒体注册表固定 MVP 候选，version 6 migration 回填大小/纳秒 mtime fingerprint；
+    真实 walker、SQLite 与 production creation worker 已验证同路径 ID 保持、变化失效、
+    重命名新 ID、processed counter 以及仅成功 generation 的 stale cleanup。
 - [ ] `S2-105` 实现取消、离线、权限失败、重启恢复和失败保留旧索引。
 - [ ] `S2-106` 覆盖并发扫描、队列上限、深目录、损坏拓扑和容量回归。
 - [ ] `S2-107` 记录扫描后端 `Backend Ready` Gate。

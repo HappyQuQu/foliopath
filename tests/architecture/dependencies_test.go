@@ -665,6 +665,101 @@ func TestDirectoryIndexAndCountPolicyHasCanonicalOwners(t *testing.T) {
 	}
 }
 
+func TestMediaCandidateFingerprintAndConvergenceHaveCanonicalOwners(t *testing.T) {
+	root := repositoryRoot(t)
+	formatPath := filepath.Join(root, "internal", "media", "formats.go")
+	fingerprintPath := filepath.Join(root, "internal", "media", "fingerprint.go")
+	scannerPath := filepath.Join(root, "internal", "scanner", "formats.go")
+	storePath := filepath.Join(root, "internal", "store", "sqlite", "scanner.go")
+	migrationPath := filepath.Join(
+		root,
+		"migrations",
+		"00006_asset_source_fingerprint.sql",
+	)
+
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: formatPath,
+			contents: []string{
+				"var supportedExtensions",
+				`".jpg"`,
+				`".mkv"`,
+			},
+		},
+		{
+			path: fingerprintPath,
+			contents: []string{
+				`const sourceFingerprintPrefix = "v1:"`,
+				"func NewSourceFingerprint(sizeBytes, mtimeNS int64)",
+				"strconv.FormatInt(sizeBytes, 10)",
+				"strconv.FormatInt(mtimeNS, 10)",
+			},
+		},
+		{
+			path: scannerPath,
+			contents: []string{
+				"media.ClassifyPath(relativePath)",
+			},
+		},
+		{
+			path: storePath,
+			contents: []string{
+				"media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)",
+				"source_fingerprint = excluded.source_fingerprint",
+				"processed_assets = processed_assets + ?",
+				"DELETE FROM assets WHERE library_id = ? AND last_seen_generation < ?",
+			},
+		},
+		{
+			path: migrationPath,
+			contents: []string{
+				"ADD COLUMN source_fingerprint TEXT NOT NULL",
+				"'v1:' || size_bytes || ':' || mtime_ns",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing S2-104 policy %q", required.path, content)
+			}
+		}
+	}
+
+	internalRoot := filepath.Join(root, "internal")
+	if err := filepath.WalkDir(internalRoot, func(
+		path string,
+		entry fs.DirEntry,
+		walkErr error,
+	) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() ||
+			filepath.Ext(path) != ".go" ||
+			strings.HasSuffix(path, "_test.go") ||
+			path == fingerprintPath {
+			return nil
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(source), `"v1:"`) {
+			t.Errorf("source fingerprint encoding is duplicated outside its owner: %s", path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("inspect source fingerprint ownership: %v", err)
+	}
+}
+
 func checkDependency(t *testing.T, source, imported string) {
 	t.Helper()
 	if !strings.HasPrefix(imported, modulePath+"/") {
