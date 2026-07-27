@@ -107,14 +107,23 @@ func libraryPathPageWire(page library.PathPage) libraryPathPageResponse {
 			value := string(item.BlockedReason)
 			blockedReason = &value
 		}
+		var conflictingLibraryID *string
+		if item.ConflictID > 0 {
+			value := "lib_" + strconv.FormatInt(item.ConflictID, 10)
+			conflictingLibraryID = &value
+		}
+		var conflictingLibraryName *string
+		if item.ConflictName != "" {
+			conflictingLibraryName = &item.ConflictName
+		}
 		items = append(items, libraryPathEntryResponse{
 			Name:                   item.Name,
 			RelativePath:           item.RelativePath,
 			HasChildren:            item.HasChildren,
 			Selectable:             item.Selectable,
 			SelectionBlockedReason: blockedReason,
-			ConflictingLibraryID:   nil,
-			ConflictingLibraryName: nil,
+			ConflictingLibraryID:   conflictingLibraryID,
+			ConflictingLibraryName: conflictingLibraryName,
 		})
 	}
 	var nextCursor *string

@@ -6,18 +6,27 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/unicode/norm"
+)
+
+const (
+	maxLibraryNameRunes = 128
+	maxLibraryRootRunes = 4096
 )
 
 var (
-	ErrInvalidName   = errors.New("invalid library name")
-	ErrInvalidRoot   = errors.New("invalid library root")
-	ErrNameExists    = errors.New("library name already exists")
-	ErrRootOverlap   = errors.New("library root overlaps another library")
-	ErrRootImmutable = errors.New("library root is immutable")
-	ErrNotFound      = errors.New("library not found")
+	ErrInvalidName        = errors.New("invalid library name")
+	ErrInvalidRoot        = errors.New("invalid library root")
+	ErrNameExists         = errors.New("library name already exists")
+	ErrRootOverlap        = errors.New("library root overlaps another library")
+	ErrRootImmutable      = errors.New("library root is immutable")
+	ErrNotFound           = errors.New("library not found")
+	ErrRepositoryNotReady = errors.New("library repository is not ready")
 )
 
 type Status string
@@ -105,16 +114,31 @@ func (s *Service) List(ctx context.Context) ([]Library, error) {
 
 // NormalizeName returns the trimmed display name and its instance-unique key.
 func NormalizeName(name string) (string, string, error) {
-	display := strings.TrimSpace(name)
-	if display == "" || !utf8.ValidString(display) || strings.ContainsRune(display, '\x00') {
+	if !utf8.ValidString(name) {
 		return "", "", ErrInvalidName
 	}
-	return display, strings.ToLower(display), nil
+	display := norm.NFC.String(strings.TrimSpace(name))
+	if display == "" || utf8.RuneCountInString(display) > maxLibraryNameRunes {
+		return "", "", ErrInvalidName
+	}
+	for _, character := range display {
+		if unicode.IsControl(character) {
+			return "", "", ErrInvalidName
+		}
+	}
+	key := cases.Fold().String(norm.NFKC.String(display))
+	if key == "" {
+		return "", "", ErrInvalidName
+	}
+	return display, key, nil
 }
 
 // NormalizeRoot converts an API/library relative path into the canonical
 // slash-separated form. Empty means the allowed /library root itself.
 func NormalizeRoot(root string) (string, error) {
+	if !utf8.ValidString(root) || utf8.RuneCountInString(root) > maxLibraryRootRunes {
+		return "", ErrInvalidRoot
+	}
 	normalized, err := pathpolicy.Normalize(root)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrInvalidRoot, err)

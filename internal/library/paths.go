@@ -15,6 +15,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strings"
 	"unicode/utf8"
 
 	"golang.org/x/text/collate"
@@ -46,6 +47,9 @@ const (
 	SelectionBlockedSymlink       SelectionBlockedReason = "symlink"
 	SelectionBlockedMountBoundary SelectionBlockedReason = "mount_boundary"
 	SelectionBlockedUnavailable   SelectionBlockedReason = "unavailable"
+	SelectionBlockedOverlapping   SelectionBlockedReason = "overlapping_library"
+	SelectionBlockedAncestor      SelectionBlockedReason = "ancestor_of_library"
+	SelectionBlockedDescendant    SelectionBlockedReason = "descendant_of_library"
 )
 
 // DirectoryCandidate is produced by the filesystem adapter after it has
@@ -67,6 +71,10 @@ type DirectorySource interface {
 	) error
 }
 
+type LibraryReader interface {
+	ListLibraries(context.Context) ([]Library, error)
+}
+
 type ListPathParams struct {
 	Parent string
 	Cursor string
@@ -84,6 +92,8 @@ type PathEntry struct {
 	HasChildren   bool
 	Selectable    bool
 	BlockedReason SelectionBlockedReason
+	ConflictID    int64
+	ConflictName  string
 }
 
 type PathPage struct {
@@ -101,12 +111,20 @@ type PathServiceOptions struct {
 
 type PathService struct {
 	source DirectorySource
+	reader LibraryReader
 	aead   cipher.AEAD
 }
 
-func NewPathService(source DirectorySource, options PathServiceOptions) (*PathService, error) {
+func NewPathService(
+	source DirectorySource,
+	reader LibraryReader,
+	options PathServiceOptions,
+) (*PathService, error) {
 	if source == nil {
 		return nil, errors.New("library directory source is required")
+	}
+	if reader == nil {
+		return nil, errors.New("library reader is required")
 	}
 	key := append([]byte(nil), options.CursorKey...)
 	if len(key) == 0 {
@@ -126,7 +144,7 @@ func NewPathService(source DirectorySource, options PathServiceOptions) (*PathSe
 	if err != nil {
 		return nil, fmt.Errorf("construct library path cursor AEAD: %w", err)
 	}
-	return &PathService{source: source, aead: aead}, nil
+	return &PathService{source: source, reader: reader, aead: aead}, nil
 }
 
 func (service *PathService) ListPaths(
@@ -153,6 +171,24 @@ func (service *PathService) ListPaths(
 	}
 	if limit < 1 || limit > MaxPathPageSize {
 		return PathPage{}, ErrInvalidParent
+	}
+
+	libraries, err := service.reader.ListLibraries(ctx)
+	if err != nil {
+		return PathPage{}, fmt.Errorf("list libraries for path selection: %w", err)
+	}
+	for _, configured := range libraries {
+		if configured.ID <= 0 {
+			return PathPage{}, errors.New("library reader returned an invalid ID")
+		}
+		normalizedName, _, normalizeNameErr := NormalizeName(configured.Name)
+		if normalizeNameErr != nil || normalizedName != configured.Name {
+			return PathPage{}, errors.New("library reader returned an invalid name")
+		}
+		normalized, normalizeErr := NormalizeRoot(configured.RootRelativePath)
+		if normalizeErr != nil || normalized != configured.RootRelativePath {
+			return PathPage{}, errors.New("library reader returned an invalid root")
+		}
 	}
 
 	after := ""
@@ -217,12 +253,19 @@ func (service *PathService) ListPaths(
 	}
 	items := make([]PathEntry, 0, len(ranked))
 	for _, item := range ranked {
+		blockedReason := item.candidate.BlockedReason
+		var conflict Library
+		if blockedReason == "" {
+			blockedReason, conflict = pathConflict(item.relative, libraries)
+		}
 		items = append(items, PathEntry{
 			Name:          item.candidate.Name,
 			RelativePath:  item.relative,
 			HasChildren:   item.candidate.HasChildren,
-			Selectable:    item.candidate.BlockedReason == "",
-			BlockedReason: item.candidate.BlockedReason,
+			Selectable:    blockedReason == "",
+			BlockedReason: blockedReason,
+			ConflictID:    conflict.ID,
+			ConflictName:  conflict.Name,
 		})
 	}
 
@@ -240,6 +283,30 @@ func (service *PathService) ListPaths(
 		Items:       items,
 		NextCursor:  nextCursor,
 	}, nil
+}
+
+func pathConflict(candidate string, libraries []Library) (SelectionBlockedReason, Library) {
+	var (
+		reason   SelectionBlockedReason
+		conflict Library
+	)
+	for _, configured := range libraries {
+		candidateReason := SelectionBlockedReason("")
+		switch {
+		case candidate == configured.RootRelativePath:
+			candidateReason = SelectionBlockedOverlapping
+		case configured.RootRelativePath == "" ||
+			strings.HasPrefix(candidate, configured.RootRelativePath+"/"):
+			candidateReason = SelectionBlockedDescendant
+		case strings.HasPrefix(configured.RootRelativePath, candidate+"/"):
+			candidateReason = SelectionBlockedAncestor
+		}
+		if candidateReason != "" && (conflict.ID == 0 || configured.ID < conflict.ID) {
+			reason = candidateReason
+			conflict = configured
+		}
+	}
+	return reason, conflict
 }
 
 type pathCursor struct {

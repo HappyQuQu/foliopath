@@ -13,14 +13,21 @@
 ### `libraries`
 
 - `id`：不透明稳定 ID。
-- `name`：用户设置的非空显示名称，在当前实例内唯一。
+- `name`：用户设置的非空 NFC 显示名称，去除首尾空白后最多 128 个 Unicode code point，
+  且不允许控制字符。
+- `name_key`：对显示名称执行 NFKC 后再做 Unicode full case folding 的实例唯一比较键；
+  不用于替换或重写用户看到的显示名称。
 - `root_rel_path`：相对于 `/library` 的规范化根路径；空字符串唯一表示 `/library` 本身。
 - `status`：`pending`、`scanning`、`ready`、`offline` 或 `error`。
 - `current_generation`：最近一次成功完整扫描的代次。
 - `revision`：任一公开 Library 表示字段变化时递增的正整数，用于生成强 ETag。
 - `created_at`、`updated_at`。
 
-`root_rel_path` 必须唯一。业务层还必须拒绝任意两个媒体库根路径的祖先/后代重叠。MVP 允许更新 `name`，但 `root_rel_path` 创建后不可修改；更换根路径通过移除媒体库并重新创建完成，详见 [ADR-0004](adr/0004-library-root-immutable.md)。
+`root_rel_path` 必须是最长 4096 个 Unicode code point 的规范相对路径并保持唯一。空值表示
+`/library`，因此会与任意其他库重叠。业务层在 SQLite immediate 写事务中按路径组件拒绝
+相同、祖先和后代重叠，不能用裸字符串前缀判断。MVP 允许更新 `name`，但
+`root_rel_path` 创建后不可修改；数据库 trigger 同样阻止直接更新。更换根路径通过移除
+媒体库并重新创建完成，详见 [ADR-0004](adr/0004-library-root-immutable.md)。
 
 ### `directories`
 

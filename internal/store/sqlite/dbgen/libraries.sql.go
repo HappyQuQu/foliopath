@@ -236,13 +236,23 @@ func (q *Queries) ListLibraries(ctx context.Context) ([]ListLibrariesRow, error)
 	return items, nil
 }
 
-const renameLibrary = `-- name: RenameLibrary :execrows
+const renameLibrary = `-- name: RenameLibrary :one
 UPDATE libraries
 SET name = ?1,
     name_key = ?2,
     revision = revision + 1,
     updated_at_ms = ?3
 WHERE id = ?4
+RETURNING
+    id,
+    name,
+    name_key,
+    root_rel_path,
+    status,
+    current_generation,
+    revision,
+    created_at_ms,
+    updated_at_ms
 `
 
 type RenameLibraryParams struct {
@@ -252,15 +262,36 @@ type RenameLibraryParams struct {
 	ID          int64
 }
 
-func (q *Queries) RenameLibrary(ctx context.Context, arg RenameLibraryParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, renameLibrary,
+type RenameLibraryRow struct {
+	ID                int64
+	Name              string
+	NameKey           string
+	RootRelPath       string
+	Status            string
+	CurrentGeneration int64
+	Revision          int64
+	CreatedAtMs       int64
+	UpdatedAtMs       int64
+}
+
+func (q *Queries) RenameLibrary(ctx context.Context, arg RenameLibraryParams) (RenameLibraryRow, error) {
+	row := q.db.QueryRowContext(ctx, renameLibrary,
 		arg.Name,
 		arg.NameKey,
 		arg.UpdatedAtMs,
 		arg.ID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i RenameLibraryRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.NameKey,
+		&i.RootRelPath,
+		&i.Status,
+		&i.CurrentGeneration,
+		&i.Revision,
+		&i.CreatedAtMs,
+		&i.UpdatedAtMs,
+	)
+	return i, err
 }

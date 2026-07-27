@@ -74,9 +74,34 @@ func (s *Store) RenameLibrary(ctx context.Context, id int64, requestedName strin
 		return library.Library{}, err
 	}
 
+	var renamed library.Library
 	err = s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		queries := dbgen.New(tx)
-		_, err := queries.FindOtherLibraryIDByNameKey(ctx, dbgen.FindOtherLibraryIDByNameKeyParams{
+		current, err := queries.GetLibrary(ctx, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			return library.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("get library before rename: %w", err)
+		}
+		if current.Name == name {
+			renamed, err = libraryFromDatabase(
+				current.ID,
+				current.Name,
+				current.RootRelPath,
+				current.Status,
+				current.CurrentGeneration,
+				current.Revision,
+				current.CreatedAtMs,
+				current.UpdatedAtMs,
+			)
+			if err != nil {
+				return fmt.Errorf("map unchanged library: %w", err)
+			}
+			return nil
+		}
+
+		_, err = queries.FindOtherLibraryIDByNameKey(ctx, dbgen.FindOtherLibraryIDByNameKeyParams{
 			NameKey: nameKey,
 			ID:      id,
 		})
@@ -87,24 +112,34 @@ func (s *Store) RenameLibrary(ctx context.Context, id int64, requestedName strin
 			return fmt.Errorf("check renamed library name: %w", err)
 		}
 
-		rows, err := queries.RenameLibrary(ctx, dbgen.RenameLibraryParams{
+		record, err := queries.RenameLibrary(ctx, dbgen.RenameLibraryParams{
 			Name:        name,
 			NameKey:     nameKey,
 			UpdatedAtMs: s.nowMS(),
 			ID:          id,
 		})
+		if errors.Is(err, sql.ErrNoRows) {
+			return library.ErrNotFound
+		}
 		if err != nil {
 			return fmt.Errorf("rename library: %w", err)
 		}
-		if rows == 0 {
-			return library.ErrNotFound
+		renamed, err = libraryFromDatabase(
+			record.ID,
+			record.Name,
+			record.RootRelPath,
+			record.Status,
+			record.CurrentGeneration,
+			record.Revision,
+			record.CreatedAtMs,
+			record.UpdatedAtMs,
+		)
+		if err != nil {
+			return fmt.Errorf("map renamed library: %w", err)
 		}
 		return nil
 	})
-	if err != nil {
-		return library.Library{}, err
-	}
-	return s.GetLibrary(ctx, id)
+	return renamed, err
 }
 
 func (s *Store) GetLibrary(ctx context.Context, id int64) (library.Library, error) {
@@ -167,6 +202,20 @@ func libraryFromDatabase(
 	createdAtMS int64,
 	updatedAtMS int64,
 ) (library.Library, error) {
+	if id <= 0 {
+		return library.Library{}, errors.New("invalid library ID")
+	}
+	normalizedName, _, err := library.NormalizeName(name)
+	if err != nil || normalizedName != name {
+		return library.Library{}, errors.New("invalid library name")
+	}
+	normalizedRoot, err := library.NormalizeRoot(rootRelativePath)
+	if err != nil || normalizedRoot != rootRelativePath {
+		return library.Library{}, errors.New("invalid library root")
+	}
+	if revision <= 0 {
+		return library.Library{}, errors.New("invalid library revision")
+	}
 	status, err := library.ValidateStatus(rawStatus)
 	if err != nil {
 		return library.Library{}, err
