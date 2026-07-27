@@ -234,4 +234,57 @@ Stage 2 is now Integrated Done. Stage 5 still owns the final Firefox/Safari/Chro
 release matrix, forced-colors/zoom release sweep, deployment topology, and
 release-candidate visual regression.
 
+## Stage 3 / S3-101 directory navigation QA
+
+### Source and production comparison
+
+- Confirmed source: static prototype catalog `5/15 主浏览界面` at
+  `/libraries/family/browse/kyoto`.
+- Production target: authenticated `BrowsePage` at
+  `/libraries/:libraryId/browse/:directoryId?`, backed by the generated client and
+  real catalog APIs.
+- A same-viewport 1280 × 720 side-by-side comparison checked the fixed left rail,
+  library picker, nested navigation rhythm, selected accent, breadcrumb header,
+  semantic folder cards, central tokens, system type stack, light theme, and spacing.
+- Production intentionally contains no fabricated media thumbnails, search controls,
+  recursive toggle, sort/filter toolbar, or preview. Those visible source surfaces are
+  owned by S3-102～106 and remain outside this completed slice.
+
+### Interaction and accessibility evidence
+
+- A real authenticated catalog restored the library root URL, rendered the directory
+  rail and breadcrumb, switched light/dark themes, copied the direct URL, and announced
+  success through the canonical Toast.
+- Unit/component tests cover generated-client query mapping, safe breadcrumb mapping,
+  deep-route recovery, ancestor auto-expansion, independent expand/select actions, and
+  canonical direct links.
+- Real-backend Chromium E2E covers a synthetic indexed child directory, root → child
+  navigation, reload persistence, the 390 × 844 directory drawer, Escape focus return,
+  the 1024 × 900 fixed sidebar, no page overflow, and axe serious/critical checks.
+- Browser console review found no warning or error from production; only Vite
+  connection, React development information, and a development-only hot-update debug
+  event were present.
+- The final dark-theme capture kept borders, muted text, selected navigation, focus,
+  and success notification legible without replacing semantic icons or relying on
+  color alone.
+
+### Comparison-driven corrections
+
+1. The first production capture exposed implementation-roadmap copy inside the visible
+   media placeholder. It was replaced with neutral product copy:
+   “此目录的媒体内容将在这里显示。”
+2. The source uses the directory rail itself as the product sidebar. Production now
+   passes the browse navigation through the canonical AppShell sidebar slot, so it
+   becomes the same mobile drawer instead of nesting a second feature-local panel.
+3. The source visually conflates expansion and selection in some directory rows.
+   Production preserves the visual rhythm but separates the disclosure button from
+   the navigable directory link, which keeps keyboard and URL semantics unambiguous.
+
+### Residual Stage 3 work
+
+S3-101 is complete. S3-102～108 still own recursive/current scope URL state, the real
+asset grid and virtualization, complete collection states, non-modal preview,
+capacity budgets, and Stage 3 Integrated Done. Release-wide browser and visual
+regression matrices remain Stage 5 work.
+
 final result: passed

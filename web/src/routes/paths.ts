@@ -6,7 +6,11 @@ export const paths = {
   libraryStatus: (libraryId: string) => `/settings/libraries/${libraryId}/status`,
   libraryStatusPattern: "/settings/libraries/:libraryId/status",
   newLibrary: "/settings/libraries/new",
-  browse: "/libraries/:libraryId/browse/:directoryId?",
+  browse: (libraryId: string, directoryId?: string) =>
+    `/libraries/${encodeURIComponent(libraryId)}/browse${
+      directoryId ? `/${encodeURIComponent(directoryId)}` : ""
+    }`,
+  browsePattern: "/libraries/:libraryId/browse/:directoryId?",
   search: "/search",
   media: "/media/:assetId",
   generalSettings: "/settings/general",

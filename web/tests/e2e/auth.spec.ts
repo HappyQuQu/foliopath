@@ -155,7 +155,43 @@ test("administrator and library-management vertical slice", async ({
   await expectNoSeriousAxeViolations(page);
   await page.unroute(/\/api\/v1\/scans\/[^/]+(?:\/cancel)?$/);
 
-  await page.getByRole("button", { name: "Open navigation" }).click();
+  const createdLibraryId = libraryId ?? "";
+  await page.goto(`/libraries/${createdLibraryId}/browse`);
+  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Media library" })).toHaveValue(
+    createdLibraryId,
+  );
+  const childDirectoryCard = page.getByRole("link", {
+    name: /visible-child.*0 items/i,
+  });
+  await expect(childDirectoryCard).toBeVisible({ timeout: 15_000 });
+  await childDirectoryCard.click();
+  await expect(page).toHaveURL(
+    new RegExp(`/libraries/${createdLibraryId}/browse/dir_`),
+  );
+  await expect(page.getByRole("heading", { name: "visible-child" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Directory location" }),
+  ).toContainText(longLibraryName);
+  const directDirectoryURL = page.url();
+  await page.reload();
+  await expect(page).toHaveURL(directDirectoryURL);
+  await expect(page.getByRole("heading", { name: "visible-child" })).toBeVisible();
+
+  const openNavigation = page.getByRole("button", { name: "Open navigation" });
+  await openNavigation.click();
+  await expect(page.getByRole("navigation", { name: "Media library directories" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(openNavigation).toBeFocused();
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await expect(
+    page.getByRole("navigation", { name: "Media library directories" }),
+  ).toBeVisible();
+  await expectNoPageOverflow(page);
+
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/settings\/general$/);
   await expect(page.getByRole("heading", { name: "General settings" })).toBeVisible();

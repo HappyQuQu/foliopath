@@ -1,0 +1,279 @@
+.page {
+  min-height: calc(100dvh - var(--size-header));
+  background: var(--color-canvas);
+}
+
+.banner {
+  padding: var(--space-3) clamp(var(--space-4), 3vw, var(--space-8)) 0;
+}
+
+.header {
+  min-height: var(--size-header);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) clamp(var(--space-4), 3vw, var(--space-8));
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.breadcrumbs {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+  white-space: nowrap;
+}
+
+.crumb {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.crumb a,
+.crumb span {
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.crumb a:hover {
+  color: var(--color-accent);
+}
+
+.crumb [aria-current="page"] {
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.content {
+  display: grid;
+  gap: var(--space-8);
+  padding: clamp(var(--space-5), 4vw, var(--space-10));
+}
+
+.headingRow {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.eyebrow,
+.treeLabel,
+.libraryPicker > span {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headingRow h1,
+.content h2,
+.mediaPlaceholder h2 {
+  margin: 0;
+}
+
+.headingRow h1 {
+  font-size: var(--font-size-6);
+  line-height: var(--line-height-tight);
+}
+
+.headingRow p:last-child {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.content h2,
+.mediaPlaceholder h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-4);
+}
+
+.folderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--space-3);
+}
+
+.folderCard {
+  min-height: 8.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  text-decoration: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.folderCard:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
+}
+
+.folderCard svg {
+  color: var(--color-text-muted);
+}
+
+.folderCard span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.loadMore {
+  margin-top: var(--space-4);
+}
+
+.empty,
+.mediaPlaceholder {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+}
+
+.empty p,
+.mediaPlaceholder p {
+  margin: 0;
+}
+
+.mediaPlaceholder h2 {
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.directoryNavigation {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.libraryPicker {
+  display: grid;
+  margin-bottom: var(--space-6);
+}
+
+.libraryPicker select {
+  width: 100%;
+  min-height: var(--size-control-lg);
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-accent-soft);
+  font: inherit;
+  font-weight: 650;
+}
+
+.tree {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--tree-depth) * var(--space-4));
+}
+
+.treeToggle {
+  width: var(--size-control-sm);
+  min-width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  border-color: transparent;
+  background: transparent;
+}
+
+.treeSpacer {
+  width: var(--size-control-sm);
+  min-width: var(--size-control-sm);
+}
+
+.treeLink {
+  min-width: 0;
+  min-height: var(--size-control-sm);
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-1);
+  font-size: var(--font-size-2);
+  text-decoration: none;
+}
+
+.treeLink span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treeLink:hover,
+.treeLinkCurrent {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.treeState {
+  display: block;
+  padding: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+@media (max-width: 48rem) {
+  .content {
+    padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+
+  .headingRow h1 {
+    font-size: var(--font-size-5);
+  }
+
+  .folderGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .header {
+    min-height: 3.5rem;
+  }
+
+  .breadcrumbs {
+    gap: var(--space-1);
+  }
+
+  .crumb:not(:last-child):not(:first-of-type) {
+    display: none;
+  }
+
+  .folderGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

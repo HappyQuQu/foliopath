@@ -55,6 +55,12 @@
   gap: var(--space-1);
 }
 
+.navigationBottom {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
 .navigation a,
 .disabledLink {
   min-height: var(--size-control-md);

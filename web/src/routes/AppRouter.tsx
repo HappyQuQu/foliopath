@@ -5,6 +5,7 @@ import {
   Route,
   Routes,
   useNavigate,
+  useParams,
 } from "react-router-dom";
 
 import { PublicLayout } from "../components/patterns/PublicLayout/PublicLayout";
@@ -15,6 +16,7 @@ import {
   useLogoutMutation,
   useSessionQuery,
 } from "../features/auth";
+import { BrowsePage } from "../features/browse";
 import {
   LibrariesPage,
   NewLibraryPage,
@@ -46,6 +48,7 @@ export function AppRoutes() {
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
+        <Route path={paths.browsePattern} element={<ProtectedBrowseRoute />} />
         <Route path={paths.libraries} element={<ProtectedLibrariesRoute />} />
         <Route path={paths.newLibrary} element={<ProtectedNewLibraryRoute />} />
         <Route
@@ -164,6 +167,31 @@ function ProtectedLibrariesRoute() {
 
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) return <LibrariesPage session={sessionQuery.data} />;
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedBrowseRoute() {
+  const { directoryId, libraryId } = useParams<{
+    directoryId?: string;
+    libraryId: string;
+  }>();
+  const sessionQuery = useSessionQuery();
+
+  if (!libraryId) return <Navigate replace to={paths.libraries} />;
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return (
+      <BrowsePage
+        libraryId={libraryId}
+        session={sessionQuery.data}
+        {...(directoryId ? { directoryId } : {})}
+      />
+    );
+  }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }

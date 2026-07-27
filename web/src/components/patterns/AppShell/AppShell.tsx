@@ -14,21 +14,25 @@ import { IconButton } from "../../ui/Button/IconButton";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import styles from "./AppShell.module.css";
 
-export type AppSection = "libraries" | "settings";
+export type AppSection = "browse" | "libraries" | "settings";
 
 export function AppShell({
   active,
+  browseHref,
   children,
   identity,
   librariesHref,
   settingsHref,
+  sidebarContent,
   title,
 }: {
   active: AppSection;
+  browseHref?: string;
   children: ReactNode;
   identity: string;
   librariesHref: string;
   settingsHref: string;
+  sidebarContent?: ReactNode;
   title: string;
 }) {
   const { t } = useLocale();
@@ -84,23 +88,40 @@ export function AppShell({
             <X aria-hidden="true" size={20} />
           </IconButton>
         </div>
-        <nav className={styles.navigation}>
-          <span aria-disabled="true" className={styles.disabledLink}>
-            <ImageSquare aria-hidden="true" size={20} />
-            {t("shell.browse")}
-          </span>
+        {sidebarContent}
+        <nav
+          aria-label={t("shell.primaryNavigation")}
+          className={`${styles.navigation} ${sidebarContent ? styles.navigationBottom : ""}`}
+        >
+          {browseHref ? (
+            <NavLink
+              className={active === "browse" ? (styles.currentLink ?? "") : ""}
+              onClick={() => setNavigationOpen(false)}
+              to={browseHref}
+            >
+              <ImageSquare aria-hidden="true" size={20} />
+              {t("shell.browse")}
+            </NavLink>
+          ) : (
+            <span aria-disabled="true" className={styles.disabledLink}>
+              <ImageSquare aria-hidden="true" size={20} />
+              {t("shell.browse")}
+            </span>
+          )}
           <span aria-disabled="true" className={styles.disabledLink}>
             <MagnifyingGlass aria-hidden="true" size={20} />
             {t("shell.search")}
           </span>
-          <NavLink
-            className={active === "libraries" ? (styles.currentLink ?? "") : ""}
-            onClick={() => setNavigationOpen(false)}
-            to={librariesHref}
-          >
-            <FolderOpen aria-hidden="true" size={20} />
-            {t("shell.libraries")}
-          </NavLink>
+          {!sidebarContent && (
+            <NavLink
+              className={active === "libraries" ? (styles.currentLink ?? "") : ""}
+              onClick={() => setNavigationOpen(false)}
+              to={librariesHref}
+            >
+              <FolderOpen aria-hidden="true" size={20} />
+              {t("shell.libraries")}
+            </NavLink>
+          )}
           <NavLink
             className={active === "settings" ? (styles.currentLink ?? "") : ""}
             onClick={() => setNavigationOpen(false)}
@@ -110,7 +131,7 @@ export function AppShell({
             {t("shell.settings")}
           </NavLink>
         </nav>
-        <p className={styles.safety}>{t("common.readOnlyFooter")}</p>
+        {!sidebarContent && <p className={styles.safety}>{t("common.readOnlyFooter")}</p>}
       </aside>
       <div className={styles.content}>
         <header className={styles.topbar}>
