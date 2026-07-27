@@ -223,6 +223,27 @@ func TestUnsupportedMethodUsesSafeFallback(t *testing.T) {
 	assertSafeErrorResponse(t, response, codeResourceNotFound)
 }
 
+func TestRouteFallbackPreservesServeMuxPathValues(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /resources/{resourceId}", func(
+		writer http.ResponseWriter,
+		request *http.Request,
+	) {
+		if got := request.PathValue("resourceId"); got != "resource_7" {
+			t.Fatalf("resourceId PathValue = %q, want resource_7", got)
+		}
+		writer.WriteHeader(http.StatusNoContent)
+	})
+	response := httptest.NewRecorder()
+	routeFallback{mux: mux}.ServeHTTP(
+		response,
+		httptest.NewRequest(http.MethodGet, "/resources/resource_7", nil),
+	)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusNoContent)
+	}
+}
+
 func testRoutes(t *testing.T, dependencies RouteDependencies) http.Handler {
 	t.Helper()
 	if dependencies.LibraryPaths == nil {

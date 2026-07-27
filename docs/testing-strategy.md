@@ -103,6 +103,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 唯一媒体库名称、两个独立 Store 并发名称/根冲突仅一方成功、只允许改名、拒绝根路径
   修改、目录选择器相同/祖先/后代冲突标注与权威快照失败关闭，以及 24 小时可配置调度与
   协作取消。
+- 正式认证 HTTP/composition/SQLite/removal worker 删除链路，比较删除前后的完整 synthetic
+  媒体树 entry、模式、symlink target 和普通文件完整字节，并验证应用缓存清理与 SQLite
+  bounded cleanup 在重启后幂等续作。
 - generation 批量 upsert 与仅在完整成功后清理旧记录。
 - 进程中断后的 `running` 任务恢复和原子缓存写入。
 - FTS 搜索、Unicode 文件名、大小写、自然排序与游标稳定性。

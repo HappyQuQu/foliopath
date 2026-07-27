@@ -225,6 +225,63 @@ func TestLibraryPathFilesystemBoundaryIsCentralized(t *testing.T) {
 	}
 }
 
+func TestLibraryRemovalHasNoOriginalMediaCapability(t *testing.T) {
+	root := repositoryRoot(t)
+	workerPath := filepath.Join(root, "internal", "library", "removal_worker.go")
+	cleanerPath := filepath.Join(root, "internal", "app", "library_removal.go")
+	compositionPath := filepath.Join(root, "internal", "app", "run.go")
+
+	workerSource, err := os.ReadFile(workerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{
+		`"os"`,
+		`"path/filepath"`,
+		`"github.com/HappyQuQu/foliopath/internal/files"`,
+	} {
+		if strings.Contains(string(workerSource), forbidden) {
+			t.Errorf("removal worker gained original-media filesystem capability %s", forbidden)
+		}
+	}
+	for _, required := range []string{
+		"type RemovalRepository interface",
+		"type DerivedCacheCleaner interface",
+		"CleanupLibraryRemovalBatch",
+		"RemoveLibraryCache",
+	} {
+		if !strings.Contains(string(workerSource), required) {
+			t.Errorf("removal worker is missing narrow derived-state port %q", required)
+		}
+	}
+
+	cleanerSource, err := os.ReadFile(cleanerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"mediaRoot", `"/library"`, "internal/files"} {
+		if strings.Contains(string(cleanerSource), forbidden) {
+			t.Errorf("cache cleaner references original-media boundary %q", forbidden)
+		}
+	}
+	for _, required := range []string{`"cache"`, `"libraries"`, `"lib_"`} {
+		if !strings.Contains(string(cleanerSource), required) {
+			t.Errorf("cache cleaner is missing derived-cache segment %s", required)
+		}
+	}
+
+	compositionSource, err := os.ReadFile(compositionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(
+		string(compositionSource),
+		"libraryCacheCleaner{dataRoot: configuration.dataRoot}",
+	) {
+		t.Error("composition root does not constrain removal cache cleanup to application data")
+	}
+}
+
 func TestWebUsesSingleGeneratedAPIClientBoundary(t *testing.T) {
 	root := repositoryRoot(t)
 	webSource := filepath.Join(root, "web", "src")

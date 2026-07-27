@@ -1,10 +1,12 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -411,6 +413,247 @@ func TestComposedLibraryCreationFailsClosedAcrossUnsafeRoots(t *testing.T) {
 	}
 }
 
+func TestComposedLibraryRemovalPreservesOriginalMediaByteForByte(t *testing.T) {
+	mediaRoot := t.TempDir()
+	dataRoot := t.TempDir()
+	fixtures := map[string][]byte{
+		"family/album/photo.jpg": {
+			0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+			0x49, 0x46, 0x00, 0x01, 0x00, 0xff, 0xd9,
+		},
+		"family/album/empty.png": {},
+		"other/unrelated.mov":    {0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70},
+	}
+	for relative, content := range fixtures {
+		filename := filepath.Join(mediaRoot, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, content, 0o640); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(mediaRoot, "family", "empty"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(
+		"album",
+		filepath.Join(mediaRoot, "family", "latest"),
+	); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	before := snapshotMediaTree(t, mediaRoot)
+
+	application, err := composeConfiguration(
+		Input{Version: "integration"},
+		configuration{
+			listenAddress: "127.0.0.1:0",
+			mediaRoot:     mediaRoot,
+			dataRoot:      dataRoot,
+		},
+	)
+	if err != nil {
+		t.Fatalf("composeConfiguration() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		result <- application.run(ctx)
+	}()
+	defer func() {
+		cancel()
+		select {
+		case runErr := <-result:
+			if runErr != nil {
+				t.Errorf("application.run() error = %v", runErr)
+			}
+		case <-time.After(runtimeIntegrationTimeout):
+			t.Error("application did not stop after cancellation")
+		}
+	}()
+
+	address := waitForListenAddress(t, application.http)
+	client := &http.Client{Timeout: runtimeIntegrationTimeout}
+	setup := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodPost,
+		"/api/v1/auth/setup",
+		`{"username":"Administrator","displayName":"Administrator","password":"correct horse battery staple"}`,
+		"",
+		"",
+	)
+	if setup.StatusCode != http.StatusCreated ||
+		setup.Cookie == "" ||
+		setup.CSRFToken == "" {
+		t.Fatalf("setup response = %#v", setup)
+	}
+	created := runtimeLibraryCreateRequest(
+		t,
+		client,
+		address,
+		"Family",
+		"family",
+		"s2-006-create-family",
+		setup.Cookie,
+		setup.CSRFToken,
+	)
+	if created.StatusCode != http.StatusCreated ||
+		created.ETag == "" ||
+		created.Location != "/api/v1/libraries/lib_1" ||
+		!strings.Contains(created.Body, `"id":"lib_1"`) {
+		t.Fatalf("create response = %#v", created)
+	}
+	currentLibrary := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		created.Location,
+		"",
+		setup.Cookie,
+		"",
+	)
+	if currentLibrary.StatusCode != http.StatusOK ||
+		currentLibrary.ETag != created.ETag {
+		t.Fatalf("current library before removal = %#v; create = %#v", currentLibrary, created)
+	}
+
+	cachePath := filepath.Join(
+		dataRoot,
+		"cache",
+		"libraries",
+		"lib_1",
+		"thumbnails",
+		"derived.webp",
+	)
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cachePath, []byte("derived-cache"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	removal := runtimeLibraryRemoveRequest(
+		t,
+		client,
+		address,
+		created.Location,
+		created.ETag,
+		"s2-006-remove-family",
+		setup.Cookie,
+		setup.CSRFToken,
+	)
+	if removal.StatusCode != http.StatusAccepted ||
+		removal.Location != "/api/v1/library-removals/rmv_1" {
+		t.Fatalf("remove response = %#v", removal)
+	}
+
+	deadline := time.Now().Add(runtimeIntegrationTimeout)
+	var terminal runtimeAuthenticationResponse
+	for time.Now().Before(deadline) {
+		terminal = runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodGet,
+			removal.Location,
+			"",
+			setup.Cookie,
+			"",
+		)
+		if terminal.StatusCode == http.StatusOK &&
+			strings.Contains(terminal.Body, `"status":"succeeded"`) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if terminal.StatusCode != http.StatusOK ||
+		!strings.Contains(terminal.Body, `"status":"succeeded"`) {
+		t.Fatalf("terminal removal response = %#v", terminal)
+	}
+	if _, err := os.Stat(cachePath); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("derived cache still exists or failed unexpectedly: %v", err)
+	}
+	removedLibrary := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		created.Location,
+		"",
+		setup.Cookie,
+		"",
+	)
+	if removedLibrary.StatusCode != http.StatusNotFound ||
+		removedLibrary.ErrorCode != "library_not_found" {
+		t.Fatalf("removed library response = %#v", removedLibrary)
+	}
+	assertMediaTreeUnchanged(t, before, snapshotMediaTree(t, mediaRoot))
+}
+
+type mediaTreeSnapshotEntry struct {
+	mode    fs.FileMode
+	link    string
+	content []byte
+}
+
+func snapshotMediaTree(t *testing.T, root string) map[string]mediaTreeSnapshotEntry {
+	t.Helper()
+	snapshot := make(map[string]mediaTreeSnapshotEntry)
+	err := filepath.WalkDir(root, func(filename string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(root, filename)
+		if err != nil {
+			return err
+		}
+		relative = filepath.ToSlash(relative)
+		info, err := os.Lstat(filename)
+		if err != nil {
+			return err
+		}
+		item := mediaTreeSnapshotEntry{mode: info.Mode()}
+		switch {
+		case info.Mode().IsRegular():
+			item.content, err = os.ReadFile(filename)
+		case info.Mode()&fs.ModeSymlink != 0:
+			item.link, err = os.Readlink(filename)
+		}
+		if err != nil {
+			return err
+		}
+		snapshot[relative] = item
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("snapshot media tree: %v", err)
+	}
+	return snapshot
+}
+
+func assertMediaTreeUnchanged(
+	t *testing.T,
+	before, after map[string]mediaTreeSnapshotEntry,
+) {
+	t.Helper()
+	if len(after) != len(before) {
+		t.Fatalf("media tree entry count changed: before %d, after %d", len(before), len(after))
+	}
+	for relative, want := range before {
+		got, exists := after[relative]
+		if !exists {
+			t.Fatalf("media entry %q was removed or renamed", relative)
+		}
+		if got.mode != want.mode || got.link != want.link ||
+			!bytes.Equal(got.content, want.content) {
+			t.Fatalf("media entry %q changed: before %#v, after %#v", relative, want, got)
+		}
+	}
+}
+
 func runComposedApplication(
 	t *testing.T,
 	dataRoot string,
@@ -673,6 +916,8 @@ type runtimeAuthenticationResponse struct {
 	CookieExpired bool
 	ErrorCode     string
 	ErrorMessage  string
+	ETag          string
+	Location      string
 	Body          string
 }
 
@@ -731,6 +976,62 @@ func runtimeLibraryCreateRequest(
 		StatusCode:   response.StatusCode,
 		ErrorCode:    document.Error.Code,
 		ErrorMessage: document.Error.Message,
+		ETag:         response.Header.Get("ETag"),
+		Location:     response.Header.Get("Location"),
+		Body:         string(responseBody),
+	}
+}
+
+func runtimeLibraryRemoveRequest(
+	t *testing.T,
+	client *http.Client,
+	address string,
+	path string,
+	etag string,
+	idempotencyKey string,
+	cookie string,
+	csrfToken string,
+) runtimeAuthenticationResponse {
+	t.Helper()
+	request, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodDelete,
+		"http://"+address+path,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Origin", "http://"+address)
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	request.Header.Set("If-Match", etag)
+	request.Header.Set("Idempotency-Key", idempotencyKey)
+	request.AddCookie(&http.Cookie{Name: "foliopath_session", Value: cookie})
+
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}{}
+	if err := json.Unmarshal(responseBody, &document); err != nil {
+		t.Fatalf("decode removal response: %v; body = %s", err, responseBody)
+	}
+	return runtimeAuthenticationResponse{
+		StatusCode:   response.StatusCode,
+		ErrorCode:    document.Error.Code,
+		ErrorMessage: document.Error.Message,
+		ETag:         response.Header.Get("ETag"),
+		Location:     response.Header.Get("Location"),
 		Body:         string(responseBody),
 	}
 }
@@ -794,6 +1095,8 @@ func runtimeAuthenticationRequest(
 		CSRFToken:     document.CSRFToken,
 		ErrorCode:     document.Error.Code,
 		ErrorMessage:  document.Error.Message,
+		ETag:          response.Header.Get("ETag"),
+		Location:      response.Header.Get("Location"),
 		Body:          string(bodyBytes),
 	}
 	for _, responseCookie := range response.Cookies() {
