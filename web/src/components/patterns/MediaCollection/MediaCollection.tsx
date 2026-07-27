@@ -8,12 +8,12 @@ import {
 } from "@phosphor-icons/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
   useState,
-  forwardRef,
   type CSSProperties,
 } from "react";
 
@@ -54,6 +54,31 @@ export interface MediaCollectionHandle {
   restoreItem: (id: string) => void;
 }
 
+export const mediaCollectionCapacityBudget = {
+  focusRestoreFrames: 12,
+  primaryTierItems: 100_000,
+} as const;
+
+export function shouldLoadNextMediaPage({
+  columns,
+  hasNextPage,
+  isFetchingNextPage,
+  itemCount,
+  lastVirtualIndex,
+}: {
+  columns: number;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  itemCount: number;
+  lastVirtualIndex: number;
+}): boolean {
+  return (
+    hasNextPage &&
+    !isFetchingNextPage &&
+    lastVirtualIndex >= itemCount - columns * 2
+  );
+}
+
 export const MediaCollection = forwardRef<MediaCollectionHandle, {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -87,6 +112,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const focusRestoreFrameRef = useRef<number | undefined>(undefined);
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
   const columns = columnCount(geometry.width);
   const gap = 12;
@@ -127,22 +153,44 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
         const index = items.findIndex((item) => item.id === id);
         if (index < 0) return;
 
+        if (focusRestoreFrameRef.current !== undefined) {
+          cancelAnimationFrame(focusRestoreFrameRef.current);
+        }
         virtualizer.scrollToIndex(index, { align: "center" });
-        const focusTrigger = () => {
+        const focusTrigger = (remainingFrames: number) => {
           const trigger = Array.from(
             hostRef.current?.querySelectorAll<HTMLButtonElement>(
               "[data-media-id]",
             ) ?? [],
           ).find((candidate) => candidate.dataset.mediaId === id);
-          trigger?.focus({ preventScroll: true });
-          return Boolean(trigger);
+          if (trigger) {
+            trigger.focus({ preventScroll: true });
+            focusRestoreFrameRef.current = undefined;
+            return;
+          }
+          if (remainingFrames <= 0) {
+            focusRestoreFrameRef.current = undefined;
+            return;
+          }
+          focusRestoreFrameRef.current = requestAnimationFrame(() =>
+            focusTrigger(remainingFrames - 1),
+          );
         };
-        requestAnimationFrame(() => {
-          if (!focusTrigger()) requestAnimationFrame(focusTrigger);
-        });
+        focusRestoreFrameRef.current = requestAnimationFrame(() =>
+          focusTrigger(mediaCollectionCapacityBudget.focusRestoreFrames),
+        );
       },
     }),
     [items, virtualizer],
+  );
+
+  useEffect(
+    () => () => {
+      if (focusRestoreFrameRef.current !== undefined) {
+        cancelAnimationFrame(focusRestoreFrameRef.current);
+      }
+    },
+    [],
   );
 
   useEffect(() => {
@@ -173,9 +221,13 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
 
   useEffect(() => {
     if (
-      hasNextPage &&
-      !isFetchingNextPage &&
-      lastVirtualIndex >= items.length - columns * 2
+      shouldLoadNextMediaPage({
+        columns,
+        hasNextPage,
+        isFetchingNextPage,
+        itemCount: items.length,
+        lastVirtualIndex,
+      })
     ) {
       onLoadMore();
     }

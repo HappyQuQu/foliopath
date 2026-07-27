@@ -105,7 +105,7 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   跨 scope/generation 失效、offline availability、migration 6→7 回填和 context
   cancellation；architecture test 阻止生产 SQLite 浏览查询使用 `OFFSET`。
 - S3-104 前端状态测试固定首屏 skeleton、普通 empty 与 offline-empty 的互斥、首屏错误
-  重试、下一页错误保留已加载项目，以及 pending-only 2.5 秒轮询停止条件。真实认证
+  重试、下一页错误保留已加载项目，以及 pending-only 2.5 秒轮询和 4 页请求上限。真实认证
   Chromium 链继续使用后端 ready WebP，同时用受控契约响应覆盖 pending→failed、空、
   错误恢复和 offline；每个稳定状态检查无页面横向溢出及 axe serious/critical。
 - S3-105 共享预览测试固定图片/原生视频分支、基本信息、前后项/关闭、加载失败降级和
@@ -115,6 +115,11 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   切换、取消固定立即跟随、固定状态文案及 Escape。真实认证 Chromium 链验证固定态只
   存在一个活动媒体、关闭后虚拟滚动锚点与卡片语义按钮焦点恢复；播放资源容量预算仍归
   S3-107，完整 Range/codec/离线/删除矩阵仍归 S4-007～009。
+- S3-107 容量测试使用 100,000 个稳定资产 ID 验证默认视口挂载不超过 64 个 DOM 项、
+  首屏不预取、末端仅允许一个在途 cursor 请求、远距离虚拟锚点恢复和 12 帧焦点重试。
+  原生视频 rerender 必须卸载旧节点且只留下一个 video。组件工作台同一主档在真实
+  1280×720 Chromium 中记录首屏 42 项、末端 40 项、`aria-posinset` 99,961～100,000
+  与末项焦点；代表性低性能客户端 FPS/RSS 仍由 Stage 5 发布 Gate 固定。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体

@@ -157,7 +157,7 @@ it("announces pin state and closes with Escape", () => {
 });
 
 it("uses native inline controls for video content", () => {
-  render(
+  const { rerender } = render(
     <MediaPreview
       canGoNext={false}
       canGoPrevious={false}
@@ -185,4 +185,33 @@ it("uses native inline controls for video content", () => {
   expect(video).toHaveAttribute("playsinline");
   expect(video).toHaveAttribute("preload", "metadata");
   expect(video).toHaveAttribute("src", "/api/v1/assets/clip/content");
+
+  rerender(
+    <MediaPreview
+      canGoNext={false}
+      canGoPrevious={false}
+      item={{
+        ...item,
+        contentUrl: "/api/v1/assets/clip-next/content",
+        id: "clip-next",
+        kind: "video",
+        name: "clip-next.mp4",
+      }}
+      labels={labels}
+      onClose={vi.fn()}
+      onNext={vi.fn()}
+      onPinnedChange={vi.fn()}
+      onPrevious={vi.fn()}
+      onWidthChange={vi.fn()}
+      pinned={false}
+      width={406}
+    />,
+  );
+
+  expect(video.isConnected).toBe(false);
+  expect(document.querySelectorAll("video")).toHaveLength(1);
+  expect(screen.getByLabelText("clip-next.mp4")).toHaveAttribute(
+    "src",
+    "/api/v1/assets/clip-next/content",
+  );
 });

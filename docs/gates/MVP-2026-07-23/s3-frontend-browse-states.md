@@ -28,9 +28,10 @@ S3-107 十万项容量或 S3-108 核心浏览 Gate 已完成。
   媒体不等于原目录为空，且原始媒体不被修改。
 - 首屏错误使用共享 ErrorState 并可重新查询；下一页错误不卸载已有卡片，只在集合尾部
   显示安全错误和局部重试。
-- 资产页任一项为 `thumbnail.pending` 时按 2.5 秒刷新；全部进入 ready/failed/
-  unavailable 后停止。failed/unavailable 使用稳定尺寸、图标、文字与语义色；因冻结
-  API 没有“重新生成 thumbnail”写操作，前端不显示虚假单卡重试。
+- 已载入不超过 4 个 cursor 页且任一项为 `thumbnail.pending` 时按 2.5 秒刷新；
+  载入第 5 页或全部进入 ready/failed/unavailable 后停止。failed/unavailable 使用
+  稳定尺寸、图标、文字与语义色；因冻结 API 没有“重新生成 thumbnail”写操作，前端
+  不显示虚假单卡重试。
 - 视频遮罩前景由中央 `--color-on-scrim` token 拥有，浅色/深色均保持可见。
 
 ## 证据
@@ -38,7 +39,7 @@ S3-107 十万项容量或 S3-108 核心浏览 Gate 已完成。
 - `BrowsePage.test.tsx`：首屏 skeleton、offline-empty 不等于普通 empty、首屏错误恢复。
 - `AsyncState.test.tsx`：empty 恢复动作、非紧急语义与 persistent offline status。
 - `MediaCollection.test.tsx`：pending/failed 稳定卡片、下一页错误保留项目并局部重试。
-- `queries.test.ts`：pending-only 轮询与 terminal 停止条件。
+- `queries.test.ts`：pending-only 轮询、4 页请求预算与 terminal 停止条件。
 - 组件工作台：AsyncState empty/offline/error/loading；MediaCollection skeleton、
   thumbnail states、next-page failed，均可切换浅色/深色。
 - `auth.spec.ts`：真实认证/ready WebP 成功链继续保留；受控冻结契约响应覆盖 skeleton、

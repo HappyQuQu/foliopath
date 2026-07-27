@@ -4,6 +4,7 @@ import type { AssetPage } from "../../lib/api/catalog";
 import {
   pendingThumbnailRefreshInterval,
   pendingThumbnailRefreshMs,
+  pendingThumbnailRefreshPageBudget,
 } from "./queries";
 
 function page(status: "pending" | "ready" | "failed" | "unavailable"): AssetPage {
@@ -48,4 +49,17 @@ it("polls only while at least one indexed thumbnail remains pending", () => {
     false,
   );
   expect(pendingThumbnailRefreshInterval(undefined)).toBe(false);
+});
+
+it("stops periodic page refetches before a large collection can create a request storm", () => {
+  const boundedPages = Array.from(
+    { length: pendingThumbnailRefreshPageBudget },
+    () => page("pending"),
+  );
+  expect(pendingThumbnailRefreshInterval(boundedPages)).toBe(
+    pendingThumbnailRefreshMs,
+  );
+  expect(
+    pendingThumbnailRefreshInterval([...boundedPages, page("pending")]),
+  ).toBe(false);
 });

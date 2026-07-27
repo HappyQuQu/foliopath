@@ -10,13 +10,16 @@ import {
 } from "../../lib/api/catalog";
 
 export const pendingThumbnailRefreshMs = 2_500;
+export const pendingThumbnailRefreshPageBudget = 4;
 
 export function pendingThumbnailRefreshInterval(
   pages: AssetPage[] | undefined,
 ): number | false {
-  return pages?.some((page) =>
-    page.items.some((asset) => asset.thumbnail.status === "pending"),
-  )
+  return pages &&
+    pages.length <= pendingThumbnailRefreshPageBudget &&
+    pages.some((page) =>
+      page.items.some((asset) => asset.thumbnail.status === "pending"),
+    )
     ? pendingThumbnailRefreshMs
     : false;
 }

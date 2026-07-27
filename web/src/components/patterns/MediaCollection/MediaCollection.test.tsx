@@ -1,8 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import {
   MediaCollection,
+  mediaCollectionCapacityBudget,
+  shouldLoadNextMediaPage,
+  type MediaCollectionHandle,
   type MediaCollectionItem,
 } from "./MediaCollection";
 
@@ -54,6 +58,102 @@ it("renders a bounded virtual window in query order with stable media identity",
       .querySelector("img"),
   ).toHaveAttribute("src", "/thumbnail-0.webp");
   expect(screen.getByRole("button", { name: "Load more" })).toBeVisible();
+});
+
+it(
+  "keeps the primary 100k tier in a bounded DOM and does not prefetch from the first window",
+  () => {
+    const loadMore = vi.fn();
+    const items: MediaCollectionItem[] = Array.from(
+      { length: mediaCollectionCapacityBudget.primaryTierItems },
+      (_, index) => ({
+        height: 900,
+        id: `capacity-${index}`,
+        kind: index % 7 === 0 ? "video" : "image",
+        modifiedLabel: "Today",
+        name: `capacity-${index}.jpg`,
+        thumbnailStatus: "pending",
+        thumbnailUrl: null,
+        width: 1200,
+      }),
+    );
+
+    render(
+      <MediaCollection
+        hasNextPage
+        isFetchingNextPage={false}
+        items={items}
+        labels={labels}
+        layout="grid"
+        onLoadMore={loadMore}
+      />,
+    );
+
+    const mountedItems = screen.getAllByRole("listitem");
+    expect(mountedItems.length).toBeLessThanOrEqual(64);
+    expect(mountedItems.length).toBeLessThan(items.length / 1_000);
+    expect(mountedItems[0]).toHaveAttribute("aria-setsize", "100000");
+    expect(loadMore).not.toHaveBeenCalled();
+  },
+  10_000,
+);
+
+it("allows one cursor request near the edge and suppresses it while one is in flight", () => {
+  expect(
+    shouldLoadNextMediaPage({
+      columns: 6,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      itemCount: 100_000,
+      lastVirtualIndex: 99_988,
+    }),
+  ).toBe(true);
+  expect(
+    shouldLoadNextMediaPage({
+      columns: 6,
+      hasNextPage: true,
+      isFetchingNextPage: true,
+      itemCount: 100_000,
+      lastVirtualIndex: 99_999,
+    }),
+  ).toBe(false);
+});
+
+it("uses the virtualizer to restore the anchor for a distant capacity-tier item", () => {
+  const scrollTo = vi
+    .spyOn(window, "scrollTo")
+    .mockImplementation(() => undefined);
+  const ref = createRef<MediaCollectionHandle>();
+  const items: MediaCollectionItem[] = Array.from(
+    { length: mediaCollectionCapacityBudget.primaryTierItems },
+    (_, index) => ({
+      height: 900,
+      id: `restore-${index}`,
+      kind: "image",
+      modifiedLabel: "Today",
+      name: `restore-${index}.jpg`,
+      thumbnailStatus: "pending",
+      thumbnailUrl: null,
+      width: 1200,
+    }),
+  );
+
+  render(
+    <MediaCollection
+      ref={ref}
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={items}
+      labels={labels}
+      layout="grid"
+      onItemActivate={vi.fn()}
+      onLoadMore={vi.fn()}
+    />,
+  );
+
+  act(() => ref.current?.restoreItem("restore-99999"));
+  expect(scrollTo).toHaveBeenCalled();
+  scrollTo.mockRestore();
 });
 
 it("preserves an original aspect ratio in masonry and exposes placeholder status", () => {
