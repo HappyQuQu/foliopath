@@ -88,6 +88,7 @@ export function MediaViewer({
   const [translation, setTranslation] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const imageLike = item.kind !== "video";
+  const hasDetails = item.details.length > 0;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -115,9 +116,13 @@ export function MediaViewer({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
-      const isControl =
+      const hasConflictingKeyboardControl =
         target instanceof HTMLElement &&
-        Boolean(target.closest("button, a, input, select, textarea, video"));
+        Boolean(
+          target.closest(
+            "input, select, textarea, video, [contenteditable='true'], [role='dialog']",
+          ),
+        );
 
       if (event.key === "Escape") {
         event.preventDefault();
@@ -126,17 +131,32 @@ export function MediaViewer({
         } else {
           onClose();
         }
-      } else if (!isControl && event.key === "ArrowLeft" && canGoPrevious) {
+      } else if (
+        !hasConflictingKeyboardControl &&
+        event.key === "ArrowLeft" &&
+        canGoPrevious
+      ) {
         event.preventDefault();
         onPrevious();
-      } else if (!isControl && event.key === "ArrowRight" && canGoNext) {
+      } else if (
+        !hasConflictingKeyboardControl &&
+        event.key === "ArrowRight" &&
+        canGoNext
+      ) {
         event.preventDefault();
         onNext();
+      } else if (
+        !hasConflictingKeyboardControl &&
+        event.key.toLowerCase() === "i" &&
+        hasDetails
+      ) {
+        event.preventDefault();
+        setInfoOpen((current) => !current);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canGoNext, canGoPrevious, onClose, onNext, onPrevious]);
+  }, [canGoNext, canGoPrevious, hasDetails, onClose, onNext, onPrevious]);
 
   function showFit() {
     setFit(true);
@@ -216,7 +236,6 @@ export function MediaViewer({
         }
       : undefined);
   const showImageControls = imageLike && !visibleAvailability;
-  const hasDetails = item.details.length > 0;
 
   return (
     <main className={styles.viewer} ref={rootRef}>

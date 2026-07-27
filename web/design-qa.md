@@ -605,6 +605,60 @@ Integrated Done gate.
 
 final result: passed
 
+## Stage 4 / S4-008 media interaction matrix QA
+
+### Review steps
+
+1. At 1280×800, opened the authenticated production viewer with the Close button
+   auto-focused and exercised `I`, ArrowRight and Escape without moving focus first.
+2. Repeated the information toggle with the toolbar focus ring visible, then focused
+   the native video element and confirmed conflicting navigation keys are preserved
+   for the media control.
+3. Loaded a real synthetic MP4 through a byte-range route and observed a browser
+   `Range: bytes=…` request followed by `206 Content-Range` and metadata readiness.
+4. At 390×844 Pixel 5 touch emulation, opened and closed information, tapped offline
+   recovery, and verified Close/Previous/Next remain visible without horizontal
+   overflow.
+5. Reviewed unsupported-codec, offline and deleted outcomes for stable hierarchy,
+   useful recovery, and absence of an invalid player or retry action.
+
+### General health
+
+- The viewer keeps one clear visual hierarchy across ready and degraded states:
+  persistent Close/name/actions, a bounded media stage, visible adjacent navigation,
+  and optional basic information.
+- Desktop keyboard and mobile touch paths expose the same essential operations.
+  The mobile information panel is initially collapsed, so it does not hide recovery
+  or navigation.
+- Axe reported no serious or critical violations in the stable desktop and mobile
+  test states. No reviewed viewport had page-level horizontal overflow.
+
+### Finding and resolution
+
+- The initial browser pass found a P1 keyboard defect: Close receives deliberate
+  initial focus, but the old conflict selector classified every button as a control
+  that should suppress viewer shortcuts. A user opening the viewer could therefore
+  not use `I` or arrows until focus moved elsewhere.
+- The conflict owner now limits suppression to native video, form fields and editable
+  content. Toolbar buttons retain their own activation while viewer-level shortcuts
+  remain immediately available. Component and real-browser regression tests fix this
+  behavior.
+
+### Evidence and limits
+
+- `qa/s4-008/01-desktop-viewer-keyboard.jpg`
+- `qa/s4-008/02-desktop-keyboard-info-toggle.jpg`
+- `qa/s4-008/03-mobile-offline-recovery.jpg`
+- `qa/s4-008/04-desktop-unsupported-codec.jpg`
+- Static screenshots demonstrate layout and focus visibility; the real `Range`/206
+  exchange and touch semantics are asserted by Playwright rather than inferred from
+  images.
+- This Gate covers Desktop Chrome and Pixel 5 Chromium touch emulation. Firefox,
+  Safari/WebKit release versions and physical-device media stacks remain Stage 5
+  release evidence.
+
+final result: passed
+
 ## Stage 4 / S4-007 media strategy and degraded-state QA
 
 ### Reviewed state

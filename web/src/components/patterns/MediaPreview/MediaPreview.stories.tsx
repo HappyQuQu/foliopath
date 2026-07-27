@@ -77,7 +77,7 @@ export const Pinned: Story = {
 export const Video: Story = {
   args: {
     item: {
-      contentUrl: "/storybook-preview-video.mp4",
+      contentUrl: "/test-media/range-video.mp4",
       details: [
         { label: "类型", value: "视频 · video/mp4" },
         { label: "位置", value: "旅行/京都/散步.mp4" },

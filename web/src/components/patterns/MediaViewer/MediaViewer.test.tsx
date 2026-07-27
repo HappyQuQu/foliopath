@@ -87,11 +87,11 @@ it("provides fit, 1:1, zoom, information, and close controls", async () => {
   expect(close).toHaveBeenCalledOnce();
 });
 
-it("supports keyboard previous, next, and Escape without hijacking controls", () => {
+it("supports keyboard navigation from viewer buttons without hijacking media controls", () => {
   const close = vi.fn();
   const next = vi.fn();
   const previous = vi.fn();
-  render(
+  const { rerender } = render(
     <MediaViewer
       canGoNext
       canGoPrevious
@@ -115,7 +115,39 @@ it("supports keyboard previous, next, and Escape without hijacking controls", ()
   fireEvent.keyDown(screen.getByRole("button", { name: "Close" }), {
     key: "ArrowRight",
   });
-  expect(next).toHaveBeenCalledOnce();
+  expect(next).toHaveBeenCalledTimes(2);
+
+  fireEvent.keyDown(window, { key: "i" });
+  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  fireEvent.keyDown(window, { key: "I" });
+  expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
+
+  rerender(
+    <MediaViewer
+      canGoNext
+      canGoPrevious
+      item={{ ...item, id: "clip", kind: "video", name: "clip.mp4" }}
+      labels={labels}
+      onClose={close}
+      onNext={next}
+      onPrevious={previous}
+      position="Item 2 of 4"
+    />,
+  );
+  const video = screen.getByLabelText("clip.mp4");
+  video.focus();
+  fireEvent.keyDown(video, { key: "ArrowRight" });
+  expect(next).toHaveBeenCalledTimes(2);
+
+  const dialog = document.createElement("div");
+  const dialogButton = document.createElement("button");
+  dialog.setAttribute("role", "dialog");
+  dialog.append(dialogButton);
+  document.body.append(dialog);
+  dialogButton.focus();
+  fireEvent.keyDown(dialogButton, { key: "ArrowRight" });
+  expect(next).toHaveBeenCalledTimes(2);
+  dialog.remove();
 });
 
 it("uses the fullscreen API and native video controls", async () => {

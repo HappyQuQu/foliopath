@@ -13,8 +13,9 @@
   [Integrated Done Gate](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)；
   Stage 3 的目录浏览、缩略图集合、非模态预览和容量矩阵 `S3-101～108` 已通过
   [Integrated Done Gate](gates/MVP-2026-07-23/s3-browse-integrated-done.md)；
-  Stage 4 的统一搜索、共享非模态预览和完整查看器 `S4-004～006` 已连接真实 API；
-  下一步完成媒体降级状态与目标浏览器矩阵
+  Stage 4 的统一搜索、共享非模态预览、完整查看器及媒体交互矩阵 `S4-004～008`
+  已连接真实 API 并完成 Chromium 桌面/移动验收；下一步完成纵向 E2E 与
+  `Integrated Done` Gate
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -233,7 +234,15 @@
     有界前后项与可靠索引信息；可恢复状态提供重新检查，不自动跳项、不暴露后端细节、不修改
     原文件。证据见
     [S4-007 媒体播放与降级状态](gates/MVP-2026-07-23/s4-frontend-media-strategy.md)。
-- [ ] `S4-008` 验证目标桌面/移动浏览器、键盘、触摸、Range、焦点与错误降级。
+- [x] `S4-008` 验证目标桌面/移动浏览器、键盘、触摸、Range、焦点与错误降级。
+  - Desktop Chrome 与 Pixel 5 触摸仿真覆盖关闭按钮初始焦点、`I` 信息开关、方向键、
+    Escape、触摸信息开关、离线重试及关闭/前后项可达性；页面无横向溢出且 axe
+    serious/critical 为零。
+  - 浏览器加载真实合成 MP4，并实际观察 `Range: bytes=…` 和 `206 Content-Range`；
+    unsupported codec、offline、deleted 状态分别固定无播放器、有效重试与无效重试规则。
+  - 工具条按钮获得焦点时仍允许查看器级快捷键；焦点位于原生视频、表单输入或可编辑内容时
+    不抢占冲突按键。证据见
+    [S4-008 媒体交互矩阵](gates/MVP-2026-07-23/s4-frontend-media-matrix.md)。
 - [ ] `S4-009` 完成搜索/预览/查看器 E2E 与 `Integrated Done` Gate。
 
 搜索真实数据依赖后端 `S4-003`；查看器真实内容依赖 `S4-005B`。

@@ -21,6 +21,11 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "mobile-chromium",
+      testMatch: /media-matrix\.spec\.ts/,
+      use: { ...devices["Pixel 5"] },
+    },
   ],
   outputDir: "../test-results/playwright",
 });

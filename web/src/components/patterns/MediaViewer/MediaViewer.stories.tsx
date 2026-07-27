@@ -31,7 +31,7 @@ const meta = {
       originalSize: "按 1:1 显示",
       previous: "上一项",
       retry: "重新检查",
-      shortcutHint: "按钮缩放 · 拖动平移 · Esc 退出",
+      shortcutHint: "按钮缩放 · 拖动平移 · I 信息 · Esc 退出",
       videoFailed: "无法播放此视频。",
       zoomIn: "放大",
       zoomOut: "缩小",
@@ -54,7 +54,7 @@ export const Image: Story = {};
 export const Video: Story = {
   args: {
     item: {
-      contentUrl: "/storybook-preview-video.mp4",
+      contentUrl: "/test-media/range-video.mp4",
       details: [
         { label: "位置", value: "旅行/日本/京都/散步.mp4" },
         { label: "尺寸", value: "1,920 × 1,080 px" },

@@ -4,8 +4,9 @@
 
 **Done — GIF、原生视频封面与媒体不可用状态已由同一呈现策略接入预览和完整查看器。**
 
-本记录完成 `S4-007`，不把 Stage 4 标记为 Integrated Done。目标浏览器、触摸、Range
-请求矩阵和完整纵向 E2E 仍由 `S4-008～009` 负责。
+本记录完成 `S4-007`，不把 Stage 4 标记为 Integrated Done。Chromium 桌面/移动触摸、
+真实 Range、键盘/焦点和错误组合矩阵由 `S4-008` 负责，完整纵向 E2E 由 `S4-009`
+负责。
 
 ## 范围与所有权
 
@@ -66,9 +67,9 @@ make test-e2e
 
 ## 保留边界
 
-- `S4-008`：Chrome/Safari/Firefox 目标矩阵、触摸/键盘、真实视频 Range/取消、焦点与错误
-  组合验证。
+- `S4-008`：Chromium 桌面/移动触摸、键盘、真实视频 Range、焦点与错误组合验证。
 - `S4-009`：搜索 → 预览 → 查看器的完整 E2E 与 Stage 4 Integrated Done。
+- Firefox、Safari/WebKit 具体发布版本与真机性能矩阵归 Stage 5 发布 Gate。
 - MVP 不转码，不承诺浏览器无法播放的 codec，也不新增显式下载。
 
 - 评审日期：2026-07-28
