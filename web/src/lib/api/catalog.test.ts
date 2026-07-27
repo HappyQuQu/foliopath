@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "./client";
-import { getDirectory, listDirectories } from "./catalog";
+import { getDirectory, listAssets, listDirectories } from "./catalog";
 
 vi.mock("./client", () => ({
   apiClient: {
@@ -86,6 +86,69 @@ describe("catalog adapter", () => {
     expect(apiClient.GET).toHaveBeenCalledWith(
       "/api/v1/directories/{directoryId}",
       { params: { path: { directoryId: "dir_child" } } },
+    );
+  });
+
+  it("binds recursive scope and explicit sorting to a bounded asset page", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: {
+        items: [
+          {
+            directoryId: "dir_japan",
+            durationMs: 18_000,
+            height: 1080,
+            id: "ast_clip",
+            kind: "video",
+            libraryId: "lib_family",
+            libraryName: "家庭影像",
+            mimeType: "video/mp4",
+            modifiedAt: "2026-07-28T00:00:00Z",
+            name: "clip.mp4",
+            playbackStatus: "playable",
+            probeStatus: "ready",
+            relativePath: "旅行/日本/clip.mp4",
+            sizeBytes: 1024,
+            sourceAvailability: "available",
+            thumbnail: {
+              errorCode: null,
+              status: "ready",
+              url: "/api/v1/assets/ast_clip/thumbnail?variant=grid",
+            },
+            width: 1920,
+          },
+        ],
+        nextCursor: null,
+      },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    const page = await listAssets({
+      directoryId: "dir_travel",
+      libraryId: "lib_family",
+      order: "desc",
+      recursive: true,
+      sort: "modifiedAt",
+    });
+
+    expect(page.items[0]).toMatchObject({
+      id: "ast_clip",
+      relativePath: "旅行/日本/clip.mp4",
+    });
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      "/api/v1/libraries/{libraryId}/assets",
+      {
+        params: {
+          path: { libraryId: "lib_family" },
+          query: {
+            directoryId: "dir_travel",
+            limit: 50,
+            order: "desc",
+            recursive: true,
+            sort: "modifiedAt",
+          },
+        },
+      },
     );
   });
 });

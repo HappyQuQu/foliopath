@@ -1,12 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import { getDirectory, listDirectories } from "../../../lib/api/catalog";
+import {
+  getDirectory,
+  listAssets,
+  listDirectories,
+} from "../../../lib/api/catalog";
 import { getLibrary, listLibraries } from "../../../lib/api/libraries";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { BrowsePage } from "./BrowsePage";
@@ -16,6 +20,7 @@ vi.mock("../../../lib/api/catalog", async (importOriginal) => {
   return {
     ...actual,
     getDirectory: vi.fn(),
+    listAssets: vi.fn(),
     listDirectories: vi.fn(),
   };
 });
@@ -43,6 +48,7 @@ beforeEach(() => {
   vi.mocked(listLibraries).mockReset();
   vi.mocked(getLibrary).mockReset();
   vi.mocked(getDirectory).mockReset();
+  vi.mocked(listAssets).mockReset();
   vi.mocked(listDirectories).mockReset();
 
   vi.mocked(listLibraries).mockResolvedValue({
@@ -87,6 +93,52 @@ beforeEach(() => {
     recursiveAssetCount: 8,
     relativePath: "旅行",
   });
+  vi.mocked(listAssets).mockImplementation(async ({ recursive }) => ({
+    items: recursive
+      ? [
+          {
+            directoryId: "dir_japan",
+            durationMs: 18_000,
+            height: 1080,
+            id: "ast_clip",
+            kind: "video",
+            libraryId: "lib_family",
+            libraryName: "家庭影像",
+            mimeType: "video/mp4",
+            modifiedAt: "2026-07-28T00:00:00Z",
+            name: "clip.mp4",
+            playbackStatus: "playable",
+            probeStatus: "ready",
+            relativePath: "旅行/日本/clip.mp4",
+            sizeBytes: 1024,
+            sourceAvailability: "available",
+            thumbnail: { errorCode: null, status: "pending", url: null },
+            width: 1920,
+          },
+        ]
+      : [
+          {
+            directoryId: "dir_travel",
+            durationMs: null,
+            height: 800,
+            id: "ast_photo",
+            kind: "image",
+            libraryId: "lib_family",
+            libraryName: "家庭影像",
+            mimeType: "image/jpeg",
+            modifiedAt: "2026-07-27T00:00:00Z",
+            name: "photo.jpg",
+            playbackStatus: "not_applicable",
+            probeStatus: "ready",
+            relativePath: "旅行/photo.jpg",
+            sizeBytes: 512,
+            sourceAvailability: "available",
+            thumbnail: { errorCode: null, status: "pending", url: null },
+            width: 1200,
+          },
+        ],
+    nextCursor: null,
+  }));
   vi.mocked(listDirectories).mockImplementation(async ({ parentId }) => ({
     items:
       parentId === "dir_travel"
@@ -142,7 +194,44 @@ it("restores a deep directory, exposes breadcrumbs, and lazily expands its tree 
   expect(await within(tree).findByRole("link", { name: "日本" })).toBeVisible();
 });
 
-function renderBrowse() {
+it("restores recursive scope, changes its default sort, and closes recursion from a source link", async () => {
+  const user = userEvent.setup();
+
+  renderBrowse("?recursive=1");
+
+  const recursiveToggle = await screen.findByRole("button", {
+    name: "包含子目录",
+  });
+  expect(recursiveToggle).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
+    "modifiedAt:desc",
+  );
+  expect(await screen.findByText("clip.mp4")).toBeVisible();
+  expect(screen.getByRole("link", { name: "来源：旅行/日本" })).toHaveAttribute(
+    "href",
+    "/libraries/lib_family/browse/dir_japan",
+  );
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel?recursive=1",
+  );
+
+  await user.click(recursiveToggle);
+
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel",
+  );
+  expect(await screen.findByText("photo.jpg")).toBeVisible();
+  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      directoryId: "dir_travel",
+      order: "asc",
+      recursive: false,
+      sort: "name",
+    }),
+  );
+});
+
+function renderBrowse(search = "") {
   const queryClient = new QueryClient({
     defaultOptions: {
       mutations: { retry: false },
@@ -153,15 +242,30 @@ function renderBrowse() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <MemoryRouter initialEntries={["/libraries/lib_family/browse/dir_travel"]}>
+          <MemoryRouter
+            initialEntries={[
+              `/libraries/lib_family/browse/dir_travel${search}`,
+            ]}
+          >
             <BrowsePage
               directoryId="dir_travel"
               libraryId="lib_family"
               session={session}
             />
+            <LocationProbe />
           </MemoryRouter>
         </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>,
+  );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location">
+      {location.pathname}
+      {location.search}
+    </output>
   );
 }

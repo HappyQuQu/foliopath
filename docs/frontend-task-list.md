@@ -137,7 +137,11 @@
     directory detail；根/深层目录 URL 可刷新恢复，树按展开路径延迟分页，移动端复用
     AppShell 抽屉的 Escape/焦点恢复。证据见
     [S3-101 前端目录导航](gates/MVP-2026-07-23/s3-frontend-directory-navigation.md)。
-- [ ] `S3-102` 实现当前目录/递归模式及对应稳定 URL 状态。
+- [x] `S3-102` 实现当前目录/递归模式及对应稳定 URL 状态。
+  - `recursive=1`、显式 `sort/order` 由单一 URL codec 规范化；直接/递归模式使用
+    冻结契约的不同默认排序并重置 cursor。真实有界资产摘要显示来源路径，来源链接返回
+    所属目录并关闭递归，浏览器返回/刷新可恢复。证据见
+    [S3-102 前端浏览范围](gates/MVP-2026-07-23/s3-frontend-browse-scope.md)。
 - [ ] `S3-103` 实现默认自适应网格、可记忆瀑布流和统一虚拟化集合。
 - [ ] `S3-104` 实现 skeleton、空、错误、离线、缩略图 pending/failed 状态。
 - [ ] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。

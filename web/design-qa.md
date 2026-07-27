@@ -287,4 +287,55 @@ asset grid and virtualization, complete collection states, non-modal preview,
 capacity budgets, and Stage 3 Integrated Done. Release-wide browser and visual
 regression matrices remain Stage 5 work.
 
+## Stage 3 / S3-102 browse-scope QA
+
+### Source and production comparison
+
+- Confirmed source: static prototype catalog `6/15 递归浏览状态` at
+  `/libraries/family/browse/kyoto?recursive=1`.
+- Production target: authenticated `BrowsePage` with canonical
+  `recursive=1&sort&order` state and real catalog asset pages.
+- The same desktop state was compared side-by-side for the fixed library rail,
+  selected directory treatment, breadcrumb hierarchy, toolbar rhythm, checked
+  recursive control, sorting control, content section spacing, system typography,
+  semantic tokens, and light theme.
+- Production intentionally omits the source's grid/masonry/list controls, kind filter,
+  search input, thumbnails, and preview selection because those surfaces remain owned
+  by S3-103～106.
+
+### Interaction and accessibility evidence
+
+- The live authenticated page switched recursive scope, changed to non-default
+  filename sorting, returned to direct scope, and restored the exact prior recursive
+  URL/state with browser Back.
+- A two-level synthetic-media real-backend E2E proves direct mode excludes descendant
+  media, recursive mode includes it, source links return to the indexed source
+  directory without recursive state, and reload preserves the deep URL.
+- URL, adapter, and page tests cover mode-specific defaults, invalid-value
+  normalization, bounded query parameters, source labels, and query reset.
+- 390 × 844 and 1024 × 900 E2E assertions retain drawer/fixed-sidebar behavior, no
+  document overflow, and no axe serious/critical findings.
+- Browser console review found no production warning or error; only Vite connection,
+  React development information, and hot-update debug entries were present.
+
+### Comparison-driven corrections
+
+1. The first production capture rendered the active recursive control as a solid
+   primary CTA, while the confirmed source treats it as a persistent toolbar state.
+   The canonical Button now keeps its secondary surface and adds selected border,
+   accent-soft background, checked icon, and `aria-pressed=true`.
+2. The implementation does not infer source navigation from visible path text.
+   Source links preserve the source's compact secondary line but use the opaque
+   `directoryId`, then intentionally return to direct mode.
+3. Direct and recursive states originally shared placeholder media copy. They now
+   expose distinct scope descriptions and a bounded indexed summary, making the mode
+   change observable without fabricating the future thumbnail grid.
+
+### Residual Stage 3 work
+
+S3-101～102 are complete. S3-103～108 still own the virtualized thumbnail collection,
+layout preference, full collection states, non-modal preview, capacity budgets, and
+Stage 3 Integrated Done. Release-wide browser and visual regression matrices remain
+Stage 5 work.
+
 final result: passed

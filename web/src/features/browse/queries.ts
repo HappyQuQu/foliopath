@@ -2,7 +2,10 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import {
   getDirectory,
+  listAssets,
   listDirectories,
+  type AssetSort,
+  type SortOrder,
 } from "../../lib/api/catalog";
 
 export const catalogKeys = {
@@ -11,6 +14,22 @@ export const catalogKeys = {
     ["catalog", "directories", libraryId, parentId ?? "root"] as const,
   directory: (directoryId: string) =>
     ["catalog", "directory", directoryId] as const,
+  assets: (
+    libraryId: string,
+    directoryId: string | undefined,
+    recursive: boolean,
+    sort: AssetSort,
+    order: SortOrder,
+  ) =>
+    [
+      "catalog",
+      "assets",
+      libraryId,
+      directoryId ?? "root",
+      recursive,
+      sort,
+      order,
+    ] as const,
 };
 
 export function useDirectoriesQuery({
@@ -31,6 +50,42 @@ export function useDirectoriesQuery({
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
     enabled: enabled && libraryId.length > 0,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 15_000,
+  });
+}
+
+export function useAssetsQuery({
+  directoryId,
+  libraryId,
+  order,
+  recursive,
+  sort,
+}: {
+  directoryId?: string | undefined;
+  libraryId: string;
+  order: SortOrder;
+  recursive: boolean;
+  sort: AssetSort;
+}) {
+  return useInfiniteQuery({
+    queryKey: catalogKeys.assets(
+      libraryId,
+      directoryId,
+      recursive,
+      sort,
+      order,
+    ),
+    queryFn: ({ pageParam }) =>
+      listAssets({
+        libraryId,
+        order,
+        recursive,
+        sort,
+        ...(directoryId ? { directoryId } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 15_000,

@@ -161,11 +161,44 @@ test("administrator and library-management vertical slice", async ({
   await expect(page.getByRole("combobox", { name: "Media library" })).toHaveValue(
     createdLibraryId,
   );
-  const childDirectoryCard = page.getByRole("link", {
-    name: /visible-child.*0 items/i,
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible({
+    timeout: 15_000,
   });
-  await expect(childDirectoryCard).toBeVisible({ timeout: 15_000 });
-  await childDirectoryCard.click();
+  await expect(page.getByText("nested-photo.jpg")).toHaveCount(0);
+  const childDirectoryCard = page.getByRole("link", {
+    name: /visible-child.*1 item/i,
+  });
+  await expect(childDirectoryCard).toBeVisible();
+
+  const recursiveToggle = page.getByRole("button", {
+    name: "Include subdirectories",
+  });
+  await recursiveToggle.click();
+  await expect(recursiveToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/browse?recursive=1`,
+  );
+  await expect(page.getByText("nested-photo.jpg")).toBeVisible();
+  const sourceLink = page.getByRole("link", {
+    name: "Source: visible-child",
+  });
+  await expect(sourceLink).toBeVisible();
+
+  await page.getByRole("combobox", { name: "Sort" }).selectOption("name:asc");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/browse?recursive=1&sort=name&order=asc`,
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/browse?recursive=1`,
+  );
+  await expect(recursiveToggle).toHaveAttribute("aria-pressed", "true");
+  await page.goBack();
+  await expect(page).toHaveURL(`/libraries/${createdLibraryId}/browse`);
+  await expect(page.getByText("nested-photo.jpg")).toHaveCount(0);
+
+  await recursiveToggle.click();
+  await sourceLink.click();
   await expect(page).toHaveURL(
     new RegExp(`/libraries/${createdLibraryId}/browse/dir_`),
   );
