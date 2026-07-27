@@ -4,7 +4,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e spike-capacity spike-vips spike-runtime sbom capacity-trend
+.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e spike-capacity spike-vips spike-runtime sbom capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -56,6 +56,9 @@ test-integration:
 
 test-e2e:
 	tests/e2e/runtime_smoke.sh
+
+test-web-e2e:
+	tests/e2e/web_auth.sh
 
 spike-capacity:
 	FOLIOPATH_CAPACITY=1 FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 GOMAXPROCS=4 \

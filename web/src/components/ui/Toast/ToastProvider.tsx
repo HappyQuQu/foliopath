@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { IconButton } from "../Button/IconButton";
 import styles from "./Toast.module.css";
 
@@ -30,6 +31,7 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
   const nextId = useRef(1);
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
 
@@ -51,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className={styles.viewport} aria-label="通知">
+      <div className={styles.viewport} aria-label={t("common.toastRegion")} role="region">
         {toasts.map((toast) => (
           <div
             className={`${styles.toast} ${styles[toast.tone]}`}
@@ -59,7 +61,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role={toast.tone === "danger" ? "alert" : "status"}
           >
             <span>{toast.message}</span>
-            <IconButton label="关闭通知" onClick={() => dismiss(toast.id)}>
+            <IconButton label={t("common.closeToast")} onClick={() => dismiss(toast.id)}>
               <span aria-hidden="true">×</span>
             </IconButton>
           </div>

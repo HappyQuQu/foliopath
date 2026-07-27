@@ -22,6 +22,7 @@ describe("ToastProvider", () => {
       </ToastProvider>,
     );
 
+    expect(screen.getByRole("region", { name: "通知" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "显示通知" }));
     expect(screen.getByRole("status")).toHaveTextContent("设置已保存");
 

@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import styles from "./PublicLayout.module.css";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
+
   return (
     <div className={styles.page}>
       <a className={styles.skipLink} href="#main">
-        跳到主要内容
+        {t("common.skipToMain")}
       </a>
       <header className={styles.brand}>
         <strong>FolioPath</strong>
@@ -16,7 +19,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
       <main className={styles.main} id="main" tabIndex={-1}>
         {children}
       </main>
-      <footer>您的原始媒体始终保持只读</footer>
+      <footer>{t("common.readOnlyFooter")}</footer>
     </div>
   );
 }

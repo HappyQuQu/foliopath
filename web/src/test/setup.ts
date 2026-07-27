@@ -6,6 +6,7 @@ import { cleanup } from "@testing-library/react";
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  document.documentElement.lang = "zh-CN";
   delete document.documentElement.dataset.theme;
   delete document.documentElement.dataset.themePreference;
 });

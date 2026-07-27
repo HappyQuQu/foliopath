@@ -1,8 +1,10 @@
 const preferenceNamespace = "foliopath.preferences.v1";
 
 export type ThemePreference = "system" | "light" | "dark";
+export type LocalePreference = "en" | "zh-CN";
 
 interface Preferences {
+  locale?: LocalePreference;
   theme?: ThemePreference;
 }
 
@@ -33,4 +35,13 @@ export function readThemePreference(): ThemePreference {
 
 export function writeThemePreference(theme: ThemePreference): void {
   writePreferences({ ...readPreferences(), theme });
+}
+
+export function readLocalePreference(): LocalePreference | undefined {
+  const locale = readPreferences().locale;
+  return locale === "en" || locale === "zh-CN" ? locale : undefined;
+}
+
+export function writeLocalePreference(locale: LocalePreference): void {
+  writePreferences({ ...readPreferences(), locale });
 }

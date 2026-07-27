@@ -6,6 +6,7 @@
   border-radius: calc(var(--radius-3) + var(--radius-1));
   background: var(--color-surface);
   box-shadow: var(--shadow-2);
+  text-align: center;
 }
 
 .icon {
@@ -13,7 +14,7 @@
   height: var(--size-auth-mark);
   display: grid;
   place-items: center;
-  margin-bottom: var(--space-6);
+  margin: var(--space-0) auto var(--space-6);
   color: var(--color-accent);
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: calc(var(--radius-3) + var(--radius-1));
@@ -49,11 +50,16 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-2);
   background: var(--color-surface-subtle);
+  text-align: left;
 }
 
 .safety span {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
+}
+
+.action {
+  width: 100%;
 }
 
 @media (max-width: 30rem) {

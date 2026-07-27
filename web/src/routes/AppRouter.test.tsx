@@ -14,6 +14,7 @@ import {
   type AuthenticatedSession,
 } from "../lib/api/auth";
 import { ApiError } from "../lib/api/errors";
+import { getSystemReadiness } from "../lib/api/readiness";
 import { ThemeProvider } from "../lib/theme/ThemeProvider";
 import { AppRoutes } from "./AppRouter";
 
@@ -29,6 +30,14 @@ vi.mock("../lib/api/auth", async (importOriginal) => {
   };
 });
 
+vi.mock("../lib/api/readiness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/api/readiness")>();
+  return {
+    ...actual,
+    getSystemReadiness: vi.fn(),
+  };
+});
+
 const session: AuthenticatedSession = {
   administrator: {
     displayName: "家庭管理员",
@@ -41,11 +50,30 @@ const session: AuthenticatedSession = {
 
 describe("authentication routes", () => {
   beforeEach(() => {
+    vi.mocked(getSystemReadiness).mockReset();
+    vi.mocked(getSystemReadiness).mockResolvedValue({
+      status: "ready",
+      reasonCode: null,
+    });
     vi.mocked(getAuthenticationStatus).mockReset();
     vi.mocked(getSession).mockReset();
     vi.mocked(login).mockReset();
     vi.mocked(logout).mockReset();
     vi.mocked(setupAdministrator).mockReset();
+  });
+
+  it("shows a safe application-data failure without exposing a host path", async () => {
+    vi.mocked(getSystemReadiness).mockResolvedValue({
+      status: "not_ready",
+      reasonCode: "application_data_unavailable",
+    });
+
+    renderRoutes("/");
+
+    expect(await screen.findByRole("heading", { name: "FolioPath 无法完成启动" })).toBeVisible();
+    expect(screen.getByText(/应用数据目录不可用/)).toBeVisible();
+    expect(screen.queryByText(/Users|app\/data|stack|sqlite/i)).not.toBeInTheDocument();
+    expect(getAuthenticationStatus).not.toHaveBeenCalled();
   });
 
   it("completes first-administrator setup through the real route flow", async () => {

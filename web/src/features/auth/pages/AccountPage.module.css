@@ -36,7 +36,7 @@
   gap: var(--space-4);
 }
 
-.header span {
+.identity {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
 }
@@ -66,8 +66,7 @@
   letter-spacing: -0.03em;
 }
 
-.heading span,
-.row span {
+.description {
   display: block;
   margin-top: var(--space-2);
   color: var(--color-text-muted);
@@ -94,7 +93,7 @@
 }
 
 @media (max-width: 36rem) {
-  .header span {
+  .identity {
     display: none;
   }
 

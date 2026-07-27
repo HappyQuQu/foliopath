@@ -1,0 +1,22 @@
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field span {
+  font-weight: 650;
+}
+
+.select {
+  min-height: var(--size-control-md);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.select:hover {
+  border-color: var(--color-border-strong);
+}

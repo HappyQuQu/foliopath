@@ -1,6 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 import { Button } from "../components/ui/Button/Button";
+import {
+  translate,
+  type Locale,
+} from "../lib/i18n/LocaleProvider";
 import styles from "./AppErrorBoundary.module.css";
 
 interface Props {
@@ -28,14 +32,15 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    const locale: Locale = document.documentElement.lang === "en" ? "en" : "zh-CN";
 
     return (
       <main className={styles.page}>
         <section className={styles.card} role="alert">
           <p className={styles.eyebrow}>FolioPath</p>
-          <h1>界面暂时无法显示</h1>
-          <p>您的媒体没有被修改。请重新载入界面；如果问题持续，请检查服务状态。</p>
-          <Button onClick={this.reload}>重新载入</Button>
+          <h1>{translate(locale, "error.renderTitle")}</h1>
+          <p>{translate(locale, "error.renderBody")}</p>
+          <Button onClick={this.reload}>{translate(locale, "error.reload")}</Button>
         </section>
       </main>
     );

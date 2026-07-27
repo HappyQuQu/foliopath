@@ -4,9 +4,11 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { AppErrorBoundary } from "./app/AppErrorBoundary";
 import { AppProviders } from "./app/AppProviders";
+import { applyInitialLocale } from "./lib/i18n/LocaleProvider";
 import { applyInitialTheme } from "./lib/theme/ThemeProvider";
 import "./styles/global.css";
 
+applyInitialLocale();
 applyInitialTheme();
 
 const root = document.getElementById("root");

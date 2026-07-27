@@ -338,10 +338,11 @@ make test-e2e
 8. 后端实现可以返回每个设计状态，且错误响应不泄露绝对路径、SQL、工具 stderr
    或堆栈；前端无需靠字符串匹配猜测状态。
 
-当前仓库不满足上述 Backend Ready：OpenAPI 权威源、确定性 TypeScript 类型、唯一 API
-client、strict typecheck、目录级 `AGENTS.md` 和 CI 工作流已经落地，但没有可启动应用、
-生产 HTTP/auth、React 产品应用、Storybook、共享组件/token 或浏览器测试；CI 也尚未实际
-运行。因此当前只可继续已批准的 spike、契约和原型工作，不能把契约基础描述为已接通业务能力。
+当前仓库按纵向切片分别判断 Backend Ready。认证、媒体库、扫描、浏览/缩略图和搜索后端
+已经通过各自 Gate；认证 React 切片已进一步通过
+[Integrated Done](../gates/MVP-2026-07-23/s1-auth-integrated-done.md)，包含真实 API、
+Storybook、共享组件/token、简中/英文和浏览器测试。后续 feature 仍只能消费其已通过
+Backend Ready 的契约，并须在各自前端 Gate 完成前保持未实现状态。
 
 ## 架构治理与变更流程
 

@@ -30,3 +30,10 @@ Run the component workbench:
 ```sh
 npm run storybook
 ```
+
+Run the real-backend authentication browser slice after installing Chromium with
+`npm exec --prefix web -- playwright install chromium`:
+
+```sh
+make test-web-e2e
+```

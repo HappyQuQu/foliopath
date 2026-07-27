@@ -2,13 +2,16 @@ import { SignOut } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "../../../components/ui/Button/Button";
+import { LocaleSelect } from "../../../components/ui/LocaleSelect/LocaleSelect";
 import { ThemeToggle } from "../../../components/ui/ThemeToggle/ThemeToggle";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { useToast } from "../../../components/ui/Toast/ToastProvider";
 import { useLogoutMutation } from "../queries";
 import styles from "./AccountPage.module.css";
 
 export function AccountPage({ session }: { session: AuthenticatedSession }) {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation();
   const toast = useToast();
@@ -18,46 +21,59 @@ export function AccountPage({ session }: { session: AuthenticatedSession }) {
       await logoutMutation.mutateAsync(session.csrfToken);
       navigate("/login", { replace: true });
     } catch {
-      toast.show({ message: "暂时无法退出，请稍后重试。", tone: "danger" });
+      toast.show({ message: t("account.logoutFailed"), tone: "danger" });
     }
   }
 
   return (
     <div className={styles.page}>
       <a className={styles.skipLink} href="#main">
-        跳到主要内容
+        {t("common.skipToMain")}
       </a>
       <header className={styles.header}>
         <strong>FolioPath</strong>
         <div>
-          <span>{session.administrator.displayName}</span>
+          <span className={styles.identity}>{session.administrator.displayName}</span>
           <ThemeToggle />
         </div>
       </header>
       <main className={styles.main} id="main" tabIndex={-1}>
         <header className={styles.heading}>
-          <p>偏好</p>
-          <h1>通用设置</h1>
-          <span>管理当前管理员会话与界面外观。</span>
+          <p>{t("account.eyebrow")}</p>
+          <h1>{t("account.title")}</h1>
+          <span className={styles.description}>{t("account.description")}</span>
         </header>
 
         <section className={styles.panel} aria-labelledby="appearance-title">
-          <h2 id="appearance-title">外观</h2>
+          <h2 id="appearance-title">{t("account.appearance")}</h2>
           <div className={styles.row}>
             <div>
-              <strong>主题</strong>
-              <span>默认跟随系统，也可以从页面右上角切换。</span>
+              <strong>{t("account.theme")}</strong>
+              <span className={styles.description}>
+                {t("account.themeDescription")}
+              </span>
             </div>
             <ThemeToggle />
           </div>
         </section>
 
+        <section className={styles.panel} aria-labelledby="language-title">
+          <h2 id="language-title">{t("account.language")}</h2>
+          <div className={styles.row}>
+            <span className={styles.description}>{t("account.languageDescription")}</span>
+            <LocaleSelect />
+          </div>
+        </section>
+
         <section className={styles.panel} aria-labelledby="account-title">
-          <h2 id="account-title">账户</h2>
+          <h2 id="account-title">{t("account.account")}</h2>
           <div className={styles.row}>
             <div>
               <strong>{session.administrator.displayName}</strong>
-              <span>用户名：{session.administrator.username}</span>
+              <span className={styles.description}>
+                {t("account.username")}
+                {session.administrator.username}
+              </span>
             </div>
             <Button
               loading={logoutMutation.isPending}
@@ -65,7 +81,7 @@ export function AccountPage({ session }: { session: AuthenticatedSession }) {
               variant="secondary"
             >
               <SignOut aria-hidden="true" size={17} />
-              退出登录
+              {t("account.logout")}
             </Button>
           </div>
         </section>

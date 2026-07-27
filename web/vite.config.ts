@@ -1,15 +1,17 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
+
+const apiOrigin = process.env.FOLIOPATH_API_ORIGIN ?? "http://127.0.0.1:8080";
 
 export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8080",
+        target: apiOrigin,
       },
       "/health": {
-        target: "http://127.0.0.1:8080",
+        target: apiOrigin,
       },
     },
   },
@@ -20,6 +22,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    exclude: [...configDefaults.exclude, "tests/e2e/**"],
     css: true,
   },
 });

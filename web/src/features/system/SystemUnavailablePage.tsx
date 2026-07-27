@@ -1,31 +1,34 @@
 import { ArrowClockwise, Database } from "@phosphor-icons/react";
 
 import { Button } from "../../components/ui/Button/Button";
+import { useLocale } from "../../lib/i18n/LocaleProvider";
 import styles from "./SystemUnavailablePage.module.css";
 
 export function SystemUnavailablePage({
-  message = "FolioPath 暂时无法完成启动，系统已安全停止。媒体目录没有被修改。",
+  message,
   onRetry,
 }: {
   message?: string;
   onRetry: () => void;
 }) {
+  const { t } = useLocale();
+
   return (
     <section className={styles.card} aria-labelledby="unavailable-title">
       <div className={styles.icon}>
         <Database aria-hidden="true" size={34} weight="duotone" />
       </div>
-      <p className={styles.eyebrow}>服务暂不可用</p>
-      <h1 id="unavailable-title">FolioPath 无法完成启动</h1>
-      <p className={styles.message}>{message}</p>
+      <p className={styles.eyebrow}>{t("unavailable.eyebrow")}</p>
+      <h1 id="unavailable-title">{t("unavailable.title")}</h1>
+      <p className={styles.message}>{message ?? t("unavailable.default")}</p>
       <div className={styles.safety}>
-        <strong>安全状态</strong>
-        <span>原始媒体保持只读</span>
-        <span>没有显示内部路径或诊断信息</span>
+        <strong>{t("unavailable.safety")}</strong>
+        <span>{t("unavailable.readOnly")}</span>
+        <span>{t("unavailable.noDiagnostics")}</span>
       </div>
-      <Button onClick={onRetry} variant="primary">
+      <Button className={styles.action} onClick={onRetry} variant="primary">
         <ArrowClockwise aria-hidden="true" size={18} />
-        重新检查
+        {t("common.retry")}
       </Button>
     </section>
   );

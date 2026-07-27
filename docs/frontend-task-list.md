@@ -6,9 +6,9 @@
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
   位于 [`prototypes/foliopath-static-ui`](../prototypes/foliopath-static-ui/README.md)，不放入
   生产 `web/src` import graph
-- 当前生产任务：`S1-201` 与 `S1-204` 已完成；首次设置、登录、会话恢复、退出和
-  通用账户设置已连接真实认证 API。下一步补齐 `S1-205～207` 的启动故障契约、
-  自动 axe/完整断点矩阵与认证浏览器 E2E Gate
+- 当前生产任务：Stage 1 的 `S1-201～207` 已完成并记录
+  [认证 Integrated Done Gate](gates/MVP-2026-07-23/s1-auth-integrated-done.md)；
+  下一步进入 Stage 2 媒体库与扫描界面
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -77,15 +77,17 @@
   只通过领域 API adapter。
   - 已使用真实后端验证“首次创建管理员 → 退出 → 再次登录 → 通用设置”；错误映射、
     CSRF 退出、路由守卫和会话过期安全提示均通过统一 auth adapter/query owner。
-- [ ] `S1-205` 实现启动/数据目录不可用页和全局安全错误边界；错误不得显示宿主路径、堆栈或原始响应。
-  - 全局安全错误边界已完成；启动/数据目录不可用页等待对应契约与 Backend Ready。
-- [ ] `S1-206` 加入组件测试、axe、键盘、主题、语言和 390/768/1024/1440px 响应式验证。
-  - 已加入首批组件、键盘和主题测试及 Storybook a11y 面板；认证页已人工验证
-    390×844 与 1440×1024 浅色状态、390px 无横向溢出和浅/深主题切换。
-    axe 自动门禁、语言与 768/1024 完整矩阵待后续完成。
-- [ ] `S1-207` 完成认证纵向切片 E2E，并记录 `Integrated Done` Gate。
-  - 真实后端人工浏览器链路已通过；仍需将该链路固化为仓库自动 E2E，并形成
-    `Integrated Done` Gate，因此本项保持未完成。
+- [x] `S1-205` 实现启动/数据目录不可用页和全局安全错误边界；错误不得显示宿主路径、堆栈或原始响应。
+  - 应用启动先消费公开 `/health/ready` 契约；四种安全 reason code 与网络故障进入
+    阻断恢复页，页面不显示宿主路径、`/app/data`、SQLite、堆栈或原始响应。
+- [x] `S1-206` 加入组件测试、axe、键盘、主题、语言和 390/768/1024/1440px 响应式验证。
+  - 组件工作台与测试覆盖新增状态、LocaleProvider 和语言选择器；真实 Chromium
+    E2E 覆盖简体中文/英文、浅/深主题、axe serious/critical、键盘语义和四档宽度，
+    所有断点无页面级横向溢出。
+- [x] `S1-207` 完成认证纵向切片 E2E，并记录 `Integrated Done` Gate。
+  - `make test-web-e2e` 使用一次性真实后端、空合成媒体根和 Playwright Chromium
+    验证 setup → settings → logout → expired return → login，并验证安全 readiness
+    fixture；CI 有独立 Authentication browser E2E job。
 
 ## Stage 2：媒体库与扫描界面
 

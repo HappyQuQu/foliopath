@@ -1,13 +1,15 @@
 import { Moon, Sun } from "@phosphor-icons/react";
 
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { useTheme } from "../../../lib/theme/ThemeProvider";
 import { IconButton } from "../Button/IconButton";
 import styles from "./ThemeToggle.module.css";
 
 export function ThemeToggle() {
+  const { t } = useLocale();
   const { resolvedTheme, setPreference } = useTheme();
   const light = resolvedTheme === "light";
-  const label = light ? "切换到深色主题" : "切换到浅色主题";
+  const label = light ? t("theme.toDark") : t("theme.toLight");
 
   return (
     <IconButton

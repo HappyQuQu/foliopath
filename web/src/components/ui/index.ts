@@ -9,6 +9,7 @@ export {
   type InlineStatusProps,
   type InlineStatusTone,
 } from "./InlineStatus/InlineStatus";
+export { LocaleSelect } from "./LocaleSelect/LocaleSelect";
 export { ThemeToggle } from "./ThemeToggle/ThemeToggle";
 export {
   ToastProvider,

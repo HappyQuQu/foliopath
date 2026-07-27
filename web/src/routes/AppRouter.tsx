@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { PublicLayout } from "../components/patterns/PublicLayout/PublicLayout";
@@ -9,7 +10,12 @@ import {
   useSessionQuery,
 } from "../features/auth";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
+import {
+  messageForReadiness,
+  useSystemReadinessQuery,
+} from "../features/system/queries";
 import { ApiError, isAuthenticationError } from "../lib/api/errors";
+import { useLocale } from "../lib/i18n/LocaleProvider";
 import { paths } from "./paths";
 
 export function AppRouter() {
@@ -22,6 +28,7 @@ export function AppRouter() {
 
 export function AppRoutes() {
   return (
+    <ReadinessGate>
       <Routes>
         <Route path={paths.root} element={<RootRoute />} />
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
@@ -30,7 +37,38 @@ export function AppRoutes() {
         <Route path={paths.unavailable} element={<StandaloneUnavailableRoute />} />
         <Route path="*" element={<Navigate replace to={paths.root} />} />
       </Routes>
+    </ReadinessGate>
   );
+}
+
+function ReadinessGate({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
+  const readinessQuery = useSystemReadinessQuery();
+  const { refetch: refreshReadiness } = readinessQuery;
+
+  if (readinessQuery.isPending) return <RouteLoading />;
+  if (readinessQuery.isError) {
+    return (
+      <PublicLayout>
+        <SystemUnavailablePage
+          message={t("error.serviceOffline")}
+          onRetry={() => void refreshReadiness()}
+        />
+      </PublicLayout>
+    );
+  }
+  if (readinessQuery.data.status === "not_ready") {
+    return (
+      <PublicLayout>
+        <SystemUnavailablePage
+          message={messageForReadiness(readinessQuery.data.reasonCode, t)}
+          onRetry={() => void refreshReadiness()}
+        />
+      </PublicLayout>
+    );
+  }
+
+  return children;
 }
 
 function RootRoute() {
@@ -91,18 +129,21 @@ function ProtectedAccountRoute() {
 }
 
 function RouteLoading() {
+  const { t } = useLocale();
+
   return (
     <PublicLayout>
-      <LoadingState label="正在确认安全状态…" />
+      <LoadingState label={t("error.confirmingSecurity")} />
     </PublicLayout>
   );
 }
 
 function RouteError({ error, retry }: { error: unknown; retry: () => unknown }) {
+  const { t } = useLocale();
   const message =
     error instanceof ApiError
-      ? "FolioPath 暂时无法响应。原始媒体没有被修改。"
-      : "页面暂时无法载入。";
+      ? t("error.serviceFailed")
+      : t("error.pageFailed");
 
   return (
     <PublicLayout>

@@ -7,6 +7,10 @@ import { FormField } from "../../../components/ui/FormField/FormField";
 import { InlineStatus } from "../../../components/ui/InlineStatus/InlineStatus";
 import { ApiError } from "../../../lib/api/errors";
 import {
+  useLocale,
+  type MessageKey,
+} from "../../../lib/i18n/LocaleProvider";
+import {
   useLoginMutation,
   useSetupAdministratorMutation,
 } from "../queries";
@@ -22,6 +26,7 @@ interface FieldErrors {
 }
 
 export function AuthPage({ mode }: { mode: AuthPageMode }) {
+  const { t } = useLocale();
   const setup = mode === "setup";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -49,7 +54,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
       password,
       setup,
       username,
-    });
+    }, t);
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -66,7 +71,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
         navigate("/login", { replace: true });
         return;
       }
-      setPageError(messageFor(error));
+      setPageError(messageFor(error, t));
     }
   }
 
@@ -75,17 +80,15 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
       <div className={styles.mark}>
         <ImageSquare aria-hidden="true" size={30} weight="duotone" />
       </div>
-      <p className={styles.eyebrow}>{setup ? "首次使用" : "欢迎回来"}</p>
-      <h1 id="auth-title">{setup ? "创建管理员账户" : "登录 FolioPath"}</h1>
+      <p className={styles.eyebrow}>{setup ? t("auth.firstUse") : t("auth.login")}</p>
+      <h1 id="auth-title">{setup ? t("auth.setupTitle") : t("auth.loginTitle")}</h1>
       <p className={styles.intro}>
-        {setup
-          ? "此账户用于管理媒体库、扫描任务与系统设置。"
-          : "使用管理员账户继续访问您的媒体库。"}
+        {setup ? t("auth.setupIntro") : t("auth.loginIntro")}
       </p>
 
       {showSessionNotice && (
         <InlineStatus onDismiss={() => setShowSessionNotice(false)}>
-          为了保护您的媒体库，会话已过期。请重新登录。
+          {t("auth.sessionExpired")}
         </InlineStatus>
       )}
 
@@ -96,7 +99,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
           <FormField
             autoComplete="name"
             error={fieldErrors.displayName}
-            label="显示名称"
+            label={t("auth.displayName")}
             maxLength={128}
             name="displayName"
             required
@@ -106,7 +109,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
           autoCapitalize="none"
           autoComplete="username"
           error={fieldErrors.username}
-          label="用户名"
+          label={t("auth.username")}
           maxLength={64}
           name="username"
           required
@@ -114,7 +117,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
         <FormField
           autoComplete={setup ? "new-password" : "current-password"}
           error={fieldErrors.password}
-          label="密码"
+          label={t("auth.password")}
           maxLength={128}
           minLength={setup ? 12 : 1}
           name="password"
@@ -125,7 +128,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
           <FormField
             autoComplete="new-password"
             error={fieldErrors.confirmPassword}
-            label="确认密码"
+            label={t("auth.confirmPassword")}
             maxLength={128}
             minLength={12}
             name="confirmPassword"
@@ -134,7 +137,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
           />
         )}
         <Button className={styles.submit} loading={pending} type="submit" variant="primary">
-          {setup ? "创建账户" : "登录"}
+          {setup ? t("auth.create") : t("auth.login")}
         </Button>
       </form>
     </section>
@@ -153,39 +156,39 @@ function validate({
   password: string;
   setup: boolean;
   username: string;
-}): FieldErrors {
+}, t: (key: MessageKey) => string): FieldErrors {
   const errors: FieldErrors = {};
 
-  if (!username) errors.username = "请输入用户名。";
-  if (username.length > 64) errors.username = "用户名不能超过 64 个字符。";
-  if (!password) errors.password = "请输入密码。";
+  if (!username) errors.username = t("validation.username");
+  if (username.length > 64) errors.username = t("validation.usernameLength");
+  if (!password) errors.password = t("validation.password");
 
   if (setup) {
-    if (!displayName) errors.displayName = "请输入显示名称。";
-    if (displayName.length > 128) errors.displayName = "显示名称不能超过 128 个字符。";
-    if (password.length < 12) errors.password = "密码至少需要 12 个字符。";
-    if (password !== confirmPassword) errors.confirmPassword = "两次输入的密码不一致。";
+    if (!displayName) errors.displayName = t("validation.displayName");
+    if (displayName.length > 128) errors.displayName = t("validation.displayNameLength");
+    if (password.length < 12) errors.password = t("validation.passwordLength");
+    if (password !== confirmPassword) errors.confirmPassword = t("validation.confirmPassword");
   }
 
   return errors;
 }
 
-function messageFor(error: unknown): string {
-  if (!(error instanceof ApiError)) return "操作没有完成，请稍后重试。";
+function messageFor(error: unknown, t: (key: MessageKey) => string): string {
+  if (!(error instanceof ApiError)) return t("auth.unknownFailure");
 
   switch (error.code) {
     case "invalid_credentials":
-      return "用户名或密码不正确。";
+      return t("auth.invalidCredentials");
     case "setup_in_progress":
-      return "另一项初始化正在进行，请稍后重试。";
+      return t("auth.setupInProgress");
     case "rate_limited":
-      return "尝试次数过多，请稍后再试。";
+      return t("auth.rateLimited");
     case "origin_invalid":
-      return "当前页面来源未通过安全检查，请从 FolioPath 正式地址访问。";
+      return t("auth.originInvalid");
     case "validation_failed":
     case "invalid_request":
-      return "请检查输入内容后重试。";
+      return t("auth.invalidInput");
     default:
-      return "暂时无法完成操作，请稍后重试。";
+      return t("auth.unavailable");
   }
 }
