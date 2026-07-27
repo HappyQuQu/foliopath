@@ -72,6 +72,8 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   1 ms/等于期限边界、8 路真实 HTTP 并发 setup 仅一个成功、重复 setup 关闭、未知账号与
   错误密码外部响应一致，以及 32 路真实 HTTP/SQLite session 并发读取与 last-seen 更新；
 - generation 的失败、取消、离线、受控重启、原子 finalize 回滚、活动扫描竞争与 complete/cancel 竞态；
+- version 3→4 扫描契约迁移、queued/running/terminal phase 字段、默认 24 小时/关闭 typed
+  schedule、heartbeat/lease/attempt 边界、每 run 50 个 issue group 上限和非法值拒绝；
 - 128 层目录链的逐级直接/递归计数，以及同库循环、跨库目录/资产损坏、当前代次条目指向
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
@@ -232,9 +234,9 @@ make test-e2e
 禁止的通用包。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
 pattern 编译器，每次禁用 Go test 缓存，强制完整解析 YAML、解析本地引用、执行 OpenAPI
 结构/pattern 验证，并用 AST/Schema 与跨源检查固定认证、错误、健康状态、分页、路径、
-Range，以及 scanner/migration 的选择性关键不变量（当前为 `queued`、`animated` 与可空
-`startedAt`）；这不是完整领域实现一致性证明，其余 ScanRun phase/issues/cancel 等语义仍须在
-对应 handler 前的 Contract/Backend Gate 补齐。运行时不依赖 Ruby、Node 或网络。权威 OpenAPI 还通过了
+Range，以及 scanner/migration 的 durable admission、phase/counters、issues、cancel、
+lease/recovery、schedule 与资源上限契约；这不是完整领域实现一致性证明，生产 worker、
+故障和容量证据仍须在 Backend Gate 补齐。运行时不依赖 Ruby、Node 或网络。权威 OpenAPI 还通过了
 Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 4xx 响应的规则 warning，
 没有结构错误。`generate-check` 同时验证固定版本 sqlc 和 OpenAPI TypeScript 生成无漂移，
 `web-check`、摘要锁和语义兼容入口已在本地通过；CI 已定义同一生成入口、PR 基线比较与原生

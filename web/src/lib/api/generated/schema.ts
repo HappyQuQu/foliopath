@@ -357,7 +357,13 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** List full-scan history for a media library */
+        /**
+         * List full-scan history for a media library
+         * @description Results use a query-bound opaque keyset cursor and are ordered by
+         *     `createdAt` descending, then stable scan ID descending. Terminal,
+         *     offline, cancelled, and interrupted runs remain history; they are not
+         *     hidden by a later successful run.
+         */
         get: operations["listLibraryScans"];
         put?: never;
         /**
@@ -365,6 +371,11 @@ export interface paths {
          * @description A new scan returns `202`. If the library already has a queued or running
          *     full scan, the service coalesces the request and returns that existing
          *     scan with `200`; it never starts a parallel full scan for the same library.
+         *     The request commits a durable `manual` run before notifying workers and
+         *     does not wait for filesystem traversal. Offline libraries may be queued
+         *     so this endpoint is also the retry path; the worker rechecks the root and
+         *     an offline outcome preserves the last reliable index. An active library
+         *     removal rejects admission.
          */
         post: operations["requestLibraryScan"];
         delete?: never;
@@ -425,7 +436,9 @@ export interface paths {
          * Get a scan's stage, counters, and safe issue summary
          * @description Clients should use bounded polling with conditional requests and
          *     backoff. Counters are monotonic within a run; `progressRatio` is null
-         *     unless the server has a reliable denominator.
+         *     unless the server has a reliable denominator. The strong ETag changes
+         *     whenever the public status, phase, counters, issues, cancellation state,
+         *     or timestamps change.
          */
         get: operations["getScan"];
         put?: never;
@@ -448,8 +461,13 @@ export interface paths {
         /**
          * Request cooperative scan cancellation
          * @description Cancellation is idempotent and cooperative. It preserves the last
-         *     reliable index and safely committed additions. A terminal scan fails
-         *     with `scan_already_finished`.
+         *     reliable index and safely committed additions. For a queued run it
+         *     atomically reaches `cancelled`; for a running run it records
+         *     `cancelRequestedAt`, advances the validator, and returns immediately.
+         *     The worker observes the request at bounded batch/checkpoint boundaries
+         *     and never performs stale-generation cleanup. Repeating cancellation
+         *     while it is pending returns the same logical result. A terminal scan
+         *     fails with `scan_already_finished`.
          */
         post: operations["cancelScan"];
         delete?: never;
@@ -829,6 +847,11 @@ export interface components {
          * @example asset_01JZ8YRAVQ
          */
         ResourceID: string;
+        /**
+         * @description Sanitized terminal reason. Null for queued, running, succeeded, and user-cancelled runs.
+         * @enum {string|null}
+         */
+        ScanFailureCode: "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "library_root_identity_changed" | "partial_tree_unreadable" | "scan_io_error" | "database_unavailable" | "scan_interrupted" | "internal_error" | null;
         ScanIssue: {
             /** @enum {string} */
             code: "unreadable_directory" | "unsupported_file" | "invalid_media" | "media_probe_failed" | "symlink_skipped" | "maintained_directory_skipped" | "source_changed" | "io_error";
@@ -852,6 +875,7 @@ export interface components {
             discoveredAssets: number;
             /** Format: int64 */
             discoveredDirectories: number;
+            errorCode: components["schemas"]["ScanFailureCode"];
             /** Format: int64 */
             errorCount: number;
             finishedAt: components["schemas"]["NullableTimestamp"];
@@ -860,6 +884,8 @@ export interface components {
             id: components["schemas"]["ResourceID"];
             /** @description Bounded aggregated safe summaries, not raw stderr or an unbounded log. */
             issues: components["schemas"]["ScanIssue"][];
+            /** @description True when additional aggregated issue groups were omitted by the server-side limit. */
+            issuesTruncated: boolean;
             libraryId: components["schemas"]["ResourceID"];
             phase: components["schemas"]["ScanPhase"];
             /** Format: int64 */
@@ -2044,6 +2070,7 @@ export interface operations {
             /** @description An existing queued or running scan was returned. */
             200: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     /** @description Relative URL of the existing scan. */
                     Location?: string;
                     "X-Request-ID": components["headers"]["RequestID"];
@@ -2056,6 +2083,7 @@ export interface operations {
             /** @description A new full scan was queued. */
             202: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     /** @description Relative URL of the new scan. */
                     Location?: string;
                     "X-Request-ID": components["headers"]["RequestID"];
@@ -2213,6 +2241,7 @@ export interface operations {
             /** @description Cancellation requested or already requested. */
             202: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     /** @description Relative URL of the scan. */
                     Location?: string;
                     "X-Request-ID": components["headers"]["RequestID"];
