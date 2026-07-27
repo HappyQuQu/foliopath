@@ -179,6 +179,8 @@ jobs:
           timeout 2m go test -count=1 -v ./...
           cd ../..
           timeout 2m go test -tags libvips -count=1 -v ./internal/media/imagevips
+          timeout 2m go test -tags libvips -count=1 \
+            -run '^TestComposeOwnsValidatedConfiguration$' ./internal/app
 
   mount-boundary:
     name: Linux mount boundary (${{ matrix.arch }})

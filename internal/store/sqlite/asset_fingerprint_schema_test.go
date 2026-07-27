@@ -66,6 +66,16 @@ func TestAssetFingerprintMigrationBackfillsVersionFiveCatalog(t *testing.T) {
 	if got, want := fingerprint, "v1:42:1700000000000000001"; got != want {
 		t.Fatalf("backfilled fingerprint = %q, want %q", got, want)
 	}
+	var jobFingerprint, jobStatus string
+	if err := store.db.QueryRowContext(ctx, `
+        SELECT source_fingerprint, status
+        FROM media_jobs WHERE asset_id = 1 AND variant = 'grid'`,
+	).Scan(&jobFingerprint, &jobStatus); err != nil {
+		t.Fatal(err)
+	}
+	if jobFingerprint != fingerprint || jobStatus != "queued" {
+		t.Fatalf("backfilled media job = %q, %q", jobFingerprint, jobStatus)
+	}
 	var version int64
 	if err := store.db.QueryRowContext(
 		ctx,
@@ -73,7 +83,7 @@ func TestAssetFingerprintMigrationBackfillsVersionFiveCatalog(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 8 {
-		t.Fatalf("migration version = %d, want 8", version)
+	if version != 9 {
+		t.Fatalf("migration version = %d, want 9", version)
 	}
 }

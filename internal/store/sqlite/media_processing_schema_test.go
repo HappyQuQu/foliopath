@@ -26,6 +26,18 @@ func TestMediaProcessingMigrationAddsScopedDerivedState(t *testing.T) {
 			t.Fatalf("thumbnails is missing %s", column)
 		}
 	}
+	for _, table := range []string{
+		"media_jobs", "media_job_library_state",
+		"media_job_queue_state", "cache_deletions",
+	} {
+		var name string
+		if err := store.db.QueryRowContext(context.Background(), `
+            SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+			table,
+		).Scan(&name); err != nil {
+			t.Fatalf("missing %s: %v", table, err)
+		}
+	}
 
 	var assetID int64
 	var fingerprint, probeStatus, playbackStatus string
@@ -38,6 +50,17 @@ func TestMediaProcessingMigrationAddsScopedDerivedState(t *testing.T) {
 	}
 	if probeStatus != "pending" || playbackStatus != "unknown" {
 		t.Fatalf("backfilled state = %q, %q", probeStatus, playbackStatus)
+	}
+	var queuedJobs, transformVersion int64
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT count(*), min(transform_version) FROM media_jobs
+        WHERE library_id = ? AND status = 'queued'`,
+		libraryID,
+	).Scan(&queuedJobs, &transformVersion); err != nil {
+		t.Fatal(err)
+	}
+	if queuedJobs != 4 || transformVersion != 1 {
+		t.Fatalf("queued media jobs = %d at transform %d", queuedJobs, transformVersion)
 	}
 	if _, err := store.db.ExecContext(context.Background(), `
         INSERT INTO thumbnails(

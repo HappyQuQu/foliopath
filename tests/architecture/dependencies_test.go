@@ -1004,6 +1004,70 @@ func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) 
 	}
 }
 
+func TestMediaJobsAndCachePolicyHaveCanonicalOwners(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, required := range []struct {
+		relative string
+		contents []string
+	}{
+		{
+			relative: "migrations/00009_media_jobs.sql",
+			contents: []string{
+				"CREATE TABLE media_jobs",
+				"CREATE TABLE cache_deletions",
+				"lease_expires_at_ms",
+				"attempt_count",
+				"transform_version",
+			},
+		},
+		{
+			relative: "internal/thumbnail/jobs.go",
+			contents: []string{
+				"MediaWorkerCount = 2",
+				"MaxJobAttempts   = 3",
+				"type ClaimedProcessor struct",
+			},
+		},
+		{
+			relative: "internal/thumbnail/capacity.go",
+			contents: []string{
+				"CacheHighWaterPercent",
+				"CacheLowWaterPercent",
+				"CacheSafeFreeBytes",
+				"ListLRUCacheEntries",
+			},
+		},
+		{
+			relative: "internal/store/sqlite/scanner.go",
+			contents: []string{
+				"INSERT INTO media_jobs",
+				"INSERT OR IGNORE INTO cache_deletions",
+				"invalidate stale thumbnail",
+			},
+		},
+		{
+			relative: "internal/app/run.go",
+			contents: []string{
+				"jobs.NewWorkerPool(",
+				"newMediaWorkerComponent(",
+				"thumbnail.NewCacheManager(",
+			},
+		},
+	} {
+		path := filepath.Join(root, filepath.FromSlash(required.relative))
+		source, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing media job/cache boundary %q",
+					required.relative, content)
+			}
+		}
+	}
+}
+
 func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
 	root := repositoryRoot(t)
 	codecPath := filepath.Join(root, "internal", "cursor", "codec.go")

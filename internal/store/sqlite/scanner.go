@@ -10,6 +10,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 type rowScanner interface {
@@ -409,6 +410,24 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
             mime_type = excluded.mime_type,
             size_bytes = excluded.size_bytes,
             mtime_ns = excluded.mtime_ns,
+            width = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN NULL
+                ELSE assets.width END,
+            height = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN NULL
+                ELSE assets.height END,
+            duration_ms = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN NULL
+                ELSE assets.duration_ms END,
+            probe_status = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN 'pending'
+                ELSE assets.probe_status END,
+            probe_error_code = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN NULL
+                ELSE assets.probe_error_code END,
+            playback_status = CASE
+                WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN 'unknown'
+                ELSE assets.playback_status END,
             source_fingerprint = excluded.source_fingerprint,
             natural_name_key = excluded.natural_name_key,
             last_seen_generation = excluded.last_seen_generation`,
@@ -417,6 +436,57 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 		entry.SizeBytes, entry.MTimeNS, sourceFingerprint.String(),
 		catalog.NaturalNameKey(entry.Name), run.Generation); err != nil {
 		return false, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
+	}
+	var assetID int64
+	if err := tx.QueryRowContext(ctx, `
+        SELECT id FROM assets WHERE library_id = ? AND relative_path = ?`,
+		run.LibraryID, entry.RelativePath,
+	).Scan(&assetID); err != nil {
+		return false, fmt.Errorf("read upserted asset identity: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+        INSERT OR IGNORE INTO cache_deletions(
+            library_id, cache_rel_path, byte_size, created_at_ms
+        )
+        SELECT library_id, cache_rel_path, byte_size, ?
+        FROM thumbnails
+        WHERE asset_id = ? AND source_fingerprint <> ? AND status = 'ready'`,
+		run.CreatedAtMS, assetID, sourceFingerprint.String(),
+	); err != nil {
+		return false, fmt.Errorf("schedule stale thumbnail cleanup: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+        DELETE FROM thumbnails
+        WHERE asset_id = ? AND source_fingerprint <> ?`,
+		assetID, sourceFingerprint.String(),
+	); err != nil {
+		return false, fmt.Errorf("invalidate stale thumbnail: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+        INSERT INTO media_jobs(
+            library_id, asset_id, variant, transform_version, source_fingerprint,
+            status, available_at_ms, attempt_count, created_at_ms
+        ) VALUES (?, ?, 'grid', ?, ?, 'queued', ?, 0, ?)
+        ON CONFLICT(asset_id, variant) DO UPDATE SET
+            library_id = excluded.library_id,
+            transform_version = excluded.transform_version,
+            source_fingerprint = excluded.source_fingerprint,
+            status = 'queued',
+            last_error_code = NULL,
+            available_at_ms = excluded.available_at_ms,
+            started_at_ms = NULL,
+            heartbeat_at_ms = NULL,
+            lease_expires_at_ms = NULL,
+            attempt_count = 0,
+            created_at_ms = excluded.created_at_ms,
+            finished_at_ms = NULL
+        WHERE media_jobs.source_fingerprint <> excluded.source_fingerprint
+           OR media_jobs.transform_version <> excluded.transform_version`,
+		run.LibraryID, assetID, thumbnail.GridTransformVersion,
+		sourceFingerprint.String(),
+		run.CreatedAtMS, run.CreatedAtMS,
+	); err != nil {
+		return false, fmt.Errorf("admit media job: %w", err)
 	}
 	return newlySeen, nil
 }

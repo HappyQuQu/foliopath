@@ -79,7 +79,20 @@ S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`�
 `libraries/lib_<library-id>/` 子树内，使 removal worker 无需接触 `/library` 即可幂等清理。
 文件先原子落盘，再提交可用状态；数据库不得把不存在或未完成的缓存文件标记为可用。
 migration 8 已实现该表和 ready/failed 状态约束；durable media job、LRU 与访问时间刷新
-仍由 S3-005 追加实现。
+由 migration 9 和 `internal/thumbnail` 缓存策略实现；HTTP 命中时的访问时间刷新仍由
+S3-007 接入。
+
+### `media_jobs`
+
+- `id`、`library_id`、`asset_id`、唯一 `variant=grid`。
+- `source_fingerprint`：领取和终止提交都必须匹配，旧 worker 不能覆盖新源。
+- `status`：`queued`、`running`、`succeeded` 或 `failed`。
+- `available_at_ms`、heartbeat、lease、attempt（最多 3 次）和稳定 `last_error_code`。
+- `created_at_ms`、可空 start/finish 时间。
+
+唯一约束为 `(asset_id, variant)`，复合外键保证同库归属。`media_job_library_state` 只保存
+跨库公平领取游标；它不是任务事实来源。`cache_deletions` 保存 fingerprint 失效后必须
+幂等清理的相对缓存路径，绝不保存或删除原媒体路径。
 
 ### `scan_runs`
 
@@ -169,6 +182,10 @@ singleton 约束防止并发创建多个账号；应用重启后从数据库恢�
 24 小时完整扫描周期（允许 1～8760 小时或 null 关闭）、默认 10 GiB 缩略图缓存配额，
 以及默认跟随浏览器的中英语言偏好。`revision` 支持强 ETag/If-Match，提交后才唤醒
 scheduler。秘密值不得以明文日志输出；设置不能成为任意键值存储。
+
+缓存 ready 使用量达到配额 90% 后按 `(last_accessed_at_ms, asset_id)` 清理到 80%，每次
+新发布还必须在写入后保留 512 MiB 文件系统可用空间。该策略只作用于可重建文件和
+thumbnail 状态，不以清理数据库、设置或原媒体换取空间。
 
 ## 索引与查询
 

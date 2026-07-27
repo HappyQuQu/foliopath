@@ -6,7 +6,7 @@
 - 当前阶段：Stage 3 浏览与缩略图后端；媒体库与扫描 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S3-005` 有界媒体任务、缓存失效与磁盘保护
+- 当前任务：`S3-006` 敌意媒体、磁盘满与并发资源矩阵
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
   Stage 3 仍须独立通过 Contract Ready 与 Backend Ready
@@ -194,7 +194,10 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     govips/FFmpeg production adapter、统一结果/错误、fingerprint-bound 派生键、原子
     cache publisher 与 migration 8 ready/failed 状态均有单元、SQLite、真实组合和原生
     依赖 fixture。尚未接入后台任务或 HTTP；当前进入 S3-005。
-- [ ] `S3-005` 实现有界媒体任务队列、fingerprint 失效、默认 10 GiB LRU 和磁盘余量保护。
+- [x] `S3-005` 实现有界媒体任务队列、fingerprint 失效、默认 10 GiB LRU 和磁盘余量保护。
+  - 完成证据：[S3-005 媒体任务与缓存保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)；
+    migration 9 durable queue、2-worker/3-attempt lease 恢复、跨库公平、扫描原子失效/
+    admission、90%→80% LRU、512 MiB 余量和正式生命周期均有自动证据。当前进入 S3-006。
 - [ ] `S3-006` 覆盖损坏媒体、像素炸弹、超时、取消、磁盘满和并发限制。
 - [ ] `S3-007` 记录浏览/缩略图后端 `Backend Ready` Gate。
 

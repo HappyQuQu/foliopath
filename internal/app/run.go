@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -15,9 +16,12 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media/imagevips"
+	"github.com/HappyQuQu/foliopath/internal/media/videoffmpeg"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail/cachefs"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -115,6 +119,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	}
 	scanSignal := jobs.NewSignal()
 	scheduleSignal := jobs.NewSignal()
+	mediaSignal := jobs.NewSignal()
+	cacheSignal := jobs.NewSignal()
 	scanAdmission, err := scanner.NewAdmissionService(database, scanSignal)
 	if err != nil {
 		return nil, fmt.Errorf("construct scan admission service: %w", err)
@@ -126,6 +132,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	settingsService, err := appsettings.NewService(
 		database,
 		scheduleSignal,
+		cacheSignal,
 		appsettings.FieldValidators{
 			Schedule:   scanner.ValidateScheduledScanInterval,
 			CacheQuota: thumbnail.ValidateCacheQuota,
@@ -139,7 +146,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct catalog service: %w", err)
 	}
-	scanService, err := scanner.NewService(database, scanner.Config{})
+	scanService, err := scanner.NewService(
+		mediaWakeScanRepository{Repository: database, waker: mediaSignal},
+		scanner.Config{},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("construct scan service: %w", err)
 	}
@@ -163,6 +173,53 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct scan scheduler: %w", err)
 	}
 	scanComponent, err := newScanWorkerComponent(scanWorker, scanAdmission, scanScheduler)
+	if err != nil {
+		return nil, err
+	}
+	cachePublisher, err := cachefs.New(
+		filepath.Join(configuration.dataRoot, "cache"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct thumbnail cache: %w", err)
+	}
+	cacheManager, err := thumbnail.NewCacheManager(database, cachePublisher)
+	if err != nil {
+		return nil, fmt.Errorf("construct thumbnail cache manager: %w", err)
+	}
+	videoProcessor, err := videoffmpeg.New(videoffmpeg.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("construct video processor: %w", err)
+	}
+	thumbnailService, err := thumbnail.NewService(
+		database,
+		directorySource,
+		cachePublisher,
+		cacheManager,
+		imagevips.New(),
+		videoProcessor,
+		thumbnail.ServiceOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct thumbnail service: %w", err)
+	}
+	mediaProcessor, err := thumbnail.NewClaimedProcessor(
+		thumbnailService, database,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct claimed media processor: %w", err)
+	}
+	mediaWorker, err := jobs.NewWorkerPool(
+		mediaJobQueue{database: database},
+		mediaProcessor,
+		mediaSignal,
+		jobs.WorkerOptions{Workers: thumbnail.MediaWorkerCount},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct media worker: %w", err)
+	}
+	mediaComponent, err := newMediaWorkerComponent(
+		mediaWorker, cacheManager, cacheSignal,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +256,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		[]component{
 			databaseComponent,
 			mediaRootComponent,
+			mediaComponent,
 			scanComponent,
 			removalComponent,
 			httpComponent,

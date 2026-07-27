@@ -21,7 +21,7 @@ type wakerStub struct{ count int }
 
 func (stub *wakerStub) Wake() { stub.count++ }
 
-func TestServiceValidatesAndWakesOnlyForScheduleChanges(t *testing.T) {
+func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	hours := int64(24)
 	repository := &repositoryStub{values: Values{
 		ScheduledScanIntervalHours: &hours,
@@ -29,8 +29,9 @@ func TestServiceValidatesAndWakesOnlyForScheduleChanges(t *testing.T) {
 		Language:                   "browser",
 		Revision:                   1,
 	}}
-	waker := &wakerStub{}
-	service, err := NewService(repository, waker, FieldValidators{
+	scheduleWaker := &wakerStub{}
+	cacheWaker := &wakerStub{}
+	service, err := NewService(repository, scheduleWaker, cacheWaker, FieldValidators{
 		Schedule: func(value *int64) error {
 			if value != nil && *value < 1 {
 				return ErrInvalid
@@ -52,18 +53,28 @@ func TestServiceValidatesAndWakesOnlyForScheduleChanges(t *testing.T) {
 	if _, err := service.Update(context.Background(), 1, Update{Language: &language}); err != nil {
 		t.Fatal(err)
 	}
-	if waker.count != 0 {
+	if scheduleWaker.count != 0 || cacheWaker.count != 0 {
 		t.Fatal("non-schedule update woke scheduler")
 	}
-	disabled, err := service.Update(context.Background(), 2, Update{SetSchedule: true})
+	quota := int64(20)
+	if _, err := service.Update(context.Background(), 2, Update{
+		ThumbnailCacheQuotaBytes: &quota,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if scheduleWaker.count != 0 || cacheWaker.count != 1 {
+		t.Fatalf("cache update wakes = schedule %d cache %d",
+			scheduleWaker.count, cacheWaker.count)
+	}
+	disabled, err := service.Update(context.Background(), 3, Update{SetSchedule: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if disabled.ScheduledScanIntervalHours != nil || waker.count != 1 {
-		t.Fatalf("disabled settings = %#v, wakes %d", disabled, waker.count)
+	if disabled.ScheduledScanIntervalHours != nil || scheduleWaker.count != 1 {
+		t.Fatalf("disabled settings = %#v, wakes %d", disabled, scheduleWaker.count)
 	}
 	invalid := int64(0)
-	if _, err := service.Update(context.Background(), 3, Update{
+	if _, err := service.Update(context.Background(), 4, Update{
 		SetSchedule: true, ScheduledScanIntervalHours: &invalid,
 	}); err != ErrInvalid {
 		t.Fatalf("invalid interval error = %v", err)

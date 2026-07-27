@@ -62,6 +62,18 @@ type publisherStub struct {
 	calls     int
 }
 
+type capacityStub struct {
+	reserved int64
+}
+
+func (stub *capacityStub) Reserve(
+	_ context.Context,
+	value int64,
+) (Reservation, error) {
+	stub.reserved = value
+	return &cacheReservation{}, nil
+}
+
 func (stub *publisherStub) Publish(
 	_ context.Context,
 	_ Derivation,
@@ -124,8 +136,9 @@ func TestServicePublishesThenCommitsFingerprintBoundResult(t *testing.T) {
 		t.Fatal(err)
 	}
 	publisher := &publisherStub{published: Published{CacheRelativePath: cachePath}}
+	capacity := &capacityStub{}
 	service, err := NewService(
-		repository, source, publisher, image, video,
+		repository, source, publisher, capacity, image, video,
 		ServiceOptions{Now: func() time.Time { return time.UnixMilli(1000) }},
 	)
 	if err != nil {
@@ -135,6 +148,7 @@ func TestServicePublishesThenCommitsFingerprintBoundResult(t *testing.T) {
 		t.Fatal(err)
 	}
 	if image.calls != 1 || video.calls != 0 || publisher.calls != 1 ||
+		capacity.reserved != int64(len(result.Thumbnail.Bytes)) ||
 		repository.ready == nil || repository.ready.CreatedAtMS != 1000 ||
 		repository.failure != nil {
 		t.Fatalf("calls/result = image %d video %d publisher %d ready %#v failure %#v",
@@ -156,7 +170,7 @@ func TestServicePersistsStableProcessingFailureButNotSourceChange(t *testing.T) 
 	image := &processorStub{err: media.ErrInvalidMedia}
 	service, err := NewService(
 		repository, sourceStub{file: file}, &publisherStub{},
-		image, &processorStub{}, ServiceOptions{},
+		&capacityStub{}, image, &processorStub{}, ServiceOptions{},
 	)
 	if err != nil {
 		t.Fatal(err)

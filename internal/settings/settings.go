@@ -35,9 +35,10 @@ type WakeNotifier interface {
 }
 
 type Service struct {
-	repository Repository
-	waker      WakeNotifier
-	validators FieldValidators
+	repository    Repository
+	scheduleWaker WakeNotifier
+	cacheWaker    WakeNotifier
+	validators    FieldValidators
 }
 
 type FieldValidators struct {
@@ -48,16 +49,22 @@ type FieldValidators struct {
 
 func NewService(
 	repository Repository,
-	waker WakeNotifier,
+	scheduleWaker WakeNotifier,
+	cacheWaker WakeNotifier,
 	validators FieldValidators,
 ) (*Service, error) {
-	if repository == nil || waker == nil ||
+	if repository == nil || scheduleWaker == nil || cacheWaker == nil ||
 		validators.Schedule == nil ||
 		validators.CacheQuota == nil ||
 		validators.Language == nil {
 		return nil, errors.New("settings dependencies are required")
 	}
-	return &Service{repository: repository, waker: waker, validators: validators}, nil
+	return &Service{
+		repository:    repository,
+		scheduleWaker: scheduleWaker,
+		cacheWaker:    cacheWaker,
+		validators:    validators,
+	}, nil
 }
 
 func (service *Service) Get(ctx context.Context) (Values, error) {
@@ -97,7 +104,10 @@ func (service *Service) Update(
 		return Values{}, err
 	}
 	if update.SetSchedule {
-		service.waker.Wake()
+		service.scheduleWaker.Wake()
+	}
+	if update.ThumbnailCacheQuotaBytes != nil {
+		service.cacheWaker.Wake()
 	}
 	return updated, nil
 }

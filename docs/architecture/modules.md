@@ -141,6 +141,8 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 - scanner、thumbnail、media 各自负责 handler 的领域幂等与成功条件；jobs 不解释 generation 或缓存键。
 - `internal/app` 创建共享的资源 limiter 并决定启动、停机和依赖顺序；capability 不能偷偷创建第二套无界池。
 - SQLite adapter 通过条件更新实现领取与状态转换，不在数据库锁内运行 handler。
+- 媒体派生使用 2 个全局 worker、最多 3 次尝试和 5/10 秒 transient 退避；跨媒体库选择由
+  durable fairness cursor 决定。缓存 90% 触发并回收到 80%，发布后至少保留 512 MiB。
 - scheduler 的定期完整扫描只是触发器；启动、手动和计划 reconciliation 才是正确性基线，watcher 永远不能成为唯一事实来源。
 
 精确 job 状态枚举、租约时长、心跳、队列容量和退避参数必须在实现前由迁移、OpenAPI、容量/恢复 spike 固定；本文只锁定上述不变量。

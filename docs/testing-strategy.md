@@ -108,8 +108,9 @@ Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩
 不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～106
 已完成目录/计数、媒体增量收敛、故障/重启恢复、容量矩阵与扫描 Backend Ready；
 S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发布、SQLite 状态和
-真实 scanner→source→cache→database 组合测试；durable 媒体任务、LRU/磁盘保护、资产/
-缩略图 HTTP、浏览器流程和发布网络边界仍在后续 Gate。
+真实 scanner→source→cache→database 组合测试；S3-005 已增加 durable lease/retry/
+公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle。
+像素炸弹/磁盘满/资源并发矩阵、资产/缩略图 HTTP、浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

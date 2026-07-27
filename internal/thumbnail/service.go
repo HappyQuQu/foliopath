@@ -37,6 +37,7 @@ type Service struct {
 	repository Repository
 	source     Source
 	publisher  Publisher
+	capacity   Capacity
 	image      media.Processor
 	video      media.Processor
 	now        func() time.Time
@@ -50,11 +51,12 @@ func NewService(
 	repository Repository,
 	source Source,
 	publisher Publisher,
+	capacity Capacity,
 	image media.Processor,
 	video media.Processor,
 	options ServiceOptions,
 ) (*Service, error) {
-	if repository == nil || source == nil || publisher == nil ||
+	if repository == nil || source == nil || publisher == nil || capacity == nil ||
 		image == nil || video == nil {
 		return nil, errors.New("thumbnail service dependencies are required")
 	}
@@ -65,6 +67,7 @@ func NewService(
 		repository: repository,
 		source:     source,
 		publisher:  publisher,
+		capacity:   capacity,
 		image:      image,
 		video:      video,
 		now:        options.Now,
@@ -117,6 +120,13 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 	if err := media.ValidateProcessingResult(asset.Kind, result); err != nil {
 		return ErrInvalidState
 	}
+	reservation, err := service.capacity.Reserve(
+		ctx, int64(len(result.Thumbnail.Bytes)),
+	)
+	if err != nil {
+		return err
+	}
+	defer reservation.Release()
 	published, err := service.publisher.Publish(ctx, derivation, result.Thumbnail.Bytes)
 	if err != nil {
 		return errors.Join(ErrPublishFailed, err)

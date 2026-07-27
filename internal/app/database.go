@@ -34,7 +34,10 @@ type databaseStore interface {
 	scanner.ScheduleRepository
 	appsettings.Repository
 	thumbnail.Repository
+	thumbnail.CacheRepository
+	thumbnail.JobCompletionRepository
 	scanQueueStore
+	mediaQueueStore
 	Close() error
 }
 
@@ -123,10 +126,148 @@ func (service *databaseService) CommitFailure(
 	return service.store.CommitFailure(ctx, failure)
 }
 
+func (service *databaseService) CacheQuota(ctx context.Context) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CacheQuota(ctx)
+}
+
+func (service *databaseService) ReadyCacheUsage(ctx context.Context) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ReadyCacheUsage(ctx)
+}
+
+func (service *databaseService) ListLRUCacheEntries(
+	ctx context.Context,
+	limit int,
+) ([]thumbnail.CacheEntry, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ListLRUCacheEntries(ctx, limit)
+}
+
+func (service *databaseService) DeleteReadyCacheEntry(
+	ctx context.Context,
+	entry thumbnail.CacheEntry,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.DeleteReadyCacheEntry(ctx, entry)
+}
+
+func (service *databaseService) ListPendingCacheDeletions(
+	ctx context.Context,
+	limit int,
+) ([]thumbnail.PendingCacheDeletion, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ListPendingCacheDeletions(ctx, limit)
+}
+
+func (service *databaseService) CompleteCacheDeletion(
+	ctx context.Context,
+	item thumbnail.PendingCacheDeletion,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CompleteCacheDeletion(ctx, item)
+}
+
+func (service *databaseService) FinishMediaJob(
+	ctx context.Context,
+	job thumbnail.Job,
+	result thumbnail.JobResult,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.FinishMediaJob(ctx, job, result)
+}
+
 type scanQueueStore interface {
 	RecoverExpiredFullScans(context.Context) (jobs.RecoverySummary, error)
 	ClaimNextFullScan(context.Context, time.Duration) (scanner.ScanRun, bool, error)
 	RefreshFullScanLease(context.Context, int64, time.Duration) (scanner.ScanRun, error)
+}
+
+type mediaQueueStore interface {
+	ReconcileMediaJobTransform(context.Context, int, int) (int64, error)
+	RecoverExpiredMediaJobs(context.Context) (jobs.RecoverySummary, error)
+	ClaimNextMediaJob(
+		context.Context,
+		time.Duration,
+	) (thumbnail.Job, bool, error)
+	RefreshMediaJobLease(context.Context, thumbnail.Job, time.Duration) error
+}
+
+func (service *databaseService) ReconcileMediaJobTransform(
+	ctx context.Context,
+	transformVersion int,
+	limit int,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ReconcileMediaJobTransform(ctx, transformVersion, limit)
+}
+
+func (service *databaseService) RecoverExpiredMediaJobs(
+	ctx context.Context,
+) (jobs.RecoverySummary, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return jobs.RecoverySummary{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.RecoverExpiredMediaJobs(ctx)
+}
+
+func (service *databaseService) ClaimNextMediaJob(
+	ctx context.Context,
+	lease time.Duration,
+) (thumbnail.Job, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.Job{}, false, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ClaimNextMediaJob(ctx, lease)
+}
+
+func (service *databaseService) RefreshMediaJobLease(
+	ctx context.Context,
+	job thumbnail.Job,
+	lease time.Duration,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.RefreshMediaJobLease(ctx, job, lease)
 }
 
 type databaseOpener func(context.Context, string, sqlitestore.Options) (databaseStore, error)
