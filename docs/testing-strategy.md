@@ -75,7 +75,7 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
 游标、缓存、调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已在 S1-105 完成，
-仍须通过 S1-106 Gate 才能声明认证 Backend Ready。
+并由 S1-106 Gate 复核为 Backend Ready。浏览器认证流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

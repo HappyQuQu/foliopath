@@ -2,9 +2,9 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-105` 认证实现与安全验收
-- 当前任务：`S1-106` 认证切片 Backend Ready Gate
+- 当前阶段：Stage 1 后端已完成
+- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
+- 当前任务：无；Stage 2 尚未获既有 Gate 授权
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -78,7 +78,11 @@
     composition root、HTTP 与 SQLite 测试同时发起 8 个 setup，仅一个创建管理员，其余稳定
     返回 `setup_in_progress`/`setup_closed`；重复 setup 关闭，未知账号与错误密码返回相同
     `invalid_credentials`，32 个并发 session 请求全部成功。相关包测试与 race 测试执行。
-- [ ] `S1-106` 记录认证切片 `Backend Ready` Gate，允许前端连接真实认证 API。
+- [x] `S1-106` 记录认证切片 `Backend Ready` Gate，允许前端连接真实认证 API。
+  - 完成证据：[认证 Backend Evidence Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)
+    逐项审计 capability/adapter/composition 所有权、OpenAPI/数据契约、真实 SQLite/HTTP、
+    故障/并发/重启/时间/脱敏证据和最终 CI；结论为 `Go`，只授权认证前端进入 Gate S3。
+    回环监听、Stage 2 和 Stage 5 发布边界保持不变。
 
 ## Stage 2：媒体库与可靠扫描后端
 

@@ -3,7 +3,7 @@
 这里保存 FolioPath 在编码前与开发过程中的产品、交互和工程约束。用户已于 2026-07-23
 确认 `RQ-001`～`RQ-014` 全部采用 A；Stage 0 Gate 已通过并进入后端优先的 Stage 1。
 仓库已有 FS-01～FS-05、供应链、权威 OpenAPI、可启动和迁移的后端运行骨架及自动化证据，
-但尚无可用产品应用；
+单管理员认证后端已通过 Backend Ready，但尚无可用产品应用；
 已确认范围、契约与 spike 证据都不代表功能已经发布。
 
 ## 从哪里开始
@@ -16,7 +16,7 @@
 | 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
 | 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
-| 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
+| 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
 | 修改架构或范围 | [交付与架构治理](architecture/delivery-governance.md) | [系统架构档案](architecture/README.md)、[Agent 约束](../AGENTS.md)、[ADR](adr/README.md) |
 
