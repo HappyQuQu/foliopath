@@ -1,5 +1,7 @@
+import { X } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { Button } from "../Button/Button";
 import { IconButton } from "../Button/IconButton";
 import styles from "./Dialog.module.css";
@@ -21,6 +23,7 @@ export function Dialog({
   open,
   title,
 }: DialogProps) {
+  const { t } = useLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -66,8 +69,8 @@ export function Dialog({
           <h2 id={titleId}>{title}</h2>
           {description && <p id={descriptionId}>{description}</p>}
         </div>
-        <IconButton label="关闭对话框" onClick={() => onOpenChange(false)}>
-          <span aria-hidden="true">×</span>
+        <IconButton label={t("common.closeDialog")} onClick={() => onOpenChange(false)}>
+          <X aria-hidden="true" size={18} />
         </IconButton>
       </header>
       <div className={styles.content}>{children}</div>
@@ -77,11 +80,12 @@ export function Dialog({
 }
 
 export function DialogCloseButton({
-  children = "取消",
+  children,
   onClick,
 }: {
   children?: ReactNode;
   onClick: () => void;
 }) {
-  return <Button onClick={onClick}>{children}</Button>;
+  const { t } = useLocale();
+  return <Button onClick={onClick}>{children ?? t("common.cancel")}</Button>;
 }

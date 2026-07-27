@@ -35,6 +35,16 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
   await page.getByRole("button", { name: "Create and scan" }).click();
   await expect(page.getByRole("heading", { name: "Browser acceptance library" })).toBeVisible();
 
+  await page.getByRole("button", { name: "Rename" }).click();
+  await page.getByLabel("New name *").fill("Renamed acceptance library");
+  await page.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("heading", { name: "Renamed acceptance library" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Scan again" }).click();
+  await expect(page).toHaveURL(/\/settings\/libraries\/[^/]+\/status$/);
+  await expect(page.getByRole("heading", { name: "Library status" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to libraries" }).click();
+
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/settings\/general$/);
@@ -50,6 +60,11 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
   await expect(page.getByRole("button", { name: "Switch to light theme" }).first()).toBeVisible();
   await waitForVisualState(page);
   await expectNoSeriousAxeViolations(page);
+
+  await page.getByLabel("Scan interval (hours) *").fill("48");
+  await page.getByLabel("Thumbnail cache limit (GiB) *").fill("2");
+  await page.getByRole("button", { name: "Save scan and cache settings" }).click();
+  await expect(page.getByText("Scan and cache settings saved.")).toBeVisible();
 
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
@@ -89,6 +104,14 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
 
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
+
+  await page.goto("/settings/libraries");
+  await page.getByRole("button", { name: "移除" }).click();
+  await expect(page.getByText("原始目录与媒体文件不会被删除、移动或修改。")).toBeVisible();
+  await page.getByRole("button", { name: "确认移除" }).click();
+  await expect(page.getByRole("heading", { name: "还没有媒体库" })).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 test("readiness failure uses the contracted safe state", async ({ page }) => {

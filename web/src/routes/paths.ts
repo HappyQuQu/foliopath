@@ -3,6 +3,8 @@ export const paths = {
   setup: "/setup/admin",
   login: "/login",
   libraries: "/settings/libraries",
+  libraryStatus: (libraryId: string) => `/settings/libraries/${libraryId}/status`,
+  libraryStatusPattern: "/settings/libraries/:libraryId/status",
   newLibrary: "/settings/libraries/new",
   browse: "/libraries/:libraryId/browse/:directoryId?",
   search: "/search",

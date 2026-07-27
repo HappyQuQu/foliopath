@@ -1,5 +1,5 @@
 .main {
-  width: min(100%, var(--size-settings-content));
+  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
   margin-inline: auto;
   padding: clamp(var(--space-8), 6vw, 4rem) var(--space-6);
 }
@@ -9,7 +9,7 @@
 }
 
 .heading p {
-  margin: var(--space-0) var(--space-0) var(--space-2);
+  margin: 0 0 var(--space-2);
   color: var(--color-accent);
   font-size: var(--font-size-1);
   font-weight: 700;
@@ -18,12 +18,14 @@
 }
 
 .heading h1 {
-  margin: var(--space-0);
+  margin: 0;
   font-size: var(--font-size-6);
   letter-spacing: -0.03em;
 }
 
-.description {
+.heading span,
+.row span,
+.checkRow small {
   display: block;
   margin-top: var(--space-2);
   color: var(--color-text-muted);
@@ -38,7 +40,7 @@
 }
 
 .panel h2 {
-  margin: var(--space-0) var(--space-0) var(--space-5);
+  margin: 0 0 var(--space-5);
   font-size: var(--font-size-4);
 }
 
@@ -49,13 +51,55 @@
   gap: var(--space-6);
 }
 
+.row + .row {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.checkRow {
+  display: flex;
+  align-items: start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkRow input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.15rem;
+  accent-color: var(--color-accent);
+}
+
+.checkRow small {
+  font-size: var(--font-size-2);
+}
+
+.save {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
 @media (max-width: 36rem) {
   .main {
+    width: 100%;
     padding-inline: var(--space-5);
   }
 
   .row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .save button,
+  .row > button {
+    width: 100%;
   }
 }

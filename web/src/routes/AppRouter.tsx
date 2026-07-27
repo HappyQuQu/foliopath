@@ -1,16 +1,27 @@
 import type { ReactNode } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+} from "react-router-dom";
 
 import { PublicLayout } from "../components/patterns/PublicLayout/PublicLayout";
 import { LoadingState } from "../components/ui";
 import {
-  AccountPage,
   AuthPage,
   useAuthenticationStatusQuery,
+  useLogoutMutation,
   useSessionQuery,
 } from "../features/auth";
-import { LibrariesPage, NewLibraryPage } from "../features/libraries";
+import {
+  LibrariesPage,
+  NewLibraryPage,
+  ScanStatusPage,
+} from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
+import { GeneralSettingsPage } from "../features/settings";
 import {
   messageForReadiness,
   useSystemReadinessQuery,
@@ -37,6 +48,10 @@ export function AppRoutes() {
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
         <Route path={paths.libraries} element={<ProtectedLibrariesRoute />} />
         <Route path={paths.newLibrary} element={<ProtectedNewLibraryRoute />} />
+        <Route
+          path={paths.libraryStatusPattern}
+          element={<ProtectedScanStatusRoute />}
+        />
         <Route path={paths.unavailable} element={<StandaloneUnavailableRoute />} />
         <Route path="*" element={<Navigate replace to={paths.root} />} />
       </Routes>
@@ -120,10 +135,23 @@ function PublicAuthRoute({ mode }: { mode: "login" | "setup" }) {
 }
 
 function ProtectedAccountRoute() {
+  const navigate = useNavigate();
   const sessionQuery = useSessionQuery();
+  const logoutMutation = useLogoutMutation();
 
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <AccountPage session={sessionQuery.data} />;
+  if (sessionQuery.isSuccess) {
+    return (
+      <GeneralSettingsPage
+        logoutPending={logoutMutation.isPending}
+        onLogout={async () => {
+          await logoutMutation.mutateAsync(sessionQuery.data.csrfToken);
+          navigate(paths.login, { replace: true });
+        }}
+        session={sessionQuery.data}
+      />
+    );
+  }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }
@@ -148,6 +176,18 @@ function ProtectedNewLibraryRoute() {
 
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) return <NewLibraryPage session={sessionQuery.data} />;
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedScanStatusRoute() {
+  const sessionQuery = useSessionQuery();
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) return <ScanStatusPage session={sessionQuery.data} />;
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }

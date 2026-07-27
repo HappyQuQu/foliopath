@@ -1,0 +1,233 @@
+.page {
+  width: min(52rem, calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  margin: var(--space-10) auto 6.25rem;
+}
+
+.heading,
+.progressHeading,
+.actions {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.heading {
+  margin-bottom: var(--space-8);
+}
+
+.heading p,
+.statusLabel {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.375rem);
+  letter-spacing: -0.035em;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: center;
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.summary h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-5);
+}
+
+.summary div > p:last-child {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.statusIcon {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  border-radius: var(--radius-3);
+  background: var(--color-accent-soft);
+}
+
+.statusIcon.succeeded {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.statusIcon.failed,
+.statusIcon.offline,
+.statusIcon.interrupted {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.progress,
+.issues,
+.noScan {
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.progressHeading {
+  align-items: center;
+}
+
+.progressHeading h2,
+.issues h2,
+.noScan h2 {
+  margin: 0;
+  font-size: var(--font-size-4);
+}
+
+.progressHeading span,
+.progressNote {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.progress progress {
+  width: 100%;
+  height: 0.6rem;
+  margin: var(--space-4) 0 var(--space-5);
+  accent-color: var(--color-accent);
+}
+
+.progressNote {
+  margin: calc(-1 * var(--space-3)) 0 var(--space-5);
+}
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin: 0;
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.counters div,
+.metadata div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.counters dt,
+.metadata dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.counters dd {
+  margin: 0;
+  font-size: var(--font-size-5);
+  font-weight: 700;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+  margin: var(--space-5) 0 0;
+}
+
+.metadata dd {
+  margin: 0;
+}
+
+.issues ul {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.issues li {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) 2fr;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.issues li span,
+.issues > p,
+.noScan p {
+  color: var(--color-text-muted);
+}
+
+.actions {
+  margin-top: var(--space-5);
+  justify-content: flex-end;
+}
+
+.noScan {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+}
+
+.noScan p {
+  margin: 0;
+}
+
+.spinning {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .page {
+    width: calc(100% - var(--space-8));
+    margin-top: var(--space-8);
+  }
+
+  .heading {
+    flex-direction: column;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .counters {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .metadata,
+  .issues li {
+    grid-template-columns: 1fr;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

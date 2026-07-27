@@ -1,20 +1,27 @@
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 
 import {
+  getLibraryRemoval,
+  getLibrary,
   createLibrary,
   listLibraries,
   listLibraryPaths,
+  removeLibrary,
+  renameLibrary,
   type CreateLibraryInput,
 } from "../../lib/api/libraries";
 
 export const libraryKeys = {
   all: ["libraries"] as const,
   list: () => ["libraries", "list"] as const,
+  detail: (libraryId: string) => ["libraries", "detail", libraryId] as const,
   paths: (parent: string) => ["libraries", "paths", parent] as const,
+  removal: (removalId: string) => ["libraries", "removal", removalId] as const,
 };
 
 export function useLibrariesQuery() {
@@ -25,6 +32,14 @@ export function useLibrariesQuery() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 15_000,
+  });
+}
+
+export function useLibraryQuery(libraryId: string) {
+  return useQuery({
+    queryKey: libraryKeys.detail(libraryId),
+    queryFn: () => getLibrary(libraryId),
+    staleTime: 5_000,
   });
 }
 
@@ -49,6 +64,40 @@ export function useCreateLibraryMutation() {
     mutationFn: (input: CreateLibraryInput) => createLibrary(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+    },
+  });
+}
+
+export function useRenameLibraryMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: renameLibrary,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+    },
+  });
+}
+
+export function useRemoveLibraryMutation() {
+  return useMutation({
+    mutationFn: removeLibrary,
+  });
+}
+
+export function useLibraryRemovalQuery(removalId: string | undefined) {
+  return useQuery({
+    queryKey: libraryKeys.removal(removalId ?? "inactive"),
+    queryFn: () => {
+      if (!removalId) throw new Error("Removal query is not active.");
+      return getLibraryRemoval(removalId);
+    },
+    enabled: Boolean(removalId),
+    refetchInterval: (query) => {
+      const removal = query.state.data;
+      return removal?.status === "queued" || removal?.status === "running"
+        ? 1_000
+        : false;
     },
   });
 }

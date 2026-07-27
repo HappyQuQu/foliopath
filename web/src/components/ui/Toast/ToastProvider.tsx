@@ -1,5 +1,6 @@
 import {
   createContext,
+  useEffect,
   useCallback,
   useContext,
   useMemo,
@@ -7,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { X } from "@phosphor-icons/react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { IconButton } from "../Button/IconButton";
@@ -29,6 +31,34 @@ interface ToastContextValue {
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
+export const TOAST_AUTO_DISMISS_MS = 6_000;
+
+function ToastItem({
+  toast,
+  dismiss,
+  closeLabel,
+}: {
+  toast: ToastRecord;
+  dismiss: (id: number) => void;
+  closeLabel: string;
+}) {
+  useEffect(() => {
+    const timeout = window.setTimeout(() => dismiss(toast.id), TOAST_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timeout);
+  }, [dismiss, toast.id]);
+
+  return (
+    <div
+      className={`${styles.toast} ${styles[toast.tone]}`}
+      role={toast.tone === "danger" ? "alert" : "status"}
+    >
+      <span>{toast.message}</span>
+      <IconButton label={closeLabel} onClick={() => dismiss(toast.id)}>
+        <X aria-hidden="true" size={18} weight="bold" />
+      </IconButton>
+    </div>
+  );
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { t } = useLocale();
@@ -55,16 +85,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className={styles.viewport} aria-label={t("common.toastRegion")} role="region">
         {toasts.map((toast) => (
-          <div
-            className={`${styles.toast} ${styles[toast.tone]}`}
+          <ToastItem
+            closeLabel={t("common.closeToast")}
+            dismiss={dismiss}
             key={toast.id}
-            role={toast.tone === "danger" ? "alert" : "status"}
-          >
-            <span>{toast.message}</span>
-            <IconButton label={t("common.closeToast")} onClick={() => dismiss(toast.id)}>
-              <span aria-hidden="true">×</span>
-            </IconButton>
-          </div>
+            toast={toast}
+          />
         ))}
       </div>
     </ToastContext.Provider>

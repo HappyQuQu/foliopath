@@ -27,6 +27,16 @@
   color: var(--color-danger);
 }
 
+.warning {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.warning > svg {
+  color: var(--color-warning);
+}
+
 .close {
   width: var(--size-control-sm);
   height: var(--size-control-sm);

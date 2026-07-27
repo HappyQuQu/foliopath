@@ -5,7 +5,7 @@ import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { IconButton } from "../Button/IconButton";
 import styles from "./InlineStatus.module.css";
 
-export type InlineStatusTone = "info" | "danger";
+export type InlineStatusTone = "info" | "warning" | "danger";
 
 export interface InlineStatusProps {
   children: ReactNode;
@@ -21,7 +21,7 @@ export function InlineStatus({
   tone = "info",
 }: InlineStatusProps) {
   const { t } = useLocale();
-  const Icon = tone === "danger" ? WarningCircle : Info;
+  const Icon = tone === "danger" || tone === "warning" ? WarningCircle : Info;
 
   return (
     <div

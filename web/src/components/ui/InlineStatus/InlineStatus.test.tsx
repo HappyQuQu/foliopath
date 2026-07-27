@@ -10,6 +10,11 @@ describe("InlineStatus", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("操作失败");
   });
 
+  it("announces non-blocking warning feedback as status", () => {
+    render(<InlineStatus tone="warning">原始媒体保持只读</InlineStatus>);
+    expect(screen.getByRole("status")).toHaveTextContent("原始媒体保持只读");
+  });
+
   it("provides a named dismiss action", async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();

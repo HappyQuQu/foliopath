@@ -1,9 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Button } from "../Button/Button";
-import { ToastProvider, useToast } from "./ToastProvider";
+import {
+  TOAST_AUTO_DISMISS_MS,
+  ToastProvider,
+  useToast,
+} from "./ToastProvider";
 
 function Harness() {
   const toast = useToast();
@@ -15,6 +19,10 @@ function Harness() {
 }
 
 describe("ToastProvider", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("announces and dismisses feedback", async () => {
     render(
       <ToastProvider>
@@ -27,6 +35,25 @@ describe("ToastProvider", () => {
     expect(screen.getByRole("status")).toHaveTextContent("设置已保存");
 
     await userEvent.click(screen.getByRole("button", { name: "关闭通知" }));
+    expect(screen.queryByText("设置已保存")).not.toBeInTheDocument();
+  });
+
+  it("automatically clears feedback so it cannot obstruct later actions", () => {
+    vi.useFakeTimers();
+    render(
+      <ToastProvider>
+        <Harness />
+      </ToastProvider>,
+    );
+
+    act(() => {
+      screen.getByRole("button", { name: "显示通知" }).click();
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("设置已保存");
+
+    act(() => {
+      vi.advanceTimersByTime(TOAST_AUTO_DISMISS_MS);
+    });
     expect(screen.queryByText("设置已保存")).not.toBeInTheDocument();
   });
 });

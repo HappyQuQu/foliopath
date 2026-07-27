@@ -59,6 +59,21 @@ export interface CreateLibraryResult {
   scanId: string;
 }
 
+export interface LibraryDocument {
+  etag: string;
+  library: LibrarySummary;
+}
+
+export type LibraryRemovalStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface LibraryRemoval {
+  errorCode: "cleanup_interrupted" | "application_data_unavailable" | "internal_error" | null;
+  id: string;
+  libraryId: string;
+  libraryName: string;
+  status: LibraryRemovalStatus;
+}
+
 export async function listLibraries({
   cursor,
   limit = 50,
@@ -157,6 +172,108 @@ export async function createLibrary(
   }
 }
 
+export async function getLibrary(libraryId: string): Promise<LibraryDocument> {
+  try {
+    const { data, error, response } = await apiClient.GET(
+      "/api/v1/libraries/{libraryId}",
+      {
+        params: { path: { libraryId } },
+      },
+    );
+    if (data) {
+      return {
+        etag: requireEtag(response),
+        library: mapLibrary(data),
+      };
+    }
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function renameLibrary({
+  csrfToken,
+  libraryId,
+  name,
+}: {
+  csrfToken: string;
+  libraryId: string;
+  name: string;
+}): Promise<LibrarySummary> {
+  const current = await getLibrary(libraryId);
+
+  try {
+    const { data, error, response } = await apiClient.PATCH(
+      "/api/v1/libraries/{libraryId}",
+      {
+        body: { name },
+        headers: { "X-CSRF-Token": csrfToken },
+        params: {
+          header: { "If-Match": current.etag },
+          path: { libraryId },
+        },
+      },
+    );
+    if (data) return mapLibrary(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function removeLibrary({
+  csrfToken,
+  idempotencyKey,
+  libraryId,
+}: {
+  csrfToken: string;
+  idempotencyKey: string;
+  libraryId: string;
+}): Promise<LibraryRemoval> {
+  const current = await getLibrary(libraryId);
+
+  try {
+    const { data, error, response } = await apiClient.DELETE(
+      "/api/v1/libraries/{libraryId}",
+      {
+        headers: { "X-CSRF-Token": csrfToken },
+        params: {
+          header: {
+            "Idempotency-Key": idempotencyKey,
+            "If-Match": current.etag,
+          },
+          path: { libraryId },
+        },
+      },
+    );
+    if (data) return mapRemoval(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function getLibraryRemoval(
+  removalId: string,
+): Promise<LibraryRemoval> {
+  try {
+    const { data, error, response } = await apiClient.GET(
+      "/api/v1/library-removals/{removalId}",
+      {
+        params: {
+          header: {},
+          path: { removalId },
+        },
+      },
+    );
+    if (data) return mapRemoval(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
 function mapLibrary(library: {
   assetCount: number;
   directoryCount: number;
@@ -177,4 +294,28 @@ function mapLibrary(library: {
     name: library.name,
     status: library.status,
   };
+}
+
+function mapRemoval(removal: {
+  errorCode: LibraryRemoval["errorCode"];
+  id: string;
+  libraryId: string;
+  libraryName: string;
+  status: LibraryRemovalStatus;
+}): LibraryRemoval {
+  return {
+    errorCode: removal.errorCode,
+    id: removal.id,
+    libraryId: removal.libraryId,
+    libraryName: removal.libraryName,
+    status: removal.status,
+  };
+}
+
+function requireEtag(response: Response): string {
+  const etag = response.headers.get("ETag");
+  if (!etag) {
+    throw new Error("Required representation validator was not returned.");
+  }
+  return etag;
 }

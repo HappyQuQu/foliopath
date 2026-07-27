@@ -103,19 +103,121 @@ comparison is already a focused single-card view.
 Stage 5 still owns the full target-browser matrix, final deployment image, trusted
 proxy/network configuration, and release-candidate visual regression matrix.
 
-## Stage 2 implemented-slice check
+## Stage 2 media-library and scan design QA
 
-- Compared the confirmed `/welcome` source and production empty-library state at
-  1440×1024 in the same browser. Sidebar width, top bar, dashed panel, icon treatment,
-  typography, spacing, and primary/secondary actions align after the token correction.
-- Checked the production welcome and three-step creation flow at 390×844 with no
-  page-level horizontal overflow. The mobile navigation opens with a semantic button,
-  closes with Escape, and restores focus.
-- Exercised the real authenticated backend from the UI: name → approved `/library`
-  root → safety review → CSRF/idempotent create → initial full-scan admission → library
-  list. No host path or raw backend diagnostic was displayed.
-- The production shell intentionally replaces the prototype's fictional online-library
-  footer with the truthful read-only-media statement and keeps the accepted theme
-  control in the top bar.
+### Findings
+
+No actionable P0, P1, or P2 differences remain in the reviewed Stage 2 states.
+
+- Intentional data difference: the source library screen uses two fictional libraries
+  to demonstrate scanning and offline rows; the implementation capture uses the one
+  real library available in the disposable backend.
+- Intentional contract difference: production exposes “view status” and “scan again”
+  as separate actions and presents scan counters on a dedicated route.
+- Intentional shell difference: production keeps the accepted theme control in the
+  top bar and replaces the prototype's fictional online-library footer with the
+  truthful read-only-media statement.
+
+### Source and implementation
+
+- Source visual truth: `prototypes/foliopath-static-ui`, screens 10–14.
+- Implementation: `web/`, routes `/settings/libraries`,
+  `/settings/libraries/:libraryId/status`, and `/settings/general`.
+- Library full-view comparison:
+  `qa/stage2-library-source-1440.png`,
+  `qa/stage2-library-implementation-1440.png`, and
+  `qa/stage2-library-comparison-1440.jpg`.
+- Settings full-view comparison:
+  `qa/stage2-settings-source-1440.png`,
+  `qa/stage2-settings-implementation-1440.png`, and
+  `qa/stage2-settings-comparison-1440.jpg`.
+- Desktop library viewport and pixels: 1440 × 1024 CSS pixels, 1440 × 1024 source and
+  implementation pixels, device scale factor 1.
+- Desktop settings viewport: 1440 × 1024 CSS target; browser-rendered content captures
+  are both 1425 × 1013 pixels after the same scrollbar/chrome exclusion, device scale
+  factor 1. No cross-density scaling was used.
+- Mobile implementation captures: 390 × 844 CSS pixels, device scale factor 1:
+  `qa/stage2-library-implementation-mobile.png`,
+  `qa/stage2-rename-dialog-mobile.png`,
+  `qa/stage2-remove-dialog-mobile.png`, and
+  `qa/stage2-scan-status-mobile.png`.
+- Browser state: production Vite UI connected to a disposable real FolioPath backend
+  and synthetic empty `/library`; no developer media was read or modified.
+
+### Full-view and focused comparison evidence
+
+![Library source and implementation at 1440 × 1024](qa/stage2-library-comparison-1440.jpg)
+
+The source is on the left and production on the right. Fixed navigation, top bar,
+content width, heading hierarchy, primary action, card treatment, semantic status,
+and row-action alignment follow the accepted screen 13 direction.
+
+![Settings source and implementation](qa/stage2-settings-comparison-1440.jpg)
+
+The source is on the left and production on the right. After the comparison-driven
+fix, appearance and language share one panel, the content width matches the library
+screen, and scanning/cache controls remain grouped in one save transaction.
+
+The mobile dialog and scan captures are the focused comparisons: they keep the
+destructive consequences, read-only guarantee, close control, status icon, counters,
+timestamps, and primary action readable at the 390-pixel breakpoint. No additional
+desktop crop was needed because controls and copy are readable in the full views.
+
+### Required fidelity surfaces
+
+- Fonts and typography: both source and implementation use the accepted system-font
+  stack, Chinese/English fallback, weight hierarchy, line height, wrapping, and
+  compact control text. Long library names wrap without hiding actions.
+- Spacing and layout rhythm: sidebar and header proportions, content insets, card
+  radii, borders, row gaps, dialog sections, and mobile one-column rhythm align.
+- Colors and tokens: all visible colors come from the central semantic tokens.
+  Success, warning, danger, focus, light, and dark states remain text/icon backed and
+  do not rely on color alone.
+- Image quality and asset fidelity: reviewed Stage 2 screens contain no raster product
+  imagery. All visible interface icons use the shared Phosphor source; no emoji,
+  text-glyph close icon, handcrafted SVG, or CSS-drawn substitute remains.
+- Copy and content: production copy preserves the approved read-only promise and adds
+  contract-specific ETag, asynchronous removal, reliable-index, validation, and
+  retry behavior without exposing host paths or raw diagnostics.
+
+### Interaction and accessibility evidence
+
+- Real backend journey: create → rename → manual scan → status → save schedule/cache
+  settings → logout/login → asynchronous remove passed in Chromium.
+- Removal dialog enumerates configuration, index/directories, jobs, and reconstructible
+  cache, then explicitly states that originals are not deleted, moved, or modified.
+- Scan states implement queued, running, cancelling, succeeded, failed, cancelled,
+  offline, and interrupted copy. Failed/offline/interrupted/cancelled states retain a
+  visible reliable-index preservation message.
+- Mobile at 390 × 844 keeps four library actions reachable, renders dialogs within the
+  viewport, exposes semantic close controls, and keeps the scan page in one column.
+- Theme/locale route behavior and automated axe serious/critical checks remain covered
+  by the real-backend browser test.
+- Browser console inspection after the final library/status/settings journey found no
+  warnings or errors beyond Vite connection and React development informational logs.
+- Success and error toasts now auto-dismiss after six seconds and remain manually
+  dismissible, so transient feedback cannot indefinitely cover later actions.
+
+### Comparison history
+
+1. The first Stage 2 settings comparison found a P2 density/layout mismatch:
+   appearance and language were split into separate narrow cards, pushing scanning,
+   cache, and account actions below the source's first-view rhythm. Production now
+   combines appearance/language and uses the shared content width. The post-fix
+   evidence is `qa/stage2-settings-comparison-1440.jpg`.
+2. The first completed-scan mobile capture found a P2 state mismatch: a succeeded scan
+   with a null backend ratio rendered an indeterminate progress bar. Succeeded scans
+   now force the semantic and visual progress value to 100%; terminal failure states
+   retain their last reported ratio.
+3. The first real-backend E2E pass found a P1 interaction obstruction: a success toast
+   persisted over the logout action. The canonical Toast owner now auto-dismisses
+   after six seconds, uses the shared Phosphor close icon, and has a regression test;
+   the follow-up E2E passed.
+
+### Residual Stage 2 work
+
+`S2-207～208` still own the exhaustive long-name/path, repeated-submit, offline,
+partially unreadable, cancellation timing, keyboard matrix, and final Integrated Done
+Gate. These are coverage gaps, not remaining visual mismatches in the reviewed states.
 
 final result: passed

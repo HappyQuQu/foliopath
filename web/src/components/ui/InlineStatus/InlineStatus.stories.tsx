@@ -28,3 +28,10 @@ export const Danger: Story = {
     tone: "danger",
   },
 };
+
+export const Warning: Story = {
+  args: {
+    children: "原始媒体保持只读，操作只影响 FolioPath 的派生数据。",
+    tone: "warning",
+  },
+};
