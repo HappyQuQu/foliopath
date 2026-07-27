@@ -8,6 +8,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
 // mediaRootService owns the allowed media root lifecycle and implements the
@@ -19,6 +20,7 @@ type mediaRootService struct {
 	mutex  sync.RWMutex
 	root   *files.Root
 	source *files.DirectorySource
+	walker *files.ScanWalker
 }
 
 func newMediaRootService(path string) (*mediaRootService, component, error) {
@@ -43,6 +45,11 @@ func (service *mediaRootService) start(context.Context) error {
 		_ = root.Close()
 		return err
 	}
+	walker, err := files.NewScanWalker(root)
+	if err != nil {
+		_ = root.Close()
+		return err
+	}
 
 	service.mutex.Lock()
 	defer service.mutex.Unlock()
@@ -52,6 +59,7 @@ func (service *mediaRootService) start(context.Context) error {
 	}
 	service.root = root
 	service.source = source
+	service.walker = walker
 	return nil
 }
 
@@ -60,11 +68,50 @@ func (service *mediaRootService) stop(context.Context) error {
 	root := service.root
 	service.root = nil
 	service.source = nil
+	service.walker = nil
 	service.mutex.Unlock()
 	if root == nil {
 		return nil
 	}
 	return root.Close()
+}
+
+func (service *mediaRootService) CaptureRoot(
+	ctx context.Context,
+	relative string,
+) (scanner.RootIdentity, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.walker == nil {
+		return scanner.RootIdentity{}, scanner.ErrLibraryOffline
+	}
+	return service.walker.CaptureRoot(ctx, relative)
+}
+
+func (service *mediaRootService) Walk(
+	ctx context.Context,
+	relative string,
+	visit func(scanner.WalkEntry) (scanner.WalkDecision, error),
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.walker == nil {
+		return scanner.ErrLibraryOffline
+	}
+	return service.walker.Walk(ctx, relative, visit)
+}
+
+func (service *mediaRootService) VerifyRoot(
+	ctx context.Context,
+	relative string,
+	identity scanner.RootIdentity,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.walker == nil {
+		return scanner.ErrLibraryOffline
+	}
+	return service.walker.VerifyRoot(ctx, relative, identity)
 }
 
 func (service *mediaRootService) EnumerateDirectories(

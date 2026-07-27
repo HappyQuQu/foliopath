@@ -120,6 +120,7 @@ type CatalogEntry struct {
 type Repository interface {
 	GetLibraryRoot(context.Context, int64) (string, error)
 	BeginFullScan(context.Context, int64, Trigger) (ScanRun, error)
+	SetFullScanPhase(context.Context, int64, string) error
 	UpsertCatalogBatch(context.Context, int64, []CatalogEntry) error
 	CompleteFullScan(context.Context, int64, int64) (ScanRun, error)
 	FailFullScan(context.Context, int64, int64, string) (ScanRun, error)
@@ -168,6 +169,12 @@ type FullScanRequest struct {
 	Trigger   Trigger
 	Walker    Walker
 }
+
+const (
+	PhaseCheckingRoot = "checking_root"
+	PhaseWalking      = "walking"
+	PhaseFinalizing   = "finalizing"
+)
 
 type Config struct {
 	BatchSize       int
@@ -221,7 +228,27 @@ func (s *Service) RunFullScan(ctx context.Context, request FullScanRequest) (Sca
 	if err != nil {
 		return ScanRun{}, err
 	}
-	rootRelativePath, err := s.repository.GetLibraryRoot(ctx, request.LibraryID)
+	return s.RunClaimedFullScan(ctx, run, request.Walker)
+}
+
+// RunClaimedFullScan executes a durable run that a QueueRepository has already
+// claimed. It never creates a second queue record or allocates a generation.
+func (s *Service) RunClaimedFullScan(
+	ctx context.Context,
+	run ScanRun,
+	walker Walker,
+) (ScanRun, error) {
+	if run.ID <= 0 || run.LibraryID <= 0 || run.Generation <= 0 ||
+		run.Status != RunStatusRunning {
+		return ScanRun{}, ErrScanRunNotActive
+	}
+	if walker == nil {
+		return ScanRun{}, errors.New("scanner walker is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return ScanRun{}, err
+	}
+	rootRelativePath, err := s.repository.GetLibraryRoot(ctx, run.LibraryID)
 	if err != nil {
 		return s.abort(ctx, run, 0, err)
 	}
@@ -229,12 +256,15 @@ func (s *Service) RunFullScan(ctx context.Context, request FullScanRequest) (Sca
 		return s.abort(ctx, run, 0, err)
 	}
 
-	identity, err := request.Walker.CaptureRoot(ctx, rootRelativePath)
+	identity, err := walker.CaptureRoot(ctx, rootRelativePath)
 	if err != nil {
 		return s.abort(ctx, run, 0, err)
 	}
 	if !identity.Valid() {
 		return s.abort(ctx, run, 0, ErrInvalidRootIdentity)
+	}
+	if err := s.repository.SetFullScanPhase(ctx, run.ID, PhaseWalking); err != nil {
+		return s.abort(ctx, run, 0, err)
 	}
 
 	batch := make([]CatalogEntry, 0, s.batchSize)
@@ -261,7 +291,7 @@ func (s *Service) RunFullScan(ctx context.Context, request FullScanRequest) (Sca
 		return s.abort(ctx, run, skipped, err)
 	}
 
-	walkErr := request.Walker.Walk(ctx, rootRelativePath, func(entry WalkEntry) (WalkDecision, error) {
+	walkErr := walker.Walk(ctx, rootRelativePath, func(entry WalkEntry) (WalkDecision, error) {
 		if err := ctx.Err(); err != nil {
 			return WalkContinue, err
 		}
@@ -328,10 +358,13 @@ func (s *Service) RunFullScan(ctx context.Context, request FullScanRequest) (Sca
 	if err := ctx.Err(); err != nil {
 		return s.abort(ctx, run, skipped, err)
 	}
-	if err := request.Walker.VerifyRoot(ctx, rootRelativePath, identity); err != nil {
+	if err := walker.VerifyRoot(ctx, rootRelativePath, identity); err != nil {
 		return s.abort(ctx, run, skipped, err)
 	}
 	if err := ctx.Err(); err != nil {
+		return s.abort(ctx, run, skipped, err)
+	}
+	if err := s.repository.SetFullScanPhase(ctx, run.ID, PhaseFinalizing); err != nil {
 		return s.abort(ctx, run, skipped, err)
 	}
 

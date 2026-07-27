@@ -517,6 +517,89 @@ func TestLibraryDomainRulesHaveCanonicalOwners(t *testing.T) {
 	}
 }
 
+func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
+	root := repositoryRoot(t)
+	workerPath := filepath.Join(root, "internal", "jobs", "worker.go")
+	processorPath := filepath.Join(root, "internal", "scanner", "claimed_processor.go")
+	signalPath := filepath.Join(root, "internal", "jobs", "signal.go")
+	queryPath := filepath.Join(root, "internal", "store", "sqlite", "queries", "scans.sql")
+	compositionPath := filepath.Join(root, "internal", "app", "run.go")
+
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: workerPath,
+			contents: []string{
+				"DefaultWorkerCount       = 2",
+				"DefaultHeartbeatInterval = 15 * time.Second",
+				"DefaultLeaseDuration     = 120 * time.Second",
+				"pool.queue.RecoverExpired(ctx)",
+				"pool.queue.Claim(ctx, pool.leaseDuration)",
+			},
+		},
+		{
+			path: signalPath,
+			contents: []string{
+				"make(chan struct{}, 1)",
+				"Signals never carry work",
+			},
+		},
+		{
+			path: queryPath,
+			contents: []string{
+				"-- name: ClaimNextQueuedScan :one",
+				"ORDER BY available_at_ms, created_at_ms, id",
+				"attempt_count < 3",
+				"-- name: RecoverNextExpiredScan :one",
+			},
+		},
+		{
+			path: compositionPath,
+			contents: []string{
+				"jobs.NewWorkerPool(",
+				"scanner.NewClaimedProcessor(",
+				"scanComponent,",
+			},
+		},
+		{
+			path: processorPath,
+			contents: []string{
+				"RunClaimedFullScan(ctx, run, processor.walker)",
+				"never allocates or claims queue work itself",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing scan queue boundary %q", required.path, content)
+			}
+		}
+	}
+
+	processorSource, err := os.ReadFile(processorPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{
+		`"os"`,
+		`"path/filepath"`,
+		`"/internal/files"`,
+		`"/internal/store/sqlite"`,
+		"ClaimNext",
+		"RecoverExpired",
+	} {
+		if strings.Contains(string(processorSource), forbidden) {
+			t.Errorf("scan capability bypasses a port or creates an in-memory work queue: %q", forbidden)
+		}
+	}
+}
+
 func checkDependency(t *testing.T, source, imported string) {
 	t.Helper()
 	if !strings.HasPrefix(imported, modulePath+"/") {

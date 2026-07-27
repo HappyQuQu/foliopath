@@ -61,10 +61,18 @@ RETURNING *;
 -- name: TouchScanLease :one
 UPDATE scan_runs
 SET heartbeat_at_ms = sqlc.arg(now_ms),
-    lease_expires_at_ms = sqlc.arg(lease_expires_at_ms),
+    lease_expires_at_ms = sqlc.arg(lease_expires_at_ms)
+WHERE id = sqlc.arg(id)
+  AND status = 'running'
+RETURNING *;
+
+-- name: UpdateRunningScanPhase :one
+UPDATE scan_runs
+SET phase = sqlc.arg(phase),
     revision = revision + 1
 WHERE id = sqlc.arg(id)
   AND status = 'running'
+  AND phase <> sqlc.arg(phase)
 RETURNING *;
 
 -- name: RequestRunningScanCancellation :one

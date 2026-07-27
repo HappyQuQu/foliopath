@@ -74,13 +74,16 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - generation 的失败、取消、离线、受控重启、原子 finalize 回滚、活动扫描竞争与 complete/cancel 竞态；
 - version 3→4 扫描契约迁移、queued/running/terminal phase 字段、默认 24 小时/关闭 typed
   schedule、heartbeat/lease/attempt 边界、每 run 50 个 issue group 上限和非法值拒绝；
+- S2-102 通用 jobs worker 的恢复先于领取、全局最多 2 个并发、容量释放后继续消费、
+  heartbeat/lease 与 durable cancel 传播；SQLite 公平领取、revision 稳定 heartbeat、
+  第二次 requeue/第三次 interrupted，以及正式 composition 自动完成 creation scan；
 - 128 层目录链的逐级直接/递归计数，以及同库循环、跨库目录/资产损坏、当前代次条目指向
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
-不变已由 S2-007 Gate 复核为 Backend Ready。生产扫描 worker、浏览器流程和发布网络边界
-仍在后续 Gate。
+不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker；完整目录/计数、
+fingerprint、故障/重启与容量矩阵、浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

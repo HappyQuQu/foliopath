@@ -529,8 +529,7 @@ func (q *Queries) RequestRunningScanCancellation(ctx context.Context, arg Reques
 const touchScanLease = `-- name: TouchScanLease :one
 UPDATE scan_runs
 SET heartbeat_at_ms = ?1,
-    lease_expires_at_ms = ?2,
-    revision = revision + 1
+    lease_expires_at_ms = ?2
 WHERE id = ?3
   AND status = 'running'
 RETURNING id, library_id, generation, trigger_kind, status, discovered_directories, discovered_assets, skipped_count, error_code, created_at_ms, started_at_ms, finished_at_ms, revision, phase, processed_assets, skipped_directories, skipped_files, error_count, issues_truncated, cancel_requested_at_ms, heartbeat_at_ms, available_at_ms, lease_expires_at_ms, attempt_count
@@ -544,6 +543,53 @@ type TouchScanLeaseParams struct {
 
 func (q *Queries) TouchScanLease(ctx context.Context, arg TouchScanLeaseParams) (ScanRun, error) {
 	row := q.db.QueryRowContext(ctx, touchScanLease, arg.NowMs, arg.LeaseExpiresAtMs, arg.ID)
+	var i ScanRun
+	err := row.Scan(
+		&i.ID,
+		&i.LibraryID,
+		&i.Generation,
+		&i.TriggerKind,
+		&i.Status,
+		&i.DiscoveredDirectories,
+		&i.DiscoveredAssets,
+		&i.SkippedCount,
+		&i.ErrorCode,
+		&i.CreatedAtMs,
+		&i.StartedAtMs,
+		&i.FinishedAtMs,
+		&i.Revision,
+		&i.Phase,
+		&i.ProcessedAssets,
+		&i.SkippedDirectories,
+		&i.SkippedFiles,
+		&i.ErrorCount,
+		&i.IssuesTruncated,
+		&i.CancelRequestedAtMs,
+		&i.HeartbeatAtMs,
+		&i.AvailableAtMs,
+		&i.LeaseExpiresAtMs,
+		&i.AttemptCount,
+	)
+	return i, err
+}
+
+const updateRunningScanPhase = `-- name: UpdateRunningScanPhase :one
+UPDATE scan_runs
+SET phase = ?1,
+    revision = revision + 1
+WHERE id = ?2
+  AND status = 'running'
+  AND phase <> ?1
+RETURNING id, library_id, generation, trigger_kind, status, discovered_directories, discovered_assets, skipped_count, error_code, created_at_ms, started_at_ms, finished_at_ms, revision, phase, processed_assets, skipped_directories, skipped_files, error_count, issues_truncated, cancel_requested_at_ms, heartbeat_at_ms, available_at_ms, lease_expires_at_ms, attempt_count
+`
+
+type UpdateRunningScanPhaseParams struct {
+	Phase string
+	ID    int64
+}
+
+func (q *Queries) UpdateRunningScanPhase(ctx context.Context, arg UpdateRunningScanPhaseParams) (ScanRun, error) {
+	row := q.db.QueryRowContext(ctx, updateRunningScanPhase, arg.Phase, arg.ID)
 	var i ScanRun
 	err := row.Scan(
 		&i.ID,
