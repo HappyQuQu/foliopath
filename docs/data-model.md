@@ -202,7 +202,17 @@ thumbnail 状态，不以清理数据库、设置或原媒体换取空间。
 
 媒体列表统一使用 keyset cursor，不使用 `OFFSET` 承担大型列表分页。游标编码当前排序字段和稳定 ID，并视为不透明、可校验的 API 值。
 
-文件名和路径搜索使用 FTS5 派生索引，并与 `assets` 变更保持同一事务语义。索引必须支持当前目录（可递归）、当前媒体库和全部媒体库三种作用域。短查询、多语言大小写和自然排序需要通过 spike 明确定义行为，不能假设 SQLite 默认排序能覆盖所有 Unicode 语义。
+文件名和路径搜索使用 FTS5 派生索引，并与 `assets` 变更保持同一事务语义。S4 搜索
+profile v1 已固定：文件名与媒体库相对路径分别保存可重建的 Unicode NFKC + full
+case-fold 搜索键，按 Unicode 空白拆出的全部词执行字面子串 AND 匹配，保留变音符号并支持
+一至二字符词；不得把用户输入直接解释为 FTS 查询语言。具体 FTS tokenizer、辅助列与短词
+执行路径由 S4-002 决定，但结果必须符合该 profile。
+
+索引支持当前目录（直接或递归）、当前媒体库和全部媒体库三种作用域，以及媒体类型和 filesystem
+mtime 的半开区间筛选。计划追加 singleton `catalog_search_state.revision`：媒体库创建/移除或
+可靠 full-scan generation 发布时，在同一提交语义中推进 revision，供跨库 cursor 绑定；
+它不是扫描中间批次的快照版本。库内 cursor 继续绑定对应媒体库的可靠 generation。该表、FTS
+触发/写入路径、重建与升级行为只有在追加 migration 和测试完成后才视为已实现。
 
 ## 扫描一致性
 

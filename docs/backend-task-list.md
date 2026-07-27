@@ -6,10 +6,10 @@
 - 当前阶段：Stage 4 搜索与媒体内容后端；Stage 3 浏览与缩略图 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S4-001` 搜索范围与失败语义 Contract Ready
+- 当前任务：`S4-002` SQLite 搜索、keyset 与离线语义实现
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
-  Stage 3 仍须独立通过 Contract Ready 与 Backend Ready
+  Stage 3 也已通过浏览/缩略图 Backend Ready；搜索尚未达到 Backend Ready
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -210,7 +210,12 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
 
 ## Stage 4：搜索与媒体内容后端
 
-- [ ] `S4-001` 固定文件名、类型、日期、路径和三种搜索范围的契约。
+- [x] `S4-001` 固定文件名、类型、日期、路径和三种搜索范围的契约。
+  - 完成证据：[S4 搜索 Contract Ready](gates/MVP-2026-07-23/s4-search-contract-ready.md)；
+    OpenAPI search profile v1 固定 Unicode NFKC/full case folding、字面子串 AND、短词、
+    三种 scope、kind 与 mtime 半开区间、无 relevance 的稳定 tuple、库内 generation 和
+    跨库 catalog revision cursor、离线保留及逐状态错误。只授权进入 S4-002，不表示搜索
+    handler、FTS migration、Backend Ready 或前端集成已经完成。
 - [ ] `S4-002` 实现 SQLite FTS/keyset 搜索、稳定排序、取消和离线语义。
 - [ ] `S4-003` 完成搜索后端正确性、容量和 `Backend Ready` Gate。
 - [ ] `S4-005` 固定并实现资产详情、原内容、HEAD、单 Range、条件请求和 416 契约。

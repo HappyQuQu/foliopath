@@ -23,6 +23,17 @@ x-foliopath-contract:
   targetVersion: MVP-2026-07-23
   scopeRevision: 1
   baselineEvent: BASELINE-2026-07-23
+x-foliopath-search-profile:
+  version: 1
+  fields: [name, libraryRelativePath]
+  normalization: Unicode NFKC plus full case folding
+  termSplit: Unicode whitespace
+  termCombination: all
+  termMatch: literal substring
+  diacriticFolding: false
+  dateField: file modification time
+  dateInterval: modifiedFrom inclusive, modifiedBefore exclusive
+  relevanceSort: false
 servers:
   - url: /
     description: Same-origin FolioPath server
@@ -1091,20 +1102,43 @@ paths:
         indistinguishable from a missing directory and returns
         `directory_not_found`.
 
-        `recursive=false` returns only assets whose parent is the selected
-        directory. `recursive=true` includes the selected directory and all
-        indexed descendants; at the root it includes the whole library. Every
-        item retains its source `directoryId` and library-relative path.
+        With no `q`, `recursive=false` returns only assets whose parent is the
+        selected directory. `recursive=true` includes the selected directory
+        and all indexed descendants; at the root it includes the whole library.
+
+        With `q` and no `directoryId`, the scope is the entire current library
+        and `recursive` must be omitted. With both `q` and `directoryId`, the
+        scope is that current directory; omitted/false `recursive` searches
+        direct assets and true includes descendants. An explicit indexed root
+        ID is therefore a directory scope, while an omitted directory is the
+        distinct whole-library search scope. Every item retains its source
+        `directoryId` and library-relative path.
+
+        Search input is plain text, never FTS syntax. The server trims outer
+        Unicode whitespace, applies Unicode NFKC and full case folding, splits
+        on Unicode whitespace, removes duplicate terms, and requires every
+        term to occur as a literal substring in either the normalized filename
+        or normalized library-relative path. Diacritics are preserved. Quotes,
+        percent signs, underscores, dashes, dots, and path separators have no
+        operator meaning. One- and two-character terms remain valid.
+
+        `kind` and the half-open modification-time interval
+        `[modifiedFrom, modifiedBefore)` filter the selected scope. Bounds are
+        UTC RFC 3339 instants and `modifiedFrom` must precede
+        `modifiedBefore` when both are present. The date field is filesystem
+        modification time, never EXIF or container creation time.
 
         With no search and `recursive=false`, the default order is natural name
         ascending. Recursive or searched results default to file modification
         time descending. Name order uses
         `(naturalNameKey, name, relativePath, id)` and modified-time order uses
         `(modifiedAt, id)`, with every tuple component following the requested
-        direction. Cursors bind the library, normalized directory, recursive
-        mode, query, kind, effective sort/order, ordering version, and reliable
-        catalog generation. Any bound-value or generation change makes an old
-        cursor fail with `invalid_cursor`; it never falls back to page one.
+        direction. No relevance sort exists in the MVP. Cursors bind the
+        library, canonical scope, effective recursive mode, normalized terms,
+        kinds, time bounds, effective sort/order, ordering/profile versions,
+        and reliable catalog generation. Any bound-value or generation change
+        makes an old cursor fail with `invalid_cursor`; it never falls back to
+        page one.
 
         Offline libraries return preserved indexed assets with `200` and mark
         their source availability. Pending/scanning/offline state comes from
@@ -1123,6 +1157,8 @@ paths:
         - $ref: '#/components/parameters/RecursiveParameter'
         - $ref: '#/components/parameters/SearchQueryParameter'
         - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/ModifiedFromParameter'
+        - $ref: '#/components/parameters/ModifiedBeforeParameter'
         - $ref: '#/components/parameters/SortParameter'
         - $ref: '#/components/parameters/OrderParameter'
         - $ref: '#/components/parameters/CursorParameter'
@@ -1154,13 +1190,44 @@ paths:
       operationId: searchAssets
       summary: Search indexed media across all libraries
       description: |
-        Searches filename and media-library-relative path only. It never scans
-        the filesystem during a request. Results default to file modification
-        time descending and include a safe media-library name and relative path.
+        Searches all configured libraries. This is the only all-library search
+        operation; current-library and current-directory scopes use the
+        library-scoped operation.
+
+        Matching uses the same versioned plain-text profile as library search:
+        outer Unicode whitespace is trimmed, Unicode NFKC plus full case
+        folding is applied, Unicode-whitespace terms are combined with AND,
+        and each term is a literal substring of normalized filename or
+        library-relative path. The query is never interpreted as FTS syntax,
+        diacritics are preserved, and one- or two-character terms are valid.
+
+        `kind` and `[modifiedFrom, modifiedBefore)` use the same filtering
+        semantics as library search. Results default to file modification time
+        descending and include a safe media-library name and relative path.
+        Explicit name ordering uses
+        `(naturalNameKey, name, libraryId, relativePath, id)`; modification-time
+        ordering uses `(modifiedAt, id)`. No relevance order is provided.
+
+        A global cursor binds every normalized query field plus one persisted
+        global catalog revision. That revision advances when a library is
+        created/removed or a reliable full-scan generation is published.
+        A mismatch returns `invalid_cursor`; the server never embeds an
+        unbounded per-library generation vector. Safely committed additions
+        during an unfinished scan may become visible to later keyset pages,
+        matching library browse semantics. Offline libraries contribute their
+        preserved indexed results and each item reports source availability.
+        The request never traverses the filesystem.
       x-requirements: [FR-SRH-001, FR-SRH-002, FR-SRH-003, FR-SRH-004]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/RequiredSearchQueryParameter'
         - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/ModifiedFromParameter'
+        - $ref: '#/components/parameters/ModifiedBeforeParameter'
         - $ref: '#/components/parameters/SortParameter'
         - $ref: '#/components/parameters/OrderParameter'
         - $ref: '#/components/parameters/CursorParameter'
@@ -1500,7 +1567,10 @@ components:
       name: q
       in: query
       required: false
-      description: Search filename and media-library-relative path. Empty or omitted means browse without search.
+      description: |
+        Plain-text filename/path search. Omit it to browse without search.
+        Present values are trimmed, must remain non-empty, and follow the
+        versioned literal-substring search profile; FTS operators are not exposed.
       schema:
         type: string
         minLength: 1
@@ -1509,7 +1579,10 @@ components:
       name: q
       in: query
       required: true
-      description: Search filename and media-library-relative path across all libraries.
+      description: |
+        Required plain-text filename/path query across all libraries. It is
+        trimmed, must remain non-empty, and follows the same versioned
+        literal-substring profile as library search.
       schema:
         type: string
         minLength: 1
@@ -1527,6 +1600,24 @@ components:
         maxItems: 3
         items:
           $ref: '#/components/schemas/AssetKind'
+    ModifiedFromParameter:
+      name: modifiedFrom
+      in: query
+      required: false
+      description: |
+        Inclusive lower bound for filesystem modification time. It must be a
+        UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    ModifiedBeforeParameter:
+      name: modifiedBefore
+      in: query
+      required: false
+      description: |
+        Exclusive upper bound for filesystem modification time. It must be a
+        UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+      schema:
+        $ref: '#/components/schemas/Timestamp'
     SortParameter:
       name: sort
       in: query

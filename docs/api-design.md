@@ -302,10 +302,38 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
 - `recursive=true|false`
 - `q={query}`
 - `kind=image|animated|video`
+- `modifiedFrom={UTC RFC3339}` 与 `modifiedBefore={UTC RFC3339}`
 - `sort=name|modifiedAt` 与 `order=asc|desc`；普通目录默认自然名称升序，递归与搜索默认修改时间倒序
 - `cursor` 与 `limit`
 
 查询必须基于索引完成，不能在请求路径中现场递归文件系统。每种排序都以稳定唯一 ID 作为最后比较项。目录不存在或媒体库离线时，应区分“索引中无此目录”和“当前原文件不可访问”。
+
+#### S4 搜索契约
+
+`api/openapi.yaml` 中 `x-foliopath-search-profile.version=1` 是搜索规范化与匹配语义的
+权威版本。S4-001 固定：
+
+- 搜索字段只有文件名与媒体库相对路径。服务端先去掉首尾 Unicode 空白，再做 Unicode
+  NFKC 与 full case folding，按 Unicode 空白分词并去重；所有词都必须在两个规范化字段之一
+  以字面子串命中。变音符号不折叠，标点、引号、`%`、`_` 与路径分隔符没有操作符含义，
+  也不向客户端暴露 FTS 语法；一至二字符查询仍须正确工作。
+- 库内端点带 `q` 且省略 `directoryId` 时表示当前媒体库；同时提供二者时表示当前目录，
+  `recursive` 省略/false 只查直接媒体，true 包含后代。全局端点且必填 `q` 表示全部媒体库。
+- `kind` 可多选；时间范围是 filesystem mtime 的
+  `[modifiedFrom, modifiedBefore)`，两个边界都是 UTC RFC 3339，且同时出现时前者必须早于
+  后者。EXIF 或容器创建时间不参与此筛选。
+- 搜索默认 `(modifiedAt, id) DESC`，不提供相关度排序。库内名称排序 tuple 是
+  `(naturalNameKey, name, relativePath, id)`；跨库名称排序在 name 后加入 `libraryId`。
+- 库内 cursor 绑定规范 scope、递归、规范化搜索词、类型/时间筛选、排序、search profile/
+  ordering version 与可靠 generation。跨库 cursor 改为绑定同样的查询字段和一个持久化全局
+  catalog revision；该 revision 在媒体库创建/移除或可靠 full-scan generation 发布时推进，
+  不把无界媒体库 generation 向量塞入 token。
+- 离线媒体库仍参与搜索并返回保留索引，同时由 `sourceAvailability` 表达不可访问。任何
+  fingerprint/revision 不匹配均返回 `invalid_cursor`，不能静默退回第一页。
+
+这是 Contract Ready，不表示 FTS、数据迁移、查询 adapter 或 HTTP 搜索已经实现。S4-002
+必须用自动 fixture 固定中文、英文、大小写、组合字符、短查询、标点字面量、三种 scope、
+时间边界、离线和 cursor 稳定性，之后 S4-003 才能授予搜索 Backend Ready。
 
 ### 媒体详情与内容
 

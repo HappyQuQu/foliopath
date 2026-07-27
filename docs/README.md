@@ -4,7 +4,7 @@
 确认 `RQ-001`～`RQ-014` 全部采用 A；Stage 0 Gate 已通过并进入后端优先的 Stage 1。
 仓库已有 FS-01～FS-05、供应链、权威 OpenAPI、可启动和迁移的后端运行骨架及自动化证据，
 单管理员认证、媒体库管理、可靠扫描以及 Stage 3 浏览/缩略图后端已通过各自的 Backend
-Ready；业务前端、Stage 4 搜索/内容与可发布产品仍未完成；
+Ready；S4-001 搜索契约已冻结并进入 S4-002 实现，业务前端、搜索/内容后端与可发布产品仍未完成；
 已确认范围、契约与 spike 证据都不代表功能已经发布。
 
 ## 从哪里开始
@@ -17,7 +17,7 @@ Ready；业务前端、Stage 4 搜索/内容与可发布产品仍未完成；
 | 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
 | 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
-| 判断能否开工 | [开发就绪评审](development-readiness.md) | [S3-007 浏览/缩略图 Backend Ready](gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)、[S3-006 敌意媒体与资源安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)、[S3-005 媒体任务与缓存保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)、[S3-004 媒体处理](gates/MVP-2026-07-23/s3-media-processing.md)、[S3-003 目录树与详情](gates/MVP-2026-07-23/s3-directory-tree.md)、[S3-002 Catalog keyset](gates/MVP-2026-07-23/s3-catalog-keyset.md)、[S3 浏览 Contract Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)、[扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)、[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[风险登记](risk-register.md) |
+| 判断能否开工 | [开发就绪评审](development-readiness.md) | [S4 搜索 Contract Ready](gates/MVP-2026-07-23/s4-search-contract-ready.md)、[S3-007 浏览/缩略图 Backend Ready](gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)、[S3-006 敌意媒体与资源安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)、[S3-005 媒体任务与缓存保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)、[S3-004 媒体处理](gates/MVP-2026-07-23/s3-media-processing.md)、[S3-003 目录树与详情](gates/MVP-2026-07-23/s3-directory-tree.md)、[S3-002 Catalog keyset](gates/MVP-2026-07-23/s3-catalog-keyset.md)、[S3 浏览 Contract Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)、[扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)、[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
 | 修改架构或范围 | [交付与架构治理](architecture/delivery-governance.md) | [系统架构档案](architecture/README.md)、[Agent 约束](../AGENTS.md)、[ADR](adr/README.md) |
 

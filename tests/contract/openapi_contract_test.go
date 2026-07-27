@@ -677,6 +677,83 @@ func TestBrowseContractDefinesRootScopeBreadcrumbsAndReliableIndexSemantics(t *t
 	}
 }
 
+func TestSearchContractFreezesScopesFiltersOrderingAndCursorSemantics(t *testing.T) {
+	t.Parallel()
+
+	profile := strings.Join(strings.Fields(readOpenAPI(t)), " ")
+	for _, required := range []string{
+		"x-foliopath-search-profile: version: 1",
+		"fields: [name, libraryRelativePath]",
+		"normalization: Unicode NFKC plus full case folding",
+		"termSplit: Unicode whitespace",
+		"termCombination: all",
+		"termMatch: literal substring",
+		"diacriticFolding: false",
+		"dateField: file modification time",
+		"dateInterval: modifiedFrom inclusive, modifiedBefore exclusive",
+		"relevanceSort: false",
+	} {
+		if !strings.Contains(profile, required) {
+			t.Errorf("versioned search profile is missing %q", required)
+		}
+	}
+
+	operations := map[string][]string{
+		"GET /api/v1/libraries/{libraryId}/assets": {
+			"With `q` and no `directoryId`, the scope is the entire current library",
+			"With both `q` and `directoryId`, the scope is that current directory",
+			"requires every term to occur as a literal substring",
+			"One- and two-character terms remain valid",
+			"`[modifiedFrom, modifiedBefore)`",
+			"No relevance sort exists",
+			"reliable catalog generation",
+			"#/components/parameters/ModifiedFromParameter",
+			"#/components/parameters/ModifiedBeforeParameter",
+			"'400': [invalid_request, invalid_cursor]",
+		},
+		"GET /api/v1/assets": {
+			"Searches all configured libraries",
+			"literal substring of normalized filename or library-relative path",
+			"`(naturalNameKey, name, libraryId, relativePath, id)`",
+			"one persisted global catalog revision",
+			"Offline libraries contribute their preserved indexed results",
+			"#/components/parameters/ModifiedFromParameter",
+			"#/components/parameters/ModifiedBeforeParameter",
+			"'400': [invalid_request, invalid_cursor]",
+		},
+	}
+	for key, required := range operations {
+		block := strings.Join(strings.Fields(operationByKey(t, key).block), " ")
+		for _, content := range required {
+			if !strings.Contains(block, content) {
+				t.Errorf("%s is missing search contract %q", key, content)
+			}
+		}
+	}
+
+	for name, required := range map[string][]string{
+		"ModifiedFromParameter": {
+			"name: modifiedFrom",
+			"Inclusive lower bound",
+			"UTC RFC 3339",
+			"#/components/schemas/Timestamp",
+		},
+		"ModifiedBeforeParameter": {
+			"name: modifiedBefore",
+			"Exclusive upper bound",
+			"UTC RFC 3339",
+			"#/components/schemas/Timestamp",
+		},
+	} {
+		block := strings.Join(strings.Fields(componentBlock(t, "parameters", name)), " ")
+		for _, content := range required {
+			if !strings.Contains(block, content) {
+				t.Errorf("%s is missing date-filter invariant %q", name, content)
+			}
+		}
+	}
+}
+
 func TestMediaContentLocksSingleRangeAndSafeHeaders(t *testing.T) {
 	t.Parallel()
 

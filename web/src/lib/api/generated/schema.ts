@@ -13,9 +13,33 @@ export interface paths {
         };
         /**
          * Search indexed media across all libraries
-         * @description Searches filename and media-library-relative path only. It never scans
-         *     the filesystem during a request. Results default to file modification
-         *     time descending and include a safe media-library name and relative path.
+         * @description Searches all configured libraries. This is the only all-library search
+         *     operation; current-library and current-directory scopes use the
+         *     library-scoped operation.
+         *
+         *     Matching uses the same versioned plain-text profile as library search:
+         *     outer Unicode whitespace is trimmed, Unicode NFKC plus full case
+         *     folding is applied, Unicode-whitespace terms are combined with AND,
+         *     and each term is a literal substring of normalized filename or
+         *     library-relative path. The query is never interpreted as FTS syntax,
+         *     diacritics are preserved, and one- or two-character terms are valid.
+         *
+         *     `kind` and `[modifiedFrom, modifiedBefore)` use the same filtering
+         *     semantics as library search. Results default to file modification time
+         *     descending and include a safe media-library name and relative path.
+         *     Explicit name ordering uses
+         *     `(naturalNameKey, name, libraryId, relativePath, id)`; modification-time
+         *     ordering uses `(modifiedAt, id)`. No relevance order is provided.
+         *
+         *     A global cursor binds every normalized query field plus one persisted
+         *     global catalog revision. That revision advances when a library is
+         *     created/removed or a reliable full-scan generation is published.
+         *     A mismatch returns `invalid_cursor`; the server never embeds an
+         *     unbounded per-library generation vector. Safely committed additions
+         *     during an unfinished scan may become visible to later keyset pages,
+         *     matching library browse semantics. Offline libraries contribute their
+         *     preserved indexed results and each item reports source availability.
+         *     The request never traverses the filesystem.
          */
         get: operations["searchAssets"];
         put?: never;
@@ -328,20 +352,43 @@ export interface paths {
          *     indistinguishable from a missing directory and returns
          *     `directory_not_found`.
          *
-         *     `recursive=false` returns only assets whose parent is the selected
-         *     directory. `recursive=true` includes the selected directory and all
-         *     indexed descendants; at the root it includes the whole library. Every
-         *     item retains its source `directoryId` and library-relative path.
+         *     With no `q`, `recursive=false` returns only assets whose parent is the
+         *     selected directory. `recursive=true` includes the selected directory
+         *     and all indexed descendants; at the root it includes the whole library.
+         *
+         *     With `q` and no `directoryId`, the scope is the entire current library
+         *     and `recursive` must be omitted. With both `q` and `directoryId`, the
+         *     scope is that current directory; omitted/false `recursive` searches
+         *     direct assets and true includes descendants. An explicit indexed root
+         *     ID is therefore a directory scope, while an omitted directory is the
+         *     distinct whole-library search scope. Every item retains its source
+         *     `directoryId` and library-relative path.
+         *
+         *     Search input is plain text, never FTS syntax. The server trims outer
+         *     Unicode whitespace, applies Unicode NFKC and full case folding, splits
+         *     on Unicode whitespace, removes duplicate terms, and requires every
+         *     term to occur as a literal substring in either the normalized filename
+         *     or normalized library-relative path. Diacritics are preserved. Quotes,
+         *     percent signs, underscores, dashes, dots, and path separators have no
+         *     operator meaning. One- and two-character terms remain valid.
+         *
+         *     `kind` and the half-open modification-time interval
+         *     `[modifiedFrom, modifiedBefore)` filter the selected scope. Bounds are
+         *     UTC RFC 3339 instants and `modifiedFrom` must precede
+         *     `modifiedBefore` when both are present. The date field is filesystem
+         *     modification time, never EXIF or container creation time.
          *
          *     With no search and `recursive=false`, the default order is natural name
          *     ascending. Recursive or searched results default to file modification
          *     time descending. Name order uses
          *     `(naturalNameKey, name, relativePath, id)` and modified-time order uses
          *     `(modifiedAt, id)`, with every tuple component following the requested
-         *     direction. Cursors bind the library, normalized directory, recursive
-         *     mode, query, kind, effective sort/order, ordering version, and reliable
-         *     catalog generation. Any bound-value or generation change makes an old
-         *     cursor fail with `invalid_cursor`; it never falls back to page one.
+         *     direction. No relevance sort exists in the MVP. Cursors bind the
+         *     library, canonical scope, effective recursive mode, normalized terms,
+         *     kinds, time bounds, effective sort/order, ordering/profile versions,
+         *     and reliable catalog generation. Any bound-value or generation change
+         *     makes an old cursor fail with `invalid_cursor`; it never falls back to
+         *     page one.
          *
          *     Offline libraries return preserved indexed assets with `200` and mark
          *     their source availability. Pending/scanning/offline state comes from
@@ -1315,6 +1362,16 @@ export interface components {
         /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
         LimitParameter: number;
         /**
+         * @description Exclusive upper bound for filesystem modification time. It must be a
+         *     UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+         */
+        ModifiedBeforeParameter: components["schemas"]["Timestamp"];
+        /**
+         * @description Inclusive lower bound for filesystem modification time. It must be a
+         *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+         */
+        ModifiedFromParameter: components["schemas"]["Timestamp"];
+        /**
          * @description Explicit sort direction. When omitted, `name` uses ascending and
          *     `modifiedAt` uses descending.
          */
@@ -1337,11 +1394,19 @@ export interface components {
         RecursiveParameter: boolean;
         /** @description Opaque library-removal operation ID. */
         RemovalIDParameter: components["schemas"]["ResourceID"];
-        /** @description Search filename and media-library-relative path across all libraries. */
+        /**
+         * @description Required plain-text filename/path query across all libraries. It is
+         *     trimmed, must remain non-empty, and follows the same versioned
+         *     literal-substring profile as library search.
+         */
         RequiredSearchQueryParameter: string;
         /** @description Opaque full-scan run ID. */
         ScanIDParameter: components["schemas"]["ResourceID"];
-        /** @description Search filename and media-library-relative path. Empty or omitted means browse without search. */
+        /**
+         * @description Plain-text filename/path search. Omit it to browse without search.
+         *     Present values are trimmed, must remain non-empty, and follow the
+         *     versioned literal-substring search profile; FTS operators are not exposed.
+         */
         SearchQueryParameter: string;
         /**
          * @description Explicit sort field. When omitted, direct non-search browse uses `name`;
@@ -1413,11 +1478,25 @@ export interface operations {
                 /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
                 limit?: components["parameters"]["LimitParameter"];
                 /**
+                 * @description Exclusive upper bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+                 */
+                modifiedBefore?: components["parameters"]["ModifiedBeforeParameter"];
+                /**
+                 * @description Inclusive lower bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+                 */
+                modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
+                /**
                  * @description Explicit sort direction. When omitted, `name` uses ascending and
                  *     `modifiedAt` uses descending.
                  */
                 order?: components["parameters"]["OrderParameter"];
-                /** @description Search filename and media-library-relative path across all libraries. */
+                /**
+                 * @description Required plain-text filename/path query across all libraries. It is
+                 *     trimmed, must remain non-empty, and follows the same versioned
+                 *     literal-substring profile as library search.
+                 */
                 q: components["parameters"]["RequiredSearchQueryParameter"];
                 /**
                  * @description Explicit sort field. When omitted, direct non-search browse uses `name`;
@@ -2007,11 +2086,25 @@ export interface operations {
                 /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
                 limit?: components["parameters"]["LimitParameter"];
                 /**
+                 * @description Exclusive upper bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+                 */
+                modifiedBefore?: components["parameters"]["ModifiedBeforeParameter"];
+                /**
+                 * @description Inclusive lower bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+                 */
+                modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
+                /**
                  * @description Explicit sort direction. When omitted, `name` uses ascending and
                  *     `modifiedAt` uses descending.
                  */
                 order?: components["parameters"]["OrderParameter"];
-                /** @description Search filename and media-library-relative path. Empty or omitted means browse without search. */
+                /**
+                 * @description Plain-text filename/path search. Omit it to browse without search.
+                 *     Present values are trimmed, must remain non-empty, and follow the
+                 *     versioned literal-substring search profile; FTS operators are not exposed.
+                 */
                 q?: components["parameters"]["SearchQueryParameter"];
                 /** @description Include media from all descendant directories of the selected browse root. */
                 recursive?: components["parameters"]["RecursiveParameter"];
