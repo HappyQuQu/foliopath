@@ -17,6 +17,7 @@
 - `root_rel_path`：相对于 `/library` 的规范化根路径；空字符串唯一表示 `/library` 本身。
 - `status`：`pending`、`scanning`、`ready`、`offline` 或 `error`。
 - `current_generation`：最近一次成功完整扫描的代次。
+- `revision`：任一公开 Library 表示字段变化时递增的正整数，用于生成强 ETag。
 - `created_at`、`updated_at`。
 
 `root_rel_path` 必须唯一。业务层还必须拒绝任意两个媒体库根路径的祖先/后代重叠。MVP 允许更新 `name`，但 `root_rel_path` 创建后不可修改；更换根路径通过移除媒体库并重新创建完成，详见 [ADR-0004](adr/0004-library-root-immutable.md)。
@@ -66,6 +67,26 @@
 - 跳过目录/文件数、取消请求时间和安全取消原因。
 
 同一媒体库最多有一个 `queued` 或 `running` 的完整扫描。失败代次不能执行媒体库级陈旧记录清理。
+创建媒体库时，库记录、唯一 `library_created` queued scan 与创建幂等记录在同一个短事务
+提交；提交后才唤醒 worker。
+
+### `library_removals`
+
+- `id`、原媒体库 ID 和安全名称快照。
+- `status`：`queued`、`running`、`succeeded` 或 `failed`。
+- `revision`、创建/开始/完成时间和可空安全错误码。
+
+每个媒体库最多有一个 queued/running removal。terminal removal 不随 `libraries` 删除而
+级联，确保配置和派生状态清理后仍可轮询；它不保存媒体库根、宿主机路径或任何原媒体删除
+指令。
+
+### `idempotency_records`
+
+- `operation`、32 字节 `key_hash` 和 32 字节规范请求 `request_hash`。
+- 结果类型/ID、创建与过期时间；保留期至少 24 小时。
+
+唯一键为 `(operation, key_hash)`。数据库不保存 `Idempotency-Key` 明文或原始请求体；相同
+key/不同 request hash 是稳定冲突，相同逻辑结果已被删除时不得重新执行原操作。
 
 ### `media_jobs`
 

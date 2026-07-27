@@ -48,9 +48,8 @@
 [路线图](roadmap.md)为准，架构与交付门禁以
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
-当前里程碑：**Stage 2 / 媒体库与扫描契约**。认证后端现已 `Backend Ready`，认证产品
-UI 可以连接真实 API；媒体库与扫描已通过 Architecture Ready，但当前只允许
-`S2-001`/`S2-101` 契约设计。Stage 3～5 仍未授权。
+当前里程碑：**Stage 2 / 媒体库后端**。媒体库已 Contract Ready，当前后端任务是
+`S2-002` 安全目录枚举；扫描仍只允许 `S2-101` 契约设计。Stage 3～5 仍未授权。
 
 执行约束：
 
@@ -147,8 +146,8 @@ UI 可以连接真实 API；媒体库与扫描已通过 Architecture Ready，但
 
 [查看后端开发清单](backend-task-list.md)
 
-- 当前：Stage 2 Architecture Ready；先做 `S2-001`，并由 `S2-101` 同步固定媒体库创建后
-  durable 首次扫描的交接。两个切片在 Contract Ready 前都不得进入实现。
+- 当前：媒体库 `S2-001` Contract Ready 已完成；进入 `S2-002` 安全目录枚举。
+  首次扫描执行、取消和 schedule 仍须等待 `S2-101`。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 

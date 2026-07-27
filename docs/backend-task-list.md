@@ -1,10 +1,11 @@
+
 # FolioPath 后端开发清单
 
 ## 当前状态
 
 - 当前阶段：Stage 2 Architecture Ready，进入契约设计
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
-- 当前任务：`S2-001` 媒体库契约；`S2-101` 扫描契约同步固定首次扫描交接
+- 当前任务：`S2-002` 安全目录枚举；媒体库契约已固定，扫描执行仍等待 `S2-101`
 - 授权边界：[Stage 2 Architecture Ready](gates/MVP-2026-07-23/stage-2-architecture-ready.md)
   仅允许契约设计；对应 Contract Ready 前不得进入实现
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
@@ -93,7 +94,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
 
 ### 媒体库
 
-- [ ] `S2-001` 固定目录选择、创建、列表、详情、改名和移除的契约与失败语义。
+- [x] `S2-001` 固定目录选择、创建、列表、详情、改名和移除的契约与失败语义。
+  - 完成证据：[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)；
+    OpenAPI 固定七个端点的逐状态错误码、ETag/If-Match、摘要化幂等、创建与首次 queued
+    scan 同事务、offline 保留和 restart-safe 异步移除；追加 migration 与 SQLite/契约测试
+    验证 version 2→3、唯一 creation scan/active removal、commit/rollback 和 24 小时保留。
 - [ ] `S2-002` 实现 `/library` 安全目录枚举；所有 I/O 只经过 `internal/files`。
 - [ ] `S2-003` 实现唯一名称、相对根、不可变根和重叠根校验。
 - [ ] `S2-004` 实现媒体库创建、改名、离线状态、重试和只删除派生数据的移除。

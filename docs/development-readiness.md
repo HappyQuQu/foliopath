@@ -6,7 +6,8 @@
 [认证 Backend Evidence Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)结论为 `Go`，
 允许认证产品 UI 连接真实 API。[Stage 2 Architecture
 Ready](gates/MVP-2026-07-23/stage-2-architecture-ready.md)另行结论为 `Go`，但只授权
-`S2-001`/`S2-101` 契约设计；对应 Contract Ready 前不得开始媒体库或扫描产品实现。
+契约设计。[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)
+现已允许 `S2-002`/`S2-003` 实现；扫描执行仍须等待 `S2-101`。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
@@ -27,8 +28,8 @@ HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
-认证后端是已通过 Gate 的正式产品能力；媒体库/扫描已 Architecture Ready 但尚未
-Contract Ready，其实验代码、静态原型和契约工程证据仍不得描述为已经可用的产品能力。
+认证后端是已通过 Gate 的正式产品能力；媒体库已 Contract Ready、扫描仅 Architecture
+Ready，两者的实验代码、静态原型和契约工程证据仍不得描述为已经可用的产品能力。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014
 全部采用 A。产品冻结门槛已经满足，[系统架构档案](architecture/README.md)也已形成目标

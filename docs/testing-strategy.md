@@ -92,6 +92,8 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 放在 `tests/integration`，使用临时目录、真实 SQLite 和可控的媒体工具替身或合成 fixture：
 
 - 创建媒体库、首次扫描、再次扫描、删除与离线恢复的完整后端路径。
+- version 2→3 追加迁移、库/首次 queued scan/幂等记录同事务 commit/rollback、唯一
+  creation scan/active removal、ETag revision、摘要长度与至少 24 小时幂等保留。
 - 唯一媒体库名称、只允许改名、拒绝根路径修改，以及 24 小时可配置调度与协作取消。
 - generation 批量 upsert 与仅在完整成功后清理旧记录。
 - 进程中断后的 `running` 任务恢复和原子缓存写入。

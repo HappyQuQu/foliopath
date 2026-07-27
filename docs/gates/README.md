@@ -19,3 +19,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S1-101：单管理员认证 Contract Ready](MVP-2026-07-23/s1-auth-contract-ready.md)
 - [S1-106：单管理员认证 Backend Evidence Ready](MVP-2026-07-23/s1-auth-backend-ready.md)
 - [Stage 2：媒体库与可靠扫描 Architecture Ready](MVP-2026-07-23/stage-2-architecture-ready.md)
+- [S2-001：媒体库管理 Contract Ready](MVP-2026-07-23/s2-library-contract-ready.md)

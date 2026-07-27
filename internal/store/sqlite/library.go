@@ -50,7 +50,16 @@ func (s *Store) CreateLibrary(ctx context.Context, params library.CreateParams) 
 		if err != nil {
 			return fmt.Errorf("insert library: %w", err)
 		}
-		created, err = libraryFromDatabase(record)
+		created, err = libraryFromDatabase(
+			record.ID,
+			record.Name,
+			record.RootRelPath,
+			record.Status,
+			record.CurrentGeneration,
+			record.Revision,
+			record.CreatedAtMs,
+			record.UpdatedAtMs,
+		)
 		if err != nil {
 			return fmt.Errorf("map inserted library: %w", err)
 		}
@@ -106,7 +115,16 @@ func (s *Store) GetLibrary(ctx context.Context, id int64) (library.Library, erro
 	if err != nil {
 		return library.Library{}, fmt.Errorf("get library: %w", err)
 	}
-	result, err := libraryFromDatabase(record)
+	result, err := libraryFromDatabase(
+		record.ID,
+		record.Name,
+		record.RootRelPath,
+		record.Status,
+		record.CurrentGeneration,
+		record.Revision,
+		record.CreatedAtMs,
+		record.UpdatedAtMs,
+	)
 	if err != nil {
 		return library.Library{}, fmt.Errorf("map library: %w", err)
 	}
@@ -121,7 +139,16 @@ func (s *Store) ListLibraries(ctx context.Context) ([]library.Library, error) {
 
 	result := make([]library.Library, 0, len(records))
 	for _, record := range records {
-		item, err := libraryFromDatabase(record)
+		item, err := libraryFromDatabase(
+			record.ID,
+			record.Name,
+			record.RootRelPath,
+			record.Status,
+			record.CurrentGeneration,
+			record.Revision,
+			record.CreatedAtMs,
+			record.UpdatedAtMs,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("map listed library: %w", err)
 		}
@@ -130,18 +157,28 @@ func (s *Store) ListLibraries(ctx context.Context) ([]library.Library, error) {
 	return result, nil
 }
 
-func libraryFromDatabase(record dbgen.Library) (library.Library, error) {
-	status, err := library.ValidateStatus(record.Status)
+func libraryFromDatabase(
+	id int64,
+	name string,
+	rootRelativePath string,
+	rawStatus string,
+	currentGeneration int64,
+	revision int64,
+	createdAtMS int64,
+	updatedAtMS int64,
+) (library.Library, error) {
+	status, err := library.ValidateStatus(rawStatus)
 	if err != nil {
 		return library.Library{}, err
 	}
 	return library.Library{
-		ID:                record.ID,
-		Name:              record.Name,
-		RootRelativePath:  record.RootRelPath,
+		ID:                id,
+		Name:              name,
+		RootRelativePath:  rootRelativePath,
 		Status:            status,
-		CurrentGeneration: record.CurrentGeneration,
-		CreatedAtMS:       record.CreatedAtMs,
-		UpdatedAtMS:       record.UpdatedAtMs,
+		CurrentGeneration: currentGeneration,
+		Revision:          revision,
+		CreatedAtMS:       createdAtMS,
+		UpdatedAtMS:       updatedAtMS,
 	}, nil
 }

@@ -26,6 +26,7 @@ INSERT INTO libraries(
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 ) VALUES (
@@ -34,6 +35,7 @@ INSERT INTO libraries(
     sqlc.arg(root_rel_path),
     'pending',
     0,
+    1,
     sqlc.arg(created_at_ms),
     sqlc.arg(updated_at_ms)
 )
@@ -44,6 +46,7 @@ RETURNING
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms;
 
@@ -51,6 +54,7 @@ RETURNING
 UPDATE libraries
 SET name = sqlc.arg(name),
     name_key = sqlc.arg(name_key),
+    revision = revision + 1,
     updated_at_ms = sqlc.arg(updated_at_ms)
 WHERE id = sqlc.arg(id);
 
@@ -62,6 +66,7 @@ SELECT
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 FROM libraries
@@ -75,6 +80,7 @@ SELECT
     root_rel_path,
     status,
     current_generation,
+    revision,
     created_at_ms,
     updated_at_ms
 FROM libraries

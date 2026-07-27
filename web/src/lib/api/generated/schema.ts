@@ -243,8 +243,13 @@ export interface paths {
          *     safety, and ancestor/descendant overlap are rechecked atomically.
          *
          *     An idempotency key is retained for at least 24 hours. Reusing the same
-         *     key and identical body returns the original result; reusing it with a
-         *     different body fails with `idempotency_conflict`.
+         *     key and identical body returns the original logical result and never
+         *     creates a duplicate. If that result has since been removed, replay
+         *     fails with `idempotency_conflict` until retention expires.
+         *     Reusing a key with a different body fails with
+         *     `idempotency_conflict`. The library row, its `library_created` queued
+         *     full scan, and the idempotency record commit in one short transaction
+         *     before a worker is notified.
          */
         post: operations["createLibrary"];
         delete?: never;
@@ -273,6 +278,14 @@ export interface paths {
          *     jobs, and derived cache only. It never moves, edits, or deletes original
          *     media. The library remains identifiable until cleanup succeeds; poll
          *     the returned removal resource.
+         *
+         *     Acceptance atomically creates the durable removal, prevents new scans,
+         *     and requests cooperative cancellation of a queued or running scan.
+         *     Cleanup waits for that scan to reach a safe terminal point, deletes
+         *     database/cache state in bounded idempotent steps, and never opens an
+         *     original-media deletion capability. An identical idempotency replay
+         *     returns the same removal. A different key while a removal is active
+         *     fails with `idempotency_conflict`.
          */
         delete: operations["removeLibrary"];
         options?: never;
@@ -280,7 +293,10 @@ export interface paths {
         /**
          * Rename a media library
          * @description The MVP request schema intentionally has no root path field. Changing a
-         *     root requires removing and recreating the library.
+         *     root requires removing and recreating the library. A strong ETag
+         *     changes whenever any represented library field changes. Renaming to
+         *     the current normalized name is a no-op and returns the current
+         *     representation without advancing the validator.
          */
         patch: operations["renameLibrary"];
         trace?: never;
@@ -741,7 +757,11 @@ export interface components {
             libraryId: components["schemas"]["ResourceID"];
             libraryName: string;
             startedAt: components["schemas"]["NullableTimestamp"];
-            /** @enum {string} */
+            /**
+             * @description A failed operation remains pollable and may be safely retried by
+             *     the worker or by a later delete request with a new idempotency key.
+             * @enum {string}
+             */
             status: "queued" | "running" | "succeeded" | "failed";
         };
         /** @enum {string} */
@@ -1170,7 +1190,8 @@ export interface components {
         /**
          * @description Client-generated opaque key retained for at least 24 hours. Use a new
          *     key for a different logical action. Reuse with a different request body
-         *     fails with `idempotency_conflict`.
+         *     fails with `idempotency_conflict`. The server stores only a fixed-size
+         *     digest of this value and never writes the plaintext key to logs.
          */
         IdempotencyKeyHeader: string;
         /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
@@ -1238,7 +1259,10 @@ export interface components {
         ContentLength: number;
         /** @description Exact bytes returned and complete source length. */
         ContentRange: string;
-        /** @description Strong opaque representation validator. */
+        /**
+         * @description Strong opaque representation validator. For a Library it changes when
+         *     any represented field changes, including scan-derived status/counts.
+         */
         ETag: string;
         /** @description Expired `foliopath_session` cookie with Max-Age=0. */
         ExpiredSessionCookie: string;
@@ -1711,7 +1735,8 @@ export interface operations {
                 /**
                  * @description Client-generated opaque key retained for at least 24 hours. Use a new
                  *     key for a different logical action. Reuse with a different request body
-                 *     fails with `idempotency_conflict`.
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
                  */
                 "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
             };
@@ -1727,6 +1752,7 @@ export interface operations {
             /** @description Library created and its first scan queued. Idempotent replay returns this same representation. */
             201: {
                 headers: {
+                    ETag: components["headers"]["ETag"];
                     "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
                     /** @description Relative URL of the created library. */
                     Location?: string;
@@ -1782,7 +1808,8 @@ export interface operations {
                 /**
                  * @description Client-generated opaque key retained for at least 24 hours. Use a new
                  *     key for a different logical action. Reuse with a different request body
-                 *     fails with `idempotency_conflict`.
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
                  */
                 "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
                 /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
