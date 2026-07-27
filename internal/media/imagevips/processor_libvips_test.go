@@ -8,21 +8,24 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
+	"image/jpeg"
+	"os"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
-	"github.com/davidbyttow/govips/v2/vips"
 )
 
-func TestProcessorGeneratesBoundedWebPAndRejectsCorruptInput(t *testing.T) {
-	vips.Startup(&vips.Config{
-		ConcurrencyLevel: 1,
-		MaxCacheFiles:    0,
-		MaxCacheMem:      32 << 20,
-		MaxCacheSize:     32,
-	})
-	t.Cleanup(vips.Shutdown)
+func TestMain(main *testing.M) {
+	runtime := NewRuntime()
+	if err := runtime.Start(); err != nil {
+		panic(err)
+	}
+	code := main.Run()
+	runtime.Shutdown()
+	os.Exit(code)
+}
 
+func TestProcessorGeneratesBoundedWebPAndRejectsCorruptInput(t *testing.T) {
 	var encoded bytes.Buffer
 	if err := gif.Encode(&encoded, syntheticImage(96, 64), nil); err != nil {
 		t.Fatal(err)
@@ -46,6 +49,31 @@ func TestProcessorGeneratesBoundedWebPAndRejectsCorruptInput(t *testing.T) {
 		media.FormatPNG,
 	); err == nil {
 		t.Fatal("truncated PNG unexpectedly succeeded")
+	}
+}
+
+func TestProcessorRejectsPixelBombBeforeThumbnailEvaluation(t *testing.T) {
+	var encoded bytes.Buffer
+	if err := jpeg.Encode(&encoded, syntheticImage(1, 1), nil); err != nil {
+		t.Fatal(err)
+	}
+	value := encoded.Bytes()
+	sof := bytes.Index(value, []byte{0xff, 0xc0})
+	if sof < 0 || sof+9 > len(value) {
+		t.Fatal("synthetic JPEG has no baseline SOF marker")
+	}
+	const hostileDimension = 20_000
+	value[sof+5] = byte(hostileDimension >> 8)
+	value[sof+6] = byte(hostileDimension & 0xff)
+	value[sof+7] = byte(hostileDimension >> 8)
+	value[sof+8] = byte(hostileDimension & 0xff)
+
+	if _, err := New().Process(
+		context.Background(),
+		bytes.NewReader(value),
+		media.FormatJPEG,
+	); err != media.ErrInvalidMedia {
+		t.Fatalf("pixel bomb error = %v", err)
 	}
 }
 

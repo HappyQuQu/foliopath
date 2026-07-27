@@ -76,6 +76,13 @@ func (processor *Processor) Process(
 	if !ok {
 		return media.ProcessingResult{}, media.ErrProcessingFailed
 	}
+	info, err := file.Stat()
+	if err != nil {
+		return media.ProcessingResult{}, media.ErrProcessingFailed
+	}
+	if err := media.ValidateSourceSize(format, info.Size()); err != nil {
+		return media.ProcessingResult{}, err
+	}
 	runCtx, cancel := context.WithTimeout(ctx, processor.timeout)
 	defer cancel()
 
@@ -84,7 +91,7 @@ func (processor *Processor) Process(
 		return media.ProcessingResult{}, err
 	}
 	stream, ok := firstVideoStream(document)
-	if !ok || stream.Width < 1 || stream.Height < 1 {
+	if !ok || media.ValidateDimensions(stream.Width, stream.Height) != nil {
 		return media.ProcessingResult{}, media.ErrInvalidMedia
 	}
 	durationMS, err := durationMilliseconds(stream.Duration, document.Format.Duration)
@@ -116,7 +123,9 @@ func (processor *Processor) Process(
 
 func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDocument, error) {
 	output, err := processor.run(ctx, processor.ffprobe, source,
+		"-nostdin",
 		"-v", "error",
+		"-threads", "1",
 		"-print_format", "json",
 		"-show_streams",
 		"-show_format",
@@ -134,7 +143,10 @@ func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDo
 
 func (processor *Processor) poster(ctx context.Context, source *os.File) ([]byte, error) {
 	output, err := processor.run(ctx, processor.ffmpeg, source,
+		"-nostdin",
 		"-v", "error",
+		"-threads", "1",
+		"-filter_threads", "1",
 		"-i", inheritedFilePath(),
 		"-frames:v", "1",
 		"-vf", fmt.Sprintf(
@@ -166,6 +178,7 @@ func (processor *Processor) run(
 		return nil, media.ErrProcessingFailed
 	}
 	command := exec.CommandContext(ctx, binary, args...)
+	configureCommandCancellation(command)
 	command.ExtraFiles = []*os.File{source}
 	var stdout cappedBuffer
 	stdout.maximum = media.MaxToolOutputBytes
@@ -174,21 +187,39 @@ func (processor *Processor) run(
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
+		if stdout.exceeded || stderr.exceeded {
+			return nil, media.ErrProcessingFailed
+		}
 		return nil, err
+	}
+	if stdout.exceeded || stderr.exceeded {
+		return nil, media.ErrProcessingFailed
 	}
 	return stdout.Bytes(), nil
 }
 
 type cappedBuffer struct {
-	bytes.Buffer
-	maximum int
+	value    bytes.Buffer
+	maximum  int
+	exceeded bool
 }
 
 func (buffer *cappedBuffer) Write(value []byte) (int, error) {
-	if len(value) > buffer.maximum-buffer.Len() {
-		return 0, errors.New("tool output limit exceeded")
+	remaining := buffer.maximum - buffer.value.Len()
+	if remaining <= 0 {
+		buffer.exceeded = true
+		return len(value), nil
 	}
-	return buffer.Buffer.Write(value)
+	if len(value) > remaining {
+		_, _ = buffer.value.Write(value[:remaining])
+		buffer.exceeded = true
+		return len(value), nil
+	}
+	return buffer.value.Write(value)
+}
+
+func (buffer *cappedBuffer) Bytes() []byte {
+	return buffer.value.Bytes()
 }
 
 func inheritedFilePath() string {

@@ -939,6 +939,12 @@ func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) 
 			contents: []string{
 				"type ProcessingResult struct",
 				"func ProcessingCode(err error)",
+				"MaxImageSourceBytes",
+				"MaxVideoSourceBytes",
+				"MaxDecodedPixels",
+				"MaxMediaDimension",
+				"func ValidateSourceSize(",
+				"func ValidateDimensions(",
 			},
 		},
 		{
@@ -946,6 +952,7 @@ func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) 
 			contents: []string{
 				`"github.com/davidbyttow/govips/v2/vips"`,
 				"vips.LoadImageFromBuffer",
+				"media.ValidateDimensions",
 				"image.ExportWebp",
 			},
 		},
@@ -953,7 +960,10 @@ func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) 
 			path: videoPath,
 			contents: []string{
 				"exec.CommandContext",
+				"configureCommandCancellation(command)",
 				"command.ExtraFiles",
+				`"-threads", "1"`,
+				`"-filter_threads", "1"`,
 				`"-show_streams"`,
 				`"-frames:v", "1"`,
 			},
@@ -1049,8 +1059,26 @@ func TestMediaJobsAndCachePolicyHaveCanonicalOwners(t *testing.T) {
 			relative: "internal/app/run.go",
 			contents: []string{
 				"jobs.NewWorkerPool(",
+				"newImageRuntimeComponent(imagevips.NewRuntime())",
 				"newMediaWorkerComponent(",
 				"thumbnail.NewCacheManager(",
+			},
+		},
+		{
+			relative: "internal/media/imagevips/runtime_libvips.go",
+			contents: []string{
+				"ConcurrencyLevel: NativeConcurrency",
+				"MaxCacheFiles:    NativeCacheFiles",
+				"MaxCacheMem:      NativeCacheMemory",
+				"MaxCacheSize:     NativeCacheEntries",
+			},
+		},
+		{
+			relative: ".github/workflows/ci.yml",
+			contents: []string{
+				"Run the real full-filesystem cache fixture",
+				"FOLIOPATH_FULL_CACHE_ROOT",
+				"-tags mediafull",
 			},
 		},
 	} {

@@ -13,6 +13,10 @@ const (
 	GridThumbnailHeight = 512
 	GridWebPQuality     = 82
 	MaxToolOutputBytes  = 8 << 20
+	MaxImageSourceBytes = 256 << 20
+	MaxVideoSourceBytes = int64(4) << 30
+	MaxDecodedPixels    = 100_000_000
+	MaxMediaDimension   = 32_768
 	DefaultProbeTimeout = 15 * time.Second
 )
 
@@ -74,7 +78,7 @@ type Processor interface {
 }
 
 func ValidateProcessingResult(kind Kind, result ProcessingResult) error {
-	if result.Metadata.Width < 1 || result.Metadata.Height < 1 ||
+	if ValidateDimensions(result.Metadata.Width, result.Metadata.Height) != nil ||
 		result.Thumbnail.Width < 1 || result.Thumbnail.Height < 1 ||
 		result.Thumbnail.Width > GridThumbnailWidth ||
 		result.Thumbnail.Height > GridThumbnailHeight ||
@@ -97,6 +101,34 @@ func ValidateProcessingResult(kind Kind, result ProcessingResult) error {
 		}
 	default:
 		return ErrInvalidResult
+	}
+	return nil
+}
+
+func ValidateSourceSize(format Format, sizeBytes int64) error {
+	if sizeBytes < 1 {
+		return ErrInvalidMedia
+	}
+	switch format {
+	case FormatJPEG, FormatPNG, FormatWebP, FormatGIF:
+		if sizeBytes > MaxImageSourceBytes {
+			return ErrInvalidMedia
+		}
+	case FormatMP4, FormatMOV, FormatMKV:
+		if sizeBytes > MaxVideoSourceBytes {
+			return ErrInvalidMedia
+		}
+	default:
+		return ErrUnsupportedMedia
+	}
+	return nil
+}
+
+func ValidateDimensions(width, height int) error {
+	if width < 1 || height < 1 ||
+		width > MaxMediaDimension || height > MaxMediaDimension ||
+		int64(width)*int64(height) > MaxDecodedPixels {
+		return ErrInvalidMedia
 	}
 	return nil
 }

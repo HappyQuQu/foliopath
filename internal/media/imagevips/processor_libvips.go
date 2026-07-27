@@ -14,8 +14,6 @@ import (
 	"github.com/davidbyttow/govips/v2/vips"
 )
 
-const maxImageInputBytes = 512 << 20
-
 type Processor struct{}
 
 func New() *Processor {
@@ -37,16 +35,17 @@ func (*Processor) Process(
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return media.ProcessingResult{}, media.ErrProcessingFailed
 	}
-	encoded, err := io.ReadAll(io.LimitReader(source, maxImageInputBytes+1))
+	encoded, err := io.ReadAll(io.LimitReader(source, media.MaxImageSourceBytes+1))
 	if err != nil {
 		return media.ProcessingResult{}, media.ErrProcessingFailed
 	}
-	if len(encoded) == 0 || len(encoded) > maxImageInputBytes {
+	if err := media.ValidateSourceSize(format, int64(len(encoded))); err != nil {
 		return media.ProcessingResult{}, media.ErrInvalidMedia
 	}
 	params := vips.NewImportParams()
 	params.AutoRotate.Set(true)
 	params.NumPages.Set(1)
+	params.Access.Set(vips.AccessSequential)
 	image, err := vips.LoadImageFromBuffer(encoded, params)
 	if err != nil {
 		return media.ProcessingResult{}, media.ErrInvalidMedia
@@ -56,7 +55,7 @@ func (*Processor) Process(
 		return media.ProcessingResult{}, err
 	}
 	width, height := image.Width(), image.Height()
-	if width < 1 || height < 1 {
+	if err := media.ValidateDimensions(width, height); err != nil {
 		return media.ProcessingResult{}, media.ErrInvalidMedia
 	}
 	if err := image.ThumbnailWithSize(

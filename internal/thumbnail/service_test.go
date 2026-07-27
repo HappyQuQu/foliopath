@@ -46,20 +46,25 @@ type processorStub struct {
 	result media.ProcessingResult
 	err    error
 	calls  int
+	run    func(context.Context) (media.ProcessingResult, error)
 }
 
 func (stub *processorStub) Process(
-	context.Context,
-	io.ReadSeeker,
-	media.Format,
+	ctx context.Context,
+	_ io.ReadSeeker,
+	_ media.Format,
 ) (media.ProcessingResult, error) {
 	stub.calls++
+	if stub.run != nil {
+		return stub.run(ctx)
+	}
 	return stub.result, stub.err
 }
 
 type publisherStub struct {
 	published Published
 	calls     int
+	err       error
 }
 
 type capacityStub struct {
@@ -81,7 +86,7 @@ func (stub *publisherStub) Publish(
 ) (Published, error) {
 	stub.calls++
 	stub.published.ByteSize = int64(len(value))
-	return stub.published, nil
+	return stub.published, stub.err
 }
 
 type sourceFileStub struct {
@@ -190,5 +195,139 @@ func TestServicePersistsStableProcessingFailureButNotSourceChange(t *testing.T) 
 	}
 	if repository.failure != nil {
 		t.Fatalf("source change persisted failure %#v", repository.failure)
+	}
+}
+
+func TestServiceRejectsOversizedSourceBeforeNativeProcessor(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	size := int64(media.MaxImageSourceBytes + 1)
+	fingerprint, _ := media.NewSourceFingerprint(size, mtime.UnixNano())
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, Kind: media.KindImage, Format: media.FormatJPEG,
+		SourceFingerprint: fingerprint,
+	}}
+	image := &processorStub{}
+	service, err := NewService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader(nil),
+			info:   fileInfoStub{size: size, mtime: mtime},
+		}},
+		&publisherStub{},
+		&capacityStub{},
+		image,
+		&processorStub{},
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(
+		context.Background(), 9,
+	); !errors.Is(err, media.ErrInvalidMedia) {
+		t.Fatalf("oversized source error = %v", err)
+	}
+	if image.calls != 0 || repository.failure == nil ||
+		repository.failure.Code != media.ErrorInvalidMedia {
+		t.Fatalf(
+			"native calls/failure = %d, %#v",
+			image.calls, repository.failure,
+		)
+	}
+}
+
+func TestServiceObservesCancellationAfterNativeCallBeforePublish(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, Kind: media.KindImage, Format: media.FormatJPEG,
+		SourceFingerprint: fingerprint,
+	}}
+	ctx, cancel := context.WithCancel(context.Background())
+	image := &processorStub{run: func(
+		context.Context,
+	) (media.ProcessingResult, error) {
+		cancel()
+		return media.ProcessingResult{
+			Metadata: media.Metadata{
+				Width: 10, Height: 10,
+				PlaybackStatus: media.PlaybackNotApplicable,
+			},
+			Thumbnail: media.Thumbnail{
+				Bytes: []byte("webp"), Width: 10, Height: 10,
+			},
+		}, nil
+	}}
+	publisher := &publisherStub{}
+	service, err := NewService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader([]byte("source")),
+			info:   fileInfoStub{size: 6, mtime: mtime},
+		}},
+		publisher,
+		&capacityStub{},
+		image,
+		&processorStub{},
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(ctx, 9); !errors.Is(err, context.Canceled) {
+		t.Fatalf("post-native cancellation error = %v", err)
+	}
+	if publisher.calls != 0 || repository.ready != nil || repository.failure != nil {
+		t.Fatalf(
+			"cancelled publication = calls %d ready %#v failure %#v",
+			publisher.calls, repository.ready, repository.failure,
+		)
+	}
+}
+
+func TestServiceDoesNotCommitReadyAfterCacheWriteFailure(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, Kind: media.KindImage, Format: media.FormatJPEG,
+		SourceFingerprint: fingerprint,
+	}}
+	result := media.ProcessingResult{
+		Metadata: media.Metadata{
+			Width: 10, Height: 10, PlaybackStatus: media.PlaybackNotApplicable,
+		},
+		Thumbnail: media.Thumbnail{
+			Bytes: []byte("webp"), Width: 10, Height: 10,
+		},
+	}
+	publisher := &publisherStub{
+		published: Published{CacheRelativePath: "unused"},
+		err:       errors.New("injected ENOSPC"),
+	}
+	service, err := NewService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader([]byte("source")),
+			info:   fileInfoStub{size: 6, mtime: mtime},
+		}},
+		publisher,
+		&capacityStub{},
+		&processorStub{result: result},
+		&processorStub{},
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(
+		context.Background(), 9,
+	); !errors.Is(err, ErrPublishFailed) {
+		t.Fatalf("publish failure error = %v", err)
+	}
+	if repository.ready != nil || repository.failure != nil {
+		t.Fatalf(
+			"cache failure committed state ready %#v failure %#v",
+			repository.ready, repository.failure,
+		)
 	}
 }

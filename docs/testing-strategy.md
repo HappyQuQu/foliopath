@@ -109,8 +109,10 @@ Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩
 已完成目录/计数、媒体增量收敛、故障/重启恢复、容量矩阵与扫描 Backend Ready；
 S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发布、SQLite 状态和
 真实 scanner→source→cache→database 组合测试；S3-005 已增加 durable lease/retry/
-公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle。
-像素炸弹/磁盘满/资源并发矩阵、资产/缩略图 HTTP、浏览器流程和发布网络边界仍在后续 Gate。
+公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle；
+S3-006 已增加 256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips runtime、FFmpeg 单线程/
+进程组取消/工具输出 cap、取消安全点和真实 8 MiB tmpfs `ENOSPC` 矩阵。资产/缩略图 HTTP、
+浏览器流程和发布网络/存储边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 
@@ -144,7 +146,8 @@ S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发�
 - 真实文件变化：新增、修改、删除、重命名、权限错误、深目录和空目录。
 - 所有可读目录的直接/递归计数，以及隐藏项、系统派生目录和回收站的跳过清单/统计。
 - HTTP 条件请求、`HEAD`、合法/非法 Range、`416`、客户端取消。
-- libvips/FFprobe/FFmpeg 的超时、损坏输入和并发限制；与 CLI 的调用使用参数数组而非 shell。
+- libvips/FFprobe/FFmpeg 的输入大小、像素炸弹、超时、进程树取消、工具输出和并发限制；
+  与 CLI 的调用使用参数数组而非 shell，Linux tmpfs 注入真实 `ENOSPC`。
 - 数据库迁移从每个已发布版本前进，并验证失败时不部分就绪。
 
 测试只使用临时 `/library` 等价目录，绝不读取开发者或 CI 宿主机的真实照片。

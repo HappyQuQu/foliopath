@@ -54,3 +54,39 @@ func TestProcessingCodeDoesNotExposeAdapterErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestMediaResourcePolicyRejectsOversizedSourcesAndDimensions(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		format Format
+		size   int64
+	}{
+		{name: "empty image", format: FormatJPEG, size: 0},
+		{name: "oversized image", format: FormatPNG, size: MaxImageSourceBytes + 1},
+		{name: "oversized video", format: FormatMP4, size: MaxVideoSourceBytes + 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if !errors.Is(ValidateSourceSize(test.format, test.size), ErrInvalidMedia) {
+				t.Fatal("unsafe source size unexpectedly accepted")
+			}
+		})
+	}
+	if err := ValidateSourceSize(FormatJPEG, MaxImageSourceBytes); err != nil {
+		t.Fatalf("maximum image size rejected: %v", err)
+	}
+	if err := ValidateSourceSize(FormatMKV, MaxVideoSourceBytes); err != nil {
+		t.Fatalf("maximum video size rejected: %v", err)
+	}
+	for _, dimensions := range [][2]int{
+		{0, 1},
+		{MaxMediaDimension + 1, 1},
+		{10_001, 10_000},
+	} {
+		if !errors.Is(
+			ValidateDimensions(dimensions[0], dimensions[1]),
+			ErrInvalidMedia,
+		) {
+			t.Fatalf("unsafe dimensions %v unexpectedly accepted", dimensions)
+		}
+	}
+}

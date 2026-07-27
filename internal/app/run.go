@@ -186,6 +186,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct thumbnail cache manager: %w", err)
 	}
+	imageRuntimeComponent, err := newImageRuntimeComponent(imagevips.NewRuntime())
+	if err != nil {
+		return nil, fmt.Errorf("construct image runtime: %w", err)
+	}
 	videoProcessor, err := videoffmpeg.New(videoffmpeg.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("construct video processor: %w", err)
@@ -256,6 +260,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		[]component{
 			databaseComponent,
 			mediaRootComponent,
+			imageRuntimeComponent,
 			mediaComponent,
 			scanComponent,
 			removalComponent,

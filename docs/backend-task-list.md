@@ -6,7 +6,7 @@
 - 当前阶段：Stage 3 浏览与缩略图后端；媒体库与扫描 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S3-006` 敌意媒体、磁盘满与并发资源矩阵
+- 当前任务：`S3-007` 浏览/缩略图后端 Backend Ready 汇总
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
   Stage 3 仍须独立通过 Contract Ready 与 Backend Ready
@@ -198,7 +198,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
   - 完成证据：[S3-005 媒体任务与缓存保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)；
     migration 9 durable queue、2-worker/3-attempt lease 恢复、跨库公平、扫描原子失效/
     admission、90%→80% LRU、512 MiB 余量和正式生命周期均有自动证据。当前进入 S3-006。
-- [ ] `S3-006` 覆盖损坏媒体、像素炸弹、超时、取消、磁盘满和并发限制。
+- [x] `S3-006` 覆盖损坏媒体、像素炸弹、超时、取消、磁盘满和并发限制。
+  - 完成证据：[S3-006 敌意媒体与资源安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)；
+    统一 256 MiB 图片/4 GiB 视频/100 MP/32,768 px 上限，显式 govips lifecycle，
+    FFmpeg 单线程与进程组取消、8 MiB 工具输出 cap、5/10 秒退避及真实 8 MiB tmpfs
+    `ENOSPC` 清理/恢复均有自动证据。当前进入 S3-007。
 - [ ] `S3-007` 记录浏览/缩略图后端 `Backend Ready` Gate。
 
 ## Stage 4：搜索与媒体内容后端

@@ -100,6 +100,15 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 	if !asset.SourceFingerprint.Matches(info.Size(), info.ModTime().UnixNano()) {
 		return ErrSourceChanged
 	}
+	if err := media.ValidateSourceSize(asset.Format, info.Size()); err != nil {
+		code := media.ProcessingCode(err)
+		if commitErr := service.repository.CommitFailure(ctx, Failure{
+			AssetID: asset.ID, SourceFingerprint: asset.SourceFingerprint, Code: code,
+		}); commitErr != nil {
+			return errors.Join(err, commitErr)
+		}
+		return err
+	}
 	processor := service.image
 	if asset.Kind == media.KindVideo {
 		processor = service.video
@@ -115,6 +124,9 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 		}); commitErr != nil {
 			return errors.Join(err, commitErr)
 		}
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := media.ValidateProcessingResult(asset.Kind, result); err != nil {

@@ -21,12 +21,20 @@ case "$*" in
   *"/dev/fd/3"*|*"/proc/self/fd/3"*) ;;
   *) echo "missing inherited descriptor" >&2; exit 2 ;;
 esac
+case "$*" in
+  *"-threads 1"*) ;;
+  *) echo "missing decoder thread bound" >&2; exit 2 ;;
+esac
 printf '%s' '{"streams":[{"codec_type":"video","codec_name":"h264","width":96,"height":64,"duration":"1.250"}],"format":{"duration":"1.250"}}'
 `)
 	writeExecutable(t, ffmpeg, `#!/bin/sh
 case "$*" in
   *"/dev/fd/3"*|*"/proc/self/fd/3"*) ;;
   *) echo "missing inherited descriptor" >&2; exit 2 ;;
+esac
+case "$*" in
+  *"-threads 1"*"-filter_threads 1"*) ;;
+  *) echo "missing decoder/filter thread bounds" >&2; exit 2 ;;
 esac
 printf 'synthetic-webp'
 `)
@@ -67,7 +75,8 @@ printf 'synthetic-webp'
 func TestVideoProcessorPropagatesDeadlineAndRejectsWrongFormat(t *testing.T) {
 	directory := t.TempDir()
 	slow := filepath.Join(directory, "slow")
-	writeExecutable(t, slow, "#!/bin/sh\nsleep 2\n")
+	marker := filepath.Join(directory, "descendant-survived")
+	writeExecutable(t, slow, "#!/bin/sh\n(sleep 0.4; touch \""+marker+"\") &\nwait\n")
 	sourcePath := filepath.Join(directory, "source.mp4")
 	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
 		t.Fatal(err)
@@ -88,10 +97,110 @@ func TestVideoProcessorPropagatesDeadlineAndRejectsWrongFormat(t *testing.T) {
 	); !errors.Is(err, media.ErrUnsupportedMedia) {
 		t.Fatalf("unsupported format error = %v", err)
 	}
+	started := time.Now()
 	if _, err := processor.Process(
 		context.Background(), source, media.FormatMP4,
 	); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("deadline error = %v", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("process tree cancellation took %s", elapsed)
+	}
+	time.Sleep(500 * time.Millisecond)
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("cancelled descendant survived: %v", err)
+	}
+}
+
+func TestVideoProcessorRejectsOversizedSparseFileBeforeTools(t *testing.T) {
+	directory := t.TempDir()
+	called := filepath.Join(directory, "called")
+	tool := filepath.Join(directory, "tool")
+	writeExecutable(t, tool, "#!/bin/sh\ntouch \""+called+"\"\nexit 1\n")
+	sourcePath := filepath.Join(directory, "oversized.mp4")
+	source, err := os.Create(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	if err := source.Truncate(media.MaxVideoSourceBytes + 1); err != nil {
+		t.Fatal(err)
+	}
+	processor, err := New(Options{
+		FFprobePath: tool, FFmpegPath: tool, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.Process(
+		context.Background(), source, media.FormatMP4,
+	); !errors.Is(err, media.ErrInvalidMedia) {
+		t.Fatalf("oversized video error = %v", err)
+	}
+	if _, err := os.Stat(called); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("media tool was invoked: %v", err)
+	}
+}
+
+func TestVideoProcessorRejectsHostileMetadataBeforePosterDecode(t *testing.T) {
+	directory := t.TempDir()
+	probe := filepath.Join(directory, "ffprobe")
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	posterCalled := filepath.Join(directory, "poster-called")
+	writeExecutable(t, probe, `#!/bin/sh
+printf '%s' '{"streams":[{"codec_type":"video","codec_name":"h264","width":20000,"height":20000,"duration":"1"}],"format":{"duration":"1"}}'
+`)
+	writeExecutable(t, ffmpeg, "#!/bin/sh\ntouch \""+posterCalled+"\"\n")
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFprobePath: probe, FFmpegPath: ffmpeg, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.Process(
+		context.Background(), source, media.FormatMP4,
+	); !errors.Is(err, media.ErrInvalidMedia) {
+		t.Fatalf("hostile dimensions error = %v", err)
+	}
+	if _, err := os.Stat(posterCalled); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("poster decoder was invoked: %v", err)
+	}
+}
+
+func TestVideoProcessorCapsUntrustedToolOutput(t *testing.T) {
+	directory := t.TempDir()
+	probe := filepath.Join(directory, "ffprobe")
+	writeExecutable(t, probe, `#!/bin/sh
+dd if=/dev/zero bs=1048576 count=9 2>/dev/null
+`)
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFprobePath: probe, FFmpegPath: probe, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.run(
+		context.Background(), probe, source,
+	); !errors.Is(err, media.ErrProcessingFailed) {
+		t.Fatalf("oversized tool output error = %v", err)
 	}
 }
 

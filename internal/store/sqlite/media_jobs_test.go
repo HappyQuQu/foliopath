@@ -97,6 +97,24 @@ func TestMediaJobRetriesAreLeasedBoundedAndTerminal(t *testing.T) {
 		t.Fatalf("retry = %#v, %t, %v", retry, found, err)
 	}
 	if err := store.FinishMediaJob(context.Background(), retry, thumbnail.JobResult{
+		Outcome:    thumbnail.JobRetry,
+		Code:       thumbnail.JobErrorCache,
+		RetryDelay: 5 * time.Second,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(9 * time.Second)
+	if _, found, err := store.ClaimNextMediaJob(
+		context.Background(), time.Minute,
+	); err != nil || found {
+		t.Fatalf("early exponential retry claim = %t, %v", found, err)
+	}
+	now = now.Add(time.Second)
+	final, found, err := store.ClaimNextMediaJob(context.Background(), time.Minute)
+	if err != nil || !found || final.ID != job.ID || final.Attempt != 3 {
+		t.Fatalf("final retry = %#v, %t, %v", final, found, err)
+	}
+	if err := store.FinishMediaJob(context.Background(), final, thumbnail.JobResult{
 		Outcome: thumbnail.JobSucceeded,
 	}); err != nil {
 		t.Fatal(err)

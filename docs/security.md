@@ -129,6 +129,17 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 
 媒体处理任务写入受控缓存目录，使用随机临时文件和原子替换。缓存键不能直接包含未经处理的路径片段。
 
+`S3-006` 已把 MVP 解析预算固定为：图片编码最大 256 MiB、视频最大 4 GiB、单边最大
+32,768 px、总解码像素最大 100 MP、工具 stdout 最大 8 MiB、stderr 最大 64 KiB。
+应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；
+两个媒体 worker 是进程级唯一任务并发。FFmpeg/ffprobe 使用单 decoder/filter thread、
+15 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
+调用，不能承诺在任意 C 调用中间抢占或隔离 native crash；当前在求值前拒绝超限输入，并在
+返回后的第一个安全点重新检查取消。改变到进程隔离需要先接受 ADR。
+
+真实 Linux 8 MiB tmpfs `ENOSPC` fixture 已确认缓存发布失败不留下临时文件、不提交 ready，
+释放空间后可恢复；长期 WAL/temp 同卷竞争和最终卷容量仍由 Release Gate 验证。
+
 ## 容器和持久数据
 
 - 只把一个媒体 volume 挂到 `/library:ro`，不在其下创建子挂载；应用以非 root
@@ -160,8 +171,9 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
   跨 scope 复用、symlink 和 nested mount 原因码及公开错误脱敏。
 - 相同、祖先和后代媒体库重叠，以及两个数据库连接并发创建时只能有一个成功。
 - 挂载离线、权限错误、扫描中断和扫描期间路径变化。
-- 畸形图片、超大尺寸、长动画、损坏视频和媒体工具超时。
+- 畸形图片、像素炸弹、超大输入/尺寸、长动画、损坏视频、工具输出超限、超时进程树和
+  native 调用返回后的取消安全点。
 - HTTP Range、条件请求、无效 Range 和取消播放。
 - 管理员初始化竞态、未认证访问、登录限流、会话过期/撤销、退出、CSRF 和反向代理配置。
-- 非 root、单一只读媒体根挂载、无 mount capability、磁盘已满和数据库恢复的
+- 非 root、单一只读媒体根挂载、无 mount capability、真实 tmpfs 磁盘已满和数据库恢复的
   Docker 集成测试；非 Linux 结果不能代替 Linux mount-boundary 证据。

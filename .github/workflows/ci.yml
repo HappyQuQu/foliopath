@@ -173,6 +173,7 @@ jobs:
           pkg-config --modversion vips
       - name: Run the bounded govips fixture
         env:
+          GOMAXPROCS: "4"
           MALLOC_ARENA_MAX: "2"
         run: |
           cd spikes/fs03-vips
@@ -181,6 +182,18 @@ jobs:
           timeout 2m go test -tags libvips -count=1 -v ./internal/media/imagevips
           timeout 2m go test -tags libvips -count=1 \
             -run '^TestComposeOwnsValidatedConfiguration$' ./internal/app
+      - name: Run the real full-filesystem cache fixture
+        run: |
+          media_cache_root=/mnt/foliopath-media-cache
+          sudo mkdir -p "${media_cache_root}"
+          sudo mount -t tmpfs -o size=8m tmpfs "${media_cache_root}"
+          sudo chmod 0770 "${media_cache_root}"
+          trap 'sudo umount "${media_cache_root}"' EXIT
+          sudo chown "$(id -u):$(id -g)" "${media_cache_root}"
+          FOLIOPATH_FULL_CACHE_ROOT="${media_cache_root}" \
+            go test -count=1 -tags mediafull \
+            -run '^TestPublisherCleansTemporaryFileAfterRealDiskFull$' \
+            ./internal/thumbnail/cachefs
 
   mount-boundary:
     name: Linux mount boundary (${{ matrix.arch }})

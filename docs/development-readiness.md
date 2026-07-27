@@ -12,9 +12,10 @@ Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)也已结论为 `Go`，允�
 Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)已通过；[S3-002 Catalog 排序与
 游标](gates/MVP-2026-07-23/s3-catalog-keyset.md)和[S3-003 目录树与
 详情](gates/MVP-2026-07-23/s3-directory-tree.md)和[S3-004 媒体处理
-基础](gates/MVP-2026-07-23/s3-media-processing.md)和[S3-005 媒体任务与缓存
-保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)已完成，当前后端进入 `S3-006`
-敌意媒体、磁盘满与并发资源矩阵。
+基础](gates/MVP-2026-07-23/s3-media-processing.md)、[S3-005 媒体任务与缓存
+保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)和[S3-006 敌意媒体与资源
+安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)已完成，当前后端进入
+`S3-007` 浏览/缩略图 Backend Ready 汇总。
 这些结论都不把 Stage 3～5 整体标记为完成，也不授权共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式

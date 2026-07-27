@@ -33,3 +33,7 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S2-007：媒体库管理 Backend Ready](MVP-2026-07-23/s2-library-backend-ready.md)
 - [S3-001：目录与媒体浏览 Contract Ready](MVP-2026-07-23/s3-browse-contract-ready.md)
 - [S3-002：Catalog 排序与游标实现完成](MVP-2026-07-23/s3-catalog-keyset.md)
+- [S3-003：目录树与详情实现完成](MVP-2026-07-23/s3-directory-tree.md)
+- [S3-004：媒体处理基础实现完成](MVP-2026-07-23/s3-media-processing.md)
+- [S3-005：媒体任务与缓存保护实现完成](MVP-2026-07-23/s3-media-jobs-cache.md)
+- [S3-006：敌意媒体与资源安全实现完成](MVP-2026-07-23/s3-media-resource-safety.md)

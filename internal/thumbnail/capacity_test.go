@@ -63,6 +63,7 @@ type cacheStorageStub struct {
 	available int64
 	sizes     map[string]int64
 	removed   []string
+	removeErr error
 }
 
 func (stub *cacheStorageStub) AvailableBytes(context.Context) (int64, error) {
@@ -70,6 +71,9 @@ func (stub *cacheStorageStub) AvailableBytes(context.Context) (int64, error) {
 }
 
 func (stub *cacheStorageStub) Remove(_ context.Context, path string) error {
+	if stub.removeErr != nil {
+		return stub.removeErr
+	}
 	stub.removed = append(stub.removed, path)
 	stub.available += stub.sizes[path]
 	return nil
@@ -144,5 +148,49 @@ func TestCacheManagerFailsClosedWhenNoReconstructibleSpaceRemains(t *testing.T) 
 		context.Background(), 1,
 	); !errors.Is(err, ErrCacheCapacity) {
 		t.Fatalf("capacity error = %v", err)
+	}
+}
+
+func TestCacheManagerSerializesReservationsAndHonorsCancellation(t *testing.T) {
+	manager, _ := NewCacheManager(
+		&cacheRepositoryStub{quota: DefaultCacheQuotaBytes},
+		&cacheStorageStub{
+			available: CacheSafeFreeBytes + DefaultCacheQuotaBytes,
+			sizes:     map[string]int64{},
+		},
+	)
+	first, err := manager.Reserve(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := manager.Reserve(ctx, 1); !errors.Is(err, context.Canceled) {
+		t.Fatalf("blocked reservation error = %v", err)
+	}
+	first.Release()
+}
+
+func TestCacheManagerPreservesDatabaseStateWhenEvictionFails(t *testing.T) {
+	repository := &cacheRepositoryStub{
+		quota: 1000, usage: 100,
+		entries: []CacheEntry{
+			{AssetID: 1, CacheRelativePath: "ready.webp", ByteSize: 100},
+		},
+	}
+	storage := &cacheStorageStub{
+		available: CacheSafeFreeBytes - 1,
+		sizes:     map[string]int64{"ready.webp": 100},
+		removeErr: errors.New("injected cache filesystem failure"),
+	}
+	manager, _ := NewCacheManager(repository, storage)
+	if _, err := manager.Reserve(context.Background(), 1); err == nil {
+		t.Fatal("cache filesystem failure unexpectedly succeeded")
+	}
+	if repository.usage != 100 || len(repository.entries) != 1 {
+		t.Fatalf(
+			"database state changed after failed deletion: usage %d entries %v",
+			repository.usage, repository.entries,
+		)
 	}
 }
