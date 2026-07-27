@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +13,8 @@ type workerQueueStub struct {
 	mutex         sync.Mutex
 	work          []int
 	recoverCalled bool
+	recoverCalls  int
+	recoverErrAt  int
 	refreshCancel bool
 	refreshes     int
 }
@@ -20,6 +23,10 @@ func (stub *workerQueueStub) RecoverExpired(context.Context) (RecoverySummary, e
 	stub.mutex.Lock()
 	defer stub.mutex.Unlock()
 	stub.recoverCalled = true
+	stub.recoverCalls++
+	if stub.recoverErrAt > 0 && stub.recoverCalls >= stub.recoverErrAt {
+		return RecoverySummary{}, errors.New("injected recovery failure")
+	}
 	return RecoverySummary{}, nil
 }
 
@@ -197,6 +204,70 @@ func TestWorkerPoolHeartbeatPropagatesDurableCancellation(t *testing.T) {
 	defer queue.mutex.Unlock()
 	if queue.refreshes == 0 {
 		t.Fatal("work lease was never refreshed")
+	}
+}
+
+func TestWorkerPoolContinuesRecoveringExpiredWork(t *testing.T) {
+	queue := &workerQueueStub{}
+	pool, err := NewWorkerPool(
+		queue,
+		&blockingProcessor{},
+		testWakeSource{notifications: make(chan struct{}, 1)},
+		WorkerOptions{
+			Workers:           1,
+			HeartbeatInterval: 20 * time.Millisecond,
+			LeaseDuration:     100 * time.Millisecond,
+			IdlePollInterval:  5 * time.Millisecond,
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewWorkerPool() error = %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() { result <- pool.Run(ctx) }()
+	deadline := time.After(time.Second)
+	for {
+		queue.mutex.Lock()
+		recoverCalls := queue.recoverCalls
+		queue.mutex.Unlock()
+		if recoverCalls >= 2 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("periodic expired-work recovery did not run")
+		case <-time.After(time.Millisecond):
+		}
+	}
+	cancel()
+	if err := <-result; err != nil {
+		t.Fatalf("WorkerPool.Run() error = %v", err)
+	}
+}
+
+func TestWorkerPoolStopsWhenPeriodicRecoveryFails(t *testing.T) {
+	queue := &workerQueueStub{recoverErrAt: 2}
+	pool, err := NewWorkerPool(
+		queue,
+		&blockingProcessor{},
+		testWakeSource{notifications: make(chan struct{}, 1)},
+		WorkerOptions{
+			Workers:           1,
+			HeartbeatInterval: 20 * time.Millisecond,
+			LeaseDuration:     100 * time.Millisecond,
+			IdlePollInterval:  time.Millisecond,
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewWorkerPool() error = %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := pool.Run(ctx); err == nil ||
+		!strings.Contains(err.Error(), "recover expired work") {
+		t.Fatalf("WorkerPool.Run() error = %v", err)
 	}
 }
 

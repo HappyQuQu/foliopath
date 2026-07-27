@@ -24,6 +24,7 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S2-102：有界扫描 worker 实现完成](MVP-2026-07-23/s2-bounded-scan-worker.md)
 - [S2-103：目录索引与计数实现完成](MVP-2026-07-23/s2-directory-counts.md)
 - [S2-104：媒体候选与增量收敛实现完成](MVP-2026-07-23/s2-media-convergence.md)
+- [S2-105：扫描故障与重启恢复实现完成](MVP-2026-07-23/s2-scan-recovery.md)
 - [S2-004：媒体库生命周期实现完成](MVP-2026-07-23/s2-library-lifecycle-implemented.md)
 - [S2-005：媒体库文件系统安全矩阵](MVP-2026-07-23/s2-library-safety-matrix.md)
 - [S2-006：媒体库移除原媒体不变证明](MVP-2026-07-23/s2-library-removal-invariance.md)

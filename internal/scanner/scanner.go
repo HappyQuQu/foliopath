@@ -12,15 +12,19 @@ import (
 )
 
 var (
-	ErrScanActive          = errors.New("a full scan is already active for the library")
-	ErrScanRunNotFound     = errors.New("scan run not found")
-	ErrScanRunNotActive    = errors.New("scan run is not active")
-	ErrLibraryNotFound     = errors.New("scan library not found")
-	ErrLibraryOffline      = errors.New("library root is offline")
-	ErrRootIdentityChanged = errors.New("library root identity changed during scan")
-	ErrInvalidRootIdentity = errors.New("invalid library root identity")
-	ErrInvalidEntry        = errors.New("invalid scan entry")
-	ErrBatchTooLarge       = errors.New("scan batch exceeds configured limit")
+	ErrScanActive            = errors.New("a full scan is already active for the library")
+	ErrScanRunNotFound       = errors.New("scan run not found")
+	ErrScanRunNotActive      = errors.New("scan run is not active")
+	ErrLibraryNotFound       = errors.New("scan library not found")
+	ErrLibraryOffline        = errors.New("library root is offline")
+	ErrLibraryRootSymlink    = errors.New("library root is a symbolic link")
+	ErrLibraryMountBoundary  = errors.New("library contains a mount boundary")
+	ErrPartialTreeUnreadable = errors.New("part of the library tree is unreadable")
+	ErrScanIO                = errors.New("scan filesystem I/O failed")
+	ErrRootIdentityChanged   = errors.New("library root identity changed during scan")
+	ErrInvalidRootIdentity   = errors.New("invalid library root identity")
+	ErrInvalidEntry          = errors.New("invalid scan entry")
+	ErrBatchTooLarge         = errors.New("scan batch exceeds configured limit")
 )
 
 type Trigger string
@@ -410,7 +414,12 @@ func (s *Service) abort(
 	case errors.Is(cause, context.Canceled), errors.Is(cause, context.DeadlineExceeded):
 		finished, err = s.repository.CancelFullScan(finishCtx, run.ID, skipped)
 	case errors.Is(cause, ErrLibraryOffline):
-		finished, err = s.repository.OfflineFullScan(finishCtx, run.ID, skipped, "library_offline")
+		finished, err = s.repository.OfflineFullScan(
+			finishCtx,
+			run.ID,
+			skipped,
+			"library_root_unavailable",
+		)
 	default:
 		finished, err = s.repository.FailFullScan(finishCtx, run.ID, skipped, safeErrorCode(cause))
 	}
@@ -423,15 +432,17 @@ func (s *Service) abort(
 func safeErrorCode(err error) string {
 	switch {
 	case errors.Is(err, ErrRootIdentityChanged):
-		return "root_identity_changed"
-	case errors.Is(err, ErrInvalidRootIdentity):
-		return "invalid_root_identity"
-	case errors.Is(err, ErrInvalidEntry):
-		return "invalid_scan_entry"
-	case errors.Is(err, ErrBatchTooLarge):
-		return "scan_batch_too_large"
+		return "library_root_identity_changed"
+	case errors.Is(err, ErrLibraryRootSymlink):
+		return "library_root_symlink"
+	case errors.Is(err, ErrLibraryMountBoundary):
+		return "library_root_mount_boundary"
+	case errors.Is(err, ErrPartialTreeUnreadable):
+		return "partial_tree_unreadable"
+	case errors.Is(err, ErrScanIO):
+		return "scan_io_error"
 	default:
-		return "scan_failed"
+		return "internal_error"
 	}
 }
 

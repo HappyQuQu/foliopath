@@ -522,6 +522,8 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 	workerPath := filepath.Join(root, "internal", "jobs", "worker.go")
 	processorPath := filepath.Join(root, "internal", "scanner", "claimed_processor.go")
 	signalPath := filepath.Join(root, "internal", "jobs", "signal.go")
+	admissionPath := filepath.Join(root, "internal", "scanner", "admission.go")
+	storePath := filepath.Join(root, "internal", "store", "sqlite", "scan_worker.go")
 	queryPath := filepath.Join(root, "internal", "store", "sqlite", "queries", "scans.sql")
 	compositionPath := filepath.Join(root, "internal", "app", "run.go")
 
@@ -536,7 +538,25 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 				"DefaultHeartbeatInterval = 15 * time.Second",
 				"DefaultLeaseDuration     = 120 * time.Second",
 				"pool.queue.RecoverExpired(ctx)",
+				"func (pool *WorkerPool[T]) runRecovery(",
 				"pool.queue.Claim(ctx, pool.leaseDuration)",
+			},
+		},
+		{
+			path: admissionPath,
+			contents: []string{
+				"func (service *AdmissionService) RequestStartup(",
+				"ListStartupLibraryIDs(",
+				"TriggerStartup",
+				"ErrAdmissionCapacity",
+			},
+		},
+		{
+			path: storePath,
+			contents: []string{
+				"func (s *Store) ListStartupLibraryIDs(",
+				"ORDER BY libraries.id",
+				"library_removals.status IN ('queued', 'running')",
 			},
 		},
 		{
@@ -560,6 +580,7 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 			contents: []string{
 				"jobs.NewWorkerPool(",
 				"scanner.NewClaimedProcessor(",
+				"newScanWorkerComponent(scanWorker, scanAdmission)",
 				"scanComponent,",
 			},
 		},

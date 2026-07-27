@@ -3,12 +3,44 @@ package files
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
+
+func TestScanWalkerMapsBoundaryFailuresToStableScannerErrors(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{name: "nested mount", err: ErrCrossDevice, want: scanner.ErrLibraryMountBoundary},
+		{name: "permission", err: fs.ErrPermission, want: scanner.ErrPartialTreeUnreadable},
+		{name: "offline child", err: ErrOffline, want: scanner.ErrPartialTreeUnreadable},
+		{name: "other IO", err: errors.New("read failed"), want: scanner.ErrScanIO},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := scannerWalkError(test.err); !errors.Is(err, test.want) {
+				t.Fatalf("scannerWalkError() = %v, want %v", err, test.want)
+			}
+		})
+	}
+	if err := scannerRootError(ErrOffline); !errors.Is(err, scanner.ErrLibraryOffline) {
+		t.Fatalf("scannerRootError() = %v, want ErrLibraryOffline", err)
+	}
+	if err := scannerRootError(ErrCrossDevice); !errors.Is(
+		err,
+		scanner.ErrLibraryMountBoundary,
+	) {
+		t.Fatalf("scannerRootError() = %v, want ErrLibraryMountBoundary", err)
+	}
+	if err := scannerRootError(ErrSymlink); !errors.Is(err, scanner.ErrLibraryRootSymlink) {
+		t.Fatalf("scannerRootError() = %v, want ErrLibraryRootSymlink", err)
+	}
+}
 
 func TestScanWalkerUsesLibraryRelativePathsAndReportsPolicySkips(t *testing.T) {
 	allowedPath, root := newTestRoot(t)

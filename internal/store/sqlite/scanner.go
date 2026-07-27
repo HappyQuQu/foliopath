@@ -954,20 +954,19 @@ func getScanRunTx(ctx context.Context, tx *sql.Tx, runID int64) (scanner.ScanRun
 }
 
 func normalizeErrorCode(code string) string {
-	if code == "" {
-		return "scan_failed"
+	switch code {
+	case "library_root_unavailable",
+		"library_root_outside_allowed",
+		"library_root_symlink",
+		"library_root_mount_boundary",
+		"library_root_identity_changed",
+		"partial_tree_unreadable",
+		"scan_io_error",
+		"database_unavailable",
+		"scan_interrupted",
+		"internal_error":
+		return code
+	default:
+		return "internal_error"
 	}
-	if len(code) > 64 {
-		code = code[:64]
-	}
-	var result strings.Builder
-	for _, character := range strings.ToLower(code) {
-		if (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == '_' {
-			result.WriteRune(character)
-		}
-	}
-	if result.Len() == 0 {
-		return "scan_failed"
-	}
-	return result.String()
 }

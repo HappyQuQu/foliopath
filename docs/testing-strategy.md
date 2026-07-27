@@ -85,12 +85,17 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   真实文件 walker、SQLite 与 production creation worker 验证固定格式候选、同路径 ID/
   fingerprint 保持、纳秒 mtime 变化失效、重命名新 ID、processed counter 和成功后的
   stale 收敛；架构测试禁止复制候选注册表、fingerprint 编码或 stale SQL owner。
+- S2-105 覆盖取消、offline、根 identity 变化、部分目录不可读与 nested mount 的稳定
+  terminal code，验证所有非成功代次保留最后可靠索引；真实 production composition
+  验证启动时按 ID 分页 admission/coalesce `startup` scan，并验证启动后才到期的 lease
+  仍由周期恢复重新排队且最终收敛。架构测试固定 startup admission、恢复循环与 SQLite
+  keyset owner。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
 不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～104
-已完成目录/计数与媒体增量收敛；故障/重启与容量矩阵、浏览器流程和发布网络边界仍在后续
-Gate。
+已完成目录/计数、媒体增量收敛与故障/重启恢复；容量矩阵、浏览器流程和发布网络边界仍在
+后续 Gate。
 
 ### 前端单元与组件测试
 

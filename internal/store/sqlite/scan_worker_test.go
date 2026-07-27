@@ -48,6 +48,40 @@ func createWorkerLibrary(
 	return record
 }
 
+func TestListStartupLibraryIDsUsesKeysetAndExcludesActiveRemoval(t *testing.T) {
+	now := time.UnixMilli(5_000)
+	store := openTimedScanStore(t, &now)
+	ctx := context.Background()
+	first := createWorkerLibrary(t, store, "First", "first")
+	second := createWorkerLibrary(t, store, "Second", "second")
+	third := createWorkerLibrary(t, store, "Third", "third")
+	if _, err := store.db.ExecContext(ctx, `
+		INSERT INTO library_removals(
+			library_id, library_name, status, created_at_ms
+		) VALUES (?, ?, 'queued', ?)`,
+		second.ID,
+		second.Name,
+		now.UnixMilli(),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := store.ListStartupLibraryIDs(ctx, 0, 1)
+	if err != nil {
+		t.Fatalf("ListStartupLibraryIDs(first) error = %v", err)
+	}
+	if len(page) != 1 || page[0] != first.ID {
+		t.Fatalf("first startup page = %v", page)
+	}
+	page, err = store.ListStartupLibraryIDs(ctx, first.ID, 2)
+	if err != nil {
+		t.Fatalf("ListStartupLibraryIDs(second) error = %v", err)
+	}
+	if len(page) != 1 || page[0] != third.ID {
+		t.Fatalf("second startup page = %v", page)
+	}
+}
+
 func TestScanQueueClaimUsesDurableOrderAndLease(t *testing.T) {
 	now := time.UnixMilli(5_000)
 	store := openTimedScanStore(t, &now)

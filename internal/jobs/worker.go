@@ -108,8 +108,18 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 
 	workerContext, cancel := context.WithCancel(ctx)
 	defer cancel()
-	failures := make(chan error, pool.workers)
+	failures := make(chan error, pool.workers+1)
 	var workers sync.WaitGroup
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		if err := pool.runRecovery(workerContext); err != nil {
+			select {
+			case failures <- err:
+			case <-workerContext.Done():
+			}
+		}
+	}()
 	for index := 0; index < pool.workers; index++ {
 		workers.Add(1)
 		go func() {
@@ -132,6 +142,24 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 		cancel()
 		workers.Wait()
 		return err
+	}
+}
+
+func (pool *WorkerPool[T]) runRecovery(ctx context.Context) error {
+	ticker := time.NewTicker(pool.idlePollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			if _, err := pool.queue.RecoverExpired(ctx); err != nil {
+				if ctx.Err() != nil {
+					return nil
+				}
+				return fmt.Errorf("recover expired work: %w", err)
+			}
+		}
 	}
 }
 

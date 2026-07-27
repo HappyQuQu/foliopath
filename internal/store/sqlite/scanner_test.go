@@ -44,6 +44,17 @@ func catalogFixture(assetPath string) []scanner.CatalogEntry {
 	return entries
 }
 
+func TestNormalizeScanErrorCodeRejectsValuesOutsideContract(t *testing.T) {
+	if got := normalizeErrorCode("partial_tree_unreadable"); got != "partial_tree_unreadable" {
+		t.Fatalf("known error code = %q", got)
+	}
+	for _, input := range []string{"", "walk_failed", "permission denied", "/library/private"} {
+		if got := normalizeErrorCode(input); got != "internal_error" {
+			t.Fatalf("normalizeErrorCode(%q) = %q, want internal_error", input, got)
+		}
+	}
+}
+
 func countCatalog(t *testing.T, store *Store, libraryID int64) (directories, assets int64) {
 	t.Helper()
 	ctx := context.Background()
