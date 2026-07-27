@@ -125,6 +125,43 @@ func (publisher *Publisher) Remove(ctx context.Context, relative string) error {
 	return nil
 }
 
+func (publisher *Publisher) Open(
+	ctx context.Context,
+	relative string,
+) (thumbnail.CacheContent, error) {
+	if err := ctx.Err(); err != nil {
+		return thumbnail.CacheContent{}, err
+	}
+	if _, err := publisher.resolve(relative); err != nil {
+		return thumbnail.CacheContent{}, err
+	}
+	root, err := os.OpenRoot(publisher.root)
+	if errors.Is(err, os.ErrNotExist) {
+		return thumbnail.CacheContent{}, thumbnail.ErrCacheEntryMissing
+	}
+	if err != nil {
+		return thumbnail.CacheContent{}, fmt.Errorf("open thumbnail cache root: %w", err)
+	}
+	defer root.Close()
+	file, err := root.Open(relative)
+	if errors.Is(err, os.ErrNotExist) {
+		return thumbnail.CacheContent{}, thumbnail.ErrCacheEntryMissing
+	}
+	if err != nil {
+		return thumbnail.CacheContent{}, fmt.Errorf("open thumbnail cache entry: %w", err)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return thumbnail.CacheContent{}, fmt.Errorf("inspect thumbnail cache entry: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Size() <= 0 {
+		_ = file.Close()
+		return thumbnail.CacheContent{}, thumbnail.ErrCacheEntryMissing
+	}
+	return thumbnail.CacheContent{Reader: file, ByteSize: info.Size()}, nil
+}
+
 func (publisher *Publisher) resolve(relative string) (string, error) {
 	if relative == "" || filepath.IsAbs(relative) ||
 		filepath.ToSlash(filepath.Clean(relative)) != relative {

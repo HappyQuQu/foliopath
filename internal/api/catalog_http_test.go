@@ -2,17 +2,119 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
+	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 type catalogServiceStub struct {
-	list func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
-	get  func(context.Context, int64) (catalog.DirectoryDetail, error)
+	list       func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
+	get        func(context.Context, int64) (catalog.DirectoryDetail, error)
+	listAssets func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
+	getAsset   func(context.Context, int64) (catalog.Asset, error)
+}
+
+func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {
+	width := int64(100)
+	height := int64(80)
+	item := catalog.Asset{
+		ID: 9, LibraryID: 7, LibraryName: "Family", DirectoryID: 12,
+		Name: "photo.jpg", RelativePath: "Album/photo.jpg",
+		Kind: catalog.KindImage, MIMEType: "image/jpeg", SizeBytes: 123,
+		ModifiedAtNS:      1_700_000_000_123_000_000,
+		SourceFingerprint: "v1:123:1700000000123000000",
+		Availability:      catalog.SourceAvailable,
+		Width:             &width, Height: &height,
+		ProbeStatus: media.ProbeReady, PlaybackStatus: media.PlaybackNotApplicable,
+		ThumbnailStatus: "ready",
+	}
+	service := catalogServiceStub{
+		listAssets: func(
+			_ context.Context,
+			request catalog.AssetRequest,
+		) (catalog.AssetPage, error) {
+			if request.LibraryID != 7 || request.DirectoryID != 12 ||
+				!request.Recursive || len(request.Kinds) != 2 ||
+				request.Kinds[0] != catalog.KindImage ||
+				request.Kinds[1] != catalog.KindVideo ||
+				request.Sort != catalog.SortModifiedAt ||
+				request.Order != catalog.OrderDesc ||
+				request.Cursor != "opaque" || request.Limit != 25 {
+				t.Fatalf("asset request = %#v", request)
+			}
+			return catalog.AssetPage{Items: []catalog.Asset{item}, NextCursor: "next"}, nil
+		},
+		getAsset: func(_ context.Context, id int64) (catalog.Asset, error) {
+			if id != 9 {
+				t.Fatalf("asset id = %d", id)
+			}
+			return item, nil
+		},
+	}
+	mux := http.NewServeMux()
+	registerCatalogRoutes(mux, service)
+
+	list := httptest.NewRecorder()
+	mux.ServeHTTP(list, httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/libraries/lib_7/assets?directoryId=dir_12&recursive=true&kind=image,video&sort=modifiedAt&order=desc&cursor=opaque&limit=25",
+		nil,
+	))
+	if list.Code != http.StatusOK {
+		t.Fatalf("list status = %d; body = %s", list.Code, list.Body)
+	}
+	var page assetPageResponse
+	if err := json.NewDecoder(list.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "ast_9" ||
+		page.Items[0].Thumbnail.URL == nil ||
+		*page.Items[0].Thumbnail.URL != "/api/v1/assets/ast_9/thumbnail?variant=grid" ||
+		page.NextCursor == nil || *page.NextCursor != "next" {
+		t.Fatalf("asset page = %#v", page)
+	}
+
+	detail := httptest.NewRecorder()
+	mux.ServeHTTP(detail, httptest.NewRequest(
+		http.MethodGet, "/api/v1/assets/ast_9", nil,
+	))
+	if detail.Code != http.StatusOK {
+		t.Fatalf("detail status = %d; body = %s", detail.Code, detail.Body)
+	}
+	var got assetResponse
+	if err := json.NewDecoder(detail.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "ast_9" || got.LibraryID != "lib_7" ||
+		got.DirectoryID != "dir_12" || got.ModifiedAt == "" ||
+		got.SourceAvailability != catalog.SourceAvailable {
+		t.Fatalf("asset detail = %#v", got)
+	}
+}
+
+func (stub catalogServiceStub) ListAssets(
+	ctx context.Context,
+	request catalog.AssetRequest,
+) (catalog.AssetPage, error) {
+	if stub.listAssets == nil {
+		return catalog.AssetPage{}, errors.New("unexpected ListAssets")
+	}
+	return stub.listAssets(ctx, request)
+}
+
+func (stub catalogServiceStub) GetAsset(
+	ctx context.Context,
+	id int64,
+) (catalog.Asset, error) {
+	if stub.getAsset == nil {
+		return catalog.Asset{}, errors.New("unexpected GetAsset")
+	}
+	return stub.getAsset(ctx, id)
 }
 
 func (stub catalogServiceStub) ListDirectories(

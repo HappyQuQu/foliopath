@@ -13,10 +13,11 @@ Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)已通过；[S3-002 Cata
 游标](gates/MVP-2026-07-23/s3-catalog-keyset.md)和[S3-003 目录树与
 详情](gates/MVP-2026-07-23/s3-directory-tree.md)和[S3-004 媒体处理
 基础](gates/MVP-2026-07-23/s3-media-processing.md)、[S3-005 媒体任务与缓存
-保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)和[S3-006 敌意媒体与资源
-安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)已完成，当前后端进入
-`S3-007` 浏览/缩略图 Backend Ready 汇总。
-这些结论都不把 Stage 3～5 整体标记为完成，也不授权共享预览、非回环监听或发布。
+保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)、[S3-006 敌意媒体与资源
+安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)和[S3-007 浏览与缩略图 Backend
+Ready](gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)已完成，允许前端接入
+资产分页、详情和缩略图。当前后端进入 `S4-001` 搜索契约。
+这些结论不把前端、Stage 4～5 或发布标记为完成，也不授权共享预览或非回环监听。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client

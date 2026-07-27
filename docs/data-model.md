@@ -79,8 +79,9 @@ S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`�
 `libraries/lib_<library-id>/` 子树内，使 removal worker 无需接触 `/library` 即可幂等清理。
 文件先原子落盘，再提交可用状态；数据库不得把不存在或未完成的缓存文件标记为可用。
 migration 8 已实现该表和 ready/failed 状态约束；durable media job、LRU 与访问时间刷新
-由 migration 9 和 `internal/thumbnail` 缓存策略实现；HTTP 命中时的访问时间刷新仍由
-S3-007 接入。
+由 migration 9 和 `internal/thumbnail` 缓存策略实现。S3-007 已在 ready/304 HTTP 命中时
+刷新访问时间；若数据库 ready 文件缺失或长度不符，会在短事务中撤销 thumbnail ready、
+重置 asset probe 并把同 fingerprint media job 归零重排，不在请求线程同步生成。
 
 ### `media_jobs`
 

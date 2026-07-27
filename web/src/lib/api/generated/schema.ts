@@ -89,6 +89,9 @@ export interface paths {
          *     the endpoint returns a structured `202` response and `Retry-After`; the
          *     frontend uses its canonical local placeholder and retries with backoff.
          *     A failed transform returns a stable safe error and never raw tool output.
+         *     If a database-ready cache file is missing or has the wrong size, the
+         *     server atomically returns the transform to the durable queue and responds
+         *     with the same bounded pending state; it never regenerates media inline.
          */
         get: operations["getAssetThumbnail"];
         put?: never;
@@ -1061,7 +1064,7 @@ export interface components {
              * @description Safe stable code when status is failed or unavailable.
              * @enum {string|null}
              */
-            errorCode: "source_offline" | "source_missing" | "unsupported_media" | "invalid_media" | "media_processing_failed" | "media_processing_timeout" | null;
+            errorCode: "source_offline" | "source_missing" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | null;
             /** @enum {string} */
             status: "pending" | "ready" | "failed" | "unavailable";
             /** @description Same-origin relative URL, present only when status is ready. */

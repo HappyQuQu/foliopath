@@ -33,6 +33,7 @@ const (
 var (
 	ErrLibraryNotFound    = errors.New("catalog library not found")
 	ErrDirectoryNotFound  = errors.New("catalog directory not found")
+	ErrAssetNotFound      = errors.New("catalog asset not found")
 	ErrInvalidQuery       = errors.New("invalid catalog query")
 	ErrInvalidCursor      = errors.New("invalid catalog cursor")
 	ErrSearchUnavailable  = errors.New("catalog search is not implemented")
@@ -196,6 +197,7 @@ type Repository interface {
 	ResolveScope(context.Context, int64, int64) (Scope, error)
 	ListDirectoryPage(context.Context, DirectoryListParams) ([]Directory, error)
 	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
+	GetAsset(context.Context, int64) (Asset, error)
 	GetDirectoryLineage(context.Context, int64, int) (DirectoryLineage, error)
 }
 
@@ -419,6 +421,23 @@ func (service *Service) ListAssets(ctx context.Context, request AssetRequest) (A
 		return AssetPage{}, err
 	}
 	return AssetPage{Items: items, NextCursor: next}, nil
+}
+
+func (service *Service) GetAsset(ctx context.Context, assetID int64) (Asset, error) {
+	if err := ctx.Err(); err != nil {
+		return Asset{}, err
+	}
+	if assetID <= 0 {
+		return Asset{}, ErrAssetNotFound
+	}
+	item, err := service.repository.GetAsset(ctx, assetID)
+	if err != nil {
+		return Asset{}, err
+	}
+	if err := validateAsset(item); err != nil {
+		return Asset{}, err
+	}
+	return item, nil
 }
 
 func validateAsset(item Asset) error {

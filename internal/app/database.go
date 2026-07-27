@@ -14,6 +14,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
@@ -36,6 +37,7 @@ type databaseStore interface {
 	thumbnail.Repository
 	thumbnail.CacheRepository
 	thumbnail.JobCompletionRepository
+	thumbnail.DeliveryRepository
 	scanQueueStore
 	mediaQueueStore
 	Close() error
@@ -75,6 +77,18 @@ func (service *databaseService) ListAssetPage(
 		return nil, catalog.ErrRepositoryNotReady
 	}
 	return service.store.ListAssetPage(ctx, params)
+}
+
+func (service *databaseService) GetAsset(
+	ctx context.Context,
+	assetID int64,
+) (catalog.Asset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return catalog.Asset{}, catalog.ErrRepositoryNotReady
+	}
+	return service.store.GetAsset(ctx, assetID)
 }
 
 func (service *databaseService) GetDirectoryLineage(
@@ -124,6 +138,44 @@ func (service *databaseService) CommitFailure(
 		return thumbnail.ErrRepositoryNotReady
 	}
 	return service.store.CommitFailure(ctx, failure)
+}
+
+func (service *databaseService) GetThumbnailDelivery(
+	ctx context.Context,
+	assetID int64,
+) (thumbnail.DeliveryState, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.DeliveryState{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.GetThumbnailDelivery(ctx, assetID)
+}
+
+func (service *databaseService) TouchThumbnail(
+	ctx context.Context,
+	assetID int64,
+	fingerprint media.SourceFingerprint,
+	cachePath string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.TouchThumbnail(ctx, assetID, fingerprint, cachePath)
+}
+
+func (service *databaseService) RequeueMissingThumbnail(
+	ctx context.Context,
+	state thumbnail.DeliveryState,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.RequeueMissingThumbnail(ctx, state)
 }
 
 func (service *databaseService) CacheQuota(ctx context.Context) (int64, error) {

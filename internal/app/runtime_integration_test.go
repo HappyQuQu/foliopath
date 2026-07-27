@@ -398,6 +398,58 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		cancel()
 		t.Fatalf("creation scan result = %#v", current)
 	}
+	unauthorizedAssets := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/libraries/lib_1/assets?limit=20", "", "", "",
+	)
+	if unauthorizedAssets.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized asset browse response = %#v", unauthorizedAssets)
+	}
+	indexedAssets := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/libraries/lib_1/assets?recursive=true&limit=20",
+		"", setup.Cookie, "",
+	)
+	if indexedAssets.StatusCode != http.StatusOK {
+		t.Fatalf("indexed asset response = %#v", indexedAssets)
+	}
+	var assetPage struct {
+		Items []struct {
+			ID           string `json:"id"`
+			RelativePath string `json:"relativePath"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(indexedAssets.Body), &assetPage); err != nil {
+		t.Fatal(err)
+	}
+	if len(assetPage.Items) != 3 || assetPage.Items[0].ID == "" {
+		t.Fatalf("indexed asset page = %#v", assetPage)
+	}
+	assetDetail := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/assets/"+assetPage.Items[0].ID, "", setup.Cookie, "",
+	)
+	if assetDetail.StatusCode != http.StatusOK ||
+		!strings.Contains(assetDetail.Body, `"libraryId":"lib_1"`) ||
+		!strings.Contains(assetDetail.Body, `"thumbnail":`) {
+		t.Fatalf("indexed asset detail = %#v", assetDetail)
+	}
+	unauthorizedThumbnail := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/assets/"+assetPage.Items[0].ID+"/thumbnail", "", "", "",
+	)
+	if unauthorizedThumbnail.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized thumbnail response = %#v", unauthorizedThumbnail)
+	}
+	thumbnailState := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/assets/"+assetPage.Items[0].ID+"/thumbnail",
+		"", setup.Cookie, "",
+	)
+	if thumbnailState.StatusCode != http.StatusAccepted &&
+		thumbnailState.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("thumbnail state response = %#v", thumbnailState)
+	}
 	if err := os.Rename(
 		filepath.Join(mediaRoot, "family"),
 		filepath.Join(mediaRoot, "family-unavailable"),

@@ -37,3 +37,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S3-004：媒体处理基础实现完成](MVP-2026-07-23/s3-media-processing.md)
 - [S3-005：媒体任务与缓存保护实现完成](MVP-2026-07-23/s3-media-jobs-cache.md)
 - [S3-006：敌意媒体与资源安全实现完成](MVP-2026-07-23/s3-media-resource-safety.md)
+- [S3-007：浏览与缩略图 Backend Ready](MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)

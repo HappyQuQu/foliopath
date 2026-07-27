@@ -206,6 +206,12 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct thumbnail service: %w", err)
 	}
+	thumbnailDelivery, err := thumbnail.NewDeliveryService(
+		database, cachePublisher, mediaSignal,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct thumbnail delivery service: %w", err)
+	}
 	mediaProcessor, err := thumbnail.NewClaimedProcessor(
 		thumbnailService, database,
 	)
@@ -247,6 +253,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Scans:          scanQueries,
 		Settings:       settingsService,
 		Catalog:        catalogService,
+		Thumbnails:     thumbnailDelivery,
 	})
 	if err != nil {
 		return nil, err

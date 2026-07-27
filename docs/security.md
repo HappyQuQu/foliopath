@@ -129,6 +129,12 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 
 媒体处理任务写入受控缓存目录，使用随机临时文件和原子替换。缓存键不能直接包含未经处理的路径片段。
 
+`S3-007` 的缩略图读取仍经过集中 session middleware；API 只接受 opaque asset ID，
+handler 不接收缓存路径、不访问 SQLite/文件系统，也不调用媒体工具。delivery capability
+只打开数据库记录的 `/app/data/cache` 相对路径，返回 WebP、ETag、private immutable cache、
+`nosniff` 与限制型 CSP。缓存缺失或长度异常只撤销派生 ready 并重排 durable job；
+公开错误不包含 cache path，离线源返回稳定 `source_offline`。
+
 `S3-006` 已把 MVP 解析预算固定为：图片编码最大 256 MiB、视频最大 4 GiB、单边最大
 32,768 px、总解码像素最大 100 MP、工具 stdout 最大 8 MiB、stderr 最大 64 KiB。
 应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；

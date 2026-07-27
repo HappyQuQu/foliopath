@@ -170,3 +170,157 @@ func (s *Store) CommitFailure(ctx context.Context, failure thumbnail.Failure) er
 		return nil
 	})
 }
+
+func (s *Store) GetThumbnailDelivery(
+	ctx context.Context,
+	assetID int64,
+) (thumbnail.DeliveryState, error) {
+	if assetID <= 0 {
+		return thumbnail.DeliveryState{}, thumbnail.ErrAssetNotFound
+	}
+	var state thumbnail.DeliveryState
+	var fingerprint, libraryStatus string
+	var thumbnailStatus, jobStatus, cachePath, errorCode sql.NullString
+	var byteSize sql.NullInt64
+	err := s.db.QueryRowContext(ctx, `
+        SELECT a.id, a.source_fingerprint, l.status,
+               t.status, t.cache_rel_path, t.byte_size, t.error_code,
+               j.status
+        FROM assets a
+        JOIN libraries l ON l.id = a.library_id
+        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
+        LEFT JOIN media_jobs j ON j.asset_id = a.id AND j.variant = 'grid'
+        WHERE a.id = ?`,
+		assetID,
+	).Scan(
+		&state.AssetID, &fingerprint, &libraryStatus,
+		&thumbnailStatus, &cachePath, &byteSize, &errorCode, &jobStatus,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return thumbnail.DeliveryState{}, thumbnail.ErrAssetNotFound
+	}
+	if err != nil {
+		return thumbnail.DeliveryState{}, fmt.Errorf("get thumbnail delivery: %w", err)
+	}
+	state.SourceFingerprint = media.SourceFingerprint(fingerprint)
+	if !state.SourceFingerprint.Valid() {
+		return thumbnail.DeliveryState{}, thumbnail.ErrInvalidState
+	}
+	if libraryStatus == "offline" {
+		state.Status = thumbnail.DeliveryOffline
+		state.ErrorCode = media.ProcessingErrorCode("source_offline")
+		return state, nil
+	}
+	if thumbnailStatus.String == "ready" {
+		state.Status = thumbnail.DeliveryReady
+		state.CacheRelativePath = cachePath.String
+		state.ByteSize = byteSize.Int64
+		return state, nil
+	}
+	if thumbnailStatus.String == "failed" {
+		state.Status = thumbnail.DeliveryFailed
+		state.ErrorCode = media.ProcessingErrorCode(errorCode.String)
+		return state, nil
+	}
+	if jobStatus.String == "running" {
+		state.Status = thumbnail.DeliveryRunning
+	} else {
+		state.Status = thumbnail.DeliveryQueued
+	}
+	return state, nil
+}
+
+func (s *Store) TouchThumbnail(
+	ctx context.Context,
+	assetID int64,
+	fingerprint media.SourceFingerprint,
+	cachePath string,
+) error {
+	if assetID <= 0 || !fingerprint.Valid() || cachePath == "" {
+		return thumbnail.ErrInvalidState
+	}
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+            UPDATE thumbnails
+            SET last_accessed_at_ms = ?
+            WHERE asset_id = ? AND variant = 'grid' AND status = 'ready'
+              AND source_fingerprint = ? AND cache_rel_path = ?`,
+			s.nowMS(), assetID, fingerprint.String(), cachePath,
+		)
+		if err != nil {
+			return fmt.Errorf("touch thumbnail delivery: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect thumbnail delivery touch: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrSourceChanged
+		}
+		return nil
+	})
+}
+
+func (s *Store) RequeueMissingThumbnail(
+	ctx context.Context,
+	state thumbnail.DeliveryState,
+) error {
+	if state.AssetID <= 0 || !state.SourceFingerprint.Valid() ||
+		state.Status != thumbnail.DeliveryReady ||
+		state.CacheRelativePath == "" || state.ByteSize <= 0 {
+		return thumbnail.ErrInvalidState
+	}
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+            DELETE FROM thumbnails
+            WHERE asset_id = ? AND variant = 'grid' AND status = 'ready'
+              AND source_fingerprint = ? AND cache_rel_path = ? AND byte_size = ?`,
+			state.AssetID, state.SourceFingerprint.String(),
+			state.CacheRelativePath, state.ByteSize,
+		)
+		if err != nil {
+			return fmt.Errorf("invalidate missing thumbnail cache: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect missing thumbnail invalidation: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrSourceChanged
+		}
+		if _, err := tx.ExecContext(ctx, `
+            UPDATE assets
+            SET width = NULL, height = NULL, duration_ms = NULL,
+                probe_status = 'pending', probe_error_code = NULL,
+                playback_status = 'unknown'
+            WHERE id = ? AND source_fingerprint = ?`,
+			state.AssetID, state.SourceFingerprint.String(),
+		); err != nil {
+			return fmt.Errorf("reset missing thumbnail metadata: %w", err)
+		}
+		now := s.nowMS()
+		job, err := tx.ExecContext(ctx, `
+            UPDATE media_jobs
+            SET transform_version = ?, status = 'queued',
+                last_error_code = NULL, available_at_ms = ?,
+                started_at_ms = NULL, heartbeat_at_ms = NULL,
+                lease_expires_at_ms = NULL, attempt_count = 0,
+                created_at_ms = ?, finished_at_ms = NULL
+            WHERE asset_id = ? AND variant = 'grid'
+              AND source_fingerprint = ?`,
+			thumbnail.GridTransformVersion, now, now,
+			state.AssetID, state.SourceFingerprint.String(),
+		)
+		if err != nil {
+			return fmt.Errorf("requeue missing thumbnail: %w", err)
+		}
+		changed, err = job.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect missing thumbnail requeue: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrSourceChanged
+		}
+		return nil
+	})
+}

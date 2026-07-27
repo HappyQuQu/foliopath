@@ -139,6 +139,11 @@ Web API client 基础，但它们只是消费者契约边界。因此“认证 C
 S3 Contract Ready 只授权实现目录与无搜索浏览；OpenAPI 中的 `q` 和跨库搜索仍由 Stage 4 Gate
 决定何时可供产品 UI 使用，前端不能仅因生成 client 出现参数就绕过对应 Backend Ready Gate。
 
+S3-007 已通过浏览与缩略图 Backend Ready：无搜索资产分页、资产详情和 grid thumbnail
+可由生成 client 消费。thumbnail 固定 pending `202`、ready `200/304`、offline `409` 与
+安全 failed `422`；数据库 ready 缓存丢失或长度异常时原子重排 durable job 并返回 pending，
+HTTP 请求不执行媒体解析。搜索与原内容仍等待 Stage 4。
+
 ### Asset
 
 ```json
@@ -161,7 +166,7 @@ S3 Contract Ready 只授权实现目录与无搜索浏览；OpenAPI 中的 `q` �
   "sourceAvailability": "available",
   "thumbnail": {
     "status": "ready",
-    "url": "/api/v1/assets/asset_.../thumbnail?variant=grid",
+    "url": "/api/v1/assets/ast_.../thumbnail?variant=grid",
     "errorCode": null
   }
 }

@@ -1221,7 +1221,18 @@ paths:
         the endpoint returns a structured `202` response and `Retry-After`; the
         frontend uses its canonical local placeholder and retries with backoff.
         A failed transform returns a stable safe error and never raw tool output.
+        If a database-ready cache file is missing or has the wrong size, the
+        server atomically returns the transform to the durable queue and responds
+        with the same bounded pending state; it never regenerates media inline.
       x-requirements: [FR-MED-001, FR-MED-002, FR-MED-008, NFR-PERF-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '409': [source_offline]
+        '422': [unsupported_media, invalid_media, thumbnail_failed, media_processing_timeout]
+        '429': [rate_limited]
+        '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/AssetIDParameter'
         - $ref: '#/components/parameters/ThumbnailVariantParameter'
@@ -2828,7 +2839,7 @@ components:
             - source_missing
             - unsupported_media
             - invalid_media
-            - media_processing_failed
+            - thumbnail_failed
             - media_processing_timeout
           description: Safe stable code when status is failed or unavailable.
 

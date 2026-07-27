@@ -48,6 +48,7 @@ type RouteDependencies struct {
 	Scans          ScanQueryService
 	Settings       SettingsService
 	Catalog        CatalogService
+	Thumbnails     ThumbnailService
 }
 
 type SettingsService interface {
@@ -84,6 +85,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Catalog != nil {
 		registerCatalogRoutes(mux, dependencies.Catalog)
+	}
+	if dependencies.Thumbnails != nil {
+		registerThumbnailRoute(mux, dependencies.Thumbnails)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

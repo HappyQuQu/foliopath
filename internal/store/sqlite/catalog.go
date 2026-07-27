@@ -357,6 +357,71 @@ func (s *Store) ListAssetPage(
 	return items, nil
 }
 
+func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, error) {
+	if assetID <= 0 {
+		return catalog.Asset{}, catalog.ErrAssetNotFound
+	}
+	var item catalog.Asset
+	var kind, probeStatus, playbackStatus, libraryStatus string
+	var width, height, durationMS sql.NullInt64
+	var probeError, thumbnailStatus, thumbnailError sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+        SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
+               a.natural_name_key, a.kind, a.media_format, a.mime_type,
+               a.size_bytes, a.mtime_ns, a.source_fingerprint,
+               a.width, a.height, a.duration_ms, a.probe_status,
+               a.probe_error_code, a.playback_status,
+               t.status, t.error_code, l.status
+        FROM assets a
+        JOIN libraries l ON l.id = a.library_id
+        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
+        WHERE a.id = ?`,
+		assetID,
+	).Scan(
+		&item.ID, &item.LibraryID, &item.LibraryName,
+		&item.DirectoryID, &item.RelativePath, &item.Name,
+		&item.NaturalNameKey, &kind, &item.MediaFormat, &item.MIMEType,
+		&item.SizeBytes, &item.ModifiedAtNS, &item.SourceFingerprint,
+		&width, &height, &durationMS, &probeStatus, &probeError,
+		&playbackStatus, &thumbnailStatus, &thumbnailError, &libraryStatus,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return catalog.Asset{}, catalog.ErrAssetNotFound
+	}
+	if err != nil {
+		return catalog.Asset{}, fmt.Errorf("get catalog asset: %w", err)
+	}
+	item.Kind = catalog.AssetKind(kind)
+	item.Availability = catalog.SourceAvailable
+	if libraryStatus == "offline" {
+		item.Availability = catalog.SourceOffline
+	}
+	item.ProbeStatus = media.ProbeStatus(probeStatus)
+	item.PlaybackStatus = media.PlaybackStatus(playbackStatus)
+	if width.Valid {
+		item.Width = &width.Int64
+	}
+	if height.Valid {
+		item.Height = &height.Int64
+	}
+	if durationMS.Valid {
+		item.DurationMS = &durationMS.Int64
+	}
+	if probeError.Valid {
+		value := media.ProcessingErrorCode(probeError.String)
+		item.ProbeErrorCode = &value
+	}
+	item.ThumbnailStatus = "pending"
+	if thumbnailStatus.Valid {
+		item.ThumbnailStatus = thumbnailStatus.String
+	}
+	if thumbnailError.Valid {
+		value := media.ProcessingErrorCode(thumbnailError.String)
+		item.ThumbnailErrorCode = &value
+	}
+	return item, nil
+}
+
 func appendAssetKeyset(
 	builder *strings.Builder,
 	args *[]any,

@@ -1096,6 +1096,67 @@ func TestMediaJobsAndCachePolicyHaveCanonicalOwners(t *testing.T) {
 	}
 }
 
+func TestThumbnailHTTPUsesCanonicalDeliveryBoundary(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, required := range []struct {
+		relative string
+		contents []string
+	}{
+		{
+			relative: "internal/thumbnail/delivery.go",
+			contents: []string{
+				"type DeliveryRepository interface",
+				"type CacheReader interface",
+				"RequeueMissingThumbnail",
+				"TouchThumbnail",
+			},
+		},
+		{
+			relative: "internal/api/thumbnail_http.go",
+			contents: []string{
+				`GET /api/v1/assets/{assetId}/thumbnail`,
+				"type ThumbnailService interface",
+				"writeReadyThumbnail",
+			},
+		},
+		{
+			relative: "internal/app/run.go",
+			contents: []string{
+				"thumbnail.NewDeliveryService(",
+				"Thumbnails:     thumbnailDelivery",
+			},
+		},
+	} {
+		path := filepath.Join(root, filepath.FromSlash(required.relative))
+		source, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing thumbnail delivery boundary %q",
+					required.relative, content)
+			}
+		}
+	}
+
+	apiPath := filepath.Join(root, "internal", "api", "thumbnail_http.go")
+	apiSource, err := os.ReadFile(apiPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{
+		`"os"`,
+		`"path/filepath"`,
+		`"github.com/HappyQuQu/foliopath/internal/store/sqlite"`,
+		`"github.com/HappyQuQu/foliopath/internal/thumbnail/cachefs"`,
+	} {
+		if strings.Contains(string(apiSource), forbidden) {
+			t.Errorf("thumbnail HTTP bypasses canonical delivery service with %s", forbidden)
+		}
+	}
+}
+
 func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
 	root := repositoryRoot(t)
 	codecPath := filepath.Join(root, "internal", "cursor", "codec.go")

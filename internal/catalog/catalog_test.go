@@ -19,6 +19,8 @@ type repositoryStub struct {
 	resolveErr     error
 	lineage        DirectoryLineage
 	lineageErr     error
+	getAsset       Asset
+	getAssetErr    error
 }
 
 func (stub *repositoryStub) ResolveScope(
@@ -60,6 +62,13 @@ func (stub *repositoryStub) ListAssetPage(
 	}
 	stub.assetCalls = append(stub.assetCalls, params)
 	return append([]Asset(nil), stub.assets...), nil
+}
+
+func (stub *repositoryStub) GetAsset(ctx context.Context, _ int64) (Asset, error) {
+	if err := ctx.Err(); err != nil {
+		return Asset{}, err
+	}
+	return stub.getAsset, stub.getAssetErr
 }
 
 func (stub *repositoryStub) GetDirectoryLineage(
