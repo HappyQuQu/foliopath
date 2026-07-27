@@ -174,7 +174,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
 
 ## Stage 3：浏览与缩略图后端
 
-- [ ] `S3-001` 固定目录树、面包屑、当前目录和递归媒体列表的游标契约。
+- [x] `S3-001` 固定目录树、面包屑、当前目录和递归媒体列表的游标契约。
+  - 完成证据：[目录与媒体浏览 Contract Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)；
+    已固定可序列化 root、root-to-current breadcrumb、direct/recursive scope、自然名称/
+    修改时间 tuple、generation-bound cursor、跨库 404、offline preserved index 与请求不访问
+    文件系统。允许进入 S3-002/003，不授权缩略图、搜索、前端集成或发布。
 - [ ] `S3-002` 实现稳定排序、opaque cursor、查询指纹和请求取消。
 - [ ] `S3-003` 实现包含空目录及直接/递归计数的目录树。
 - [ ] `S3-004` 实现 govips/FFmpeg 媒体探测、缩略图/视频封面和损坏状态。

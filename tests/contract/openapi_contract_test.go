@@ -607,6 +607,76 @@ func TestCursorPaginationIsBoundedAndQueryBound(t *testing.T) {
 	}
 }
 
+func TestBrowseContractDefinesRootScopeBreadcrumbsAndReliableIndexSemantics(t *testing.T) {
+	t.Parallel()
+
+	operations := map[string][]string{
+		"GET /api/v1/libraries/{libraryId}/directories": {
+			"'400': [invalid_request, invalid_cursor]",
+			"'404': [library_not_found, directory_not_found]",
+			"indexed root-directory ID is equivalent",
+			"`(naturalNameKey ASC, name ASC, id ASC)`",
+			"reliable catalog generation",
+			"offline library still",
+			"never traverses the filesystem",
+		},
+		"GET /api/v1/directories/{directoryId}": {
+			"'404': [directory_not_found]",
+			"valid resource",
+			"ordered root-to-current",
+			"contains exactly one item",
+			"Offline libraries return preserved",
+			"never checks or traverses the filesystem",
+		},
+		"GET /api/v1/libraries/{libraryId}/assets": {
+			"'400': [invalid_request, invalid_cursor]",
+			"'404': [library_not_found, directory_not_found]",
+			"`recursive=false` returns only assets",
+			"`recursive=true` includes the selected directory",
+			"`(naturalNameKey, name, relativePath, id)`",
+			"`(modifiedAt, id)`",
+			"reliable catalog generation",
+			"never falls back to page one",
+			"Offline libraries return preserved",
+			"never traverses the filesystem",
+		},
+	}
+	for key, required := range operations {
+		block := strings.Join(strings.Fields(operationByKey(t, key).block), " ")
+		for _, content := range required {
+			if !strings.Contains(block, content) {
+				t.Errorf("%s is missing browse contract %q", key, content)
+			}
+		}
+	}
+
+	for schema, required := range map[string][]string{
+		"Directory": {
+			"For the library root",
+			"`relativePath` is empty",
+			"`parentId` is null",
+			"last reliable finalized generation",
+		},
+		"DirectoryDetail": {
+			"complete safe root-to-current",
+			"minItems: 1",
+			"maxItems: 2049",
+			"Ordered root-to-current, inclusive",
+		},
+		"Asset": {
+			"`directoryId` may identify the indexed library",
+			"root representation rules",
+		},
+	} {
+		block := strings.Join(strings.Fields(schemaBlock(t, schema)), " ")
+		for _, content := range required {
+			if !strings.Contains(block, content) {
+				t.Errorf("%s schema is missing browse invariant %q", schema, content)
+			}
+		}
+	}
+}
+
 func TestMediaContentLocksSingleRangeAndSafeHeaders(t *testing.T) {
 	t.Parallel()
 

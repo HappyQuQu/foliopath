@@ -26,7 +26,7 @@
 | `internal/auth` | 唯一管理员原子初始化、凭据验证、会话生命周期、退出/撤销、CSRF 与认证限流语义 | 用户/会话 repository、密码哈希器、时钟、随机源、审计端口 | Cookie/HTTP 头序列化、具体 SQLite 查询、代理头解析 |
 | `internal/settings` | typed 设置的读取、原子更新和 revision 语义；聚合由消费 capability 注入的字段校验器 | settings repository、字段校验器、变更通知端口 | 任意 key/value、消费方范围规则副本、HTTP DTO、具体 SQLite 查询 |
 | `internal/library` | 媒体库名称唯一性、允许根下的库根值、重叠拒绝、改名、根不可变、离线/删除业务语义 | library repository、根检查端口、扫描请求端口 | OS 路径打开、扫描遍历、直接删除缓存文件 |
-| `internal/catalog` | `Directory`/`Asset` 领域模型、库作用域、目录计数语义、浏览/搜索/排序、keyset cursor 与查询指纹 | catalog repository、媒体可用性/派生状态的窄读接口 | 请求时递归文件系统、HTTP 查询参数 DTO、SQLite FTS 语句 |
+| `internal/catalog` | `Directory`/`Asset` 领域模型、indexed root 公开映射、库/目录/递归 scope normalization、目录计数语义、浏览/搜索/排序、keyset cursor payload 与查询指纹 | catalog repository、媒体可用性/派生状态的窄读接口、`internal/cursor` codec | 请求时递归文件系统、HTTP 查询参数 DTO、SQLite FTS 语句 |
 | `internal/scanner` | 完整/增量校准、generation 状态机、遍历批次、成功清理资格、取消与跳过统计 | walker、scan repository、媒体分类器、派生任务发布端口、时钟 | 无界 goroutine、媒体解码、HTTP 轮询、失败扫描的陈旧清理 |
 | `internal/thumbnail` | 缩略图/封面 variant、源失效、transform version、缓存键、派生状态、配额与 LRU 业务语义 | asset reader、processor、cache、thumbnail repository、job handler | 原媒体写入、SQLite BLOB、shell 命令、HTTP 占位响应决定 |
 | `internal/media` | MVP 媒体格式注册表、魔数/类型验证策略、元数据探测、原媒体内容服务语义、媒体工具限制 | safe opener、probe/poster processor、catalog reader | HTTP handler、任意客户端路径、视频转码、无界子进程 |
@@ -93,6 +93,7 @@ flowchart TD
 | 媒体库名称、重叠与根不可变 | `internal/library` | API、scanner、设置 UI | path picker 或数据库约束单独充当最终业务校验 |
 | 媒体格式、魔数和工具路由 | `internal/media` | scanner、thumbnail、catalog | scanner/thumbnail/UI 各维护一套扩展名或 MIME 表 |
 | Asset/Directory 身份、源指纹语义 | `internal/catalog` | scanner、media、thumbnail、store adapter | 以 inode、主机绝对路径或缓存文件名另造媒体身份 |
+| indexed root、breadcrumb 与 direct/recursive browse scope | `internal/catalog` | API 只翻译 DTO；SQLite adapter 实现查询端口 | handler/store 各自映射空 root、跨库目录或递归范围 |
 | 完整扫描 generation 和清理资格 | `internal/scanner` | library、jobs、store adapter、API 只读状态 | store trigger、watcher 或 API handler自行清理陈旧记录 |
 | opaque token 加密认证机制 | `internal/cursor` | 资源 capability 把 payload 交给 codec | capability 各复制 AES-GCM、nonce 或 Base64 编解码 |
 | 游标 payload、查询绑定与稳定排序 | 对应资源 capability（如 `library`、`scanner`、`catalog`） | API、生成客户端把游标视为 opaque | handler、前端自定义分页 token；大型列表使用 `OFFSET` |

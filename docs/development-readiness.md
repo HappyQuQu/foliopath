@@ -8,7 +8,9 @@
 Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)也已结论为 `Go`，允许前端为
 7 个媒体库管理 operation 建立真实 client adapter；[可靠扫描 Backend
 Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)也已结论为 `Go`，允许前端接入
-扫描历史、详情轮询、手动请求、取消和计划设置。当前后端进入 `S3-001` 浏览与缩略图契约。
+扫描历史、详情轮询、手动请求、取消和计划设置。[S3-001 目录与媒体浏览 Contract
+Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)已通过，当前后端进入 `S3-002`
+catalog 排序、游标和查询指纹实现。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式

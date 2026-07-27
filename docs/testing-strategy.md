@@ -96,12 +96,15 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - S2-107 覆盖扫描历史的库绑定防篡改 keyset cursor、详情 ETag/304、安全 issue、queued/
   running 协作取消、设置 If-Match，以及默认 24 小时/可关闭 scheduler；真实 composition
   通过认证 HTTP 消费设置、历史、详情和 terminal 取消。
+- S3-001 契约测试固定 indexed root 的公开映射、root-to-current breadcrumb（1～2049 项）、
+  direct/recursive 目录 scope、自然名称/修改时间排序 tuple、reliable generation-bound
+  cursor、跨库目录 404、offline preserved index 和 browse 请求不遍历文件系统。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
 不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～106
 已完成目录/计数、媒体增量收敛、故障/重启恢复、容量矩阵与扫描 Backend Ready；
-浏览/缩略图、浏览器流程和发布网络边界仍在后续 Gate。
+浏览查询生产实现、缩略图、浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

@@ -31,3 +31,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S2-005：媒体库文件系统安全矩阵](MVP-2026-07-23/s2-library-safety-matrix.md)
 - [S2-006：媒体库移除原媒体不变证明](MVP-2026-07-23/s2-library-removal-invariance.md)
 - [S2-007：媒体库管理 Backend Ready](MVP-2026-07-23/s2-library-backend-ready.md)
+- [S3-001：目录与媒体浏览 Contract Ready](MVP-2026-07-23/s3-browse-contract-ready.md)
