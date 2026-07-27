@@ -2,9 +2,9 @@
 
 ## 当前结论
 
-项目已通过 **Stage 0 开发就绪 Gate**，允许进入 Stage 1 的后端优先实施：先建立正式 Go
-运行骨架，再完成单管理员认证后端。该结论不授权 Stage 2～5、共享预览或发布；认证后端达到
-`Backend Ready` 前不得开始产品 UI。
+项目已通过 **Stage 0 开发就绪 Gate**，并完成 Stage 1 的 Go 运行骨架与单管理员认证后端。
+[认证 Backend Evidence Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)结论为 `Go`，
+允许认证产品 UI 连接真实 API。该结论不授权 Stage 2～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
@@ -17,14 +17,15 @@ composition root 集成测试和测试专用非 root 容器 smoke 覆盖。`inte
 Argon2id 密码存储、Unicode 管理员身份规范化、单管理员原子初始化，以及高熵摘要化会话、
 7 天绝对期限、重启恢复、退出撤销和 Cookie 策略，并经 SQLite adapter 接入 composition
 root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 API 默认拒绝、
-防缓存、受限 JSON 和按直连 peer 的有界限流已经接入真实 composition root；当前还没有
-认证 Backend Ready Gate、可信代理配置、业务 handler、React 产品应用、正式 Dockerfile、
-浏览器 E2E 或可发布镜像；
+防缓存、受限 JSON 和按直连 peer 的有界限流已经接入真实 composition root，并通过认证
+Backend Ready Gate；当前还没有可信代理配置、媒体库等业务 handler、完整认证产品 UI、
+正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
-现有代码是 spike 与契约工程证据，不是已经可运行的产品能力。
+认证后端是已通过 Gate 的正式产品能力；其余媒体/扫描实验代码、静态原型和契约工程证据
+仍不得描述为已经可用的产品能力。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014
 全部采用 A。产品冻结门槛已经满足，[系统架构档案](architecture/README.md)也已形成目标
@@ -45,7 +46,7 @@ ADR 流程。
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 初始媒体 schema 与追加认证 schema 已由 Goose 执行；认证 migration 固定 singleton/password verifier/session digest/期限/撤销，真实文件数据库、重复 migration 与约束测试已通过；真实版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
-| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；S1-102～103 已完成密码、原子 setup 和安全会话，CSRF/default-deny、限流、代理与 handler 仍由认证 Backend Gate 阻断；发布 volume/unmount 由 FS-05/Release Gate 阻断 |
+| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；认证 Backend Gate 已覆盖密码、原子 setup、安全会话、CSRF/default-deny、直连 peer 限流、错误脱敏和依赖 audit。可信代理、非回环暴露和发布 volume/unmount 仍由 Stage 5 Gate 阻断 |
 
 ## 环境与工具链状态
 
