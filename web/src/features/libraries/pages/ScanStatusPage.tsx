@@ -21,6 +21,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import {
   useCancelScanMutation,
@@ -119,16 +120,19 @@ function NoScan({
   const { t } = useLocale();
   const toast = useToast();
   const requestMutation = useRequestScanMutation();
+  const runSubmission = useSubmissionGuard();
 
   async function startScan() {
-    try {
-      await requestMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        libraryId,
-      });
-    } catch {
-      toast.show({ message: t("scan.actionFailed"), tone: "danger" });
-    }
+    await runSubmission(async () => {
+      try {
+        await requestMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId,
+        });
+      } catch {
+        toast.show({ message: t("scan.actionFailed"), tone: "danger" });
+      }
+    });
   }
 
   return (
@@ -159,6 +163,7 @@ function ScanDetails({
   const toast = useToast();
   const requestMutation = useRequestScanMutation();
   const cancelMutation = useCancelScanMutation();
+  const runSubmission = useSubmissionGuard();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
     () =>
@@ -180,25 +185,29 @@ function ScanDetails({
         : CircleNotch;
 
   async function requestScan() {
-    try {
-      await requestMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        libraryId: scan.libraryId,
-      });
-    } catch {
-      toast.show({ message: t("scan.actionFailed"), tone: "danger" });
-    }
+    await runSubmission(async () => {
+      try {
+        await requestMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: scan.libraryId,
+        });
+      } catch {
+        toast.show({ message: t("scan.actionFailed"), tone: "danger" });
+      }
+    });
   }
 
   async function cancelCurrentScan() {
-    try {
-      await cancelMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        scanId: scan.id,
-      });
-    } catch {
-      toast.show({ message: t("scan.cancelFailed"), tone: "danger" });
-    }
+    await runSubmission(async () => {
+      try {
+        await cancelMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          scanId: scan.id,
+        });
+      } catch {
+        toast.show({ message: t("scan.cancelFailed"), tone: "danger" });
+      }
+    });
   }
 
   return (

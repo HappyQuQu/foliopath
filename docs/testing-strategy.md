@@ -6,7 +6,8 @@
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
 契约测试，真实 HTTP 边界、合成媒体 fixture 和显式容量测试。正式 `cmd/foliopath`、
 composition root、SQLite 生命周期、health、认证及媒体库/扫描/浏览/缩略图/搜索/原内容
-HTTP handler 已可启动和测试；仍无完整 React 产品界面、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
+HTTP handler 已可启动和测试；React 认证及媒体库/扫描切片已有真实浏览器 E2E，完整浏览、
+搜索、查看器和发布镜像仍待后续阶段。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
 工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
 只有实际执行成功的目标才能声称可用。
@@ -113,7 +114,8 @@ S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发�
 公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle；
 S3-006 已增加 256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips runtime、FFmpeg 单线程/
 进程组取消/工具输出 cap、取消安全点和真实 8 MiB tmpfs `ENOSPC` 矩阵。资产/缩略图 HTTP、
-浏览器流程和发布网络/存储边界仍在后续 Gate。
+Stage 1 认证和 Stage 2 媒体库/扫描浏览器流程已通过各自 Integrated Done Gate；
+浏览/搜索/查看器和发布网络/存储边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 
@@ -178,6 +180,11 @@ volume 或运行期 unmount。
 4. 媒体库离线 → 保留索引提示 → 挂载恢复并重新扫描。
 5. 删除媒体库 → 明确非破坏性确认 → 配置消失且 fixture 原文件仍存在。
 6. 桌面固定侧栏、移动目录抽屉、网格/瀑布流切换与键盘关键路径；检查中英界面、reduced motion 与高对比模式。
+
+当前 `make test-web-e2e` 已固定 Stage 1～2 的一次性真实后端成功链，并用评审后的契约响应
+补齐运行、取消、部分不可读和离线等无法稳定定时制造的 UI 状态。它同时断言长名称/路径、
+同操作快速双击只提交一次、对话框焦点恢复、390/768/1024/1440px 横向溢出和
+axe serious/critical；浏览、搜索、预览和查看器仍须在 Stage 3～4 扩展同一入口。
 7. 会话过期、退出、CSRF 拒绝和再次访问受保护媒体，不泄露内容或敏感状态。
 
 端到端测试不能通过固定长时间 sleep 等待扫描，应轮询可观察状态并设置明确超时。
@@ -285,7 +292,8 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 `web-check`、摘要锁和语义兼容入口已在本地通过；CI 已定义同一生成入口、PR 基线比较与原生
 amd64/arm64 jobs。`test-e2e` 已使用测试专用容器启动真实 `cmd/foliopath`，覆盖非 root、
 固定 volumes、health、默认 401、重复 migration、SIGTERM 和媒体只读 sentinel，并接入原生
-amd64/arm64 CI。前端组件/token、浏览器产品 E2E 仍不存在，必须随相关源码补齐。
+amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E2E 已可执行；浏览、
+搜索、预览和查看器继续按对应前端 Stage 补齐。
 
 计划中的每次合并至少要求：
 
@@ -320,14 +328,17 @@ amd64/arm64 CI。前端组件/token、浏览器产品 E2E 仍不存在，必须�
 - `make test-race`
 - `make test-integration`
 - `make test-e2e`（真实后端进程的测试专用容器 smoke；不是浏览器或发布镜像验收）
+- `make test-web-e2e`（一次性真实后端的认证及媒体库/扫描 Chromium 产品 E2E）
+- `npm --prefix web run check`
+- `npm --prefix web run build`
 - `make spike-capacity`（显式重型目标档）
 - `git diff --check`
 - 仓库内 Markdown 相对链接检查
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
-前端 import/token lint、Storybook/组件/视觉回归、认证实现及其错误边界测试、
-只读发布 volume/运行期 unmount、浏览器产品 E2E、
+前端 import/token lint、Storybook/组件、认证与媒体库/扫描视觉/E2E 已可执行；
+只读发布 volume/运行期 unmount、完整浏览/搜索/查看器产品 E2E、
 完整媒体/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI

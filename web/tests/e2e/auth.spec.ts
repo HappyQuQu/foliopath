@@ -7,7 +7,15 @@ const administrator = {
   password: "browser-admin-password-2026",
 };
 
-test("administrator setup, session recovery, theme, accessibility, and responsive states", async ({
+const longPathSegments = [
+  process.env.FOLIOPATH_E2E_LONG_PATH_ONE ??
+    "family-archives-with-a-deliberately-long-directory-name",
+  process.env.FOLIOPATH_E2E_LONG_PATH_TWO ??
+    "2026-travel-and-celebration-originals-with-more-context",
+];
+const longLibraryName = "Family archive ".padEnd(128, "A");
+
+test("administrator and library-management vertical slice", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -30,20 +38,122 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
   await page.getByRole("button", { name: "New library" }).click();
   await page.getByLabel("Library name *").fill("Browser acceptance library");
   await page.getByRole("button", { name: "Continue" }).click();
+  for (const segment of longPathSegments) {
+    await page.getByRole("button", { name: `Open directory ${segment}` }).click();
+  }
   await page.getByRole("button", { name: /Select this directory/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Create and scan" }).click();
-  await expect(page.getByRole("heading", { name: "Browser acceptance library" })).toBeVisible();
+  await expect(
+    page.getByText(`/library/${longPathSegments.join("/")}`),
+  ).toBeVisible();
 
-  await page.getByRole("button", { name: "Rename" }).click();
-  await page.getByLabel("New name *").fill("Renamed acceptance library");
-  await page.getByRole("button", { name: "Save name" }).click();
-  await expect(page.getByRole("heading", { name: "Renamed acceptance library" })).toBeVisible();
+  let createRequests = 0;
+  await page.route("**/api/v1/libraries", async (route) => {
+    if (route.request().method() === "POST") {
+      createRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    await route.continue();
+  });
+  await page.getByRole("button", { name: "Create and scan" }).dblclick();
+  await expect(page.getByRole("heading", { name: "Browser acceptance library" })).toBeVisible();
+  expect(createRequests).toBe(1);
+  await page.unroute("**/api/v1/libraries");
+
+  const renameButton = page.getByRole("button", { name: "Rename" });
+  await renameButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Rename library" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(renameButton).toBeFocused();
+
+  let renameRequests = 0;
+  await page.route("**/api/v1/libraries/*", async (route) => {
+    if (route.request().method() === "PATCH") {
+      renameRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    await route.continue();
+  });
+  await renameButton.click();
+  await page.getByLabel("New name *").fill(longLibraryName);
+  await page.getByRole("button", { name: "Save name" }).dblclick();
+  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  expect(renameRequests).toBe(1);
+  await page.unroute("**/api/v1/libraries/*");
+  await expectNoPageOverflow(page);
 
   await page.getByRole("button", { name: "Scan again" }).click();
   await expect(page).toHaveURL(/\/settings\/libraries\/[^/]+\/status$/);
+  const statusPath = new URL(page.url()).pathname;
+  const libraryId = statusPath.split("/").at(-2);
+  expect(libraryId).toBeTruthy();
   await expect(page.getByRole("heading", { name: "Library status" })).toBeVisible();
   await page.getByRole("button", { name: "Back to libraries" }).click();
+
+  let delayNextLibraryList = true;
+  let failNextLibraryList = false;
+  await page.route("**/api/v1/libraries?*", async (route) => {
+    if (failNextLibraryList) {
+      failNextLibraryList = false;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "internal_error",
+          message: "safe contract fixture",
+        }),
+      });
+      return;
+    }
+    if (delayNextLibraryList) {
+      delayNextLibraryList = false;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    await route.continue();
+  });
+  await page.reload();
+  await expect(page.getByText("Loading libraries…")).toBeVisible();
+  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  failNextLibraryList = true;
+  await page.reload();
+  await expect(
+    page.getByText("The library list could not be loaded. Please try again."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await page.unroute("**/api/v1/libraries?*");
+
+  let scanFixtureState: "running" | "cancelled" | "failed" | "offline" =
+    "running";
+  await page.route(/\/api\/v1\/scans\/[^/]+(?:\/cancel)?$/, async (route) => {
+    if (route.request().method() === "POST") scanFixtureState = "cancelled";
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(scanFixture(libraryId ?? "", scanFixtureState)),
+    });
+  });
+  await page.goto(statusPath);
+  await expect(page.getByText("Scan in progress")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel scan" }).click();
+  await expect(page.getByText("Scan cancelled")).toBeVisible();
+  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+
+  scanFixtureState = "failed";
+  await page.reload();
+  await expect(page.getByText("Scan incomplete")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Issue summary" })).toBeVisible();
+  await expect(page.getByText("restricted-folder")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("/Users/");
+
+  scanFixtureState = "offline";
+  await page.reload();
+  await expect(page.getByText("Library offline")).toBeVisible();
+  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+  await page.unroute(/\/api\/v1\/scans\/[^/]+(?:\/cancel)?$/);
 
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("link", { name: "Settings" }).click();
@@ -63,8 +173,20 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
 
   await page.getByLabel("Scan interval (hours) *").fill("48");
   await page.getByLabel("Thumbnail cache limit (GiB) *").fill("2");
-  await page.getByRole("button", { name: "Save scan and cache settings" }).click();
+  let settingsRequests = 0;
+  await page.route("**/api/v1/settings", async (route) => {
+    if (route.request().method() === "PATCH") {
+      settingsRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    await route.continue();
+  });
+  await page
+    .getByRole("button", { name: "Save scan and cache settings" })
+    .dblclick();
   await expect(page.getByText("Scan and cache settings saved.")).toBeVisible();
+  expect(settingsRequests).toBe(1);
+  await page.unroute("**/api/v1/settings");
 
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
@@ -113,6 +235,54 @@ test("administrator setup, session recovery, theme, accessibility, and responsiv
     timeout: 10_000,
   });
 });
+
+function scanFixture(
+  libraryId: string,
+  status: "running" | "cancelled" | "failed" | "offline",
+) {
+  const active = status === "running";
+  const terminal = !active;
+  const failed = status === "failed";
+  const offline = status === "offline";
+  const now = "2026-07-28T02:00:00Z";
+
+  return {
+    id: "scan_contract_fixture",
+    libraryId,
+    trigger: "manual",
+    status,
+    phase: active ? "walking" : "completed",
+    generation: 2,
+    discoveredDirectories: 24,
+    discoveredAssets: 120,
+    processedAssets: active ? 48 : 84,
+    skippedDirectories: failed ? 1 : 0,
+    skippedFiles: 0,
+    errorCount: failed ? 1 : 0,
+    issues: failed
+      ? [
+          {
+            code: "unreadable_directory",
+            message: "safe contract fixture",
+            count: 1,
+            sampleRelativePath: "restricted-folder",
+          },
+        ]
+      : [],
+    issuesTruncated: false,
+    errorCode: failed
+      ? "partial_tree_unreadable"
+      : offline
+        ? "library_root_unavailable"
+        : null,
+    progressRatio: active ? 0.4 : terminal ? 0.7 : null,
+    createdAt: now,
+    startedAt: now,
+    finishedAt: terminal ? now : null,
+    cancelRequestedAt: status === "cancelled" ? now : null,
+    canCancel: active,
+  };
+}
 
 test("readiness failure uses the contracted safe state", async ({ page }) => {
   await page.route("**/health/ready", async (route) => {

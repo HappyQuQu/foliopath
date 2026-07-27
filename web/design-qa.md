@@ -140,7 +140,9 @@ No actionable P0, P1, or P2 differences remain in the reviewed Stage 2 states.
   `qa/stage2-library-implementation-mobile.png`,
   `qa/stage2-rename-dialog-mobile.png`,
   `qa/stage2-remove-dialog-mobile.png`, and
-  `qa/stage2-scan-status-mobile.png`.
+  `qa/stage2-scan-status-mobile.png`. The final long-name status regression is
+  `qa/stage2-long-name-status-mobile.png`; browser content width is 375 CSS pixels
+  after scrollbar exclusion and both client/scroll width are 375.
 - Browser state: production Vite UI connected to a disposable real FolioPath backend
   and synthetic empty `/library`; no developer media was read or modified.
 
@@ -191,6 +193,9 @@ desktop crop was needed because controls and copy are readable in the full views
   visible reliable-index preservation message.
 - Mobile at 390 × 844 keeps four library actions reachable, renders dialogs within the
   viewport, exposes semantic close controls, and keeps the scan page in one column.
+- A 128-character library name and two deliberately long directory segments wrap
+  without page-level overflow. The long-name status screenshot and automated
+  390-pixel assertion both confirm the post-fix state.
 - Theme/locale route behavior and automated axe serious/critical checks remain covered
   by the real-backend browser test.
 - Browser console inspection after the final library/status/settings journey found no
@@ -213,11 +218,20 @@ desktop crop was needed because controls and copy are readable in the full views
    persisted over the logout action. The canonical Toast owner now auto-dismisses
    after six seconds, uses the shared Phosphor close icon, and has a regression test;
    the follow-up E2E passed.
+4. The first repeated-submit pass found a P1 correctness defect: a rapid double-click
+   on “Save name” sent two PATCH requests before the async loading state rendered.
+   A shared synchronous submission guard now owns this interaction across create,
+   rename, remove, scan/cancel, and settings. Component and real-browser regressions
+   confirm one request per operation.
+5. The first 128-character mobile scan-status pass found a P2 horizontal overflow:
+   the unbroken name expanded the document from 390 to 1788 pixels. The status heading,
+   metadata, and issue samples now use safe anywhere wrapping. Post-fix evidence is
+   `qa/stage2-long-name-status-mobile.png`, with client and scroll width both 375.
 
 ### Residual Stage 2 work
 
-`S2-207～208` still own the exhaustive long-name/path, repeated-submit, offline,
-partially unreadable, cancellation timing, keyboard matrix, and final Integrated Done
-Gate. These are coverage gaps, not remaining visual mismatches in the reviewed states.
+Stage 2 is now Integrated Done. Stage 5 still owns the final Firefox/Safari/Chrome
+release matrix, forced-colors/zoom release sweep, deployment topology, and
+release-candidate visual regression.
 
 final result: passed

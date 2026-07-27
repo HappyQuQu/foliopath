@@ -29,6 +29,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import { useRequestScanMutation } from "../scan-queries";
 import {
@@ -222,6 +223,7 @@ function LibraryRow({
   const [removalId, setRemovalId] = useState<string>();
   const removalQuery = useLibraryRemovalQuery(removalId);
   const removalKey = useRef(crypto.randomUUID());
+  const runSubmission = useSubmissionGuard();
 
   useEffect(() => {
     if (removalQuery.data?.status !== "succeeded") return;
@@ -256,46 +258,52 @@ function LibraryRow({
       return;
     }
 
-    try {
-      await renameMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        libraryId: library.id,
-        name: normalized,
-      });
-      setRenameOpen(false);
-      toast.show({ message: t("libraries.renameSucceeded"), tone: "success" });
-    } catch (error) {
-      setActionError(actionMessage(error, t));
-    }
+    await runSubmission(async () => {
+      try {
+        await renameMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: library.id,
+          name: normalized,
+        });
+        setRenameOpen(false);
+        toast.show({ message: t("libraries.renameSucceeded"), tone: "success" });
+      } catch (error) {
+        setActionError(actionMessage(error, t));
+      }
+    });
   }
 
   async function submitRemoval() {
     setActionError(undefined);
-    try {
-      const removal = await removeMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        idempotencyKey: removalKey.current,
-        libraryId: library.id,
-      });
-      setRemovalId(removal.id);
-    } catch (error) {
-      setActionError(actionMessage(error, t));
-    }
+    await runSubmission(async () => {
+      try {
+        const removal = await removeMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          idempotencyKey: removalKey.current,
+          libraryId: library.id,
+        });
+        setRemovalId(removal.id);
+      } catch (error) {
+        setActionError(actionMessage(error, t));
+      }
+    });
   }
 
   async function requestScan() {
     setActionError(undefined);
-    try {
-      const scan = await scanMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        libraryId: library.id,
-      });
-      navigate(paths.libraryStatus(library.id), {
-        state: { scanId: scan.id },
-      });
-    } catch (error) {
-      toast.show({ message: actionMessage(error, t), tone: "danger" });
-    }
+    await runSubmission(async () => {
+      try {
+        const scan = await scanMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: library.id,
+        });
+        navigate(paths.libraryStatus(library.id), {
+          state: { scanId: scan.id },
+        });
+      } catch (error) {
+        toast.show({ message: actionMessage(error, t), tone: "danger" });
+      }
+    });
   }
 
   const removalActive =

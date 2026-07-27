@@ -2,14 +2,16 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 2
+- 当前阶段：Stage 3
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
   位于 [`prototypes/foliopath-static-ui`](../prototypes/foliopath-static-ui/README.md)，不放入
   生产 `web/src` import graph
 - 当前生产任务：Stage 1 的 `S1-201～207` 已完成并记录
   [认证 Integrated Done Gate](gates/MVP-2026-07-23/s1-auth-integrated-done.md)；
-  Stage 2 的真实媒体库管理、扫描状态和通用扫描/缓存设置 `S2-201～206` 已连接真实后端，
-  下一步完成状态矩阵、故障恢复与纵向切片 Gate `S2-207～208`
+  Stage 2 的真实媒体库管理、扫描状态、通用扫描/缓存设置和完整验收矩阵
+  `S2-201～208` 已通过
+  [Integrated Done Gate](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)；
+  下一步进入 Stage 3 的目录浏览与缩略图界面
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -111,8 +113,17 @@
 - [x] `S2-206` 实现扫描周期与缓存配额设置，并映射契约校验错误。
   - 通用设置通过 ETag 更新真实定时扫描开关/周期与缩略图缓存配额；覆盖客户端范围校验、
     `settings_invalid` 和并发修改错误，不建立第二套设置状态。
-- [ ] `S2-207` 验证键盘、移动端、长名称/路径、中英文、加载、重复提交和故障恢复。
-- [ ] `S2-208` 完成媒体库/扫描纵向切片 E2E 与 `Integrated Done` Gate。
+- [x] `S2-207` 验证键盘、移动端、长名称/路径、中英文、加载、重复提交和故障恢复。
+  - 真实 Chromium 覆盖 128 字符库名、两层长路径、390/768/1024/1440px、中英文、
+    加载/列表故障重试、扫描运行/取消/失败/离线、脱敏 issue 与焦点恢复；页面无横向溢出，
+    axe serious/critical 为零。
+  - 创建、改名和设置保存的快速双击均只产生一次请求；共享同步提交 guard 同时保护移除、
+    手动扫描和取消操作，并有组件级回归测试。
+- [x] `S2-208` 完成媒体库/扫描纵向切片 E2E 与 `Integrated Done` Gate。
+  - 一次性真实后端完成 setup → 长路径建库 → 改名 → 扫描/设置 → logout/login →
+    异步移除；契约状态 fixture 补足不可稳定制造的运行/取消/部分不可读/离线 UI 矩阵。
+    证据见
+    [Stage 2 Integrated Done](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)。
 
 `S2-007` 已通过，允许前端通过生成 client 建立媒体库管理 adapter；依赖扫描实际执行、
 扫描 `S2-107` Backend Ready 已通过，进度、取消和计划设置可连接生成 client；浏览与

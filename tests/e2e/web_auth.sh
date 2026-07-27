@@ -11,6 +11,8 @@ backend_port=${FOLIOPATH_BROWSER_BACKEND_PORT:-18080}
 web_port=${FOLIOPATH_BROWSER_WEB_PORT:-4174}
 data_root="${e2e_root}/data"
 media_root="${e2e_root}/library"
+long_path_one="family-archives-with-a-deliberately-long-directory-name"
+long_path_two="2026-travel-and-celebration-originals-with-more-context"
 vite_log="${e2e_root}/vite.log"
 vite_pid=""
 
@@ -21,11 +23,16 @@ cleanup() {
 	fi
 	docker rm --force "${proxy_container}" "${application_container}" >/dev/null 2>&1 || true
 	docker image rm --force "${image}" >/dev/null 2>&1 || true
+	chmod -R u+w "${media_root}" >/dev/null 2>&1 || true
 	rm -rf -- "${e2e_root}"
 }
 trap cleanup EXIT HUP INT TERM
 
 mkdir -p "${data_root}" "${media_root}"
+mkdir -p \
+	"${media_root}/${long_path_one}/${long_path_two}/visible-child"
+ln -s "visible-child" \
+	"${media_root}/${long_path_one}/${long_path_two}/linked-child"
 chmod 0777 "${data_root}"
 chmod 0555 "${media_root}"
 
@@ -80,6 +87,8 @@ if ! wait_for_url "http://127.0.0.1:${web_port}/"; then
 fi
 
 FOLIOPATH_WEB_E2E_URL="http://127.0.0.1:${web_port}" \
+	FOLIOPATH_E2E_LONG_PATH_ONE="${long_path_one}" \
+	FOLIOPATH_E2E_LONG_PATH_TWO="${long_path_two}" \
 	npm --prefix "${repo_root}/web" run test:e2e
 
-printf '%s\n' "authentication browser e2e passed"
+printf '%s\n' "authentication and library browser e2e passed"

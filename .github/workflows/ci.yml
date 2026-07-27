@@ -276,7 +276,7 @@ jobs:
         run: make test-e2e
 
   web-browser:
-    name: Authentication browser E2E
+    name: Authentication and library browser E2E
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -292,7 +292,7 @@ jobs:
         run: npm ci --prefix web
       - name: Install the locked Chromium runner
         run: npm exec --prefix web -- playwright install --with-deps chromium
-      - name: Exercise authentication and safe readiness states
+      - name: Exercise authentication, library, scan, and safe readiness states
         run: make test-web-e2e
 
   supply-chain:

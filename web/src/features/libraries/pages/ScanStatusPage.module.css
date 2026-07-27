@@ -45,6 +45,7 @@
 
 .summary h2 {
   margin: 0 0 var(--space-2);
+  overflow-wrap: anywhere;
   font-size: var(--font-size-5);
 }
 
@@ -149,6 +150,7 @@
 
 .metadata dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .issues ul {
@@ -171,6 +173,10 @@
 .issues > p,
 .noScan p {
   color: var(--color-text-muted);
+}
+
+.issues li span {
+  overflow-wrap: anywhere;
 }
 
 .actions {

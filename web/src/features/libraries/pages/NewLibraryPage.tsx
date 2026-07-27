@@ -32,6 +32,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import {
   useCreateLibraryMutation,
@@ -66,6 +67,7 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string>();
   const requestKey = useRef(crypto.randomUUID());
+  const runSubmission = useSubmissionGuard();
   const pathQuery = useLibraryPathsQuery(parent);
   const {
     fetchNextPage: loadNextPathPage,
@@ -110,18 +112,20 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
     if (selectedPath === null) return;
     setPageError(undefined);
 
-    try {
-      await createMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        idempotencyKey: requestKey.current,
-        name,
-        rootPath: selectedPath,
-      });
-      toast.show({ message: t("newLibrary.created"), tone: "success" });
-      navigate(paths.libraries, { replace: true });
-    } catch (error) {
-      setPageError(messageForCreateError(error, t));
-    }
+    await runSubmission(async () => {
+      try {
+        await createMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          idempotencyKey: requestKey.current,
+          name,
+          rootPath: selectedPath,
+        });
+        toast.show({ message: t("newLibrary.created"), tone: "success" });
+        navigate(paths.libraries, { replace: true });
+      } catch (error) {
+        setPageError(messageForCreateError(error, t));
+      }
+    });
   }
 
   return (

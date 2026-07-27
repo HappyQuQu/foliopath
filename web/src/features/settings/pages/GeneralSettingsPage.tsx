@@ -22,6 +22,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import {
   useSettingsQuery,
@@ -49,6 +50,7 @@ export function GeneralSettingsPage({
   const [interval, setInterval] = useState("24");
   const [cacheQuota, setCacheQuota] = useState("10");
   const [formError, setFormError] = useState<string>();
+  const runSubmission = useSubmissionGuard();
 
   useEffect(() => {
     if (!settingsQuery.data) return;
@@ -80,17 +82,19 @@ export function GeneralSettingsPage({
     }
 
     setFormError(undefined);
-    try {
-      await updateMutation.mutateAsync({
-        csrfToken: session.csrfToken,
-        etag: settingsQuery.data.etag,
-        scheduledScanIntervalHours: scheduleEnabled ? parsedInterval : null,
-        thumbnailCacheQuotaBytes: Math.round(parsedQuota * bytesPerGiB),
-      });
-      toast.show({ message: t("settings.saved"), tone: "success" });
-    } catch (error) {
-      setFormError(settingsError(error, t));
-    }
+    await runSubmission(async () => {
+      try {
+        await updateMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          etag: settingsQuery.data.etag,
+          scheduledScanIntervalHours: scheduleEnabled ? parsedInterval : null,
+          thumbnailCacheQuotaBytes: Math.round(parsedQuota * bytesPerGiB),
+        });
+        toast.show({ message: t("settings.saved"), tone: "success" });
+      } catch (error) {
+        setFormError(settingsError(error, t));
+      }
+    });
   }
 
   async function handleLogout() {
