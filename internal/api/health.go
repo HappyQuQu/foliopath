@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
+	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
 
 const (
@@ -43,6 +45,13 @@ type RouteDependencies struct {
 	LibraryPaths   LibraryPathService
 	Libraries      LibraryLifecycleService
 	ScanAdmission  ScanAdmissionService
+	Scans          ScanQueryService
+	Settings       SettingsService
+}
+
+type SettingsService interface {
+	Get(context.Context) (appsettings.Values, error)
+	Update(context.Context, int64, appsettings.Update) (appsettings.Values, error)
 }
 
 func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
@@ -65,6 +74,12 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.ScanAdmission != nil {
 		registerScanAdmissionRoute(mux, dependencies.ScanAdmission)
+	}
+	if dependencies.Scans != nil {
+		registerScanQueryRoutes(mux, dependencies.Scans)
+	}
+	if dependencies.Settings != nil {
+		registerSettingsRoutes(mux, dependencies.Settings)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

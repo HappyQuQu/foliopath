@@ -150,9 +150,11 @@ SELECT *
 FROM settings
 WHERE singleton_key = 1;
 
--- name: UpdateScheduledScanInterval :one
+-- name: UpdateSettings :one
 UPDATE settings
 SET scheduled_scan_interval_hours = sqlc.narg(scheduled_scan_interval_hours),
+    thumbnail_cache_quota_bytes = sqlc.arg(thumbnail_cache_quota_bytes),
+    language = sqlc.arg(language),
     revision = revision + 1,
     updated_at_ms = sqlc.arg(updated_at_ms)
 WHERE singleton_key = 1

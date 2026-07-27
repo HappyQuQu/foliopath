@@ -93,12 +93,15 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - S2-106 覆盖唯一 256 active/256 batch 边界、跨 SQLite 连接最后一个 admission 名额
   竞态、2-worker 三媒体库公平消费、深目录/损坏拓扑和真实 SQLite 满页；失败记录稳定
   `database_unavailable`、保留最后可靠 generation，解除限制后可完整恢复。
+- S2-107 覆盖扫描历史的库绑定防篡改 keyset cursor、详情 ETag/304、安全 issue、queued/
+  running 协作取消、设置 If-Match，以及默认 24 小时/可关闭 scheduler；真实 composition
+  通过认证 HTTP 消费设置、历史、详情和 terminal 取消。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
 不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～106
-已完成目录/计数、媒体增量收敛、故障/重启恢复和容量矩阵；扫描 Backend Ready 汇总、
-浏览器流程和发布网络边界仍在后续 Gate。
+已完成目录/计数、媒体增量收敛、故障/重启恢复、容量矩阵与扫描 Backend Ready；
+浏览/缩略图、浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

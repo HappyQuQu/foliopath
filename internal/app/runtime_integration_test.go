@@ -337,6 +337,26 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		cancel()
 		t.Fatalf("setup response = %#v", setup)
 	}
+	settings := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet, "/api/v1/settings", "", setup.Cookie, "",
+	)
+	if settings.StatusCode != http.StatusOK ||
+		settings.ETag != `"settings-r1"` ||
+		!strings.Contains(settings.Body, `"scheduledScanIntervalHours":24`) {
+		cancel()
+		t.Fatalf("default settings response = %#v", settings)
+	}
+	disabledSchedule := runtimeSettingsPatchRequest(
+		t, client, address,
+		`{"scheduledScanIntervalHours":null}`,
+		settings.ETag, setup.Cookie, setup.CSRFToken,
+	)
+	if disabledSchedule.StatusCode != http.StatusOK ||
+		disabledSchedule.ETag != `"settings-r2"` ||
+		!strings.Contains(disabledSchedule.Body, `"scheduledScanIntervalHours":null`) {
+		cancel()
+		t.Fatalf("disabled schedule response = %#v", disabledSchedule)
+	}
 	created := runtimeLibraryCreateRequest(
 		t,
 		client,
@@ -377,6 +397,54 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		!strings.Contains(current.Body, `"directoryCount":5`) {
 		cancel()
 		t.Fatalf("creation scan result = %#v", current)
+	}
+	history := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/libraries/lib_1/scans?limit=1", "", setup.Cookie, "",
+	)
+	if history.StatusCode != http.StatusOK ||
+		!strings.Contains(history.Body, `"id":"scan_1"`) ||
+		!strings.Contains(history.Body, `"status":"succeeded"`) {
+		cancel()
+		t.Fatalf("scan history response = %#v", history)
+	}
+	scanDetails := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/scans/scan_1", "", setup.Cookie, "",
+	)
+	if scanDetails.StatusCode != http.StatusOK ||
+		scanDetails.ETag == "" ||
+		!strings.Contains(scanDetails.Body, `"status":"succeeded"`) {
+		cancel()
+		t.Fatalf("scan details response = %#v", scanDetails)
+	}
+	conditionalRequest, err := http.NewRequest(
+		http.MethodGet,
+		"http://"+address+"/api/v1/scans/scan_1",
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conditionalRequest.AddCookie(&http.Cookie{Name: "foliopath_session", Value: setup.Cookie})
+	conditionalRequest.Header.Set("If-None-Match", scanDetails.ETag)
+	conditionalResponse, err := client.Do(conditionalRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conditionalResponse.Body.Close()
+	if conditionalResponse.StatusCode != http.StatusNotModified {
+		cancel()
+		t.Fatalf("conditional scan status = %d", conditionalResponse.StatusCode)
+	}
+	finishedCancel := runtimeAuthenticationRequest(
+		t, client, address, http.MethodPost,
+		"/api/v1/scans/scan_1/cancel", `{}`, setup.Cookie, setup.CSRFToken,
+	)
+	if finishedCancel.StatusCode != http.StatusConflict ||
+		finishedCancel.ErrorCode != "scan_already_finished" {
+		cancel()
+		t.Fatalf("finished scan cancellation = %#v", finishedCancel)
 	}
 
 	cancel()
@@ -1441,6 +1509,46 @@ func runtimeLibraryCreateRequest(
 		ETag:         response.Header.Get("ETag"),
 		Location:     response.Header.Get("Location"),
 		Body:         string(responseBody),
+	}
+}
+
+func runtimeSettingsPatchRequest(
+	t *testing.T,
+	client *http.Client,
+	address string,
+	body string,
+	etag string,
+	cookie string,
+	csrfToken string,
+) runtimeAuthenticationResponse {
+	t.Helper()
+	request, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPatch,
+		"http://"+address+"/api/v1/settings",
+		strings.NewReader(body),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://"+address)
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	request.Header.Set("If-Match", etag)
+	request.AddCookie(&http.Cookie{Name: "foliopath_session", Value: cookie})
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return runtimeAuthenticationResponse{
+		StatusCode: response.StatusCode,
+		ETag:       response.Header.Get("ETag"),
+		Body:       string(responseBody),
 	}
 }
 

@@ -66,8 +66,8 @@ make test-e2e
 
 Stage 0 Gate 已通过，Stage 1 认证后端和 Stage 2
 [媒体库管理](../gates/MVP-2026-07-23/s2-library-backend-ready.md)已经 Backend Ready。
-扫描仍只有 Contract Ready 与 durable admission，必须由 `S2-102～107` 补齐 worker、
-故障和容量证据；浏览、媒体读取及正式发布容器也继续按各自 Gate 阻断。一个切片通过不能
+扫描已由 `S2-102～107` 补齐 worker、HTTP、设置、故障和容量证据并达到 Backend Ready；
+浏览、媒体读取及正式发布容器继续按各自 Gate 阻断。一个切片通过不能
 把相邻切片自动标记为 `Backend Ready`，也不能跳过后端直接实现依赖未完成行为的业务 UI。
 
 ## 失败与豁免

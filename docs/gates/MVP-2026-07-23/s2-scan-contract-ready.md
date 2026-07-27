@@ -143,10 +143,9 @@
 
 ## 明确未完成
 
-- `S2-004`：媒体库创建事务、HTTP 生命周期、offline retry 和 removal worker。
-- `S2-102`：生产 admission、领取、公平 worker 与扫描执行接线。
-- `S2-103～106`：完整目录、计数、增量 upsert/finalize、取消/恢复和容量故障矩阵。
-- `S2-107`：扫描 Backend Ready。
+本节是 Contract Ready 时的历史判断。上述实现项现已由
+[S2-107 Backend Ready](s2-scan-backend-ready.md)汇总完成；浏览/缩略图、前端集成和发布
+仍不在本 Gate 范围内。
 
 ## Gate 判断
 

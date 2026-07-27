@@ -620,24 +620,34 @@ func (q *Queries) UpdateRunningScanPhase(ctx context.Context, arg UpdateRunningS
 	return i, err
 }
 
-const updateScheduledScanInterval = `-- name: UpdateScheduledScanInterval :one
+const updateSettings = `-- name: UpdateSettings :one
 UPDATE settings
 SET scheduled_scan_interval_hours = ?1,
+    thumbnail_cache_quota_bytes = ?2,
+    language = ?3,
     revision = revision + 1,
-    updated_at_ms = ?2
+    updated_at_ms = ?4
 WHERE singleton_key = 1
-  AND revision = ?3
+  AND revision = ?5
 RETURNING singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms
 `
 
-type UpdateScheduledScanIntervalParams struct {
+type UpdateSettingsParams struct {
 	ScheduledScanIntervalHours sql.NullInt64
+	ThumbnailCacheQuotaBytes   int64
+	Language                   string
 	UpdatedAtMs                int64
 	ExpectedRevision           int64
 }
 
-func (q *Queries) UpdateScheduledScanInterval(ctx context.Context, arg UpdateScheduledScanIntervalParams) (Setting, error) {
-	row := q.db.QueryRowContext(ctx, updateScheduledScanInterval, arg.ScheduledScanIntervalHours, arg.UpdatedAtMs, arg.ExpectedRevision)
+func (q *Queries) UpdateSettings(ctx context.Context, arg UpdateSettingsParams) (Setting, error) {
+	row := q.db.QueryRowContext(ctx, updateSettings,
+		arg.ScheduledScanIntervalHours,
+		arg.ThumbnailCacheQuotaBytes,
+		arg.Language,
+		arg.UpdatedAtMs,
+		arg.ExpectedRevision,
+	)
 	var i Setting
 	err := row.Scan(
 		&i.SingletonKey,

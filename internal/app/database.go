@@ -14,6 +14,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
@@ -26,6 +27,9 @@ type databaseStore interface {
 	library.RemovalRepository
 	scanner.AdmissionRepository
 	scanner.Repository
+	scanner.QueryRepository
+	scanner.ScheduleRepository
+	appsettings.Repository
 	scanQueueStore
 	Close() error
 }
@@ -520,6 +524,91 @@ func (service *databaseService) GetScanRun(
 		return scanner.ScanRun{}, library.ErrRepositoryNotReady
 	}
 	return service.store.GetScanRun(ctx, runID)
+}
+
+func (service *databaseService) ListScanRuns(
+	ctx context.Context,
+	libraryID int64,
+	before scanner.QueryPosition,
+	limit int,
+) ([]scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.ListScanRuns(ctx, libraryID, before, limit)
+}
+
+func (service *databaseService) GetScanDetails(
+	ctx context.Context,
+	scanID int64,
+) (scanner.Details, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.Details{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetScanDetails(ctx, scanID)
+}
+
+func (service *databaseService) RequestScanCancellation(
+	ctx context.Context,
+	scanID int64,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RequestScanCancellation(ctx, scanID)
+}
+
+func (service *databaseService) GetSettings(ctx context.Context) (appsettings.Values, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return appsettings.Values{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetSettings(ctx)
+}
+
+func (service *databaseService) UpdateSettings(
+	ctx context.Context,
+	expectedRevision int64,
+	values appsettings.Values,
+) (appsettings.Values, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return appsettings.Values{}, library.ErrRepositoryNotReady
+	}
+	return service.store.UpdateSettings(ctx, expectedRevision, values)
+}
+
+func (service *databaseService) GetScheduledScanIntervalHours(
+	ctx context.Context,
+) (*int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.GetScheduledScanIntervalHours(ctx)
+}
+
+func (service *databaseService) ListDueLibraryIDs(
+	ctx context.Context,
+	dueBeforeMS int64,
+	afterID int64,
+	limit int,
+) ([]int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.ListDueLibraryIDs(ctx, dueBeforeMS, afterID, limit)
 }
 
 func (service *databaseService) RecoverExpiredFullScans(

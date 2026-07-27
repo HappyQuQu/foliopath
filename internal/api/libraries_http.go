@@ -32,6 +32,12 @@ type ScanAdmissionService interface {
 	RequestManual(context.Context, int64) (scanner.AdmissionResult, error)
 }
 
+type ScanQueryService interface {
+	List(context.Context, int64, string, int) (scanner.Page, error)
+	Get(context.Context, int64) (scanner.Details, error)
+	Cancel(context.Context, int64) (scanner.ScanRun, error)
+}
+
 type createLibraryRequest struct {
 	Name     string `json:"name"`
 	RootPath string `json:"rootPath"`
@@ -56,27 +62,27 @@ type libraryResponse struct {
 }
 
 type scanResponse struct {
-	ID                    string   `json:"id"`
-	LibraryID             string   `json:"libraryId"`
-	Trigger               string   `json:"trigger"`
-	Status                string   `json:"status"`
-	Phase                 string   `json:"phase"`
-	Generation            int64    `json:"generation"`
-	DiscoveredDirectories int64    `json:"discoveredDirectories"`
-	DiscoveredAssets      int64    `json:"discoveredAssets"`
-	ProcessedAssets       int64    `json:"processedAssets"`
-	SkippedDirectories    int64    `json:"skippedDirectories"`
-	SkippedFiles          int64    `json:"skippedFiles"`
-	ErrorCount            int64    `json:"errorCount"`
-	Issues                []any    `json:"issues"`
-	IssuesTruncated       bool     `json:"issuesTruncated"`
-	ErrorCode             *string  `json:"errorCode"`
-	ProgressRatio         *float64 `json:"progressRatio"`
-	CreatedAt             string   `json:"createdAt"`
-	StartedAt             *string  `json:"startedAt"`
-	FinishedAt            *string  `json:"finishedAt"`
-	CancelRequestedAt     *string  `json:"cancelRequestedAt"`
-	CanCancel             bool     `json:"canCancel"`
+	ID                    string              `json:"id"`
+	LibraryID             string              `json:"libraryId"`
+	Trigger               string              `json:"trigger"`
+	Status                string              `json:"status"`
+	Phase                 string              `json:"phase"`
+	Generation            int64               `json:"generation"`
+	DiscoveredDirectories int64               `json:"discoveredDirectories"`
+	DiscoveredAssets      int64               `json:"discoveredAssets"`
+	ProcessedAssets       int64               `json:"processedAssets"`
+	SkippedDirectories    int64               `json:"skippedDirectories"`
+	SkippedFiles          int64               `json:"skippedFiles"`
+	ErrorCount            int64               `json:"errorCount"`
+	Issues                []scanIssueResponse `json:"issues"`
+	IssuesTruncated       bool                `json:"issuesTruncated"`
+	ErrorCode             *string             `json:"errorCode"`
+	ProgressRatio         *float64            `json:"progressRatio"`
+	CreatedAt             string              `json:"createdAt"`
+	StartedAt             *string             `json:"startedAt"`
+	FinishedAt            *string             `json:"finishedAt"`
+	CancelRequestedAt     *string             `json:"cancelRequestedAt"`
+	CanCancel             bool                `json:"canCancel"`
 }
 
 type createLibraryResponse struct {
@@ -394,7 +400,7 @@ func scanWire(item library.Scan) scanResponse {
 		SkippedDirectories:    item.SkippedDirectories,
 		SkippedFiles:          item.SkippedFiles,
 		ErrorCount:            item.ErrorCount,
-		Issues:                []any{},
+		Issues:                []scanIssueResponse{},
 		IssuesTruncated:       item.IssuesTruncated,
 		ErrorCode:             errorCode,
 		CreatedAt:             timestamp(item.CreatedAtMS),
@@ -422,7 +428,7 @@ func admissionScanWire(item scanner.ScanRun) scanResponse {
 		SkippedDirectories:    item.SkippedDirectories,
 		SkippedFiles:          item.SkippedFiles,
 		ErrorCount:            item.ErrorCount,
-		Issues:                []any{},
+		Issues:                []scanIssueResponse{},
 		IssuesTruncated:       item.IssuesTruncated,
 		ErrorCode:             errorCode,
 		CreatedAt:             timestamp(item.CreatedAtMS),
