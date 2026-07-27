@@ -65,16 +65,19 @@ export function shouldLoadNextMediaPage({
   isFetchingNextPage,
   itemCount,
   lastVirtualIndex,
+  paginationError,
 }: {
   columns: number;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   itemCount: number;
   lastVirtualIndex: number;
+  paginationError: boolean;
 }): boolean {
   return (
     hasNextPage &&
     !isFetchingNextPage &&
+    !paginationError &&
     lastVirtualIndex >= itemCount - columns * 2
   );
 }
@@ -227,6 +230,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
         isFetchingNextPage,
         itemCount: items.length,
         lastVirtualIndex,
+        paginationError,
       })
     ) {
       onLoadMore();
@@ -238,6 +242,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     items.length,
     lastVirtualIndex,
     onLoadMore,
+    paginationError,
   ]);
 
   return (

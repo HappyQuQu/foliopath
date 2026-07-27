@@ -26,7 +26,7 @@ NAS 客户端的最终 FPS、RSS 和目标浏览器矩阵仍属于 Stage 5 发�
 | 浏览器 DOM | 1280×720 Chromium，首屏与第 100,000 项 | 首屏 42 项；末端 40 项 |
 | 虚拟滚动 | 从首项跳到第 100,000 项，保持语义顺序 | `scrollY=3,609,790`；挂载 `aria-posinset=99,961～100,000` |
 | 焦点 | 关闭/恢复目标可暂时不在 DOM；等待必须有界 | 最多 12 个 animation frame；真实浏览器焦点落在 `预览 capacity-100000.jpg` |
-| cursor 请求 | API 每页 50 项，只在距末端两行内预取 | 首屏 0 次额外预取；一个请求在途时不重复触发 |
+| cursor 请求 | API 每页 50 项，只在距末端两行内预取 | 首屏 0 次额外预取；在途或分页错误时不重复触发 |
 | pending 刷新 | 2.5 秒刷新不能随累计页数无界增长 | 最多 4 个已载入页；第 5 页起停止周期刷新 |
 | 播放资源 | 任一时刻最多一个活动媒体节点 | 视频按资产 ID key；切换后旧 video 脱离 DOM，剩余 1 个 |
 
@@ -47,7 +47,7 @@ NAS 客户端的最终 FPS、RSS 和目标浏览器矩阵仍属于 Stage 5 发�
 ## 自动与浏览器证据
 
 - `MediaCollection.test.tsx`：100k 主档、有界 DOM、完整 `aria-setsize`、首屏不预取、
-  末端单请求判定、在途抑制及第 100,000 项虚拟滚动调用。
+  末端单请求判定、在途/分页错误抑制及第 100,000 项虚拟滚动调用。
 - `queries.test.ts`：pending-only 刷新及 4 页上限。
 - `MediaPreview.test.tsx`：video→video 切换卸载旧节点且 DOM 只剩一个 video。
 - `Patterns/MediaCollection/Capacity100k`：真实 Chromium 1280×720 验证首屏/末端挂载数、

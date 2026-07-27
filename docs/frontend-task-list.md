@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 3
+- 当前阶段：Stage 4
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
   位于 [`prototypes/foliopath-static-ui`](../prototypes/foliopath-static-ui/README.md)，不放入
   生产 `web/src` import graph
@@ -11,7 +11,9 @@
   Stage 2 的真实媒体库管理、扫描状态、通用扫描/缓存设置和完整验收矩阵
   `S2-201～208` 已通过
   [Integrated Done Gate](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)；
-  下一步进入 Stage 3 的目录浏览与缩略图界面
+  Stage 3 的目录浏览、缩略图集合、非模态预览和容量矩阵 `S3-101～108` 已通过
+  [Integrated Done Gate](gates/MVP-2026-07-23/s3-browse-integrated-done.md)；
+  下一步进入 Stage 4 的搜索与完整查看器界面
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -153,7 +155,7 @@
     离线且保留索引没有可显示媒体时使用专属 OfflineState，不把离线误报为空。首屏错误可重试，
     下一页错误保留已载入媒体并局部重试。仅存在 pending 缩略图且已载入不超过 4 页时
     按 2.5 秒刷新资产页，超过预算或全为 terminal 状态即停止；failed/unavailable
-    不伪造后端未提供的重新生成操作。证据见
+    不伪造后端未提供的重新生成操作；分页错误存在时停止自动预取，只允许显式重试。证据见
     [S3-104 前端浏览状态](gates/MVP-2026-07-23/s3-frontend-browse-states.md)。
 - [x] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。
   - 共享组件直接消费 feature 提供的同源 content URL，不导入 API client；图片使用
@@ -178,7 +180,13 @@
   - 焦点恢复使用虚拟滚动与最多 12 帧有界重试，卸载时取消；视频按资产 key 切换并验证
     旧节点释放、DOM 只保留一个视频。证据见
     [S3-107 前端容量预算](gates/MVP-2026-07-23/s3-frontend-capacity.md)。
-- [ ] `S3-108` 完成核心浏览/预览 E2E 与 `Integrated Done` Gate。
+- [x] `S3-108` 完成核心浏览/预览 E2E 与 `Integrated Done` Gate。
+  - 一次性真实后端链覆盖建库扫描后的目录树、direct/recursive、真实 ready WebP、
+    原内容预览、布局记忆、URL 前进后退、移动抽屉、固定/双击/Escape/焦点恢复。
+  - 受控契约状态覆盖 skeleton、pending→failed、分页错误保留与显式重试、首屏错误、
+    empty 和 offline；浏览页稳定浅/深主题、390/1024/1280px、无横向溢出及 axe
+    serious/critical 均通过。证据见
+    [Stage 3 浏览与预览 Integrated Done](gates/MVP-2026-07-23/s3-browse-integrated-done.md)。
 
 真实目录/媒体数据集成依赖后端 `S3-007`。
 

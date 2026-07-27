@@ -106,6 +106,7 @@ it("allows one cursor request near the edge and suppresses it while one is in fl
       isFetchingNextPage: false,
       itemCount: 100_000,
       lastVirtualIndex: 99_988,
+      paginationError: false,
     }),
   ).toBe(true);
   expect(
@@ -115,6 +116,17 @@ it("allows one cursor request near the edge and suppresses it while one is in fl
       isFetchingNextPage: true,
       itemCount: 100_000,
       lastVirtualIndex: 99_999,
+      paginationError: false,
+    }),
+  ).toBe(false);
+  expect(
+    shouldLoadNextMediaPage({
+      columns: 6,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      itemCount: 100_000,
+      lastVirtualIndex: 99_999,
+      paginationError: true,
     }),
   ).toBe(false);
 });

@@ -15,7 +15,7 @@ const longPathSegments = [
 ];
 const longLibraryName = "Family archive ".padEnd(128, "A");
 
-test("administrator and library-management vertical slice", async ({
+test("administrator, library-management, and browsing vertical slice", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -192,6 +192,13 @@ test("administrator and library-management vertical slice", async ({
   await expect(previewSeparator).toHaveAttribute("aria-valuenow", "406");
   await previewSeparator.press("ArrowLeft");
   await expect(previewSeparator).toHaveAttribute("aria-valuenow", "430");
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await waitForVisualState(page);
+  await expectNoSeriousAxeViolations(page);
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await waitForVisualState(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await preview.getByRole("button", { name: "Close preview" }).click();
   await expect(preview).toHaveCount(0);
@@ -301,6 +308,7 @@ test("administrator and library-management vertical slice", async ({
   let browseFixtureState:
     | "delayed-pending"
     | "pending-to-failed"
+    | "next-page-error"
     | "first-page-error"
     | "empty" = "delayed-pending";
   let pendingAssetRequests = 0;
@@ -324,6 +332,31 @@ test("administrator and library-management vertical slice", async ({
               requestId: "req_browse_fixture",
             },
           }),
+        });
+        return;
+      }
+      if (browseFixtureState === "next-page-error") {
+        const cursor = new URL(route.request().url()).searchParams.get("cursor");
+        if (cursor) {
+          await route.fulfill({
+            status: 503,
+            contentType: "application/json",
+            body: JSON.stringify({
+              error: {
+                code: "internal_error",
+                message: "safe pagination fixture",
+                requestId: "req_browse_next_page_fixture",
+              },
+            }),
+          });
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(
+            browseAssetPage("failed", "next-page-cursor"),
+          ),
         });
         return;
       }
@@ -359,6 +392,25 @@ test("administrator and library-management vertical slice", async ({
   expect(pendingAssetRequests).toBeGreaterThanOrEqual(2);
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
+
+  browseFixtureState = "next-page-error";
+  await page.goto(
+    `/libraries/${createdLibraryId}/browse?recursive=1&sort=name&order=desc`,
+  );
+  await expect(page.getByText("pending-state.jpg")).toBeVisible();
+  await expect(
+    page.getByText(
+      "More media could not be loaded. Items already shown are preserved.",
+    ),
+  ).toBeVisible();
+  browseFixtureState = "empty";
+  await page.getByRole("button", { name: "Retry loading more" }).click();
+  await expect(
+    page.getByText(
+      "More media could not be loaded. Items already shown are preserved.",
+    ),
+  ).toHaveCount(0);
+  await expect(page.getByText("pending-state.jpg")).toBeVisible();
 
   browseFixtureState = "first-page-error";
   await page.goto(
@@ -536,6 +588,7 @@ function scanFixture(
 
 function browseAssetPage(
   thumbnailStatus: "pending" | "failed",
+  nextCursor: string | null = null,
 ) {
   return {
     items: [
@@ -564,7 +617,7 @@ function browseAssetPage(
         },
       },
     ],
-    nextCursor: null,
+    nextCursor,
   };
 }
 

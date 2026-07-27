@@ -120,6 +120,11 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   原生视频 rerender 必须卸载旧节点且只留下一个 video。组件工作台同一主档在真实
   1280×720 Chromium 中记录首屏 42 项、末端 40 项、`aria-posinset` 99,961～100,000
   与末项焦点；代表性低性能客户端 FPS/RSS 仍由 Stage 5 发布 Gate 固定。
+- S3-108 真实纵向 E2E 从一次性 setup/建库/扫描进入 browse，覆盖真实 WebP/原内容、
+  direct/recursive/source link、URL 历史恢复、grid/masonry 记忆、移动目录抽屉、
+  非模态预览调宽/固定/双击/Escape/焦点，以及分页错误保留已加载项并只在显式重试后
+  续页。受控 skeleton、pending→failed、首屏错误、empty、offline 与稳定浅/深主题均
+  检查无页面横向溢出和 axe serious/critical。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
