@@ -7,8 +7,9 @@
 [后端开发清单](backend-task-list.md)与[前端开发清单](frontend-task-list.md)；任务清单不能
 改变本文阶段顺序或冻结 scope。
 
-当前已通过 Stage 0 Gate；认证与媒体库管理后端已经分别通过 Backend Ready，后端当前进入
-阶段 2 的扫描 worker 实现。生产前端仍按独立清单推进阶段 1：
+当前已通过 Stage 0 Gate；认证、媒体库管理与可靠扫描后端已经分别通过 Backend Ready，
+Stage 3 目录与媒体浏览已通过 S3-001 Contract Ready，后端当前进入 S3-002 catalog
+排序/cursor 实现。生产前端仍按独立清单推进：
 
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
 - [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、

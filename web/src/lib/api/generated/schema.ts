@@ -212,7 +212,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get an indexed directory and safe breadcrumbs */
+        /**
+         * Get an indexed directory and safe breadcrumbs
+         * @description The indexed root directory is a valid resource: its public `name` is
+         *     the current media-library display name, `relativePath` is empty, and
+         *     `parentId` is null. `breadcrumbs` is ordered root-to-current and always
+         *     includes both endpoints, so the root detail contains exactly one item.
+         *     Breadcrumbs expose only IDs, display names, and library-relative paths.
+         *     Offline libraries return preserved indexed detail with `200`; this
+         *     operation never checks or traverses the filesystem.
+         */
         get: operations["getDirectory"];
         put?: never;
         post?: never;
@@ -310,11 +319,31 @@ export interface paths {
         };
         /**
          * Browse or search media within a media library
-         * @description Omit `directoryId` to use the library root. With no search and
-         *     `recursive=false`, the default order is natural name ascending.
-         *     Recursive or searched results default to file modification time
-         *     descending. Any change to library, directory, recursive mode, query,
-         *     kind, sort, or order invalidates an old cursor.
+         * @description Omit `directoryId` to use the logical library root. Supplying that
+         *     library's indexed root-directory ID is equivalent and is normalized to
+         *     the same cursor scope. A directory from another library is
+         *     indistinguishable from a missing directory and returns
+         *     `directory_not_found`.
+         *
+         *     `recursive=false` returns only assets whose parent is the selected
+         *     directory. `recursive=true` includes the selected directory and all
+         *     indexed descendants; at the root it includes the whole library. Every
+         *     item retains its source `directoryId` and library-relative path.
+         *
+         *     With no search and `recursive=false`, the default order is natural name
+         *     ascending. Recursive or searched results default to file modification
+         *     time descending. Name order uses
+         *     `(naturalNameKey, name, relativePath, id)` and modified-time order uses
+         *     `(modifiedAt, id)`, with every tuple component following the requested
+         *     direction. Cursors bind the library, normalized directory, recursive
+         *     mode, query, kind, effective sort/order, ordering version, and reliable
+         *     catalog generation. Any bound-value or generation change makes an old
+         *     cursor fail with `invalid_cursor`; it never falls back to page one.
+         *
+         *     Offline libraries return preserved indexed assets with `200` and mark
+         *     their source availability. Pending/scanning/offline state comes from
+         *     the Library resource, so an empty page is not by itself a final empty
+         *     state. The request never traverses the filesystem.
          */
         get: operations["listLibraryAssets"];
         put?: never;
@@ -334,9 +363,21 @@ export interface paths {
         };
         /**
          * List direct child directories from the reliable index
-         * @description Omit `parentId` for the library root. Every readable indexed directory
-         *     is returned, including directories with no supported media. The request
-         *     never traverses the filesystem.
+         * @description Omit `parentId` for the logical library root. Supplying that library's
+         *     indexed root-directory ID is equivalent and is normalized to the same
+         *     cursor scope. Every direct child in the preserved index is returned,
+         *     including directories with no supported media. A parent from another
+         *     library is indistinguishable from a missing directory and returns
+         *     `directory_not_found`.
+         *
+         *     Results use `(naturalNameKey ASC, name ASC, id ASC)` keyset order.
+         *     Cursors bind the library, normalized parent, ordering version, and
+         *     reliable catalog generation. Advancing the reliable generation makes
+         *     an old cursor fail with `invalid_cursor`. An offline library still
+         *     returns its preserved index with `200`; pending/scanning/offline state
+         *     is read from the Library resource, so an empty page alone is never
+         *     proof that the filesystem is empty. The request never traverses the
+         *     filesystem.
          */
         get: operations["listDirectories"];
         put?: never;
@@ -586,6 +627,11 @@ export interface components {
          * @example family/2026
          */
         AllowedRootRelativePath: string;
+        /**
+         * @description Indexed media snapshot. `directoryId` may identify the indexed library
+         *     root, whose DirectoryDetail is always serializable under the root
+         *     representation rules. Paths are display-only and library-relative.
+         */
         Asset: {
             directoryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
@@ -613,6 +659,10 @@ export interface components {
         };
         /** @enum {string} */
         AssetKind: "image" | "animated" | "video";
+        /**
+         * @description Stable keyset page from the preserved index. `nextCursor` is null only
+         *     when no further item exists for this query and reliable generation.
+         */
         AssetPage: {
             items: components["schemas"]["Asset"][];
             nextCursor: components["schemas"]["NullableCursor"];
@@ -626,6 +676,10 @@ export interface components {
             /** @description True only before the one-time administrator setup commits. */
             setupRequired: boolean;
         };
+        /**
+         * @description One indexed location in a root-to-current breadcrumb chain. The root
+         *     uses the media-library display name and an empty relative path.
+         */
         Breadcrumb: {
             id: components["schemas"]["ResourceID"];
             name: string;
@@ -645,6 +699,13 @@ export interface components {
          *     plaintext media-library or filesystem path and must not be parsed by a client.
          */
         Cursor: string;
+        /**
+         * @description Indexed directory snapshot. For the library root, `name` is derived
+         *     from the current library display name, `relativePath` is empty, and
+         *     `parentId` is null. Non-root names come from indexed directory entries.
+         *     Counts are from the last reliable finalized generation while a scan is
+         *     running or the library is offline.
+         */
         Directory: {
             /** Format: int64 */
             directAssetCount: number;
@@ -657,7 +718,13 @@ export interface components {
             recursiveAssetCount: number;
             relativePath: components["schemas"]["LibraryRelativePath"];
         };
+        /** @description Indexed directory plus its complete safe root-to-current breadcrumb chain. */
         DirectoryDetail: {
+            /**
+             * @description Ordered root-to-current, inclusive. The 2049-item response bound
+             *     covers the root plus 2048 one-character path components within the
+             *     4096-character relative-path bound.
+             */
             breadcrumbs: components["schemas"]["Breadcrumb"][];
             /** Format: int64 */
             directAssetCount: number;
@@ -670,6 +737,10 @@ export interface components {
             recursiveAssetCount: number;
             relativePath: components["schemas"]["LibraryRelativePath"];
         };
+        /**
+         * @description Direct indexed children only; the selected parent is never repeated in
+         *     `items`. The Library resource supplies pending/scanning/offline state.
+         */
         DirectoryPage: {
             items: components["schemas"]["Directory"][];
             nextCursor: components["schemas"]["NullableCursor"];

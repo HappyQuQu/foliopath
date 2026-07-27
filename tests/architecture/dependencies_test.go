@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -942,6 +943,36 @@ func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
 				t.Errorf("%s duplicates cursor mechanism %q", relative, forbidden)
 			}
 		}
+	}
+}
+
+func TestSQLiteProductionQueriesDoNotUseOffsetPagination(t *testing.T) {
+	root := repositoryRoot(t)
+	storeRoot := filepath.Join(root, "internal", "store", "sqlite")
+	offsetPattern := regexp.MustCompile(`(?i)\bOFFSET\b`)
+	if err := filepath.WalkDir(storeRoot, func(
+		path string,
+		entry fs.DirEntry,
+		walkErr error,
+	) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() ||
+			strings.HasSuffix(path, "_test.go") ||
+			(filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sql") {
+			return nil
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if offsetPattern.Match(source) {
+			t.Errorf("production SQLite query uses forbidden OFFSET pagination: %s", path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("inspect SQLite pagination: %v", err)
 	}
 }
 

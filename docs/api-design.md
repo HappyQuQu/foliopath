@@ -112,6 +112,33 @@ Web API client 基础，但它们只是消费者契约边界。因此“认证 C
 
 目录响应可以附带 `breadcrumbs`，但面包屑元素只包含 ID、名称和相对路径，不返回真实容器路径。
 
+#### S3 浏览契约
+
+`api/openapi.yaml` 是结构权威；S3-001 进一步固定以下行为：
+
+- SQLite 中相对路径为空的目录行是可寻址的媒体库根目录。公开表示把 `name` 映射为当前媒体库
+  显示名，`relativePath=""`、`parentId=null`；不能把数据库中的空名称直接写入响应。
+- `GET /directories/{directoryId}` 的 `breadcrumbs` 始终从媒体库根到当前目录并包含两端；
+  根目录自身返回一个元素。面包屑最多 2049 项（根加最多 2048 个一字符 component），与最长
+  4096 字符的规范相对路径和已验证的
+  深目录能力相容。
+- 目录列表省略 `parentId` 表示根；显式传入同库根目录 ID 等价，服务端在 query fingerprint
+  中规范成同一 scope。跨库或不存在的目录统一返回 `directory_not_found`，不能泄露资源归属。
+- 目录列表只读索引中的直接子目录并按
+  `(natural_name_key ASC, name ASC, id ASC)` 分页；空目录不会被隐藏。
+- 资产列表省略 `directoryId` 表示根；`recursive=false` 只含所选目录的直接媒体，
+  `recursive=true` 包含所选目录及全部已索引后代。递归项保留真实 `directoryId` 和媒体库相对路径。
+- 直接非搜索浏览默认按 `(natural_name_key, name, relative_path, id)` 升序；递归或搜索默认按
+  `(mtime_ns, id)` 倒序。显式方向作用于整个 tuple，游标包含规范 scope、全部查询字段、排序版本
+  和可靠 catalog generation。
+- 成功完整扫描推进 reliable generation 后，旧游标返回 `invalid_cursor`，绝不回退第一页。
+  扫描中已经安全提交的新增项允许被后续 keyset 页观察；不承诺跨 generation 的快照事务。
+- 媒体库 offline 时目录详情、目录列表和资产列表继续以 `200` 返回保留索引，不访问文件系统。
+  `pending`、`scanning`、`offline` 由 Library 资源表达，因此空 page 本身不能被解释为最终空目录。
+
+S3 Contract Ready 只授权实现目录与无搜索浏览；OpenAPI 中的 `q` 和跨库搜索仍由 Stage 4 Gate
+决定何时可供产品 UI 使用，前端不能仅因生成 client 出现参数就绕过对应 Backend Ready Gate。
+
 ### Asset
 
 ```json
