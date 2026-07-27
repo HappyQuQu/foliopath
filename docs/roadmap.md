@@ -7,7 +7,8 @@
 [后端开发清单](backend-task-list.md)与[前端开发清单](frontend-task-list.md)；任务清单不能
 改变本文阶段顺序或冻结 scope。
 
-当前已通过 Stage 0 Gate，进入阶段 1：
+当前已通过 Stage 0 Gate；认证与媒体库管理后端已经分别通过 Backend Ready，后端当前进入
+阶段 2 的扫描 worker 实现。生产前端仍按独立清单推进阶段 1：
 
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
 - [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、
@@ -20,12 +21,11 @@
   Stage 0 扫描/索引范围、Linux RSS 与三档趋势通过；代表性存储、媒体、FTS、HTTP 与前端
   容量按 S0-106 转入后续 Gate。[FS-05](spikes/fs-05-runtime-recovery.md) 双架构运行、
   恢复和失败关闭范围通过。
-- Go 模块、首个 migration、部分能力包、权威 OpenAPI 和 Make 测试目标是 spike/契约产物；
-  TypeScript 生成类型、唯一 Web API client、摘要锁、语义兼容检查和双架构 CI 工作流也已
-  建立，runtime/recovery 与 SBOM/license CI 已通过。后端运行骨架现已可启动并执行 migration，
-  真实 composition root 与测试专用非 root 容器已覆盖 health、取消、重复启动和只读媒体，
-  但尚无生产业务 API handler、React 产品前端或正式 Dockerfile，因此 Stage 1 仍未完成，
-  不能跳到后续阶段。
+- Go 运行骨架、认证和 7 个媒体库管理 operation 已接入真实 composition root；权威
+  OpenAPI、TypeScript/sqlc 生成、摘要锁、语义兼容检查和双架构 CI 工作流已经建立。
+  媒体库 Backend Gate 已覆盖认证 HTTP、SQLite、路径/mount、并发/幂等、重启移除和原媒体
+  不变。扫描仍只有 Contract Ready 与 durable admission，React 产品前端和正式 Dockerfile
+  也未完成；不能把局部 Backend Ready 扩张为阶段 2 产品完成或跳到阶段 3。
 
 ## 阶段 0：基线同步与可行性验证
 

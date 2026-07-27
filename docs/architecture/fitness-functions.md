@@ -36,9 +36,9 @@ make test-e2e
 | AF-001 | Go 依赖只向内，handler 不依赖 SQLite/files，能力包不依赖 adapter/app | `make arch-check` 解析实际 Go import graph | **本地与 CI 已执行**：首次原生 amd64/arm64 PR CI 通过 | 持续强制 |
 | AF-002 | 不出现无所有权的 `utils/common/helpers/base` 或无外部消费者的 `pkg/` | `make arch-check` 检查 Go package | **本地与 CI 已执行**：首次原生 amd64/arm64 PR CI 通过 | 持续强制 |
 | AF-003 | 冻结 scope revision 不被静默改写；每项工作关联需求、目标版本、capability 与 Gate | scope manifest/revision、Change Record、Gate/PR 链接检查 | 计划门禁 | 首个产品 PR 前 |
-| AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；request ID、统一安全错误、health/readiness/status 与五个认证 handler 已有契约形状和真实 HTTP 集成测试，其余业务路由实现一致性尚未证明 | 首个 handler 前 |
+| AF-004 | OpenAPI 是唯一 HTTP 结构契约，生成客户端无漂移 | `make contract-check`、OpenAPI lint、生成 diff、摘要锁、兼容性检查 | **部分执行**：离线 Go 契约检查、确定性 TypeScript 生成、唯一 client、摘要锁、Redocly、语义自比较和真实 PR base-branch 比较均通过；request ID、统一安全错误、health/readiness/status、五个认证 handler 与 7 个媒体库管理 operation 已有契约形状和真实 HTTP 集成测试，其余业务路由仍按切片 Gate 验证 | 持续强制 |
 | AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | **部分执行**：正式应用已有空目录/重复迁移、冲突 schema 失败关闭、外键和完整性测试；追加认证 migration 已验证单管理员、摘要、期限与级联约束。migration checksum 与真实上一版本升级仍待实现 | 首个预览版前 |
-| AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **Stage 0 范围已执行**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、HTTP harness 已通过；生产 handler/auth 由首个受保护 API Backend Gate 强制，发布 volume/unmount 由 FS-05/Release Gate 强制 | 按 S0-105 持续分层强制 |
+| AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **媒体库 Backend Ready**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、认证 path/create HTTP 与真实 composition、TOCTOU/ABA、权限和错误脱敏均通过；扫描/媒体读取 handler 继续逐切片强制，发布 volume/unmount 由 Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | 部分执行；FS-02 当前 scope 通过 | 持续，发布前补强杀/磁盘故障 |
 | AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | 计划门禁 | 对应 worker 合入前 |
 | AF-009 | 前端依赖方向、共享组件唯一所有权与 token 单一来源 | TypeScript boundary/cycle lint、受限基础库/import 位置 allowlist、token lint、组件目录检查 | **部分执行**：strict TypeScript、唯一生成 client 边界及禁止散落 `fetch` 的架构测试已通过；React、组件/token/cycle 门禁尚未建立 | 首个业务 feature 前 |
@@ -64,11 +64,11 @@ make test-e2e
 `Release Ready` 是版本级 Gate：所有版本内切片完成后，再统一执行 AF-012～AF-016、全量 E2E、
 恢复、容量、安全、合规与发布文档门槛。
 
-Stage 0 Gate 已通过，Stage 1 认证后端已经 Backend Ready；[Stage 2 Architecture
-Ready](../gates/MVP-2026-07-23/stage-2-architecture-ready.md)只授权媒体库与扫描的
-契约设计。生产媒体 handler、路径/扫描故障证据和正式发布容器证据仍缺，必须按切片 Gate
-顺序补齐；Architecture Ready 不能把真实文件读取 API 标记为 `Backend Ready`，也不能跳过
-后端直接实现业务 UI。
+Stage 0 Gate 已通过，Stage 1 认证后端和 Stage 2
+[媒体库管理](../gates/MVP-2026-07-23/s2-library-backend-ready.md)已经 Backend Ready。
+扫描仍只有 Contract Ready 与 durable admission，必须由 `S2-102～107` 补齐 worker、
+故障和容量证据；浏览、媒体读取及正式发布容器也继续按各自 Gate 阻断。一个切片通过不能
+把相邻切片自动标记为 `Backend Ready`，也不能跳过后端直接实现依赖未完成行为的业务 UI。
 
 ## 失败与豁免
 
