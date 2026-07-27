@@ -184,7 +184,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     migration 7、唯一 catalog query/root owner、目录/资产完整 tuple keyset、
     generation-bound 指纹、跨库隔离、offline 保留与 context cancellation 已由真实
     SQLite 测试固定；搜索明确 fail closed，未被静默忽略。当前进入 S3-003。
-- [ ] `S3-003` 实现包含空目录及直接/递归计数的目录树。
+- [x] `S3-003` 实现包含空目录及直接/递归计数的目录树。
+  - 完成证据：[S3-003 目录树与详情](gates/MVP-2026-07-23/s3-directory-tree.md)；
+    direct-child page、root detail、完整 breadcrumb、空目录/可靠计数、1000 层链与损坏
+    parent fail-closed 已由领域、SQLite、HTTP 和真实认证 composition 测试固定。浏览请求
+    在源目录移走后仍只读保留索引；当前进入 S3-004。
 - [ ] `S3-004` 实现 govips/FFmpeg 媒体探测、缩略图/视频封面和损坏状态。
 - [ ] `S3-005` 实现有界媒体任务队列、fingerprint 失效、默认 10 GiB LRU 和磁盘余量保护。
 - [ ] `S3-006` 覆盖损坏媒体、像素炸弹、超时、取消、磁盘满和并发限制。

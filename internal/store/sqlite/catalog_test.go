@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
@@ -119,6 +120,260 @@ func TestCatalogDirectoryPageUsesNaturalKeysetAndNormalizesRoot(t *testing.T) {
 	if len(second.Items) != 1 || second.Items[0].Name != "Album 10" ||
 		second.NextCursor != "" {
 		t.Fatalf("second directory page = %#v", second)
+	}
+}
+
+func TestCatalogDirectoryDetailUsesIndexedLineageAndLibraryRootName(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	service := catalogServiceForStore(t, store)
+
+	var rootID, albumID, nestedID int64
+	for relative, target := range map[string]*int64{
+		"":               &rootID,
+		"Album 2":        &albumID,
+		"Album 2/Nested": &nestedID,
+	} {
+		if err := store.db.QueryRowContext(context.Background(), `
+            SELECT id FROM directories WHERE library_id = ? AND relative_path = ?`,
+			libraryID, relative,
+		).Scan(target); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	root, err := service.GetDirectory(context.Background(), rootID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root.Name != "Library" || root.ParentID != nil || root.RelativePath != "" ||
+		len(root.Breadcrumbs) != 1 || root.Breadcrumbs[0].Name != "Library" ||
+		!root.HasChildren {
+		t.Fatalf("root detail = %#v", root)
+	}
+
+	nested, err := service.GetDirectory(context.Background(), nestedID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotNames := make([]string, len(nested.Breadcrumbs))
+	for index, item := range nested.Breadcrumbs {
+		gotNames[index] = item.Name
+	}
+	if !slices.Equal(gotNames, []string{"Library", "Album 2", "Nested"}) ||
+		nested.ParentID == nil || *nested.ParentID != albumID {
+		t.Fatalf("nested detail = %#v", nested)
+	}
+}
+
+func TestCatalogDirectoryDetailSupportsThousandLevelIndexedLineage(t *testing.T) {
+	store, _ := openTestStore(t)
+	record := createTestLibrary(t, store)
+	tx, err := store.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := tx.ExecContext(context.Background(), `
+        INSERT INTO directories(
+            library_id, parent_id, relative_path, name, natural_name_key,
+            mtime_ns, last_seen_generation
+        ) VALUES (?, NULL, '', '', ?, 0, 1)`,
+		record.ID, catalog.NaturalNameKey(""),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentID, err := result.LastInsertId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	components := make([]string, 0, 1000)
+	for depth := 1; depth <= 1000; depth++ {
+		components = append(components, "d")
+		relative := strings.Join(components, "/")
+		result, err = tx.ExecContext(context.Background(), `
+            INSERT INTO directories(
+                library_id, parent_id, relative_path, name, natural_name_key,
+                mtime_ns, last_seen_generation
+            ) VALUES (?, ?, ?, 'd', ?, 0, 1)`,
+			record.ID, parentID, relative, catalog.NaturalNameKey("d"),
+		)
+		if err != nil {
+			t.Fatalf("insert depth %d: %v", depth, err)
+		}
+		parentID, err = result.LastInsertId()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	detail, err := catalogServiceForStore(t, store).GetDirectory(
+		context.Background(), parentID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Breadcrumbs) != 1001 ||
+		detail.Breadcrumbs[0].Name != "Library" ||
+		detail.Breadcrumbs[1000].RelativePath != strings.Join(components, "/") {
+		t.Fatalf("deep breadcrumb endpoints = %d, %#v, %#v",
+			len(detail.Breadcrumbs), detail.Breadcrumbs[0], detail.Breadcrumbs[len(detail.Breadcrumbs)-1])
+	}
+}
+
+func TestCatalogDirectoryDetailFailsClosedForCorruptParentTopology(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		corrupt func(*testing.T, *Store, int64, int64)
+	}{
+		{
+			name: "cycle",
+			corrupt: func(t *testing.T, store *Store, _, directoryID int64) {
+				if _, err := store.db.ExecContext(context.Background(), `
+                    UPDATE directories SET parent_id = id WHERE id = ?`,
+					directoryID,
+				); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "missing parent",
+			corrupt: func(t *testing.T, store *Store, _, directoryID int64) {
+				connection, err := store.db.Conn(context.Background())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer connection.Close()
+				if _, err := connection.ExecContext(
+					context.Background(), `PRAGMA foreign_keys = OFF`,
+				); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := connection.ExecContext(context.Background(), `
+                    UPDATE directories SET parent_id = 9223372036854775806 WHERE id = ?`,
+					directoryID,
+				); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "cross library parent",
+			corrupt: func(t *testing.T, store *Store, _ int64, directoryID int64) {
+				other, err := store.CreateLibrary(context.Background(), library.CreateParams{
+					Name: "Other", RootRelativePath: "other",
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				run, err := store.BeginFullScan(
+					context.Background(), other.ID, scanner.TriggerManual,
+				)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := store.UpsertCatalogBatch(
+					context.Background(), run.ID,
+					[]scanner.CatalogEntry{{Kind: scanner.CatalogEntryDirectory}},
+				); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := store.CompleteFullScan(
+					context.Background(), run.ID, scanner.SkipCounts{},
+				); err != nil {
+					t.Fatal(err)
+				}
+				var otherRootID int64
+				if err := store.db.QueryRowContext(context.Background(), `
+                    SELECT id FROM directories
+                    WHERE library_id = ? AND relative_path = ''`,
+					other.ID,
+				).Scan(&otherRootID); err != nil {
+					t.Fatal(err)
+				}
+				connection, err := store.db.Conn(context.Background())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer connection.Close()
+				if _, err := connection.ExecContext(
+					context.Background(), `PRAGMA foreign_keys = OFF`,
+				); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := connection.ExecContext(context.Background(), `
+                    UPDATE directories SET parent_id = ? WHERE id = ?`,
+					otherRootID, directoryID,
+				); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store, _ := openTestStore(t)
+			libraryID := seedBrowseCatalog(t, store)
+			var directoryID int64
+			if err := store.db.QueryRowContext(context.Background(), `
+                SELECT id FROM directories
+                WHERE library_id = ? AND relative_path = 'Album 2/Nested'`,
+				libraryID,
+			).Scan(&directoryID); err != nil {
+				t.Fatal(err)
+			}
+			test.corrupt(t, store, libraryID, directoryID)
+			if _, err := catalogServiceForStore(t, store).GetDirectory(
+				context.Background(), directoryID,
+			); !errors.Is(err, catalog.ErrInvalidTopology) {
+				t.Fatalf("topology error = %v", err)
+			}
+		})
+	}
+}
+
+func TestCatalogDirectoryDetailPreservesReliableCountsWhileScanningAndOffline(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var directoryID int64
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT id FROM directories
+        WHERE library_id = ? AND relative_path = 'Album 2'`,
+		libraryID,
+	).Scan(&directoryID); err != nil {
+		t.Fatal(err)
+	}
+	run, err := store.BeginFullScan(context.Background(), libraryID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanning, err := catalogServiceForStore(t, store).GetDirectory(
+		context.Background(), directoryID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scanning.DirectAssetCount != 1 || scanning.RecursiveAssetCount != 2 {
+		t.Fatalf("scanning counts = %d, %d",
+			scanning.DirectAssetCount, scanning.RecursiveAssetCount)
+	}
+	if _, err := store.OfflineFullScan(
+		context.Background(), run.ID, scanner.SkipCounts{}, "source_unavailable",
+	); err != nil {
+		t.Fatal(err)
+	}
+	offline, err := catalogServiceForStore(t, store).GetDirectory(
+		context.Background(), directoryID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if offline.DirectAssetCount != 1 || offline.RecursiveAssetCount != 2 {
+		t.Fatalf("offline counts = %d, %d",
+			offline.DirectAssetCount, offline.RecursiveAssetCount)
 	}
 }
 

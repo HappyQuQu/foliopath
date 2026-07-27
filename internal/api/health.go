@@ -47,6 +47,7 @@ type RouteDependencies struct {
 	ScanAdmission  ScanAdmissionService
 	Scans          ScanQueryService
 	Settings       SettingsService
+	Catalog        CatalogService
 }
 
 type SettingsService interface {
@@ -80,6 +81,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Settings != nil {
 		registerSettingsRoutes(mux, dependencies.Settings)
+	}
+	if dependencies.Catalog != nil {
+		registerCatalogRoutes(mux, dependencies.Catalog)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

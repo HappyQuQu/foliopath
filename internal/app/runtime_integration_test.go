@@ -398,6 +398,61 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		cancel()
 		t.Fatalf("creation scan result = %#v", current)
 	}
+	if err := os.Rename(
+		filepath.Join(mediaRoot, "family"),
+		filepath.Join(mediaRoot, "family-unavailable"),
+	); err != nil {
+		t.Fatal(err)
+	}
+	unauthorizedBrowse := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/libraries/lib_1/directories", "", "", "",
+	)
+	if unauthorizedBrowse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized browse response = %#v", unauthorizedBrowse)
+	}
+	indexedDirectories := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/libraries/lib_1/directories?limit=20", "", setup.Cookie, "",
+	)
+	if indexedDirectories.StatusCode != http.StatusOK {
+		t.Fatalf("indexed directory response = %#v", indexedDirectories)
+	}
+	var directoryPage struct {
+		Items []struct {
+			ID                  string `json:"id"`
+			Name                string `json:"name"`
+			RelativePath        string `json:"relativePath"`
+			DirectAssetCount    int64  `json:"directAssetCount"`
+			RecursiveAssetCount int64  `json:"recursiveAssetCount"`
+			HasChildren         bool   `json:"hasChildren"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(indexedDirectories.Body), &directoryPage); err != nil {
+		t.Fatal(err)
+	}
+	var albumID string
+	for _, item := range directoryPage.Items {
+		if item.RelativePath == "album" {
+			albumID = item.ID
+			if item.Name != "album" || item.DirectAssetCount != 1 ||
+				item.RecursiveAssetCount != 2 || !item.HasChildren {
+				t.Fatalf("indexed album = %#v", item)
+			}
+		}
+	}
+	if albumID == "" {
+		t.Fatalf("indexed page omitted album: %#v", directoryPage)
+	}
+	indexedDetail := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/directories/"+albumID, "", setup.Cookie, "",
+	)
+	if indexedDetail.StatusCode != http.StatusOK ||
+		!strings.Contains(indexedDetail.Body, `"name":"Family"`) ||
+		!strings.Contains(indexedDetail.Body, `"relativePath":"album"`) {
+		t.Fatalf("indexed detail response = %#v", indexedDetail)
+	}
 	history := runtimeAuthenticationRequest(
 		t, client, address, http.MethodGet,
 		"/api/v1/libraries/lib_1/scans?limit=1", "", setup.Cookie, "",

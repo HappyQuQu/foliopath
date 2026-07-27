@@ -11,6 +11,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
@@ -22,6 +23,7 @@ const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
 	auth.Repository
+	catalog.Repository
 	library.Repository
 	library.LifecycleRepository
 	library.RemovalRepository
@@ -32,6 +34,55 @@ type databaseStore interface {
 	appsettings.Repository
 	scanQueueStore
 	Close() error
+}
+
+func (service *databaseService) ResolveScope(
+	ctx context.Context,
+	libraryID, selectedDirectoryID int64,
+) (catalog.Scope, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return catalog.Scope{}, catalog.ErrRepositoryNotReady
+	}
+	return service.store.ResolveScope(ctx, libraryID, selectedDirectoryID)
+}
+
+func (service *databaseService) ListDirectoryPage(
+	ctx context.Context,
+	params catalog.DirectoryListParams,
+) ([]catalog.Directory, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, catalog.ErrRepositoryNotReady
+	}
+	return service.store.ListDirectoryPage(ctx, params)
+}
+
+func (service *databaseService) ListAssetPage(
+	ctx context.Context,
+	params catalog.AssetListParams,
+) ([]catalog.Asset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, catalog.ErrRepositoryNotReady
+	}
+	return service.store.ListAssetPage(ctx, params)
+}
+
+func (service *databaseService) GetDirectoryLineage(
+	ctx context.Context,
+	directoryID int64,
+	maximum int,
+) (catalog.DirectoryLineage, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return catalog.DirectoryLineage{}, catalog.ErrRepositoryNotReady
+	}
+	return service.store.GetDirectoryLineage(ctx, directoryID, maximum)
 }
 
 type scanQueueStore interface {

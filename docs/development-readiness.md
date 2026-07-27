@@ -10,8 +10,9 @@ Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)也已结论为 `Go`，�
 Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)也已结论为 `Go`，允许前端接入
 扫描历史、详情轮询、手动请求、取消和计划设置。[S3-001 目录与媒体浏览 Contract
 Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)已通过；[S3-002 Catalog 排序与
-游标](gates/MVP-2026-07-23/s3-catalog-keyset.md)已完成，当前后端进入 `S3-003`
-目录树、详情与 breadcrumb 实现。
+游标](gates/MVP-2026-07-23/s3-catalog-keyset.md)和[S3-003 目录树与
+详情](gates/MVP-2026-07-23/s3-directory-tree.md)已完成，当前后端进入 `S3-004`
+媒体探测与缩略图实现。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式

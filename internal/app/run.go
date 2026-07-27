@@ -12,6 +12,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
@@ -134,6 +135,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct settings service: %w", err)
 	}
+	catalogService, err := catalog.NewService(database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct catalog service: %w", err)
+	}
 	scanService, err := scanner.NewService(database, scanner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("construct scan service: %w", err)
@@ -180,6 +185,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		ScanAdmission:  scanAdmission,
 		Scans:          scanQueries,
 		Settings:       settingsService,
+		Catalog:        catalogService,
 	})
 	if err != nil {
 		return nil, err

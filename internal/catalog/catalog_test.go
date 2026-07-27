@@ -15,6 +15,8 @@ type repositoryStub struct {
 	directoryCalls []DirectoryListParams
 	assetCalls     []AssetListParams
 	resolveErr     error
+	lineage        DirectoryLineage
+	lineageErr     error
 }
 
 func (stub *repositoryStub) ResolveScope(
@@ -56,6 +58,17 @@ func (stub *repositoryStub) ListAssetPage(
 	}
 	stub.assetCalls = append(stub.assetCalls, params)
 	return append([]Asset(nil), stub.assets...), nil
+}
+
+func (stub *repositoryStub) GetDirectoryLineage(
+	ctx context.Context,
+	_ int64,
+	_ int,
+) (DirectoryLineage, error) {
+	if err := ctx.Err(); err != nil {
+		return DirectoryLineage{}, err
+	}
+	return stub.lineage, stub.lineageErr
 }
 
 func newTestService(t *testing.T, repository Repository) *Service {
@@ -277,5 +290,63 @@ func TestCatalogRejectsInvalidAndCancelledRequests(t *testing.T) {
 	}
 	if len(repository.directoryCalls) != 0 {
 		t.Fatal("cancelled request reached repository")
+	}
+}
+
+func TestDirectoryDetailMapsRootAndBuildsCompleteBreadcrumb(t *testing.T) {
+	rootID, albumID := int64(10), int64(11)
+	repository := &repositoryStub{lineage: DirectoryLineage{
+		LibraryName: "Family",
+		Items: []Directory{
+			{ID: rootID, LibraryID: 3},
+			{
+				ID: albumID, LibraryID: 3, ParentID: &rootID,
+				RelativePath: "Album", Name: "Album", HasChildren: true,
+			},
+		},
+	}}
+	service := newTestService(t, repository)
+	detail, err := service.GetDirectory(context.Background(), albumID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.ID != albumID || len(detail.Breadcrumbs) != 2 ||
+		detail.Breadcrumbs[0].Name != "Family" ||
+		detail.Breadcrumbs[0].RelativePath != "" ||
+		detail.Breadcrumbs[1].Name != "Album" {
+		t.Fatalf("directory detail = %#v", detail)
+	}
+}
+
+func TestDirectoryDetailFailsClosedForBrokenTopology(t *testing.T) {
+	rootID, albumID := int64(10), int64(11)
+	tests := []DirectoryLineage{
+		{LibraryName: "Family"},
+		{
+			LibraryName: "Family",
+			Items: []Directory{
+				{ID: rootID, LibraryID: 3},
+				{
+					ID: albumID, LibraryID: 3, ParentID: &rootID,
+					RelativePath: "Other/Album", Name: "Album",
+				},
+			},
+		},
+		{
+			LibraryName: "Family",
+			Items: []Directory{
+				{ID: rootID, LibraryID: 3},
+				{
+					ID: rootID, LibraryID: 3, ParentID: &rootID,
+					RelativePath: "Again", Name: "Again",
+				},
+			},
+		},
+	}
+	for index, lineage := range tests {
+		service := newTestService(t, &repositoryStub{lineage: lineage})
+		if _, err := service.GetDirectory(context.Background(), albumID); !errors.Is(err, ErrInvalidTopology) {
+			t.Fatalf("case %d error = %v", index, err)
+		}
 	}
 }

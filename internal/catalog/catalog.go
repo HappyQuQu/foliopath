@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"slices"
 	"unicode/utf8"
 
 	cursorcodec "github.com/HappyQuQu/foliopath/internal/cursor"
+	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -20,6 +22,7 @@ const (
 	DefaultPageSize = 50
 	MaxPageSize     = 200
 	MaxCursorBytes  = 2048
+	MaxBreadcrumbs  = 2049
 
 	queryVersion     = 1
 	directoryOrderV1 = 1
@@ -27,11 +30,13 @@ const (
 )
 
 var (
-	ErrLibraryNotFound   = errors.New("catalog library not found")
-	ErrDirectoryNotFound = errors.New("catalog directory not found")
-	ErrInvalidQuery      = errors.New("invalid catalog query")
-	ErrInvalidCursor     = errors.New("invalid catalog cursor")
-	ErrSearchUnavailable = errors.New("catalog search is not implemented")
+	ErrLibraryNotFound    = errors.New("catalog library not found")
+	ErrDirectoryNotFound  = errors.New("catalog directory not found")
+	ErrInvalidQuery       = errors.New("invalid catalog query")
+	ErrInvalidCursor      = errors.New("invalid catalog cursor")
+	ErrSearchUnavailable  = errors.New("catalog search is not implemented")
+	ErrInvalidTopology    = errors.New("invalid catalog directory topology")
+	ErrRepositoryNotReady = errors.New("catalog repository is not ready")
 )
 
 type SourceAvailability string
@@ -101,12 +106,29 @@ func NormalizeRootScope(rootDirectoryID, selectedDirectoryID int64) (int64, erro
 type Directory struct {
 	ID                  int64
 	LibraryID           int64
-	ParentID            int64
+	ParentID            *int64
 	RelativePath        string
 	Name                string
 	NaturalNameKey      []byte
 	DirectAssetCount    int64
 	RecursiveAssetCount int64
+	HasChildren         bool
+}
+
+type DirectoryLineage struct {
+	LibraryName string
+	Items       []Directory
+}
+
+type Breadcrumb struct {
+	ID           int64
+	Name         string
+	RelativePath string
+}
+
+type DirectoryDetail struct {
+	Directory
+	Breadcrumbs []Breadcrumb
 }
 
 type Asset struct {
@@ -164,6 +186,74 @@ type Repository interface {
 	ResolveScope(context.Context, int64, int64) (Scope, error)
 	ListDirectoryPage(context.Context, DirectoryListParams) ([]Directory, error)
 	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
+	GetDirectoryLineage(context.Context, int64, int) (DirectoryLineage, error)
+}
+
+func (service *Service) GetDirectory(
+	ctx context.Context,
+	directoryID int64,
+) (DirectoryDetail, error) {
+	if err := ctx.Err(); err != nil {
+		return DirectoryDetail{}, err
+	}
+	if directoryID <= 0 {
+		return DirectoryDetail{}, ErrDirectoryNotFound
+	}
+	lineage, err := service.repository.GetDirectoryLineage(ctx, directoryID, MaxBreadcrumbs)
+	if err != nil {
+		return DirectoryDetail{}, err
+	}
+	if lineage.LibraryName == "" || len(lineage.Items) == 0 ||
+		len(lineage.Items) > MaxBreadcrumbs {
+		return DirectoryDetail{}, ErrInvalidTopology
+	}
+	seen := make(map[int64]struct{}, len(lineage.Items))
+	breadcrumbs := make([]Breadcrumb, 0, len(lineage.Items))
+	for index, item := range lineage.Items {
+		if item.ID <= 0 || item.LibraryID <= 0 || item.DirectAssetCount < 0 ||
+			item.RecursiveAssetCount < 0 {
+			return DirectoryDetail{}, ErrInvalidTopology
+		}
+		if _, duplicate := seen[item.ID]; duplicate {
+			return DirectoryDetail{}, ErrInvalidTopology
+		}
+		seen[item.ID] = struct{}{}
+		isRoot := index == 0
+		if isRoot {
+			if item.ParentID != nil || item.RelativePath != "" {
+				return DirectoryDetail{}, ErrInvalidTopology
+			}
+			item.Name = lineage.LibraryName
+			lineage.Items[index].Name = item.Name
+		} else {
+			parent := lineage.Items[index-1]
+			if item.ParentID == nil || *item.ParentID != parent.ID ||
+				item.LibraryID != parent.LibraryID || item.Name == "" {
+				return DirectoryDetail{}, ErrInvalidTopology
+			}
+			normalized, normalizeErr := pathpolicy.Normalize(item.RelativePath)
+			if normalizeErr != nil || normalized != item.RelativePath ||
+				path.Base(item.RelativePath) != item.Name ||
+				path.Dir(item.RelativePath) != rootParentPath(parent.RelativePath) {
+				return DirectoryDetail{}, ErrInvalidTopology
+			}
+		}
+		breadcrumbs = append(breadcrumbs, Breadcrumb{
+			ID: item.ID, Name: item.Name, RelativePath: item.RelativePath,
+		})
+	}
+	current := lineage.Items[len(lineage.Items)-1]
+	if current.ID != directoryID {
+		return DirectoryDetail{}, ErrInvalidTopology
+	}
+	return DirectoryDetail{Directory: current, Breadcrumbs: breadcrumbs}, nil
+}
+
+func rootParentPath(relative string) string {
+	if relative == "" {
+		return "."
+	}
+	return relative
 }
 
 type DirectoryRequest struct {

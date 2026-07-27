@@ -87,7 +87,12 @@ func (s *Store) ListDirectoryPage(
 	}
 	query := `
         SELECT id, library_id, parent_id, relative_path, name, natural_name_key,
-               direct_asset_count, recursive_asset_count
+               direct_asset_count, recursive_asset_count,
+               EXISTS(
+                   SELECT 1 FROM directories child
+                   WHERE child.library_id = directories.library_id
+                     AND child.parent_id = directories.id
+               )
         FROM directories
         WHERE library_id = ? AND parent_id = ?`
 	args := []any{params.Scope.LibraryID, params.Scope.DirectoryID}
@@ -118,19 +123,110 @@ func (s *Store) ListDirectoryPage(
 	items := make([]catalog.Directory, 0, params.Limit)
 	for rows.Next() {
 		var item catalog.Directory
+		var parentID sql.NullInt64
+		var hasChildren int64
 		if err := rows.Scan(
-			&item.ID, &item.LibraryID, &item.ParentID, &item.RelativePath,
+			&item.ID, &item.LibraryID, &parentID, &item.RelativePath,
 			&item.Name, &item.NaturalNameKey, &item.DirectAssetCount,
-			&item.RecursiveAssetCount,
+			&item.RecursiveAssetCount, &hasChildren,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog directory: %w", err)
 		}
+		if parentID.Valid {
+			item.ParentID = &parentID.Int64
+		}
+		item.HasChildren = hasChildren != 0
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate catalog directories: %w", err)
 	}
 	return items, nil
+}
+
+func (s *Store) GetDirectoryLineage(
+	ctx context.Context,
+	directoryID int64,
+	maximum int,
+) (catalog.DirectoryLineage, error) {
+	if directoryID <= 0 {
+		return catalog.DirectoryLineage{}, catalog.ErrDirectoryNotFound
+	}
+	if maximum < 1 || maximum > catalog.MaxBreadcrumbs {
+		return catalog.DirectoryLineage{}, catalog.ErrInvalidQuery
+	}
+	var libraryID int64
+	var libraryName string
+	if err := s.db.QueryRowContext(ctx, `
+        SELECT d.library_id, l.name
+        FROM directories d
+        JOIN libraries l ON l.id = d.library_id
+        WHERE d.id = ?`,
+		directoryID,
+	).Scan(&libraryID, &libraryName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return catalog.DirectoryLineage{}, catalog.ErrDirectoryNotFound
+		}
+		return catalog.DirectoryLineage{}, fmt.Errorf("resolve catalog directory lineage: %w", err)
+	}
+
+	reversed := make([]catalog.Directory, 0, 16)
+	seen := make(map[int64]struct{}, 16)
+	currentID := directoryID
+	for {
+		if err := ctx.Err(); err != nil {
+			return catalog.DirectoryLineage{}, err
+		}
+		if len(reversed) >= maximum {
+			return catalog.DirectoryLineage{}, catalog.ErrInvalidTopology
+		}
+		if _, duplicate := seen[currentID]; duplicate {
+			return catalog.DirectoryLineage{}, catalog.ErrInvalidTopology
+		}
+		seen[currentID] = struct{}{}
+		var item catalog.Directory
+		var parentID sql.NullInt64
+		var hasChildren int64
+		err := s.db.QueryRowContext(ctx, `
+            SELECT d.id, d.library_id, d.parent_id, d.relative_path, d.name,
+                   d.natural_name_key, d.direct_asset_count,
+                   d.recursive_asset_count,
+                   EXISTS(
+                       SELECT 1 FROM directories child
+                       WHERE child.library_id = d.library_id
+                         AND child.parent_id = d.id
+                   )
+            FROM directories d
+            WHERE d.id = ? AND d.library_id = ?`,
+			currentID, libraryID,
+		).Scan(
+			&item.ID, &item.LibraryID, &parentID, &item.RelativePath, &item.Name,
+			&item.NaturalNameKey, &item.DirectAssetCount, &item.RecursiveAssetCount,
+			&hasChildren,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return catalog.DirectoryLineage{}, catalog.ErrInvalidTopology
+			}
+			return catalog.DirectoryLineage{}, fmt.Errorf("read catalog directory ancestor: %w", err)
+		}
+		item.HasChildren = hasChildren != 0
+		if parentID.Valid {
+			parent := parentID.Int64
+			item.ParentID = &parent
+		}
+		reversed = append(reversed, item)
+		if item.ParentID == nil {
+			break
+		}
+		currentID = *item.ParentID
+	}
+
+	items := make([]catalog.Directory, len(reversed))
+	for index := range reversed {
+		items[len(reversed)-1-index] = reversed[index]
+	}
+	return catalog.DirectoryLineage{LibraryName: libraryName, Items: items}, nil
 }
 
 func (s *Store) ListAssetPage(
