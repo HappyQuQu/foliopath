@@ -48,9 +48,9 @@
 [路线图](roadmap.md)为准，架构与交付门禁以
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
-当前里程碑：**Stage 1 / 认证前端集成**。Stage 0 Gate 已于 2026-07-23 通过并只授权
-Stage 1；认证后端现已 `Backend Ready`，认证产品 UI 可以连接真实 API，Stage 2～5
-仍未授权。
+当前里程碑：**Stage 2 / 媒体库与扫描契约**。认证后端现已 `Backend Ready`，认证产品
+UI 可以连接真实 API；媒体库与扫描已通过 Architecture Ready，但当前只允许
+`S2-001`/`S2-101` 契约设计。Stage 3～5 仍未授权。
 
 执行约束：
 
@@ -147,7 +147,8 @@ Stage 1；认证后端现已 `Backend Ready`，认证产品 UI 可以连接真�
 
 [查看后端开发清单](backend-task-list.md)
 
-- 当前：Stage 1 后端已完成；`S1-106` Gate 只授权认证前端集成，Stage 2 尚未授权。
+- 当前：Stage 2 Architecture Ready；先做 `S2-001`，并由 `S2-101` 同步固定媒体库创建后
+  durable 首次扫描的交接。两个切片在 Contract Ready 前都不得进入实现。
 - 完成范围：Go/API/SQLite/认证/文件安全/扫描/媒体处理。
 - 交付前端：评审后的 OpenAPI、契约 fixture、可启动服务和 `Backend Ready` 记录。
 

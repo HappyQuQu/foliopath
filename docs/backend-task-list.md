@@ -2,9 +2,11 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 1 后端已完成
+- 当前阶段：Stage 2 Architecture Ready，进入契约设计
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
-- 当前任务：无；Stage 2 尚未获既有 Gate 授权
+- 当前任务：`S2-001` 媒体库契约；`S2-101` 扫描契约同步固定首次扫描交接
+- 授权边界：[Stage 2 Architecture Ready](gates/MVP-2026-07-23/stage-2-architecture-ready.md)
+  仅允许契约设计；对应 Contract Ready 前不得进入实现
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -85,6 +87,9 @@
     回环监听、Stage 2 和 Stage 5 发布边界保持不变。
 
 ## Stage 2：媒体库与可靠扫描后端
+
+Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库创建与 durable 首次扫描的
+交接，再分别实现；媒体库和扫描各自仍需独立通过 Contract Ready 与 Backend Ready。
 
 ### 媒体库
 

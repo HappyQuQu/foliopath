@@ -64,9 +64,11 @@ make test-e2e
 `Release Ready` 是版本级 Gate：所有版本内切片完成后，再统一执行 AF-012～AF-016、全量 E2E、
 恢复、容量、安全、合规与发布文档门槛。
 
-Stage 0 Gate 已通过并只授权 Stage 1。生产 handler、认证/错误 envelope 和正式发布容器证据
-仍缺，必须按切片 Gate 顺序补齐；本次 Stage 0 Go 不能把真实文件读取 API 标记为
-`Backend Ready`，也不能跳过后端直接实现业务 UI。
+Stage 0 Gate 已通过，Stage 1 认证后端已经 Backend Ready；[Stage 2 Architecture
+Ready](../gates/MVP-2026-07-23/stage-2-architecture-ready.md)只授权媒体库与扫描的
+契约设计。生产媒体 handler、路径/扫描故障证据和正式发布容器证据仍缺，必须按切片 Gate
+顺序补齐；Architecture Ready 不能把真实文件读取 API 标记为 `Backend Ready`，也不能跳过
+后端直接实现业务 UI。
 
 ## 失败与豁免
 
