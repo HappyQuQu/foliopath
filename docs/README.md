@@ -16,7 +16,7 @@
 | 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
 | 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
-| 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
+| 判断能否开工 | [开发就绪评审](development-readiness.md) | [Stage 2 Architecture Ready](gates/MVP-2026-07-23/stage-2-architecture-ready.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[FS-01～05](spikes/fs-05-runtime-recovery.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
 | 修改架构或范围 | [交付与架构治理](architecture/delivery-governance.md) | [系统架构档案](architecture/README.md)、[Agent 约束](../AGENTS.md)、[ADR](adr/README.md) |
 
