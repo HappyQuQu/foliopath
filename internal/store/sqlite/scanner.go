@@ -80,7 +80,7 @@ func (s *Store) AdmitFullScan(
 		).Scan(&active); err != nil {
 			return fmt.Errorf("count scan admission capacity: %w", err)
 		}
-		if active >= 256 {
+		if active >= scanner.MaxActiveFullScans {
 			return scanner.ErrAdmissionCapacity
 		}
 		var generation int64
@@ -272,7 +272,7 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
 		return scanner.ErrBatchTooLarge
 	}
 
-	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		run, err := activeScanRunTx(ctx, tx, runID)
 		if err != nil {
 			return err
@@ -314,6 +314,15 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
 		}
 		return nil
 	})
+	if err == nil ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, scanner.ErrInvalidEntry) ||
+		errors.Is(err, scanner.ErrScanRunNotFound) ||
+		errors.Is(err, scanner.ErrScanRunNotActive) {
+		return err
+	}
+	return errors.Join(scanner.ErrDatabaseUnavailable, err)
 }
 
 func upsertDirectory(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry scanner.CatalogEntry) (bool, error) {

@@ -621,6 +621,61 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 	}
 }
 
+func TestScanCapacityGateUsesCanonicalProductionBounds(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: filepath.Join(root, "internal", "scanner", "admission.go"),
+			contents: []string{
+				"MaxActiveFullScans     = 256",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "scanner", "scanner.go"),
+			contents: []string{
+				"const DefaultBatchSize = 256",
+				"config.BatchSize = DefaultBatchSize",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "store", "sqlite", "scanner.go"),
+			contents: []string{
+				"active >= scanner.MaxActiveFullScans",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "store", "sqlite", "library_lifecycle.go"),
+			contents: []string{
+				"activeCount >= scanner.MaxActiveFullScans",
+			},
+		},
+		{
+			path: filepath.Join(root, ".github", "workflows", "ci.yml"),
+			contents: []string{
+				"scan-capacity:",
+				"--cpus=2",
+				"--memory=4g",
+				"GOMAXPROCS=2",
+				"FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1",
+				"Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing scan capacity rule %q", required.path, content)
+			}
+		}
+	}
+}
+
 func TestDirectoryIndexAndCountPolicyHasCanonicalOwners(t *testing.T) {
 	root := repositoryRoot(t)
 	scannerPath := filepath.Join(root, "internal", "scanner", "scanner.go")

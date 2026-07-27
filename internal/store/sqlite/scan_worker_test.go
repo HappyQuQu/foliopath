@@ -2,7 +2,10 @@ package sqlite
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -79,6 +82,187 @@ func TestListStartupLibraryIDsUsesKeysetAndExcludesActiveRemoval(t *testing.T) {
 	}
 	if len(page) != 1 || page[0] != third.ID {
 		t.Fatalf("second startup page = %v", page)
+	}
+}
+
+func TestScanAdmissionEnforcesAndReleasesGlobalCapacity(t *testing.T) {
+	now := time.UnixMilli(5_000)
+	store := openTimedScanStore(t, &now)
+	ctx := context.Background()
+	active := make([]scanner.AdmissionResult, 0, scanner.MaxActiveFullScans)
+	for index := 0; index < scanner.MaxActiveFullScans; index++ {
+		record := createWorkerLibrary(
+			t,
+			store,
+			fmt.Sprintf("Library %03d", index),
+			fmt.Sprintf("library-%03d", index),
+		)
+		admitted, err := store.AdmitFullScan(ctx, record.ID, scanner.TriggerManual)
+		if err != nil {
+			t.Fatalf("admit scan %d: %v", index, err)
+		}
+		active = append(active, admitted)
+	}
+
+	creationAtCapacity := library.CreateCommand{
+		Name:             "Creation overflow",
+		NameKey:          "creation overflow",
+		RootRelativePath: "creation-overflow",
+		KeyHash:          [32]byte{0xa1},
+		RequestHash:      [32]byte{0xb2},
+		RetentionMS:      86_400_000,
+	}
+	if _, err := store.CreateLibraryWithScan(
+		ctx,
+		creationAtCapacity,
+	); !errors.Is(err, library.ErrScanCapacity) {
+		t.Fatalf("creation overflow error = %v, want ErrScanCapacity", err)
+	}
+	var partialCreation int
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM libraries
+		WHERE root_rel_path = ?`,
+		creationAtCapacity.RootRelativePath,
+	).Scan(&partialCreation); err != nil {
+		t.Fatal(err)
+	}
+	if partialCreation != 0 {
+		t.Fatal("capacity-rejected library creation persisted partial state")
+	}
+
+	extra := createWorkerLibrary(t, store, "Overflow", "overflow")
+	if _, err := store.AdmitFullScan(
+		ctx,
+		extra.ID,
+		scanner.TriggerManual,
+	); !errors.Is(err, scanner.ErrAdmissionCapacity) {
+		t.Fatalf("overflow admission error = %v, want ErrAdmissionCapacity", err)
+	}
+	coalesced, err := store.AdmitFullScan(
+		ctx,
+		active[0].Run.LibraryID,
+		scanner.TriggerScheduled,
+	)
+	if err != nil {
+		t.Fatalf("coalesce at capacity: %v", err)
+	}
+	if !coalesced.Coalesced || coalesced.Run.ID != active[0].Run.ID {
+		t.Fatalf("coalesced admission = %#v", coalesced)
+	}
+
+	claimed, found, err := store.ClaimNextFullScan(ctx, time.Minute)
+	if err != nil || !found || claimed.ID != active[0].Run.ID {
+		t.Fatalf("claim capacity release run = %#v, found %t, err %v", claimed, found, err)
+	}
+	if _, err := store.CancelFullScan(ctx, claimed.ID, scanner.SkipCounts{}); err != nil {
+		t.Fatalf("cancel capacity release run: %v", err)
+	}
+	released, err := store.AdmitFullScan(ctx, extra.ID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatalf("admit after capacity release: %v", err)
+	}
+	if released.Coalesced || released.Run.LibraryID != extra.ID {
+		t.Fatalf("released-capacity admission = %#v", released)
+	}
+
+	var activeCount int
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM scan_runs
+		WHERE status IN ('queued', 'running')`,
+	).Scan(&activeCount); err != nil {
+		t.Fatal(err)
+	}
+	if activeCount != scanner.MaxActiveFullScans {
+		t.Fatalf(
+			"active scans after release = %d, want %d",
+			activeCount,
+			scanner.MaxActiveFullScans,
+		)
+	}
+}
+
+func TestConcurrentAdmissionsCannotExceedGlobalCapacity(t *testing.T) {
+	firstStore, filename := openTestStore(t)
+	secondStore, err := Open(context.Background(), filename, Options{})
+	if err != nil {
+		t.Fatalf("Open(second store) error = %v", err)
+	}
+	t.Cleanup(func() { _ = secondStore.Close() })
+	ctx := context.Background()
+	for index := 0; index < scanner.MaxActiveFullScans-1; index++ {
+		record := createWorkerLibrary(
+			t,
+			firstStore,
+			fmt.Sprintf("Existing %03d", index),
+			fmt.Sprintf("existing-%03d", index),
+		)
+		if _, err := firstStore.AdmitFullScan(
+			ctx,
+			record.ID,
+			scanner.TriggerManual,
+		); err != nil {
+			t.Fatalf("admit existing scan %d: %v", index, err)
+		}
+	}
+	firstCandidate := createWorkerLibrary(t, firstStore, "Candidate A", "candidate-a")
+	secondCandidate := createWorkerLibrary(t, firstStore, "Candidate B", "candidate-b")
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wait sync.WaitGroup
+	for _, candidate := range []struct {
+		store     *Store
+		libraryID int64
+	}{
+		{store: firstStore, libraryID: firstCandidate.ID},
+		{store: secondStore, libraryID: secondCandidate.ID},
+	} {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			_, err := candidate.store.AdmitFullScan(
+				ctx,
+				candidate.libraryID,
+				scanner.TriggerManual,
+			)
+			results <- err
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(results)
+
+	var admitted, atCapacity int
+	for err := range results {
+		switch {
+		case err == nil:
+			admitted++
+		case errors.Is(err, scanner.ErrAdmissionCapacity):
+			atCapacity++
+		default:
+			t.Fatalf("concurrent admission error = %v", err)
+		}
+	}
+	if admitted != 1 || atCapacity != 1 {
+		t.Fatalf(
+			"concurrent capacity results = admitted %d, at capacity %d",
+			admitted,
+			atCapacity,
+		)
+	}
+	var activeCount int
+	if err := firstStore.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM scan_runs
+		WHERE status IN ('queued', 'running')`,
+	).Scan(&activeCount); err != nil {
+		t.Fatal(err)
+	}
+	if activeCount != scanner.MaxActiveFullScans {
+		t.Fatalf("active scans = %d, want %d", activeCount, scanner.MaxActiveFullScans)
 	}
 }
 

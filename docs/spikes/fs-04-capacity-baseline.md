@@ -115,6 +115,22 @@ Performance/Release Gate 在代表性设备上冻结的发布预算。
 
 ## 运行方式
 
+### S2-106 持续回归
+
+S2-106 把主档从手动 spike 提升为正式扫描回归：基准使用
+`scanner.DefaultBatchSize`（当前 256），`make spike-capacity` 默认强制
+`stage0-comparable-v1` 预算；CI 的独立 `scan-capacity` job 在 Linux amd64/arm64、
+2 CPU/4 GiB、2 GiB tmpfs 中运行主档与 1,000 层 rollup。托管 runner 只有 2 个 CPU，
+因此 CI 是更严格的持续回归护栏，四核目标档仍由明确记录的本地/代表性设备运行证明。
+架构检查同时固定唯一 active/batch 常量和 CI 资源参数，避免测试以比生产更宽松的批次或
+未受限环境形成假证据。
+
+2026-07-27 本地 Darwin/arm64、`GOMAXPROCS=4`、正式 256 批次结果为：10,000 目录、
+100,000 资产，fixture 6,029 ms、扫描 19,221 ms；扫描期间 768 次读取，P95 462 µs、
+max 686 µs；扫描后目录/资产 P95 39/67 µs；heap 37,607,368 B，DB 族
+28,618,752 B，预算超限为 0。1,000 层 rollup 为 70 ms。该数字是本地回归记录，不替代
+CI 双架构结果或代表性发布设备。
+
 完整目标档：
 
 ```sh

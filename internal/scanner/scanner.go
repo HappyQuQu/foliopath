@@ -25,6 +25,7 @@ var (
 	ErrInvalidRootIdentity   = errors.New("invalid library root identity")
 	ErrInvalidEntry          = errors.New("invalid scan entry")
 	ErrBatchTooLarge         = errors.New("scan batch exceeds configured limit")
+	ErrDatabaseUnavailable   = errors.New("scan database unavailable")
 )
 
 type Trigger string
@@ -198,6 +199,8 @@ type Config struct {
 	FinalizeTimeout time.Duration
 }
 
+const DefaultBatchSize = 256
+
 type Service struct {
 	repository      Repository
 	batchSize       int
@@ -209,7 +212,7 @@ func NewService(repository Repository, config Config) (*Service, error) {
 		return nil, errors.New("scanner repository is required")
 	}
 	if config.BatchSize == 0 {
-		config.BatchSize = 256
+		config.BatchSize = DefaultBatchSize
 	}
 	if config.BatchSize < 1 || config.BatchSize > 1000 {
 		return nil, fmt.Errorf("batch size must be between 1 and 1000")
@@ -441,6 +444,8 @@ func safeErrorCode(err error) string {
 		return "partial_tree_unreadable"
 	case errors.Is(err, ErrScanIO):
 		return "scan_io_error"
+	case errors.Is(err, ErrDatabaseUnavailable):
+		return "database_unavailable"
 	default:
 		return "internal_error"
 	}

@@ -175,7 +175,7 @@ func (s *Store) RecoverExpiredFullScans(
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		queries := dbgen.New(tx)
 		now := s.nowMS()
-		for recovered := 0; recovered < 256; recovered++ {
+		for recovered := 0; recovered < scanner.MaxActiveFullScans; recovered++ {
 			row, err := queries.RecoverNextExpiredScan(ctx, now)
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
