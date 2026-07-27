@@ -25,6 +25,7 @@ const meta = {
       followingDescription: "单击其他媒体即可更新预览。",
       followingTitle: "预览跟随选择",
       imageFailed: "无法显示此图片。",
+      loadFailedDescription: "原始文件没有被修改。",
       next: "下一项",
       openViewer: "进入完整查看器",
       pin: "固定预览",
@@ -34,6 +35,7 @@ const meta = {
       previous: "上一项",
       preview: "预览",
       resize: "调整预览宽度",
+      retry: "重新检查",
       unpin: "取消固定预览",
       videoFailed: "无法播放此视频。",
     },
@@ -85,6 +87,19 @@ export const Video: Story = {
       id: "video",
       kind: "video",
       name: "散步.mp4",
+      posterUrl: "/storybook-preview-photo.jpg",
+    },
+  },
+};
+
+export const Offline: Story = {
+  args: {
+    availability: {
+      actionLabel: "重新检查",
+      description: "媒体库挂载当前不可用，已保留上次可靠索引。",
+      kind: "offline",
+      onAction: () => undefined,
+      title: "媒体库当前离线",
     },
   },
 };

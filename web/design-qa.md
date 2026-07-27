@@ -605,6 +605,51 @@ Integrated Done gate.
 
 final result: passed
 
+## Stage 4 / S4-007 media strategy and degraded-state QA
+
+### Reviewed state
+
+- Accepted source: static prototype route `/libraries/family/media/offline`, added to
+  the prototype catalog as the explicit offline-viewer state.
+- Production: shared `MediaViewer` offline story using the same filename, indexed
+  details, dark theme, open information panel and retry action.
+- Source and implementation were captured at the exact same 1440×900 CSS viewport and
+  combined side by side before judgment:
+  `qa/s4-007-source-offline-viewer.png`,
+  `qa/s4-007-implementation-offline-viewer.png`, and
+  `qa/s4-007-comparison-offline-viewer.png`.
+
+### Comparison and findings
+
+- Both states preserve the accepted near-black stage, fixed header/footer, centered
+  filename, visible close/fullscreen controls, edge navigation, indexed information
+  and a centered non-modal state surface. The original media is never replaced with a
+  fabricated image or a blocking page.
+- Production intentionally uses the canonical icon/button primitives and the shared
+  semantic accent token. Its cloud-offline icon is more specific than the prototype's
+  generic warning icon while preserving the same size, hierarchy and tone.
+- The state card copy matches the filesystem invariant: offline is not empty, the last
+  reliable index remains available, and retry does not imply modifying the original.
+- Initial 390×844 review found a P1 overlap: the default-open information bottom panel
+  covered the state card's retry action. Mobile viewer entry now starts with information
+  collapsed; the revised capture
+  `qa/s4-007-implementation-offline-viewer-mobile.png` keeps close, information,
+  fullscreen, previous/next, reason and retry fully reachable without clipping.
+- No actionable P0, P1 or P2 visual difference remains.
+
+### Behavior and accessibility evidence
+
+- One pure policy owns offline/missing/unreadable, invalid, unsupported and
+  unsupported-codec precedence for browse, search and viewer consumers.
+- GIF remains a normal authenticated original image; native video uses controls,
+  playsInline, metadata preload and the ready thumbnail URL as poster. No client
+  transcode or frame extraction was introduced.
+- Persistent states use an icon, heading and explanation rather than color alone.
+  Viewer close and bounded previous/next remain available; retry exists only where it
+  can re-read state. Component/page tests cover the policy and deleted/offline paths.
+
+final result: passed
+
 ## Stage 3 / S3-104 browse-state QA
 
 ### Findings

@@ -33,6 +33,11 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { assetContentUrl, type Asset } from "../../../lib/api/catalog";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import {
+  mediaAvailability,
+  mediaAvailabilityPresentation,
+  mediaPosterUrl,
+} from "../../../lib/media/availability";
+import {
   readMediaLayoutPreference,
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
@@ -108,6 +113,9 @@ export function SearchPage({
             id: previewAsset.id,
             kind: previewAsset.kind,
             name: previewAsset.name,
+            ...(mediaPosterUrl(previewAsset)
+              ? { posterUrl: mediaPosterUrl(previewAsset) }
+              : {}),
           }
         : undefined,
     [locale, previewAsset, t],
@@ -331,6 +339,15 @@ export function SearchPage({
         </div>
         {previewItem && (
           <MediaPreview
+            availability={
+              previewAsset && mediaAvailability(previewAsset)
+                ? mediaAvailabilityPresentation(
+                    mediaAvailability(previewAsset)!,
+                    t,
+                    () => void retryResults(),
+                  )
+                : undefined
+            }
             canGoNext={
               preview.previewIndex >= 0 &&
               preview.previewIndex < assets.length - 1
@@ -342,6 +359,7 @@ export function SearchPage({
               followingDescription: t("browse.previewFollowingDescription"),
               followingTitle: t("browse.previewFollowingTitle"),
               imageFailed: t("browse.previewImageFailed"),
+              loadFailedDescription: t("mediaState.loadFailedDescription"),
               next: t("browse.nextMedia"),
               openViewer: t("browse.openFullViewer"),
               pin: t("browse.pinPreview"),
@@ -359,6 +377,7 @@ export function SearchPage({
               previous: t("browse.previousMedia"),
               preview: t("browse.preview"),
               resize: t("browse.resizePreview"),
+              retry: t("mediaState.retry"),
               unpin: t("browse.unpinPreview"),
               videoFailed: t("browse.previewVideoFailed"),
             }}

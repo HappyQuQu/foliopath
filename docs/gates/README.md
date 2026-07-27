@@ -45,3 +45,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S4-004：前端搜索界面完成](MVP-2026-07-23/s4-frontend-search.md)
 - [S4-005：搜索复用非模态预览](MVP-2026-07-23/s4-frontend-search-preview.md)
 - [S4-006：完整媒体查看器完成](MVP-2026-07-23/s4-frontend-media-viewer.md)
+- [S4-007：媒体播放与降级状态完成](MVP-2026-07-23/s4-frontend-media-strategy.md)

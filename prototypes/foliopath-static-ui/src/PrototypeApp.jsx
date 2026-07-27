@@ -36,6 +36,7 @@ const screens = [
   { path: "/libraries/family/search?q=京都", group: "浏览与查看", label: "搜索结果" },
   { path: "/libraries/family/search/empty", group: "浏览与查看", label: "搜索空态与故障" },
   { path: "/libraries/family/media/pagoda", group: "浏览与查看", label: "全屏查看器" },
+  { path: "/libraries/family/media/offline", group: "浏览与查看", label: "查看器媒体离线" },
   { path: "/status/scanning", group: "扫描状态", label: "扫描进行中" },
   { path: "/status/offline", group: "扫描状态", label: "媒体库离线" },
   { path: "/status/error", group: "扫描状态", label: "扫描失败与部分不可读" },
@@ -413,14 +414,14 @@ function DockedPreview({ item, onClose, navigate }) {
   );
 }
 
-function ViewerPage({ navigate }) {
+function ViewerPage({ navigate, unavailable = false }) {
   const [fit, setFit] = useState(true);
   const [info, setInfo] = useState(true);
   return (
     <main className="viewer-page">
-      <header><button type="button" onClick={() => navigate("/libraries/family/browse/kyoto")}><X size={20} />关闭</button><strong>2026-07-21 19-12-43.jpg</strong><div><button type="button" className={fit ? "is-active" : ""} onClick={() => setFit(!fit)}>{fit ? "适应" : "1:1"}</button><button type="button" onClick={() => setInfo(!info)}><Info size={19} />信息</button><button type="button"><ArrowsOut size={19} />全屏</button></div></header>
+      <header><button type="button" onClick={() => navigate("/libraries/family/browse/kyoto")}><X size={20} />关闭</button><strong>2026-07-21 19-12-43.jpg</strong><div>{!unavailable && <button type="button" className={fit ? "is-active" : ""} onClick={() => setFit(!fit)}>{fit ? "适应" : "1:1"}</button>}<button type="button" onClick={() => setInfo(!info)}><Info size={19} />信息</button><button type="button"><ArrowsOut size={19} />全屏</button></div></header>
       <button className="viewer-arrow is-left" type="button" aria-label="上一项"><ArrowLeft size={24} /></button>
-      <div className={`viewer-stage ${fit ? "is-fit" : "is-original"}`}><img src="/media/kyoto-pagoda-clean.jpg" alt="京都八坂塔" /></div>
+      <div className={`viewer-stage ${fit ? "is-fit" : "is-original"}`}>{unavailable ? <section className="viewer-unavailable"><span><Warning size={38} /></span><div><h2>媒体库当前离线</h2><p>媒体库挂载当前不可用。FolioPath 保留了上次可靠索引，不会把离线误判为空目录。</p></div><button className="secondary-button" type="button">重新检查</button></section> : <img src="/media/kyoto-pagoda-clean.jpg" alt="京都八坂塔" />}</div>
       <button className="viewer-arrow is-right" type="button" aria-label="下一项"><ArrowRight size={24} /></button>
       {info && <aside className="viewer-info"><h2>基本信息</h2><dl><div><dt>位置</dt><dd>旅行 / 日本 / 京都</dd></div><div><dt>拍摄日期</dt><dd>2026-07-21 19:12</dd></div><div><dt>分辨率</dt><dd>6000 × 3376</dd></div><div><dt>大小</dt><dd>20.3 MB</dd></div></dl></aside>}
       <footer><span>1 / 312</span><span>滚轮缩放 · 拖动平移 · Esc 退出</span></footer>
@@ -501,6 +502,7 @@ export function PrototypeApp() {
   else if (path === "/libraries/family/search") page = <SearchPage navigate={navigate} />;
   else if (path === "/libraries/family/search/empty") page = <SearchPage empty navigate={navigate} />;
   else if (path === "/libraries/family/media/pagoda") page = <ViewerPage navigate={navigate} />;
+  else if (path === "/libraries/family/media/offline") page = <ViewerPage navigate={navigate} unavailable />;
   else if (path === "/status/scanning") page = <StatusPage type="scanning" navigate={navigate} />;
   else if (path === "/status/offline") page = <StatusPage type="offline" navigate={navigate} />;
   else if (path === "/status/error") page = <StatusPage type="error" navigate={navigate} />;

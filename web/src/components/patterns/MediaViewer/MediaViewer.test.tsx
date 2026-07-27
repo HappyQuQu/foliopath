@@ -12,9 +12,11 @@ const labels = {
   imageFailed: "Image failed",
   info: "Show basic information",
   information: "Basic information",
+  loadFailedDescription: "The original was not modified.",
   next: "Next item",
   originalSize: "Show at 1:1",
   previous: "Previous item",
+  retry: "Try again",
   shortcutHint: "Drag to pan · Esc to exit",
   videoFailed: "Video failed",
   zoomIn: "Zoom in",
@@ -36,6 +38,10 @@ beforeEach(() => {
   Object.defineProperty(document, "fullscreenElement", {
     configurable: true,
     value: null,
+  });
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockReturnValue({ matches: false }),
   });
 });
 
@@ -145,6 +151,7 @@ it("uses the fullscreen API and native video controls", async () => {
         id: "clip",
         kind: "video",
         name: "clip.mp4",
+        posterUrl: "/api/v1/assets/clip/thumbnail",
       }}
       labels={labels}
       onClose={vi.fn()}
@@ -154,5 +161,60 @@ it("uses the fullscreen API and native video controls", async () => {
     />,
   );
   expect(screen.getByLabelText("clip.mp4")).toHaveAttribute("controls");
+  expect(screen.getByLabelText("clip.mp4")).toHaveAttribute(
+    "poster",
+    "/api/v1/assets/clip/thumbnail",
+  );
   expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+});
+
+it("keeps viewer navigation available while media is unavailable", () => {
+  const next = vi.fn();
+  render(
+    <MediaViewer
+      availability={{
+        description: "The library mount is unavailable.",
+        kind: "offline",
+        title: "Library is offline",
+      }}
+      canGoNext
+      canGoPrevious={false}
+      item={item}
+      labels={labels}
+      onClose={vi.fn()}
+      onNext={next}
+      onPrevious={vi.fn()}
+      position="Item 1 of 2"
+    />,
+  );
+
+  expect(screen.getByRole("status")).toHaveTextContent("Library is offline");
+  screen.getByRole("button", { name: "Next item" }).click();
+  expect(next).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("img", { name: "photo.jpg" })).not.toBeInTheDocument();
+});
+
+it("starts with indexed information collapsed on a narrow viewport", () => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockReturnValue({ matches: true }),
+  });
+  render(
+    <MediaViewer
+      canGoNext={false}
+      canGoPrevious={false}
+      item={item}
+      labels={labels}
+      onClose={vi.fn()}
+      onNext={vi.fn()}
+      onPrevious={vi.fn()}
+      position="Current media"
+    />,
+  );
+
+  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Show basic information" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
 });

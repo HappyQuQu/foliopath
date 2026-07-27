@@ -168,13 +168,6 @@
   font-size: var(--font-size-1);
 }
 
-.failed {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
-  color: var(--color-text-muted);
-}
-
 @media (max-width: 48rem) {
   .viewer {
     grid-template-rows: auto minmax(0, 1fr) 2.875rem;

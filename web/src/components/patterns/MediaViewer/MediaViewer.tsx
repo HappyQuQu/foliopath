@@ -3,7 +3,6 @@ import {
   CaretLeft,
   CaretRight,
   CornersOut,
-  FileImage,
   Info,
   MagnifyingGlassMinus,
   MagnifyingGlassPlus,
@@ -18,6 +17,10 @@ import {
 } from "react";
 
 import { Button, IconButton } from "../../ui";
+import {
+  MediaAvailabilityState,
+  type MediaAvailabilityPresentation,
+} from "../MediaAvailabilityState/MediaAvailabilityState";
 import styles from "./MediaViewer.module.css";
 
 export interface MediaViewerItem {
@@ -26,6 +29,7 @@ export interface MediaViewerItem {
   id: string;
   kind: "image" | "animated" | "video";
   name: string;
+  posterUrl?: string | undefined;
 }
 
 export interface MediaViewerLabels {
@@ -36,9 +40,11 @@ export interface MediaViewerLabels {
   imageFailed: string;
   info: string;
   information: string;
+  loadFailedDescription: string;
   next: string;
   originalSize: string;
   previous: string;
+  retry: string;
   shortcutHint: string;
   videoFailed: string;
   zoomIn: string;
@@ -54,6 +60,7 @@ export function MediaViewer({
   canGoPrevious,
   item,
   labels,
+  availability,
   onClose,
   onNext,
   onPrevious,
@@ -63,6 +70,7 @@ export function MediaViewer({
   canGoPrevious: boolean;
   item: MediaViewerItem;
   labels: MediaViewerLabels;
+  availability?: MediaAvailabilityPresentation | undefined;
   onClose: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -75,6 +83,7 @@ export function MediaViewer({
   const [infoOpen, setInfoOpen] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [scale, setScale] = useState(1);
   const [translation, setTranslation] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -82,11 +91,15 @@ export function MediaViewer({
 
   useEffect(() => {
     closeRef.current?.focus();
+    if (window.matchMedia?.("(max-width: 48rem)").matches) {
+      setInfoOpen(false);
+    }
   }, []);
 
   useEffect(() => {
     setFit(true);
     setLoadFailed(false);
+    setLoadAttempt(0);
     setScale(1);
     setTranslation({ x: 0, y: 0 });
   }, [item.id]);
@@ -188,6 +201,22 @@ export function MediaViewer({
 
   const failedLabel =
     item.kind === "video" ? labels.videoFailed : labels.imageFailed;
+  const visibleAvailability =
+    availability ??
+    (loadFailed
+      ? {
+          actionLabel: labels.retry,
+          description: labels.loadFailedDescription,
+          kind: "loadFailed" as const,
+          onAction: () => {
+            setLoadFailed(false);
+            setLoadAttempt((current) => current + 1);
+          },
+          title: failedLabel,
+        }
+      : undefined);
+  const showImageControls = imageLike && !visibleAvailability;
+  const hasDetails = item.details.length > 0;
 
   return (
     <main className={styles.viewer} ref={rootRef}>
@@ -204,7 +233,7 @@ export function MediaViewer({
         </Button>
         <strong title={item.name}>{item.name}</strong>
         <div className={styles.actions}>
-          {imageLike && (
+          {showImageControls && (
             <>
               <IconButton label={labels.fit} onClick={showFit} pressed={fit}>
                 <ArrowsIn aria-hidden="true" size={19} />
@@ -232,13 +261,15 @@ export function MediaViewer({
               </IconButton>
             </>
           )}
-          <IconButton
-            label={labels.info}
-            onClick={() => setInfoOpen((current) => !current)}
-            pressed={infoOpen}
-          >
-            <Info aria-hidden="true" size={19} />
-          </IconButton>
+          {hasDetails && (
+            <IconButton
+              label={labels.info}
+              onClick={() => setInfoOpen((current) => !current)}
+              pressed={infoOpen}
+            >
+              <Info aria-hidden="true" size={19} />
+            </IconButton>
+          )}
           <IconButton
             label={fullscreen ? labels.exitFullscreen : labels.fullscreen}
             onClick={() => void toggleFullscreen()}
@@ -271,18 +302,16 @@ export function MediaViewer({
         onPointerUp={endPan}
         onWheel={zoomWithWheel}
       >
-        {loadFailed ? (
-          <div className={styles.failed} role="status">
-            <FileImage aria-hidden="true" size={42} />
-            <span>{failedLabel}</span>
-          </div>
+        {visibleAvailability ? (
+          <MediaAvailabilityState state={visibleAvailability} />
         ) : item.kind === "video" ? (
           <video
             aria-label={item.name}
             controls
-            key={item.id}
+            key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
             playsInline
+            poster={item.posterUrl}
             preload="metadata"
             src={item.contentUrl}
           />
@@ -290,6 +319,7 @@ export function MediaViewer({
           <img
             alt={item.name}
             draggable={false}
+            key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
             src={item.contentUrl}
             style={
@@ -312,7 +342,7 @@ export function MediaViewer({
         <CaretRight aria-hidden="true" size={25} />
       </IconButton>
 
-      {infoOpen && (
+      {infoOpen && hasDetails && (
         <aside aria-label={labels.information} className={styles.info}>
           <h2>{labels.information}</h2>
           <dl>
@@ -329,7 +359,7 @@ export function MediaViewer({
       <footer className={styles.footer}>
         <span aria-live="polite">{position}</span>
         <span>{labels.shortcutHint}</span>
-        {!fit && imageLike && <span>{Math.round(scale * 100)}%</span>}
+        {!fit && showImageControls && <span>{Math.round(scale * 100)}%</span>}
       </footer>
     </main>
   );

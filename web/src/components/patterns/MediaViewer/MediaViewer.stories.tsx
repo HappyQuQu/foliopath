@@ -26,9 +26,11 @@ const meta = {
       imageFailed: "无法显示此图片。",
       info: "显示基本信息",
       information: "基本信息",
+      loadFailedDescription: "原始文件没有被修改。",
       next: "下一项",
       originalSize: "按 1:1 显示",
       previous: "上一项",
+      retry: "重新检查",
       shortcutHint: "按钮缩放 · 拖动平移 · Esc 退出",
       videoFailed: "无法播放此视频。",
       zoomIn: "放大",
@@ -61,6 +63,42 @@ export const Video: Story = {
       id: "video",
       kind: "video",
       name: "京都散步.mp4",
+      posterUrl: "/storybook-preview-photo.jpg",
+    },
+  },
+};
+
+export const Offline: Story = {
+  args: {
+    availability: {
+      actionLabel: "重新检查",
+      description:
+        "媒体库挂载当前不可用。FolioPath 保留了上次可靠索引，不会把离线误判为空目录。",
+      kind: "offline",
+      onAction: () => undefined,
+      title: "媒体库当前离线",
+    },
+  },
+};
+
+export const UnsupportedCodec: Story = {
+  args: {
+    availability: {
+      description:
+        "此视频容器已被索引，但浏览器无法播放它的编码。MVP 不会转码或修改原视频。",
+      kind: "unsupportedCodec",
+      title: "浏览器无法播放此视频",
+    },
+    item: {
+      contentUrl: "/storybook-preview-video.mkv",
+      details: [
+        { label: "位置", value: "旅行/日本/京都/归档视频.mkv" },
+        { label: "类型", value: "视频 · video/x-matroska" },
+      ],
+      id: "unsupported-video",
+      kind: "video",
+      name: "归档视频.mkv",
+      posterUrl: "/storybook-preview-photo.jpg",
     },
   },
 };

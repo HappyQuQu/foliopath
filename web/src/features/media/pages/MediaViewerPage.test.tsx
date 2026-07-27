@@ -12,6 +12,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import type { Asset } from "../../../lib/api/catalog";
 import { getAsset } from "../../../lib/api/catalog";
+import { ApiError } from "../../../lib/api/errors";
 import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { MediaViewerPage } from "./MediaViewerPage";
 
@@ -90,6 +91,44 @@ it("falls back to the asset library browse route for an unsafe direct return", a
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse",
   );
+});
+
+it("renders source-offline metadata as a recoverable viewer state", async () => {
+  vi.mocked(getAsset).mockResolvedValue({
+    ...photo("offline"),
+    sourceAvailability: "offline",
+  });
+  renderViewer({
+    pathname: "/libraries/lib_family/media/offline",
+  });
+
+  expect(
+    await screen.findByRole("heading", { name: "Library is offline" }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Check again" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Close" })).toBeVisible();
+});
+
+it("keeps viewer chrome for an asset removed from the index", async () => {
+  vi.mocked(getAsset).mockRejectedValue(
+    new ApiError({
+      code: "asset_not_found",
+      message: "not found",
+      requestId: undefined,
+      status: 404,
+    }),
+  );
+  renderViewer({
+    pathname: "/libraries/lib_family/media/deleted",
+  });
+
+  expect(
+    await screen.findByRole("heading", {
+      name: "Media removed from the index",
+    }),
+  ).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Check again" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Close" })).toBeVisible();
 });
 
 function renderViewer(initialEntry: {

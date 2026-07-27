@@ -115,6 +115,11 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   切换、取消固定立即跟随、固定状态文案及 Escape。真实认证 Chromium 链验证固定态只
   存在一个活动媒体、关闭后虚拟滚动锚点与卡片语义按钮焦点恢复；播放资源容量预算仍归
   S3-107，完整 Range/codec/离线/删除矩阵仍归 S4-007～009。
+- S4-007 以唯一纯策略测试固定 source availability 优先于 probe/playback、GIF 不被阻断、
+  ready thumbnail poster；共享预览/查看器组件测试固定原生视频属性、状态卡、重试与导航，
+  页面测试固定 offline 和 `asset_not_found`。1440×900 原型/实现同状态视觉对照及 390×844
+  状态操作无遮挡证据进入 `web/design-qa.md`。真实跨浏览器 Range/codec/取消矩阵仍归
+  S4-008，完整纵向 E2E 归 S4-009。
 - S3-107 容量测试使用 100,000 个稳定资产 ID 验证默认视口挂载不超过 64 个 DOM 项、
   首屏不预取、末端仅允许一个在途 cursor 请求、远距离虚拟锚点恢复和 12 帧焦点重试。
   原生视频 rerender 必须卸载旧节点且只留下一个 video。组件工作台同一主档在真实

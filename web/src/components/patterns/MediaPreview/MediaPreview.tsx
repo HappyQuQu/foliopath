@@ -2,8 +2,6 @@ import {
   ArrowsOut,
   CaretLeft,
   CaretRight,
-  FileImage,
-  FilmSlate,
   PushPin,
   PushPinSlash,
   X,
@@ -16,6 +14,10 @@ import {
 } from "react";
 
 import { Button, IconButton } from "../../ui";
+import {
+  MediaAvailabilityState,
+  type MediaAvailabilityPresentation,
+} from "../MediaAvailabilityState/MediaAvailabilityState";
 import styles from "./MediaPreview.module.css";
 
 export interface MediaPreviewItem {
@@ -24,6 +26,7 @@ export interface MediaPreviewItem {
   id: string;
   kind: "image" | "animated" | "video";
   name: string;
+  posterUrl?: string | undefined;
 }
 
 export interface MediaPreviewLabels {
@@ -31,6 +34,7 @@ export interface MediaPreviewLabels {
   followingDescription: string;
   followingTitle: string;
   imageFailed: string;
+  loadFailedDescription: string;
   next: string;
   openViewer: string;
   pin: string;
@@ -40,6 +44,7 @@ export interface MediaPreviewLabels {
   previous: string;
   preview: string;
   resize: string;
+  retry: string;
   unpin: string;
   videoFailed: string;
 }
@@ -51,6 +56,7 @@ export function MediaPreview({
   canGoPrevious,
   item,
   labels,
+  availability,
   maxWidth = 620,
   minWidth = 360,
   onClose,
@@ -66,6 +72,7 @@ export function MediaPreview({
   canGoPrevious: boolean;
   item: MediaPreviewItem;
   labels: MediaPreviewLabels;
+  availability?: MediaAvailabilityPresentation | undefined;
   maxWidth?: number;
   minWidth?: number;
   onClose: () => void;
@@ -78,9 +85,13 @@ export function MediaPreview({
   width: number;
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [resizing, setResizing] = useState(false);
 
-  useEffect(() => setLoadFailed(false), [item.id]);
+  useEffect(() => {
+    setLoadAttempt(0);
+    setLoadFailed(false);
+  }, [item.id]);
 
   useEffect(() => {
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
@@ -135,6 +146,20 @@ export function MediaPreview({
 
   const failedLabel =
     item.kind === "video" ? labels.videoFailed : labels.imageFailed;
+  const visibleAvailability =
+    availability ??
+    (loadFailed
+      ? {
+          actionLabel: labels.retry,
+          description: labels.loadFailedDescription,
+          kind: "loadFailed" as const,
+          onAction: () => {
+            setLoadFailed(false);
+            setLoadAttempt((current) => current + 1);
+          },
+          title: failedLabel,
+        }
+      : undefined);
 
   return (
     <aside
@@ -181,28 +206,23 @@ export function MediaPreview({
       </header>
 
       <div className={styles.stage}>
-        {loadFailed ? (
-          <div className={styles.failed} role="status">
-            {item.kind === "video" ? (
-              <FilmSlate aria-hidden="true" size={38} />
-            ) : (
-              <FileImage aria-hidden="true" size={38} />
-            )}
-            <span>{failedLabel}</span>
-          </div>
+        {visibleAvailability ? (
+          <MediaAvailabilityState compact state={visibleAvailability} />
         ) : item.kind === "video" ? (
           <video
             aria-label={item.name}
             controls
-            key={item.id}
+            key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
             playsInline
+            poster={item.posterUrl}
             preload="metadata"
             src={item.contentUrl}
           />
         ) : (
           <img
             alt={item.name}
+            key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
             src={item.contentUrl}
           />

@@ -8,6 +8,7 @@ const labels = {
   followingDescription: "Click another item to update the preview.",
   followingTitle: "Preview follows selection",
   imageFailed: "Image failed",
+  loadFailedDescription: "The original was not modified.",
   next: "Next item",
   openViewer: "Open full viewer",
   pin: "Pin preview",
@@ -17,6 +18,7 @@ const labels = {
   previous: "Previous item",
   preview: "Preview",
   resize: "Resize preview",
+  retry: "Try again",
   unpin: "Unpin preview",
   videoFailed: "Video failed",
 };
@@ -176,6 +178,7 @@ it("uses native inline controls for video content", () => {
         id: "clip",
         kind: "video",
         name: "clip.mp4",
+        posterUrl: "/api/v1/assets/clip/thumbnail",
       }}
       labels={labels}
       onClose={vi.fn()}
@@ -195,6 +198,7 @@ it("uses native inline controls for video content", () => {
   expect(video).toHaveAttribute("playsinline");
   expect(video).toHaveAttribute("preload", "metadata");
   expect(video).toHaveAttribute("src", "/api/v1/assets/clip/content");
+  expect(video).toHaveAttribute("poster", "/api/v1/assets/clip/thumbnail");
 
   rerender(
     <MediaPreview

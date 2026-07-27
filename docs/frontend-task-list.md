@@ -222,7 +222,17 @@
   - `MediaViewer` 已进入组件工作台并通过组件、Query、URL 安全和页面测试；真实隔离后端
     在 1440×900 与原型同屏对照，并验证 390×844 底部信息面板。证据见
     [S4-006 完整媒体查看器](gates/MVP-2026-07-23/s4-frontend-media-viewer.md)。
-- [ ] `S4-007` 实现 GIF 策略、原生视频/Range、封面及不可播放、损坏、离线、已删除状态。
+- [x] `S4-007` 实现 GIF 策略、原生视频/Range、封面及不可播放、损坏、离线、已删除状态。
+  - GIF 使用认证原内容 `<img>` 保留浏览器动画；视频使用原生 controls/playsInline/
+    metadata preload，同源 ready thumbnail 作为 poster，Range 仍由浏览器与现有 content
+    契约协商，不新增转码。
+  - 唯一 `mediaAvailability` owner 按 source offline/missing/unreadable → probe
+    failed/unsupported → video unsupported codec 的优先级映射；浏览、搜索预览和完整查看器
+    复用同一状态卡，不复制错误判断。
+  - 离线、缺失、不可读、损坏、不支持、codec、详情已删除和运行时读取失败均保留关闭、
+    有界前后项与可靠索引信息；可恢复状态提供重新检查，不自动跳项、不暴露后端细节、不修改
+    原文件。证据见
+    [S4-007 媒体播放与降级状态](gates/MVP-2026-07-23/s4-frontend-media-strategy.md)。
 - [ ] `S4-008` 验证目标桌面/移动浏览器、键盘、触摸、Range、焦点与错误降级。
 - [ ] `S4-009` 完成搜索/预览/查看器 E2E 与 `Integrated Done` Gate。
 

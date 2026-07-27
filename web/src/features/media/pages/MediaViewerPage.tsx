@@ -10,9 +10,15 @@ import {
   type MediaViewerItem,
 } from "../../../components/patterns/MediaViewer/MediaViewer";
 import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
-import { Button, ErrorState, LoadingState } from "../../../components/ui";
+import { LoadingState } from "../../../components/ui";
 import { assetContentUrl } from "../../../lib/api/catalog";
+import { ApiError } from "../../../lib/api/errors";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import {
+  mediaAvailability,
+  mediaAvailabilityPresentation,
+  mediaPosterUrl,
+} from "../../../lib/media/availability";
 import {
   readViewerLocationState,
   safeViewerReturnPath,
@@ -68,6 +74,9 @@ export function MediaViewerPage({
             id: asset.id,
             kind: asset.kind,
             name: asset.name,
+            ...(mediaPosterUrl(asset)
+              ? { posterUrl: mediaPosterUrl(asset) }
+              : {}),
           }
         : undefined,
     [asset, locale, t],
@@ -93,25 +102,41 @@ export function MediaViewerPage({
       </ViewerState>
     );
   }
-  if (assetQuery.isError || !viewerItem || asset?.libraryId !== libraryId) {
-    return (
-      <ViewerState>
-        <ErrorState
-          message={t("viewer.loadFailed")}
-          onRetry={() => void retryAsset()}
-        />
-        <Button onClick={closeViewer} variant="quiet">
-          {t("viewer.close")}
-        </Button>
-      </ViewerState>
-    );
-  }
+  const usableViewerItem =
+    viewerItem && asset?.libraryId === libraryId
+      ? viewerItem
+      : {
+          contentUrl: "",
+          details: [],
+          id: assetId,
+          kind: "image" as const,
+          name:
+            assetQuery.error instanceof ApiError &&
+            assetQuery.error.code === "asset_not_found"
+              ? t("mediaState.deletedTitle")
+              : t("mediaState.loadFailedTitle"),
+        };
+  const availabilityKind =
+    asset && asset.libraryId === libraryId
+      ? mediaAvailability(asset)
+      : assetQuery.error instanceof ApiError &&
+          assetQuery.error.code === "asset_not_found"
+        ? "deleted"
+        : "loadFailed";
+  const availability = availabilityKind
+    ? mediaAvailabilityPresentation(
+        availabilityKind,
+        t,
+        availabilityKind === "deleted" ? undefined : () => void retryAsset(),
+      )
+    : undefined;
 
   return (
     <MediaViewer
+      availability={availability}
       canGoNext={Boolean(next)}
       canGoPrevious={Boolean(previous)}
-      item={viewerItem}
+      item={usableViewerItem}
       labels={{
         close: t("viewer.close"),
         exitFullscreen: t("viewer.exitFullscreen"),
@@ -120,9 +145,11 @@ export function MediaViewerPage({
         imageFailed: t("viewer.imageFailed"),
         info: t("viewer.info"),
         information: t("viewer.information"),
+        loadFailedDescription: t("mediaState.loadFailedDescription"),
         next: t("browse.nextMedia"),
         originalSize: t("viewer.originalSize"),
         previous: t("browse.previousMedia"),
+        retry: t("mediaState.retry"),
         shortcutHint: t("viewer.shortcutHint"),
         videoFailed: t("viewer.videoFailed"),
         zoomIn: t("viewer.zoomIn"),

@@ -97,6 +97,12 @@ FolioPath
 - 查看器支持适应视口、缩放/平移、1:1、前后切换和全屏；chrome 可在安静浏览时淡出，但键盘操作、指针移动或聚焦后立即恢复。
 - 信息区只提供文件名、相对路径、类型、尺寸或时长和修改时间；MVP 不提供完整 EXIF 面板、显式下载按钮或移动端滑动手势。
 - 不兼容视频、原文件离线和损坏媒体保留同一查看器框架，显示可理解的替代状态。
+- 媒体状态判断只有一个 owner：source offline/missing/unreadable 优先于 probe
+  failed/unsupported，视频 `unsupported_codec` 再其后。状态替换媒体内容但保留关闭、
+  前后项与可靠索引信息；可恢复状态提供重新检查，已删除和明确不支持编码不显示无效重试。
+- GIF 直接使用认证原内容保持动画；视频使用原生 controls、playsInline、metadata preload
+  和 ready thumbnail poster。MVP 不转码。移动端初始收起基本信息，避免底部面板遮挡状态
+  主操作，用户仍可从同一信息按钮打开。
 
 ### 媒体库设置
 
