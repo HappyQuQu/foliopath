@@ -417,3 +417,104 @@ owns the 100k capacity budget, so this slice does not promote the 200-item compo
 test into a release-scale performance claim.
 
 final result: passed
+
+## Stage 3 / S3-104 browse-state QA
+
+### Findings
+
+No actionable P0, P1, or P2 differences remain in the reviewed S3-104 states.
+
+- Intentional contract difference: the confirmed prototype suggests a generic retry
+  for some failures, but the frozen thumbnail API has no write operation that
+  regenerates a terminal transform. Production therefore retries first-page and
+  pagination reads, polls only pending thumbnails, and does not show a fake per-card
+  regeneration action.
+- Intentional context difference: the source visual demonstrates empty/offline/error
+  in the search screen; production reuses the same accepted state hierarchy inside
+  the browse media section with directory-specific copy.
+
+### Source and implementation
+
+- Source visual truth: `prototypes/foliopath-static-ui`, catalog screen `8/15`
+  `/libraries/family/search/empty` plus the confirmed main browse screen `5/15`.
+- Production target: `BrowsePage`, shared `AsyncState`, and shared
+  `MediaCollection`/`MediaCard`.
+- Source empty capture: `qa/s3-104-source-empty.png`; implementation empty capture:
+  `qa/s3-104-implementation-empty.png`; side-by-side:
+  `qa/s3-104-comparison-empty.jpg`.
+- Additional implementation evidence:
+  `qa/s3-104-skeleton-light.png`,
+  `qa/s3-104-thumbnail-states-light.png`,
+  `qa/s3-104-thumbnail-states-dark.png`,
+  `qa/s3-104-offline-dark.png`, and the real-backend ready page
+  `qa/s3-104-implementation-ready-dark.png`.
+- Browser CSS viewport: 1280 × 720. The in-app browser reported device pixel ratio 2
+  but returned CSS-pixel-normalized screenshots. State/workbench captures are
+  1280 × 720 pixels. The source empty capture is 1265 × 712 pixels because its native
+  scrollbar inset is excluded; the comparison pads it to 1280 × 720 without scaling.
+
+### Full-view and focused comparison evidence
+
+![Empty-state source and implementation](qa/s3-104-comparison-empty.jpg)
+
+The side-by-side comparison checks the centered icon/title/description/action
+hierarchy, calm surface treatment, system typography, neutral border, canvas balance,
+and concise recovery copy. The browse implementation intentionally occupies the media
+section rather than repeating the source search controls.
+
+Focused state captures are required because individual thumbnail labels and icons are
+too small in the full browse view. The light/dark thumbnail captures verify stable 4:3
+geometry, pending/failed/unavailable differentiation, icon consistency and the
+post-fix video badge. Skeleton and offline captures verify collection density,
+semantic warning color and preserved vertical rhythm.
+
+### Required fidelity surfaces
+
+- Fonts and typography: the central system stack, 600/650 title hierarchy, compact
+  metadata, line height, Chinese fallback and truncation match the accepted UI.
+- Spacing and layout rhythm: empty/offline frames, 4:3 thumbnail geometry, two-line
+  card identity, six-column desktop skeleton and section gaps use central spacing,
+  radius and border tokens.
+- Colors and tokens: neutral, accent-soft, danger-soft and warning-soft states work in
+  light/dark themes; the new `--color-on-scrim` token keeps video controls legible.
+- Image quality and asset fidelity: state placeholders use the shared Phosphor icon
+  family and do not imitate product imagery. The real ready page continues to render
+  libvips WebP assets without CSS, SVG or text-glyph substitutes.
+- Copy and content: offline copy states that a preserved index with no visible media
+  does not prove the source directory is empty and originals remain unchanged;
+  pagination copy explains that already loaded items are preserved; no raw tool
+  output, absolute path or unsupported action appears.
+
+### Interaction, responsive and accessibility evidence
+
+- Empty state exposes its contextual “include subdirectories” action; first-page and
+  next-page failures expose separate retry surfaces.
+- Pending-only query policy refreshes every 2.5 seconds and stops for ready, failed or
+  unavailable terminal states.
+- Skeleton and pending shimmer stop under reduced motion. Loading is announced once;
+  offline is a persistent status and first-page failure is an alert.
+- Component and production pages showed no console error; only Vite connection,
+  hot-update debug messages and React development information were present.
+- Repository Chromium evidence covers 390 × 844 and desktop overflow plus axe
+  serious/critical checks for the stable browse states.
+
+### Comparison history
+
+1. The first dark thumbnail pass found a P2 contrast defect: the video badge inherited
+   the dark surface foreground over the dark scrim, hiding its play icon. A central
+   `--color-on-scrim` token now owns that foreground; the revised dark capture shows
+   the white play icon clearly.
+2. The first skeleton pass found a P2 density shift: its 10.5rem minimum produced seven
+   columns where the final collection caps at six. The skeleton now uses the
+   collection's 11.25rem track basis; the revised capture has six aligned columns.
+3. The first empty-state pass found a P2 surface mismatch: the accepted source uses a
+   bounded state region while the shared implementation floated directly on canvas.
+   EmptyState now uses the central border/radius/surface tokens, and the revised
+   side-by-side comparison has no actionable P0/P1/P2 difference.
+
+### Residual Stage 3 work
+
+S3-105～106 still own selection and the docked/pinned non-modal preview. S3-107 owns
+the 100k capacity budget, and S3-108 owns the Stage 3 Integrated Done browser gate.
+
+final result: passed

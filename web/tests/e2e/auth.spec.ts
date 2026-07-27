@@ -241,6 +241,108 @@ test("administrator and library-management vertical slice", async ({
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
 
+  let browseFixtureState:
+    | "delayed-pending"
+    | "pending-to-failed"
+    | "first-page-error"
+    | "empty" = "delayed-pending";
+  let pendingAssetRequests = 0;
+  let firstPageFailed = false;
+  await page.route(
+    new RegExp(`/api/v1/libraries/${createdLibraryId}/assets`),
+    async (route) => {
+      if (browseFixtureState === "delayed-pending") {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        browseFixtureState = "pending-to-failed";
+      }
+      if (browseFixtureState === "first-page-error" && !firstPageFailed) {
+        firstPageFailed = true;
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: {
+              code: "internal_error",
+              message: "safe contract fixture",
+              requestId: "req_browse_fixture",
+            },
+          }),
+        });
+        return;
+      }
+      if (browseFixtureState === "pending-to-failed") {
+        pendingAssetRequests += 1;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(
+            browseAssetPage(pendingAssetRequests > 1 ? "failed" : "pending"),
+          ),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ items: [], nextCursor: null }),
+      });
+    },
+  );
+
+  await page.goto(
+    `/libraries/${createdLibraryId}/browse?sort=name&order=desc`,
+  );
+  await expect(
+    page.getByRole("status", { name: "Loading media…" }),
+  ).toBeVisible();
+  await expect(page.getByText("Preparing thumbnail")).toBeVisible();
+  await expect(page.getByText("Thumbnail generation failed")).toBeVisible({
+    timeout: 6_000,
+  });
+  expect(pendingAssetRequests).toBeGreaterThanOrEqual(2);
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+
+  browseFixtureState = "first-page-error";
+  await page.goto(
+    `/libraries/${createdLibraryId}/browse?sort=modifiedAt&order=asc`,
+  );
+  await expect(
+    page.getByText("Media could not be loaded. Try again."),
+  ).toBeVisible();
+  browseFixtureState = "empty";
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByText("No media in this directory")).toBeVisible();
+
+  await page.route(
+    new RegExp(`/api/v1/libraries/${createdLibraryId}$`),
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { ETag: '"library-offline"' },
+        body: JSON.stringify({
+          ...browseLibraryFixture(createdLibraryId, longLibraryName),
+          status: "offline",
+        }),
+      });
+    },
+  );
+  await page.goto(
+    `/libraries/${createdLibraryId}/browse?sort=modifiedAt&order=desc`,
+  );
+  await expect(
+    page.getByText("This library is offline", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/does not mean the source directory is empty/)).toBeVisible();
+  await expect(page.getByText("No media in this directory")).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+  await page.unroute(
+    new RegExp(`/api/v1/libraries/${createdLibraryId}/assets`),
+  );
+  await page.unroute(new RegExp(`/api/v1/libraries/${createdLibraryId}$`));
+
   await page.setViewportSize({ width: 1024, height: 900 });
   await expect(
     page.getByRole("navigation", { name: "Media library directories" }),
@@ -372,6 +474,53 @@ function scanFixture(
     finishedAt: terminal ? now : null,
     cancelRequestedAt: status === "cancelled" ? now : null,
     canCancel: active,
+  };
+}
+
+function browseAssetPage(
+  thumbnailStatus: "pending" | "failed",
+) {
+  return {
+    items: [
+      {
+        id: "ast_state_fixture",
+        libraryId: "lib_state_fixture",
+        libraryName: "State fixture",
+        directoryId: "dir_state_fixture",
+        name: "pending-state.jpg",
+        relativePath: "pending-state.jpg",
+        kind: "image",
+        mimeType: "image/jpeg",
+        sizeBytes: 512,
+        modifiedAt: "2026-07-28T00:00:00Z",
+        width: 1200,
+        height: 800,
+        durationMs: null,
+        probeStatus: "ready",
+        playbackStatus: "not_applicable",
+        sourceAvailability: "available",
+        thumbnail: {
+          status: thumbnailStatus,
+          url: null,
+          errorCode:
+            thumbnailStatus === "failed" ? "thumbnail_failed" : null,
+        },
+      },
+    ],
+    nextCursor: null,
+  };
+}
+
+function browseLibraryFixture(libraryId: string, name: string) {
+  return {
+    id: libraryId,
+    name,
+    displayPath: `/library/${longPathSegments.join("/")}`,
+    status: "ready",
+    assetCount: 0,
+    directoryCount: 0,
+    lastSuccessfulScanAt: null,
+    latestScanId: "scan_state_fixture",
   };
 }
 

@@ -57,6 +57,28 @@
   font-size: var(--font-size-1);
 }
 
+.thumbnailPlaceholder[data-thumbnail-status="pending"] {
+  background:
+    linear-gradient(
+      100deg,
+      transparent,
+      var(--color-accent-soft),
+      transparent
+    ),
+    var(--color-surface-subtle);
+  background-size: 200% 100%;
+  animation: pending-thumbnail 1.8s var(--ease-standard) infinite;
+}
+
+.thumbnailPlaceholder[data-thumbnail-status="pending"] svg {
+  color: var(--color-accent);
+}
+
+.thumbnailPlaceholder[data-thumbnail-status="failed"] {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
 .videoBadge {
   position: absolute;
   right: var(--space-2);
@@ -66,7 +88,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-surface);
+  color: var(--color-on-scrim);
   border-radius: var(--radius-round);
   background: var(--color-scrim);
 }
@@ -108,8 +130,88 @@
   padding-top: var(--space-5);
 }
 
+.paginationError {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+}
+
+.skeletonCollection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11.25rem, 1fr));
+  gap: var(--space-3);
+}
+
+.skeletonCard {
+  overflow: hidden;
+  padding-bottom: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+}
+
+.skeletonThumbnail,
+.skeletonLine,
+.skeletonLineShort {
+  display: block;
+  background:
+    linear-gradient(
+      100deg,
+      transparent,
+      var(--color-accent-soft),
+      transparent
+    ),
+    var(--color-surface-subtle);
+  background-size: 200% 100%;
+  animation: pending-thumbnail 1.8s var(--ease-standard) infinite;
+}
+
+.skeletonThumbnail {
+  aspect-ratio: 4 / 3;
+}
+
+.skeletonLine,
+.skeletonLineShort {
+  height: var(--space-2);
+  margin: var(--space-3) var(--space-3) 0;
+  border-radius: var(--radius-round);
+}
+
+.skeletonLineShort {
+  width: 45%;
+  margin-top: var(--space-2);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes pending-thumbnail {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 30rem) {
   .identity {
     padding-inline: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumbnailPlaceholder[data-thumbnail-status="pending"],
+  .skeletonThumbnail,
+  .skeletonLine,
+  .skeletonLineShort {
+    animation: none;
   }
 }

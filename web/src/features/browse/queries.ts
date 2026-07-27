@@ -4,9 +4,22 @@ import {
   getDirectory,
   listAssets,
   listDirectories,
+  type AssetPage,
   type AssetSort,
   type SortOrder,
 } from "../../lib/api/catalog";
+
+export const pendingThumbnailRefreshMs = 2_500;
+
+export function pendingThumbnailRefreshInterval(
+  pages: AssetPage[] | undefined,
+): number | false {
+  return pages?.some((page) =>
+    page.items.some((asset) => asset.thumbnail.status === "pending"),
+  )
+    ? pendingThumbnailRefreshMs
+    : false;
+}
 
 export const catalogKeys = {
   all: ["catalog"] as const,
@@ -88,6 +101,8 @@ export function useAssetsQuery({
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    refetchInterval: (query) =>
+      pendingThumbnailRefreshInterval(query.state.data?.pages),
     staleTime: 15_000,
   });
 }

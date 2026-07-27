@@ -11,8 +11,10 @@ const labels = {
   failedThumbnail: "Thumbnail failed",
   image: "Image",
   loadMore: "Load more",
+  loadMoreFailed: "More media could not be loaded.",
   loadingMore: "Loading more",
   pendingThumbnail: "Preparing thumbnail",
+  retryLoadMore: "Retry loading more",
   unavailableThumbnail: "Thumbnail unavailable",
   video: "Video",
 };
@@ -77,4 +79,36 @@ it("preserves an original aspect ratio in masonry and exposes placeholder status
 
   expect(screen.getByText("Thumbnail failed")).toBeVisible();
   expect(screen.getByRole("article", { name: "portrait.jpg · Image" })).toBeVisible();
+});
+
+it("preserves loaded items and exposes a retry when the next page fails", () => {
+  const retry = vi.fn();
+  render(
+    <MediaCollection
+      hasNextPage
+      isFetchingNextPage={false}
+      items={[
+        {
+          height: 800,
+          id: "ready",
+          kind: "image",
+          modifiedLabel: "Today",
+          name: "ready.jpg",
+          thumbnailStatus: "ready",
+          thumbnailUrl: "/ready.webp",
+          width: 1200,
+        },
+      ]}
+      labels={labels}
+      layout="grid"
+      onLoadMore={vi.fn()}
+      onRetryLoadMore={retry}
+      paginationError
+    />,
+  );
+
+  expect(screen.getByText("ready.jpg")).toBeVisible();
+  expect(screen.getByText("More media could not be loaded.")).toBeVisible();
+  screen.getByRole("button", { name: "Retry loading more" }).click();
+  expect(retry).toHaveBeenCalledOnce();
 });

@@ -148,7 +148,12 @@
     `foliopath.preferences.v1`，不污染可复制浏览 URL。真实 libvips 浏览器链验证
     ready WebP 缩略图、切换/刷新记忆、主题、响应式与 axe。证据见
     [S3-103 前端媒体集合](gates/MVP-2026-07-23/s3-frontend-media-collection.md)。
-- [ ] `S3-104` 实现 skeleton、空、错误、离线、缩略图 pending/failed 状态。
+- [x] `S3-104` 实现 skeleton、空、错误、离线、缩略图 pending/failed 状态。
+  - 首屏使用与最终 grid 同比例/密度的共享 skeleton；空目录复用共享 EmptyState，
+    离线且没有可靠索引时使用专属 OfflineState，不把离线误报为空。首屏错误可重试，
+    下一页错误保留已载入媒体并局部重试。仅存在 pending 缩略图时按 2.5 秒刷新资产页，
+    terminal 状态停止轮询；failed/unavailable 不伪造后端未提供的重新生成操作。证据见
+    [S3-104 前端浏览状态](gates/MVP-2026-07-23/s3-frontend-browse-states.md)。
 - [ ] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。
 - [ ] `S3-106` 实现 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)：
   - 桌面右侧停靠且父列表继续可用；窄屏进入内容流。

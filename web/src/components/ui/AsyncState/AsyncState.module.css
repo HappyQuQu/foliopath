@@ -14,6 +14,33 @@
   font-size: var(--font-size-4);
 }
 
+.copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.stateIcon {
+  color: var(--color-text-muted);
+}
+
+.empty {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+}
+
+.offline {
+  min-height: 14rem;
+  color: var(--color-warning);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-warning-soft);
+}
+
+.offline .stateIcon {
+  color: var(--color-warning);
+}
+
 .spinner {
   color: var(--color-accent);
   animation: spin 800ms linear infinite;

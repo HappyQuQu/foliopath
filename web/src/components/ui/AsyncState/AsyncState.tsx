@@ -1,4 +1,11 @@
-import { ArrowClockwise, CircleNotch } from "@phosphor-icons/react";
+import {
+  ArrowClockwise,
+  CircleNotch,
+  CloudSlash,
+  ImageSquare,
+  type Icon,
+} from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { Button } from "../Button/Button";
@@ -34,6 +41,50 @@ export function ErrorState({
           {t("common.tryAgain")}
         </Button>
       )}
+    </div>
+  );
+}
+
+export function EmptyState({
+  action,
+  description,
+  icon: StateIcon = ImageSquare,
+  title,
+}: {
+  action?: ReactNode;
+  description: string;
+  icon?: Icon;
+  title: string;
+}) {
+  return (
+    <div className={`${styles.state} ${styles.empty}`}>
+      <StateIcon aria-hidden="true" className={styles.stateIcon} size={30} />
+      <div className={styles.copy}>
+        <strong>{title}</strong>
+        <span>{description}</span>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+export function OfflineState({
+  action,
+  description,
+  title,
+}: {
+  action?: ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className={`${styles.state} ${styles.offline}`} role="status">
+      <CloudSlash aria-hidden="true" className={styles.stateIcon} size={30} />
+      <div className={styles.copy}>
+        <strong>{title}</strong>
+        <span>{description}</span>
+      </div>
+      {action}
     </div>
   );
 }

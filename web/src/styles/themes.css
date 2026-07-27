@@ -22,6 +22,7 @@
   --color-warning-soft: #fff7e4;
   --color-focus: #1d4ed8;
   --color-scrim: rgb(8 12 18 / 0.52);
+  --color-on-scrim: #ffffff;
 }
 
 :root[data-theme="dark"] {
@@ -47,6 +48,7 @@
   --color-warning-soft: #2b2418;
   --color-focus: #9bbcff;
   --color-scrim: rgb(0 0 0 / 0.72);
+  --color-on-scrim: #ffffff;
 }
 
 @media (prefers-contrast: more) {

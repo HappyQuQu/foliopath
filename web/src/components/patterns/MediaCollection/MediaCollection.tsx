@@ -1,4 +1,10 @@
-import { FileImage, FilmSlate, Play } from "@phosphor-icons/react";
+import {
+  FileImage,
+  FilmSlate,
+  HourglassMedium,
+  Play,
+  WarningCircle,
+} from "@phosphor-icons/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
   useCallback,
@@ -8,7 +14,7 @@ import {
   type CSSProperties,
 } from "react";
 
-import { Button } from "../../ui";
+import { Button, InlineStatus } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
 export type MediaCollectionLayout = "grid" | "masonry";
@@ -31,8 +37,10 @@ export interface MediaCollectionLabels {
   failedThumbnail: string;
   image: string;
   loadMore: string;
+  loadMoreFailed: string;
   loadingMore: string;
   pendingThumbnail: string;
+  retryLoadMore: string;
   unavailableThumbnail: string;
   video: string;
 }
@@ -44,6 +52,8 @@ export function MediaCollection({
   labels,
   layout,
   onLoadMore,
+  onRetryLoadMore,
+  paginationError = false,
 }: {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -51,6 +61,8 @@ export function MediaCollection({
   labels: MediaCollectionLabels;
   layout: MediaCollectionLayout;
   onLoadMore: () => void;
+  onRetryLoadMore?: () => void;
+  paginationError?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
@@ -170,7 +182,17 @@ export function MediaCollection({
           );
         })}
       </ul>
-      {hasNextPage && (
+      {paginationError && (
+        <div className={styles.paginationError}>
+          <InlineStatus tone="danger">{labels.loadMoreFailed}</InlineStatus>
+          {onRetryLoadMore && (
+            <Button onClick={onRetryLoadMore} size="small" variant="secondary">
+              {labels.retryLoadMore}
+            </Button>
+          )}
+        </div>
+      )}
+      {hasNextPage && !paginationError && (
         <div className={styles.pagination} role="status" aria-live="polite">
           <Button
             loading={isFetchingNextPage}
@@ -181,6 +203,25 @@ export function MediaCollection({
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+export function MediaCollectionSkeleton({
+  label,
+}: {
+  label: string;
+}) {
+  return (
+    <div className={styles.skeletonCollection} role="status" aria-label={label}>
+      <span className={styles.visuallyHidden}>{label}</span>
+      {Array.from({ length: 12 }, (_, index) => (
+        <div aria-hidden="true" className={styles.skeletonCard} key={index}>
+          <span className={styles.skeletonThumbnail} />
+          <span className={styles.skeletonLine} />
+          <span className={styles.skeletonLineShort} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -223,8 +264,15 @@ function MediaCard({
             src={item.thumbnailUrl}
           />
         ) : (
-          <div className={styles.thumbnailPlaceholder}>
-            {item.kind === "video" ? (
+          <div
+            className={styles.thumbnailPlaceholder}
+            data-thumbnail-status={item.thumbnailStatus}
+          >
+            {item.thumbnailStatus === "pending" ? (
+              <HourglassMedium aria-hidden="true" size={28} />
+            ) : item.thumbnailStatus === "failed" ? (
+              <WarningCircle aria-hidden="true" size={28} weight="fill" />
+            ) : item.kind === "video" ? (
               <FilmSlate aria-hidden="true" size={28} />
             ) : (
               <FileImage aria-hidden="true" size={28} />

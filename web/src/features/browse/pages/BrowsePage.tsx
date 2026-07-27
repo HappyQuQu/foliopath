@@ -16,15 +16,18 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
   MediaCollection,
+  MediaCollectionSkeleton,
   type MediaCollectionItem,
   type MediaCollectionLayout,
 } from "../../../components/patterns/MediaCollection/MediaCollection";
 import {
   Button,
+  EmptyState,
   ErrorState,
   IconButton,
   InlineStatus,
   LoadingState,
+  OfflineState,
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
@@ -326,15 +329,25 @@ export function BrowsePage({
                     </span>
                   </div>
                   {assetsQuery.isPending && (
-                    <LoadingState label={t("browse.loadingMedia")} />
+                    <MediaCollectionSkeleton label={t("browse.loadingMedia")} />
                   )}
-                  {assetsQuery.isError && (
+                  {assetsQuery.isError && assets.length === 0 && (
                     <ErrorState
                       message={t("browse.mediaFailed")}
                       onRetry={() => void refreshAssets()}
                     />
                   )}
-                  {assetsQuery.isSuccess && assets.length === 0 && (
+                  {assetsQuery.isSuccess &&
+                    assets.length === 0 &&
+                    currentLibrary?.status === "offline" && (
+                      <OfflineState
+                        description={t("browse.offlineEmptyDescription")}
+                        title={t("browse.offlineEmptyTitle")}
+                      />
+                    )}
+                  {assetsQuery.isSuccess &&
+                    assets.length === 0 &&
+                    currentLibrary?.status !== "offline" && (
                     <EmptyMedia
                       browseState={browseState}
                       directory={directoryQuery.data}
@@ -353,13 +366,17 @@ export function BrowsePage({
                         failedThumbnail: t("browse.thumbnailFailed"),
                         image: t("browse.kindImage"),
                         loadMore: t("browse.loadMoreMedia"),
+                        loadMoreFailed: t("browse.loadMoreMediaFailed"),
                         loadingMore: t("browse.loadingMoreMedia"),
                         pendingThumbnail: t("browse.thumbnailPending"),
+                        retryLoadMore: t("browse.retryLoadMoreMedia"),
                         unavailableThumbnail: t("browse.thumbnailUnavailable"),
                         video: t("browse.kindVideo"),
                       }}
                       layout={mediaLayout}
                       onLoadMore={loadMoreAssets}
+                      onRetryLoadMore={() => void loadMoreAssets()}
+                      paginationError={assetsQuery.isFetchNextPageError}
                     />
                   )}
                 </section>
@@ -469,31 +486,31 @@ function EmptyMedia({
     directory.recursiveAssetCount > directory.directAssetCount;
 
   return (
-    <div className={styles.emptyMedia}>
-      <ImageSquare aria-hidden="true" size={32} />
-      <div>
-        <strong>
-          {browseState.recursive
-            ? t("browse.noRecursiveMedia")
-            : t("browse.noDirectMedia")}
-        </strong>
-        <p>
-          {hasDescendantMedia
-            ? t("browse.descendantMediaAvailable").replace(
-                "{count}",
-                String(
-                  directory.recursiveAssetCount - directory.directAssetCount,
-                ),
-              )
-            : t("browse.noMediaDescription")}
-        </p>
-      </div>
-      {hasDescendantMedia && (
-        <Button onClick={onEnableRecursive}>
-          {t("browse.enableRecursive")}
-        </Button>
-      )}
-    </div>
+    <EmptyState
+      action={
+        hasDescendantMedia ? (
+          <Button onClick={onEnableRecursive}>
+            {t("browse.enableRecursive")}
+          </Button>
+        ) : undefined
+      }
+      description={
+        hasDescendantMedia
+          ? t("browse.descendantMediaAvailable").replace(
+              "{count}",
+              String(
+                directory.recursiveAssetCount - directory.directAssetCount,
+              ),
+            )
+          : t("browse.noMediaDescription")
+      }
+      icon={ImageSquare}
+      title={
+        browseState.recursive
+          ? t("browse.noRecursiveMedia")
+          : t("browse.noDirectMedia")
+      }
+    />
   );
 }
 

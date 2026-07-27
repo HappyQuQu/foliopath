@@ -242,6 +242,56 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
   );
 });
 
+it("uses a stable gallery skeleton while the first media page is loading", async () => {
+  vi.mocked(listAssets).mockReturnValue(new Promise(() => undefined));
+
+  renderBrowse();
+
+  expect(
+    await screen.findByRole("status", { name: "正在载入媒体…" }),
+  ).toBeVisible();
+  expect(screen.queryByText("当前目录没有媒体")).not.toBeInTheDocument();
+});
+
+it("keeps an offline library distinct from an empty reliable index", async () => {
+  vi.mocked(getLibrary).mockResolvedValue({
+    etag: '"library-offline"',
+    library: {
+      assetCount: 0,
+      directoryCount: 0,
+      displayPath: "/library/family",
+      id: "lib_family",
+      lastSuccessfulScanAt: null,
+      latestScanId: "scan_offline",
+      name: "家庭影像",
+      status: "offline",
+    },
+  });
+  vi.mocked(listAssets).mockResolvedValue({ items: [], nextCursor: null });
+
+  renderBrowse();
+
+  expect(await screen.findByText("媒体库当前离线")).toBeVisible();
+  expect(
+    screen.getByText(/这不表示原目录为空/),
+  ).toBeVisible();
+  expect(screen.queryByText("当前目录没有媒体")).not.toBeInTheDocument();
+});
+
+it("recovers a first-page media error through the shared retry action", async () => {
+  const user = userEvent.setup();
+  vi.mocked(listAssets)
+    .mockRejectedValueOnce(new Error("network unavailable"))
+    .mockResolvedValueOnce({ items: [], nextCursor: null });
+
+  renderBrowse();
+
+  expect(await screen.findByText("暂时无法读取媒体，请重新尝试。")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "重新尝试" }));
+  expect(await screen.findByText("当前目录没有媒体")).toBeVisible();
+  expect(listAssets).toHaveBeenCalledTimes(2);
+});
+
 function renderBrowse(search = "") {
   const queryClient = new QueryClient({
     defaultOptions: {
