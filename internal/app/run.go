@@ -115,6 +115,27 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct scan admission service: %w", err)
 	}
+	scanService, err := scanner.NewService(database, scanner.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("construct scan service: %w", err)
+	}
+	scanProcessor, err := scanner.NewClaimedProcessor(scanService, directorySource)
+	if err != nil {
+		return nil, fmt.Errorf("construct scan processor: %w", err)
+	}
+	scanWorker, err := jobs.NewWorkerPool(
+		scanJobQueue{database: database},
+		scanProcessor,
+		scanSignal,
+		jobs.WorkerOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct scan worker: %w", err)
+	}
+	scanComponent, err := newScanWorkerComponent(scanWorker)
+	if err != nil {
+		return nil, err
+	}
 	libraries, err := library.NewLifecycleService(
 		database,
 		directorySource,
@@ -145,6 +166,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		[]component{
 			databaseComponent,
 			mediaRootComponent,
+			scanComponent,
 			removalComponent,
 			httpComponent,
 			readinessLifecycle(readiness),

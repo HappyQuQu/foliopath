@@ -2,7 +2,7 @@
 
 ## 先看这里：项目现在到哪了
 
-一句话：**认证与媒体库管理后端已经 Backend Ready；后端下一项是 `S2-102` 扫描 worker，
+一句话：**认证与媒体库管理后端已经 Backend Ready；`S2-102` 扫描 worker 已完成，后端下一项是 `S2-103` 目录与计数，
 依赖扫描完成的前端流程仍等待 `S2-107`。**
 
 目前还没有可供用户使用的 FolioPath。开发工作现拆成独立的
@@ -50,8 +50,8 @@
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
 当前里程碑：**Stage 2 / 扫描后端**。媒体库 `S2-001～007` 已通过 Backend Ready，
-扫描 `S2-101` 已通过 Contract Ready；当前后端任务是 `S2-102` 有界 generation 扫描服务
-和全局任务队列。Stage 3～5 仍未授权。
+扫描 `S2-101` 已通过 Contract Ready，`S2-102` 有界 generation 扫描服务和全局任务队列
+已完成；当前后端任务是 `S2-103` 全部可读目录与直接/递归计数。Stage 3～5 仍未授权。
 
 执行约束：
 

@@ -10,11 +10,6 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
-const scanRunColumns = `
-    id, library_id, generation, trigger_kind, status,
-    discovered_directories, discovered_assets, skipped_count, error_code,
-    created_at_ms, started_at_ms, finished_at_ms`
-
 type rowScanner interface {
 	Scan(...any) error
 }
@@ -235,10 +230,12 @@ func (s *Store) BeginFullScan(ctx context.Context, libraryID int64, trigger scan
 		now := s.nowMS()
 		result, err := tx.ExecContext(ctx, `
             INSERT INTO scan_runs(
-                library_id, generation, trigger_kind, status, created_at_ms, started_at_ms
+                library_id, generation, trigger_kind, status, phase,
+                created_at_ms, started_at_ms, heartbeat_at_ms,
+                lease_expires_at_ms, attempt_count
             )
-            VALUES (?, ?, ?, 'running', ?, ?)`,
-			libraryID, generation, string(trigger), now, now)
+            VALUES (?, ?, ?, 'running', 'checking_root', ?, ?, ?, ?, 1)`,
+			libraryID, generation, string(trigger), now, now, now, now+120000)
 		if err != nil {
 			if strings.Contains(err.Error(), "scan_runs.library_id") {
 				return scanner.ErrScanActive
@@ -307,7 +304,8 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
 		if _, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
             SET discovered_directories = discovered_directories + ?,
-                discovered_assets = discovered_assets + ?
+                discovered_assets = discovered_assets + ?,
+                revision = revision + 1
             WHERE id = ? AND status = 'running'`, newDirectories, newAssets, runID); err != nil {
 			return fmt.Errorf("update scan progress: %w", err)
 		}
@@ -473,8 +471,13 @@ func (s *Store) CompleteFullScan(ctx context.Context, runID, skippedCount int64)
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
-            SET status = 'succeeded', skipped_count = ?, error_code = NULL, finished_at_ms = ?
-            WHERE id = ? AND status = 'running'`, skippedCount, now, run.ID)
+            SET status = 'succeeded', phase = 'completed',
+                skipped_count = ?, skipped_files = ?,
+                error_code = NULL, finished_at_ms = ?,
+                heartbeat_at_ms = NULL, lease_expires_at_ms = NULL,
+                revision = revision + 1
+            WHERE id = ? AND status = 'running'`,
+			skippedCount, skippedCount, now, run.ID)
 		if err != nil {
 			return fmt.Errorf("complete scan run: %w", err)
 		}
@@ -818,9 +821,13 @@ func (s *Store) finishWithoutCleanup(
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
-            SET status = ?, skipped_count = ?, error_code = ?, finished_at_ms = ?
+            SET status = ?, phase = 'completed',
+                skipped_count = ?, skipped_files = ?,
+                error_code = ?, finished_at_ms = ?,
+                heartbeat_at_ms = NULL, lease_expires_at_ms = NULL,
+                revision = revision + 1
             WHERE id = ? AND status = 'running'`,
-			string(status), skippedCount, nullableCode, now, run.ID)
+			string(status), skippedCount, skippedCount, nullableCode, now, run.ID)
 		if err != nil {
 			return fmt.Errorf("finish scan without cleanup: %w", err)
 		}
@@ -851,7 +858,10 @@ func (s *Store) InterruptActiveScans(ctx context.Context) (int64, error) {
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE scan_runs
-            SET status = 'interrupted', error_code = 'process_interrupted', finished_at_ms = ?
+            SET status = 'interrupted', phase = 'completed',
+                error_code = 'scan_interrupted', finished_at_ms = ?,
+                heartbeat_at_ms = NULL, lease_expires_at_ms = NULL,
+                revision = revision + 1
             WHERE status = 'running'`, now)
 		if err != nil {
 			return fmt.Errorf("interrupt active scans: %w", err)
@@ -866,7 +876,11 @@ func (s *Store) InterruptActiveScans(ctx context.Context) (int64, error) {
 }
 
 func (s *Store) GetScanRun(ctx context.Context, runID int64) (scanner.ScanRun, error) {
-	run, err := scanScanRun(s.db.QueryRowContext(ctx, `SELECT `+scanRunColumns+` FROM scan_runs WHERE id = ?`, runID))
+	run, err := scanAdmissionRun(s.db.QueryRowContext(
+		ctx,
+		`SELECT `+admissionScanColumns+` FROM scan_runs WHERE id = ?`,
+		runID,
+	))
 	if errors.Is(err, sql.ErrNoRows) {
 		return scanner.ScanRun{}, scanner.ErrScanRunNotFound
 	}
@@ -877,8 +891,8 @@ func (s *Store) GetScanRun(ctx context.Context, runID int64) (scanner.ScanRun, e
 }
 
 func activeScanRunTx(ctx context.Context, tx *sql.Tx, runID int64) (scanner.ScanRun, error) {
-	run, err := scanScanRun(tx.QueryRowContext(ctx, `
-        SELECT `+scanRunColumns+` FROM scan_runs WHERE id = ?`, runID))
+	run, err := scanAdmissionRun(tx.QueryRowContext(ctx, `
+        SELECT `+admissionScanColumns+` FROM scan_runs WHERE id = ?`, runID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return scanner.ScanRun{}, scanner.ErrScanRunNotFound
 	}
@@ -892,48 +906,13 @@ func activeScanRunTx(ctx context.Context, tx *sql.Tx, runID int64) (scanner.Scan
 }
 
 func getScanRunTx(ctx context.Context, tx *sql.Tx, runID int64) (scanner.ScanRun, error) {
-	run, err := scanScanRun(tx.QueryRowContext(ctx, `SELECT `+scanRunColumns+` FROM scan_runs WHERE id = ?`, runID))
+	run, err := scanAdmissionRun(tx.QueryRowContext(
+		ctx,
+		`SELECT `+admissionScanColumns+` FROM scan_runs WHERE id = ?`,
+		runID,
+	))
 	if err != nil {
 		return scanner.ScanRun{}, fmt.Errorf("read scan run: %w", err)
-	}
-	return run, nil
-}
-
-func scanScanRun(row rowScanner) (scanner.ScanRun, error) {
-	var (
-		run        scanner.ScanRun
-		trigger    string
-		status     string
-		errorCode  sql.NullString
-		startedAt  sql.NullInt64
-		finishedAt sql.NullInt64
-	)
-	if err := row.Scan(
-		&run.ID,
-		&run.LibraryID,
-		&run.Generation,
-		&trigger,
-		&status,
-		&run.DiscoveredDirectories,
-		&run.DiscoveredAssets,
-		&run.SkippedCount,
-		&errorCode,
-		&run.CreatedAtMS,
-		&startedAt,
-		&finishedAt,
-	); err != nil {
-		return scanner.ScanRun{}, err
-	}
-	run.Trigger = scanner.Trigger(trigger)
-	run.Status = scanner.RunStatus(status)
-	if errorCode.Valid {
-		run.ErrorCode = errorCode.String
-	}
-	if startedAt.Valid {
-		run.StartedAtMS = &startedAt.Int64
-	}
-	if finishedAt.Valid {
-		run.FinishedAtMS = &finishedAt.Int64
 	}
 	return run, nil
 }

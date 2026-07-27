@@ -505,19 +505,29 @@ func TestComposedLibraryRemovalPreservesOriginalMediaByteForByte(t *testing.T) {
 		!strings.Contains(created.Body, `"id":"lib_1"`) {
 		t.Fatalf("create response = %#v", created)
 	}
-	currentLibrary := runtimeAuthenticationRequest(
-		t,
-		client,
-		address,
-		http.MethodGet,
-		created.Location,
-		"",
-		setup.Cookie,
-		"",
-	)
+	deadline := time.Now().Add(runtimeIntegrationTimeout)
+	var currentLibrary runtimeAuthenticationResponse
+	for time.Now().Before(deadline) {
+		currentLibrary = runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodGet,
+			created.Location,
+			"",
+			setup.Cookie,
+			"",
+		)
+		if currentLibrary.StatusCode == http.StatusOK &&
+			strings.Contains(currentLibrary.Body, `"status":"ready"`) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	if currentLibrary.StatusCode != http.StatusOK ||
-		currentLibrary.ETag != created.ETag {
-		t.Fatalf("current library before removal = %#v; create = %#v", currentLibrary, created)
+		currentLibrary.ETag == "" ||
+		!strings.Contains(currentLibrary.Body, `"status":"ready"`) {
+		t.Fatalf("creation scan did not complete before removal: %#v", currentLibrary)
 	}
 
 	cachePath := filepath.Join(
@@ -540,7 +550,7 @@ func TestComposedLibraryRemovalPreservesOriginalMediaByteForByte(t *testing.T) {
 		client,
 		address,
 		created.Location,
-		created.ETag,
+		currentLibrary.ETag,
 		"s2-006-remove-family",
 		setup.Cookie,
 		setup.CSRFToken,
@@ -550,7 +560,7 @@ func TestComposedLibraryRemovalPreservesOriginalMediaByteForByte(t *testing.T) {
 		t.Fatalf("remove response = %#v", removal)
 	}
 
-	deadline := time.Now().Add(runtimeIntegrationTimeout)
+	deadline = time.Now().Add(runtimeIntegrationTimeout)
 	var terminal runtimeAuthenticationResponse
 	for time.Now().Before(deadline) {
 		terminal = runtimeAuthenticationRequest(

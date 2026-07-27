@@ -40,7 +40,7 @@ make test-e2e
 | AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | **部分执行**：正式应用已有空目录/重复迁移、冲突 schema 失败关闭、外键和完整性测试；追加认证 migration 已验证单管理员、摘要、期限与级联约束。migration checksum 与真实上一版本升级仍待实现 | 首个预览版前 |
 | AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **媒体库 Backend Ready**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、认证 path/create HTTP 与真实 composition、TOCTOU/ABA、权限和错误脱敏均通过；扫描/媒体读取 handler 继续逐切片强制，发布 volume/unmount 由 Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | 部分执行；FS-02 当前 scope 通过 | 持续，发布前补强杀/磁盘故障 |
-| AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | 计划门禁 | 对应 worker 合入前 |
+| AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | **部分自动化**：S2-102 已固定容量 1 wake signal、2 个全局 scan worker、256 catalog batch、heartbeat/lease/cancel 测试和架构归属检查；媒体工具与 S2-106 压力指标待后续 Gate | 对应 worker 持续强制；容量证据在 S2-106 |
 | AF-009 | 前端依赖方向、共享组件唯一所有权与 token 单一来源 | TypeScript boundary/cycle lint、受限基础库/import 位置 allowlist、token lint、组件目录检查 | **部分执行**：strict TypeScript、唯一生成 client 边界及禁止散落 `fetch` 的架构测试已通过；React、组件/token/cycle 门禁尚未建立 | 首个业务 feature 前 |
 | AF-010 | 前端稳定原语在主题、语言、宽度和异步状态下行为一致 | component workbench build、Testing Library、axe、聚焦视觉回归 | 计划门禁 | 行为/axe 在首次消费前；视觉基线在 API 稳定或第二消费者前；完整矩阵在 RC 前 |
 | AF-011 | 大列表只使用游标分页和统一虚拟化模式 | API 契约测试、前端 pattern 测试、E2E DOM/请求上限 | 计划门禁 | 浏览切片前 |
@@ -49,7 +49,7 @@ make test-e2e
 | AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **部分执行**：FS-05 离线恢复、重复 migration、只读/满盘/损坏失败关闭通过；在线备份、强杀和真实版本升级未测 | Release Candidate 前 |
 | AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **部分执行**：Linux/arm64 tmpfs 的扫描/索引子范围通过；完整媒体/HTTP/前端与代表性存储未测 | 阶段 0 FS-04 与发布前复测 |
 | AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行**：source/npm/image SPDX 与关键 codec/license 审查通过；最终 digest attestation、漏洞与 notices 未完成 | Release Candidate 前 |
-| AF-017 | SQLite 查询以 adapter 内的 SQL 源为唯一事实，生成代码不可手改或漂移 | sqlc 固定版本、临时目录重生成 diff、生成标记与 adapter 重复 SQL 检查 | **本地执行，CI 已接线**：媒体库查询已由 `queries/` 生成到 `dbgen/` 并被 adapter 消费；scanner SQL 待 Stage 2 定型迁移 | 持续强制 |
+| AF-017 | SQLite 查询以 adapter 内的 SQL 源为唯一事实，生成代码不可手改或漂移 | sqlc 固定版本、临时目录重生成 diff、生成标记与 adapter 重复 SQL 检查 | **本地执行，CI 已接线**：媒体库及 scan claim/lease/recovery 查询由 `queries/` 生成到 `dbgen/` 并被 adapter 消费；复杂 generation finalize 仍在 adapter 内受事务测试约束 | 持续强制 |
 
 ## 前后端门禁顺序
 

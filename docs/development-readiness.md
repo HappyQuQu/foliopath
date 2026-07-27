@@ -8,7 +8,7 @@
 Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)也已结论为 `Go`，允许前端为
 7 个媒体库管理 operation 建立真实 client adapter；依赖扫描实际执行的产品流程继续等待
 `S2-107`。[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)允许
-`S2-102` 扫描服务按唯一 durable admission 实现。
+`S2-102` 已按唯一 durable admission 完成有界 worker 接线；当前进入 `S2-103` 目录与计数。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
@@ -24,14 +24,16 @@ Argon2id 密码存储、Unicode 管理员身份规范化、单管理员原子初
 root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 API 默认拒绝、
 防缓存、受限 JSON 和按直连 peer 的有界限流已经接入真实 composition root，并通过认证
 Backend Ready Gate；安全目录选择、媒体库生命周期、manual scan admission 与异步移除
-handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。当前还没有生产
-扫描 worker、可信代理配置、完整认证产品 UI、正式 Dockerfile、浏览器 E2E 或可发布镜像；
+handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。生产扫描 worker
+已消费 creation scan，但完整扫描 Backend Ready 仍待 S2-103～107；当前还没有可信代理配置、
+完整认证产品 UI、正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
 原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
-认证与媒体库管理后端是已通过各自 Gate 的正式后端能力；扫描只有 Contract Ready 与
-durable admission，静态原型也仍不是可用产品。不得把媒体库 Gate 扩张为扫描、浏览、
+认证与媒体库管理后端是已通过各自 Gate 的正式后端能力；扫描已有 Contract Ready、
+durable admission 与 S2-102 worker，但还不是 Backend Ready，静态原型也仍不是可用产品。
+不得把媒体库 Gate 扩张为扫描、浏览、
 缩略图、前端集成或发布完成。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的 RQ-001～RQ-014

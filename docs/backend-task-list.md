@@ -5,12 +5,11 @@
 
 - 当前阶段：Stage 2 扫描后端；媒体库 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
-  `S2-001`～`S2-007` 媒体库 Backend Ready
-- 当前任务：`S2-102` 有界 generation 扫描服务和全局任务队列；
-  `S2-101` 扫描 Contract Ready 已完成
+  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～102` 扫描契约与有界 worker
+- 当前任务：`S2-103` 全部可读目录与直接/递归计数
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)
   已完成媒体库后端交接；[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)
-  允许 `S2-102` 按唯一 durable admission 实现；不得建立临时队列或第二套扫描状态机
+  已允许并完成 `S2-102` 唯一 durable queue 实现；不得建立临时队列或第二套扫描状态机
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -143,7 +142,11 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     version 4 migration 固定 phase/counters/cancel、heartbeat/lease/attempt、50 条 issues 上限
     和默认 24 小时 typed setting。契约同时冻结 256 active、2 workers、256 batch、
     15 秒 heartbeat/120 秒 lease、三次恢复和公平领取顺序。
-- [ ] `S2-102` 完成有界 generation 扫描服务和全局任务队列。
+- [x] `S2-102` 完成有界 generation 扫描服务和全局任务队列。
+  - 完成证据：[S2-102 有界扫描 worker](gates/MVP-2026-07-23/s2-bounded-scan-worker.md)；
+    `internal/jobs` 统一拥有 lease queue、2-worker 全局并发、15 秒 heartbeat/120 秒 lease
+    和取消传播，SQLite 按 available/created/ID 原子领取并执行最多三次恢复；正式
+    composition 已消费 creation scan，单元、SQLite、架构、真实应用与完整仓库门禁通过。
 - [ ] `S2-103` 索引全部可读目录，包括空目录，并维护直接/递归计数。
 - [ ] `S2-104` 实现媒体候选识别、fingerprint、增量 upsert 和成功后陈旧清理。
 - [ ] `S2-105` 实现取消、离线、权限失败、重启恢复和失败保留旧索引。

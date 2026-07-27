@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
@@ -23,7 +25,15 @@ type databaseStore interface {
 	library.LifecycleRepository
 	library.RemovalRepository
 	scanner.AdmissionRepository
+	scanner.Repository
+	scanQueueStore
 	Close() error
+}
+
+type scanQueueStore interface {
+	RecoverExpiredFullScans(context.Context) (jobs.RecoverySummary, error)
+	ClaimNextFullScan(context.Context, time.Duration) (scanner.ScanRun, bool, error)
+	RefreshFullScanLease(context.Context, int64, time.Duration) (scanner.ScanRun, error)
 }
 
 type databaseOpener func(context.Context, string, sqlitestore.Options) (databaseStore, error)
@@ -369,6 +379,166 @@ func (service *databaseService) AdmitFullScan(
 		return scanner.AdmissionResult{}, library.ErrRepositoryNotReady
 	}
 	return service.store.AdmitFullScan(ctx, libraryID, trigger)
+}
+
+func (service *databaseService) GetLibraryRoot(
+	ctx context.Context,
+	libraryID int64,
+) (string, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return "", library.ErrRepositoryNotReady
+	}
+	return service.store.GetLibraryRoot(ctx, libraryID)
+}
+
+func (service *databaseService) BeginFullScan(
+	ctx context.Context,
+	libraryID int64,
+	trigger scanner.Trigger,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.BeginFullScan(ctx, libraryID, trigger)
+}
+
+func (service *databaseService) SetFullScanPhase(
+	ctx context.Context,
+	runID int64,
+	phase string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.ErrRepositoryNotReady
+	}
+	return service.store.SetFullScanPhase(ctx, runID, phase)
+}
+
+func (service *databaseService) UpsertCatalogBatch(
+	ctx context.Context,
+	runID int64,
+	entries []scanner.CatalogEntry,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.ErrRepositoryNotReady
+	}
+	return service.store.UpsertCatalogBatch(ctx, runID, entries)
+}
+
+func (service *databaseService) CompleteFullScan(
+	ctx context.Context,
+	runID, skipped int64,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.CompleteFullScan(ctx, runID, skipped)
+}
+
+func (service *databaseService) FailFullScan(
+	ctx context.Context,
+	runID, skipped int64,
+	code string,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.FailFullScan(ctx, runID, skipped, code)
+}
+
+func (service *databaseService) CancelFullScan(
+	ctx context.Context,
+	runID, skipped int64,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.CancelFullScan(ctx, runID, skipped)
+}
+
+func (service *databaseService) OfflineFullScan(
+	ctx context.Context,
+	runID, skipped int64,
+	code string,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.OfflineFullScan(ctx, runID, skipped, code)
+}
+
+func (service *databaseService) InterruptActiveScans(
+	ctx context.Context,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, library.ErrRepositoryNotReady
+	}
+	return service.store.InterruptActiveScans(ctx)
+}
+
+func (service *databaseService) GetScanRun(
+	ctx context.Context,
+	runID int64,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetScanRun(ctx, runID)
+}
+
+func (service *databaseService) RecoverExpiredFullScans(
+	ctx context.Context,
+) (jobs.RecoverySummary, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return jobs.RecoverySummary{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RecoverExpiredFullScans(ctx)
+}
+
+func (service *databaseService) ClaimNextFullScan(
+	ctx context.Context,
+	lease time.Duration,
+) (scanner.ScanRun, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, false, library.ErrRepositoryNotReady
+	}
+	return service.store.ClaimNextFullScan(ctx, lease)
+}
+
+func (service *databaseService) RefreshFullScanLease(
+	ctx context.Context,
+	runID int64,
+	lease time.Duration,
+) (scanner.ScanRun, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ScanRun{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RefreshFullScanLease(ctx, runID, lease)
 }
 
 func prepareDataRoot(dataRoot string) error {
