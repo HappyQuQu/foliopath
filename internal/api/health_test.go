@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/library"
 )
 
 func TestHealthRoutesMatchContract(t *testing.T) {
@@ -191,6 +192,11 @@ func TestRoutesRejectIncompleteDependencies(t *testing.T) {
 			Readiness:      func() Readiness { return Readiness{} },
 			Authentication: rejectingAuthentication(),
 		},
+		{
+			Readiness:      func() Readiness { return Readiness{} },
+			Authentication: rejectingAuthentication(),
+			SystemStatus:   unusedStatus,
+		},
 	}
 	for _, dependencies := range tests {
 		if _, err := NewRoutes(dependencies); !errors.Is(err, errInvalidRouteDependencies) {
@@ -219,6 +225,16 @@ func TestUnsupportedMethodUsesSafeFallback(t *testing.T) {
 
 func testRoutes(t *testing.T, dependencies RouteDependencies) http.Handler {
 	t.Helper()
+	if dependencies.LibraryPaths == nil {
+		dependencies.LibraryPaths = &libraryPathServiceStub{
+			list: func(
+				context.Context,
+				library.ListPathParams,
+			) (library.PathPage, error) {
+				return library.PathPage{}, errors.New("unexpected library path request")
+			},
+		}
+	}
 	routes, err := NewRoutes(dependencies)
 	if err != nil {
 		t.Fatalf("NewRoutes() error = %v", err)

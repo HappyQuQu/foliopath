@@ -94,6 +94,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 创建媒体库、首次扫描、再次扫描、删除与离线恢复的完整后端路径。
 - version 2→3 追加迁移、库/首次 queued scan/幂等记录同事务 commit/rollback、唯一
   creation scan/active removal、ETag revision、摘要长度与至少 24 小时幂等保留。
+- 已认证目录选择器的真实 composition、直接目录/普通文件过滤、隐藏与 Unicode 名称、
+  numeric natural order、默认/最大页面、有界 `limit+1` 选择、opaque query-bound cursor
+  的续页/篡改/跨 scope 拒绝，以及 symlink/mount/unavailable 公开错误映射。
 - 唯一媒体库名称、只允许改名、拒绝根路径修改，以及 24 小时可配置调度与协作取消。
 - generation 批量 upsert 与仅在完整成功后清理旧记录。
 - 进程中断后的 `running` 任务恢复和原子缓存写入。
@@ -113,8 +116,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 运行时合成 fixture 调用真实 FFmpeg CLI；当前仍没有生产 handler/media adapter、真实
 `SIGKILL`、磁盘满或备份恢复集成测试，“重启”证据仅为关闭并重新打开同一数据库文件。
 带 `linux && fsboundary` tag 的隔离高权限探针已在原生 Linux amd64/arm64 覆盖同设备、
-跨设备和 self-bind mount，普通非 root 双架构 Go/race 回归也已通过；这些证据不覆盖最终
-只读发布 volume 或运行期 unmount。
+跨设备和 self-bind mount，现同时断言目录选择 adapter 不进入挂载内容并返回稳定
+`mount_boundary`；普通非 root 双架构 Go/race 回归也已通过。这些证据不覆盖最终只读发布
+volume 或运行期 unmount。
 
 ### 浏览器端到端测试
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/library"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -83,10 +84,22 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct authentication service: %w", err)
 	}
+	directorySource, mediaRootComponent, err := newMediaRootService(configuration.mediaRoot)
+	if err != nil {
+		return nil, fmt.Errorf("construct allowed media root: %w", err)
+	}
+	libraryPaths, err := library.NewPathService(
+		directorySource,
+		library.PathServiceOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct library path service: %w", err)
+	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:      readiness.snapshot,
 		Authentication: authentication,
 		SystemStatus:   systemStatusProvider(input.Version, readiness, authentication),
+		LibraryPaths:   libraryPaths,
 	})
 	if err != nil {
 		return nil, err
@@ -99,6 +112,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	application, err := newApplication(
 		[]component{
 			databaseComponent,
+			mediaRootComponent,
 			httpComponent,
 			readinessLifecycle(readiness),
 		},
