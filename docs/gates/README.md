@@ -47,3 +47,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S4-006：完整媒体查看器完成](MVP-2026-07-23/s4-frontend-media-viewer.md)
 - [S4-007：媒体播放与降级状态完成](MVP-2026-07-23/s4-frontend-media-strategy.md)
 - [S4-008：媒体交互矩阵完成](MVP-2026-07-23/s4-frontend-media-matrix.md)
+- [Stage 4：搜索与完整查看器 Integrated Done](MVP-2026-07-23/s4-search-media-integrated-done.md)

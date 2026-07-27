@@ -497,6 +497,27 @@ test("administrator, library-management, and browsing vertical slice", async ({
     name: "Preview: direct-photo.jpg",
   });
   await expect(searchPreview).toBeVisible();
+  await searchPreview.getByRole("button", { name: "Open full viewer" }).click();
+  await expect(page).toHaveURL(
+    new RegExp(
+      `/libraries/${createdLibraryId}/media/[^?]+\\?from=%2Flibraries%2F${createdLibraryId}%2Fsearch%3Fq%3Ddirect-photo`,
+    ),
+  );
+  await expect(
+    page.getByRole("img", { name: "direct-photo.jpg" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+  await page.keyboard.press("i");
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/search?q=direct-photo`,
+  );
+  await expect(searchPreviewTrigger).toBeFocused();
+  await searchPreviewTrigger.click();
+  await expect(searchPreview).toBeVisible();
   await searchPreview.getByRole("button", { name: "Pin preview" }).click();
   await page.getByLabel("Media type").selectOption("video");
   await expect(page).toHaveURL(

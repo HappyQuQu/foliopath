@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 4
+- 当前阶段：Stage 5 发布加固准备
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
   位于 [`prototypes/foliopath-static-ui`](../prototypes/foliopath-static-ui/README.md)，不放入
   生产 `web/src` import graph
@@ -13,9 +13,10 @@
   [Integrated Done Gate](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)；
   Stage 3 的目录浏览、缩略图集合、非模态预览和容量矩阵 `S3-101～108` 已通过
   [Integrated Done Gate](gates/MVP-2026-07-23/s3-browse-integrated-done.md)；
-  Stage 4 的统一搜索、共享非模态预览、完整查看器及媒体交互矩阵 `S4-004～008`
-  已连接真实 API 并完成 Chromium 桌面/移动验收；下一步完成纵向 E2E 与
-  `Integrated Done` Gate
+  Stage 4 的统一搜索、共享非模态预览、完整查看器、媒体交互矩阵与真实纵向 E2E
+  `S4-004～009` 已通过
+  [Integrated Done Gate](gates/MVP-2026-07-23/s4-search-media-integrated-done.md)；
+  下一步进入 Stage 5 发布浏览器、真机、性能与发布镜像加固
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -243,7 +244,15 @@
   - 工具条按钮获得焦点时仍允许查看器级快捷键；焦点位于原生视频、表单输入或可编辑内容时
     不抢占冲突按键。证据见
     [S4-008 媒体交互矩阵](gates/MVP-2026-07-23/s4-frontend-media-matrix.md)。
-- [ ] `S4-009` 完成搜索/预览/查看器 E2E 与 `Integrated Done` Gate。
+- [x] `S4-009` 完成搜索/预览/查看器 E2E 与 `Integrated Done` Gate。
+  - 真实一次性 SQLite、只读合成媒体和 Go 进程固定 setup → 建库/扫描 → 搜索 →
+    非模态原图预览 → 完整查看器 → 返回原搜索 URL 的纵向链。
+  - 查看器关闭按钮初始聚焦；`I` 与 Escape 跨路由可用，退出后准确恢复查询、结果集合和
+    触发卡片焦点；固定预览筛选保留、scope 历史、Range/206、降级状态和移动触摸矩阵继续
+    共同作为 Gate 证据。
+  - Stage 4 已
+    [Integrated Done](gates/MVP-2026-07-23/s4-search-media-integrated-done.md)，发布候选仍须
+    通过 Stage 5。
 
 搜索真实数据依赖后端 `S4-003`；查看器真实内容依赖 `S4-005B`。
 

@@ -6,8 +6,8 @@
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
 契约测试，真实 HTTP 边界、合成媒体 fixture 和显式容量测试。正式 `cmd/foliopath`、
 composition root、SQLite 生命周期、health、认证及媒体库/扫描/浏览/缩略图/搜索/原内容
-HTTP handler 已可启动和测试；React 认证及媒体库/扫描切片已有真实浏览器 E2E，完整浏览、
-搜索、查看器和发布镜像仍待后续阶段。仓库已有固定 Node/npm、
+HTTP handler 已可启动和测试；React 认证、媒体库/扫描、浏览/预览及搜索/完整查看器切片
+均已有真实浏览器 E2E，发布镜像和最终浏览器/真机矩阵仍待 Stage 5。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
 工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
 只有实际执行成功的目标才能声称可用。
@@ -124,8 +124,10 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   由受控 endpoint 返回 `206 Content-Range`，测试必须观察浏览器发出的
   `Range: bytes=…`；unsupported codec、offline、deleted 继续分别验证无播放器、有效
   重试与无效重试。两个视口都检查页面无横向溢出及 axe serious/critical 为零。
-  Firefox、Safari/WebKit 具体发布版本和真机性能归 Stage 5 发布矩阵，完整纵向 E2E 归
-  S4-009。
+  Firefox、Safari/WebKit 具体发布版本和真机性能归 Stage 5 发布矩阵。
+- S4-009 把一次性真实 SQLite/Go/只读媒体链延伸为搜索 → 非模态预览 → 完整查看器 →
+  原搜索 URL 与卡片焦点恢复；同一链继续验证固定预览筛选保留、scope 历史、主题、
+  responsive、overflow 和 axe，并形成 Stage 4 Integrated Done。
 - S3-107 容量测试使用 100,000 个稳定资产 ID 验证默认视口挂载不超过 64 个 DOM 项、
   首屏不预取、末端仅允许一个在途 cursor 请求、远距离虚拟锚点恢复和 12 帧焦点重试。
   原生视频 rerender 必须卸载旧节点且只留下一个 video。组件工作台同一主档在真实
@@ -146,8 +148,9 @@ S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发�
 公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle；
 S3-006 已增加 256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips runtime、FFmpeg 单线程/
 进程组取消/工具输出 cap、取消安全点和真实 8 MiB tmpfs `ENOSPC` 矩阵。资产/缩略图 HTTP、
-Stage 1 认证和 Stage 2 媒体库/扫描浏览器流程已通过各自 Integrated Done Gate；
-浏览/搜索/查看器和发布网络/存储边界仍在后续 Gate。
+Stage 1 认证、Stage 2 媒体库/扫描、Stage 3 浏览/非模态预览和 Stage 4
+搜索/完整查看器浏览器流程已通过各自 Integrated Done Gate；发布网络、存储、最终
+浏览器/真机和候选镜像边界仍在 Stage 5。
 
 ### 前端单元与组件测试
 
@@ -362,7 +365,7 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 - `make test-race`
 - `make test-integration`
 - `make test-e2e`（真实后端进程的测试专用容器 smoke；不是浏览器或发布镜像验收）
-- `make test-web-e2e`（一次性真实后端的认证及媒体库/扫描 Chromium 产品 E2E）
+- `make test-web-e2e`（一次性真实后端的 Stage 1～4 Chromium 产品 E2E 与媒体矩阵）
 - `npm --prefix web run check`
 - `npm --prefix web run build`
 - `make spike-capacity`（显式重型目标档）
@@ -373,8 +376,8 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
-只读发布 volume/运行期 unmount、完整媒体降级/目标浏览器矩阵、
-完整媒体/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
+只读发布 volume/运行期 unmount、Firefox/Safari/物理设备发布矩阵、代表性客户端性能、
+双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
