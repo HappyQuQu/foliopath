@@ -14,6 +14,7 @@ import (
 type scanWorkerComponent struct {
 	worker    *jobs.WorkerPool[scanner.ScanRun]
 	admission *scanner.AdmissionService
+	scheduler *scanner.Scheduler
 
 	mutex   sync.Mutex
 	cancel  context.CancelFunc
@@ -24,8 +25,9 @@ type scanWorkerComponent struct {
 func newScanWorkerComponent(
 	worker *jobs.WorkerPool[scanner.ScanRun],
 	admission *scanner.AdmissionService,
+	scheduler *scanner.Scheduler,
 ) (component, error) {
-	if worker == nil || admission == nil {
+	if worker == nil || admission == nil || scheduler == nil {
 		return component{}, fmt.Errorf(
 			"%w: scan worker and startup admission are required",
 			errInvalidComponent,
@@ -34,6 +36,7 @@ func newScanWorkerComponent(
 	service := &scanWorkerComponent{
 		worker:    worker,
 		admission: admission,
+		scheduler: scheduler,
 		done:      make(chan error, 1),
 		stopped:   make(chan struct{}),
 	}
@@ -93,6 +96,7 @@ func (service *scanWorkerComponent) run(ctx context.Context, cancel context.Canc
 	defer close(service.stopped)
 	workerDone := make(chan error, 1)
 	startupDone := make(chan error, 1)
+	schedulerDone := make(chan error, 1)
 	go func() {
 		workerDone <- service.worker.Run(ctx)
 	}()
@@ -100,20 +104,39 @@ func (service *scanWorkerComponent) run(ctx context.Context, cancel context.Canc
 		_, err := service.admission.RequestStartup(ctx)
 		startupDone <- err
 	}()
+	go func() {
+		schedulerDone <- service.scheduler.Run(ctx)
+	}()
 
 	select {
 	case startupErr := <-startupDone:
 		if startupErr != nil {
 			cancel()
 			<-workerDone
+			<-schedulerDone
 			service.done <- fmt.Errorf("admit startup scans: %w", startupErr)
 			return
 		}
-		service.done <- <-workerDone
+		select {
+		case workerErr := <-workerDone:
+			cancel()
+			<-schedulerDone
+			service.done <- workerErr
+		case schedulerErr := <-schedulerDone:
+			cancel()
+			<-workerDone
+			service.done <- schedulerErr
+		}
 	case workerErr := <-workerDone:
 		cancel()
 		<-startupDone
+		<-schedulerDone
 		service.done <- workerErr
+	case schedulerErr := <-schedulerDone:
+		cancel()
+		<-startupDone
+		<-workerDone
+		service.done <- schedulerErr
 	}
 }
 

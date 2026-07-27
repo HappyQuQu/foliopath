@@ -35,14 +35,17 @@ them.
 - Use a modular Go monolith with one HTTP process and an embedded React SPA.
 - `cmd/foliopath` is a minimal process entry point. Dependency composition,
   lifecycle, and graceful shutdown belong in `internal/app`.
-- Put business capabilities under `internal/` (`auth`, `library`, `catalog`,
-  `scanner`, `thumbnail`, `media`, and `jobs`). Each capability defines the
+- Put business capabilities under `internal/` (`auth`, `settings`, `library`,
+  `catalog`, `scanner`, `thumbnail`, `media`, and `jobs`). Each capability defines the
   interfaces it uses.
 - Put HTTP handlers, DTOs, and middleware under `internal/api`. Handlers call services;
   they must not query SQLite, resolve filesystem paths, or invoke media tools directly.
 - Put SQLite implementations under `internal/store/sqlite`, pure relative-path lexical
   rules under `internal/pathpolicy`, and filesystem/open/identity boundary code under
   `internal/files`. Wire concrete implementations only in `internal/app`.
+- Put authenticated opaque-token encoding under `internal/cursor`. Each resource
+  capability still owns its cursor payload, query binding, ordering, and validation;
+  do not duplicate cryptographic cursor codecs.
 - Put the Go embed wrapper for Vite output under `internal/webassets`; Vite writes its
   generated production assets to `internal/webassets/dist` before the Go build.
 - Dependencies point inward: adapters implement capability-owned interfaces; business

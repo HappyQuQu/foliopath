@@ -580,7 +580,7 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 			contents: []string{
 				"jobs.NewWorkerPool(",
 				"scanner.NewClaimedProcessor(",
-				"newScanWorkerComponent(scanWorker, scanAdmission)",
+				"newScanWorkerComponent(scanWorker, scanAdmission, scanScheduler)",
 				"scanComponent,",
 			},
 		},
@@ -671,6 +671,76 @@ func TestScanCapacityGateUsesCanonicalProductionBounds(t *testing.T) {
 		for _, content := range required.contents {
 			if !strings.Contains(string(source), content) {
 				t.Errorf("%s is missing scan capacity rule %q", required.path, content)
+			}
+		}
+	}
+}
+
+func TestScanHTTPQueriesUseCapabilityAndGeneratedClientBoundary(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: filepath.Join(root, "internal", "scanner", "queries.go"),
+			contents: []string{
+				"type QueryService struct",
+				"MaxScanPageSize     = 200",
+				"ErrInvalidScanCursor",
+				"ErrScanAlreadyFinished",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "api", "scans_http.go"),
+			contents: []string{
+				`"GET /api/v1/libraries/{libraryId}/scans"`,
+				`"GET /api/v1/scans/{scanId}"`,
+				`"POST /api/v1/scans/{scanId}/cancel"`,
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "app", "run.go"),
+			contents: []string{
+				"scanner.NewQueryService(database, nil)",
+				"Scans:          scanQueries",
+				"scanner.NewScheduler(",
+				"Settings:       settingsService",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "store", "sqlite", "scan_queries.go"),
+			contents: []string{
+				"ListLibraryScanContractRuns",
+				"ListScanIssues",
+				"RequestRunningScanCancellation",
+				"CancelQueuedScan",
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "api", "settings_http.go"),
+			contents: []string{
+				`"GET /api/v1/settings"`,
+				`"PATCH /api/v1/settings"`,
+				`"settings-r`,
+			},
+		},
+		{
+			path: filepath.Join(root, "internal", "scanner", "scheduler.go"),
+			contents: []string{
+				"TriggerScheduled",
+				"ListDueLibraryIDs",
+				"scheduledLibraryPageSize = 64",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing scan HTTP boundary %q", required.path, content)
 			}
 		}
 	}
@@ -836,6 +906,45 @@ func TestMediaCandidateFingerprintAndConvergenceHaveCanonicalOwners(t *testing.T
 	}
 }
 
+func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
+	root := repositoryRoot(t)
+	codecPath := filepath.Join(root, "internal", "cursor", "codec.go")
+	codecSource, err := os.ReadFile(codecPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"aes.NewCipher", "cipher.NewGCM", ".Seal(", ".Open("} {
+		if !strings.Contains(string(codecSource), required) {
+			t.Errorf("canonical cursor codec is missing %q", required)
+		}
+	}
+
+	for _, relative := range []string{
+		"internal/library/lifecycle.go",
+		"internal/library/paths.go",
+		"internal/scanner/queries.go",
+	} {
+		path := filepath.Join(root, relative)
+		source, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(source), "/internal/cursor") {
+			t.Errorf("%s does not use the canonical cursor codec", relative)
+		}
+		for _, forbidden := range []string{
+			`"crypto/aes"`,
+			"cipher.NewGCM",
+			".Seal(",
+			".Open(",
+		} {
+			if strings.Contains(string(source), forbidden) {
+				t.Errorf("%s duplicates cursor mechanism %q", relative, forbidden)
+			}
+		}
+	}
+}
+
 func checkDependency(t *testing.T, source, imported string) {
 	t.Helper()
 	if !strings.HasPrefix(imported, modulePath+"/") {
@@ -850,9 +959,9 @@ func checkDependency(t *testing.T, source, imported string) {
 		if slices.Contains([]string{"app", "files", "pathpolicy", "store", "webassets"}, importedArea) {
 			t.Errorf("HTTP adapter %s must not import concrete/runtime area %s", source, imported)
 		}
-	case "pathpolicy":
-		t.Errorf("pure path policy %s must not import repository package %s", source, imported)
-	case "auth", "library", "catalog", "scanner", "thumbnail", "media", "jobs":
+	case "pathpolicy", "cursor":
+		t.Errorf("pure policy/mechanism package %s must not import repository package %s", source, imported)
+	case "auth", "settings", "library", "catalog", "scanner", "thumbnail", "media", "jobs":
 		if slices.Contains([]string{"api", "app", "files", "store", "webassets"}, importedArea) {
 			t.Errorf("capability/policy package %s must not import outer area %s", source, imported)
 		}

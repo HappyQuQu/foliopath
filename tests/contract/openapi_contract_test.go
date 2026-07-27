@@ -1224,7 +1224,9 @@ func TestReliableScanMigrationFixesDurableResourceBounds(t *testing.T) {
 		"attempt_count >= 3",
 		"-- name: ListLibraryScanContractRuns :many",
 		"ORDER BY created_at_ms DESC, id DESC",
-		"-- name: UpdateScheduledScanInterval :one",
+		"-- name: UpdateSettings :one",
+		"thumbnail_cache_quota_bytes = sqlc.arg(thumbnail_cache_quota_bytes)",
+		"language = sqlc.arg(language)",
 	} {
 		if !strings.Contains(queries, required) {
 			t.Errorf("scan query contract is missing %q", required)

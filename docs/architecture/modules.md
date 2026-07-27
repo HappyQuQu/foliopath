@@ -4,7 +4,7 @@
 
 本文定义首个可用版本的目标模块所有权和依赖规则，补充[项目目录与依赖约束](../project-structure.md)，不替代根目录 `AGENTS.md`、已接受 ADR、未来的 `api/openapi.yaml` 或已发布迁移。冲突按[交付与架构治理](delivery-governance.md)暂停并修正权威来源；改变部署单元、依赖方向或核心一致性边界需要先接受 ADR。
 
-当前仓库中的 `internal/pathpolicy`、`internal/files`、`internal/library`、`internal/scanner` 和 `internal/store/sqlite` 主要是 feasibility spike 与边界代码；其余目标包尚未全部建立。目录存在不等于对应产品能力已经完成，准确状态见[开发就绪评审](../development-readiness.md)。
+当前仓库已建立认证、媒体库生命周期、扫描执行与设置聚合等后端能力；目录存在仍不等于对应产品能力已经完成，准确状态见[开发就绪评审](../development-readiness.md)。
 
 ## 所有权原则
 
@@ -24,6 +24,7 @@
 | `internal/app` | 启动配置、具体依赖组装、根取消上下文、启动/就绪/停机顺序、全局资源配额 | `Run` 或等价应用生命周期入口 | capability 业务规则、HTTP DTO、SQL 查询细节 |
 | `internal/api` | `/api/v1` 路由、请求解码与上限、响应 DTO、认证/CSRF 中间件接线、HTTP 状态和公开错误映射、请求 ID、Range 协议适配 | 只调用 capability service；OpenAPI 是结构化契约 | SQL、任意绝对路径、目录遍历、缓存路径、libvips/FFmpeg 调用 |
 | `internal/auth` | 唯一管理员原子初始化、凭据验证、会话生命周期、退出/撤销、CSRF 与认证限流语义 | 用户/会话 repository、密码哈希器、时钟、随机源、审计端口 | Cookie/HTTP 头序列化、具体 SQLite 查询、代理头解析 |
+| `internal/settings` | typed 设置的读取、原子更新和 revision 语义；聚合由消费 capability 注入的字段校验器 | settings repository、字段校验器、变更通知端口 | 任意 key/value、消费方范围规则副本、HTTP DTO、具体 SQLite 查询 |
 | `internal/library` | 媒体库名称唯一性、允许根下的库根值、重叠拒绝、改名、根不可变、离线/删除业务语义 | library repository、根检查端口、扫描请求端口 | OS 路径打开、扫描遍历、直接删除缓存文件 |
 | `internal/catalog` | `Directory`/`Asset` 领域模型、库作用域、目录计数语义、浏览/搜索/排序、keyset cursor 与查询指纹 | catalog repository、媒体可用性/派生状态的窄读接口 | 请求时递归文件系统、HTTP 查询参数 DTO、SQLite FTS 语句 |
 | `internal/scanner` | 完整/增量校准、generation 状态机、遍历批次、成功清理资格、取消与跳过统计 | walker、scan repository、媒体分类器、派生任务发布端口、时钟 | 无界 goroutine、媒体解码、HTTP 轮询、失败扫描的陈旧清理 |
@@ -31,6 +32,7 @@
 | `internal/media` | MVP 媒体格式注册表、魔数/类型验证策略、元数据探测、原媒体内容服务语义、媒体工具限制 | safe opener、probe/poster processor、catalog reader | HTTP handler、任意客户端路径、视频转码、无界子进程 |
 | `internal/jobs` | durable job 的领取/租约、幂等、重试退避、取消、恢复、公平调度与全局 admission | job repository、注册的 capability handler、时钟、并发门 | 具体缩略图/扫描业务、文件路径解析、无限内存队列 |
 | `internal/pathpolicy` | 不接触 I/O 的相对路径词法规范、编码歧义和 dot/separator/NUL 拒绝 | 纯值函数，供 library、scanner 与 files 使用 | OS 文件访问、真实路径身份、HTTP、数据库或业务状态 |
+| `internal/cursor` | 加密认证的 opaque token 编解码机制 | 纯 codec，供拥有资源查询语义的 capability 使用 | cursor payload、查询指纹、排序、分页规则、HTTP 参数 |
 | `internal/files` | `/library` 与库根身份、真实路径包含性校验、安全目录枚举/遍历/打开、symlink 和特殊节点策略 | 实现 capability 所需的 root inspector、walker、safe opener | 媒体库名称/重叠业务、索引写入、HTTP DTO、缓存和原媒体修改 |
 | `internal/store/sqlite` | SQLite 连接、WAL/外键/busy timeout、嵌入迁移、事务实现、SQL 查询与 capability repository adapter | 实现 capability-owned repository 接口 | 业务状态机、HTTP 错误、在事务内执行文件或媒体 I/O |
 | `internal/webassets` | Vite 生产产物的 `go:embed` 包装和静态资源读取 | 只暴露嵌入文件系统/handler 所需最小入口 | React 源码、业务 API、运行时生成或手改 `dist` |
@@ -42,21 +44,24 @@
 - `internal/media/formats.go` 已成为 MVP 扩展名、格式与 MIME 的单一注册表；scanner 通过
   `media.ClassifyPath` 使用它，系统状态通过只读副本公开同一组 MIME 能力。不得再在 scanner、
   API 或前端维护第二套独立 allowlist。
+- `internal/cursor` 是 authenticated opaque token 的唯一加密机制 owner；library、scanner、
+  catalog 等资源 capability 只定义各自 payload、query binding、排序和有效性规则，不再复制
+  AES-GCM、nonce 或 Base64 编解码。
 - `internal/store/sqlite/queries/` 已成为迁移到生产 adapter 的 SQL 唯一来源，`dbgen/` 只由
-  固定版本 sqlc 生成。媒体库 adapter 已完成迁移；scanner 的 Stage 0 复杂批处理 SQL 在
-  Stage 2 查询/事务语义定型时迁移，不得在迁移后的 adapter 中保留同组 SQL 副本。
+  固定版本 sqlc 生成。媒体库与 scanner adapter 已完成迁移；不得在迁移后的 adapter 中
+  保留同组 SQL 副本。
 
 ## 依赖矩阵
 
 符号含义：`✓` 表示允许直接依赖；`△` 表示只允许依赖稳定的公开服务/类型或 capability-owned 窄接口，且必须保持无环；`W` 表示仅用于组合和生命周期接线；`—` 表示禁止。
 
-| 导入方 ↓ / 被导入方 → | `app` | `api` | capability 包 | `pathpolicy` | adapter 包 | `webassets` |
+| 导入方 ↓ / 被导入方 → | `app` | `api` | capability 包 | policy/mechanism 叶子 | adapter 包 | `webassets` |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `cmd/foliopath` | ✓ | — | — | — | — | — |
 | `internal/app` | — | W | W | — | W | W |
 | `internal/api` | — | — | ✓ | — | — | — |
 | capability 包 | — | — | △ | ✓ | — | — |
-| `internal/pathpolicy` | — | — | — | — | — | — |
+| `internal/pathpolicy` / `internal/cursor` | — | — | — | — | — | — |
 | adapter：`files`、`store/sqlite`、媒体工具/缓存实现 | — | — | ✓ | ✓ | △¹ | — |
 | `internal/webassets` | — | — | — | — | — | — |
 
@@ -66,10 +71,11 @@
 flowchart TD
     cmd["cmd/foliopath"] --> app["internal/app\n唯一组合根"]
     app --> api["internal/api\n传输适配"]
-    app --> caps["capabilities\nauth / library / catalog / scanner / thumbnail / media / jobs"]
+    app --> caps["capabilities\nauth / settings / library / catalog / scanner / thumbnail / media / jobs"]
     app --> adapters["adapters\nfiles / store/sqlite / media tools / cache"]
     app --> assets["internal/webassets"]
     caps --> policy["internal/pathpolicy\npure lexical policy"]
+    caps --> cursor["internal/cursor\nopaque token codec"]
     adapters --> policy
     api -->|"服务与公开业务类型"| caps
     adapters -->|"实现 capability-owned interfaces"| caps
@@ -88,7 +94,8 @@ flowchart TD
 | 媒体格式、魔数和工具路由 | `internal/media` | scanner、thumbnail、catalog | scanner/thumbnail/UI 各维护一套扩展名或 MIME 表 |
 | Asset/Directory 身份、源指纹语义 | `internal/catalog` | scanner、media、thumbnail、store adapter | 以 inode、主机绝对路径或缓存文件名另造媒体身份 |
 | 完整扫描 generation 和清理资格 | `internal/scanner` | library、jobs、store adapter、API 只读状态 | store trigger、watcher 或 API handler自行清理陈旧记录 |
-| 游标编码、查询指纹和稳定排序 | `internal/catalog` | API、生成客户端把游标视为 opaque | handler、前端或每个 query 自定义分页 token；大型列表使用 `OFFSET` |
+| opaque token 加密认证机制 | `internal/cursor` | 资源 capability 把 payload 交给 codec | capability 各复制 AES-GCM、nonce 或 Base64 编解码 |
+| 游标 payload、查询绑定与稳定排序 | 对应资源 capability（如 `library`、`scanner`、`catalog`） | API、生成客户端把游标视为 opaque | handler、前端自定义分页 token；大型列表使用 `OFFSET` |
 | 派生 variant、cache key、transform version 和 LRU 语义 | `internal/thumbnail` | API、jobs、cache/store adapter | API URL、文件适配器或媒体工具自行推导另一种键 |
 | job 领取、租约、重试、退避和取消协议 | `internal/jobs` | scanner/thumbnail/media 注册 handler | 每个 capability 建自己的无限队列和不同重试算法 |
 | 认证、会话和 CSRF 业务语义 | `internal/auth` | API 中间件、设置/状态接口 | handler 直接查 session 表或 feature 自己判断认证状态 |

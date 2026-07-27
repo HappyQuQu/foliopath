@@ -15,6 +15,8 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -111,9 +113,26 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, err
 	}
 	scanSignal := jobs.NewSignal()
+	scheduleSignal := jobs.NewSignal()
 	scanAdmission, err := scanner.NewAdmissionService(database, scanSignal)
 	if err != nil {
 		return nil, fmt.Errorf("construct scan admission service: %w", err)
+	}
+	scanQueries, err := scanner.NewQueryService(database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct scan query service: %w", err)
+	}
+	settingsService, err := appsettings.NewService(
+		database,
+		scheduleSignal,
+		appsettings.FieldValidators{
+			Schedule:   scanner.ValidateScheduledScanInterval,
+			CacheQuota: thumbnail.ValidateCacheQuota,
+			Language:   appsettings.ValidateLanguage,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct settings service: %w", err)
 	}
 	scanService, err := scanner.NewService(database, scanner.Config{})
 	if err != nil {
@@ -132,7 +151,13 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct scan worker: %w", err)
 	}
-	scanComponent, err := newScanWorkerComponent(scanWorker, scanAdmission)
+	scanScheduler, err := scanner.NewScheduler(
+		database, scanSignal, scheduleSignal, scanner.SchedulerOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct scan scheduler: %w", err)
+	}
+	scanComponent, err := newScanWorkerComponent(scanWorker, scanAdmission, scanScheduler)
 	if err != nil {
 		return nil, err
 	}
@@ -153,6 +178,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		LibraryPaths:   libraryPaths,
 		Libraries:      libraries,
 		ScanAdmission:  scanAdmission,
+		Scans:          scanQueries,
+		Settings:       settingsService,
 	})
 	if err != nil {
 		return nil, err

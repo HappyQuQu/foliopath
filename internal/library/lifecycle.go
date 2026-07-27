@@ -2,19 +2,14 @@ package library
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
 
+	cursorcodec "github.com/HappyQuQu/foliopath/internal/cursor"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -173,7 +168,7 @@ type LifecycleService struct {
 	roots       RootValidator
 	scanWaker   WakeNotifier
 	removeWaker WakeNotifier
-	aead        cipher.AEAD
+	cursorCodec *cursorcodec.Codec
 }
 
 func NewLifecycleService(
@@ -186,30 +181,16 @@ func NewLifecycleService(
 	if repository == nil || roots == nil || scanWaker == nil || removeWaker == nil {
 		return nil, errors.New("library lifecycle dependencies are required")
 	}
-	key := append([]byte(nil), options.CursorKey...)
-	if len(key) == 0 {
-		key = make([]byte, 32)
-		if _, err := io.ReadFull(rand.Reader, key); err != nil {
-			return nil, fmt.Errorf("generate library cursor key: %w", err)
-		}
-	}
-	if len(key) != 32 {
-		return nil, errors.New("library cursor key must be 32 bytes")
-	}
-	block, err := aes.NewCipher(key)
+	cursorCodec, err := cursorcodec.New(options.CursorKey)
 	if err != nil {
-		return nil, fmt.Errorf("construct library cursor cipher: %w", err)
-	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("construct library cursor AEAD: %w", err)
+		return nil, fmt.Errorf("construct library cursor codec: %w", err)
 	}
 	return &LifecycleService{
 		repository:  repository,
 		roots:       roots,
 		scanWaker:   scanWaker,
 		removeWaker: removeWaker,
-		aead:        aead,
+		cursorCodec: cursorCodec,
 	}, nil
 }
 
@@ -388,42 +369,26 @@ type libraryCursor struct {
 }
 
 func (service *LifecycleService) encodeCursor(position ListPosition) (string, error) {
-	plaintext, err := json.Marshal(libraryCursor{
+	encoded, err := service.cursorCodec.Encode(libraryCursor{
 		Version:     libraryCursorVersion,
 		NameSortKey: position.NameSortKey,
 		Name:        position.Name,
 		ID:          position.ID,
-	})
+	}, "foliopath:libraries:v1")
 	if err != nil {
 		return "", fmt.Errorf("encode library cursor: %w", err)
 	}
-	nonce := make([]byte, service.aead.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("generate library cursor nonce: %w", err)
-	}
-	sealed := service.aead.Seal(nonce, nonce, plaintext, []byte("foliopath:libraries:v1"))
-	return base64.RawURLEncoding.EncodeToString(sealed), nil
+	return encoded, nil
 }
 
 func (service *LifecycleService) decodeCursor(encoded string) (ListPosition, error) {
 	if len(encoded) < 8 || len(encoded) > MaxCursorBytes {
 		return ListPosition{}, ErrInvalidLibraryCursor
 	}
-	sealed, err := base64.RawURLEncoding.DecodeString(encoded)
-	if err != nil || len(sealed) <= service.aead.NonceSize() {
-		return ListPosition{}, ErrInvalidLibraryCursor
-	}
-	plaintext, err := service.aead.Open(
-		nil,
-		sealed[:service.aead.NonceSize()],
-		sealed[service.aead.NonceSize():],
-		[]byte("foliopath:libraries:v1"),
-	)
-	if err != nil {
-		return ListPosition{}, ErrInvalidLibraryCursor
-	}
 	var cursor libraryCursor
-	if err := json.Unmarshal(plaintext, &cursor); err != nil ||
+	if err := service.cursorCodec.Decode(
+		encoded, "foliopath:libraries:v1", &cursor,
+	); err != nil ||
 		cursor.Version != libraryCursorVersion ||
 		len(cursor.NameSortKey) == 0 ||
 		cursor.Name == "" ||

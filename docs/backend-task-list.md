@@ -3,14 +3,13 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 2 扫描后端；媒体库 Backend Ready
+- 当前阶段：Stage 3 浏览与缩略图后端；媒体库与扫描 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
-  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～105` 扫描契约、worker、目录计数、
-  媒体增量收敛与故障恢复
-- 当前任务：`S2-107` 扫描后端 `Backend Ready` Gate
-- 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)
-  已完成媒体库后端交接；[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)
-  已允许并完成 `S2-102` 唯一 durable queue 实现；不得建立临时队列或第二套扫描状态机
+  `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
+- 当前任务：`S3-001` 浏览与缩略图后端契约
+- 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
+  [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
+  Stage 3 仍须独立通过 Contract Ready 与 Backend Ready
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -168,7 +167,10 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     唯一 256 active/256 batch 边界、跨连接 admission 竞态、2-worker 跨库公平、深目录/
     损坏拓扑、SQLite 满页保留可靠 generation 与 10k/100k 强制预算均有自动证据；
     Linux amd64/arm64 容量 job 已接入 CI。
-- [ ] `S2-107` 记录扫描后端 `Backend Ready` Gate。
+- [x] `S2-107` 记录扫描后端 `Backend Ready` Gate。
+  - 完成证据：[可靠扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)；
+    扫描历史、详情/304、手动 admission、协作取消、设置与 24 小时 scheduler 均已接入
+    真实 HTTP/SQLite/composition，S2-101～106 的一致性、故障与双架构容量证据汇总通过。
 
 ## Stage 3：浏览与缩略图后端
 

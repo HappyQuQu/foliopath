@@ -24,8 +24,8 @@
 - Go 运行骨架、认证和 7 个媒体库管理 operation 已接入真实 composition root；权威
   OpenAPI、TypeScript/sqlc 生成、摘要锁、语义兼容检查和双架构 CI 工作流已经建立。
   媒体库 Backend Gate 已覆盖认证 HTTP、SQLite、路径/mount、并发/幂等、重启移除和原媒体
-  不变。扫描仍只有 Contract Ready 与 durable admission，React 产品前端和正式 Dockerfile
-  也未完成；不能把局部 Backend Ready 扩张为阶段 2 产品完成或跳到阶段 3。
+  不变。可靠扫描已通过 Backend Ready，React 产品前端和正式 Dockerfile仍未完成；
+  不能把后端 Gate 扩张为阶段 2 Integrated Done 或可发布版本。
 
 ## 阶段 0：基线同步与可行性验证
 

@@ -4,20 +4,16 @@ import (
 	"bytes"
 	"container/heap"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"path"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
+	cursorcodec "github.com/HappyQuQu/foliopath/internal/cursor"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -110,9 +106,9 @@ type PathServiceOptions struct {
 }
 
 type PathService struct {
-	source DirectorySource
-	reader LibraryReader
-	aead   cipher.AEAD
+	source      DirectorySource
+	reader      LibraryReader
+	cursorCodec *cursorcodec.Codec
 }
 
 func NewPathService(
@@ -126,25 +122,11 @@ func NewPathService(
 	if reader == nil {
 		return nil, errors.New("library reader is required")
 	}
-	key := append([]byte(nil), options.CursorKey...)
-	if len(key) == 0 {
-		key = make([]byte, 32)
-		if _, err := io.ReadFull(rand.Reader, key); err != nil {
-			return nil, fmt.Errorf("generate library path cursor key: %w", err)
-		}
-	}
-	if len(key) != 32 {
-		return nil, errors.New("library path cursor key must be 32 bytes")
-	}
-	block, err := aes.NewCipher(key)
+	cursorCodec, err := cursorcodec.New(options.CursorKey)
 	if err != nil {
-		return nil, fmt.Errorf("construct library path cursor cipher: %w", err)
+		return nil, fmt.Errorf("construct library path cursor codec: %w", err)
 	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("construct library path cursor AEAD: %w", err)
-	}
-	return &PathService{source: source, reader: reader, aead: aead}, nil
+	return &PathService{source: source, reader: reader, cursorCodec: cursorCodec}, nil
 }
 
 func (service *PathService) ListPaths(
@@ -316,39 +298,22 @@ type pathCursor struct {
 }
 
 func (service *PathService) encodeCursor(parent, after string) (string, error) {
-	plaintext, err := json.Marshal(pathCursor{
+	encoded, err := service.cursorCodec.Encode(pathCursor{
 		Version: pathCursorVersion,
 		Parent:  parentFingerprint(parent),
 		After:   after,
-	})
+	}, "foliopath:library-path:v1")
 	if err != nil {
 		return "", fmt.Errorf("encode library path cursor: %w", err)
 	}
-	nonce := make([]byte, service.aead.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("generate library path cursor nonce: %w", err)
-	}
-	sealed := service.aead.Seal(nonce, nonce, plaintext, []byte("foliopath:library-path:v1"))
-	return base64.RawURLEncoding.EncodeToString(sealed), nil
+	return encoded, nil
 }
 
 func (service *PathService) decodeCursor(encoded, parent string) (string, error) {
-	sealed, err := base64.RawURLEncoding.DecodeString(encoded)
-	if err != nil || len(sealed) <= service.aead.NonceSize() {
-		return "", ErrInvalidCursor
-	}
-	nonce := sealed[:service.aead.NonceSize()]
-	plaintext, err := service.aead.Open(
-		nil,
-		nonce,
-		sealed[service.aead.NonceSize():],
-		[]byte("foliopath:library-path:v1"),
-	)
-	if err != nil {
-		return "", ErrInvalidCursor
-	}
 	var cursor pathCursor
-	if err := json.Unmarshal(plaintext, &cursor); err != nil ||
+	if err := service.cursorCodec.Decode(
+		encoded, "foliopath:library-path:v1", &cursor,
+	); err != nil ||
 		cursor.Version != pathCursorVersion ||
 		cursor.Parent != parentFingerprint(parent) ||
 		cursor.After == "" {
