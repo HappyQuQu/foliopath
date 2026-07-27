@@ -656,8 +656,9 @@ func TestScanCapacityGateUsesCanonicalProductionBounds(t *testing.T) {
 			path: filepath.Join(root, ".github", "workflows", "ci.yml"),
 			contents: []string{
 				"scan-capacity:",
-				"--cpus=4",
+				"--cpus=2",
 				"--memory=4g",
+				"GOMAXPROCS=2",
 				"FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1",
 				"Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)",
 			},

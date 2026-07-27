@@ -56,17 +56,17 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Run the four-core, 4 GiB scanner acceptance tier
+      - name: Run the two-core, 4 GiB scanner CI guard
         run: |
           docker run --rm \
-            --cpus=4 \
+            --cpus=2 \
             --memory=4g \
             --tmpfs /tmp:rw,exec,size=2g \
             --mount "type=bind,src=${GITHUB_WORKSPACE},dst=/workspace,readonly" \
             --workdir /workspace \
             --env FOLIOPATH_CAPACITY=1 \
             --env FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 \
-            --env GOMAXPROCS=4 \
+            --env GOMAXPROCS=2 \
             --env GOMODCACHE=/tmp/gomodcache \
             --env GOCACHE=/tmp/gocache \
             golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b \

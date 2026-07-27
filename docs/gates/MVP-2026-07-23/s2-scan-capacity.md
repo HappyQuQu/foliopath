@@ -56,8 +56,9 @@ Ready，也不证明媒体探测、缩略图、HTTP catalog、代表性 NAS 或�
 1,000 层目录 rollup 同轮为 70 ms。以上是回归证据，不是用户可见 SLA。
 
 CI 新增独立 `scan-capacity` job，在 Linux amd64/arm64 各以固定 Go 镜像、
-`--cpus=4 --memory=4g`、2 GiB tmpfs、`GOMAXPROCS=4` 运行两个容量测试并强制预算。
-普通单元任务不隐式承担这一重型档。
+`--cpus=2 --memory=4g`、2 GiB tmpfs、`GOMAXPROCS=2` 运行两个容量测试并强制同一预算。
+GitHub 托管 runner 只提供 2 个 CPU，因此该档是比四核目标更严格的持续回归护栏，不冒充
+四核代表性设备实测；普通单元任务不隐式承担这一重型档。
 
 ## 自动约束与证据
 
