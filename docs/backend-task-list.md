@@ -3,8 +3,8 @@
 ## 当前状态
 
 - 当前阶段：Stage 1
-- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-104` 认证契约、领域与 HTTP 防护
-- 当前任务：`S1-105` 认证故障、安全、并发与时间测试
+- 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-105` 认证实现与安全验收
+- 当前任务：`S1-106` 认证切片 Backend Ready Gate
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
 
 后端负责业务规则、API、数据库、文件安全、任务与媒体处理，不实现 React 页面。HTTP 结构以
@@ -72,7 +72,12 @@
     不信任转发头。真实 composition root HTTP 集成测试覆盖 setup、跨重启 session、
     受保护 status、重新登录、CSRF logout 与撤销后失败；架构检查约束唯一认证路由和
     middleware 所有者。
-- [ ] `S1-105` 覆盖错误脱敏、重复初始化、错误密码、过期会话和并发请求测试。
+- [x] `S1-105` 覆盖错误脱敏、重复初始化、错误密码、过期会话和并发请求测试。
+  - 完成证据：HTTP 表驱动测试验证 setup/status/login/session/logout 的内部错误统一脱敏，
+    CSRF 拒绝不会触发退出；领域测试固定“过期前 1 ms 有效、等于期限即失效”。真实
+    composition root、HTTP 与 SQLite 测试同时发起 8 个 setup，仅一个创建管理员，其余稳定
+    返回 `setup_in_progress`/`setup_closed`；重复 setup 关闭，未知账号与错误密码返回相同
+    `invalid_credentials`，32 个并发 session 请求全部成功。相关包测试与 race 测试执行。
 - [ ] `S1-106` 记录认证切片 `Backend Ready` Gate，允许前端连接真实认证 API。
 
 ## Stage 2：媒体库与可靠扫描后端

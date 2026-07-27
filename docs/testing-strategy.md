@@ -67,12 +67,15 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   判定，以及有界并发安全的直连 peer 固定窗口限流；
 - 真实 composition root HTTP 流覆盖首次 setup、认证 status/session、跨进程重启恢复、
   大小写兼容重新登录、CSRF logout、过期 Cookie 和撤销后 `session_expired`；
+- S1-105 安全矩阵覆盖五类认证操作的内部错误脱敏、CSRF 失败不触发退出、绝对期限前
+  1 ms/等于期限边界、8 路真实 HTTP 并发 setup 仅一个成功、重复 setup 关闭、未知账号与
+  错误密码外部响应一致，以及 32 路真实 HTTP/SQLite session 并发读取与 last-seen 更新；
 - generation 的失败、取消、离线、受控重启、原子 finalize 回滚、活动扫描竞争与 complete/cancel 竞态；
 - 128 层目录链的逐级直接/递归计数，以及同库循环、跨库目录/资产损坏、当前代次条目指向
   同库陈旧目录等损坏在 stale cleanup 前失败关闭且不丢失当前行或影响另一媒体库。
 
-游标、缓存、调度和 fuzz 仍是目标项；S1-105 继续扩大重复初始化、错误密码、过期时间边界、
-并发 HTTP 与故障脱敏矩阵，当前 S1-104 证据不提前代表 Backend Ready。
+游标、缓存、调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已在 S1-105 完成，
+仍须通过 S1-106 Gate 才能声明认证 Backend Ready。
 
 ### 前端单元与组件测试
 

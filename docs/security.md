@@ -97,7 +97,8 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 
 这符合 [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
 关于有状态同步 token、自定义 header、同源 Origin 完整比较和缺失时阻断的建议。`S1-105`
-仍需完成扩大后的错误、过期、并发和时间矩阵；在 `S1-106 Backend Ready` 前仍不把认证
+已验证五类认证操作的错误脱敏、CSRF 短路、未知账号/错误密码一致响应、绝对过期边界、
+并发 setup 单胜者和并发 session/SQLite 更新；在 `S1-106 Backend Ready` 前仍不把认证
 流程标记为可交付前端。
 
 反向代理负责公网 TLS 时，应用必须正确处理受信代理范围，不能无条件信任客户端提交的转发头。
