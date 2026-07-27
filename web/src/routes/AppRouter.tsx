@@ -24,6 +24,7 @@ import {
 } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
 import { GeneralSettingsPage } from "../features/settings";
+import { SearchPage } from "../features/search";
 import {
   messageForReadiness,
   useSystemReadinessQuery,
@@ -49,6 +50,11 @@ export function AppRoutes() {
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
         <Route path={paths.browsePattern} element={<ProtectedBrowseRoute />} />
+        <Route path={paths.search} element={<ProtectedSearchRoute />} />
+        <Route
+          path={paths.librarySearchPattern}
+          element={<ProtectedSearchRoute />}
+        />
         <Route path={paths.libraries} element={<ProtectedLibrariesRoute />} />
         <Route path={paths.newLibrary} element={<ProtectedNewLibraryRoute />} />
         <Route
@@ -189,6 +195,26 @@ function ProtectedBrowseRoute() {
         libraryId={libraryId}
         session={sessionQuery.data}
         {...(directoryId ? { directoryId } : {})}
+      />
+    );
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedSearchRoute() {
+  const { libraryId } = useParams<{ libraryId?: string }>();
+  const sessionQuery = useSessionQuery();
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return (
+      <SearchPage
+        session={sessionQuery.data}
+        {...(libraryId ? { libraryId } : {})}
       />
     );
   }

@@ -72,6 +72,13 @@ FolioPath
 - 搜索输入保持可见；查询、范围、类型和日期筛选紧邻结果。
 - 结果沿用媒体卡片，但文件名和相对路径必须可见或可访问，不依赖悬停。
 - 空结果、请求失败和媒体库离线是三个不同状态。
+- 生产路由使用 `/libraries/:libraryId/search` 表达库内上下文，使用 `/search` 表达全部库；
+  唯一 URL codec 保存 `q`、`scope`、`directoryId`、`recursive`、`kind`、`date`、
+  `sort` 和 `order`，复制、刷新与浏览器前进/后退必须恢复同一查询。
+- 搜索输入由共享 `SearchInput` 所有，结果复用共享 `MediaCollection`；搜索 feature 只组合
+  契约范围、筛选、query 和来源信息，不复制卡片、虚拟化、布局偏好或后续非模态预览。
+- 服务端未提供总数时只显示“已载入”数量，不推算总量；全部库结果显示库名和
+  library-relative 来源，库内结果仍提供可访问来源目录链接。
 
 ### 媒体查看器
 

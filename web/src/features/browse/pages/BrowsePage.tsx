@@ -277,6 +277,14 @@ export function BrowsePage({
       browseHref={browseHref}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
+      searchHref={
+        directoryId
+          ? `${paths.librarySearch(libraryId)}?${new URLSearchParams({
+              directoryId,
+              scope: "directory",
+            }).toString()}`
+          : paths.librarySearch(libraryId)
+      }
       settingsHref={paths.generalSettings}
       sidebarContent={
         <DirectoryNavigation

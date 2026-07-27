@@ -452,6 +452,39 @@ test("administrator, library-management, and browsing vertical slice", async ({
   );
   await page.unroute(new RegExp(`/api/v1/libraries/${createdLibraryId}$`));
 
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/libraries/${createdLibraryId}/search?q=direct-photo`);
+  await expect(page.getByRole("heading", { name: "Search media" })).toBeVisible();
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: `${longLibraryName} · /` }),
+  ).toHaveAttribute(
+    "href",
+    new RegExp(`^/libraries/${createdLibraryId}/browse/dir_`),
+  );
+  await page.getByLabel("Media type").selectOption("video");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/search?q=direct-photo&kind=video`,
+  );
+  await expect(page.getByText("No search results")).toBeVisible();
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/search?q=direct-photo`,
+  );
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+
+  await page.getByLabel("Scope").selectOption("all");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/search?q=direct-photo&scope=all`,
+  );
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByLabel("Scope")).toHaveValue("library");
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+
+  await page.goto(`/libraries/${createdLibraryId}/browse`);
   await page.setViewportSize({ width: 1024, height: 900 });
   await expect(
     page.getByRole("navigation", { name: "Media library directories" }),

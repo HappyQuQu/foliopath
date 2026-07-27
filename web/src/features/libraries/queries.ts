@@ -38,7 +38,11 @@ export function useLibrariesQuery() {
 export function useLibraryQuery(libraryId: string) {
   return useQuery({
     queryKey: libraryKeys.detail(libraryId),
-    queryFn: () => getLibrary(libraryId),
+    queryFn: () => {
+      if (!libraryId) throw new Error("A library ID is required.");
+      return getLibrary(libraryId);
+    },
+    enabled: libraryId.length > 0,
     staleTime: 5_000,
   });
 }

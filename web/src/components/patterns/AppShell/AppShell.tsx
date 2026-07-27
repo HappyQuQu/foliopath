@@ -14,7 +14,7 @@ import { IconButton } from "../../ui/Button/IconButton";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import styles from "./AppShell.module.css";
 
-export type AppSection = "browse" | "libraries" | "settings";
+export type AppSection = "browse" | "libraries" | "search" | "settings";
 
 export function AppShell({
   active,
@@ -22,6 +22,7 @@ export function AppShell({
   children,
   identity,
   librariesHref,
+  searchHref,
   settingsHref,
   sidebarContent,
   title,
@@ -31,6 +32,7 @@ export function AppShell({
   children: ReactNode;
   identity: string;
   librariesHref: string;
+  searchHref?: string;
   settingsHref: string;
   sidebarContent?: ReactNode;
   title: string;
@@ -108,10 +110,21 @@ export function AppShell({
               {t("shell.browse")}
             </span>
           )}
-          <span aria-disabled="true" className={styles.disabledLink}>
-            <MagnifyingGlass aria-hidden="true" size={20} />
-            {t("shell.search")}
-          </span>
+          {searchHref ? (
+            <NavLink
+              className={active === "search" ? (styles.currentLink ?? "") : ""}
+              onClick={() => setNavigationOpen(false)}
+              to={searchHref}
+            >
+              <MagnifyingGlass aria-hidden="true" size={20} />
+              {t("shell.search")}
+            </NavLink>
+          ) : (
+            <span aria-disabled="true" className={styles.disabledLink}>
+              <MagnifyingGlass aria-hidden="true" size={20} />
+              {t("shell.search")}
+            </span>
+          )}
           {!sidebarContent && (
             <NavLink
               className={active === "libraries" ? (styles.currentLink ?? "") : ""}

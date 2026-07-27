@@ -12,6 +12,9 @@ export const paths = {
     }`,
   browsePattern: "/libraries/:libraryId/browse/:directoryId?",
   search: "/search",
+  librarySearch: (libraryId: string) =>
+    `/libraries/${encodeURIComponent(libraryId)}/search`,
+  librarySearchPattern: "/libraries/:libraryId/search",
   media: "/media/:assetId",
   generalSettings: "/settings/general",
   unavailable: "/system/unavailable",

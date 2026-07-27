@@ -13,7 +13,8 @@
   [Integrated Done Gate](gates/MVP-2026-07-23/s2-library-scan-integrated-done.md)；
   Stage 3 的目录浏览、缩略图集合、非模态预览和容量矩阵 `S3-101～108` 已通过
   [Integrated Done Gate](gates/MVP-2026-07-23/s3-browse-integrated-done.md)；
-  下一步进入 Stage 4 的搜索与完整查看器界面
+  Stage 4 的统一搜索界面 `S4-004` 已连接真实搜索 API；下一步复用非模态预览并实现
+  完整查看器
 - 代码所有权：`web/`、前端组件/浏览器测试；不得修改后端业务实现
 
 前端与后端可以由不同任务并行开发。应用壳、token、共享原语和契约 fixture 可独立推进；
@@ -192,7 +193,16 @@
 
 ## Stage 4：搜索与媒体查看器界面
 
-- [ ] `S4-004` 实现统一 SearchInput、filter、结果列表、URL 状态和无结果恢复。
+- [x] `S4-004` 实现统一 SearchInput、filter、结果列表、URL 状态和无结果恢复。
+  - 共享 `SearchInput` 与既有 `MediaCollection` 组合真实游标结果；搜索 feature 的唯一
+    URL codec 保存 query、当前库/当前目录（可递归）/全部库范围、类型、日期和排序，
+    浏览器刷新与前进/后退可恢复。
+  - query owner 根据范围选择库内或全局搜索 operation，固定每页 50 项并沿用缩略图
+    pending 的有界刷新；结果显示可访问文件名、库名和 library-relative 来源，不暴露
+    宿主路径。
+  - loading、无结果、离线和请求失败保持不同恢复动作；组件、URL、adapter、浅/深主题、
+    长名称、1024px 响应式、无横向溢出和 axe serious/critical 已通过测试。证据见
+    [S4-004 前端搜索界面](gates/MVP-2026-07-23/s4-frontend-search.md)。
 - [ ] `S4-005` 复用 Stage 3 的共享非模态预览，不得创建 search-only 预览。
 - [ ] `S4-006` 实现可直达完整查看器：适应、缩放/平移、1:1、前后项、信息、全屏与关闭恢复。
 - [ ] `S4-007` 实现 GIF 策略、原生视频/Range、封面及不可播放、损坏、离线、已删除状态。

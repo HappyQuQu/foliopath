@@ -416,8 +416,6 @@ own click/double-click, docked/pinned non-modal preview and focus restoration. S
 owns the 100k capacity budget, so this slice does not promote the 200-item component
 test into a release-scale performance claim.
 
-final result: passed
-
 ## Stage 3 / S3-106 pinned-preview interaction QA
 
 ### Findings
@@ -658,5 +656,39 @@ semantic warning color and preserved vertical rhythm.
 The later S3-105～106 evidence above completes selection and the docked/pinned
 non-modal preview. S3-107 owns the 100k capacity budget, and S3-108 owns the Stage 3
 Integrated Done browser gate.
+
+## Stage 4 / S4-004 search interface QA
+
+### Reviewed states
+
+- Accepted static source: `7/15 搜索结果` and `8/15 搜索无结果`.
+- Production implementation: current-library and all-library results, type-filtered
+  no result, loading, offline, request failure, long library names, and next-page
+  failure with loaded results retained.
+- Theme and viewport review: source and implementation were captured in the in-app
+  browser at the same 1280×720 desktop viewport; automated browser evidence covers
+  the stable 1024px responsive state and horizontal-overflow guard.
+
+### Source comparison
+
+- The production shell, persistent search command, filter grouping, media hierarchy,
+  light/dark tokens, restrained borders, icon treatment, and bounded empty state
+  match the accepted direction.
+- Production intentionally adds explicit name/modified-time sort controls because the
+  accepted backend contract exposes stable search sorting.
+- The API does not expose a total count, so production reports loaded results rather
+  than inventing the prototype's fixture total. The shared virtual collection may
+  fit a different column count while preserving the accepted adaptive density.
+- When a query has no active filters, the empty-state action returns focus to editing
+  the query; “clear filters” remains available only when it can change the result.
+
+### Accessibility and behavior
+
+- Search, scope, recursive-directory, type, date, sort, and order controls retain
+  semantic labels and keyboard focus visibility.
+- Result cards preserve DOM order and virtualized focus semantics; visible source
+  links use server IDs and never expose absolute filesystem paths.
+- Real Chromium E2E reports zero axe serious/critical violations and no page-level
+  horizontal overflow for the reviewed search flow.
 
 final result: passed

@@ -58,6 +58,7 @@ export function ScanStatusPage({ session }: { session: AuthenticatedSession }) {
       active="libraries"
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
+      searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("scan.pageTitle")}
     >

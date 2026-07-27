@@ -15,6 +15,7 @@ export {
   type InlineStatusTone,
 } from "./InlineStatus/InlineStatus";
 export { LocaleSelect } from "./LocaleSelect/LocaleSelect";
+export { SearchInput, type SearchInputProps } from "./SearchInput/SearchInput";
 export { ThemeToggle } from "./ThemeToggle/ThemeToggle";
 export {
   ToastProvider,

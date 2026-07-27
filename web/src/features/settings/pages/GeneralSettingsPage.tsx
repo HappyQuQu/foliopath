@@ -110,6 +110,7 @@ export function GeneralSettingsPage({
       active="settings"
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
+      searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("account.title")}
     >

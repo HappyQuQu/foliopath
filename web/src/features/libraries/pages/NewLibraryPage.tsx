@@ -133,6 +133,7 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
       active="libraries"
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
+      searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("newLibrary.title")}
     >

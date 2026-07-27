@@ -6,6 +6,8 @@ import {
   getDirectory,
   listAssets,
   listDirectories,
+  searchAssets,
+  searchLibraryAssets,
 } from "./catalog";
 
 vi.mock("./client", () => ({
@@ -161,5 +163,76 @@ describe("catalog adapter", () => {
         },
       },
     );
+  });
+
+  it("binds a filtered directory search without leaking path strings", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: { items: [], nextCursor: null },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await searchLibraryAssets({
+      directoryId: "dir_japan",
+      kinds: ["image", "animated"],
+      libraryId: "lib_family",
+      modifiedBefore: "2026-07-29T00:00:00.000Z",
+      modifiedFrom: "2026-06-29T00:00:00.000Z",
+      order: "desc",
+      q: "京都",
+      recursive: true,
+      sort: "modifiedAt",
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      "/api/v1/libraries/{libraryId}/assets",
+      {
+        params: {
+          path: { libraryId: "lib_family" },
+          query: {
+            directoryId: "dir_japan",
+            kind: ["image", "animated"],
+            limit: 50,
+            modifiedBefore: "2026-07-29T00:00:00.000Z",
+            modifiedFrom: "2026-06-29T00:00:00.000Z",
+            order: "desc",
+            q: "京都",
+            recursive: true,
+            sort: "modifiedAt",
+          },
+        },
+      },
+    );
+  });
+
+  it("uses the global endpoint only for all-library search", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: { items: [], nextCursor: "next-global" },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await expect(
+      searchAssets({
+        cursor: "cursor-global",
+        kinds: ["video"],
+        order: "asc",
+        q: "clip",
+        sort: "name",
+      }),
+    ).resolves.toEqual({ items: [], nextCursor: "next-global" });
+
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/assets", {
+      params: {
+        query: {
+          cursor: "cursor-global",
+          kind: ["video"],
+          limit: 50,
+          order: "asc",
+          q: "clip",
+          sort: "name",
+        },
+      },
+    });
   });
 });

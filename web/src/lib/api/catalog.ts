@@ -60,6 +60,17 @@ export interface AssetPage {
   nextCursor: string | null;
 }
 
+export interface SearchAssetsInput {
+  cursor?: string;
+  kinds?: AssetKind[];
+  limit?: number;
+  modifiedBefore?: string;
+  modifiedFrom?: string;
+  order: SortOrder;
+  q: string;
+  sort: AssetSort;
+}
+
 export function assetContentUrl(assetId: string): string {
   return `/api/v1/assets/${encodeURIComponent(assetId)}/content`;
 }
@@ -98,15 +109,84 @@ export async function listAssets({
         },
       },
     );
-    if (data) {
-      return {
-        items: data.items.map((item) => ({
-          ...item,
-          thumbnail: { ...item.thumbnail },
-        })),
-        nextCursor: data.nextCursor,
-      };
-    }
+    if (data) return mapAssetPage(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchLibraryAssets({
+  cursor,
+  directoryId,
+  kinds,
+  libraryId,
+  limit = 50,
+  modifiedBefore,
+  modifiedFrom,
+  order,
+  q,
+  recursive,
+  sort,
+}: SearchAssetsInput & {
+  directoryId?: string;
+  libraryId: string;
+  recursive?: boolean;
+}): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET(
+      "/api/v1/libraries/{libraryId}/assets",
+      {
+        params: {
+          path: { libraryId },
+          query: {
+            limit,
+            order,
+            q,
+            sort,
+            ...(cursor ? { cursor } : {}),
+            ...(directoryId ? { directoryId } : {}),
+            ...(kinds?.length ? { kind: kinds } : {}),
+            ...(modifiedBefore ? { modifiedBefore } : {}),
+            ...(modifiedFrom ? { modifiedFrom } : {}),
+            ...(directoryId && recursive ? { recursive: true } : {}),
+          },
+        },
+      },
+    );
+    if (data) return mapAssetPage(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchAssets({
+  cursor,
+  kinds,
+  limit = 50,
+  modifiedBefore,
+  modifiedFrom,
+  order,
+  q,
+  sort,
+}: SearchAssetsInput): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/assets", {
+      params: {
+        query: {
+          limit,
+          order,
+          q,
+          sort,
+          ...(cursor ? { cursor } : {}),
+          ...(kinds?.length ? { kind: kinds } : {}),
+          ...(modifiedBefore ? { modifiedBefore } : {}),
+          ...(modifiedFrom ? { modifiedFrom } : {}),
+        },
+      },
+    });
+    if (data) return mapAssetPage(data);
     throw createApiError(error, response);
   } catch (error) {
     throw createApiError(error);
@@ -181,4 +261,17 @@ function mapDirectory(data: {
   relativePath: string;
 }): Directory {
   return { ...data };
+}
+
+function mapAssetPage(data: {
+  items: Asset[];
+  nextCursor: string | null;
+}): AssetPage {
+  return {
+    items: data.items.map((item) => ({
+      ...item,
+      thumbnail: { ...item.thumbnail },
+    })),
+    nextCursor: data.nextCursor,
+  };
 }
