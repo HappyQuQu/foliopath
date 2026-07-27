@@ -334,6 +334,13 @@ func TestFullScanIndexesRecursiveTreeAndCounts(t *testing.T) {
 		t.Fatalf("first run counts = %d directories, %d assets, %d skipped; want 5, 4, 4",
 			run.DiscoveredDirectories, run.DiscoveredAssets, run.SkippedCount)
 	}
+	if run.SkippedDirectories != 2 || run.SkippedFiles != 2 {
+		t.Fatalf(
+			"first run skipped = %d directories, %d files; want 2 and 2",
+			run.SkippedDirectories,
+			run.SkippedFiles,
+		)
+	}
 
 	snapshot := readCatalog(t, environment.inspector, libraryRecord.ID)
 	assertAssetPaths(t, snapshot,

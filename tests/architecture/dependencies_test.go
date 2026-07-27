@@ -600,6 +600,71 @@ func TestScanWorkerUsesOneDurableBoundedQueue(t *testing.T) {
 	}
 }
 
+func TestDirectoryIndexAndCountPolicyHasCanonicalOwners(t *testing.T) {
+	root := repositoryRoot(t)
+	scannerPath := filepath.Join(root, "internal", "scanner", "scanner.go")
+	storePath := filepath.Join(root, "internal", "store", "sqlite", "scanner.go")
+
+	scannerSource, err := os.ReadFile(scannerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"appendEntry(CatalogEntry{Kind: CatalogEntryDirectory})",
+		"if entry.IsDirectory",
+		"IsSystemDirectory(path.Base(relativePath))",
+		"skipped.Directories++",
+		"skipped.Files++",
+	} {
+		if !strings.Contains(string(scannerSource), required) {
+			t.Errorf("scanner directory policy is missing %q", required)
+		}
+	}
+
+	storeSource, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"func recalculateDirectoryCountsTx(",
+		"COALESCE(direct.asset_count, 0)",
+		"sum(recursive_asset_count)",
+		"updated != totalDirectories",
+	} {
+		if !strings.Contains(string(storeSource), required) {
+			t.Errorf("SQLite directory count owner is missing %q", required)
+		}
+	}
+
+	internalRoot := filepath.Join(root, "internal")
+	if err := filepath.WalkDir(internalRoot, func(
+		path string,
+		entry fs.DirEntry,
+		walkErr error,
+	) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() ||
+			filepath.Ext(path) != ".go" ||
+			strings.HasSuffix(path, "_test.go") ||
+			path == storePath {
+			return nil
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(source), "direct_asset_count") ||
+			strings.Contains(string(source), "recursive_asset_count") {
+			t.Errorf("directory count SQL is duplicated outside its owner: %s", path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("inspect directory count ownership: %v", err)
+	}
+}
+
 func checkDependency(t *testing.T, source, imported string) {
 	t.Helper()
 	if !strings.HasPrefix(imported, modulePath+"/") {

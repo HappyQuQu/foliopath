@@ -26,3 +26,18 @@ func TestNormalizeEntryPathUsesSharedEncodedTraversalPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestSkipCountsValidateAndTotal(t *testing.T) {
+	counts := SkipCounts{Directories: 2, Files: 3}
+	if !counts.Valid() || counts.Total() != 5 {
+		t.Fatalf("valid skip counts = %#v, total %d", counts, counts.Total())
+	}
+	for _, invalid := range []SkipCounts{
+		{Directories: -1},
+		{Files: -1},
+	} {
+		if invalid.Valid() {
+			t.Fatalf("negative skip counts accepted: %#v", invalid)
+		}
+	}
+}

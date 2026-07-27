@@ -173,7 +173,7 @@ func TestAnimatedAssetKindPersists(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, run.ID, entries); err != nil {
 		t.Fatalf("UpsertCatalogBatch() error = %v", err)
 	}
-	if _, err := store.CompleteFullScan(ctx, run.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, run.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatalf("CompleteFullScan() error = %v", err)
 	}
 	var kind string
@@ -266,7 +266,7 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/photo.jpg")); err != nil {
 		t.Fatalf("UpsertCatalogBatch(first) error = %v", err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatalf("CompleteFullScan(first) error = %v", err)
 	}
 	var rootRecursive, albumDirect, albumRecursive int64
@@ -294,11 +294,14 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, second.ID, catalogFixture("")); err != nil {
 		t.Fatalf("UpsertCatalogBatch(second) error = %v", err)
 	}
-	failed, err := store.FailFullScan(ctx, second.ID, 3, "walk_failed")
+	failed, err := store.FailFullScan(ctx, second.ID, scanner.SkipCounts{Files: 3}, "walk_failed")
 	if err != nil {
 		t.Fatalf("FailFullScan() error = %v", err)
 	}
-	if failed.Status != scanner.RunStatusFailed || failed.SkippedCount != 3 {
+	if failed.Status != scanner.RunStatusFailed ||
+		failed.SkippedCount != 3 ||
+		failed.SkippedDirectories != 0 ||
+		failed.SkippedFiles != 3 {
 		t.Fatalf("failed run = %#v", failed)
 	}
 	_, assets := countCatalog(t, store, libraryRecord.ID)
@@ -323,7 +326,7 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, third.ID, catalogFixture("")); err != nil {
 		t.Fatalf("UpsertCatalogBatch(third) error = %v", err)
 	}
-	completed, err := store.CompleteFullScan(ctx, third.ID, 0)
+	completed, err := store.CompleteFullScan(ctx, third.ID, scanner.SkipCounts{})
 	if err != nil {
 		t.Fatalf("CompleteFullScan(third) error = %v", err)
 	}
@@ -355,7 +358,7 @@ func TestCompleteFullScanRollsBackCleanupWhenFinalCommitFails(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -376,7 +379,7 @@ func TestCompleteFullScanRollsBackCleanupWhenFinalCommitFails(t *testing.T) {
 		t.Fatalf("create failure trigger: %v", err)
 	}
 
-	if _, err := store.CompleteFullScan(ctx, second.ID, 0); err == nil {
+	if _, err := store.CompleteFullScan(ctx, second.ID, scanner.SkipCounts{}); err == nil {
 		t.Fatal("CompleteFullScan() succeeded despite injected finalization failure")
 	}
 	_, assets := countCatalog(t, store, libraryRecord.ID)
@@ -411,7 +414,7 @@ func TestCompleteFullScanRequiresRootMarkerBeforeCleanup(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -419,7 +422,7 @@ func TestCompleteFullScanRequiresRootMarkerBeforeCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, second.ID, 0); !errors.Is(err, scanner.ErrInvalidEntry) {
+	if _, err := store.CompleteFullScan(ctx, second.ID, scanner.SkipCounts{}); !errors.Is(err, scanner.ErrInvalidEntry) {
 		t.Fatalf("CompleteFullScan without root marker error = %v, want ErrInvalidEntry", err)
 	}
 	_, assets := countCatalog(t, store, libraryRecord.ID)
@@ -491,7 +494,7 @@ func TestCompleteFullScanRollsUpDeepChain(t *testing.T) {
 	}
 	upsertTestEntries(t, store, run.ID, assets)
 
-	if _, err := store.CompleteFullScan(ctx, run.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, run.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatalf("CompleteFullScan() error = %v", err)
 	}
 	assertDirectoryCounts(t, store, libraryRecord.ID, "", 1, depth+1)
@@ -539,7 +542,7 @@ func TestCompleteFullScanRejectsDirectoryCycleAndRollsBack(t *testing.T) {
 		t.Fatalf("inject same-library cycle: %v", err)
 	}
 
-	if _, err := store.CompleteFullScan(ctx, run.ID, 0); !errors.Is(err, scanner.ErrInvalidEntry) {
+	if _, err := store.CompleteFullScan(ctx, run.ID, scanner.SkipCounts{}); !errors.Is(err, scanner.ErrInvalidEntry) {
 		t.Fatalf("CompleteFullScan() error = %v, want ErrInvalidEntry", err)
 	}
 	persisted, err := store.GetScanRun(ctx, run.ID)
@@ -585,7 +588,7 @@ func TestCompleteFullScanRejectsCrossLibraryRelationshipBeforeCleanup(t *testing
 			if err := store.UpsertCatalogBatch(ctx, firstRun.ID, catalogFixture("album/old.jpg")); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := store.CompleteFullScan(ctx, firstRun.ID, 0); err != nil {
+			if _, err := store.CompleteFullScan(ctx, firstRun.ID, scanner.SkipCounts{}); err != nil {
 				t.Fatal(err)
 			}
 			secondRun, err := store.BeginFullScan(ctx, secondLibrary.ID, scanner.TriggerCreation)
@@ -595,7 +598,7 @@ func TestCompleteFullScanRejectsCrossLibraryRelationshipBeforeCleanup(t *testing
 			if err := store.UpsertCatalogBatch(ctx, secondRun.ID, catalogFixture("album/second.jpg")); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := store.CompleteFullScan(ctx, secondRun.ID, 0); err != nil {
+			if _, err := store.CompleteFullScan(ctx, secondRun.ID, scanner.SkipCounts{}); err != nil {
 				t.Fatal(err)
 			}
 
@@ -652,7 +655,7 @@ func TestCompleteFullScanRejectsCrossLibraryRelationshipBeforeCleanup(t *testing
 			}); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := store.CompleteFullScan(ctx, rescan.ID, 0); !errors.Is(err, scanner.ErrInvalidEntry) {
+			if _, err := store.CompleteFullScan(ctx, rescan.ID, scanner.SkipCounts{}); !errors.Is(err, scanner.ErrInvalidEntry) {
 				t.Fatalf("CompleteFullScan() error = %v, want ErrInvalidEntry", err)
 			}
 
@@ -696,7 +699,7 @@ func TestCompleteFullScanRejectsCurrentRowsAttachedToStaleDirectory(t *testing.T
 			if err := store.UpsertCatalogBatch(ctx, firstRun.ID, catalogFixture("album/old.jpg")); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := store.CompleteFullScan(ctx, firstRun.ID, 0); err != nil {
+			if _, err := store.CompleteFullScan(ctx, firstRun.ID, scanner.SkipCounts{}); err != nil {
 				t.Fatal(err)
 			}
 			var staleDirectoryID int64
@@ -750,7 +753,7 @@ func TestCompleteFullScanRejectsCurrentRowsAttachedToStaleDirectory(t *testing.T
 				t.Fatalf("inject current-to-stale relationship: %v", err)
 			}
 
-			if _, err := store.CompleteFullScan(ctx, secondRun.ID, 0); !errors.Is(err, scanner.ErrInvalidEntry) {
+			if _, err := store.CompleteFullScan(ctx, secondRun.ID, scanner.SkipCounts{}); !errors.Is(err, scanner.ErrInvalidEntry) {
 				t.Fatalf("CompleteFullScan() error = %v, want ErrInvalidEntry", err)
 			}
 			persisted, err := store.GetScanRun(ctx, secondRun.ID)
@@ -841,7 +844,7 @@ func TestOfflineAndInterruptedScansPreserveOldIndex(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -852,12 +855,17 @@ func TestOfflineAndInterruptedScansPreserveOldIndex(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, offlineRun.ID, catalogFixture("")); err != nil {
 		t.Fatal(err)
 	}
-	offlineRun, err = store.OfflineFullScan(ctx, offlineRun.ID, 2, "library_offline")
+	offlineRun, err = store.OfflineFullScan(ctx, offlineRun.ID, scanner.SkipCounts{Files: 2}, "library_offline")
 	if err != nil {
 		t.Fatalf("OfflineFullScan() error = %v", err)
 	}
 	if offlineRun.Status != scanner.RunStatusOffline {
 		t.Fatalf("offline run status = %q", offlineRun.Status)
+	}
+	if offlineRun.SkippedCount != 2 ||
+		offlineRun.SkippedDirectories != 0 ||
+		offlineRun.SkippedFiles != 2 {
+		t.Fatalf("offline skipped counters = %#v", offlineRun)
 	}
 	_, assets := countCatalog(t, store, libraryRecord.ID)
 	if assets != 1 {
@@ -914,7 +922,7 @@ func TestRestartMarksRunningScanInterruptedWithoutCleanup(t *testing.T) {
 	if err := firstStore.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := firstStore.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := firstStore.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -973,7 +981,7 @@ func TestCancelledScanPreservesOldAndSafelyCommittedNewRows(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -984,7 +992,7 @@ func TestCancelledScanPreservesOldAndSafelyCommittedNewRows(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, second.ID, catalogFixture("album/new.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	cancelled, err := store.CancelFullScan(ctx, second.ID, 1)
+	cancelled, err := store.CancelFullScan(ctx, second.ID, scanner.SkipCounts{Files: 1})
 	if err != nil {
 		t.Fatalf("CancelFullScan() error = %v", err)
 	}
@@ -1057,7 +1065,7 @@ func TestCompleteAndCancelHaveOneConsistentWinner(t *testing.T) {
 	if err := store.UpsertCatalogBatch(ctx, first.ID, catalogFixture("album/old.jpg")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteFullScan(ctx, first.ID, 0); err != nil {
+	if _, err := store.CompleteFullScan(ctx, first.ID, scanner.SkipCounts{}); err != nil {
 		t.Fatal(err)
 	}
 	second, err := store.BeginFullScan(ctx, libraryRecord.ID, scanner.TriggerManual)
@@ -1077,12 +1085,12 @@ func TestCompleteAndCancelHaveOneConsistentWinner(t *testing.T) {
 	results := make(chan result, 2)
 	go func() {
 		<-start
-		run, err := store.CompleteFullScan(ctx, second.ID, 0)
+		run, err := store.CompleteFullScan(ctx, second.ID, scanner.SkipCounts{})
 		results <- result{operation: "complete", run: run, err: err}
 	}()
 	go func() {
 		<-start
-		run, err := store.CancelFullScan(ctx, second.ID, 0)
+		run, err := store.CancelFullScan(ctx, second.ID, scanner.SkipCounts{})
 		results <- result{operation: "cancel", run: run, err: err}
 	}()
 	close(start)

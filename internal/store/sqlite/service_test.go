@@ -25,7 +25,7 @@ type cancelOnCompleteRepository struct {
 func (repository *cancelOnCompleteRepository) CompleteFullScan(
 	ctx context.Context,
 	runID int64,
-	skipped int64,
+	skipped scanner.SkipCounts,
 ) (scanner.ScanRun, error) {
 	repository.cancel()
 	<-ctx.Done()
@@ -244,8 +244,15 @@ func TestScannerServiceCancellationAndSkipPolicy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RunFullScan() error = %v", err)
 		}
-		if run.SkippedCount != 2 {
-			t.Fatalf("skipped count = %d, want system directory and unsupported file", run.SkippedCount)
+		if run.SkippedCount != 2 ||
+			run.SkippedDirectories != 1 ||
+			run.SkippedFiles != 1 {
+			t.Fatalf(
+				"skipped counters = total %d, directories %d, files %d; want 2, 1, 1",
+				run.SkippedCount,
+				run.SkippedDirectories,
+				run.SkippedFiles,
+			)
 		}
 		directories, assets := countCatalog(t, store, libraryRecord.ID)
 		if directories != 2 || assets != 1 {

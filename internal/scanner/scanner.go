@@ -76,6 +76,19 @@ type ScanRun struct {
 	CancelRequestedAtMS   *int64
 }
 
+type SkipCounts struct {
+	Directories int64
+	Files       int64
+}
+
+func (counts SkipCounts) Total() int64 {
+	return counts.Directories + counts.Files
+}
+
+func (counts SkipCounts) Valid() bool {
+	return counts.Directories >= 0 && counts.Files >= 0
+}
+
 type CatalogEntryKind string
 
 const (
@@ -122,10 +135,10 @@ type Repository interface {
 	BeginFullScan(context.Context, int64, Trigger) (ScanRun, error)
 	SetFullScanPhase(context.Context, int64, string) error
 	UpsertCatalogBatch(context.Context, int64, []CatalogEntry) error
-	CompleteFullScan(context.Context, int64, int64) (ScanRun, error)
-	FailFullScan(context.Context, int64, int64, string) (ScanRun, error)
-	CancelFullScan(context.Context, int64, int64) (ScanRun, error)
-	OfflineFullScan(context.Context, int64, int64, string) (ScanRun, error)
+	CompleteFullScan(context.Context, int64, SkipCounts) (ScanRun, error)
+	FailFullScan(context.Context, int64, SkipCounts, string) (ScanRun, error)
+	CancelFullScan(context.Context, int64, SkipCounts) (ScanRun, error)
+	OfflineFullScan(context.Context, int64, SkipCounts, string) (ScanRun, error)
 	InterruptActiveScans(context.Context) (int64, error)
 	GetScanRun(context.Context, int64) (ScanRun, error)
 }
@@ -250,25 +263,25 @@ func (s *Service) RunClaimedFullScan(
 	}
 	rootRelativePath, err := s.repository.GetLibraryRoot(ctx, run.LibraryID)
 	if err != nil {
-		return s.abort(ctx, run, 0, err)
+		return s.abort(ctx, run, SkipCounts{}, err)
 	}
 	if err := validateRoot(rootRelativePath); err != nil {
-		return s.abort(ctx, run, 0, err)
+		return s.abort(ctx, run, SkipCounts{}, err)
 	}
 
 	identity, err := walker.CaptureRoot(ctx, rootRelativePath)
 	if err != nil {
-		return s.abort(ctx, run, 0, err)
+		return s.abort(ctx, run, SkipCounts{}, err)
 	}
 	if !identity.Valid() {
-		return s.abort(ctx, run, 0, ErrInvalidRootIdentity)
+		return s.abort(ctx, run, SkipCounts{}, ErrInvalidRootIdentity)
 	}
 	if err := s.repository.SetFullScanPhase(ctx, run.ID, PhaseWalking); err != nil {
-		return s.abort(ctx, run, 0, err)
+		return s.abort(ctx, run, SkipCounts{}, err)
 	}
 
 	batch := make([]CatalogEntry, 0, s.batchSize)
-	skipped := int64(0)
+	skipped := SkipCounts{}
 	flush := func() error {
 		if len(batch) == 0 {
 			return nil
@@ -296,10 +309,11 @@ func (s *Service) RunClaimedFullScan(
 			return WalkContinue, err
 		}
 		if entry.Skipped {
-			skipped++
 			if entry.IsDirectory {
+				skipped.Directories++
 				return WalkSkipDirectory, nil
 			}
+			skipped.Files++
 			return WalkContinue, nil
 		}
 		relativePath, err := normalizeEntryPath(entry.RelativePath)
@@ -315,7 +329,7 @@ func (s *Service) RunClaimedFullScan(
 
 		if entry.IsDirectory {
 			if IsSystemDirectory(path.Base(relativePath)) {
-				skipped++
+				skipped.Directories++
 				return WalkSkipDirectory, nil
 			}
 			err := appendEntry(CatalogEntry{
@@ -330,7 +344,7 @@ func (s *Service) RunClaimedFullScan(
 
 		assetKind, format, mimeType, supported := ClassifyPath(relativePath)
 		if !supported {
-			skipped++
+			skipped.Files++
 			return WalkContinue, nil
 		}
 		if entry.SizeBytes < 0 {
@@ -379,7 +393,12 @@ func (s *Service) RecoverInterruptedScans(ctx context.Context) (int64, error) {
 	return s.repository.InterruptActiveScans(ctx)
 }
 
-func (s *Service) abort(ctx context.Context, run ScanRun, skipped int64, cause error) (ScanRun, error) {
+func (s *Service) abort(
+	ctx context.Context,
+	run ScanRun,
+	skipped SkipCounts,
+	cause error,
+) (ScanRun, error) {
 	finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.finalizeTimeout)
 	defer cancel()
 

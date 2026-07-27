@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +21,190 @@ import (
 )
 
 const runtimeIntegrationTimeout = 10 * time.Second
+
+func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
+	mediaRoot := t.TempDir()
+	dataRoot := t.TempDir()
+	for relative, contents := range map[string]string{
+		"family/root.jpg":                 "root",
+		"family/album/direct.png":         "direct",
+		"family/album/nested/deep.MOV":    "deep",
+		"family/album/nested/ignored.txt": "ignored",
+	} {
+		filename := filepath.Join(mediaRoot, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, []byte(contents), 0o640); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, relative := range []string{
+		"family/empty-root",
+		"family/album/empty-deep",
+	} {
+		if err := os.MkdirAll(
+			filepath.Join(mediaRoot, filepath.FromSlash(relative)),
+			0o755,
+		); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	application, err := composeConfiguration(
+		Input{Version: "integration"},
+		configuration{
+			listenAddress: "127.0.0.1:0",
+			mediaRoot:     mediaRoot,
+			dataRoot:      dataRoot,
+		},
+	)
+	if err != nil {
+		t.Fatalf("composeConfiguration() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() { result <- application.run(ctx) }()
+	stopped := false
+	defer func() {
+		if stopped {
+			return
+		}
+		cancel()
+		select {
+		case runErr := <-result:
+			if runErr != nil {
+				t.Errorf("application.run() cleanup error = %v", runErr)
+			}
+		case <-time.After(runtimeIntegrationTimeout):
+			t.Error("application did not stop during test cleanup")
+		}
+	}()
+
+	address := waitForListenAddress(t, application.http)
+	client := &http.Client{Timeout: runtimeIntegrationTimeout}
+	setup := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodPost,
+		"/api/v1/auth/setup",
+		`{"username":"Administrator","displayName":"Administrator","password":"correct horse battery staple"}`,
+		"",
+		"",
+	)
+	if setup.StatusCode != http.StatusCreated {
+		cancel()
+		t.Fatalf("setup response = %#v", setup)
+	}
+	created := runtimeLibraryCreateRequest(
+		t,
+		client,
+		address,
+		"Family",
+		"family",
+		"s2-103-create-family",
+		setup.Cookie,
+		setup.CSRFToken,
+	)
+	if created.StatusCode != http.StatusCreated {
+		cancel()
+		t.Fatalf("create response = %#v", created)
+	}
+
+	deadline := time.Now().Add(runtimeIntegrationTimeout)
+	var current runtimeAuthenticationResponse
+	for time.Now().Before(deadline) {
+		current = runtimeAuthenticationRequest(
+			t,
+			client,
+			address,
+			http.MethodGet,
+			created.Location,
+			"",
+			setup.Cookie,
+			"",
+		)
+		if current.StatusCode == http.StatusOK &&
+			strings.Contains(current.Body, `"status":"ready"`) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if current.StatusCode != http.StatusOK ||
+		!strings.Contains(current.Body, `"status":"ready"`) ||
+		!strings.Contains(current.Body, `"assetCount":3`) ||
+		!strings.Contains(current.Body, `"directoryCount":5`) {
+		cancel()
+		t.Fatalf("creation scan result = %#v", current)
+	}
+
+	cancel()
+	select {
+	case runErr := <-result:
+		if runErr != nil {
+			t.Fatalf("application.run() error = %v", runErr)
+		}
+	case <-time.After(runtimeIntegrationTimeout):
+		t.Fatal("application did not stop after creation scan")
+	}
+	stopped = true
+
+	inspector, err := sql.Open(
+		"sqlite",
+		filepath.Join(dataRoot, databaseFilename),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer inspector.Close()
+	expected := map[string][2]int64{
+		"":                 {1, 3},
+		"album":            {1, 2},
+		"album/nested":     {1, 1},
+		"album/empty-deep": {0, 0},
+		"empty-root":       {0, 0},
+	}
+	rows, err := inspector.Query(`
+		SELECT relative_path, direct_asset_count, recursive_asset_count
+		FROM directories
+		WHERE library_id = 1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	seen := make(map[string][2]int64)
+	for rows.Next() {
+		var relative string
+		var direct, recursive int64
+		if err := rows.Scan(&relative, &direct, &recursive); err != nil {
+			t.Fatal(err)
+		}
+		seen[relative] = [2]int64{direct, recursive}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(seen, expected) {
+		t.Fatalf("directory counts = %#v, want %#v", seen, expected)
+	}
+
+	var skippedTotal, skippedDirectories, skippedFiles int64
+	if err := inspector.QueryRow(`
+		SELECT skipped_count, skipped_directories, skipped_files
+		FROM scan_runs WHERE id = 1`,
+	).Scan(&skippedTotal, &skippedDirectories, &skippedFiles); err != nil {
+		t.Fatal(err)
+	}
+	if skippedTotal != 1 || skippedDirectories != 0 || skippedFiles != 1 {
+		t.Fatalf(
+			"skipped counters = total %d, directories %d, files %d; want 1, 0, 1",
+			skippedTotal,
+			skippedDirectories,
+			skippedFiles,
+		)
+	}
+}
 
 func TestComposedApplicationStartsServesStopsAndRestarts(t *testing.T) {
 	dataRoot := t.TempDir()
