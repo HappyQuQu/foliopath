@@ -44,6 +44,87 @@ func TestGoDependencyDirection(t *testing.T) {
 	}
 }
 
+func TestOriginalMediaContentBoundaryIsCanonical(t *testing.T) {
+	root := repositoryRoot(t)
+	capabilityPath := filepath.Join(root, "internal", "media", "content.go")
+	httpPath := filepath.Join(root, "internal", "api", "content_http.go")
+	storePath := filepath.Join(root, "internal", "store", "sqlite", "media_content.go")
+	mediaRootPath := filepath.Join(root, "internal", "app", "media_root.go")
+	compositionPath := filepath.Join(root, "internal", "app", "run.go")
+
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: capabilityPath,
+			contents: []string{
+				"type ContentRepository interface",
+				"type ContentSource interface",
+				"func (service *ContentService) Open",
+				"asset.SourceFingerprint.Matches",
+			},
+		},
+		{
+			path: httpPath,
+			contents: []string{
+				`GET /api/v1/assets/{assetId}/content`,
+				`HEAD /api/v1/assets/{assetId}/content`,
+				"func parseContentRange",
+				"func copyContent",
+				"contentReadConcurrency",
+			},
+		},
+		{
+			path: storePath,
+			contents: []string{
+				"func (s *Store) GetContentAsset",
+				"JOIN libraries l ON l.id = a.library_id",
+			},
+		},
+		{
+			path: mediaRootPath,
+			contents: []string{
+				"func (service *mediaRootService) OpenContent",
+				"service.root.Open(target)",
+			},
+		},
+		{
+			path: compositionPath,
+			contents: []string{
+				"media.NewContentService(database, directorySource)",
+				"Content:        contentService",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing original-content boundary %q", required.path, content)
+			}
+		}
+	}
+
+	httpSource, err := os.ReadFile(httpPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{
+		`"github.com/HappyQuQu/foliopath/internal/files"`,
+		`"github.com/HappyQuQu/foliopath/internal/store/sqlite"`,
+		`"os"`,
+		`"path/filepath"`,
+		"http.ServeContent",
+	} {
+		if strings.Contains(string(httpSource), forbidden) {
+			t.Errorf("content HTTP bypasses its canonical ports with %s", forbidden)
+		}
+	}
+}
+
 func TestNoGenericCatchAllGoPackages(t *testing.T) {
 	root := repositoryRoot(t)
 	command := exec.Command("go", "list", "-f", "{{.ImportPath}}", "./...")

@@ -25,6 +25,12 @@
 | R-015 | 可选虚拟瀑布流破坏键盘顺序、焦点或大列表稳定性 | 中 | 中 | DOM 顺序与视觉顺序不一致、焦点丢失、滚动跳动 | 默认使用规则网格；对可选瀑布流验证固定占位、稳定游标、DOM 顺序和无障碍 | 保留默认网格并临时禁用未达标的瀑布流 | 前端负责人 | 开放 |
 | R-016 | 缺少 CI、生成漂移检查和可复现 fixture 导致回归 | 高 | 高 | 开发者本地通过而干净环境失败；生成文件与源不一致 | 真实 PR CI 已覆盖双架构 Go/race、生成/兼容、mount、govips/FFmpeg、runtime/recovery 与 SBOM/license；媒体库 Backend Gate、S2-102～106 worker、目录、媒体收敛、故障恢复和容量均有分层证据，容量主档另由 Linux amd64/arm64 受限资源 job 强制；每个后续生产切片继续增加集成/E2E 和已许可 fixture | 阻止合并和发布，先恢复最小验证基线 | QA 负责人 | 缓解中 |
 
+Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
+source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
+`openat2` nested-mount fixture 缓解 R-002/R-006/R-012/R-016。amd64 QEMU 因缺少所需
+`openat2` 能力按设计失败关闭；这不是 native amd64 通过证据，仓库 billing 恢复后必须重跑
+PR native job，Stage 5 仍阻断正式只读 volume、运行期 unmount、浏览器与发布镜像。
+
 ## 发布阻断风险
 
 以下风险在首个可用镜像发布前不得保持“开放”且无证据：

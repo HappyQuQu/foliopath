@@ -3,10 +3,10 @@
 
 ## 当前状态
 
-- 当前阶段：Stage 4 搜索与媒体内容后端；Stage 3 浏览与缩略图 Backend Ready
+- 当前阶段：Stage 4 搜索与媒体内容后端已全部 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S4-005B` 媒体内容正确性、安全性与 Backend Ready
+- 当前任务：Stage 4 后端完成；下一后端工作须进入已接受的后续 Gate
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
   Stage 3 浏览/缩略图及 Stage 4 搜索也已 Backend Ready，可分别交由前端接入
@@ -233,8 +233,14 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     production composition，认证路由支持完整 GET、HEAD、强 ETag/日期条件、closed/open/
     suffix 单 Range、If-Range fallback、稳定 416 和有界读取槽。当前只授权进入 S4-005B，
     尚未达到 Backend Ready，前端不得接入 content operation。
-- [ ] `S4-005B` 覆盖认证、路径边界、Range、取消、损坏/离线资产并记录媒体内容
+- [x] `S4-005B` 覆盖认证、路径边界、Range、取消、损坏/离线资产并记录媒体内容
   `Backend Ready` Gate。
+  - 完成证据：[S4-005B 原媒体内容 Backend Ready](gates/MVP-2026-07-23/s4-media-content-backend-ready.md)；
+    真实 session/SQLite/scanner/files composition 覆盖 401、200、HEAD、206、304、416、
+    If-Range、损坏但受支持的原件、poisoned path、source changed/missing/offline 与错误
+    脱敏；单元矩阵固定 16-stream admission、取消释放、空文件和条件头上限。Linux arm64
+    production route/nested mount 通过，amd64 QEMU 缺失 `openat2` 时确认失败关闭；原生
+    amd64 仍由既有 FS-01 证据和恢复后的 PR CI 重跑约束。content operation 可交接前端。
 
 ## 后端完成任务时
 

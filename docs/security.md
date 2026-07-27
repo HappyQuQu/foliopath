@@ -168,6 +168,12 @@ handler 不接收缓存路径、不访问 SQLite/文件系统，也不调用媒�
 - 对扫描失败、路径拒绝、媒体解析超时、队列深度、缓存占用和磁盘余量提供可观察信息。
 - 同一损坏媒体的自动重试必须有上限和退避，避免永久占满工作队列。
 
+S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQLite 索引、
+`internal/media` fingerprint 校验和 `internal/files.Root.Open` 读取；poisoned traversal、
+源变化/缺失/offline、错误脱敏、16-stream admission 与 cooperative cancellation 均有回归
+证据。Linux arm64 production route/nested mount 已通过；当前 amd64 QEMU 缺失 `openat2`
+时应用在启动阶段失败关闭，不能用该模拟环境代替恢复后的 native amd64 PR CI。
+
 ## 必需测试
 
 - `..`、绝对路径、双重 URL 编码、NUL 和符号链接逃逸。

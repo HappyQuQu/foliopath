@@ -5,8 +5,8 @@
 本文同时定义目标验证体系和当前已落地的 Go 验证面。仓库已有路径边界、媒体库、
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
 契约测试，真实 HTTP 边界、合成媒体 fixture 和显式容量测试。正式 `cmd/foliopath`、
-composition root、SQLite 生命周期、health 与认证 HTTP handler 已可启动和测试；仍无
-业务 API handler、React 产品界面、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
+composition root、SQLite 生命周期、health、认证及媒体库/扫描/浏览/缩略图/搜索/原内容
+HTTP handler 已可启动和测试；仍无完整 React 产品界面、浏览器 E2E 或发布镜像。仓库已有固定 Node/npm、
 确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
 工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
 只有实际执行成功的目标才能声称可用。
@@ -44,6 +44,7 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 缓存键、源指纹、变换版本、10 GiB 默认配额、LRU 清理水位和临时文件提交规则。
 - 单管理员原子初始化、密码验证、会话过期/撤销、退出、CSRF 和登录限流。
 - HTTP handler 的请求校验、状态映射和错误脱敏（使用 fake service）。
+- 原媒体 full/HEAD/单 Range/条件请求、空文件、读取 admission、取消和源故障状态。
 
 路径解析、游标解码和媒体头解析加入 Go fuzz tests。任何 fuzz 失败输入都保存为回归样例。
 

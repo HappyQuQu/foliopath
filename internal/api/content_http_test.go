@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +16,15 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
+
+type contentServiceFunc func(context.Context, int64) (media.Content, error)
+
+func (function contentServiceFunc) Open(
+	ctx context.Context,
+	assetID int64,
+) (media.Content, error) {
+	return function(ctx, assetID)
+}
 
 type contentServiceStub struct {
 	path    string
@@ -143,6 +154,182 @@ func TestContentHandlerRejectsInvalidRangesAndQueries(t *testing.T) {
 				if payload.Error.Code != "range_not_satisfiable" {
 					t.Fatalf("code = %q", payload.Error.Code)
 				}
+			}
+		})
+	}
+}
+
+func TestContentHandlerBoundsConcurrencyAndReleasesCancelledRequests(t *testing.T) {
+	slots := make(chan struct{}, 1)
+	slots <- struct{}{}
+	called := false
+	handler := &contentHandler{
+		service: contentServiceFunc(func(context.Context, int64) (media.Content, error) {
+			called = true
+			return media.Content{}, nil
+		}),
+		slots: slots,
+	}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/assets/ast_1/content", nil)
+	request.SetPathValue("assetId", "ast_1")
+	response := httptest.NewRecorder()
+	handler.handle(response, request)
+	if response.Code != http.StatusTooManyRequests ||
+		response.Header().Get("Retry-After") != "1" || called {
+		t.Fatalf("saturated response = %d, headers=%v, called=%t",
+			response.Code, response.Header(), called)
+	}
+
+	<-slots
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	cancelledRequest := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/assets/ast_1/content",
+		nil,
+	).WithContext(ctx)
+	cancelledRequest.SetPathValue("assetId", "ast_1")
+	cancelledResponse := httptest.NewRecorder()
+	handler.service = contentServiceFunc(func(ctx context.Context, _ int64) (media.Content, error) {
+		return media.Content{}, ctx.Err()
+	})
+	handler.handle(cancelledResponse, cancelledRequest)
+	if len(slots) != 0 || cancelledResponse.Body.Len() != 0 ||
+		cancelledResponse.Header().Get("Content-Type") != "" {
+		t.Fatalf("cancelled response wrote output or leaked slot: body=%q headers=%v slots=%d",
+			cancelledResponse.Body.String(), cancelledResponse.Header(), len(slots))
+	}
+}
+
+func TestCopyContentStopsCooperativelyAfterCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	reader := &cancelAfterFirstRead{
+		reader: strings.NewReader("abcdef"),
+		cancel: cancel,
+	}
+	var output bytes.Buffer
+	err := copyContent(ctx, &output, reader, 6)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("copyContent() error = %v, want context.Canceled", err)
+	}
+	if output.String() != "ab" {
+		t.Fatalf("copied bytes = %q, want first bounded chunk", output.String())
+	}
+}
+
+type cancelAfterFirstRead struct {
+	reader *strings.Reader
+	cancel context.CancelFunc
+	read   bool
+}
+
+func (reader *cancelAfterFirstRead) Read(buffer []byte) (int, error) {
+	if len(buffer) > 2 {
+		buffer = buffer[:2]
+	}
+	count, err := reader.reader.Read(buffer)
+	if !reader.read {
+		reader.read = true
+		reader.cancel()
+	}
+	return count, err
+}
+
+func TestContentHandlerEmptySourceAndFailureMapping(t *testing.T) {
+	emptyPath := filepath.Join(t.TempDir(), "empty.jpg")
+	if err := os.WriteFile(emptyPath, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handler := &contentHandler{
+		service: contentServiceStub{path: emptyPath, content: media.Content{
+			Name: "empty.jpg", MIMEType: "image/jpeg",
+			ModifiedAt: time.Now(), ETag: `"empty"`,
+		}},
+		slots: make(chan struct{}, 1),
+	}
+	fullRequest := httptest.NewRequest(http.MethodGet, "/api/v1/assets/ast_1/content", nil)
+	fullRequest.SetPathValue("assetId", "ast_1")
+	fullResponse := httptest.NewRecorder()
+	handler.handle(fullResponse, fullRequest)
+	if fullResponse.Code != http.StatusOK ||
+		fullResponse.Header().Get("Content-Length") != "0" ||
+		fullResponse.Body.Len() != 0 {
+		t.Fatalf("empty response = %d headers=%v body=%q",
+			fullResponse.Code, fullResponse.Header(), fullResponse.Body.String())
+	}
+	rangeRequest := httptest.NewRequest(http.MethodGet, "/api/v1/assets/ast_1/content", nil)
+	rangeRequest.SetPathValue("assetId", "ast_1")
+	rangeRequest.Header.Set("Range", "bytes=0-")
+	rangeResponse := httptest.NewRecorder()
+	handler.handle(rangeResponse, rangeRequest)
+	if rangeResponse.Code != http.StatusRequestedRangeNotSatisfiable ||
+		rangeResponse.Header().Get("Content-Range") != "bytes */0" {
+		t.Fatalf("empty range response = %d headers=%v",
+			rangeResponse.Code, rangeResponse.Header())
+	}
+
+	tests := []struct {
+		err        error
+		wantStatus int
+		wantCode   string
+	}{
+		{media.ErrContentAssetNotFound, http.StatusNotFound, "asset_not_found"},
+		{media.ErrContentSourceOffline, http.StatusConflict, "source_offline"},
+		{media.ErrContentSourceChanged, http.StatusConflict, "source_missing"},
+		{media.ErrContentUnavailable, http.StatusConflict, "source_unreadable"},
+		{errors.New("SELECT secret FROM /app/data/foliopath.db"), http.StatusInternalServerError, "internal_error"},
+	}
+	for _, test := range tests {
+		t.Run(test.wantCode, func(t *testing.T) {
+			handler.service = contentServiceStub{err: test.err}
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/assets/ast_1/content", nil)
+			request.SetPathValue("assetId", "ast_1")
+			response := httptest.NewRecorder()
+			handler.handle(response, request)
+			if response.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d", response.Code, test.wantStatus)
+			}
+			var payload errorResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload.Error.Code != test.wantCode ||
+				strings.Contains(response.Body.String(), "/app/data") ||
+				strings.Contains(response.Body.String(), "SELECT") {
+				t.Fatalf("error response = %s", response.Body.String())
+			}
+		})
+	}
+}
+
+func TestContentHandlerRejectsOversizeAndDuplicateConditionalHeaders(t *testing.T) {
+	handler := &contentHandler{
+		service: contentServiceFunc(func(context.Context, int64) (media.Content, error) {
+			t.Fatal("invalid headers reached content service")
+			return media.Content{}, nil
+		}),
+		slots: make(chan struct{}, 1),
+	}
+	tests := []struct {
+		name   string
+		header string
+		values []string
+	}{
+		{name: "oversize etag", header: "If-None-Match", values: []string{strings.Repeat("a", maxETagHeaderBytes+1)}},
+		{name: "duplicate date", header: "If-Modified-Since", values: []string{"one", "two"}},
+		{name: "oversize if range", header: "If-Range", values: []string{strings.Repeat("a", maxETagHeaderBytes+1)}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/assets/ast_1/content", nil)
+			request.SetPathValue("assetId", "ast_1")
+			for _, value := range test.values {
+				request.Header.Add(test.header, value)
+			}
+			response := httptest.NewRecorder()
+			handler.handle(response, request)
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want 400", response.Code)
 			}
 		})
 	}

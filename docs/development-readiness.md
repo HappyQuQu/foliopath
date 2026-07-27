@@ -21,9 +21,10 @@ Ready](gates/MVP-2026-07-23/s4-search-contract-ready.md)已冻结 search profile
 [S4-002 搜索实现](gates/MVP-2026-07-23/s4-search-keyset.md)已完成 migration 10、
 FTS/keyset、三种 scope、类型/mtime、离线、认证 HTTP 与真实 composition；[S4-003
 搜索 Backend Ready](gates/MVP-2026-07-23/s4-search-backend-ready.md)已通过 100k、
-扫描并发、取消和 rebuild Gate，允许前端接入冻结的搜索 operation。当前后端进入
-`S4-005` 资产详情与原内容。
-这些结论不把前端、Stage 4～5 或发布标记为完成，也不授权共享预览或非回环监听。
+扫描并发、取消和 rebuild Gate，允许前端接入冻结的搜索 operation。[S4-005B 原媒体内容
+Backend Ready](gates/MVP-2026-07-23/s4-media-content-backend-ready.md)也已通过真实认证、
+Range、取消、Linux path boundary 和离线/变化源矩阵，允许前端接入冻结 content operation。
+这些结论不把前端、Stage 5 或发布标记为完成，也不授权共享预览或非回环监听。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client

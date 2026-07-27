@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 func TestMediaRootServiceMapsExistingNestedMountBoundary(t *testing.T) {
@@ -33,5 +34,10 @@ func TestMediaRootServiceMapsExistingNestedMountBoundary(t *testing.T) {
 		"proc",
 	); !errors.Is(err, library.ErrRootMountBoundary) {
 		t.Fatalf("ValidateLibraryRoot(proc) error = %v, want ErrRootMountBoundary", err)
+	}
+	if _, err := service.OpenContent(
+		context.Background(), "proc", "version",
+	); !errors.Is(err, media.ErrContentUnavailable) {
+		t.Fatalf("OpenContent(proc/version) error = %v, want ErrContentUnavailable", err)
 	}
 }

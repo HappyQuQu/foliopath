@@ -359,8 +359,9 @@ composition，并用自动 fixture 固定中文、英文、大小写、组合字
 
 S4-005 已把上述内容契约接入 production capability、SQLite、`internal/files`、HTTP 与
 composition，并固定强 ETag、HEAD、三种单 Range、If-Range fallback、结构化 416、稳定离线/
-源变化错误和 16 个并发读取槽。该 operation 仍等待 S4-005B 的真实认证、Linux path boundary、
-取消和故障矩阵，因此尚未达到 Backend Ready，产品前端不得提前接入。
+源变化错误和 16 个并发读取槽。[S4-005B Backend Ready](gates/MVP-2026-07-23/s4-media-content-backend-ready.md)
+已通过真实认证 composition、Linux path boundary、取消/并发和故障矩阵；产品前端可通过
+生成 client 接入冻结的 content operation，查看器和发布仍遵循各自 Gate。
 
 ## 游标规则
 

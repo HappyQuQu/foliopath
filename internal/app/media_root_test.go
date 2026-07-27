@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 func TestMediaRootServiceOwnsOpenAndCloseLifecycle(t *testing.T) {
@@ -65,6 +66,26 @@ func TestMediaRootServiceOwnsOpenAndCloseLifecycle(t *testing.T) {
 		context.Background(), "albums", "../outside.jpg",
 	); err == nil {
 		t.Fatal("traversal asset unexpectedly opened")
+	}
+	content, err := service.OpenContent(
+		context.Background(), "albums", "photo.jpg",
+	)
+	if err != nil {
+		t.Fatalf("open content: %v", err)
+	}
+	if err := content.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, relativePath := range []string{
+		"../outside.jpg",
+		"%252e%252e/outside.jpg",
+		"photo.jpg\x00ignored",
+	} {
+		if _, err := service.OpenContent(
+			context.Background(), "albums", relativePath,
+		); !errors.Is(err, media.ErrContentUnavailable) {
+			t.Fatalf("OpenContent(%q) error = %v", relativePath, err)
+		}
 	}
 	if err := lifecycle.stop(context.Background()); err != nil {
 		t.Fatalf("stop: %v", err)
