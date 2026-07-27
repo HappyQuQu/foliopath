@@ -5,7 +5,7 @@
 
 - 当前阶段：Stage 2 媒体库后端；媒体库 Contract Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
-- 当前任务：`S2-006` 媒体库移除原文件不变证明；`S2-005` 文件系统安全矩阵已完成，
+- 当前任务：`S2-007` 媒体库 Backend Ready 审计；`S2-006` 原媒体不变证明已完成，
   `S2-101` 扫描 Contract Ready 已完成
 - 授权边界：[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)
   与[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)共同允许
@@ -124,7 +124,10 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
   - 完成证据：[S2-005 文件系统安全矩阵](gates/MVP-2026-07-23/s2-library-safety-matrix.md)；
     词法、anchored I/O、真实认证创建/SQLite、Linux production mount 分类、特权
     same/cross-device/self-bind、ABA、离线保留、权限映射和公开错误脱敏形成连续证据。
-- [ ] `S2-006` 证明移除媒体库前后 fixture 原文件逐字节不变。
+- [x] `S2-006` 证明移除媒体库前后 fixture 原文件逐字节不变。
+  - 完成证据：[S2-006 原媒体不变证明](gates/MVP-2026-07-23/s2-library-removal-invariance.md)；
+    真实认证 HTTP/composition/SQLite/worker 删除链路逐项比较完整媒体树和文件字节，同时
+    验证 `/app/data` 派生缓存清理、bounded cleanup 重启续作及 removal 无媒体写能力。
 - [ ] `S2-007` 记录媒体库后端 `Backend Ready` Gate。
 
 ### 扫描

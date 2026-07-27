@@ -204,6 +204,75 @@ func TestLibraryLifecycleRenameUsesRevisionAndRemovalIsDerivedOnly(t *testing.T)
 	}
 }
 
+func TestLibraryRemovalResumesIdempotentlyAfterRestart(t *testing.T) {
+	ctx := context.Background()
+	filename := filepath.Join(t.TempDir(), "removal-restart.db")
+	firstStore, err := Open(ctx, filename, Options{MaxBatchSize: 16})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := firstStore.CreateLibraryWithScan(ctx, library.CreateCommand{
+		Name:             "Family",
+		NameKey:          "family",
+		RootRelativePath: "family",
+		KeyHash:          [32]byte{40},
+		RequestHash:      [32]byte{41},
+		RetentionMS:      86_400_000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requested, err := firstStore.RequestLibraryRemoval(ctx, library.RemoveCommand{
+		LibraryID:        created.Library.ID,
+		ExpectedRevision: created.Library.Revision,
+		KeyHash:          [32]byte{42},
+		RequestHash:      [32]byte{43},
+		RetentionMS:      86_400_000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, found, err := firstStore.ClaimNextLibraryRemoval(ctx)
+	if err != nil || !found || claimed.ID != requested.Removal.ID {
+		t.Fatalf("claim before restart = %#v, %t, %v", claimed, found, err)
+	}
+	done, err := firstStore.CleanupLibraryRemovalBatch(ctx, claimed.ID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done {
+		t.Fatal("first bounded cleanup unexpectedly completed")
+	}
+	if err := firstStore.Close(); err != nil {
+		t.Fatalf("close during removal: %v", err)
+	}
+
+	reopened, err := Open(ctx, filename, Options{MaxBatchSize: 16})
+	if err != nil {
+		t.Fatalf("reopen during removal: %v", err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+	claimed, found, err = reopened.ClaimNextLibraryRemoval(ctx)
+	if err != nil || !found || claimed.ID != requested.Removal.ID ||
+		claimed.Status != library.RemovalRunning {
+		t.Fatalf("claim after restart = %#v, %t, %v", claimed, found, err)
+	}
+	done, err = reopened.CleanupLibraryRemovalBatch(ctx, claimed.ID, 1)
+	if err != nil || !done {
+		t.Fatalf("resumed cleanup = done %t, err %v", done, err)
+	}
+	if _, err := reopened.GetLibraryDetails(ctx, created.Library.ID); !errors.Is(
+		err,
+		library.ErrNotFound,
+	) {
+		t.Fatalf("library after resumed cleanup error = %v", err)
+	}
+	terminal, err := reopened.GetLibraryRemoval(ctx, claimed.ID)
+	if err != nil || terminal.Status != library.RemovalSucceeded {
+		t.Fatalf("terminal removal after restart = %#v, %v", terminal, err)
+	}
+}
+
 func TestLibraryLifecycleUsesNaturalKeysetOrdering(t *testing.T) {
 	store, _ := openTestStore(t)
 	ctx := context.Background()

@@ -125,10 +125,13 @@ type routeFallback struct {
 }
 
 func (routes routeFallback) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	handler, pattern := routes.mux.Handler(request)
+	_, pattern := routes.mux.Handler(request)
 	if pattern == "" {
 		notFoundHandler().ServeHTTP(writer, request)
 		return
 	}
-	handler.ServeHTTP(writer, request)
+	// ServeMux.ServeHTTP performs the match that populates request PathValue
+	// entries. Calling the handler returned by ServeMux.Handler directly would
+	// discard route variables after authentication middleware has run.
+	routes.mux.ServeHTTP(writer, request)
 }
