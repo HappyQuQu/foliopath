@@ -116,6 +116,21 @@ export async function listAssets({
   }
 }
 
+export async function getAsset(assetId: string): Promise<Asset> {
+  try {
+    const { data, error, response } = await apiClient.GET(
+      "/api/v1/assets/{assetId}",
+      {
+        params: { path: { assetId } },
+      },
+    );
+    if (data) return mapAsset(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
 export async function searchLibraryAssets({
   cursor,
   directoryId,
@@ -268,10 +283,14 @@ function mapAssetPage(data: {
   nextCursor: string | null;
 }): AssetPage {
   return {
-    items: data.items.map((item) => ({
-      ...item,
-      thumbnail: { ...item.thumbnail },
-    })),
+    items: data.items.map(mapAsset),
     nextCursor: data.nextCursor,
+  };
+}
+
+function mapAsset(data: Asset): Asset {
+  return {
+    ...data,
+    thumbnail: { ...data.thumbnail },
   };
 }

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
 import {
   assetContentUrl,
+  getAsset,
   getDirectory,
   listAssets,
   listDirectories,
@@ -25,6 +26,40 @@ describe("catalog adapter", () => {
     expect(assetContentUrl("asset/with space")).toBe(
       "/api/v1/assets/asset%2Fwith%20space/content",
     );
+  });
+
+  it("loads one asset through the generated detail operation", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: {
+        directoryId: "dir_japan",
+        durationMs: null,
+        height: 800,
+        id: "ast_photo",
+        kind: "image",
+        libraryId: "lib_family",
+        libraryName: "家庭影像",
+        mimeType: "image/jpeg",
+        modifiedAt: "2026-07-28T00:00:00Z",
+        name: "photo.jpg",
+        playbackStatus: "not_applicable",
+        probeStatus: "ready",
+        relativePath: "旅行/photo.jpg",
+        sizeBytes: 1024,
+        sourceAvailability: "available",
+        thumbnail: { errorCode: null, status: "ready", url: "/thumbnail" },
+        width: 1200,
+      },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await expect(getAsset("ast_photo")).resolves.toMatchObject({
+      id: "ast_photo",
+      libraryId: "lib_family",
+    });
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/assets/{assetId}", {
+      params: { path: { assetId: "ast_photo" } },
+    });
   });
 
   it("requests a bounded direct-child page through the generated client", async () => {

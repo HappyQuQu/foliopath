@@ -23,6 +23,7 @@ coverage.out
 /prototypes/*/.vite/
 /playwright-report/
 /test-results/
+/.artifacts/
 
 # Runtime state
 /data/

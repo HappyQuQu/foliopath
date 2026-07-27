@@ -1,0 +1,17 @@
+.state {
+  --color-canvas: var(--color-viewer-canvas);
+  --color-surface: var(--color-viewer-surface);
+  --color-surface-subtle: var(--color-viewer-surface-subtle);
+  --color-text: var(--color-viewer-text);
+  --color-text-muted: var(--color-viewer-text-muted);
+  --color-border: var(--color-viewer-border);
+  --color-border-strong: var(--color-viewer-border-strong);
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  color: var(--color-text);
+  background: var(--color-canvas);
+}

@@ -42,3 +42,6 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S4-001：搜索 Contract Ready](MVP-2026-07-23/s4-search-contract-ready.md)
 - [S4-002：搜索与 keyset 实现完成](MVP-2026-07-23/s4-search-keyset.md)
 - [S4-003：搜索 Backend Ready](MVP-2026-07-23/s4-search-backend-ready.md)
+- [S4-004：前端搜索界面完成](MVP-2026-07-23/s4-frontend-search.md)
+- [S4-005：搜索复用非模态预览](MVP-2026-07-23/s4-frontend-search-preview.md)
+- [S4-006：完整媒体查看器完成](MVP-2026-07-23/s4-frontend-media-viewer.md)

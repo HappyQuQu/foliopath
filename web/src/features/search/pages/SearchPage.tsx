@@ -7,7 +7,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
@@ -37,6 +37,10 @@ import {
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
+import {
+  createViewerLocationState,
+  readViewerReturnState,
+} from "../../../lib/navigation/viewer";
 import { useLibraryQuery } from "../../libraries";
 import { useSearchResultsQuery } from "../queries";
 import {
@@ -57,6 +61,8 @@ export function SearchPage({
   session: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = useMemo(
     () => parseSearchUrlState(searchParams, libraryId),
@@ -119,6 +125,21 @@ export function SearchPage({
   }, [canonicalSearch, searchParams, setSearchParams]);
 
   useEffect(() => setDraft(state.q), [state.q]);
+
+  useEffect(() => {
+    const returnState = readViewerReturnState(location.state);
+    if (
+      !returnState ||
+      !assets.some((asset) => asset.id === returnState.restoreFocusAssetId)
+    ) {
+      return;
+    }
+    preview.collectionRef.current?.restoreItem(returnState.restoreFocusAssetId);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: null,
+    });
+  }, [assets, location.pathname, location.search, location.state, navigate, preview.collectionRef]);
 
   function updateState(next: SearchUrlState) {
     setSearchParams(serializeSearchUrlState(next));
@@ -322,6 +343,7 @@ export function SearchPage({
               followingTitle: t("browse.previewFollowingTitle"),
               imageFailed: t("browse.previewImageFailed"),
               next: t("browse.nextMedia"),
+              openViewer: t("browse.openFullViewer"),
               pin: t("browse.pinPreview"),
               pinnedDescription: t("browse.previewPinnedDescription"),
               pinnedTitle: t("browse.previewPinnedTitle"),
@@ -343,6 +365,16 @@ export function SearchPage({
             maxWidth={preview.maxWidth}
             onClose={preview.close}
             onNext={() => preview.moveTo(assets[preview.previewIndex + 1])}
+            onOpenViewer={() => {
+              if (!previewAsset) return;
+              const returnTo = `${location.pathname}${location.search}`;
+              navigate(
+                paths.media(previewAsset.libraryId, previewAsset.id, returnTo),
+                {
+                  state: createViewerLocationState(assets, returnTo),
+                },
+              );
+            }}
             onPinnedChange={preview.updatePinned}
             onPrevious={() => preview.moveTo(assets[preview.previewIndex - 1])}
             onWidthChange={preview.setWidth}

@@ -360,8 +360,9 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
-前端 import/token lint、Storybook/组件、认证与媒体库/扫描视觉/E2E 已可执行；
-只读发布 volume/运行期 unmount、完整浏览/搜索/查看器产品 E2E、
+前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
+视觉/E2E 已可执行；
+只读发布 volume/运行期 unmount、完整媒体降级/目标浏览器矩阵、
 完整媒体/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI

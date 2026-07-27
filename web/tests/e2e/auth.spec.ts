@@ -192,6 +192,31 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(previewSeparator).toHaveAttribute("aria-valuenow", "406");
   await previewSeparator.press("ArrowLeft");
   await expect(previewSeparator).toHaveAttribute("aria-valuenow", "430");
+  await preview.getByRole("button", { name: "Open full viewer" }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/libraries/${createdLibraryId}/media/[^?]+\\?from=`),
+  );
+  await expect(
+    page.getByRole("img", { name: "direct-photo.jpg" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toContainText("direct-photo.jpg");
+  await expect(
+    page.getByRole("button", { name: "Fit to window" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Show at 1:1" }).click();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByText("125%")).toBeVisible();
+  await page.getByRole("button", { name: "Show basic information" }).click();
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page).toHaveURL(`/libraries/${createdLibraryId}/browse`);
+  await expect(directPreviewTrigger).toBeFocused();
+  await directPreviewTrigger.click();
+  await expect(preview).toBeVisible();
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await waitForVisualState(page);

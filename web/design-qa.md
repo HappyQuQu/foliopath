@@ -553,6 +553,56 @@ focus restoration. S3-107 owns 100k media and playback-resource budgets. S3-108 
 the complete Stage 3 Integrated Done browser gate. S4-006～009 own full viewer,
 fullscreen/zoom, codec/Range/offline/deleted states and target-browser verification.
 
+## Stage 4 / S4-006 complete media viewer QA
+
+### Reviewed state
+
+- Accepted source: static prototype screen `9/15`, route
+  `/libraries/family/media/pagoda`.
+- Production: authenticated isolated frontend route
+  `/libraries/lib_1/media/:assetId`, reached from the real global-search preview.
+- Desktop comparison: source and implementation captured at the same 1440×900 CSS
+  viewport and combined side by side before judgment.
+- Mobile verification: production captured at 390×844 with the information surface
+  open.
+
+### Same-viewport comparison
+
+- The implementation preserves the accepted near-black canvas, fixed dark header,
+  centered filename, bounded media stage, edge previous/next controls, right
+  information panel and compact footer.
+- The production image uses the real content endpoint and its indexed 640×400
+  dimensions. It occupies the same 640×400 fitted slot as the source image; no
+  stretching, substitute asset or fabricated placeholder is present.
+- Production uses the canonical icon button primitive for fit, 1:1, zoom, information
+  and fullscreen. This is intentionally denser than the prototype's three text
+  controls while preserving the same hierarchy and adding the required zoom actions.
+- The visible close focus ring is intentional accessibility state: the close control
+  receives focus on route entry so keyboard users have a deterministic exit.
+- No actionable P0, P1 or P2 visual difference remains in the combined comparison.
+
+### Responsive and interaction evidence
+
+- At 390×844 the header wraps into a compact two-row toolbar, the image remains
+  contained between reachable edge controls, and information becomes a bounded
+  bottom sheet above the footer. No filename, control or metadata row is clipped.
+- Component tests cover fit, 1:1, zoom, image/video branches, information, fullscreen,
+  previous/next, Escape and focus protection.
+- Page and URL-codec tests cover real asset-detail queries, bounded source sequences,
+  direct routes, cross-library/global-search movement, safe return validation and
+  return-focus state.
+- Real-backend browser coverage enters from the shared preview, changes view mode,
+  zooms, hides information, returns to the preserved browse URL and restores the
+  original virtual media button focus.
+- Shared viewer and preview stories build successfully; no raw color, spacing,
+  z-index or motion value was introduced outside the central token source.
+
+### Residual Stage 4 work
+
+S4-007 still owns GIF/codec and source-unavailable/corrupt/deleted states. S4-008 owns
+the target browser, touch, Range and error matrix. S4-009 owns the complete Stage 4
+Integrated Done gate.
+
 final result: passed
 
 ## Stage 3 / S3-104 browse-state QA

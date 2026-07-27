@@ -9,6 +9,7 @@ const labels = {
   followingTitle: "Preview follows selection",
   imageFailed: "Image failed",
   next: "Next item",
+  openViewer: "Open full viewer",
   pin: "Pin preview",
   pinnedDescription: "Double-click to switch.",
   pinnedTitle: "Preview pinned",
@@ -34,6 +35,7 @@ const item = {
 it("renders non-modal media, metadata, navigation, and close controls", () => {
   const close = vi.fn();
   const next = vi.fn();
+  const openViewer = vi.fn();
   const previous = vi.fn();
   render(
     <MediaPreview
@@ -43,6 +45,7 @@ it("renders non-modal media, metadata, navigation, and close controls", () => {
       labels={labels}
       onClose={close}
       onNext={next}
+      onOpenViewer={openViewer}
       onPinnedChange={vi.fn()}
       onPrevious={previous}
       onWidthChange={vi.fn()}
@@ -59,9 +62,11 @@ it("renders non-modal media, metadata, navigation, and close controls", () => {
   expect(screen.getByText("2.4 MB")).toBeVisible();
   screen.getByRole("button", { name: "Previous item" }).click();
   screen.getByRole("button", { name: "Next item" }).click();
+  screen.getByRole("button", { name: "Open full viewer" }).click();
   screen.getByRole("button", { name: "Close preview" }).click();
   expect(previous).toHaveBeenCalledOnce();
   expect(next).toHaveBeenCalledOnce();
+  expect(openViewer).toHaveBeenCalledOnce();
   expect(close).toHaveBeenCalledOnce();
 });
 
@@ -75,6 +80,7 @@ it("supports keyboard width adjustment and clamps the shared panel", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={resize}
@@ -96,6 +102,7 @@ it("supports keyboard width adjustment and clamps the shared panel", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={resize}
@@ -120,6 +127,7 @@ it("announces pin state and closes with Escape", () => {
       labels={labels}
       onClose={close}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={changePin}
       onPrevious={vi.fn()}
       onWidthChange={vi.fn()}
@@ -140,6 +148,7 @@ it("announces pin state and closes with Escape", () => {
       labels={labels}
       onClose={close}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={changePin}
       onPrevious={vi.fn()}
       onWidthChange={vi.fn()}
@@ -171,6 +180,7 @@ it("uses native inline controls for video content", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={vi.fn()}
@@ -200,6 +210,7 @@ it("uses native inline controls for video content", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
       onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={vi.fn()}

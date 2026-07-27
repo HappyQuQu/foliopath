@@ -15,7 +15,13 @@ export const paths = {
   librarySearch: (libraryId: string) =>
     `/libraries/${encodeURIComponent(libraryId)}/search`,
   librarySearchPattern: "/libraries/:libraryId/search",
-  media: "/media/:assetId",
+  media: (libraryId: string, assetId: string, returnTo?: string) => {
+    const pathname = `/libraries/${encodeURIComponent(libraryId)}/media/${encodeURIComponent(assetId)}`;
+    return returnTo
+      ? `${pathname}?${new URLSearchParams({ from: returnTo }).toString()}`
+      : pathname;
+  },
+  mediaPattern: "/libraries/:libraryId/media/:assetId",
   generalSettings: "/settings/general",
   unavailable: "/system/unavailable",
 } as const;

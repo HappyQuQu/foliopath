@@ -1,4 +1,5 @@
 import {
+  ArrowsOut,
   CaretLeft,
   CaretRight,
   FileImage,
@@ -14,7 +15,7 @@ import {
   type PointerEvent,
 } from "react";
 
-import { IconButton } from "../../ui";
+import { Button, IconButton } from "../../ui";
 import styles from "./MediaPreview.module.css";
 
 export interface MediaPreviewItem {
@@ -31,6 +32,7 @@ export interface MediaPreviewLabels {
   followingTitle: string;
   imageFailed: string;
   next: string;
+  openViewer: string;
   pin: string;
   pinnedDescription: string;
   pinnedTitle: string;
@@ -53,6 +55,7 @@ export function MediaPreview({
   minWidth = 360,
   onClose,
   onNext,
+  onOpenViewer,
   onPinnedChange,
   onPrevious,
   onWidthChange,
@@ -67,6 +70,7 @@ export function MediaPreview({
   minWidth?: number;
   onClose: () => void;
   onNext: () => void;
+  onOpenViewer: () => void;
   onPinnedChange: (pinned: boolean) => void;
   onPrevious: () => void;
   onWidthChange: (width: number) => void;
@@ -222,6 +226,16 @@ export function MediaPreview({
           <CaretRight aria-hidden="true" size={19} />
         </IconButton>
       </nav>
+
+      <Button
+        className={styles.openViewer}
+        onClick={onOpenViewer}
+        size="small"
+        variant="secondary"
+      >
+        <ArrowsOut aria-hidden="true" size={18} />
+        {labels.openViewer}
+      </Button>
 
       <dl className={styles.details}>
         {item.details.map((detail) => (

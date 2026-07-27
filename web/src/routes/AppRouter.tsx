@@ -25,6 +25,7 @@ import {
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
 import { GeneralSettingsPage } from "../features/settings";
 import { SearchPage } from "../features/search";
+import { MediaViewerPage } from "../features/media";
 import {
   messageForReadiness,
   useSystemReadinessQuery,
@@ -50,6 +51,7 @@ export function AppRoutes() {
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
         <Route path={paths.browsePattern} element={<ProtectedBrowseRoute />} />
+        <Route path={paths.mediaPattern} element={<ProtectedMediaRoute />} />
         <Route path={paths.search} element={<ProtectedSearchRoute />} />
         <Route
           path={paths.librarySearchPattern}
@@ -217,6 +219,27 @@ function ProtectedSearchRoute() {
         {...(libraryId ? { libraryId } : {})}
       />
     );
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedMediaRoute() {
+  const { assetId, libraryId } = useParams<{
+    assetId: string;
+    libraryId: string;
+  }>();
+  const sessionQuery = useSessionQuery();
+
+  if (!assetId || !libraryId) {
+    return <Navigate replace to={paths.libraries} />;
+  }
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return <MediaViewerPage assetId={assetId} libraryId={libraryId} />;
   }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
