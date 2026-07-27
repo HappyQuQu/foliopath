@@ -90,6 +90,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	}
 	libraryPaths, err := library.NewPathService(
 		directorySource,
+		database,
 		library.PathServiceOptions{},
 	)
 	if err != nil {

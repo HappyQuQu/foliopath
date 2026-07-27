@@ -52,7 +52,8 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 共享相对路径策略、重复编码、无效 UTF-8/NUL、symlink、根移除/替换、A → B → A 身份回归、特殊节点、遍历取消和错误脱敏；
 - Linux `openat2` 的失败关闭映射、`RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS |
   RESOLVE_NO_XDEV` 策略与旧子目录 FD 移出边界后的拒绝；
-- 媒体库根规范化、组件边界重叠判断、唯一名称、改名与根不可变；
+- 媒体库根规范化、组件边界重叠判断、NFC 显示名、NFKC + Unicode full case-fold 唯一键、
+  无变化/并发改名自身表示与根不可变；
 - 固定 MVP 扩展名/MIME 正向矩阵、SVG/HEIC/HEIF/AVIF/RAW 负向矩阵与系统目录跳过清单；
 - 真实文件 SQLite、Goose migration、WAL/外键/busy timeout、SQLite 安全版本门槛、integrity/foreign-key/checkpoint；
 - 认证 version 1 → 2 migration、并发单管理员约束、密码 verifier 字段、会话/CSRF 摘要、
@@ -97,7 +98,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 已认证目录选择器的真实 composition、直接目录/普通文件过滤、隐藏与 Unicode 名称、
   numeric natural order、默认/最大页面、有界 `limit+1` 选择、opaque query-bound cursor
   的续页/篡改/跨 scope 拒绝，以及 symlink/mount/unavailable 公开错误映射。
-- 唯一媒体库名称、只允许改名、拒绝根路径修改，以及 24 小时可配置调度与协作取消。
+- 唯一媒体库名称、两个独立 Store 并发名称/根冲突仅一方成功、只允许改名、拒绝根路径
+  修改、目录选择器相同/祖先/后代冲突标注与权威快照失败关闭，以及 24 小时可配置调度与
+  协作取消。
 - generation 批量 upsert 与仅在完整成功后清理旧记录。
 - 进程中断后的 `running` 任务恢复和原子缓存写入。
 - FTS 搜索、Unicode 文件名、大小写、自然排序与游标稳定性。

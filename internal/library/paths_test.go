@@ -14,6 +14,15 @@ type directorySourceStub struct {
 	parent     string
 }
 
+type libraryReaderStub struct {
+	libraries []Library
+	err       error
+}
+
+func (stub libraryReaderStub) ListLibraries(context.Context) ([]Library, error) {
+	return stub.libraries, stub.err
+}
+
 func (stub *directorySourceStub) EnumerateDirectories(
 	ctx context.Context,
 	parent string,
@@ -112,7 +121,7 @@ func TestPathServiceCursorRejectsTamperingAndDifferentParentOrKey(t *testing.T) 
 		})
 	}
 
-	other, err := NewPathService(source, PathServiceOptions{
+	other, err := NewPathService(source, libraryReaderStub{}, PathServiceOptions{
 		CursorKey: []byte("abcdef0123456789abcdef0123456789"),
 	})
 	if err != nil {
@@ -153,6 +162,128 @@ func TestPathServiceBuildsBreadcrumbsAndBlockedEntries(t *testing.T) {
 		page.Items[0].BlockedReason != SelectionBlockedMountBoundary ||
 		page.Items[0].RelativePath != "家庭/2026/external" {
 		t.Fatalf("items = %#v", page.Items)
+	}
+}
+
+func TestPathServiceMarksOverlapDirectionAndReturnsStableConflict(t *testing.T) {
+	t.Parallel()
+
+	source := &directorySourceStub{candidates: []DirectoryCandidate{
+		{Name: "family"},
+		{Name: "photos"},
+		{Name: "work"},
+		{Name: "unsafe", BlockedReason: SelectionBlockedSymlink},
+	}}
+	service, err := NewPathService(
+		source,
+		libraryReaderStub{libraries: []Library{
+			{ID: 9, Name: "Family", RootRelativePath: "family"},
+			{ID: 8, Name: "Photos 2026", RootRelativePath: "photos/2026"},
+			{ID: 3, Name: "Photos 2025", RootRelativePath: "photos/2025"},
+			{ID: 2, Name: "Unsafe existing", RootRelativePath: "unsafe"},
+		}},
+		PathServiceOptions{CursorKey: []byte("0123456789abcdef0123456789abcdef")},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := service.ListPaths(context.Background(), ListPathParams{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := make(map[string]PathEntry, len(page.Items))
+	for _, entry := range page.Items {
+		entries[entry.Name] = entry
+	}
+	if got := entries["family"]; got.BlockedReason != SelectionBlockedOverlapping ||
+		got.ConflictID != 9 ||
+		got.ConflictName != "Family" {
+		t.Fatalf("same-root entry = %#v", got)
+	}
+	if got := entries["photos"]; got.BlockedReason != SelectionBlockedAncestor ||
+		got.ConflictID != 3 ||
+		got.ConflictName != "Photos 2025" {
+		t.Fatalf("ancestor entry = %#v", got)
+	}
+	if got := entries["work"]; !got.Selectable || got.ConflictID != 0 {
+		t.Fatalf("non-overlap entry = %#v", got)
+	}
+	if got := entries["unsafe"]; got.BlockedReason != SelectionBlockedSymlink ||
+		got.ConflictID != 0 {
+		t.Fatalf("filesystem policy must take precedence: %#v", got)
+	}
+}
+
+func TestPathServiceMarksCandidateBelowExistingRoot(t *testing.T) {
+	t.Parallel()
+
+	source := &directorySourceStub{candidates: []DirectoryCandidate{{Name: "2026"}}}
+	service, err := NewPathService(
+		source,
+		libraryReaderStub{libraries: []Library{{
+			ID:               4,
+			Name:             "Family",
+			RootRelativePath: "family",
+		}}},
+		PathServiceOptions{CursorKey: []byte("0123456789abcdef0123456789abcdef")},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := service.ListPaths(context.Background(), ListPathParams{Parent: "family"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 ||
+		page.Items[0].BlockedReason != SelectionBlockedDescendant ||
+		page.Items[0].ConflictID != 4 {
+		t.Fatalf("descendant page = %#v", page)
+	}
+}
+
+func TestPathServiceFailsClosedWhenLibrarySnapshotIsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	source := &directorySourceStub{candidates: []DirectoryCandidate{{Name: "family"}}}
+	service, err := NewPathService(
+		source,
+		libraryReaderStub{err: errors.New("database unavailable")},
+		PathServiceOptions{CursorKey: []byte("0123456789abcdef0123456789abcdef")},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.ListPaths(context.Background(), ListPathParams{}); err == nil {
+		t.Fatal("ListPaths succeeded without an authoritative library snapshot")
+	}
+	if source.calls != 0 {
+		t.Fatalf("filesystem was enumerated %d times without overlap state", source.calls)
+	}
+}
+
+func TestPathServiceRejectsInvalidLibrarySnapshot(t *testing.T) {
+	t.Parallel()
+
+	for _, configured := range []Library{
+		{ID: 0, Name: "Family", RootRelativePath: "family"},
+		{ID: 1, Name: " Family ", RootRelativePath: "family"},
+		{ID: 1, Name: "Family", RootRelativePath: "family/./2026"},
+	} {
+		source := &directorySourceStub{candidates: []DirectoryCandidate{{Name: "family"}}}
+		service, err := NewPathService(
+			source,
+			libraryReaderStub{libraries: []Library{configured}},
+			PathServiceOptions{CursorKey: []byte("0123456789abcdef0123456789abcdef")},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := service.ListPaths(context.Background(), ListPathParams{}); err == nil {
+			t.Fatalf("ListPaths accepted invalid library %#v", configured)
+		}
+		if source.calls != 0 {
+			t.Fatalf("invalid snapshot performed %d filesystem enumerations", source.calls)
+		}
 	}
 }
 
@@ -202,7 +333,7 @@ func TestPathServicePropagatesCancellation(t *testing.T) {
 
 func testPathService(t *testing.T, source DirectorySource) *PathService {
 	t.Helper()
-	service, err := NewPathService(source, PathServiceOptions{
+	service, err := NewPathService(source, libraryReaderStub{}, PathServiceOptions{
 		CursorKey: []byte("0123456789abcdef0123456789abcdef"),
 	})
 	if err != nil {

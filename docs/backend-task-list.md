@@ -5,7 +5,7 @@
 
 - 当前阶段：Stage 2 媒体库后端；媒体库 Contract Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready
-- 当前任务：`S2-003` 媒体库领域规则；安全目录枚举已完成，扫描执行仍等待 `S2-101`
+- 当前任务：`S2-004` 媒体库生命周期；目录枚举与领域规则已完成，扫描执行仍等待 `S2-101`
 - 授权边界：[媒体库 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)
   允许 `S2-002`/`S2-003` 实现；不得提前实现扫描 admission、worker、取消或 schedule
 - 代码所有权：`cmd/`、`internal/`、`migrations/`、`api/openapi.yaml`、后端测试和部署适配
@@ -105,7 +105,13 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     `limit+1` 项，使用 Unicode numeric natural key、AES-GCM opaque/query-bound keyset
     cursor 和默认 50/最大 200 限制。单元/race、真实 app composition、路径/文件/symlink、
     错误脱敏及带 `fsboundary` 的同设备/跨设备/self-bind mount 探针均有回归覆盖。
-- [ ] `S2-003` 实现唯一名称、相对根、不可变根和重叠根校验。
+- [x] `S2-003` 实现唯一名称、相对根、不可变根和重叠根校验。
+  - 完成证据：`internal/library` 统一负责名称 NFC 显示、NFKC + Unicode full case-fold
+    唯一键、相对根规范化和组件级重叠规则；SQLite adapter 在 `BEGIN IMMEDIATE` 短写事务中
+    原子执行名称/根冲突检查，并由唯一约束和不可变 root trigger 纵深防御。改名通过
+    `UPDATE ... RETURNING` 返回自身提交表示，无变化改名不推进 revision。目录选择器使用
+    权威库快照标注相同/祖先/后代冲突并在快照损坏或不可用时失败关闭；Unicode、边界值、
+    两个 Store 并发创建/改名与 picker 冲突矩阵均有 race 回归。
 - [ ] `S2-004` 实现媒体库创建、改名、离线状态、重试和只删除派生数据的移除。
 - [ ] `S2-005` 覆盖 traversal、symlink、nested mount、TOCTOU、重叠、离线和权限失败。
 - [ ] `S2-006` 证明移除媒体库前后 fixture 原文件逐字节不变。

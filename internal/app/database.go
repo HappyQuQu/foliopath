@@ -10,6 +10,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/library"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
@@ -17,6 +18,7 @@ const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
 	auth.Repository
+	library.Repository
 	Close() error
 }
 
@@ -168,6 +170,54 @@ func (service *databaseService) RevokeSession(
 		return false, auth.ErrRepositoryNotReady
 	}
 	return service.store.RevokeSession(ctx, params)
+}
+
+func (service *databaseService) CreateLibrary(
+	ctx context.Context,
+	params library.CreateParams,
+) (library.Library, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Library{}, library.ErrRepositoryNotReady
+	}
+	return service.store.CreateLibrary(ctx, params)
+}
+
+func (service *databaseService) GetLibrary(
+	ctx context.Context,
+	id int64,
+) (library.Library, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Library{}, library.ErrRepositoryNotReady
+	}
+	return service.store.GetLibrary(ctx, id)
+}
+
+func (service *databaseService) ListLibraries(
+	ctx context.Context,
+) ([]library.Library, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, library.ErrRepositoryNotReady
+	}
+	return service.store.ListLibraries(ctx)
+}
+
+func (service *databaseService) RenameLibrary(
+	ctx context.Context,
+	id int64,
+	name string,
+) (library.Library, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return library.Library{}, library.ErrRepositoryNotReady
+	}
+	return service.store.RenameLibrary(ctx, id, name)
 }
 
 func prepareDataRoot(dataRoot string) error {

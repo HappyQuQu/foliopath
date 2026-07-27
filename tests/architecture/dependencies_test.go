@@ -341,7 +341,7 @@ func TestSQLiteQuerySourceAndGeneratedBoundary(t *testing.T) {
 	}
 	for _, required := range []string{
 		"-- name: InsertLibrary :one",
-		"-- name: RenameLibrary :execrows",
+		"-- name: RenameLibrary :one",
 		"-- name: GetLibrary :one",
 		"-- name: ListLibraries :many",
 	} {
@@ -398,6 +398,64 @@ func TestSQLiteQuerySourceAndGeneratedBoundary(t *testing.T) {
 	for _, forbidden := range []string{"SELECT ", "INSERT INTO users", "UPDATE users"} {
 		if strings.Contains(normalizedAuthAdapterSource, strings.ToUpper(forbidden)) {
 			t.Errorf("authentication adapter duplicates canonical SQL containing %q", forbidden)
+		}
+	}
+}
+
+func TestLibraryDomainRulesHaveCanonicalOwners(t *testing.T) {
+	root := repositoryRoot(t)
+	capabilityPath := filepath.Join(root, "internal", "library", "library.go")
+	adapterPath := filepath.Join(root, "internal", "store", "sqlite", "library.go")
+	queryPath := filepath.Join(root, "internal", "store", "sqlite", "queries", "libraries.sql")
+	migrationPath := filepath.Join(root, "migrations", "00001_initial.sql")
+
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: capabilityPath,
+			contents: []string{
+				"func NormalizeName(",
+				"func NormalizeRoot(",
+				"func RootsOverlap(",
+				"cases.Fold().String(norm.NFKC.String(display))",
+			},
+		},
+		{
+			path: adapterPath,
+			contents: []string{
+				"func (s *Store) CreateLibrary(",
+				"s.withWriteTx(ctx",
+				"queries.FindOverlappingLibraryID(ctx, root)",
+				"func libraryFromDatabase(",
+			},
+		},
+		{
+			path: queryPath,
+			contents: []string{
+				"-- name: FindOverlappingLibraryID :one",
+				"-- name: RenameLibrary :one",
+				"RETURNING",
+			},
+		},
+		{
+			path: migrationPath,
+			contents: []string{
+				"name_key           TEXT NOT NULL UNIQUE",
+				"root_rel_path      TEXT NOT NULL UNIQUE",
+				"CREATE TRIGGER libraries_root_is_immutable",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing canonical library rule %q", required.path, content)
+			}
 		}
 	}
 }

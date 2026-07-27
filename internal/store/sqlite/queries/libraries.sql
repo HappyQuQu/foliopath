@@ -50,13 +50,23 @@ RETURNING
     created_at_ms,
     updated_at_ms;
 
--- name: RenameLibrary :execrows
+-- name: RenameLibrary :one
 UPDATE libraries
 SET name = sqlc.arg(name),
     name_key = sqlc.arg(name_key),
     revision = revision + 1,
     updated_at_ms = sqlc.arg(updated_at_ms)
-WHERE id = sqlc.arg(id);
+WHERE id = sqlc.arg(id)
+RETURNING
+    id,
+    name,
+    name_key,
+    root_rel_path,
+    status,
+    current_generation,
+    revision,
+    created_at_ms,
+    updated_at_ms;
 
 -- name: GetLibrary :one
 SELECT
