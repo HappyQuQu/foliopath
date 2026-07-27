@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
 const libraryDetailsSQL = `
@@ -112,7 +113,7 @@ func (s *Store) CreateLibraryWithScan(
 		).Scan(&activeCount); err != nil {
 			return fmt.Errorf("count active scans: %w", err)
 		}
-		if activeCount >= 256 {
+		if activeCount >= scanner.MaxActiveFullScans {
 			return library.ErrScanCapacity
 		}
 

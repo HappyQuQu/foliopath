@@ -41,3 +41,9 @@ func TestSkipCountsValidateAndTotal(t *testing.T) {
 		}
 	}
 }
+
+func TestSafeErrorCodeClassifiesDatabaseFailure(t *testing.T) {
+	if got := safeErrorCode(errors.Join(ErrDatabaseUnavailable, errors.New("database is full"))); got != "database_unavailable" {
+		t.Fatalf("safeErrorCode(database failure) = %q, want database_unavailable", got)
+	}
+}

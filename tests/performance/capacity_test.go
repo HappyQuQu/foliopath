@@ -132,7 +132,7 @@ func TestCapacityBaseline(t *testing.T) {
 		t.Fatalf("create capacity library: %v", err)
 	}
 	scans, err := scanner.NewService(store, scanner.Config{
-		BatchSize:       500,
+		BatchSize:       scanner.DefaultBatchSize,
 		FinalizeTimeout: 10 * time.Second,
 	})
 	if err != nil {

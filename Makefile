@@ -58,7 +58,10 @@ test-e2e:
 	tests/e2e/runtime_smoke.sh
 
 spike-capacity:
-	FOLIOPATH_CAPACITY=1 GOMAXPROCS=4 $(GO) test -timeout=20m -count=1 -run '^Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)$$' -v ./tests/performance
+	FOLIOPATH_CAPACITY=1 FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 GOMAXPROCS=4 \
+		$(GO) test -timeout=20m -count=1 \
+		-run '^Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)$$' \
+		-v ./tests/performance
 
 spike-vips:
 	cd spikes/fs03-vips && MALLOC_ARENA_MAX=2 timeout 2m $(GO) test -count=1 -v ./...

@@ -12,6 +12,7 @@ var (
 )
 
 const (
+	MaxActiveFullScans     = 256
 	startupLibraryPageSize = 64
 	startupCapacityRetry   = 25 * time.Millisecond
 )

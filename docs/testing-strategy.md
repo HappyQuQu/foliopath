@@ -90,12 +90,15 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   验证启动时按 ID 分页 admission/coalesce `startup` scan，并验证启动后才到期的 lease
   仍由周期恢复重新排队且最终收敛。架构测试固定 startup admission、恢复循环与 SQLite
   keyset owner。
+- S2-106 覆盖唯一 256 active/256 batch 边界、跨 SQLite 连接最后一个 admission 名额
+  竞态、2-worker 三媒体库公平消费、深目录/损坏拓扑和真实 SQLite 满页；失败记录稳定
+  `database_unavailable`、保留最后可靠 generation，解除限制后可完整恢复。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
-不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～104
-已完成目录/计数、媒体增量收敛与故障/重启恢复；容量矩阵、浏览器流程和发布网络边界仍在
-后续 Gate。
+不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～106
+已完成目录/计数、媒体增量收敛、故障/重启恢复和容量矩阵；扫描 Backend Ready 汇总、
+浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

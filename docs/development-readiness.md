@@ -8,8 +8,9 @@
 Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)也已结论为 `Go`，允许前端为
 7 个媒体库管理 operation 建立真实 client adapter；依赖扫描实际执行的产品流程继续等待
 `S2-107`。[扫描 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)允许
-`S2-102` 已完成有界 worker，`S2-103～105` 已完成全部可读目录、直接/递归计数、媒体
-fingerprint、成功后增量收敛及故障/重启恢复；当前进入 `S2-106` 容量与并发回归。
+`S2-102` 已完成有界 worker，`S2-103～106` 已完成全部可读目录、直接/递归计数、媒体
+fingerprint、成功后增量收敛、故障/重启恢复及容量并发回归；当前进入 `S2-107`
+Backend Ready 汇总。
 这些结论都不授权 Stage 3～5、共享预览、非回环监听或发布。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
@@ -27,7 +28,7 @@ root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 A
 Backend Ready Gate；安全目录选择、媒体库生命周期、manual scan admission 与异步移除
 handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。生产扫描 worker
 已消费 creation/startup scan，目录/计数、媒体增量收敛与故障恢复切片已完成，但完整扫描
-Backend Ready 仍待 S2-106～107；
+Backend Ready 仍待 S2-107；
 当前还没有可信代理配置、
 完整认证产品 UI、正式 Dockerfile、浏览器 E2E 或可发布镜像；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、

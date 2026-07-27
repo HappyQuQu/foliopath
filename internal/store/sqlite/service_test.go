@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -167,6 +168,122 @@ func TestScannerServiceRecordsFinalizationFailureWithoutCleanup(t *testing.T) {
 	}
 	if current.CurrentGeneration != 0 {
 		t.Fatalf("current generation after finalization failure = %d, want 0", current.CurrentGeneration)
+	}
+}
+
+func TestScannerServiceDatabaseFullPreservesReliableGenerationAndRecovers(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryRecord := createTestLibrary(t, store)
+	service, err := scanner.NewService(store, scanner.Config{BatchSize: 16})
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseline := &fakeWalker{
+		identity: scanner.RootIdentity{Device: 6, Inode: 60},
+		entries: []scanner.WalkEntry{
+			{RelativePath: "album", IsDirectory: true},
+			{RelativePath: "album/old.jpg", SizeBytes: 1},
+		},
+	}
+	if _, err := service.RunFullScan(context.Background(), scanner.FullScanRequest{
+		LibraryID: libraryRecord.ID,
+		Trigger:   scanner.TriggerCreation,
+		Walker:    baseline,
+	}); err != nil {
+		t.Fatalf("baseline RunFullScan() error = %v", err)
+	}
+
+	largeEntries := make([]scanner.WalkEntry, 1, 2_001)
+	largeEntries[0] = scanner.WalkEntry{RelativePath: "album", IsDirectory: true}
+	for index := 0; index < 2_000; index++ {
+		largeEntries = append(largeEntries, scanner.WalkEntry{
+			RelativePath: fmt.Sprintf("album/new-%04d-with-padding-for-pages.jpg", index),
+			SizeBytes:    1,
+		})
+	}
+	if _, err := store.db.ExecContext(
+		context.Background(),
+		"PRAGMA wal_checkpoint(TRUNCATE)",
+	); err != nil {
+		t.Fatal(err)
+	}
+	var pageCount int64
+	if err := store.db.QueryRowContext(
+		context.Background(),
+		"PRAGMA page_count",
+	).Scan(&pageCount); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(
+		context.Background(),
+		fmt.Sprintf("PRAGMA max_page_count = %d", pageCount),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	failed, scanErr := service.RunFullScan(
+		context.Background(),
+		scanner.FullScanRequest{
+			LibraryID: libraryRecord.ID,
+			Trigger:   scanner.TriggerManual,
+			Walker: &fakeWalker{
+				identity: scanner.RootIdentity{Device: 6, Inode: 60},
+				entries:  largeEntries,
+			},
+		},
+	)
+	if scanErr == nil {
+		t.Fatal("RunFullScan() succeeded with SQLite page growth disabled")
+	}
+	if failed.Status != scanner.RunStatusFailed || failed.ErrorCode != "database_unavailable" {
+		t.Fatalf("database-full run = %#v", failed)
+	}
+	current, err := store.GetLibrary(context.Background(), libraryRecord.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.CurrentGeneration != 1 {
+		t.Fatalf("generation after database-full scan = %d, want 1", current.CurrentGeneration)
+	}
+	var oldAssets int
+	if err := store.db.QueryRowContext(context.Background(), `
+		SELECT COUNT(*)
+		FROM assets
+		WHERE library_id = ? AND relative_path = 'album/old.jpg'`,
+		libraryRecord.ID,
+	).Scan(&oldAssets); err != nil {
+		t.Fatal(err)
+	}
+	if oldAssets != 1 {
+		t.Fatal("database-full scan removed the last reliable asset")
+	}
+
+	if _, err := store.db.ExecContext(
+		context.Background(),
+		"PRAGMA max_page_count = 1073741823",
+	); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := service.RunFullScan(
+		context.Background(),
+		scanner.FullScanRequest{
+			LibraryID: libraryRecord.ID,
+			Trigger:   scanner.TriggerManual,
+			Walker: &fakeWalker{
+				identity: scanner.RootIdentity{Device: 6, Inode: 60},
+				entries:  largeEntries,
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("recovery RunFullScan() error = %v", err)
+	}
+	if recovered.Status != scanner.RunStatusSucceeded || recovered.Generation != 3 {
+		t.Fatalf("recovered run = %#v", recovered)
+	}
+	_, assets := countCatalog(t, store, libraryRecord.ID)
+	if assets != 2_000 {
+		t.Fatalf("assets after database-full recovery = %d, want 2000", assets)
 	}
 }
 
