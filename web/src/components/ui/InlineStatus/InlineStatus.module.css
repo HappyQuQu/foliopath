@@ -1,0 +1,36 @@
+.status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface-subtle);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-normal);
+}
+
+.status > svg {
+  margin-top: 0.0625rem;
+  color: var(--color-accent);
+}
+
+.danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.danger > svg {
+  color: var(--color-danger);
+}
+
+.close {
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  margin: calc(var(--space-1) * -1);
+  border-color: transparent;
+  background: transparent;
+}

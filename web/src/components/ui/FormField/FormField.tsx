@@ -4,9 +4,9 @@ import { Input } from "./Input";
 import styles from "./FormField.module.css";
 
 export interface FormFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
-  description?: string;
-  error?: string;
-  id?: string;
+  description?: string | undefined;
+  error?: string | undefined;
+  id?: string | undefined;
   label: string;
 }
 

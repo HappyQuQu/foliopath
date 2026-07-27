@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { AppErrorBoundary } from "./app/AppErrorBoundary";
 import { AppProviders } from "./app/AppProviders";
-import { applyInitialTheme } from "./app/theme/ThemeProvider";
+import { applyInitialTheme } from "./lib/theme/ThemeProvider";
 import "./styles/global.css";
 
 applyInitialTheme();

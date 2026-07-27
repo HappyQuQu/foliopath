@@ -6,8 +6,9 @@
 React/Vite 工程基础、严格 TypeScript、OpenAPI 生成 client、Provider、全局安全错误
 边界、主题/token、首批共享原语、Storybook 和组件测试，并由
 `npm run check:architecture` 执行首批依赖/样式边界检查。认证 `Backend Ready`
-尚未通过，因此产品路由、认证提交和其他业务 feature 仍未注册；下文其余目标目录、
-门禁和能力不得描述为已经落地。
+通过后，首次管理员设置、登录、会话恢复、退出、通用账户设置和安全不可用页已通过
+领域 API adapter 注册为首个产品纵向切片；媒体库、扫描、浏览、搜索和查看器仍按各自
+前端清单与 Gate 逐项落地，不得描述为已经实现。
 
 本文不改变已确认的产品范围和 UI 行为。信息架构、响应式、可访问性、状态与
 动效以 [`docs/ui-design.md`](../ui-design.md) 为准；运行拓扑和技术栈以

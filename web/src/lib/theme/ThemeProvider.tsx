@@ -12,8 +12,8 @@ import {
   readThemePreference,
   writeThemePreference,
   type ThemePreference,
-} from "../../lib/storage/preferences";
-import { resolveTheme, type ResolvedTheme } from "../../lib/theme/resolve-theme";
+} from "../storage/preferences";
+import { resolveTheme, type ResolvedTheme } from "./resolve-theme";
 
 const darkModeQuery = "(prefers-color-scheme: dark)";
 

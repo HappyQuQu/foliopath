@@ -1,14 +1,15 @@
-# Web engineering foundation
+# FolioPath Web
 
-This directory contains the production React/Vite engineering foundation: the
-generated OpenAPI contract, single typed HTTP client boundary, application providers,
-global safe error boundary, theme/token system, shared UI primitives, component
-workbench, and focused tests.
+This directory contains the production React/Vite application. The current implemented
+vertical slice includes the generated OpenAPI contract, single typed HTTP client
+boundary, application providers, global safe error boundary, theme/token system,
+shared UI primitives, component workbench, and the real administrator setup, login,
+session recovery, logout, and general account settings flow.
 
-It is not yet a product UI. Product routes and business features remain intentionally
-unregistered until the applicable Backend Ready Gate is recorded. React Router is
-installed for that next gated step; do not introduce mock success paths to activate
-routes early.
+The remaining library, scan, browse, search, preview, and viewer routes are reserved in
+`src/routes/paths.ts` and are implemented only after their corresponding frontend slice
+starts. Product code must not introduce mock success paths: API behavior comes through
+the generated client and hand-written domain adapters under `src/lib/api`.
 
 Install and verify:
 

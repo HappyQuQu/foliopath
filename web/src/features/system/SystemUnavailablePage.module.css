@@ -1,0 +1,64 @@
+.card {
+  width: min(var(--size-auth-card), 100%);
+  justify-self: center;
+  padding: clamp(var(--space-8), 5vw, var(--space-12));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: calc(var(--radius-3) + var(--radius-1));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+}
+
+.icon {
+  width: var(--size-auth-mark);
+  height: var(--size-auth-mark);
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-6);
+  color: var(--color-accent);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: calc(var(--radius-3) + var(--radius-1));
+  background: var(--color-accent-soft);
+}
+
+.eyebrow {
+  margin: var(--space-0) var(--space-0) var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  margin: var(--space-0);
+  font-size: clamp(var(--font-size-5), 4vw, var(--font-size-6));
+  letter-spacing: -0.035em;
+}
+
+.message {
+  margin: var(--space-3) var(--space-0) var(--space-6);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+}
+
+.safety {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface-subtle);
+}
+
+.safety span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+@media (max-width: 30rem) {
+  .card {
+    padding: var(--space-6);
+    box-shadow: var(--shadow-1);
+  }
+}

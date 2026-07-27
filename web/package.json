@@ -23,6 +23,7 @@
     "check": "npm run generate:check && npm run check:architecture && npm run check:types && npm run test && npm run build:storybook"
   },
   "dependencies": {
+    "@phosphor-icons/react": "2.1.10",
     "@tanstack/react-query": "5.101.4",
     "openapi-fetch": "0.17.0",
     "react": "19.2.8",
