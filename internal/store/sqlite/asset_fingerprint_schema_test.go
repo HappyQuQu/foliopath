@@ -76,6 +76,26 @@ func TestAssetFingerprintMigrationBackfillsVersionFiveCatalog(t *testing.T) {
 	if jobFingerprint != fingerprint || jobStatus != "queued" {
 		t.Fatalf("backfilled media job = %q, %q", jobFingerprint, jobStatus)
 	}
+	var searchName, searchPath string
+	if err := store.db.QueryRowContext(ctx, `
+        SELECT search_name_key, search_path_key
+        FROM assets WHERE id = 1`,
+	).Scan(&searchName, &searchPath); err != nil {
+		t.Fatal(err)
+	}
+	if searchName != "photo.jpg" || searchPath != "photo.jpg" {
+		t.Fatalf("backfilled search keys = %q, %q", searchName, searchPath)
+	}
+	var indexedID int64
+	if err := store.db.QueryRowContext(ctx, `
+        SELECT rowid FROM asset_search
+        WHERE asset_search MATCH '"photo"'`,
+	).Scan(&indexedID); err != nil {
+		t.Fatal(err)
+	}
+	if indexedID != 1 {
+		t.Fatalf("FTS rowid = %d, want 1", indexedID)
+	}
 	var version int64
 	if err := store.db.QueryRowContext(
 		ctx,
@@ -83,7 +103,7 @@ func TestAssetFingerprintMigrationBackfillsVersionFiveCatalog(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 9 {
-		t.Fatalf("migration version = %d, want 9", version)
+	if version != 10 {
+		t.Fatalf("migration version = %d, want 10", version)
 	}
 }

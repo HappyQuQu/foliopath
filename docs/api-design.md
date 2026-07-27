@@ -331,9 +331,10 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
 - 离线媒体库仍参与搜索并返回保留索引，同时由 `sourceAvailability` 表达不可访问。任何
   fingerprint/revision 不匹配均返回 `invalid_cursor`，不能静默退回第一页。
 
-这是 Contract Ready，不表示 FTS、数据迁移、查询 adapter 或 HTTP 搜索已经实现。S4-002
-必须用自动 fixture 固定中文、英文、大小写、组合字符、短查询、标点字面量、三种 scope、
-时间边界、离线和 cursor 稳定性，之后 S4-003 才能授予搜索 Backend Ready。
+S4-002 已实现 migration 10、catalog 查询模型、SQLite FTS/keyset、认证 HTTP 与真实
+composition，并用自动 fixture 固定中文、英文、大小写、组合字符、短查询、标点字面量、
+三种 scope、时间边界、离线和 cursor 稳定性。当前仍只达到 Implemented：S4-003 必须完成
+约 10 万媒体容量、扫描并发、取消/重建扩展矩阵和最终审计后，才能授予搜索 Backend Ready。
 
 ### 媒体详情与内容
 

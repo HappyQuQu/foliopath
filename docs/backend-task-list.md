@@ -6,7 +6,7 @@
 - 当前阶段：Stage 4 搜索与媒体内容后端；Stage 3 浏览与缩略图 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：`S4-002` SQLite 搜索、keyset 与离线语义实现
+- 当前任务：`S4-003` 搜索正确性、容量与 Backend Ready Gate
 - 授权边界：[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)和
   [扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)已完成后端交接；
   Stage 3 也已通过浏览/缩略图 Backend Ready；搜索尚未达到 Backend Ready
@@ -216,7 +216,12 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
     三种 scope、kind 与 mtime 半开区间、无 relevance 的稳定 tuple、库内 generation 和
     跨库 catalog revision cursor、离线保留及逐状态错误。只授权进入 S4-002，不表示搜索
     handler、FTS migration、Backend Ready 或前端集成已经完成。
-- [ ] `S4-002` 实现 SQLite FTS/keyset 搜索、稳定排序、取消和离线语义。
+- [x] `S4-002` 实现 SQLite FTS/keyset 搜索、稳定排序、取消和离线语义。
+  - 完成证据：[S4-002 搜索与 keyset 实现记录](gates/MVP-2026-07-23/s4-search-keyset.md)；
+    migration 10、catalog profile/scope owner、trigram FTS 候选与精确 `instr` 语义、
+    1～2 字符 fallback、库内 generation/跨库 revision cursor、mtime/kind、离线结果、
+    认证 HTTP 和真实 composition 已由自动测试固定。当前进入 S4-003；尚未完成 100k
+    容量/并发 Gate，因此搜索仍不是 Backend Ready，前端不得接入。
 - [ ] `S4-003` 完成搜索后端正确性、容量和 `Backend Ready` Gate。
 - [ ] `S4-005` 固定并实现资产详情、原内容、HEAD、单 Range、条件请求和 416 契约。
 - [ ] `S4-005B` 覆盖认证、路径边界、Range、取消、损坏/离线资产并记录媒体内容

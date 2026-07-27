@@ -6,10 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
+
+func (s *Store) ResolveGlobalCatalogRevision(ctx context.Context) (int64, error) {
+	var revision int64
+	if err := s.db.QueryRowContext(ctx, `
+        SELECT revision
+        FROM catalog_search_state
+        WHERE singleton_key = 1`).Scan(&revision); err != nil {
+		return 0, fmt.Errorf("resolve global catalog revision: %w", err)
+	}
+	if revision < 1 {
+		return 0, errors.New("global catalog revision is invalid")
+	}
+	return revision, nil
+}
 
 func (s *Store) ResolveScope(
 	ctx context.Context,
@@ -234,22 +249,41 @@ func (s *Store) ListAssetPage(
 	ctx context.Context,
 	params catalog.AssetListParams,
 ) ([]catalog.Asset, error) {
-	if params.Query.Scope.LibraryID <= 0 || params.Query.Scope.DirectoryID < 0 ||
-		params.Limit < 1 || params.Limit > catalog.MaxPageSize+1 ||
+	if params.Limit < 1 || params.Limit > catalog.MaxPageSize+1 ||
 		(params.Query.Sort != catalog.SortName && params.Query.Sort != catalog.SortModifiedAt) ||
 		(params.Query.Order != catalog.OrderAsc && params.Query.Order != catalog.OrderDesc) {
 		return nil, catalog.ErrInvalidQuery
 	}
-	if params.Query.SearchQuery != "" {
-		return nil, catalog.ErrSearchUnavailable
+	switch params.Query.ScopeKind {
+	case "", catalog.ScopeDirectory:
+		if params.Query.Scope.LibraryID <= 0 || params.Query.Scope.DirectoryID < 0 {
+			return nil, catalog.ErrInvalidQuery
+		}
+	case catalog.ScopeLibrary:
+		if params.Query.Scope.LibraryID <= 0 || len(params.Query.SearchTerms) == 0 {
+			return nil, catalog.ErrInvalidQuery
+		}
+	case catalog.ScopeGlobal:
+		if params.Query.Scope.LibraryID != 0 || params.Query.CatalogRevision < 1 ||
+			len(params.Query.SearchTerms) == 0 || params.Query.Recursive {
+			return nil, catalog.ErrInvalidQuery
+		}
+	default:
+		return nil, catalog.ErrInvalidQuery
 	}
-	if params.Query.Scope.DirectoryID == 0 {
+	if params.Query.ModifiedFromNS != nil && params.Query.ModifiedBeforeNS != nil &&
+		*params.Query.ModifiedFromNS >= *params.Query.ModifiedBeforeNS {
+		return nil, catalog.ErrInvalidQuery
+	}
+	if (params.Query.ScopeKind == "" || params.Query.ScopeKind == catalog.ScopeDirectory) &&
+		params.Query.Scope.DirectoryID == 0 {
 		return []catalog.Asset{}, nil
 	}
 
 	var builder strings.Builder
-	args := make([]any, 0, 24)
-	if params.Query.Recursive && params.Query.Scope.CanonicalDirectoryID != 0 {
+	args := make([]any, 0, 40)
+	if (params.Query.ScopeKind == "" || params.Query.ScopeKind == catalog.ScopeDirectory) &&
+		params.Query.Recursive && params.Query.Scope.CanonicalDirectoryID != 0 {
 		builder.WriteString(`
         WITH RECURSIVE subtree(id) AS (
             SELECT ?
@@ -267,18 +301,40 @@ func (s *Store) ListAssetPage(
                a.size_bytes, a.mtime_ns, a.source_fingerprint,
                a.width, a.height, a.duration_ms, a.probe_status,
                a.probe_error_code, a.playback_status,
-               t.status, t.error_code
+               t.status, t.error_code, l.status
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
-        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
-        WHERE a.library_id = ?`)
-	args = append(args, params.Query.Scope.LibraryID)
-	switch {
-	case !params.Query.Recursive:
-		builder.WriteString(` AND a.directory_id = ?`)
-		args = append(args, params.Query.Scope.DirectoryID)
-	case params.Query.Scope.CanonicalDirectoryID != 0:
-		builder.WriteString(` AND a.directory_id IN (SELECT id FROM subtree)`)
+        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'`)
+	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" {
+		builder.WriteString(`
+        JOIN asset_search ON asset_search.rowid = a.id
+        WHERE asset_search MATCH ?`)
+		args = append(args, anchor)
+	} else {
+		builder.WriteString(`
+        WHERE 1 = 1`)
+	}
+	switch params.Query.ScopeKind {
+	case catalog.ScopeLibrary:
+		builder.WriteString(` AND a.library_id = ?`)
+		args = append(args, params.Query.Scope.LibraryID)
+	case "", catalog.ScopeDirectory:
+		builder.WriteString(` AND a.library_id = ?`)
+		args = append(args, params.Query.Scope.LibraryID)
+		if !params.Query.Recursive {
+			builder.WriteString(` AND a.directory_id = ?`)
+			args = append(args, params.Query.Scope.DirectoryID)
+		} else if params.Query.Scope.CanonicalDirectoryID != 0 {
+			builder.WriteString(` AND a.directory_id IN (SELECT id FROM subtree)`)
+		}
+	}
+	for _, term := range params.Query.SearchTerms {
+		builder.WriteString(`
+          AND (
+            instr(a.search_name_key, ?) > 0
+            OR instr(a.search_path_key, ?) > 0
+          )`)
+		args = append(args, term, term)
 	}
 	if len(params.Query.Kinds) > 0 {
 		builder.WriteString(` AND a.kind IN (`)
@@ -290,6 +346,14 @@ func (s *Store) ListAssetPage(
 			args = append(args, string(kind))
 		}
 		builder.WriteByte(')')
+	}
+	if params.Query.ModifiedFromNS != nil {
+		builder.WriteString(` AND a.mtime_ns >= ?`)
+		args = append(args, *params.Query.ModifiedFromNS)
+	}
+	if params.Query.ModifiedBeforeNS != nil {
+		builder.WriteString(` AND a.mtime_ns < ?`)
+		args = append(args, *params.Query.ModifiedBeforeNS)
 	}
 	if params.After != nil {
 		if params.After.ID <= 0 {
@@ -309,7 +373,7 @@ func (s *Store) ListAssetPage(
 	items := make([]catalog.Asset, 0, params.Limit)
 	for rows.Next() {
 		var item catalog.Asset
-		var kind, probeStatus, playbackStatus string
+		var kind, probeStatus, playbackStatus, libraryStatus string
 		var width, height, durationMS sql.NullInt64
 		var probeError, thumbnailStatus, thumbnailError sql.NullString
 		if err := rows.Scan(
@@ -319,12 +383,15 @@ func (s *Store) ListAssetPage(
 			&item.MIMEType, &item.SizeBytes, &item.ModifiedAtNS,
 			&item.SourceFingerprint, &width, &height, &durationMS,
 			&probeStatus, &probeError, &playbackStatus,
-			&thumbnailStatus, &thumbnailError,
+			&thumbnailStatus, &thumbnailError, &libraryStatus,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog asset: %w", err)
 		}
 		item.Kind = catalog.AssetKind(kind)
-		item.Availability = params.Query.Scope.Availability
+		item.Availability = catalog.SourceAvailable
+		if libraryStatus == "offline" {
+			item.Availability = catalog.SourceOffline
+		}
 		item.ProbeStatus = media.ProbeStatus(probeStatus)
 		item.PlaybackStatus = media.PlaybackStatus(playbackStatus)
 		if width.Valid {
@@ -355,6 +422,22 @@ func (s *Store) ListAssetPage(
 		return nil, fmt.Errorf("iterate catalog assets: %w", err)
 	}
 	return items, nil
+}
+
+func ftsAnchor(terms []string) string {
+	longest := ""
+	for _, term := range terms {
+		if strings.ContainsRune(term, '"') || utf8.RuneCountInString(term) < 3 {
+			continue
+		}
+		if utf8.RuneCountInString(term) > utf8.RuneCountInString(longest) {
+			longest = term
+		}
+	}
+	if longest == "" {
+		return ""
+	}
+	return `"` + longest + `"`
 }
 
 func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, error) {
@@ -441,6 +524,33 @@ func appendAssetKeyset(
 		*args = append(*args, after.ModifiedAtNS, after.ModifiedAtNS, after.ID)
 		return
 	}
+	if query.ScopeKind == catalog.ScopeGlobal {
+		builder.WriteString(`
+          AND (
+            a.natural_name_key ` + operator + ` ?
+            OR (a.natural_name_key = ? AND a.name ` + operator + ` ?)
+            OR (
+                a.natural_name_key = ? AND a.name = ?
+                AND a.library_id ` + operator + ` ?
+            )
+            OR (
+                a.natural_name_key = ? AND a.name = ? AND a.library_id = ?
+                AND a.relative_path ` + operator + ` ?
+            )
+            OR (
+                a.natural_name_key = ? AND a.name = ? AND a.library_id = ?
+                AND a.relative_path = ? AND a.id ` + operator + ` ?
+            )
+          )`)
+		*args = append(*args,
+			after.NaturalNameKey,
+			after.NaturalNameKey, after.Name,
+			after.NaturalNameKey, after.Name, after.LibraryID,
+			after.NaturalNameKey, after.Name, after.LibraryID, after.RelativePath,
+			after.NaturalNameKey, after.Name, after.LibraryID, after.RelativePath, after.ID,
+		)
+		return
+	}
 	builder.WriteString(`
           AND (
             a.natural_name_key ` + operator + ` ?
@@ -466,6 +576,16 @@ func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	}
 	if query.Sort == catalog.SortModifiedAt {
 		builder.WriteString(` ORDER BY a.mtime_ns` + direction + `, a.id` + direction)
+		return
+	}
+	if query.ScopeKind == catalog.ScopeGlobal {
+		builder.WriteString(
+			` ORDER BY a.natural_name_key` + direction +
+				`, a.name` + direction +
+				`, a.library_id` + direction +
+				`, a.relative_path` + direction +
+				`, a.id` + direction,
+		)
 		return
 	}
 	builder.WriteString(

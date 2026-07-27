@@ -425,6 +425,27 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 	if len(assetPage.Items) != 3 || assetPage.Items[0].ID == "" {
 		t.Fatalf("indexed asset page = %#v", assetPage)
 	}
+	searchAssets := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/assets?q=DEEP&kind=video&limit=20",
+		"", setup.Cookie, "",
+	)
+	if searchAssets.StatusCode != http.StatusOK {
+		t.Fatalf("indexed search response = %#v", searchAssets)
+	}
+	var searchPage struct {
+		Items []struct {
+			ID           string `json:"id"`
+			RelativePath string `json:"relativePath"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(searchAssets.Body), &searchPage); err != nil {
+		t.Fatal(err)
+	}
+	if len(searchPage.Items) != 1 ||
+		searchPage.Items[0].RelativePath != "album/nested/deep.MOV" {
+		t.Fatalf("indexed search page = %#v", searchPage)
+	}
 	assetDetail := runtimeAuthenticationRequest(
 		t, client, address, http.MethodGet,
 		"/api/v1/assets/"+assetPage.Items[0].ID, "", setup.Cookie, "",

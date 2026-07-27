@@ -1196,6 +1196,111 @@ func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
 	}
 }
 
+func TestSearchOwnershipAndFTSBoundaryAreCentralized(t *testing.T) {
+	root := repositoryRoot(t)
+	capabilityPath := filepath.Join(root, "internal", "catalog", "catalog.go")
+	apiPath := filepath.Join(root, "internal", "api", "catalog_http.go")
+	adapterPath := filepath.Join(root, "internal", "store", "sqlite", "catalog.go")
+	scannerPath := filepath.Join(root, "internal", "store", "sqlite", "scanner.go")
+	migrationPath := filepath.Join(root, "migrations", "00010_catalog_search.sql")
+
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: capabilityPath,
+			contents: []string{
+				"func NormalizeSearchTerms",
+				"func SearchTextKey",
+				"func (service *Service) SearchAssets",
+				"searchProfileV1",
+			},
+		},
+		{
+			path: apiPath,
+			contents: []string{
+				`GET /api/v1/assets`,
+				"parseGlobalSearchQuery",
+				"parseUTCInstant",
+			},
+		},
+		{
+			path: adapterPath,
+			contents: []string{
+				"asset_search MATCH ?",
+				"instr(a.search_name_key, ?)",
+				"ResolveGlobalCatalogRevision",
+			},
+		},
+		{
+			path: scannerPath,
+			contents: []string{
+				"catalog.SearchTextKey(entry.Name)",
+				"catalog.SearchTextKey(entry.RelativePath)",
+			},
+		},
+		{
+			path: migrationPath,
+			contents: []string{
+				"CREATE VIRTUAL TABLE asset_search USING fts5",
+				"tokenize='trigram case_sensitive 1'",
+				"CREATE TABLE catalog_search_state",
+				"catalog_revision_generation_publish",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing canonical search boundary %q", required.path, content)
+			}
+		}
+	}
+
+	apiSource, err := os.ReadFile(apiPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{" MATCH ", "cases.Fold", "norm.NFKC", "/internal/files"} {
+		if strings.Contains(string(apiSource), forbidden) {
+			t.Errorf("catalog HTTP adapter owns forbidden search behavior %q", forbidden)
+		}
+	}
+
+	for _, symbol := range []string{"func NormalizeSearchTerms", "func SearchTextKey"} {
+		owners := 0
+		if err := filepath.WalkDir(filepath.Join(root, "internal"), func(
+			path string,
+			entry fs.DirEntry,
+			walkErr error,
+		) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			source, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if strings.Contains(string(source), symbol) {
+				owners++
+			}
+			return nil
+		}); err != nil {
+			t.Fatalf("inspect search ownership: %v", err)
+		}
+		if owners != 1 {
+			t.Errorf("%s owner count = %d, want 1", symbol, owners)
+		}
+	}
+}
+
 func TestSQLiteProductionQueriesDoNotUseOffsetPagination(t *testing.T) {
 	root := repositoryRoot(t)
 	storeRoot := filepath.Join(root, "internal", "store", "sqlite")

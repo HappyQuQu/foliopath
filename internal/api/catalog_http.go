@@ -17,6 +17,7 @@ type CatalogService interface {
 	ListDirectories(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
 	GetDirectory(context.Context, int64) (catalog.DirectoryDetail, error)
 	ListAssets(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
+	SearchAssets(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
 	GetAsset(context.Context, int64) (catalog.Asset, error)
 }
 
@@ -159,15 +160,24 @@ func registerCatalogRoutes(mux *http.ServeMux, service CatalogService) {
 			writeCatalogError(writer, request, err)
 			return
 		}
-		items := make([]assetResponse, 0, len(page.Items))
-		for _, item := range page.Items {
-			items = append(items, assetWire(item))
+		writeAssetPage(writer, page)
+	})
+
+	mux.HandleFunc("GET /api/v1/assets", func(
+		writer http.ResponseWriter,
+		request *http.Request,
+	) {
+		query, err := parseGlobalSearchQuery(request.URL.RawQuery)
+		if err != nil {
+			writeCatalogError(writer, request, err)
+			return
 		}
-		var next *string
-		if page.NextCursor != "" {
-			next = &page.NextCursor
+		page, err := service.SearchAssets(request.Context(), query)
+		if err != nil {
+			writeCatalogError(writer, request, err)
+			return
 		}
-		writeJSON(writer, http.StatusOK, assetPageResponse{Items: items, NextCursor: next})
+		writeAssetPage(writer, page)
 	})
 
 	mux.HandleFunc("GET /api/v1/assets/{assetId}", func(
@@ -188,6 +198,18 @@ func registerCatalogRoutes(mux *http.ServeMux, service CatalogService) {
 	})
 }
 
+func writeAssetPage(writer http.ResponseWriter, page catalog.AssetPage) {
+	items := make([]assetResponse, 0, len(page.Items))
+	for _, item := range page.Items {
+		items = append(items, assetWire(item))
+	}
+	var next *string
+	if page.NextCursor != "" {
+		next = &page.NextCursor
+	}
+	writeJSON(writer, http.StatusOK, assetPageResponse{Items: items, NextCursor: next})
+}
+
 func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 	values, err := url.ParseQuery(raw)
 	if err != nil {
@@ -195,6 +217,7 @@ func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 	}
 	allowed := map[string]bool{
 		"directoryId": true, "recursive": true, "q": true, "kind": true,
+		"modifiedFrom": true, "modifiedBefore": true,
 		"sort": true, "order": true, "cursor": true, "limit": true,
 	}
 	for key, entries := range values {
@@ -208,12 +231,14 @@ func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 		if err != nil {
 			return catalog.AssetRequest{}, catalog.ErrInvalidQuery
 		}
+		request.DirectorySet = true
 	}
 	if value, ok := values["recursive"]; ok {
 		if value[0] != "true" && value[0] != "false" {
 			return catalog.AssetRequest{}, catalog.ErrInvalidQuery
 		}
 		request.Recursive = value[0] == "true"
+		request.RecursiveSet = true
 	}
 	if value, ok := values["q"]; ok {
 		request.SearchQuery = &value[0]
@@ -224,6 +249,18 @@ func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 		}
 		for _, item := range strings.Split(value[0], ",") {
 			request.Kinds = append(request.Kinds, catalog.AssetKind(item))
+		}
+	}
+	if value, ok := values["modifiedFrom"]; ok {
+		request.ModifiedFromNS, err = parseUTCInstant(value[0])
+		if err != nil {
+			return catalog.AssetRequest{}, err
+		}
+	}
+	if value, ok := values["modifiedBefore"]; ok {
+		request.ModifiedBeforeNS, err = parseUTCInstant(value[0])
+		if err != nil {
+			return catalog.AssetRequest{}, err
 		}
 	}
 	if value, ok := values["sort"]; ok {
@@ -244,7 +281,41 @@ func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 			return catalog.AssetRequest{}, catalog.ErrInvalidQuery
 		}
 	}
+	if request.SearchQuery != nil && !request.DirectorySet && request.RecursiveSet {
+		return catalog.AssetRequest{}, catalog.ErrInvalidQuery
+	}
 	return request, nil
+}
+
+func parseGlobalSearchQuery(raw string) (catalog.GlobalSearchRequest, error) {
+	parsed, err := parseAssetListQuery(raw)
+	if err != nil {
+		return catalog.GlobalSearchRequest{}, err
+	}
+	if parsed.SearchQuery == nil || parsed.DirectorySet || parsed.RecursiveSet {
+		return catalog.GlobalSearchRequest{}, catalog.ErrInvalidQuery
+	}
+	return catalog.GlobalSearchRequest{
+		SearchQuery: *parsed.SearchQuery, Kinds: parsed.Kinds,
+		ModifiedFromNS: parsed.ModifiedFromNS, ModifiedBeforeNS: parsed.ModifiedBeforeNS,
+		Sort: parsed.Sort, Order: parsed.Order, Cursor: parsed.Cursor, Limit: parsed.Limit,
+	}, nil
+}
+
+func parseUTCInstant(value string) (*int64, error) {
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil, catalog.ErrInvalidQuery
+	}
+	_, offset := parsed.Zone()
+	if offset != 0 {
+		return nil, catalog.ErrInvalidQuery
+	}
+	nanoseconds := parsed.UnixNano()
+	if !time.Unix(0, nanoseconds).UTC().Equal(parsed.UTC()) {
+		return nil, catalog.ErrInvalidQuery
+	}
+	return &nanoseconds, nil
 }
 
 func parseDirectoryListQuery(raw string) (catalog.DirectoryRequest, error) {
@@ -357,8 +428,7 @@ func writeCatalogError(writer http.ResponseWriter, request *http.Request, err er
 		writePublicError(writer, request, http.StatusNotFound, "asset_not_found", "The media item was not found.")
 	case errors.Is(err, catalog.ErrInvalidCursor):
 		writePublicError(writer, request, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid.")
-	case errors.Is(err, catalog.ErrInvalidQuery),
-		errors.Is(err, catalog.ErrSearchUnavailable):
+	case errors.Is(err, catalog.ErrInvalidQuery):
 		writePublicError(writer, request, http.StatusBadRequest, codeInvalidRequest, "The request is invalid.")
 	default:
 		writeInternalError(writer, request)

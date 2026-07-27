@@ -106,6 +106,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.backfillCatalogSortKeys(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.backfillCatalogSearchKeys(ctx); err != nil {
+		return closeOnError(err)
+	}
 	return store, nil
 }
 
@@ -214,6 +217,62 @@ func (s *Store) backfillCatalogTableSortKeys(ctx context.Context, table string) 
 					catalog.NaturalNameKey(item.name), item.id,
 				); err != nil {
 					return fmt.Errorf("backfill %s sort key: %w", table, err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *Store) backfillCatalogSearchKeys(ctx context.Context) error {
+	type missingKey struct {
+		id           int64
+		name         string
+		relativePath string
+	}
+	for {
+		rows, err := s.db.QueryContext(ctx, `
+            SELECT id, name, relative_path
+            FROM assets
+            WHERE search_name_key = '' OR search_path_key = ''
+            ORDER BY id
+            LIMIT ?`,
+			s.maxBatchSize,
+		)
+		if err != nil {
+			return fmt.Errorf("find missing catalog search keys: %w", err)
+		}
+		missing := make([]missingKey, 0, s.maxBatchSize)
+		for rows.Next() {
+			var item missingKey
+			if err := rows.Scan(&item.id, &item.name, &item.relativePath); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("read missing catalog search key: %w", err)
+			}
+			missing = append(missing, item)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close missing catalog search keys: %w", err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate missing catalog search keys: %w", err)
+		}
+		if len(missing) == 0 {
+			return nil
+		}
+		if err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+			for _, item := range missing {
+				if _, err := tx.ExecContext(ctx, `
+                    UPDATE assets
+                    SET search_name_key = ?, search_path_key = ?
+                    WHERE id = ?`,
+					catalog.SearchTextKey(item.name),
+					catalog.SearchTextKey(item.relativePath),
+					item.id,
+				); err != nil {
+					return fmt.Errorf("backfill catalog search key: %w", err)
 				}
 			}
 			return nil

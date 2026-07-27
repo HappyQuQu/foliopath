@@ -71,6 +71,36 @@ func seedBrowseCatalog(t *testing.T, store *Store) int64 {
 	return record.ID
 }
 
+func seedSearchCatalog(
+	t *testing.T,
+	store *Store,
+	name, root string,
+	entries []scanner.CatalogEntry,
+) int64 {
+	t.Helper()
+	service, err := library.NewService(store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := service.Create(context.Background(), name, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := store.BeginFullScan(context.Background(), record.ID, scanner.TriggerManual)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.UpsertCatalogBatch(context.Background(), run.ID, entries); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CompleteFullScan(
+		context.Background(), run.ID, scanner.SkipCounts{},
+	); err != nil {
+		t.Fatal(err)
+	}
+	return record.ID
+}
+
 func catalogServiceForStore(t *testing.T, store *Store) *catalog.Service {
 	t.Helper()
 	service, err := catalog.NewService(
@@ -427,6 +457,213 @@ func TestCatalogAssetKeysetSupportsDirectRecursiveFilterAndDirection(t *testing.
 	}
 	if !slices.Equal(gotMTime, []int64{10, 20, 30, 40}) {
 		t.Fatalf("ascending modified times = %v", gotMTime)
+	}
+}
+
+func TestCatalogSearchSupportsUnicodeScopesFiltersAndGlobalRevision(t *testing.T) {
+	store, _ := openTestStore(t)
+	firstLibraryID := seedSearchCatalog(t, store, "第一库", "first", []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryDirectory, RelativePath: "Trips",
+			ParentPath: "", Name: "Trips", MTimeNS: 1,
+		},
+		{
+			Kind: scanner.CatalogEntryDirectory, RelativePath: "Trips/Nested",
+			ParentPath: "Trips", Name: "Nested", MTimeNS: 2,
+		},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "Trips/上海-Photo.JPG",
+			ParentPath: "Trips", Name: "上海-Photo.JPG", MTimeNS: 100,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 10,
+		},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "Trips/Nested/Photo-Straße.jpg",
+			ParentPath: "Trips/Nested", Name: "Photo-Straße.jpg", MTimeNS: 200,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 20,
+		},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "100%_real.jpg",
+			ParentPath: "", Name: "100%_real.jpg", MTimeNS: 300,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 30,
+		},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "café.jpg",
+			ParentPath: "", Name: "café.jpg", MTimeNS: 400,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 40,
+		},
+	})
+	secondLibraryID := seedSearchCatalog(t, store, "第二库", "second", []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "上海-other.jpg",
+			ParentPath: "", Name: "上海-other.jpg", MTimeNS: 500,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 50,
+		},
+	})
+	service := catalogServiceForStore(t, store)
+
+	query := " 上海 PHOTO "
+	wholeLibrary, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, SearchQuery: &query,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wholeLibrary.Items) != 1 ||
+		wholeLibrary.Items[0].RelativePath != "Trips/上海-Photo.JPG" {
+		t.Fatalf("whole-library search = %#v", wholeLibrary)
+	}
+
+	var tripsID int64
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT id FROM directories
+        WHERE library_id = ? AND relative_path = 'Trips'`,
+		firstLibraryID,
+	).Scan(&tripsID); err != nil {
+		t.Fatal(err)
+	}
+	strasse := "STRASSE"
+	direct, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, DirectoryID: tripsID, DirectorySet: true,
+		SearchQuery: &strasse,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(direct.Items) != 0 {
+		t.Fatalf("direct directory search = %#v", direct)
+	}
+	recursive, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, DirectoryID: tripsID, DirectorySet: true,
+		Recursive: true, RecursiveSet: true, SearchQuery: &strasse,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recursive.Items) != 1 ||
+		recursive.Items[0].RelativePath != "Trips/Nested/Photo-Straße.jpg" {
+		t.Fatalf("recursive directory search = %#v", recursive)
+	}
+	pathAndName := "trips STRASSE"
+	mixedFields, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, SearchQuery: &pathAndName,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mixedFields.Items) != 1 ||
+		mixedFields.Items[0].RelativePath != "Trips/Nested/Photo-Straße.jpg" {
+		t.Fatalf("mixed-field AND search = %#v", mixedFields)
+	}
+
+	for search, want := range map[string]string{
+		"上":          "Trips/上海-Photo.JPG",
+		"%_":         "100%_real.jpg",
+		"cafe\u0301": "café.jpg",
+	} {
+		page, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+			LibraryID: firstLibraryID, SearchQuery: &search,
+		})
+		if err != nil {
+			t.Fatalf("search %q: %v", search, err)
+		}
+		if len(page.Items) != 1 || page.Items[0].RelativePath != want {
+			t.Fatalf("search %q page = %#v", search, page)
+		}
+	}
+	unaccented := "cafe"
+	page, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, SearchQuery: &unaccented,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 0 {
+		t.Fatalf("unaccented search = %#v", page)
+	}
+
+	from, before := int64(150), int64(250)
+	photo := "photo"
+	filtered, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: firstLibraryID, SearchQuery: &photo,
+		Kinds:          []catalog.AssetKind{catalog.KindImage},
+		ModifiedFromNS: &from, ModifiedBeforeNS: &before,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered.Items) != 1 ||
+		filtered.Items[0].RelativePath != "Trips/Nested/Photo-Straße.jpg" {
+		t.Fatalf("filtered search = %#v", filtered)
+	}
+
+	shanghai := "上海"
+	global, err := service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{
+		SearchQuery: shanghai, Limit: 1, Sort: catalog.SortName,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(global.Items) != 1 || global.NextCursor == "" {
+		t.Fatalf("global first page = %#v", global)
+	}
+	next, err := service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{
+		SearchQuery: shanghai, Limit: 1, Sort: catalog.SortName,
+		Cursor: global.NextCursor,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(next.Items) != 1 || next.Items[0].LibraryID == global.Items[0].LibraryID {
+		t.Fatalf("global second page = %#v", next)
+	}
+	otherQuery := "other"
+	if _, err := service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{
+		SearchQuery: otherQuery, Limit: 1, Sort: catalog.SortName,
+		Cursor: global.NextCursor,
+	}); !errors.Is(err, catalog.ErrInvalidCursor) {
+		t.Fatalf("cross-query global cursor error = %v", err)
+	}
+
+	if _, err := store.db.ExecContext(context.Background(), `
+        UPDATE libraries SET status = 'offline' WHERE id = ?`,
+		secondLibraryID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	offline, err := service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{
+		SearchQuery: shanghai,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundOffline := false
+	for _, item := range offline.Items {
+		if item.LibraryID == secondLibraryID {
+			foundOffline = item.Availability == catalog.SourceOffline
+		}
+	}
+	if !foundOffline {
+		t.Fatalf("offline global search = %#v", offline)
+	}
+
+	if _, err := store.db.ExecContext(context.Background(), `
+        UPDATE libraries SET current_generation = current_generation + 1 WHERE id = ?`,
+		secondLibraryID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{
+		SearchQuery: shanghai, Limit: 1, Sort: catalog.SortName,
+		Cursor: global.NextCursor,
+	}); !errors.Is(err, catalog.ErrInvalidCursor) {
+		t.Fatalf("advanced global revision cursor error = %v", err)
 	}
 }
 

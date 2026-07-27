@@ -400,8 +400,9 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
         INSERT INTO assets(
             library_id, directory_id, relative_path, name, kind, media_format,
             mime_type, size_bytes, mtime_ns, source_fingerprint,
-            natural_name_key, last_seen_generation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            natural_name_key, search_name_key, search_path_key,
+            last_seen_generation
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(library_id, relative_path) DO UPDATE SET
             directory_id = excluded.directory_id,
             name = excluded.name,
@@ -430,11 +431,16 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
                 ELSE assets.playback_status END,
             source_fingerprint = excluded.source_fingerprint,
             natural_name_key = excluded.natural_name_key,
+            search_name_key = excluded.search_name_key,
+            search_path_key = excluded.search_path_key,
             last_seen_generation = excluded.last_seen_generation`,
 		run.LibraryID, directoryID, entry.RelativePath, entry.Name,
 		string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
 		entry.SizeBytes, entry.MTimeNS, sourceFingerprint.String(),
-		catalog.NaturalNameKey(entry.Name), run.Generation); err != nil {
+		catalog.NaturalNameKey(entry.Name),
+		catalog.SearchTextKey(entry.Name),
+		catalog.SearchTextKey(entry.RelativePath),
+		run.Generation); err != nil {
 		return false, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
 	}
 	var assetID int64

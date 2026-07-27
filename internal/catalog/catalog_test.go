@@ -21,6 +21,7 @@ type repositoryStub struct {
 	lineageErr     error
 	getAsset       Asset
 	getAssetErr    error
+	globalRevision int64
 }
 
 func (stub *repositoryStub) ResolveScope(
@@ -40,6 +41,16 @@ func (stub *repositoryStub) ResolveScope(
 		scope.DirectoryID = directoryID
 	}
 	return scope, nil
+}
+
+func (stub *repositoryStub) ResolveGlobalCatalogRevision(ctx context.Context) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	if stub.globalRevision == 0 {
+		return 1, nil
+	}
+	return stub.globalRevision, nil
 }
 
 func (stub *repositoryStub) ListDirectoryPage(
@@ -114,6 +125,32 @@ func TestNormalizeRootScope(t *testing.T) {
 				t.Fatalf("NormalizeRootScope() = %d, want %d", got, test.want)
 			}
 		})
+	}
+}
+
+func TestSearchProfileNormalizesUnicodeTermsAndRejectsEmptyInput(t *testing.T) {
+	t.Parallel()
+
+	terms, err := NormalizeSearchTerms(" \tＳＴＲＡＳＳＥ  Straße 上海 上海\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(terms, []string{"strasse", "上海"}) {
+		t.Fatalf("normalized terms = %#v", terms)
+	}
+	if got := SearchTextKey("Cafe\u0301/上海.JPG"); got != "café/上海.jpg" {
+		t.Fatalf("search key = %q", got)
+	}
+	for _, invalid := range []string{
+		"",
+		" \t\n",
+		strings.Repeat("界", 257),
+		"photo\x00jpg",
+		string([]byte{0xff}),
+	} {
+		if _, err := NormalizeSearchTerms(invalid); !errors.Is(err, ErrInvalidQuery) {
+			t.Fatalf("NormalizeSearchTerms(%q) error = %v", invalid, err)
+		}
 	}
 }
 
@@ -254,7 +291,7 @@ func TestAssetQueryDefaultsCanonicalizesKindsAndBindsCursor(t *testing.T) {
 	}
 }
 
-func TestAssetRecursiveDefaultAndSearchIsNotSilentlyIgnored(t *testing.T) {
+func TestAssetRecursiveDefaultAndLibrarySearchScope(t *testing.T) {
 	repository := &repositoryStub{
 		scope: Scope{LibraryID: 2, RootDirectoryID: 3, Generation: 1},
 	}
@@ -273,11 +310,31 @@ func TestAssetRecursiveDefaultAndSearchIsNotSilentlyIgnored(t *testing.T) {
 	_, err := service.ListAssets(context.Background(), AssetRequest{
 		LibraryID: 2, SearchQuery: &search,
 	})
-	if !errors.Is(err, ErrSearchUnavailable) {
+	if err != nil {
 		t.Fatalf("search error = %v", err)
 	}
-	if len(repository.assetCalls) != 1 {
-		t.Fatal("unavailable search reached repository")
+	if len(repository.assetCalls) != 2 ||
+		repository.assetCalls[1].Query.ScopeKind != ScopeLibrary ||
+		!slices.Equal(repository.assetCalls[1].Query.SearchTerms, []string{"holiday"}) {
+		t.Fatalf("library search query = %#v", repository.assetCalls)
+	}
+
+	rootSearch := "root"
+	if _, err := service.ListAssets(context.Background(), AssetRequest{
+		LibraryID: 2, DirectoryID: 3, DirectorySet: true,
+		SearchQuery: &rootSearch,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if repository.assetCalls[2].Query.ScopeKind != ScopeDirectory ||
+		repository.assetCalls[2].Query.Scope.CanonicalDirectoryID != 0 {
+		t.Fatalf("explicit root search query = %#v", repository.assetCalls[2].Query)
+	}
+
+	if _, err := service.ListAssets(context.Background(), AssetRequest{
+		LibraryID: 2, RecursiveSet: true, SearchQuery: &search,
+	}); !errors.Is(err, ErrInvalidQuery) {
+		t.Fatalf("whole-library recursive error = %v", err)
 	}
 }
 
@@ -296,6 +353,14 @@ func TestCatalogRejectsInvalidAndCancelledRequests(t *testing.T) {
 		if _, err := service.ListAssets(context.Background(), request); err == nil {
 			t.Fatalf("request %#v unexpectedly succeeded", request)
 		}
+	}
+	from, before := int64(20), int64(10)
+	search := "photo"
+	if _, err := service.ListAssets(context.Background(), AssetRequest{
+		LibraryID: 1, SearchQuery: &search,
+		ModifiedFromNS: &from, ModifiedBeforeNS: &before,
+	}); !errors.Is(err, ErrInvalidQuery) {
+		t.Fatalf("reversed modification interval error = %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

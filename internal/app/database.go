@@ -55,6 +55,17 @@ func (service *databaseService) ResolveScope(
 	return service.store.ResolveScope(ctx, libraryID, selectedDirectoryID)
 }
 
+func (service *databaseService) ResolveGlobalCatalogRevision(
+	ctx context.Context,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, catalog.ErrRepositoryNotReady
+	}
+	return service.store.ResolveGlobalCatalogRevision(ctx)
+}
+
 func (service *databaseService) ListDirectoryPage(
 	ctx context.Context,
 	params catalog.DirectoryListParams,

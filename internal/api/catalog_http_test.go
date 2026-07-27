@@ -7,16 +7,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 type catalogServiceStub struct {
-	list       func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
-	get        func(context.Context, int64) (catalog.DirectoryDetail, error)
-	listAssets func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
-	getAsset   func(context.Context, int64) (catalog.Asset, error)
+	list         func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
+	get          func(context.Context, int64) (catalog.DirectoryDetail, error)
+	listAssets   func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
+	searchAssets func(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
+	getAsset     func(context.Context, int64) (catalog.Asset, error)
 }
 
 func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {
@@ -97,6 +99,82 @@ func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {
 	}
 }
 
+func TestCatalogSearchRoutesParseScopesAndUTCDateInterval(t *testing.T) {
+	searchCalls := 0
+	libraryCalls := 0
+	service := catalogServiceStub{
+		searchAssets: func(
+			_ context.Context,
+			request catalog.GlobalSearchRequest,
+		) (catalog.AssetPage, error) {
+			searchCalls++
+			from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).UnixNano()
+			before := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC).UnixNano()
+			if request.SearchQuery != "上海 PHOTO" ||
+				request.ModifiedFromNS == nil || *request.ModifiedFromNS != from ||
+				request.ModifiedBeforeNS == nil || *request.ModifiedBeforeNS != before ||
+				len(request.Kinds) != 2 || request.Sort != catalog.SortName ||
+				request.Order != catalog.OrderAsc || request.Limit != 25 {
+				t.Fatalf("global search request = %#v", request)
+			}
+			return catalog.AssetPage{}, nil
+		},
+		listAssets: func(
+			_ context.Context,
+			request catalog.AssetRequest,
+		) (catalog.AssetPage, error) {
+			libraryCalls++
+			if !request.DirectorySet || request.DirectoryID != 12 ||
+				!request.RecursiveSet || !request.Recursive ||
+				request.SearchQuery == nil || *request.SearchQuery != "photo" {
+				t.Fatalf("directory search request = %#v", request)
+			}
+			return catalog.AssetPage{}, nil
+		},
+	}
+	mux := http.NewServeMux()
+	registerCatalogRoutes(mux, service)
+
+	global := httptest.NewRecorder()
+	mux.ServeHTTP(global, httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/assets?q=%E4%B8%8A%E6%B5%B7+PHOTO&kind=image,video"+
+			"&modifiedFrom=2026-01-01T00%3A00%3A00Z"+
+			"&modifiedBefore=2026-02-01T00%3A00%3A00%2B00%3A00"+
+			"&sort=name&order=asc&limit=25",
+		nil,
+	))
+	if global.Code != http.StatusOK {
+		t.Fatalf("global search status = %d; body = %s", global.Code, global.Body)
+	}
+
+	directory := httptest.NewRecorder()
+	mux.ServeHTTP(directory, httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/libraries/lib_7/assets?directoryId=dir_12&q=photo&recursive=true",
+		nil,
+	))
+	if directory.Code != http.StatusOK {
+		t.Fatalf("directory search status = %d; body = %s", directory.Code, directory.Body)
+	}
+
+	for _, target := range []string{
+		"/api/v1/assets",
+		"/api/v1/assets?q=photo&recursive=false",
+		"/api/v1/assets?q=photo&modifiedFrom=2026-01-01T01%3A00%3A00%2B01%3A00",
+		"/api/v1/libraries/lib_7/assets?q=photo&recursive=false",
+	} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, target, nil))
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("%s status = %d; body = %s", target, response.Code, response.Body)
+		}
+	}
+	if searchCalls != 1 || libraryCalls != 1 {
+		t.Fatalf("search calls = %d, library calls = %d", searchCalls, libraryCalls)
+	}
+}
+
 func (stub catalogServiceStub) ListAssets(
 	ctx context.Context,
 	request catalog.AssetRequest,
@@ -105,6 +183,16 @@ func (stub catalogServiceStub) ListAssets(
 		return catalog.AssetPage{}, errors.New("unexpected ListAssets")
 	}
 	return stub.listAssets(ctx, request)
+}
+
+func (stub catalogServiceStub) SearchAssets(
+	ctx context.Context,
+	request catalog.GlobalSearchRequest,
+) (catalog.AssetPage, error) {
+	if stub.searchAssets == nil {
+		return catalog.AssetPage{}, errors.New("unexpected SearchAssets")
+	}
+	return stub.searchAssets(ctx, request)
 }
 
 func (stub catalogServiceStub) GetAsset(

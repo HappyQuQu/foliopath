@@ -39,3 +39,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S3-006：敌意媒体与资源安全实现完成](MVP-2026-07-23/s3-media-resource-safety.md)
 - [S3-007：浏览与缩略图 Backend Ready](MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)
 - [S4-001：搜索 Contract Ready](MVP-2026-07-23/s4-search-contract-ready.md)
+- [S4-002：搜索与 keyset 实现完成](MVP-2026-07-23/s4-search-keyset.md)
