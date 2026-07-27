@@ -22,3 +22,4 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 - [S2-001：媒体库管理 Contract Ready](MVP-2026-07-23/s2-library-contract-ready.md)
 - [S2-101：可靠扫描 Contract Ready](MVP-2026-07-23/s2-scan-contract-ready.md)
 - [S2-004：媒体库生命周期实现完成](MVP-2026-07-23/s2-library-lifecycle-implemented.md)
+- [S2-005：媒体库文件系统安全矩阵](MVP-2026-07-23/s2-library-safety-matrix.md)

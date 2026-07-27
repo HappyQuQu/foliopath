@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -270,6 +271,142 @@ func TestComposedAuthenticationHandlesConcurrentSetupAndSessionRequests(t *testi
 	for index, session := range sessionResults {
 		if session.err != nil || session.status != http.StatusOK {
 			t.Fatalf("concurrent session %d = %#v", index, session)
+		}
+	}
+}
+
+func TestComposedLibraryCreationFailsClosedAcrossUnsafeRoots(t *testing.T) {
+	mediaRoot := t.TempDir()
+	dataRoot := t.TempDir()
+	for _, directory := range []string{"family", "family/2026", "other"} {
+		if err := os.MkdirAll(filepath.Join(mediaRoot, directory), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ordinaryFile := filepath.Join(mediaRoot, "ordinary-file")
+	if err := os.WriteFile(ordinaryFile, []byte("not a directory"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	externalRoot := t.TempDir()
+	if err := os.Symlink(externalRoot, filepath.Join(mediaRoot, "external-link")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	application, err := composeConfiguration(
+		Input{Version: "integration"},
+		configuration{
+			listenAddress: "127.0.0.1:0",
+			mediaRoot:     mediaRoot,
+			dataRoot:      dataRoot,
+		},
+	)
+	if err != nil {
+		t.Fatalf("composeConfiguration() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		result <- application.run(ctx)
+	}()
+	defer func() {
+		cancel()
+		select {
+		case runErr := <-result:
+			if runErr != nil {
+				t.Errorf("application.run() error = %v", runErr)
+			}
+		case <-time.After(runtimeIntegrationTimeout):
+			t.Error("application did not stop after cancellation")
+		}
+	}()
+
+	address := waitForListenAddress(t, application.http)
+	client := &http.Client{Timeout: runtimeIntegrationTimeout}
+	setup := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodPost,
+		"/api/v1/auth/setup",
+		`{"username":"Administrator","displayName":"Administrator","password":"correct horse battery staple"}`,
+		"",
+		"",
+	)
+	if setup.StatusCode != http.StatusCreated ||
+		setup.Cookie == "" ||
+		setup.CSRFToken == "" {
+		t.Fatalf("setup response = %#v", setup)
+	}
+
+	tests := []struct {
+		name       string
+		root       string
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "parent traversal", root: "../outside", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "dot component", root: "family/../other", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "encoded traversal", root: "%2e%2e", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "double encoded traversal", root: "%252e%252e", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "encoded separator", root: "family%2f2026", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "absolute", root: "/private", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "backslash", root: `family\2026`, wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "NUL", root: "family\x00hidden", wantStatus: http.StatusUnprocessableEntity, wantCode: "validation_failed"},
+		{name: "missing", root: "missing-private-name", wantStatus: http.StatusConflict, wantCode: "library_root_unavailable"},
+		{name: "ordinary file", root: "ordinary-file", wantStatus: http.StatusConflict, wantCode: "library_root_unavailable"},
+		{name: "symlink", root: "external-link", wantStatus: http.StatusConflict, wantCode: "library_root_symlink"},
+	}
+	for index, test := range tests {
+		response := runtimeLibraryCreateRequest(
+			t,
+			client,
+			address,
+			"Unsafe "+test.name,
+			test.root,
+			"s2-005-unsafe-"+strconv.Itoa(index),
+			setup.Cookie,
+			setup.CSRFToken,
+		)
+		if response.StatusCode != test.wantStatus || response.ErrorCode != test.wantCode {
+			t.Fatalf("%s response = %#v", test.name, response)
+		}
+		for _, leaked := range []string{mediaRoot, externalRoot, ordinaryFile, "permission denied"} {
+			if strings.Contains(response.Body, leaked) {
+				t.Fatalf("%s response leaked %q: %s", test.name, leaked, response.Body)
+			}
+		}
+	}
+
+	created := runtimeLibraryCreateRequest(
+		t,
+		client,
+		address,
+		"Family",
+		"family",
+		"s2-005-valid-family",
+		setup.Cookie,
+		setup.CSRFToken,
+	)
+	if created.StatusCode != http.StatusCreated {
+		t.Fatalf("valid create response = %#v", created)
+	}
+	if !strings.Contains(created.Body, `"id":"lib_1"`) {
+		t.Fatalf("unsafe-root attempts persisted state before valid create: %s", created.Body)
+	}
+	for index, root := range []string{"family", "family/2026", ""} {
+		response := runtimeLibraryCreateRequest(
+			t,
+			client,
+			address,
+			"Overlap "+strconv.Itoa(index),
+			root,
+			"s2-005-overlap-"+strconv.Itoa(index),
+			setup.Cookie,
+			setup.CSRFToken,
+		)
+		if response.StatusCode != http.StatusConflict ||
+			response.ErrorCode != "library_path_overlap" {
+			t.Fatalf("overlap root %q response = %#v", root, response)
 		}
 	}
 }
@@ -537,6 +674,65 @@ type runtimeAuthenticationResponse struct {
 	ErrorCode     string
 	ErrorMessage  string
 	Body          string
+}
+
+func runtimeLibraryCreateRequest(
+	t *testing.T,
+	client *http.Client,
+	address string,
+	name string,
+	root string,
+	idempotencyKey string,
+	cookie string,
+	csrfToken string,
+) runtimeAuthenticationResponse {
+	t.Helper()
+	body, err := json.Marshal(map[string]string{
+		"name":     name,
+		"rootPath": root,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		"http://"+address+"/api/v1/libraries",
+		strings.NewReader(string(body)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://"+address)
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	request.Header.Set("Idempotency-Key", idempotencyKey)
+	request.AddCookie(&http.Cookie{Name: "foliopath_session", Value: cookie})
+
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}{}
+	if err := json.Unmarshal(responseBody, &document); err != nil {
+		t.Fatalf("decode create response: %v; body = %s", err, responseBody)
+	}
+	return runtimeAuthenticationResponse{
+		StatusCode:   response.StatusCode,
+		ErrorCode:    document.Error.Code,
+		ErrorMessage: document.Error.Message,
+		Body:         string(responseBody),
+	}
 }
 
 func runtimeAuthenticationRequest(

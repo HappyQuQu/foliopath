@@ -3,6 +3,7 @@ package files
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -113,5 +114,25 @@ func TestDirectorySourceAnchorsNestedParentAndMapsUnsafeParents(t *testing.T) {
 		); !errors.Is(err, test.want) {
 			t.Fatalf("EnumerateDirectories(%q) error = %v, want %v", test.parent, err, test.want)
 		}
+	}
+}
+
+func TestDirectorySourceMapsPermissionFailuresWithoutExposingPaths(t *testing.T) {
+	t.Parallel()
+
+	permissionErr := &os.PathError{
+		Op:   "open",
+		Path: "/host/private/library",
+		Err:  fs.ErrPermission,
+	}
+	if err := mapParentEnumerationError(permissionErr); !errors.Is(
+		err,
+		library.ErrParentUnavailable,
+	) {
+		t.Fatalf("permission mapping = %v, want ErrParentUnavailable", err)
+	}
+	candidate := blockedDirectoryCandidate("private", permissionErr)
+	if candidate.BlockedReason != library.SelectionBlockedUnreadable {
+		t.Fatalf("permission candidate = %#v, want unreadable", candidate)
 	}
 }

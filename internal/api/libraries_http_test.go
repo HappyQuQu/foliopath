@@ -163,6 +163,74 @@ func TestLibraryMutationRequiresExactStrongValidator(t *testing.T) {
 	}
 }
 
+func TestLibraryLifecycleErrorsUseStableSafeMappings(t *testing.T) {
+	tests := []struct {
+		name   string
+		err    error
+		status int
+		code   string
+	}{
+		{
+			name:   "invalid root",
+			err:    library.ErrInvalidRoot,
+			status: http.StatusUnprocessableEntity,
+			code:   "validation_failed",
+		},
+		{
+			name:   "overlap",
+			err:    library.ErrRootOverlap,
+			status: http.StatusConflict,
+			code:   "library_path_overlap",
+		},
+		{
+			name:   "unavailable",
+			err:    library.ErrRootUnavailable,
+			status: http.StatusConflict,
+			code:   codeLibraryRootUnavailable,
+		},
+		{
+			name:   "symlink",
+			err:    library.ErrRootSymlink,
+			status: http.StatusConflict,
+			code:   codeLibraryRootSymlink,
+		},
+		{
+			name:   "mount boundary",
+			err:    library.ErrRootMountBoundary,
+			status: http.StatusConflict,
+			code:   codeLibraryRootMountBoundary,
+		},
+		{
+			name:   "outside allowed root",
+			err:    library.ErrRootOutsideAllowed,
+			status: http.StatusConflict,
+			code:   "library_root_outside_allowed",
+		},
+		{
+			name:   "internal masked",
+			err:    errors.New("open /host/private/library: permission denied"),
+			status: http.StatusInternalServerError,
+			code:   codeInternalError,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/api/v1/libraries", nil)
+			writeLibraryError(response, request, test.err)
+			if response.Code != test.status {
+				t.Fatalf("status = %d, want %d", response.Code, test.status)
+			}
+			assertSafeErrorResponse(t, response, test.code)
+			for _, leaked := range []string{"/host/private/library", "permission denied"} {
+				if strings.Contains(response.Body.String(), leaked) {
+					t.Fatalf("response leaked %q: %s", leaked, response.Body)
+				}
+			}
+		})
+	}
+}
+
 type scanAdmissionStub struct {
 	result scanner.AdmissionResult
 	err    error
