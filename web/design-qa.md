@@ -418,6 +418,61 @@ test into a release-scale performance claim.
 
 final result: passed
 
+## Stage 3 / S3-106 pinned-preview interaction QA
+
+### Findings
+
+No actionable P0, P1, or P2 differences remain in the reviewed S3-106 state.
+
+### Source and implementation
+
+- Source visual truth: `prototypes/foliopath-static-ui`, the confirmed dark browse
+  screen with the first asset pinned in preview and the second asset selected.
+- Production target: `BrowsePage`, shared `MediaCollection`/`MediaCard`, and shared
+  `MediaPreview`.
+- Source capture: `qa/s3-106-source-pinned-dark.jpg`; implementation capture:
+  `qa/s3-106-implementation-pinned-dark.jpg`; same-state side-by-side:
+  `qa/s3-106-comparison-pinned-dark.png`.
+- Browser CSS viewport: approximately 1280 × 720. The source scrollbar inset makes
+  its native capture 1265 × 712; the comparison pads it without scaling.
+
+### Same-state comparison evidence
+
+![Pinned-preview source and implementation](qa/s3-106-comparison-pinned-dark.png)
+
+Both sides show the same interaction state: the first asset remains in the docked
+preview while the second asset is selected. The implementation deliberately makes
+that distinction more explicit and accessible: an eye badge and inner accent identify
+the previewed asset, while the outer selection border and `aria-pressed` identify the
+selected asset. The pressed pin control and persistent status band explain why the
+two states differ.
+
+### Interaction, responsive and accessibility evidence
+
+- Unpinned single click moves selection and preview together.
+- After pinning, single click moves only selection; double click switches the only
+  active preview. Unpinning immediately follows the current selection.
+- Escape and the close button use the same close path. The virtual collection scrolls
+  the current preview item back into its rendered window and restores focus to its
+  semantic media button.
+- Image/video branches are mutually exclusive. A keyed video node is unmounted on
+  asset switch or close, so stale playback elements do not remain in the DOM.
+- The parent list remains scrollable and operable beside the desktop dock. The
+  existing ≤1024px rule places preview in content flow without a scrim or focus trap.
+- Pin and selection expose pressed semantics; preview identity also has hidden text,
+  so the state does not depend on color or icon recognition alone.
+- Simplified Chinese dark mode was reviewed against the accepted prototype; the
+  existing component and browser matrices retain light/dark, English/Chinese,
+  responsive and axe coverage.
+
+### Residual Stage 3 work
+
+S3-107 owns the 100k-media DOM/request/scroll/playback-resource budget. S3-108 owns
+the complete Stage 3 Integrated Done browser gate. S4-006～009 own the full viewer,
+fullscreen/zoom, Range/codec/offline/deleted states and target-browser verification.
+
+final result: passed
+
 ## Stage 3 / S3-105 shared media-preview QA
 
 ### Findings
@@ -600,7 +655,8 @@ semantic warning color and preserved vertical rhythm.
 
 ### Residual Stage 3 work
 
-S3-105～106 still own selection and the docked/pinned non-modal preview. S3-107 owns
-the 100k capacity budget, and S3-108 owns the Stage 3 Integrated Done browser gate.
+The later S3-105～106 evidence above completes selection and the docked/pinned
+non-modal preview. S3-107 owns the 100k capacity budget, and S3-108 owns the Stage 3
+Integrated Done browser gate.
 
 final result: passed

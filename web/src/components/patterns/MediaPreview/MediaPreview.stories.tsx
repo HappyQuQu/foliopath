@@ -22,18 +22,26 @@ const meta = {
     },
     labels: {
       close: "关闭预览",
+      followingDescription: "单击其他媒体即可更新预览。",
+      followingTitle: "预览跟随选择",
       imageFailed: "无法显示此图片。",
       next: "下一项",
+      pin: "固定预览",
+      pinnedDescription: "单击只改变选择，双击才切换预览。",
+      pinnedTitle: "预览已固定",
       position: "第 2 / 8 项",
       previous: "上一项",
       preview: "预览",
       resize: "调整预览宽度",
+      unpin: "取消固定预览",
       videoFailed: "无法播放此视频。",
     },
     onClose: () => undefined,
     onNext: () => undefined,
+    onPinnedChange: () => undefined,
     onPrevious: () => undefined,
     onWidthChange: () => undefined,
+    pinned: false,
     width: 406,
   },
   component: MediaPreview,
@@ -57,6 +65,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Image: Story = {};
+
+export const Pinned: Story = {
+  args: { pinned: true },
+};
 
 export const Video: Story = {
   args: {

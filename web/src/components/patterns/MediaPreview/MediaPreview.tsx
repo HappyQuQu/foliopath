@@ -3,6 +3,8 @@ import {
   CaretRight,
   FileImage,
   FilmSlate,
+  PushPin,
+  PushPinSlash,
   X,
 } from "@phosphor-icons/react";
 import {
@@ -25,12 +27,18 @@ export interface MediaPreviewItem {
 
 export interface MediaPreviewLabels {
   close: string;
+  followingDescription: string;
+  followingTitle: string;
   imageFailed: string;
   next: string;
+  pin: string;
+  pinnedDescription: string;
+  pinnedTitle: string;
   position: string;
   previous: string;
   preview: string;
   resize: string;
+  unpin: string;
   videoFailed: string;
 }
 
@@ -45,8 +53,10 @@ export function MediaPreview({
   minWidth = 360,
   onClose,
   onNext,
+  onPinnedChange,
   onPrevious,
   onWidthChange,
+  pinned,
   width,
 }: {
   canGoNext: boolean;
@@ -57,14 +67,26 @@ export function MediaPreview({
   minWidth?: number;
   onClose: () => void;
   onNext: () => void;
+  onPinnedChange: (pinned: boolean) => void;
   onPrevious: () => void;
   onWidthChange: (width: number) => void;
+  pinned: boolean;
   width: number;
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const [resizing, setResizing] = useState(false);
 
   useEffect(() => setLoadFailed(false), [item.id]);
+
+  useEffect(() => {
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
 
   function resize(nextWidth: number) {
     onWidthChange(Math.min(maxWidth, Math.max(minWidth, nextWidth)));
@@ -136,9 +158,22 @@ export function MediaPreview({
           <span>{labels.preview}</span>
           <strong title={item.name}>{item.name}</strong>
         </div>
-        <IconButton label={labels.close} onClick={onClose}>
-          <X aria-hidden="true" size={19} />
-        </IconButton>
+        <div className={styles.actions}>
+          <IconButton
+            label={pinned ? labels.unpin : labels.pin}
+            onClick={() => onPinnedChange(!pinned)}
+            pressed={pinned}
+          >
+            {pinned ? (
+              <PushPinSlash aria-hidden="true" size={19} weight="fill" />
+            ) : (
+              <PushPin aria-hidden="true" size={19} />
+            )}
+          </IconButton>
+          <IconButton label={labels.close} onClick={onClose}>
+            <X aria-hidden="true" size={19} />
+          </IconButton>
+        </div>
       </header>
 
       <div className={styles.stage}>
@@ -155,6 +190,7 @@ export function MediaPreview({
           <video
             aria-label={item.name}
             controls
+            key={item.id}
             onError={() => setLoadFailed(true)}
             playsInline
             preload="metadata"
@@ -195,6 +231,15 @@ export function MediaPreview({
           </div>
         ))}
       </dl>
+      <div className={styles.pinStatus} role="status">
+        <PushPin aria-hidden="true" size={18} weight={pinned ? "fill" : "regular"} />
+        <div>
+          <strong>{pinned ? labels.pinnedTitle : labels.followingTitle}</strong>
+          <span>
+            {pinned ? labels.pinnedDescription : labels.followingDescription}
+          </span>
+        </div>
+      </div>
     </aside>
   );
 }

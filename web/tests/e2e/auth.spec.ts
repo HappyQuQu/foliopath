@@ -169,7 +169,10 @@ test("administrator and library-management vertical slice", async ({
       .getByRole("article", { name: "direct-photo.jpg · Image" })
       .locator("img"),
   ).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: "Preview direct-photo.jpg" }).click();
+  const directPreviewTrigger = page.getByRole("button", {
+    name: "Preview direct-photo.jpg",
+  });
+  await directPreviewTrigger.click();
   const preview = page.getByRole("complementary", {
     name: "Preview: direct-photo.jpg",
   });
@@ -192,6 +195,7 @@ test("administrator and library-management vertical slice", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await preview.getByRole("button", { name: "Close preview" }).click();
   await expect(preview).toHaveCount(0);
+  await expect(directPreviewTrigger).toBeFocused();
   const gridLayout = page.getByRole("button", { name: "Adaptive grid" });
   const masonryLayout = page.getByRole("button", { name: "Masonry" });
   await expect(gridLayout).toHaveAttribute("aria-pressed", "true");
@@ -228,6 +232,36 @@ test("administrator and library-management vertical slice", async ({
     name: "Source: visible-child",
   });
   await expect(sourceLink).toBeVisible();
+  const nestedPreviewTrigger = page.getByRole("button", {
+    name: "Preview nested-photo.jpg",
+  });
+  await directPreviewTrigger.click();
+  const directPreview = page.getByRole("complementary", {
+    name: "Preview: direct-photo.jpg",
+  });
+  await directPreview.getByRole("button", { name: "Pin preview" }).click();
+  await expect(
+    directPreview.getByRole("button", { name: "Unpin preview" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const pinnedNestedPreviewTrigger = page.getByRole("button", {
+    name: "Select nested-photo.jpg; double-click to switch the pinned preview",
+  });
+  await pinnedNestedPreviewTrigger.click();
+  await expect(pinnedNestedPreviewTrigger).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(directPreview).toBeVisible();
+  await pinnedNestedPreviewTrigger.dblclick();
+  const nestedPreview = page.getByRole("complementary", {
+    name: "Preview: nested-photo.jpg",
+  });
+  await expect(nestedPreview).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nestedPreview).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Preview nested-photo.jpg" }),
+  ).toBeFocused();
 
   await page.getByRole("combobox", { name: "Sort" }).selectOption("name:asc");
   await expect(page).toHaveURL(

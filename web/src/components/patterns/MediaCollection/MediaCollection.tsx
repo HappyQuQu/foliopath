@@ -1,4 +1,5 @@
 import {
+  Eye,
   FileImage,
   FilmSlate,
   HourglassMedium,
@@ -9,8 +10,10 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
+  forwardRef,
   type CSSProperties,
 } from "react";
 
@@ -41,34 +44,48 @@ export interface MediaCollectionLabels {
   loadMoreFailed: string;
   loadingMore: string;
   pendingThumbnail: string;
+  previewing: string;
   retryLoadMore: string;
   unavailableThumbnail: string;
   video: string;
 }
 
-export function MediaCollection({
-  hasNextPage,
-  isFetchingNextPage,
-  items,
-  labels,
-  layout,
-  activeItemId,
-  onItemActivate,
-  onLoadMore,
-  onRetryLoadMore,
-  paginationError = false,
-}: {
+export interface MediaCollectionHandle {
+  restoreItem: (id: string) => void;
+}
+
+export const MediaCollection = forwardRef<MediaCollectionHandle, {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   items: MediaCollectionItem[];
   labels: MediaCollectionLabels;
   layout: MediaCollectionLayout;
-  activeItemId?: string;
-  onItemActivate?: (id: string) => void;
+  onItemActivate?: (
+    id: string,
+    activation: "single" | "double",
+    trigger: HTMLButtonElement,
+  ) => void;
   onLoadMore: () => void;
   onRetryLoadMore?: () => void;
   paginationError?: boolean;
-}) {
+  previewItemId?: string;
+  selectedItemId?: string;
+}>(function MediaCollection(
+  {
+    hasNextPage,
+    isFetchingNextPage,
+    items,
+    labels,
+    layout,
+    onItemActivate,
+    onLoadMore,
+    onRetryLoadMore,
+    paginationError = false,
+    previewItemId,
+    selectedItemId,
+  },
+  ref,
+) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
   const columns = columnCount(geometry.width);
@@ -102,6 +119,31 @@ export function MediaCollection({
     (a, b) => a.index - b.index,
   );
   const lastVirtualIndex = virtualItems.at(-1)?.index ?? -1;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      restoreItem(id) {
+        const index = items.findIndex((item) => item.id === id);
+        if (index < 0) return;
+
+        virtualizer.scrollToIndex(index, { align: "center" });
+        const focusTrigger = () => {
+          const trigger = Array.from(
+            hostRef.current?.querySelectorAll<HTMLButtonElement>(
+              "[data-media-id]",
+            ) ?? [],
+          ).find((candidate) => candidate.dataset.mediaId === id);
+          trigger?.focus({ preventScroll: true });
+          return Boolean(trigger);
+        };
+        requestAnimationFrame(() => {
+          if (!focusTrigger()) requestAnimationFrame(focusTrigger);
+        });
+      },
+    }),
+    [items, virtualizer],
+  );
 
   useEffect(() => {
     const host = hostRef.current;
@@ -179,11 +221,12 @@ export function MediaCollection({
               }
             >
               <MediaCard
-                active={item.id === activeItemId}
                 item={item}
                 labels={labels}
                 layout={layout}
                 {...(onItemActivate ? { onActivate: onItemActivate } : {})}
+                previewing={item.id === previewItemId}
+                selected={item.id === selectedItemId}
               />
             </li>
           );
@@ -212,7 +255,7 @@ export function MediaCollection({
       )}
     </div>
   );
-}
+});
 
 export function MediaCollectionSkeleton({
   label,
@@ -234,17 +277,23 @@ export function MediaCollectionSkeleton({
 }
 
 function MediaCard({
-  active,
   item,
   labels,
   layout,
   onActivate,
+  previewing,
+  selected,
 }: {
-  active: boolean;
   item: MediaCollectionItem;
   labels: MediaCollectionLabels;
   layout: MediaCollectionLayout;
-  onActivate?: (id: string) => void;
+  onActivate?: (
+    id: string,
+    activation: "single" | "double",
+    trigger: HTMLButtonElement,
+  ) => void;
+  previewing: boolean;
+  selected: boolean;
 }) {
   const kindLabel =
     item.kind === "video"
@@ -265,14 +314,21 @@ function MediaCard({
     <article
       aria-label={`${item.name} · ${kindLabel}`}
       className={styles.card}
-      data-active={active || undefined}
+      data-previewing={previewing || undefined}
+      data-selected={selected || undefined}
     >
       {onActivate && (
         <button
           aria-label={labels.activatePreview.replace("{name}", item.name)}
-          aria-pressed={active}
+          aria-pressed={selected}
           className={styles.previewTrigger}
-          onClick={() => onActivate(item.id)}
+          data-media-id={item.id}
+          onClick={(event) =>
+            onActivate(item.id, "single", event.currentTarget)
+          }
+          onDoubleClick={(event) =>
+            onActivate(item.id, "double", event.currentTarget)
+          }
           type="button"
         />
       )}
@@ -304,6 +360,12 @@ function MediaCard({
         {item.kind === "video" && (
           <span className={styles.videoBadge} aria-hidden="true">
             <Play size={12} weight="fill" />
+          </span>
+        )}
+        {previewing && (
+          <span className={styles.previewBadge} title={labels.previewing}>
+            <Eye aria-hidden="true" size={14} weight="fill" />
+            <span className={styles.visuallyHidden}>{labels.previewing}</span>
           </span>
         )}
       </div>

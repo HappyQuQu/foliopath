@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import {
@@ -15,6 +15,7 @@ const labels = {
   loadMoreFailed: "More media could not be loaded.",
   loadingMore: "Loading more",
   pendingThumbnail: "Preparing thumbnail",
+  previewing: "Currently previewing",
   retryLoadMore: "Retry loading more",
   unavailableThumbnail: "Thumbnail unavailable",
   video: "Video",
@@ -118,7 +119,6 @@ it("activates a media preview without hiding the source-directory link", () => {
   const activate = vi.fn();
   render(
     <MediaCollection
-      activeItemId="ready"
       hasNextPage={false}
       isFetchingNextPage={false}
       items={[
@@ -139,12 +139,25 @@ it("activates a media preview without hiding the source-directory link", () => {
       layout="grid"
       onItemActivate={activate}
       onLoadMore={vi.fn()}
+      previewItemId="ready"
+      selectedItemId="ready"
     />,
   );
 
   const trigger = screen.getByRole("button", { name: "Preview ready.jpg" });
   expect(trigger).toHaveAttribute("aria-pressed", "true");
   trigger.click();
-  expect(activate).toHaveBeenCalledWith("ready");
+  expect(activate).toHaveBeenCalledWith(
+    "ready",
+    "single",
+    expect.any(HTMLButtonElement),
+  );
+  fireEvent.doubleClick(trigger);
+  expect(activate).toHaveBeenLastCalledWith(
+    "ready",
+    "double",
+    expect.any(HTMLButtonElement),
+  );
+  expect(screen.getByText("Currently previewing")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Source: photos" })).toBeVisible();
 });

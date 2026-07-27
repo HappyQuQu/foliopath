@@ -31,6 +31,7 @@ const meta = {
       loadMoreFailed: "更多媒体未能载入，已显示的项目仍然保留。",
       loadingMore: "正在载入更多媒体",
       pendingThumbnail: "正在生成缩略图",
+      previewing: "正在预览",
       retryLoadMore: "重试载入更多",
       unavailableThumbnail: "缩略图不可用",
       video: "视频",

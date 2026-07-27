@@ -5,12 +5,18 @@ import { MediaPreview } from "./MediaPreview";
 
 const labels = {
   close: "Close preview",
+  followingDescription: "Click another item to update the preview.",
+  followingTitle: "Preview follows selection",
   imageFailed: "Image failed",
   next: "Next item",
+  pin: "Pin preview",
+  pinnedDescription: "Double-click to switch.",
+  pinnedTitle: "Preview pinned",
   position: "Item 2 of 3",
   previous: "Previous item",
   preview: "Preview",
   resize: "Resize preview",
+  unpin: "Unpin preview",
   videoFailed: "Video failed",
 };
 
@@ -37,8 +43,10 @@ it("renders non-modal media, metadata, navigation, and close controls", () => {
       labels={labels}
       onClose={close}
       onNext={next}
+      onPinnedChange={vi.fn()}
       onPrevious={previous}
       onWidthChange={vi.fn()}
+      pinned={false}
       width={406}
     />,
   );
@@ -67,8 +75,10 @@ it("supports keyboard width adjustment and clamps the shared panel", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={resize}
+      pinned={false}
       width={406}
     />,
   );
@@ -86,8 +96,10 @@ it("supports keyboard width adjustment and clamps the shared panel", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={resize}
+      pinned={false}
       width={610}
     />,
   );
@@ -95,6 +107,53 @@ it("supports keyboard width adjustment and clamps the shared panel", () => {
     key: "ArrowLeft",
   });
   expect(resize).toHaveBeenLastCalledWith(620);
+});
+
+it("announces pin state and closes with Escape", () => {
+  const close = vi.fn();
+  const changePin = vi.fn();
+  const { rerender } = render(
+    <MediaPreview
+      canGoNext={false}
+      canGoPrevious={false}
+      item={item}
+      labels={labels}
+      onClose={close}
+      onNext={vi.fn()}
+      onPinnedChange={changePin}
+      onPrevious={vi.fn()}
+      onWidthChange={vi.fn()}
+      pinned={false}
+      width={406}
+    />,
+  );
+
+  expect(screen.getByText("Preview follows selection")).toBeVisible();
+  screen.getByRole("button", { name: "Pin preview" }).click();
+  expect(changePin).toHaveBeenCalledWith(true);
+
+  rerender(
+    <MediaPreview
+      canGoNext={false}
+      canGoPrevious={false}
+      item={item}
+      labels={labels}
+      onClose={close}
+      onNext={vi.fn()}
+      onPinnedChange={changePin}
+      onPrevious={vi.fn()}
+      onWidthChange={vi.fn()}
+      pinned
+      width={406}
+    />,
+  );
+  expect(screen.getByText("Preview pinned")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Unpin preview" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(close).toHaveBeenCalledOnce();
 });
 
 it("uses native inline controls for video content", () => {
@@ -112,8 +171,10 @@ it("uses native inline controls for video content", () => {
       labels={labels}
       onClose={vi.fn()}
       onNext={vi.fn()}
+      onPinnedChange={vi.fn()}
       onPrevious={vi.fn()}
       onWidthChange={vi.fn()}
+      pinned={false}
       width={406}
     />,
   );

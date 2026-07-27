@@ -62,6 +62,12 @@
   gap: var(--space-1);
 }
 
+.header > .actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
 .header span {
   color: var(--color-text-muted);
   font-size: var(--font-size-1);
@@ -124,12 +130,45 @@
 }
 
 .details {
+  min-height: 0;
   display: grid;
+  flex: 0 1 12rem;
   gap: var(--space-3);
   max-height: 15rem;
   overflow: auto;
   margin: 0;
   padding: var(--space-4);
+}
+
+.pinStatus {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-muted);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+
+.pinStatus > svg {
+  flex: none;
+  margin-top: var(--space-1);
+  color: var(--color-accent);
+}
+
+.pinStatus > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.pinStatus strong {
+  color: var(--color-text);
+  font-size: var(--font-size-2);
+}
+
+.pinStatus span {
+  font-size: var(--font-size-1);
 }
 
 .details > div {

@@ -161,10 +161,14 @@
     桌面宽度可指针拖动或用方向键/Home/End 调整，窄屏回到内容流；当前 S3-105 仅实现
     未固定时单击打开/切换，固定、双击、Escape 和精确焦点/虚拟锚点恢复仍归 S3-106。
     证据见 [S3-105 前端媒体预览](gates/MVP-2026-07-23/s3-frontend-media-preview.md)。
-- [ ] `S3-106` 实现 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)：
+- [x] `S3-106` 实现 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)：
   - 桌面右侧停靠且父列表继续可用；窄屏进入内容流。
   - 未固定单击切换；固定后单击只选择、双击切换；任一时刻只允许一个活动媒体。
   - 关闭后恢复触发项、虚拟列表锚点与焦点。
+  - `MediaCollection` 分开表达“已选择”和“正在预览”，固定状态下更新可访问操作文案；
+    `MediaPreview` 提供固定/取消固定、状态说明和 Escape。切换视频以 keyed media
+    节点卸载旧资源；关闭时虚拟控制器滚回当前预览项并恢复其语义按钮焦点。证据见
+    [S3-106 前端固定预览交互](gates/MVP-2026-07-23/s3-frontend-pinned-preview.md)。
 - [ ] `S3-107` 验证十万媒体规模下 DOM、请求数量、滚动、播放资源释放与焦点恢复预算。
 - [ ] `S3-108` 完成核心浏览/预览 E2E 与 `Integrated Done` Gate。
 

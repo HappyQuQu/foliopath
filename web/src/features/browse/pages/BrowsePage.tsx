@@ -10,13 +10,20 @@ import {
   ImageSquare,
   Square,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
   MediaCollection,
   MediaCollectionSkeleton,
+  type MediaCollectionHandle,
   type MediaCollectionItem,
   type MediaCollectionLayout,
 } from "../../../components/patterns/MediaCollection/MediaCollection";
@@ -81,11 +88,14 @@ export function BrowsePage({
     readMediaLayoutPreference,
   );
   const [previewAssetId, setPreviewAssetId] = useState<string>();
+  const [selectedAssetId, setSelectedAssetId] = useState<string>();
+  const [previewPinned, setPreviewPinned] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(406);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === "undefined" ? 1280 : window.innerWidth,
   );
   const toast = useToast();
+  const mediaCollectionRef = useRef<MediaCollectionHandle>(null);
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
     [searchParams],
@@ -192,6 +202,8 @@ export function BrowsePage({
 
   useEffect(() => {
     setPreviewAssetId(undefined);
+    setPreviewPinned(false);
+    setSelectedAssetId(undefined);
   }, [directoryId, libraryId]);
 
   useEffect(() => {
@@ -213,6 +225,41 @@ export function BrowsePage({
   function updateMediaLayout(nextLayout: MediaCollectionLayout) {
     setMediaLayout(nextLayout);
     writeMediaLayoutPreference(nextLayout);
+  }
+
+  function activateMedia(
+    assetId: string,
+    activation: "single" | "double",
+  ) {
+    setSelectedAssetId(assetId);
+    if (!previewPinned || activation === "double") {
+      setPreviewAssetId(assetId);
+    }
+  }
+
+  function updatePreviewPinned(nextPinned: boolean) {
+    setPreviewPinned(nextPinned);
+    if (!nextPinned && selectedAssetId) {
+      setPreviewAssetId(selectedAssetId);
+    }
+  }
+
+  function movePreview(nextAssetId: string | undefined) {
+    if (!nextAssetId) return;
+    setPreviewAssetId(nextAssetId);
+    setSelectedAssetId(nextAssetId);
+  }
+
+  function closePreview() {
+    const restoreAssetId = previewAssetId;
+    setPreviewAssetId(undefined);
+    setPreviewPinned(false);
+    if (!restoreAssetId) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        mediaCollectionRef.current?.restoreItem(restoreAssetId);
+      });
+    });
   }
 
   async function copyDirectLink() {
@@ -412,12 +459,14 @@ export function BrowsePage({
                   )}
                   {assets.length > 0 && (
                     <MediaCollection
-                      {...(previewAssetId ? { activeItemId: previewAssetId } : {})}
+                      ref={mediaCollectionRef}
                       hasNextPage={assetsQuery.hasNextPage}
                       isFetchingNextPage={assetsQuery.isFetchingNextPage}
                       items={mediaItems}
                       labels={{
-                        activatePreview: t("browse.activatePreview"),
+                        activatePreview: previewPinned
+                          ? t("browse.selectPinnedPreview")
+                          : t("browse.activatePreview"),
                         animated: t("browse.kindAnimated"),
                         failedThumbnail: t("browse.thumbnailFailed"),
                         image: t("browse.kindImage"),
@@ -425,15 +474,24 @@ export function BrowsePage({
                         loadMoreFailed: t("browse.loadMoreMediaFailed"),
                         loadingMore: t("browse.loadingMoreMedia"),
                         pendingThumbnail: t("browse.thumbnailPending"),
+                        previewing: t("browse.currentlyPreviewing"),
                         retryLoadMore: t("browse.retryLoadMoreMedia"),
                         unavailableThumbnail: t("browse.thumbnailUnavailable"),
                         video: t("browse.kindVideo"),
                       }}
                       layout={mediaLayout}
-                      onItemActivate={setPreviewAssetId}
+                      onItemActivate={(assetId, activation) =>
+                        activateMedia(assetId, activation)
+                      }
                       onLoadMore={loadMoreAssets}
                       onRetryLoadMore={() => void loadMoreAssets()}
                       paginationError={assetsQuery.isFetchNextPageError}
+                      {...(previewAssetId
+                        ? { previewItemId: previewAssetId }
+                        : {})}
+                      {...(selectedAssetId
+                        ? { selectedItemId: selectedAssetId }
+                        : {})}
                     />
                   )}
                 </section>
@@ -447,21 +505,29 @@ export function BrowsePage({
             item={previewItem}
             labels={{
               close: t("browse.closePreview"),
+              followingDescription: t("browse.previewFollowingDescription"),
+              followingTitle: t("browse.previewFollowingTitle"),
               imageFailed: t("browse.previewImageFailed"),
               next: t("browse.nextMedia"),
+              pin: t("browse.pinPreview"),
+              pinnedDescription: t("browse.previewPinnedDescription"),
+              pinnedTitle: t("browse.previewPinnedTitle"),
               position: t("browse.previewPosition")
                 .replace("{current}", String(previewIndex + 1))
                 .replace("{total}", String(assets.length)),
               previous: t("browse.previousMedia"),
               preview: t("browse.preview"),
               resize: t("browse.resizePreview"),
+              unpin: t("browse.unpinPreview"),
               videoFailed: t("browse.previewVideoFailed"),
             }}
             maxWidth={previewMaxWidth}
-            onClose={() => setPreviewAssetId(undefined)}
-            onNext={() => setPreviewAssetId(assets[previewIndex + 1]?.id)}
-            onPrevious={() => setPreviewAssetId(assets[previewIndex - 1]?.id)}
+            onClose={closePreview}
+            onNext={() => movePreview(assets[previewIndex + 1]?.id)}
+            onPinnedChange={updatePreviewPinned}
+            onPrevious={() => movePreview(assets[previewIndex - 1]?.id)}
             onWidthChange={setPreviewWidth}
+            pinned={previewPinned}
             width={previewWidth}
           />
         )}
