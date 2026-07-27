@@ -8,22 +8,46 @@
   },
   "packageManager": "npm@10.9.7",
   "scripts": {
+    "dev": "vite",
+    "build": "npm run check:types && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "storybook": "storybook dev -p 6006",
+    "build:storybook": "storybook build",
     "generate:api": "node scripts/generate-api.mjs",
     "generate:check": "node scripts/generate-api.mjs --check",
+    "check:architecture": "node scripts/check-architecture.mjs",
     "lint:openapi": "redocly lint ../api/openapi.yaml",
-    "check:types": "tsc --noEmit",
-    "check": "npm run generate:check && npm run check:types"
+    "check:types": "tsc --noEmit && tsc --noEmit -p tsconfig.tooling.json",
+    "check": "npm run generate:check && npm run check:architecture && npm run check:types && npm run test && npm run build:storybook"
   },
   "dependencies": {
-    "openapi-fetch": "0.17.0"
+    "@tanstack/react-query": "5.101.4",
+    "openapi-fetch": "0.17.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.1"
   },
   "devDependencies": {
     "@redocly/cli": "2.40.0",
+    "@storybook/addon-a11y": "10.5.3",
+    "@storybook/react-vite": "10.5.3",
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.4",
+    "jsdom": "29.1.1",
     "openapi-typescript": "7.13.0",
-    "typescript": "5.9.3"
+    "storybook": "10.5.3",
+    "typescript": "5.9.3",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
     "js-yaml": "4.3.0"
   }
 }

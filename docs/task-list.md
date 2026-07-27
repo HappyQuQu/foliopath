@@ -25,7 +25,7 @@
 
 ```text
 后端：运行骨架 ✅ → 初始化/密码 ✅ → 安全会话 ✅ → 安全验收 ✅ → Backend Ready ✅
-前端：静态原型（独立任务）→ S1-201 应用壳 → 登录界面
+前端：静态原型（15 个界面/状态已确认）→ S1-201 应用壳 → 登录界面
 共同：Contract Ready → Backend Ready → Integrated Done
 ```
 
@@ -166,7 +166,8 @@ Stage 5 仍未授权。
 
 [查看前端开发清单](frontend-task-list.md)
 
-- 当前：认证 Backend Ready 已通过；前端继续 `S1-201` 应用壳，随后由 `S1-204` 连接真实认证 API。
+- 当前：完整静态原型已作为设计基线确认；生产前端已完成应用启动/Provider/错误边界、
+  主题 token 和首批共享原语；认证 Backend Ready 已通过，继续 `S1-201` 产品路由注册。
 - 完成范围：React、设计系统、页面、URL/Query 状态、无障碍与浏览器测试。
 - 不等待后端的工作：应用壳、token、共享原语、Story/契约状态。
 - 必须等待后端的工作：真实 API 提交、业务集成与 Integrated E2E。

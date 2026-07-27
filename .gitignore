@@ -16,7 +16,11 @@ coverage.out
 /web/node_modules/
 /web/dist/
 /web/coverage/
+/web/storybook-static/
 /internal/webassets/dist/
+/prototypes/*/node_modules/
+/prototypes/*/dist/
+/prototypes/*/.vite/
 /playwright-report/
 /test-results/
 

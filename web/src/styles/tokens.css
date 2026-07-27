@@ -1,0 +1,63 @@
+:root {
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --font-size-1: 0.75rem;
+  --font-size-2: 0.8125rem;
+  --font-size-3: 0.9375rem;
+  --font-size-4: 1.0625rem;
+  --font-size-5: 1.375rem;
+  --font-size-6: 2rem;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --size-control-sm: 2rem;
+  --size-control-md: 2.625rem;
+  --size-control-lg: 3rem;
+  --size-sidebar: 17rem;
+  --size-content: 72rem;
+
+  --radius-1: 0.3125rem;
+  --radius-2: 0.4375rem;
+  --radius-3: 0.625rem;
+  --radius-round: 999rem;
+
+  --border-width: 1px;
+  --focus-width: 2px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.08);
+  --shadow-2: 0 1rem 3rem rgb(0 0 0 / 0.18);
+
+  --layer-base: 0;
+  --layer-header: 20;
+  --layer-drawer: 60;
+  --layer-dialog: 80;
+  --layer-toast: 100;
+
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-slow: 260ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-normal: 1ms;
+    --motion-slow: 1ms;
+  }
+}

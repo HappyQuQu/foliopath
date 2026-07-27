@@ -2,10 +2,12 @@
 
 ## 状态
 
-本文定义 FolioPath MVP 前端的**目标架构与实施门槛**，用于约束后续
-`web/` 脚手架和业务实现。当前仓库尚无 React 应用、Node 工具链、
-`api/openapi.yaml`、Storybook、前端测试或前端 CI；下文出现的目录、工具和
-门禁均不得描述为已经落地。
+本文定义 FolioPath MVP 前端的**目标架构与实施门槛**。`web/` 已落地
+React/Vite 工程基础、严格 TypeScript、OpenAPI 生成 client、Provider、全局安全错误
+边界、主题/token、首批共享原语、Storybook 和组件测试，并由
+`npm run check:architecture` 执行首批依赖/样式边界检查。认证 `Backend Ready`
+尚未通过，因此产品路由、认证提交和其他业务 feature 仍未注册；下文其余目标目录、
+门禁和能力不得描述为已经落地。
 
 本文不改变已确认的产品范围和 UI 行为。信息架构、响应式、可访问性、状态与
 动效以 [`docs/ui-design.md`](../ui-design.md) 为准；运行拓扑和技术栈以

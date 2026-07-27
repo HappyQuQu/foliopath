@@ -66,7 +66,7 @@ ADR 流程。
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证、媒体库生命周期、安全目录选择与 manual scan admission handler 已实现，其余业务 handler 尚未实现 |
-| UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
+| UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、非模态预览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 2026-07-24 完整静态原型已覆盖 15 个界面/状态并通过浅色、深色、1440×1024 与 390×844 设计验收；生产 token、组件 API、虚拟化和浏览器矩阵仍须在脚手架与组件工作台验证 |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～10 已执行；媒体库 revision/removal/idempotency、扫描与媒体 durable contract、typed settings、目录/资产自然名称 keyset、asset source fingerprint、thumbnail/cache deletion、搜索规范键/FTS 与 global revision 具备真实升级与约束测试；发布版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |

@@ -1,0 +1,89 @@
+.button {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-0) var(--space-4);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  font-weight: 650;
+  line-height: var(--line-height-tight);
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.small {
+  min-height: var(--size-control-sm);
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-2);
+}
+
+.medium {
+  min-height: var(--size-control-md);
+  font-size: var(--font-size-3);
+}
+
+.primary {
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.primary:hover:not(:disabled) {
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
+}
+
+.quiet {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.danger {
+  color: var(--color-on-accent);
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+}
+
+.danger:hover:not(:disabled) {
+  border-color: var(--color-danger-hover);
+  background: var(--color-danger-hover);
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: var(--border-width) solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-round);
+  animation: spin var(--motion-slow) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
