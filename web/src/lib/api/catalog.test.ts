@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "./client";
-import { getDirectory, listAssets, listDirectories } from "./catalog";
+import {
+  assetContentUrl,
+  getDirectory,
+  listAssets,
+  listDirectories,
+} from "./catalog";
 
 vi.mock("./client", () => ({
   apiClient: {
@@ -12,6 +17,12 @@ vi.mock("./client", () => ({
 describe("catalog adapter", () => {
   beforeEach(() => {
     vi.mocked(apiClient.GET).mockReset();
+  });
+
+  it("builds an encoded same-origin asset content URL", () => {
+    expect(assetContentUrl("asset/with space")).toBe(
+      "/api/v1/assets/asset%2Fwith%20space/content",
+    );
   });
 
   it("requests a bounded direct-child page through the generated client", async () => {

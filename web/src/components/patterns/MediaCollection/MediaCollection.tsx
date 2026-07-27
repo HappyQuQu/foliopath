@@ -33,6 +33,7 @@ export interface MediaCollectionItem {
 }
 
 export interface MediaCollectionLabels {
+  activatePreview: string;
   animated: string;
   failedThumbnail: string;
   image: string;
@@ -51,6 +52,8 @@ export function MediaCollection({
   items,
   labels,
   layout,
+  activeItemId,
+  onItemActivate,
   onLoadMore,
   onRetryLoadMore,
   paginationError = false,
@@ -60,6 +63,8 @@ export function MediaCollection({
   items: MediaCollectionItem[];
   labels: MediaCollectionLabels;
   layout: MediaCollectionLayout;
+  activeItemId?: string;
+  onItemActivate?: (id: string) => void;
   onLoadMore: () => void;
   onRetryLoadMore?: () => void;
   paginationError?: boolean;
@@ -174,9 +179,11 @@ export function MediaCollection({
               }
             >
               <MediaCard
+                active={item.id === activeItemId}
                 item={item}
                 labels={labels}
                 layout={layout}
+                {...(onItemActivate ? { onActivate: onItemActivate } : {})}
               />
             </li>
           );
@@ -227,13 +234,17 @@ export function MediaCollectionSkeleton({
 }
 
 function MediaCard({
+  active,
   item,
   labels,
   layout,
+  onActivate,
 }: {
+  active: boolean;
   item: MediaCollectionItem;
   labels: MediaCollectionLabels;
   layout: MediaCollectionLayout;
+  onActivate?: (id: string) => void;
 }) {
   const kindLabel =
     item.kind === "video"
@@ -254,7 +265,17 @@ function MediaCard({
     <article
       aria-label={`${item.name} · ${kindLabel}`}
       className={styles.card}
+      data-active={active || undefined}
     >
+      {onActivate && (
+        <button
+          aria-label={labels.activatePreview.replace("{name}", item.name)}
+          aria-pressed={active}
+          className={styles.previewTrigger}
+          onClick={() => onActivate(item.id)}
+          type="button"
+        />
+      )}
       <div className={styles.thumbnail} style={{ aspectRatio }}>
         {item.thumbnailStatus === "ready" && item.thumbnailUrl ? (
           <img

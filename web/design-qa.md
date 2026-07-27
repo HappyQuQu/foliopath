@@ -418,6 +418,92 @@ test into a release-scale performance claim.
 
 final result: passed
 
+## Stage 3 / S3-105 shared media-preview QA
+
+### Findings
+
+No actionable P0, P1, or P2 differences remain in the reviewed S3-105 state.
+
+- Intentional scope difference: the confirmed prototype shows pin, fullscreen and
+  follow-selection help. S3-105 includes only media rendering, basic information,
+  previous/next, close and width adjustment; pin/double-click/focus restoration is
+  S3-106, and fullscreen is part of the complete viewer in S4-006.
+- Intentional data difference: the source uses fictional mixed image/video entries;
+  production uses the authenticated disposable backend's real read-only JPEG set.
+  The shared component workbench and tests cover the native video branch without
+  fabricating a video asset in the indexed library.
+
+### Source and implementation
+
+- Source visual truth: `prototypes/foliopath-static-ui`, confirmed browse screen
+  `5/15`, media selected and preview open.
+- Production: authenticated `BrowsePage` at
+  `/libraries/lib_1/browse/dir_3`, connected to the disposable real backend and its
+  `GET /api/v1/assets/{assetId}/content` endpoint.
+- Browser CSS viewport: 1280 × 720, dark theme, Simplified Chinese. The source capture
+  is 1280 × 720. The implementation capture is 1265 × 712 because the in-app browser
+  excludes its native scrollbar/chrome inset; the comparison pads it without scaling.
+- Captures:
+  `qa/s3-105-source-preview-dark.jpg`,
+  `qa/s3-105-implementation-preview-dark.jpg`, and
+  `qa/s3-105-comparison-preview-dark.png`.
+
+### Full-view comparison evidence
+
+![Preview source and implementation](qa/s3-105-comparison-preview-dark.png)
+
+Both states preserve the fixed library rail, selected directory, compact browse
+toolbar, bounded media grid, selected-card accent and a right-side preview separated
+from the still-usable parent collection. The 406px production panel follows the
+source's header/stage/navigation/information hierarchy and uses the real selected
+asset rather than a placeholder.
+
+### Required fidelity surfaces
+
+- Typography and hierarchy: preview eyebrow, filename, navigation count and compact
+  key/value metadata follow the source's system stack and muted/primary hierarchy.
+- Spacing and geometry: header/control heights, 406px default width, stage padding,
+  contain fit, centered navigation and dense details match the accepted rhythm.
+- Colors and tokens: canvas, surface, border, scrim, accent selection, focus and
+  light/dark behavior use central tokens; no feature-local theme mechanism was added.
+- Assets: the production stage and cards use authenticated real source/thumbnail
+  bytes. Visible controls use the established Phosphor family; no fake media, CSS art,
+  handcrafted SVG or text-glyph icon was introduced.
+- Content and privacy: production displays only library-relative location, indexed
+  MIME/type, modification time, dimensions, size and optional duration. Host paths,
+  raw errors and unsupported EXIF/download actions are absent.
+
+### Interaction, responsive and accessibility evidence
+
+- Live browser checks opened the image, switched to the next item, disabled the first
+  previous action, updated `aria-pressed`, closed the panel and confirmed it no longer
+  existed.
+- The separator exposes orientation, 360/620 bounds and current width. ArrowLeft
+  changed 406 → 430 in the real page; component tests cover the clamp boundary.
+- At 760 × 900 the separator is removed and the preview enters the document flow at
+  full content width. Its close, image, navigation and complete details remain usable.
+- Unit tests cover the image, native video and failed-load branches. The production
+  E2E uses the real authenticated content endpoint; repository axe/overflow checks
+  remain active.
+
+### Comparison history
+
+1. The first same-state comparison found a P2 vertical-fit difference: the production
+   panel used a full viewport height after beginning below the browse toolbar, so its
+   information rows fell below the initial viewport.
+2. The shared panel height now subtracts the shell, breadcrumb and toolbar bands, and
+   its stage uses a bounded minimum. The revised capture shows image, navigation and
+   all basic information together, matching the source hierarchy.
+
+### Residual Stage 3 work
+
+S3-106 owns pinned selection/double-click, Escape and exact trigger/virtual-anchor
+focus restoration. S3-107 owns 100k media and playback-resource budgets. S3-108 owns
+the complete Stage 3 Integrated Done browser gate. S4-006～009 own full viewer,
+fullscreen/zoom, codec/Range/offline/deleted states and target-browser verification.
+
+final result: passed
+
 ## Stage 3 / S3-104 browse-state QA
 
 ### Findings

@@ -108,6 +108,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   重试、下一页错误保留已加载项目，以及 pending-only 2.5 秒轮询停止条件。真实认证
   Chromium 链继续使用后端 ready WebP，同时用受控契约响应覆盖 pending→failed、空、
   错误恢复和 offline；每个稳定状态检查无页面横向溢出及 axe serious/critical。
+- S3-105 共享预览测试固定图片/原生视频分支、基本信息、前后项/关闭、加载失败降级和
+  360～620px 键盘宽度边界；真实认证 Chromium 链使用原内容 endpoint 验证图片预览、
+  按钮禁用、separator 调宽和关闭。视频 Range/codec/离线/删除矩阵仍归 S4-007～009。
 
 缓存、扫描调度和 fuzz 仍是目标项；认证的故障、并发和时间矩阵已由 S1-106 Gate 复核为
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体

@@ -21,6 +21,10 @@ import {
   type MediaCollectionLayout,
 } from "../../../components/patterns/MediaCollection/MediaCollection";
 import {
+  MediaPreview,
+  type MediaPreviewItem,
+} from "../../../components/patterns/MediaPreview/MediaPreview";
+import {
   Button,
   EmptyState,
   ErrorState,
@@ -31,7 +35,12 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import type { Breadcrumb, Directory } from "../../../lib/api/catalog";
+import {
+  assetContentUrl,
+  type Asset,
+  type Breadcrumb,
+  type Directory,
+} from "../../../lib/api/catalog";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import {
   readMediaLayoutPreference,
@@ -70,6 +79,11 @@ export function BrowsePage({
   const [searchParams, setSearchParams] = useSearchParams();
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
+  );
+  const [previewAssetId, setPreviewAssetId] = useState<string>();
+  const [previewWidth, setPreviewWidth] = useState(406);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === "undefined" ? 1280 : window.innerWidth,
   );
   const toast = useToast();
   const browseState = useMemo(
@@ -138,6 +152,25 @@ export function BrowsePage({
       width: asset.width,
     }));
   }, [assets, browseState.recursive, libraryId, locale, t]);
+  const previewIndex = assets.findIndex((asset) => asset.id === previewAssetId);
+  const previewAsset = previewIndex >= 0 ? assets[previewIndex] : undefined;
+  const previewItem = useMemo<MediaPreviewItem | undefined>(
+    () =>
+      previewAsset
+        ? {
+            contentUrl: assetContentUrl(previewAsset.id),
+            details: mediaPreviewDetails(previewAsset, locale, t),
+            id: previewAsset.id,
+            kind: previewAsset.kind,
+            name: previewAsset.name,
+          }
+        : undefined,
+    [locale, previewAsset, t],
+  );
+  const previewMaxWidth =
+    viewportWidth <= 1024
+      ? 620
+      : Math.max(360, Math.min(620, Math.floor(viewportWidth * 0.48)));
   const currentLibrary = libraryQuery.data?.library;
   const breadcrumbs: Breadcrumb[] = directoryQuery.data?.breadcrumbs ?? [];
   const selectedPathIds = useMemo(
@@ -156,6 +189,22 @@ export function BrowsePage({
       setSearchParams(canonicalSearch, { replace: true });
     }
   }, [canonicalSearch, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    setPreviewAssetId(undefined);
+  }, [directoryId, libraryId]);
+
+  useEffect(() => {
+    const updateViewportWidth = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", updateViewportWidth);
+    return () => window.removeEventListener("resize", updateViewportWidth);
+  }, []);
+
+  useEffect(() => {
+    setPreviewWidth((currentWidth) =>
+      Math.min(currentWidth, previewMaxWidth),
+    );
+  }, [previewMaxWidth]);
 
   function updateBrowseState(nextState: BrowseUrlState) {
     setSearchParams(serializeBrowseUrlState(nextState));
@@ -230,6 +279,11 @@ export function BrowsePage({
           onLayoutChange={updateMediaLayout}
         />
 
+        <div
+          className={styles.workspace}
+          data-has-preview={previewItem ? "" : undefined}
+          style={{ "--preview-width": `${previewWidth}px` } as CSSProperties}
+        >
         <div className={styles.content}>
           {(libraryQuery.isPending || (directoryId && directoryQuery.isPending)) && (
             <LoadingState label={t("browse.loadingLocation")} />
@@ -358,10 +412,12 @@ export function BrowsePage({
                   )}
                   {assets.length > 0 && (
                     <MediaCollection
+                      {...(previewAssetId ? { activeItemId: previewAssetId } : {})}
                       hasNextPage={assetsQuery.hasNextPage}
                       isFetchingNextPage={assetsQuery.isFetchingNextPage}
                       items={mediaItems}
                       labels={{
+                        activatePreview: t("browse.activatePreview"),
                         animated: t("browse.kindAnimated"),
                         failedThumbnail: t("browse.thumbnailFailed"),
                         image: t("browse.kindImage"),
@@ -374,6 +430,7 @@ export function BrowsePage({
                         video: t("browse.kindVideo"),
                       }}
                       layout={mediaLayout}
+                      onItemActivate={setPreviewAssetId}
                       onLoadMore={loadMoreAssets}
                       onRetryLoadMore={() => void loadMoreAssets()}
                       paginationError={assetsQuery.isFetchNextPageError}
@@ -383,9 +440,98 @@ export function BrowsePage({
               </>
             )}
         </div>
+        {previewItem && (
+          <MediaPreview
+            canGoNext={previewIndex < assets.length - 1}
+            canGoPrevious={previewIndex > 0}
+            item={previewItem}
+            labels={{
+              close: t("browse.closePreview"),
+              imageFailed: t("browse.previewImageFailed"),
+              next: t("browse.nextMedia"),
+              position: t("browse.previewPosition")
+                .replace("{current}", String(previewIndex + 1))
+                .replace("{total}", String(assets.length)),
+              previous: t("browse.previousMedia"),
+              preview: t("browse.preview"),
+              resize: t("browse.resizePreview"),
+              videoFailed: t("browse.previewVideoFailed"),
+            }}
+            maxWidth={previewMaxWidth}
+            onClose={() => setPreviewAssetId(undefined)}
+            onNext={() => setPreviewAssetId(assets[previewIndex + 1]?.id)}
+            onPrevious={() => setPreviewAssetId(assets[previewIndex - 1]?.id)}
+            onWidthChange={setPreviewWidth}
+            width={previewWidth}
+          />
+        )}
+        </div>
       </section>
     </AppShell>
   );
+}
+
+function mediaPreviewDetails(
+  asset: Asset,
+  locale: string,
+  t: ReturnType<typeof useLocale>["t"],
+): MediaPreviewItem["details"] {
+  const number = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+  });
+  const modified = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(asset.modifiedAt));
+  const dimensions =
+    asset.width && asset.height
+      ? `${number.format(asset.width)} × ${number.format(asset.height)} px`
+      : t("browse.detailUnknown");
+  const kind =
+    asset.kind === "video"
+      ? t("browse.kindVideo")
+      : asset.kind === "animated"
+        ? t("browse.kindAnimated")
+        : t("browse.kindImage");
+  const details = [
+    { label: t("browse.detailType"), value: `${kind} · ${asset.mimeType}` },
+    { label: t("browse.detailPath"), value: asset.relativePath },
+    { label: t("browse.detailModified"), value: modified },
+    { label: t("browse.detailDimensions"), value: dimensions },
+    {
+      label: t("browse.detailSize"),
+      value: formatBytes(asset.sizeBytes, locale),
+    },
+  ];
+  if (asset.durationMs !== null) {
+    details.push({
+      label: t("browse.detailDuration"),
+      value: formatDuration(asset.durationMs),
+    });
+  }
+  return details;
+}
+
+function formatBytes(bytes: number, locale: string): string {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const unitIndex =
+    bytes > 0
+      ? Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+      : 0;
+  const value = bytes / 1024 ** unitIndex;
+  return `${new Intl.NumberFormat(locale, {
+    maximumFractionDigits: unitIndex === 0 ? 0 : 1,
+  }).format(value)} ${units[unitIndex]}`;
+}
+
+function formatDuration(durationMs: number): string {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function BrowseToolbar({

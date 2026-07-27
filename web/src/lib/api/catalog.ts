@@ -60,6 +60,10 @@ export interface AssetPage {
   nextCursor: string | null;
 }
 
+export function assetContentUrl(assetId: string): string {
+  return `/api/v1/assets/${encodeURIComponent(assetId)}/content`;
+}
+
 export async function listAssets({
   cursor,
   directoryId,

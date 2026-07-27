@@ -150,11 +150,17 @@
     [S3-103 前端媒体集合](gates/MVP-2026-07-23/s3-frontend-media-collection.md)。
 - [x] `S3-104` 实现 skeleton、空、错误、离线、缩略图 pending/failed 状态。
   - 首屏使用与最终 grid 同比例/密度的共享 skeleton；空目录复用共享 EmptyState，
-    离线且没有可靠索引时使用专属 OfflineState，不把离线误报为空。首屏错误可重试，
+    离线且保留索引没有可显示媒体时使用专属 OfflineState，不把离线误报为空。首屏错误可重试，
     下一页错误保留已载入媒体并局部重试。仅存在 pending 缩略图时按 2.5 秒刷新资产页，
     terminal 状态停止轮询；failed/unavailable 不伪造后端未提供的重新生成操作。证据见
     [S3-104 前端浏览状态](gates/MVP-2026-07-23/s3-frontend-browse-states.md)。
-- [ ] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。
+- [x] `S3-105` 实现共享 `MediaPreview` 的图片/视频/基本信息/前后项/关闭和宽度调整。
+  - 共享组件直接消费 feature 提供的同源 content URL，不导入 API client；图片使用
+    contain 预览，视频使用原生 `controls`/`playsInline`/metadata preload。面板显示
+    library-relative 位置、类型、修改时间、尺寸、大小和可选时长，并提供有界前后项。
+    桌面宽度可指针拖动或用方向键/Home/End 调整，窄屏回到内容流；当前 S3-105 仅实现
+    未固定时单击打开/切换，固定、双击、Escape 和精确焦点/虚拟锚点恢复仍归 S3-106。
+    证据见 [S3-105 前端媒体预览](gates/MVP-2026-07-23/s3-frontend-media-preview.md)。
 - [ ] `S3-106` 实现 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)：
   - 桌面右侧停靠且父列表继续可用；窄屏进入内容流。
   - 未固定单击切换；固定后单击只选择、双击切换；任一时刻只允许一个活动媒体。

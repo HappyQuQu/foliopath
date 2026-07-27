@@ -222,6 +222,16 @@ S3-104 固定浏览状态的优先级：离线媒体库即使资产页为空也�
 `prefers-reduced-motion` 下停止 shimmer。failed/unavailable 使用图标、文字和语义色共同
 表达，视频遮罩前景使用独立中央 token，浅色与深色均保持可见。
 
+S3-105 将媒体卡片与唯一共享 `MediaPreview` 接通。未固定状态下，卡片的覆盖按钮保持
+文件名可访问名称并以 `aria-pressed` 标记当前预览；递归结果的来源链接继续位于其上层，
+不会被卡片预览操作吞掉。桌面预览在媒体区右侧停靠，宽度默认 406px、限制在
+360～620px，并提供可拖动、可聚焦的垂直 separator；方向键每次调整 24px，Home/End
+跳到边界。预览不使用 modal、scrim 或 `inert`，所以父列表仍可滚动和操作。窄于
+1024px 时 separator 隐藏，预览以全宽区块进入内容流。图片使用 `object-fit: contain`；
+视频使用浏览器原生 controls、playsInline 与 metadata preload。基本信息只展示索引已有
+的 library-relative 位置、MIME/类型、修改时间、尺寸、大小和可选时长，不暴露 host path。
+S3-106 再补固定/双击语义、Escape、选择与预览分离，以及关闭后的焦点和虚拟锚点恢复。
+
 ## 动效与材质
 
 动效参考 [Emil Kowalski 的 Apple Design skill](https://github.com/emilkowalski/skills/blob/main/skills/apple-design/SKILL.md) 中的即时反馈、空间一致性、可中断交互和无障碍原则，但只作为局部交互质量参考：

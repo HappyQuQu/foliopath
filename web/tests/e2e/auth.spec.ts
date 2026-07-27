@@ -169,6 +169,29 @@ test("administrator and library-management vertical slice", async ({
       .getByRole("article", { name: "direct-photo.jpg · Image" })
       .locator("img"),
   ).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Preview direct-photo.jpg" }).click();
+  const preview = page.getByRole("complementary", {
+    name: "Preview: direct-photo.jpg",
+  });
+  await expect(preview).toBeVisible();
+  await expect(preview.getByRole("img", { name: "direct-photo.jpg" })).toBeVisible();
+  await expect(preview).toContainText("image/jpeg");
+  await expect(preview.getByRole("button", { name: "Previous item" })).toBeDisabled();
+  await expect(preview.getByRole("button", { name: "Next item" })).toBeDisabled();
+  await expect(
+    preview.getByRole("separator", { name: "Resize preview" }),
+  ).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const previewSeparator = preview.getByRole("separator", {
+    name: "Resize preview",
+  });
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "406");
+  await previewSeparator.press("ArrowLeft");
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "430");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await preview.getByRole("button", { name: "Close preview" }).click();
+  await expect(preview).toHaveCount(0);
   const gridLayout = page.getByRole("button", { name: "Adaptive grid" });
   const masonryLayout = page.getByRole("button", { name: "Masonry" });
   await expect(gridLayout).toHaveAttribute("aria-pressed", "true");

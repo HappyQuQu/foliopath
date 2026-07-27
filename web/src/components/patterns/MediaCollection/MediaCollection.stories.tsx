@@ -23,6 +23,7 @@ const meta = {
     isFetchingNextPage: false,
     items,
     labels: {
+      activatePreview: "预览 {name}",
       animated: "动图",
       failedThumbnail: "缩略图生成失败",
       image: "图片",

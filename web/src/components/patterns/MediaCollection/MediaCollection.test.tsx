@@ -7,6 +7,7 @@ import {
 } from "./MediaCollection";
 
 const labels = {
+  activatePreview: "Preview {name}",
   animated: "Animated",
   failedThumbnail: "Thumbnail failed",
   image: "Image",
@@ -111,4 +112,39 @@ it("preserves loaded items and exposes a retry when the next page fails", () => 
   expect(screen.getByText("More media could not be loaded.")).toBeVisible();
   screen.getByRole("button", { name: "Retry loading more" }).click();
   expect(retry).toHaveBeenCalledOnce();
+});
+
+it("activates a media preview without hiding the source-directory link", () => {
+  const activate = vi.fn();
+  render(
+    <MediaCollection
+      activeItemId="ready"
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={[
+        {
+          height: 800,
+          id: "ready",
+          kind: "image",
+          modifiedLabel: "Today",
+          name: "ready.jpg",
+          sourceHref: "/source",
+          sourceLabel: "Source: photos",
+          thumbnailStatus: "ready",
+          thumbnailUrl: "/ready.webp",
+          width: 1200,
+        },
+      ]}
+      labels={labels}
+      layout="grid"
+      onItemActivate={activate}
+      onLoadMore={vi.fn()}
+    />,
+  );
+
+  const trigger = screen.getByRole("button", { name: "Preview ready.jpg" });
+  expect(trigger).toHaveAttribute("aria-pressed", "true");
+  trigger.click();
+  expect(activate).toHaveBeenCalledWith("ready");
+  expect(screen.getByRole("link", { name: "Source: photos" })).toBeVisible();
 });
