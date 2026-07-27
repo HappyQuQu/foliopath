@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"path"
 	"sync"
 
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 // mediaRootService owns the allowed media root lifecycle and implements the
@@ -21,6 +24,37 @@ type mediaRootService struct {
 	root   *files.Root
 	source *files.DirectorySource
 	walker *files.ScanWalker
+}
+
+func (service *mediaRootService) OpenAsset(
+	ctx context.Context,
+	libraryRoot, relativePath string,
+) (thumbnail.SourceFile, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	normalizedRoot, err := pathpolicy.Normalize(libraryRoot)
+	if err != nil || normalizedRoot != libraryRoot {
+		return nil, thumbnail.ErrSourceUnavailable
+	}
+	normalizedAsset, err := pathpolicy.Normalize(relativePath)
+	if err != nil || normalizedAsset == "" || normalizedAsset != relativePath {
+		return nil, thumbnail.ErrSourceUnavailable
+	}
+	target := normalizedAsset
+	if normalizedRoot != "" {
+		target = path.Join(normalizedRoot, normalizedAsset)
+	}
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.root == nil {
+		return nil, thumbnail.ErrSourceUnavailable
+	}
+	file, err := service.root.Open(target)
+	if err != nil {
+		return nil, thumbnail.ErrSourceUnavailable
+	}
+	return file, nil
 }
 
 func newMediaRootService(path string) (*mediaRootService, component, error) {

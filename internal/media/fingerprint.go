@@ -3,6 +3,7 @@ package media
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
 
 const sourceFingerprintPrefix = "v1:"
@@ -32,4 +33,19 @@ func (fingerprint SourceFingerprint) String() string {
 func (fingerprint SourceFingerprint) Matches(sizeBytes, mtimeNS int64) bool {
 	expected, err := NewSourceFingerprint(sizeBytes, mtimeNS)
 	return err == nil && fingerprint == expected
+}
+
+func (fingerprint SourceFingerprint) Valid() bool {
+	parts := strings.Split(string(fingerprint), ":")
+	if len(parts) != 3 || parts[0]+":" != sourceFingerprintPrefix {
+		return false
+	}
+	size, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil || size < 0 {
+		return false
+	}
+	if _, err := strconv.ParseInt(parts[2], 10, 64); err != nil {
+		return false
+	}
+	return true
 }

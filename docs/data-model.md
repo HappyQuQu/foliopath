@@ -57,24 +57,29 @@
 - `source_fingerprint`：migration 6 起为非空版本化
   `v1:<size_bytes>:<mtime_ns>`，用于派生数据失效；它不是内容哈希或去重身份。
 - `probe_status`、`probe_error_code`。
+- `playback_status`：`playable`、`unsupported_codec`、`unknown` 或 `not_applicable`。
 - `last_seen_generation`。
 
 唯一约束为 `(library_id, relative_path)`。重命名在首版表现为新路径新增，并在成功完整扫描后清理旧路径；不承诺依赖 inode 自动识别跨路径移动。
 S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`，修改时间序使用
 `(mtime_ns, id)`；migration 7 已建立与两个 tuple 和目录 scope 相符的索引。
-`OFFSET` 不是容量档下的可接受实现。
+`OFFSET` 不是容量档下的可接受实现。migration 8 追加媒体属性和 probe/playback 状态；
+已有资产回填为待探测状态，不把未知值伪装成处理成功。
 
 ### `thumbnails`
 
-- `asset_id`、`variant`。
+- `library_id`、`asset_id`、`variant`。
 - `source_fingerprint`、`transform_version`。
 - `cache_rel_path`：相对于 `/app/data/cache`。
-- `status`、`width`、`height`、`byte_size`。
-- `created_at`、`last_accessed_at`。
+- `status`：`pending`、`ready` 或 `failed`；失败只保存稳定 `error_code`。
+- `width`、`height`、`byte_size`、`created_at`、`last_accessed_at`。
 
-唯一约束为 `(asset_id, variant)`。缓存键必须包含源指纹和变换版本。每库派生文件固定放在
+唯一约束为 `(library_id, asset_id, variant)`，并以复合外键保证 asset 属于同一媒体库。
+缓存键必须包含源指纹和变换版本。每库派生文件固定放在
 `libraries/lib_<library-id>/` 子树内，使 removal worker 无需接触 `/library` 即可幂等清理。
 文件先原子落盘，再提交可用状态；数据库不得把不存在或未完成的缓存文件标记为可用。
+migration 8 已实现该表和 ready/failed 状态约束；durable media job、LRU 与访问时间刷新
+仍由 S3-005 追加实现。
 
 ### `scan_runs`
 

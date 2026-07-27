@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
+	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 func (s *Store) ResolveScope(
@@ -261,10 +262,15 @@ func (s *Store) ListAssetPage(
 		args = append(args, params.Query.Scope.DirectoryID, params.Query.Scope.LibraryID)
 	}
 	builder.WriteString(`
-        SELECT a.id, a.library_id, a.directory_id, a.relative_path, a.name,
+        SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
                a.natural_name_key, a.kind, a.media_format, a.mime_type,
-               a.size_bytes, a.mtime_ns, a.source_fingerprint
+               a.size_bytes, a.mtime_ns, a.source_fingerprint,
+               a.width, a.height, a.duration_ms, a.probe_status,
+               a.probe_error_code, a.playback_status,
+               t.status, t.error_code
         FROM assets a
+        JOIN libraries l ON l.id = a.library_id
+        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         WHERE a.library_id = ?`)
 	args = append(args, params.Query.Scope.LibraryID)
 	switch {
@@ -303,17 +309,46 @@ func (s *Store) ListAssetPage(
 	items := make([]catalog.Asset, 0, params.Limit)
 	for rows.Next() {
 		var item catalog.Asset
-		var kind string
+		var kind, probeStatus, playbackStatus string
+		var width, height, durationMS sql.NullInt64
+		var probeError, thumbnailStatus, thumbnailError sql.NullString
 		if err := rows.Scan(
-			&item.ID, &item.LibraryID, &item.DirectoryID, &item.RelativePath,
+			&item.ID, &item.LibraryID, &item.LibraryName,
+			&item.DirectoryID, &item.RelativePath,
 			&item.Name, &item.NaturalNameKey, &kind, &item.MediaFormat,
 			&item.MIMEType, &item.SizeBytes, &item.ModifiedAtNS,
-			&item.SourceFingerprint,
+			&item.SourceFingerprint, &width, &height, &durationMS,
+			&probeStatus, &probeError, &playbackStatus,
+			&thumbnailStatus, &thumbnailError,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog asset: %w", err)
 		}
 		item.Kind = catalog.AssetKind(kind)
 		item.Availability = params.Query.Scope.Availability
+		item.ProbeStatus = media.ProbeStatus(probeStatus)
+		item.PlaybackStatus = media.PlaybackStatus(playbackStatus)
+		if width.Valid {
+			item.Width = &width.Int64
+		}
+		if height.Valid {
+			item.Height = &height.Int64
+		}
+		if durationMS.Valid {
+			item.DurationMS = &durationMS.Int64
+		}
+		if probeError.Valid {
+			value := media.ProcessingErrorCode(probeError.String)
+			item.ProbeErrorCode = &value
+		}
+		if thumbnailStatus.Valid {
+			item.ThumbnailStatus = thumbnailStatus.String
+		} else {
+			item.ThumbnailStatus = "pending"
+		}
+		if thumbnailError.Valid {
+			value := media.ProcessingErrorCode(thumbnailError.String)
+			item.ThumbnailErrorCode = &value
+		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {

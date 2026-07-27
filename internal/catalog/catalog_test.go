@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 type repositoryStub struct {
@@ -190,12 +192,16 @@ func TestAssetQueryDefaultsCanonicalizesKindsAndBindsCursor(t *testing.T) {
 			{
 				ID: 40, LibraryID: 9, DirectoryID: 30, RelativePath: "photo-2.jpg",
 				Name: "photo-2.jpg", NaturalNameKey: NaturalNameKey("photo-2.jpg"),
-				ModifiedAtNS: 10,
+				ModifiedAtNS: 10, LibraryName: "Family", Kind: KindImage,
+				SourceFingerprint: "v1:1:10", ProbeStatus: media.ProbePending,
+				PlaybackStatus: media.PlaybackUnknown, ThumbnailStatus: "pending",
 			},
 			{
 				ID: 41, LibraryID: 9, DirectoryID: 30, RelativePath: "photo-10.jpg",
 				Name: "photo-10.jpg", NaturalNameKey: NaturalNameKey("photo-10.jpg"),
-				ModifiedAtNS: 11,
+				ModifiedAtNS: 11, LibraryName: "Family", Kind: KindImage,
+				SourceFingerprint: "v1:1:11", ProbeStatus: media.ProbePending,
+				PlaybackStatus: media.PlaybackUnknown, ThumbnailStatus: "pending",
 			},
 		},
 	}

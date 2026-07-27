@@ -17,6 +17,13 @@ func TestMediaRootServiceOwnsOpenAndCloseLifecycle(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(rootPath, "albums"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(
+		filepath.Join(rootPath, "albums", "photo.jpg"),
+		[]byte("original"),
+		0o440,
+	); err != nil {
+		t.Fatal(err)
+	}
 	service, lifecycle, err := newMediaRootService(rootPath)
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +51,20 @@ func TestMediaRootServiceOwnsOpenAndCloseLifecycle(t *testing.T) {
 	}
 	if len(candidates) != 1 || candidates[0].Name != "albums" {
 		t.Fatalf("candidates = %#v", candidates)
+	}
+	asset, err := service.OpenAsset(
+		context.Background(), "albums", "photo.jpg",
+	)
+	if err != nil {
+		t.Fatalf("open asset: %v", err)
+	}
+	if err := asset.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.OpenAsset(
+		context.Background(), "albums", "../outside.jpg",
+	); err == nil {
+		t.Fatal("traversal asset unexpectedly opened")
 	}
 	if err := lifecycle.stop(context.Background()); err != nil {
 		t.Fatalf("stop: %v", err)

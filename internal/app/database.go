@@ -17,6 +17,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 const databaseFilename = "foliopath.db"
@@ -32,6 +33,7 @@ type databaseStore interface {
 	scanner.QueryRepository
 	scanner.ScheduleRepository
 	appsettings.Repository
+	thumbnail.Repository
 	scanQueueStore
 	Close() error
 }
@@ -83,6 +85,42 @@ func (service *databaseService) GetDirectoryLineage(
 		return catalog.DirectoryLineage{}, catalog.ErrRepositoryNotReady
 	}
 	return service.store.GetDirectoryLineage(ctx, directoryID, maximum)
+}
+
+func (service *databaseService) GetAssetForDerivation(
+	ctx context.Context,
+	assetID int64,
+) (thumbnail.Asset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.Asset{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.GetAssetForDerivation(ctx, assetID)
+}
+
+func (service *databaseService) CommitReady(
+	ctx context.Context,
+	ready thumbnail.Ready,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CommitReady(ctx, ready)
+}
+
+func (service *databaseService) CommitFailure(
+	ctx context.Context,
+	failure thumbnail.Failure,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CommitFailure(ctx, failure)
 }
 
 type scanQueueStore interface {

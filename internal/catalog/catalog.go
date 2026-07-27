@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	cursorcodec "github.com/HappyQuQu/foliopath/internal/cursor"
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -132,19 +133,28 @@ type DirectoryDetail struct {
 }
 
 type Asset struct {
-	ID                int64
-	LibraryID         int64
-	DirectoryID       int64
-	RelativePath      string
-	Name              string
-	NaturalNameKey    []byte
-	Kind              AssetKind
-	MediaFormat       string
-	MIMEType          string
-	SizeBytes         int64
-	ModifiedAtNS      int64
-	SourceFingerprint string
-	Availability      SourceAvailability
+	ID                 int64
+	LibraryID          int64
+	LibraryName        string
+	DirectoryID        int64
+	RelativePath       string
+	Name               string
+	NaturalNameKey     []byte
+	Kind               AssetKind
+	MediaFormat        string
+	MIMEType           string
+	SizeBytes          int64
+	ModifiedAtNS       int64
+	SourceFingerprint  string
+	Availability       SourceAvailability
+	Width              *int64
+	Height             *int64
+	DurationMS         *int64
+	ProbeStatus        media.ProbeStatus
+	ProbeErrorCode     *media.ProcessingErrorCode
+	PlaybackStatus     media.PlaybackStatus
+	ThumbnailStatus    string
+	ThumbnailErrorCode *media.ProcessingErrorCode
 }
 
 type DirectoryPosition struct {
@@ -388,6 +398,11 @@ func (service *Service) ListAssets(ctx context.Context, request AssetRequest) (A
 	if err != nil {
 		return AssetPage{}, err
 	}
+	for _, item := range items {
+		if err := validateAsset(item); err != nil {
+			return AssetPage{}, err
+		}
+	}
 	if len(items) <= limit {
 		return AssetPage{Items: items}, nil
 	}
@@ -404,6 +419,49 @@ func (service *Service) ListAssets(ctx context.Context, request AssetRequest) (A
 		return AssetPage{}, err
 	}
 	return AssetPage{Items: items, NextCursor: next}, nil
+}
+
+func validateAsset(item Asset) error {
+	if item.ID <= 0 || item.LibraryID <= 0 || item.LibraryName == "" ||
+		item.DirectoryID <= 0 || item.RelativePath == "" || item.Name == "" ||
+		item.SizeBytes < 0 || item.SourceFingerprint == "" ||
+		!item.Kind.valid() {
+		return errors.New("catalog repository returned an invalid asset")
+	}
+	switch item.ProbeStatus {
+	case media.ProbePending:
+		if item.ProbeErrorCode != nil {
+			return errors.New("catalog repository returned invalid pending probe state")
+		}
+	case media.ProbeReady:
+		if item.Width == nil || *item.Width < 1 || item.Height == nil || *item.Height < 1 ||
+			item.ProbeErrorCode != nil {
+			return errors.New("catalog repository returned invalid ready probe state")
+		}
+	case media.ProbeFailed, media.ProbeUnsupported:
+		if item.ProbeErrorCode == nil {
+			return errors.New("catalog repository returned invalid failed probe state")
+		}
+	default:
+		return errors.New("catalog repository returned unknown probe state")
+	}
+	switch item.ThumbnailStatus {
+	case "pending":
+		if item.ThumbnailErrorCode != nil {
+			return errors.New("catalog repository returned invalid pending thumbnail state")
+		}
+	case "ready":
+		if item.ProbeStatus != media.ProbeReady || item.ThumbnailErrorCode != nil {
+			return errors.New("catalog repository returned invalid ready thumbnail state")
+		}
+	case "failed":
+		if item.ThumbnailErrorCode == nil {
+			return errors.New("catalog repository returned invalid failed thumbnail state")
+		}
+	default:
+		return errors.New("catalog repository returned unknown thumbnail state")
+	}
+	return nil
 }
 
 func (service *Service) resolveScope(

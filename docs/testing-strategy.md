@@ -107,7 +107,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩阵、重启移除和逐字节原媒体
 不变已由 S2-007 Gate 复核为 Backend Ready。S2-102 已接入生产扫描 worker，S2-103～106
 已完成目录/计数、媒体增量收敛、故障/重启恢复、容量矩阵与扫描 Backend Ready；
-浏览查询生产实现、缩略图、浏览器流程和发布网络边界仍在后续 Gate。
+S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发布、SQLite 状态和
+真实 scanner→source→cache→database 组合测试；durable 媒体任务、LRU/磁盘保护、资产/
+缩略图 HTTP、浏览器流程和发布网络边界仍在后续 Gate。
 
 ### 前端单元与组件测试
 

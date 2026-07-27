@@ -916,6 +916,94 @@ func TestMediaCandidateFingerprintAndConvergenceHaveCanonicalOwners(t *testing.T
 	}
 }
 
+func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) {
+	root := repositoryRoot(t)
+	processingPath := filepath.Join(root, "internal", "media", "processing.go")
+	imagePath := filepath.Join(
+		root, "internal", "media", "imagevips", "processor_libvips.go",
+	)
+	videoPath := filepath.Join(
+		root, "internal", "media", "videoffmpeg", "processor.go",
+	)
+	derivationPath := filepath.Join(root, "internal", "thumbnail", "derivation.go")
+	cachePath := filepath.Join(
+		root, "internal", "thumbnail", "cachefs", "cache.go",
+	)
+	migrationPath := filepath.Join(root, "migrations", "00008_media_processing.sql")
+	for _, required := range []struct {
+		path     string
+		contents []string
+	}{
+		{
+			path: processingPath,
+			contents: []string{
+				"type ProcessingResult struct",
+				"func ProcessingCode(err error)",
+			},
+		},
+		{
+			path: imagePath,
+			contents: []string{
+				`"github.com/davidbyttow/govips/v2/vips"`,
+				"vips.LoadImageFromBuffer",
+				"image.ExportWebp",
+			},
+		},
+		{
+			path: videoPath,
+			contents: []string{
+				"exec.CommandContext",
+				"command.ExtraFiles",
+				`"-show_streams"`,
+				`"-frames:v", "1"`,
+			},
+		},
+		{
+			path: derivationPath,
+			contents: []string{
+				"GridTransformVersion",
+				"func (value Derivation) CacheRelativePath()",
+			},
+		},
+		{
+			path: cachePath,
+			contents: []string{
+				"os.CreateTemp",
+				"temp.Sync()",
+				"os.Rename",
+			},
+		},
+		{
+			path: migrationPath,
+			contents: []string{
+				"CREATE TABLE thumbnails",
+				"probe_status",
+				"source_fingerprint",
+				"transform_version",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.contents {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing media boundary %q", required.path, content)
+			}
+		}
+	}
+	videoSource, err := os.ReadFile(videoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"sh -c", "bash -c", "CombinedOutput"} {
+		if strings.Contains(string(videoSource), forbidden) {
+			t.Errorf("FFmpeg adapter contains forbidden execution pattern %q", forbidden)
+		}
+	}
+}
+
 func TestOpaqueCursorCodecHasOneCanonicalOwner(t *testing.T) {
 	root := repositoryRoot(t)
 	codecPath := filepath.Join(root, "internal", "cursor", "codec.go")
