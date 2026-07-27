@@ -37,6 +37,12 @@ FolioPath 读取用户提供的目录和媒体文件，并通过 Web 服务展�
 纯相对路径词法规则集中在 `internal/pathpolicy`，实际文件系统身份、解析和打开集中
 在 `internal/files`；其他包不得自行拼接或打开真实媒体路径。
 
+`S2-002` 已把已认证目录选择器接到该生产边界：handler 只传 allowed-root-relative
+`parent`，`internal/library` 拥有自然排序、页面上限和 query-bound opaque cursor，
+`internal/files` 从锚定根按批次读取直接子目录并把 symlink、unreadable 与 mount boundary
+映射为有限原因码。游标使用随机进程密钥的 AES-GCM，不包含明文父路径或最后目录名；错误
+响应不包含绝对根、errno 或底层路径。
+
 ## 网络和认证
 
 开发预览版在内建认证完成前默认绑定 `127.0.0.1`，或通过可信认证反向代理访问；不得将其直接暴露到局域网或互联网。首个稳定版必须包含首次设置的单管理员认证，不提供匿名局域网模式，详见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
@@ -143,6 +149,8 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 - `..`、绝对路径、双重 URL 编码、NUL 和符号链接逃逸。
 - Linux 同设备、跨设备与 self-bind 子挂载拒绝，以及 `openat2`/resolve flags
   被内核或 seccomp 阻断时的失败关闭。
+- 目录选择器未认证短路、恶意 parent、文件过滤、隐藏/Unicode 目录、自然分页、游标篡改/
+  跨 scope 复用、symlink 和 nested mount 原因码及公开错误脱敏。
 - 相同、祖先和后代媒体库重叠。
 - 挂载离线、权限错误、扫描中断和扫描期间路径变化。
 - 畸形图片、超大尺寸、长动画、损坏视频和媒体工具超时。

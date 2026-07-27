@@ -149,6 +149,82 @@ func TestAuthenticationHTTPBoundaryIsCentralizedAndFailClosed(t *testing.T) {
 	}
 }
 
+func TestLibraryPathFilesystemBoundaryIsCentralized(t *testing.T) {
+	root := repositoryRoot(t)
+	apiPath := filepath.Join(root, "internal", "api", "library_paths_http.go")
+	capabilityPath := filepath.Join(root, "internal", "library", "paths.go")
+	adapterPath := filepath.Join(root, "internal", "files", "enumerate.go")
+	appPath := filepath.Join(root, "internal", "app", "run.go")
+	mediaRootPath := filepath.Join(root, "internal", "app", "media_root.go")
+
+	for _, required := range []struct {
+		path    string
+		content []string
+	}{
+		{
+			path: apiPath,
+			content: []string{
+				`GET /api/v1/library-paths`,
+				"LibraryPathService",
+			},
+		},
+		{
+			path: capabilityPath,
+			content: []string{
+				"type DirectorySource interface",
+				"func (service *PathService) ListPaths",
+			},
+		},
+		{
+			path: adapterPath,
+			content: []string{
+				"func (source *DirectorySource) EnumerateDirectories",
+				"source.root.OpenDir(parent)",
+			},
+		},
+		{
+			path: mediaRootPath,
+			content: []string{
+				"files.NewDirectorySource(root)",
+				"func (service *mediaRootService) EnumerateDirectories",
+			},
+		},
+		{
+			path: appPath,
+			content: []string{
+				"newMediaRootService(configuration.mediaRoot)",
+				"LibraryPaths:   libraryPaths",
+			},
+		},
+	} {
+		source, err := os.ReadFile(required.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, content := range required.content {
+			if !strings.Contains(string(source), content) {
+				t.Errorf("%s is missing canonical boundary %q", required.path, content)
+			}
+		}
+	}
+
+	for _, forbidden := range []string{
+		`"github.com/HappyQuQu/foliopath/internal/files"`,
+		`"os"`,
+		`"path/filepath"`,
+	} {
+		for _, sourcePath := range []string{apiPath, capabilityPath} {
+			source, err := os.ReadFile(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(source), forbidden) {
+				t.Errorf("%s bypasses the directory-source port with %s", sourcePath, forbidden)
+			}
+		}
+	}
+}
+
 func TestWebUsesSingleGeneratedAPIClientBoundary(t *testing.T) {
 	root := repositoryRoot(t)
 	webSource := filepath.Join(root, "web", "src")

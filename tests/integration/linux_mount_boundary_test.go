@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/files"
+	"github.com/HappyQuQu/foliopath/internal/library"
 )
 
 // These acceptance probes require CAP_SYS_ADMIN in an isolated Linux
@@ -157,6 +158,40 @@ func assertBindMountRejected(t *testing.T, allowedPath, sourcePath, mountTarget 
 		return nil
 	}); !errors.Is(err, files.ErrCrossDevice) {
 		t.Fatalf("Root.Walk(mounted) error = %v, want ErrCrossDevice", err)
+	}
+
+	directorySource, err := files.NewDirectorySource(root)
+	if err != nil {
+		t.Fatalf("NewDirectorySource: %v", err)
+	}
+	if err := directorySource.EnumerateDirectories(
+		context.Background(),
+		"mounted",
+		func(library.DirectoryCandidate) error {
+			t.Fatal("directory enumeration entered a bind mount")
+			return nil
+		},
+	); !errors.Is(err, library.ErrParentMountBoundary) {
+		t.Fatalf(
+			"EnumerateDirectories(mounted) error = %v, want ErrParentMountBoundary",
+			err,
+		)
+	}
+	var mountedCandidate library.DirectoryCandidate
+	if err := directorySource.EnumerateDirectories(
+		context.Background(),
+		"",
+		func(candidate library.DirectoryCandidate) error {
+			if candidate.Name == "mounted" {
+				mountedCandidate = candidate
+			}
+			return nil
+		},
+	); err != nil {
+		t.Fatalf("EnumerateDirectories(root): %v", err)
+	}
+	if mountedCandidate.BlockedReason != library.SelectionBlockedMountBoundary {
+		t.Fatalf("mounted directory candidate = %#v, want mount boundary", mountedCandidate)
 	}
 
 	var reportedMountError error

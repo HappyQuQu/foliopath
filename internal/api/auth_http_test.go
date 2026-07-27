@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/library"
 )
 
 const (
@@ -629,6 +630,14 @@ func authenticationTestRoutes(
 	routes, err := NewRoutes(RouteDependencies{
 		Readiness:      func() Readiness { return Readiness{Ready: true} },
 		Authentication: service,
+		LibraryPaths: &libraryPathServiceStub{
+			list: func(
+				context.Context,
+				library.ListPathParams,
+			) (library.PathPage, error) {
+				return library.PathPage{}, errors.New("unexpected library path request")
+			},
+		},
 		SystemStatus: func(context.Context) (SystemStatus, error) {
 			return SystemStatus{
 				Version:          "test",

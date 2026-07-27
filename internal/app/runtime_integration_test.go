@@ -282,6 +282,16 @@ func runComposedApplication(
 	sessionCookie *string,
 ) {
 	t.Helper()
+	if err := os.MkdirAll(filepath.Join(mediaRoot, "albums", "2026"), 0o755); err != nil {
+		t.Fatalf("prepare media root: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(mediaRoot, "ordinary-file.jpg"),
+		[]byte("synthetic"),
+		0o644,
+	); err != nil {
+		t.Fatalf("prepare ordinary media fixture: %v", err)
+	}
 
 	application, err := composeConfiguration(
 		Input{Version: "integration"},
@@ -321,6 +331,7 @@ func runComposedApplication(
 		"authentication_required",
 	)
 	assertAdministratorSessionHTTP(t, application, client, address, runNumber, sessionCookie)
+	assertLibraryPathHTTP(t, client, address, *sessionCookie)
 
 	cancel()
 	select {
@@ -336,6 +347,52 @@ func runComposedApplication(
 	if err == nil {
 		connection.Close()
 		t.Fatalf("run %d HTTP listener %q remained open after shutdown", runNumber, address)
+	}
+}
+
+func assertLibraryPathHTTP(
+	t *testing.T,
+	client *http.Client,
+	address string,
+	sessionCookie string,
+) {
+	t.Helper()
+	request, err := http.NewRequest(
+		http.MethodGet,
+		"http://"+address+"/api/v1/library-paths?limit=1",
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.AddCookie(&http.Cookie{
+		Name:  "foliopath_session",
+		Value: sessionCookie,
+	})
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("library path request: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(response.Body)
+		t.Fatalf("library path status = %d; body = %s", response.StatusCode, body)
+	}
+	var page struct {
+		Items []struct {
+			Name         string `json:"name"`
+			RelativePath string `json:"relativePath"`
+			Selectable   bool   `json:"selectable"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil {
+		t.Fatalf("decode library path page: %v", err)
+	}
+	if len(page.Items) != 1 ||
+		page.Items[0].Name != "albums" ||
+		page.Items[0].RelativePath != "albums" ||
+		!page.Items[0].Selectable {
+		t.Fatalf("library path page = %#v", page)
 	}
 }
 

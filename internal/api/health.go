@@ -40,12 +40,14 @@ type RouteDependencies struct {
 	Readiness      func() Readiness
 	Authentication AuthenticationService
 	SystemStatus   func(context.Context) (SystemStatus, error)
+	LibraryPaths   LibraryPathService
 }
 
 func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	if dependencies.Readiness == nil ||
 		dependencies.Authentication == nil ||
-		dependencies.SystemStatus == nil {
+		dependencies.SystemStatus == nil ||
+		dependencies.LibraryPaths == nil {
 		return nil, errInvalidRouteDependencies
 	}
 
@@ -55,6 +57,7 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		handleReadiness(writer, request, dependencies.Readiness())
 	})
 	registerAuthenticationRoutes(mux, dependencies.Authentication)
+	registerLibraryPathRoutes(mux, dependencies.LibraryPaths)
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())
 		if err != nil {
