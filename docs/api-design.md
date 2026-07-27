@@ -333,8 +333,9 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
 
 S4-002 已实现 migration 10、catalog 查询模型、SQLite FTS/keyset、认证 HTTP 与真实
 composition，并用自动 fixture 固定中文、英文、大小写、组合字符、短查询、标点字面量、
-三种 scope、时间边界、离线和 cursor 稳定性。当前仍只达到 Implemented：S4-003 必须完成
-约 10 万媒体容量、扫描并发、取消/重建扩展矩阵和最终审计后，才能授予搜索 Backend Ready。
+三种 scope、时间边界、离线和 cursor 稳定性。S4-003 已进一步完成约 10 万媒体容量、
+扫描并发、取消、integrity/rebuild/fail-closed 和最终审计，搜索达到 Backend Ready；
+前端可通过生成 client 接入上述冻结 operation。
 
 ### 媒体详情与内容
 

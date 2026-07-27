@@ -64,6 +64,7 @@ func (walker *ScanWalker) Walk(
 		return scanner.ErrInvalidRootIdentity
 	}
 
+	var visitErr error
 	err := walker.root.walkCaptured(ctx, relativeRoot, identity, func(relative string, entry fs.DirEntry, walkErr error) error {
 		libraryRelative, err := relativeToLibrary(relativeRoot, relative)
 		if err != nil {
@@ -76,6 +77,9 @@ func (walker *ScanWalker) Walk(
 					IsDirectory:  entry != nil && entry.IsDir(),
 					Skipped:      true,
 				})
+				if err != nil {
+					visitErr = err
+				}
 				return err
 			}
 			return scannerWalkError(walkErr)
@@ -92,6 +96,7 @@ func (walker *ScanWalker) Walk(
 			MTimeNS:      info.ModTime().UnixNano(),
 		})
 		if err != nil {
+			visitErr = err
 			return err
 		}
 		if decision == scanner.WalkSkipDirectory {
@@ -99,6 +104,9 @@ func (walker *ScanWalker) Walk(
 		}
 		return nil
 	})
+	if visitErr != nil {
+		return visitErr
+	}
 	return scannerWalkError(err)
 }
 

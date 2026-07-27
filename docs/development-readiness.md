@@ -19,8 +19,10 @@ Ready](gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)已完成，允
 资产分页、详情和缩略图。[S4-001 搜索 Contract
 Ready](gates/MVP-2026-07-23/s4-search-contract-ready.md)已冻结 search profile v1；
 [S4-002 搜索实现](gates/MVP-2026-07-23/s4-search-keyset.md)已完成 migration 10、
-FTS/keyset、三种 scope、类型/mtime、离线、认证 HTTP 与真实 composition。当前进入
-`S4-003` 容量/并发和 Backend Ready Gate；搜索前端仍不可接入。
+FTS/keyset、三种 scope、类型/mtime、离线、认证 HTTP 与真实 composition；[S4-003
+搜索 Backend Ready](gates/MVP-2026-07-23/s4-search-backend-ready.md)已通过 100k、
+扫描并发、取消和 rebuild Gate，允许前端接入冻结的搜索 operation。当前后端进入
+`S4-005` 资产详情与原内容。
 这些结论不把前端、Stage 4～5 或发布标记为完成，也不授权共享预览或非回环监听。
 
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式

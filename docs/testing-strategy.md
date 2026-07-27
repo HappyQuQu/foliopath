@@ -145,7 +145,8 @@ S3-006 已增加 256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips runtime
 - migration 10 搜索键/FTS 升级回填、Unicode NFKC/full fold、中文/英文/组合字符/变音符号、
   1～2 字符和标点字面查询、三种 scope、kind/mtime 半开区间、离线索引、自然/mtime
   keyset、query/generation/global-revision cursor 与请求取消；S4-002 已覆盖正确性主矩阵，
-  100k、扫描并发和 rebuild 故障矩阵由 S4-003 强制。
+  S4-003 已在 100k/10k macOS 与 Linux 2 CPU/4 GiB 档覆盖扫描并发、FTS/短词/全局、
+  两页 keyset、取消/先完成收敛、integrity rebuild 和失败关闭。
 - 真实文件变化：新增、修改、删除、重命名、权限错误、深目录和空目录。
 - 所有可读目录的直接/递归计数，以及隐藏项、系统派生目录和回收站的跳过清单/统计。
 - HTTP 条件请求、`HEAD`、合法/非法 Range、`416`、客户端取消。
@@ -326,7 +327,8 @@ amd64/arm64 CI。前端组件/token、浏览器产品 E2E 仍不存在，必须�
 
 前端 import/token lint、Storybook/组件/视觉回归、认证实现及其错误边界测试、
 只读发布 volume/运行期 unmount、浏览器产品 E2E、
-完整媒体/搜索/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
-旧库回填、认证 HTTP 与真实 composition 已由 S4-002 执行，但不替代 S4-003 容量 Gate。定义好的 CI
+完整媒体/前端容量、双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
+旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
+S4-002～003 执行并汇总为 Backend Ready。定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
 的完整状态与最晚落地阶段见[架构适配度检查](architecture/fitness-functions.md)。

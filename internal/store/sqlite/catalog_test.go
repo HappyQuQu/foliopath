@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -664,6 +665,152 @@ func TestCatalogSearchSupportsUnicodeScopesFiltersAndGlobalRevision(t *testing.T
 		Cursor: global.NextCursor,
 	}); !errors.Is(err, catalog.ErrInvalidCursor) {
 		t.Fatalf("advanced global revision cursor error = %v", err)
+	}
+}
+
+func TestCatalogSearchIndexIntegrityRepairIsCancellableAndPreservesAssets(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedSearchCatalog(t, store, "Repair", "repair", []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "repair-target.jpg",
+			ParentPath: "", Name: "repair-target.jpg", MTimeNS: 100,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 10,
+		},
+	})
+	var assetID int64
+	var searchNameKey, searchPathKey string
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT id, search_name_key, search_path_key
+        FROM assets
+        WHERE library_id = ? AND relative_path = 'repair-target.jpg'`,
+		libraryID,
+	).Scan(&assetID, &searchNameKey, &searchPathKey); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(context.Background(), `
+        INSERT INTO asset_search(
+            asset_search, rowid, search_name_key, search_path_key
+        ) VALUES('delete', ?, ?, ?)`,
+		assetID, searchNameKey, searchPathKey,
+	); err != nil {
+		t.Fatalf("corrupt derived search index: %v", err)
+	}
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := store.ensureCatalogSearchIndex(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled search-index repair error = %v", err)
+	}
+	if err := store.ensureCatalogSearchIndex(context.Background()); err != nil {
+		t.Fatalf("repair derived search index: %v", err)
+	}
+
+	service := catalogServiceForStore(t, store)
+	query := "repair-target"
+	page, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: libraryID, SearchQuery: &query,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != assetID {
+		t.Fatalf("repaired search page = %#v", page)
+	}
+	var assets int
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT count(*) FROM assets WHERE library_id = ?`,
+		libraryID,
+	).Scan(&assets); err != nil {
+		t.Fatal(err)
+	}
+	if assets != 1 {
+		t.Fatalf("assets after derived-index repair = %d, want 1", assets)
+	}
+}
+
+func TestCatalogSearchIndexRepairFailsClosedWithoutDeletingCatalog(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedSearchCatalog(t, store, "Failed repair", "failed-repair", []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "preserved.jpg",
+			ParentPath: "", Name: "preserved.jpg", MTimeNS: 100,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 10,
+		},
+	})
+	if _, err := store.db.ExecContext(
+		context.Background(), `DROP TABLE asset_search`,
+	); err != nil {
+		t.Fatal(err)
+	}
+	err := store.ensureCatalogSearchIndex(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "rebuild catalog search index") {
+		t.Fatalf("missing-index repair error = %v", err)
+	}
+	var assets int
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT count(*) FROM assets WHERE library_id = ?`,
+		libraryID,
+	).Scan(&assets); err != nil {
+		t.Fatal(err)
+	}
+	if assets != 1 {
+		t.Fatalf("assets after failed derived-index repair = %d, want 1", assets)
+	}
+}
+
+func TestOpenRepairsInconsistentCatalogSearchIndex(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "search-repair.db")
+	store, err := Open(context.Background(), filename, Options{MaxBatchSize: 16})
+	if err != nil {
+		t.Fatal(err)
+	}
+	libraryID := seedSearchCatalog(t, store, "Startup repair", "startup-repair", []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "startup-target.jpg",
+			ParentPath: "", Name: "startup-target.jpg", MTimeNS: 100,
+			AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+			MIMEType: "image/jpeg", SizeBytes: 10,
+		},
+	})
+	if _, err := store.db.ExecContext(context.Background(), `
+        INSERT INTO asset_search(
+            asset_search, rowid, search_name_key, search_path_key
+        )
+        SELECT 'delete', id, search_name_key, search_path_key
+        FROM assets
+        WHERE library_id = ? AND relative_path = 'startup-target.jpg'`,
+		libraryID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(context.Background(), filename, Options{MaxBatchSize: 16})
+	if err != nil {
+		t.Fatalf("reopen and repair search index: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := reopened.Close(); err != nil {
+			t.Errorf("close reopened store: %v", err)
+		}
+	})
+	service := catalogServiceForStore(t, reopened)
+	query := "startup-target"
+	page, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: libraryID, SearchQuery: &query,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].RelativePath != "startup-target.jpg" {
+		t.Fatalf("startup-repaired search page = %#v", page)
 	}
 }
 

@@ -216,7 +216,10 @@ mtime 的半开区间筛选。migration 10 的 singleton `catalog_search_state.r
 可靠 full-scan generation 发布时，在同一提交语义中推进 revision，供跨库 cursor 绑定；
 它不是扫描中间批次的快照版本。库内 cursor 继续绑定对应媒体库的可靠 generation。
 asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的同一事务写规范搜索键；
-启动升级以有界批次回填旧资产，并由 migration 5→10 重开测试验证 FTS 可查询。
+启动升级以有界批次回填旧资产，并由 migration 5→10 重开测试验证 FTS 可查询。每次启动在
+回填后执行 external-content integrity check；派生 FTS 不一致时以序列化短事务 rebuild
+并再次校验。取消会终止恢复，rebuild 或复核失败则应用启动失败关闭，但不得删除 `assets`
+权威索引。
 
 ## 扫描一致性
 

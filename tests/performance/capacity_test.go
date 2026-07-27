@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
@@ -41,19 +43,34 @@ type capacityMetrics struct {
 	ConcurrentReads         int      `json:"concurrentReads"`
 	ConcurrentReadP95US     int64    `json:"concurrentReadP95Us"`
 	ConcurrentReadMaxUS     int64    `json:"concurrentReadMaxUs"`
+	ConcurrentSearches      int      `json:"concurrentSearches"`
+	ConcurrentSearchP95US   int64    `json:"concurrentSearchP95Us"`
+	ConcurrentSearchMaxUS   int64    `json:"concurrentSearchMaxUs"`
 	DirectoryListP50US      int64    `json:"directoryListP50Us"`
 	DirectoryListP95US      int64    `json:"directoryListP95Us"`
 	AssetListP50US          int64    `json:"assetListP50Us"`
 	AssetListP95US          int64    `json:"assetListP95Us"`
+	FTSSearchP50US          int64    `json:"ftsSearchP50Us"`
+	FTSSearchP95US          int64    `json:"ftsSearchP95Us"`
+	ShortSearchP50US        int64    `json:"shortSearchP50Us"`
+	ShortSearchP95US        int64    `json:"shortSearchP95Us"`
+	GlobalSearchP95US       int64    `json:"globalSearchP95Us"`
+	SearchKeysetP95US       int64    `json:"searchKeysetP95Us"`
+	SearchCancelLatencyUS   int64    `json:"searchCancelLatencyUs"`
+	SearchRebuildDurationMS int64    `json:"searchRebuildDurationMs"`
 	PeakGoHeapAllocBytes    uint64   `json:"peakGoHeapAllocBytes"`
 	PeakRSSBytes            uint64   `json:"peakRssBytes,omitempty"`
 	PeakRSSSource           string   `json:"peakRssSource,omitempty"`
 	DatabaseAndWALSizeBytes int64    `json:"databaseAndWalSizeBytes"`
 	BudgetProfile           string   `json:"budgetProfile"`
+	SearchBudgetProfile     string   `json:"searchBudgetProfile"`
 	BudgetViolations        []string `json:"budgetViolations"`
 }
 
-const capacityBudgetProfile = "stage0-comparable-v1"
+const (
+	capacityBudgetProfile       = "stage0-comparable-v1"
+	searchCapacityBudgetProfile = "s4-search-v1"
+)
 
 type capacityFixtureShape struct {
 	maxDepth                int
@@ -131,6 +148,13 @@ func TestCapacityBaseline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create capacity library: %v", err)
 	}
+	catalogService, err := catalog.NewService(
+		store,
+		[]byte("0123456789abcdef0123456789abcdef"),
+	)
+	if err != nil {
+		t.Fatalf("create catalog service: %v", err)
+	}
 	scans, err := scanner.NewService(store, scanner.Config{
 		BatchSize:       scanner.DefaultBatchSize,
 		FinalizeTimeout: 10 * time.Second,
@@ -170,6 +194,7 @@ func TestCapacityBaseline(t *testing.T) {
 	}()
 
 	readLatencies := make([]time.Duration, 0, 1024)
+	searchLatencies := make([]time.Duration, 0, 1024)
 	readTicker := time.NewTicker(25 * time.Millisecond)
 	defer readTicker.Stop()
 	var result scanResult
@@ -188,6 +213,17 @@ scanLoop:
 				break scanLoop
 			}
 			readLatencies = append(readLatencies, time.Since(started))
+			started = time.Now()
+			if err := readLibrarySearch(
+				context.Background(), catalogService, created.ID, "asset-099",
+				catalog.SortModifiedAt,
+			); err != nil {
+				concurrentReadErr = err
+				cancelScan()
+				result = <-scanResults
+				break scanLoop
+			}
+			searchLatencies = append(searchLatencies, time.Since(started))
 		}
 	}
 	scanDuration := time.Since(scanStarted)
@@ -218,6 +254,38 @@ scanLoop:
 	assetLatencies := measureQuery(t, 30, func(ctx context.Context) error {
 		return readAssetPage(ctx, inspector, created.ID)
 	})
+	ftsSearchLatencies := measureQuery(t, 30, func(ctx context.Context) error {
+		return readLibrarySearch(
+			ctx, catalogService, created.ID, "asset-099", catalog.SortModifiedAt,
+		)
+	})
+	shortSearchLatencies := measureQuery(t, 30, func(ctx context.Context) error {
+		return readLibrarySearch(ctx, catalogService, created.ID, "99", catalog.SortModifiedAt)
+	})
+	globalSearchLatencies := measureQuery(t, 30, func(ctx context.Context) error {
+		return readGlobalSearch(ctx, catalogService, "asset-099", catalog.SortModifiedAt)
+	})
+	keysetLatencies := measureQuery(t, 20, func(ctx context.Context) error {
+		return readSearchKeyset(ctx, catalogService, created.ID)
+	})
+	cancelLatency := measureActiveSearchCancellation(t, catalogService, created.ID)
+	rebuildStarted := time.Now()
+	if _, err := inspector.ExecContext(context.Background(),
+		`INSERT INTO asset_search(asset_search) VALUES('rebuild')`,
+	); err != nil {
+		t.Fatalf("rebuild capacity search index: %v", err)
+	}
+	rebuildDuration := time.Since(rebuildStarted)
+	if _, err := inspector.ExecContext(context.Background(), `
+        INSERT INTO asset_search(asset_search, rank)
+        VALUES('integrity-check', 1)`); err != nil {
+		t.Fatalf("verify rebuilt capacity search index: %v", err)
+	}
+	if err := readLibrarySearch(
+		context.Background(), catalogService, created.ID, "asset-099", catalog.SortModifiedAt,
+	); err != nil {
+		t.Fatalf("search rebuilt capacity index: %v", err)
+	}
 	if _, err := inspector.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
 		t.Fatalf("checkpoint SQLite WAL: %v", err)
 	}
@@ -240,15 +308,27 @@ scanLoop:
 		ConcurrentReads:         len(readLatencies),
 		ConcurrentReadP95US:     percentile(readLatencies, 95).Microseconds(),
 		ConcurrentReadMaxUS:     percentile(readLatencies, 100).Microseconds(),
+		ConcurrentSearches:      len(searchLatencies),
+		ConcurrentSearchP95US:   percentile(searchLatencies, 95).Microseconds(),
+		ConcurrentSearchMaxUS:   percentile(searchLatencies, 100).Microseconds(),
 		DirectoryListP50US:      percentile(directoryLatencies, 50).Microseconds(),
 		DirectoryListP95US:      percentile(directoryLatencies, 95).Microseconds(),
 		AssetListP50US:          percentile(assetLatencies, 50).Microseconds(),
 		AssetListP95US:          percentile(assetLatencies, 95).Microseconds(),
+		FTSSearchP50US:          percentile(ftsSearchLatencies, 50).Microseconds(),
+		FTSSearchP95US:          percentile(ftsSearchLatencies, 95).Microseconds(),
+		ShortSearchP50US:        percentile(shortSearchLatencies, 50).Microseconds(),
+		ShortSearchP95US:        percentile(shortSearchLatencies, 95).Microseconds(),
+		GlobalSearchP95US:       percentile(globalSearchLatencies, 95).Microseconds(),
+		SearchKeysetP95US:       percentile(keysetLatencies, 95).Microseconds(),
+		SearchCancelLatencyUS:   cancelLatency.Microseconds(),
+		SearchRebuildDurationMS: rebuildDuration.Milliseconds(),
 		PeakGoHeapAllocBytes:    peakHeap.Load(),
 		PeakRSSBytes:            peakRSS,
 		PeakRSSSource:           peakRSSSource,
 		DatabaseAndWALSizeBytes: databaseFamilySize(t, databasePath),
 		BudgetProfile:           capacityBudgetProfile,
+		SearchBudgetProfile:     searchCapacityBudgetProfile,
 	}
 	metrics.BudgetViolations = capacityBudgetViolations(metrics)
 	encoded, err := json.Marshal(metrics)
@@ -258,7 +338,12 @@ scanLoop:
 	t.Logf("FOLIOPATH_CAPACITY_METRICS %s", encoded)
 	if os.Getenv("FOLIOPATH_CAPACITY_ENFORCE_BUDGET") == "1" &&
 		len(metrics.BudgetViolations) > 0 {
-		t.Fatalf("%s budget violations: %v", capacityBudgetProfile, metrics.BudgetViolations)
+		t.Fatalf(
+			"%s/%s budget violations: %v",
+			capacityBudgetProfile,
+			searchCapacityBudgetProfile,
+			metrics.BudgetViolations,
+		)
 	}
 }
 
@@ -392,8 +477,15 @@ func TestCapacityBudgetViolations(t *testing.T) {
 	if violations := capacityBudgetViolations(capacityMetrics{
 		ScanDurationMS:          120_000,
 		ConcurrentReadP95US:     250_000,
+		ConcurrentSearchP95US:   500_000,
 		DirectoryListP95US:      100_000,
 		AssetListP95US:          100_000,
+		FTSSearchP95US:          250_000,
+		ShortSearchP95US:        250_000,
+		GlobalSearchP95US:       250_000,
+		SearchKeysetP95US:       250_000,
+		SearchCancelLatencyUS:   250_000,
+		SearchRebuildDurationMS: 120_000,
 		PeakRSSBytes:            1 << 30,
 		DatabaseAndWALSizeBytes: 1 << 30,
 	}); len(violations) != 0 {
@@ -403,13 +495,20 @@ func TestCapacityBudgetViolations(t *testing.T) {
 	violations := capacityBudgetViolations(capacityMetrics{
 		ScanDurationMS:          120_001,
 		ConcurrentReadP95US:     250_001,
+		ConcurrentSearchP95US:   500_001,
 		DirectoryListP95US:      100_001,
 		AssetListP95US:          100_001,
+		FTSSearchP95US:          250_001,
+		ShortSearchP95US:        250_001,
+		GlobalSearchP95US:       250_001,
+		SearchKeysetP95US:       250_001,
+		SearchCancelLatencyUS:   250_001,
+		SearchRebuildDurationMS: 120_001,
 		PeakRSSBytes:            1<<30 + 1,
 		DatabaseAndWALSizeBytes: 1<<30 + 1,
 	})
-	if len(violations) != 6 {
-		t.Fatalf("budget violations = %v, want all six limits", violations)
+	if len(violations) != 13 {
+		t.Fatalf("budget violations = %v, want all thirteen limits", violations)
 	}
 }
 
@@ -570,6 +669,110 @@ func readAssetPage(ctx context.Context, database *sql.DB, libraryID int64) error
 		}
 	}
 	return rows.Err()
+}
+
+func readLibrarySearch(
+	ctx context.Context,
+	service *catalog.Service,
+	libraryID int64,
+	query string,
+	sortField catalog.SortField,
+) error {
+	page, err := service.ListAssets(ctx, catalog.AssetRequest{
+		LibraryID:   libraryID,
+		SearchQuery: &query,
+		Sort:        sortField,
+		Limit:       100,
+	})
+	if err != nil {
+		return err
+	}
+	if len(page.Items) > 100 {
+		return fmt.Errorf("library search returned %d items, want at most 100", len(page.Items))
+	}
+	return nil
+}
+
+func readGlobalSearch(
+	ctx context.Context,
+	service *catalog.Service,
+	query string,
+	sortField catalog.SortField,
+) error {
+	page, err := service.SearchAssets(ctx, catalog.GlobalSearchRequest{
+		SearchQuery: query,
+		Sort:        sortField,
+		Limit:       100,
+	})
+	if err != nil {
+		return err
+	}
+	if len(page.Items) > 100 {
+		return fmt.Errorf("global search returned %d items, want at most 100", len(page.Items))
+	}
+	return nil
+}
+
+func readSearchKeyset(
+	ctx context.Context,
+	service *catalog.Service,
+	libraryID int64,
+) error {
+	query := "asset"
+	first, err := service.ListAssets(ctx, catalog.AssetRequest{
+		LibraryID: libraryID, SearchQuery: &query,
+		Sort: catalog.SortName, Limit: 100,
+	})
+	if err != nil {
+		return err
+	}
+	if len(first.Items) != 100 || first.NextCursor == "" {
+		return fmt.Errorf(
+			"first search keyset page has %d items and cursor %t",
+			len(first.Items), first.NextCursor != "",
+		)
+	}
+	second, err := service.ListAssets(ctx, catalog.AssetRequest{
+		LibraryID: libraryID, SearchQuery: &query,
+		Sort: catalog.SortName, Limit: 100, Cursor: first.NextCursor,
+	})
+	if err != nil {
+		return err
+	}
+	if len(second.Items) != 100 || second.Items[0].ID == first.Items[0].ID {
+		return fmt.Errorf("second search keyset page is not a distinct full page")
+	}
+	return nil
+}
+
+func measureActiveSearchCancellation(
+	t *testing.T,
+	service *catalog.Service,
+	libraryID int64,
+) time.Duration {
+	t.Helper()
+	query := "a"
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	started := time.Now()
+	go func() {
+		_, err := service.ListAssets(ctx, catalog.AssetRequest{
+			LibraryID: libraryID, SearchQuery: &query,
+			Sort: catalog.SortName, Limit: 100,
+		})
+		result <- err
+	}()
+	time.Sleep(time.Millisecond)
+	cancel()
+	err := <-result
+	elapsed := time.Since(started)
+	if err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("active search cancellation: %v", err)
+	}
+	// A query that wins the race and completes before cancellation has no
+	// outstanding work to stop; its observed completion latency is therefore
+	// the stronger bound.
+	return elapsed
 }
 
 func readDirectoryPage(ctx context.Context, database *sql.DB, libraryID int64) error {
@@ -766,11 +969,32 @@ func capacityBudgetViolations(metrics capacityMetrics) []string {
 	if metrics.ConcurrentReadP95US > 250_000 {
 		violations = append(violations, "concurrentReadP95Us > 250000")
 	}
+	if metrics.ConcurrentSearchP95US > 500_000 {
+		violations = append(violations, "concurrentSearchP95Us > 500000")
+	}
 	if metrics.DirectoryListP95US > 100_000 {
 		violations = append(violations, "directoryListP95Us > 100000")
 	}
 	if metrics.AssetListP95US > 100_000 {
 		violations = append(violations, "assetListP95Us > 100000")
+	}
+	if metrics.FTSSearchP95US > 250_000 {
+		violations = append(violations, "ftsSearchP95Us > 250000")
+	}
+	if metrics.ShortSearchP95US > 250_000 {
+		violations = append(violations, "shortSearchP95Us > 250000")
+	}
+	if metrics.GlobalSearchP95US > 250_000 {
+		violations = append(violations, "globalSearchP95Us > 250000")
+	}
+	if metrics.SearchKeysetP95US > 250_000 {
+		violations = append(violations, "searchKeysetP95Us > 250000")
+	}
+	if metrics.SearchCancelLatencyUS > 250_000 {
+		violations = append(violations, "searchCancelLatencyUs > 250000")
+	}
+	if metrics.SearchRebuildDurationMS > 120_000 {
+		violations = append(violations, "searchRebuildDurationMs > 120000")
 	}
 	if metrics.PeakRSSBytes > 0 && metrics.PeakRSSBytes > 1<<30 {
 		violations = append(violations, "peakRssBytes > 1073741824")

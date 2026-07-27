@@ -109,6 +109,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.backfillCatalogSearchKeys(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.ensureCatalogSearchIndex(ctx); err != nil {
+		return closeOnError(err)
+	}
 	return store, nil
 }
 
@@ -280,6 +283,41 @@ func (s *Store) backfillCatalogSearchKeys(ctx context.Context) error {
 			return err
 		}
 	}
+}
+
+func (s *Store) ensureCatalogSearchIndex(ctx context.Context) error {
+	if err := s.checkCatalogSearchIndex(ctx); err == nil {
+		return nil
+	} else if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	if err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(
+			ctx,
+			`INSERT INTO asset_search(asset_search) VALUES('rebuild')`,
+		); err != nil {
+			return fmt.Errorf("rebuild catalog search index: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := s.checkCatalogSearchIndex(ctx); err != nil {
+		return fmt.Errorf("verify rebuilt catalog search index: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) checkCatalogSearchIndex(ctx context.Context) error {
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO asset_search(asset_search, rank)
+            VALUES('integrity-check', 1)`); err != nil {
+			return fmt.Errorf("check catalog search index integrity: %w", err)
+		}
+		return nil
+	})
 }
 
 func (s *Store) Close() error {

@@ -42,6 +42,32 @@ func TestScanWalkerMapsBoundaryFailuresToStableScannerErrors(t *testing.T) {
 	}
 }
 
+func TestScanWalkerPreservesVisitorFailures(t *testing.T) {
+	allowedPath, root := newTestRoot(t)
+	writeTestFile(t, filepath.Join(allowedPath, "family", "photo.jpg"), "photo")
+	walker, err := NewScanWalker(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := walker.CaptureRoot(context.Background(), "family"); err != nil {
+		t.Fatal(err)
+	}
+	visitorErr := errors.New("catalog write failed")
+	err = walker.Walk(
+		context.Background(),
+		"family",
+		func(scanner.WalkEntry) (scanner.WalkDecision, error) {
+			return scanner.WalkContinue, visitorErr
+		},
+	)
+	if !errors.Is(err, visitorErr) {
+		t.Fatalf("Walk(visitor failure) error = %v, want visitor error", err)
+	}
+	if errors.Is(err, scanner.ErrScanIO) {
+		t.Fatalf("visitor failure was misclassified as filesystem I/O: %v", err)
+	}
+}
+
 func TestScanWalkerUsesLibraryRelativePathsAndReportsPolicySkips(t *testing.T) {
 	allowedPath, root := newTestRoot(t)
 	libraryPath := filepath.Join(allowedPath, "family")
