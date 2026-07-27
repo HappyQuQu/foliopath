@@ -19,6 +19,158 @@ type rowScanner interface {
 	Scan(...any) error
 }
 
+const admissionScanColumns = `
+    id, library_id, generation, trigger_kind, status,
+    discovered_directories, discovered_assets, skipped_count, error_code,
+    created_at_ms, started_at_ms, finished_at_ms, revision, phase,
+    processed_assets, skipped_directories, skipped_files, error_count,
+    issues_truncated, cancel_requested_at_ms`
+
+func (s *Store) AdmitFullScan(
+	ctx context.Context,
+	libraryID int64,
+	trigger scanner.Trigger,
+) (scanner.AdmissionResult, error) {
+	if libraryID <= 0 {
+		return scanner.AdmissionResult{}, scanner.ErrLibraryNotFound
+	}
+	if !trigger.Valid() {
+		return scanner.AdmissionResult{}, fmt.Errorf("invalid scan trigger %q", trigger)
+	}
+	var admission scanner.AdmissionResult
+	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		var exists int
+		if err := tx.QueryRowContext(ctx,
+			`SELECT 1 FROM libraries WHERE id = ?`,
+			libraryID,
+		).Scan(&exists); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return scanner.ErrLibraryNotFound
+			}
+			return fmt.Errorf("check admission library: %w", err)
+		}
+		err := tx.QueryRowContext(ctx, `
+            SELECT 1 FROM library_removals
+            WHERE library_id = ? AND status IN ('queued', 'running')`,
+			libraryID,
+		).Scan(&exists)
+		if err == nil {
+			return scanner.ErrAdmissionConflict
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("check removal before scan admission: %w", err)
+		}
+
+		run, err := scanAdmissionRun(tx.QueryRowContext(ctx, `
+            SELECT `+admissionScanColumns+`
+            FROM scan_runs
+            WHERE library_id = ? AND status IN ('queued', 'running')
+            ORDER BY id
+            LIMIT 1`,
+			libraryID,
+		))
+		if err == nil {
+			admission = scanner.AdmissionResult{Run: run, Coalesced: true}
+			return nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("find active scan admission: %w", err)
+		}
+
+		var active int64
+		if err := tx.QueryRowContext(ctx, `
+            SELECT COUNT(*) FROM scan_runs
+            WHERE status IN ('queued', 'running')`,
+		).Scan(&active); err != nil {
+			return fmt.Errorf("count scan admission capacity: %w", err)
+		}
+		if active >= 256 {
+			return scanner.ErrAdmissionCapacity
+		}
+		var generation int64
+		if err := tx.QueryRowContext(ctx, `
+            SELECT COALESCE(MAX(generation), 0) + 1
+            FROM scan_runs WHERE library_id = ?`,
+			libraryID,
+		).Scan(&generation); err != nil {
+			return fmt.Errorf("allocate scan admission generation: %w", err)
+		}
+		now := s.nowMS()
+		result, err := tx.ExecContext(ctx, `
+            INSERT INTO scan_runs(
+                library_id, generation, trigger_kind, status, phase,
+                created_at_ms, available_at_ms
+            ) VALUES (?, ?, ?, 'queued', 'queued', ?, ?)`,
+			libraryID, generation, string(trigger), now, now,
+		)
+		if err != nil {
+			if strings.Contains(err.Error(), "scan_runs.library_id") {
+				return scanner.ErrScanActive
+			}
+			return fmt.Errorf("insert scan admission: %w", err)
+		}
+		runID, err := result.LastInsertId()
+		if err != nil {
+			return fmt.Errorf("read scan admission ID: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+            UPDATE libraries
+            SET revision = revision + 1, updated_at_ms = ?
+            WHERE id = ?`,
+			now, libraryID,
+		); err != nil {
+			return fmt.Errorf("advance library scan validator: %w", err)
+		}
+		run, err = scanAdmissionRun(tx.QueryRowContext(ctx, `
+            SELECT `+admissionScanColumns+` FROM scan_runs WHERE id = ?`,
+			runID,
+		))
+		if err != nil {
+			return fmt.Errorf("read inserted scan admission: %w", err)
+		}
+		admission = scanner.AdmissionResult{Run: run}
+		return nil
+	})
+	return admission, err
+}
+
+func scanAdmissionRun(row rowScanner) (scanner.ScanRun, error) {
+	var (
+		run                                scanner.ScanRun
+		rawTrigger, rawStatus              string
+		errorCode                          sql.NullString
+		started, finished, cancelRequested sql.NullInt64
+		issuesTruncated                    int64
+	)
+	err := row.Scan(
+		&run.ID, &run.LibraryID, &run.Generation, &rawTrigger, &rawStatus,
+		&run.DiscoveredDirectories, &run.DiscoveredAssets, &run.SkippedCount,
+		&errorCode, &run.CreatedAtMS, &started, &finished,
+		&run.Revision, &run.Phase, &run.ProcessedAssets,
+		&run.SkippedDirectories, &run.SkippedFiles, &run.ErrorCount,
+		&issuesTruncated, &cancelRequested,
+	)
+	if err != nil {
+		return scanner.ScanRun{}, err
+	}
+	run.Trigger = scanner.Trigger(rawTrigger)
+	run.Status = scanner.RunStatus(rawStatus)
+	run.IssuesTruncated = issuesTruncated != 0
+	if errorCode.Valid {
+		run.ErrorCode = errorCode.String
+	}
+	if started.Valid {
+		run.StartedAtMS = &started.Int64
+	}
+	if finished.Valid {
+		run.FinishedAtMS = &finished.Int64
+	}
+	if cancelRequested.Valid {
+		run.CancelRequestedAtMS = &cancelRequested.Int64
+	}
+	return run, nil
+}
+
 func (s *Store) GetLibraryRoot(ctx context.Context, libraryID int64) (string, error) {
 	if libraryID <= 0 {
 		return "", scanner.ErrLibraryNotFound
@@ -49,6 +201,17 @@ func (s *Store) BeginFullScan(ctx context.Context, libraryID int64, trigger scan
 				return scanner.ErrLibraryNotFound
 			}
 			return fmt.Errorf("check scan library: %w", err)
+		}
+		removalErr := tx.QueryRowContext(ctx, `
+            SELECT 1 FROM library_removals
+            WHERE library_id = ? AND status IN ('queued', 'running')`,
+			libraryID,
+		).Scan(&exists)
+		if removalErr == nil {
+			return scanner.ErrLibraryNotFound
+		}
+		if !errors.Is(removalErr, sql.ErrNoRows) {
+			return fmt.Errorf("check library removal before scan: %w", removalErr)
 		}
 
 		var activeID int64
@@ -87,7 +250,9 @@ func (s *Store) BeginFullScan(ctx context.Context, libraryID int64, trigger scan
 			return fmt.Errorf("read scan run id: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `
-            UPDATE libraries SET status = 'scanning', updated_at_ms = ? WHERE id = ?`, now, libraryID); err != nil {
+            UPDATE libraries
+            SET status = 'scanning', revision = revision + 1, updated_at_ms = ?
+            WHERE id = ?`, now, libraryID); err != nil {
 			return fmt.Errorf("mark library scanning: %w", err)
 		}
 		startedAt := now
@@ -301,7 +466,8 @@ func (s *Store) CompleteFullScan(ctx context.Context, runID, skippedCount int64)
 		now := s.nowMS()
 		if _, err := tx.ExecContext(ctx, `
             UPDATE libraries
-            SET current_generation = ?, status = 'ready', updated_at_ms = ?
+            SET current_generation = ?, status = 'ready',
+                revision = revision + 1, updated_at_ms = ?
             WHERE id = ?`, run.Generation, now, run.LibraryID); err != nil {
 			return fmt.Errorf("commit library generation: %w", err)
 		}
@@ -627,7 +793,9 @@ func (s *Store) finishWithoutCleanup(
 		switch libraryStatus {
 		case "error", "offline":
 			if _, err := tx.ExecContext(ctx, `
-                    UPDATE libraries SET status = ?, updated_at_ms = ? WHERE id = ?`,
+                    UPDATE libraries
+                    SET status = ?, revision = revision + 1, updated_at_ms = ?
+                    WHERE id = ?`,
 				libraryStatus, now, run.LibraryID); err != nil {
 				return fmt.Errorf("update aborted library status: %w", err)
 			}
@@ -635,6 +803,7 @@ func (s *Store) finishWithoutCleanup(
 			if _, err := tx.ExecContext(ctx, `
                     UPDATE libraries
                     SET status = CASE WHEN current_generation > 0 THEN 'ready' ELSE 'pending' END,
+                        revision = revision + 1,
                         updated_at_ms = ?
                     WHERE id = ?`, now, run.LibraryID); err != nil {
 				return fmt.Errorf("restore library status after cancellation: %w", err)
@@ -675,6 +844,7 @@ func (s *Store) InterruptActiveScans(ctx context.Context) (int64, error) {
 		if _, err := tx.ExecContext(ctx, `
             UPDATE libraries
             SET status = CASE WHEN current_generation > 0 THEN 'ready' ELSE 'error' END,
+                revision = revision + 1,
                 updated_at_ms = ?
             WHERE id IN (SELECT library_id FROM scan_runs WHERE status = 'running')`, now); err != nil {
 			return fmt.Errorf("restore libraries for interrupted scans: %w", err)

@@ -46,9 +46,9 @@ ADR 流程。
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
-| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证 handler 已就绪，其余业务 handler 尚未实现 |
+| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证、媒体库生命周期、安全目录选择与 manual scan admission handler 已实现，其余业务 handler 尚未实现 |
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 产品行为与目标前端架构已确认；代码 token、组件工作台、尺寸和移动抽屉细节待原型与脚手架验证 |
-| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | 初始媒体 schema 与追加认证 schema 已由 Goose 执行；认证 migration 固定 singleton/password verifier/session digest/期限/撤销，真实文件数据库、重复 migration 与约束测试已通过；真实版本升级仍待 Release Gate |
+| 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～5 已执行；媒体库 revision/removal/idempotency、扫描 durable contract、typed settings 和自然名称 keyset 派生键具备真实升级与约束测试；发布版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；真实后端应用的组合/容器 smoke 已接线，尚无前端/浏览器产品 E2E 或最终发布容器验证 |
 | 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
 | 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；认证 Backend Gate 已覆盖密码、原子 setup、安全会话、CSRF/default-deny、直连 peer 限流、错误脱敏和依赖 audit。可信代理、非回环暴露和发布 volume/unmount 仍由 Stage 5 Gate 阻断 |

@@ -17,6 +17,8 @@
   且不允许控制字符。
 - `name_key`：对显示名称执行 NFKC 后再做 Unicode full case folding 的实例唯一比较键；
   不用于替换或重写用户看到的显示名称。
+- `name_sort_key`：服务端生成的 locale-neutral、numeric-aware 自然排序派生键；只用于
+  `(name_sort_key, name, id)` keyset 分页，不参与名称唯一性，也不包含路径。
 - `root_rel_path`：相对于 `/library` 的规范化根路径；空字符串唯一表示 `/library` 本身。
 - `status`：`pending`、`scanning`、`ready`、`offline` 或 `error`。
 - `current_generation`：最近一次成功完整扫描的代次。
@@ -63,7 +65,9 @@
 - `status`、`width`、`height`、`byte_size`。
 - `created_at`、`last_accessed_at`。
 
-唯一约束为 `(asset_id, variant)`。缓存键必须包含源指纹和变换版本。文件先原子落盘，再提交可用状态；数据库不得把不存在或未完成的缓存文件标记为可用。
+唯一约束为 `(asset_id, variant)`。缓存键必须包含源指纹和变换版本。每库派生文件固定放在
+`libraries/lib_<library-id>/` 子树内，使 removal worker 无需接触 `/library` 即可幂等清理。
+文件先原子落盘，再提交可用状态；数据库不得把不存在或未完成的缓存文件标记为可用。
 
 ### `scan_runs`
 

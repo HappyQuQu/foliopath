@@ -43,6 +43,7 @@ func (s *Store) CreateLibrary(ctx context.Context, params library.CreateParams) 
 		record, err := queries.InsertLibrary(ctx, dbgen.InsertLibraryParams{
 			Name:        name,
 			NameKey:     nameKey,
+			NameSortKey: library.NaturalNameSortKey(name),
 			RootRelPath: root,
 			CreatedAtMs: now,
 			UpdatedAtMs: now,
@@ -115,6 +116,7 @@ func (s *Store) RenameLibrary(ctx context.Context, id int64, requestedName strin
 		record, err := queries.RenameLibrary(ctx, dbgen.RenameLibraryParams{
 			Name:        name,
 			NameKey:     nameKey,
+			NameSortKey: library.NaturalNameSortKey(name),
 			UpdatedAtMs: s.nowMS(),
 			ID:          id,
 		})

@@ -12,7 +12,9 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -96,11 +98,40 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct library path service: %w", err)
 	}
+	removalWorker, err := library.NewRemovalWorker(
+		database,
+		libraryCacheCleaner{dataRoot: configuration.dataRoot},
+		0,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct library removal worker: %w", err)
+	}
+	removalComponent, err := newRemovalWorkerComponent(removalWorker)
+	if err != nil {
+		return nil, err
+	}
+	scanSignal := jobs.NewSignal()
+	scanAdmission, err := scanner.NewAdmissionService(database, scanSignal)
+	if err != nil {
+		return nil, fmt.Errorf("construct scan admission service: %w", err)
+	}
+	libraries, err := library.NewLifecycleService(
+		database,
+		directorySource,
+		scanSignal,
+		removalWorker,
+		library.LifecycleOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct library lifecycle service: %w", err)
+	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:      readiness.snapshot,
 		Authentication: authentication,
 		SystemStatus:   systemStatusProvider(input.Version, readiness, authentication),
 		LibraryPaths:   libraryPaths,
+		Libraries:      libraries,
+		ScanAdmission:  scanAdmission,
 	})
 	if err != nil {
 		return nil, err
@@ -114,6 +145,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		[]component{
 			databaseComponent,
 			mediaRootComponent,
+			removalComponent,
 			httpComponent,
 			readinessLifecycle(readiness),
 		},

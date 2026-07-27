@@ -105,6 +105,7 @@ const insertLibrary = `-- name: InsertLibrary :one
 INSERT INTO libraries(
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
@@ -115,16 +116,18 @@ INSERT INTO libraries(
     ?1,
     ?2,
     ?3,
+    ?4,
     'pending',
     0,
     1,
-    ?4,
-    ?5
+    ?5,
+    ?6
 )
 RETURNING
     id,
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
@@ -136,6 +139,7 @@ RETURNING
 type InsertLibraryParams struct {
 	Name        string
 	NameKey     string
+	NameSortKey []byte
 	RootRelPath string
 	CreatedAtMs int64
 	UpdatedAtMs int64
@@ -145,6 +149,7 @@ type InsertLibraryRow struct {
 	ID                int64
 	Name              string
 	NameKey           string
+	NameSortKey       []byte
 	RootRelPath       string
 	Status            string
 	CurrentGeneration int64
@@ -157,6 +162,7 @@ func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (I
 	row := q.db.QueryRowContext(ctx, insertLibrary,
 		arg.Name,
 		arg.NameKey,
+		arg.NameSortKey,
 		arg.RootRelPath,
 		arg.CreatedAtMs,
 		arg.UpdatedAtMs,
@@ -166,6 +172,7 @@ func (q *Queries) InsertLibrary(ctx context.Context, arg InsertLibraryParams) (I
 		&i.ID,
 		&i.Name,
 		&i.NameKey,
+		&i.NameSortKey,
 		&i.RootRelPath,
 		&i.Status,
 		&i.CurrentGeneration,
@@ -240,13 +247,15 @@ const renameLibrary = `-- name: RenameLibrary :one
 UPDATE libraries
 SET name = ?1,
     name_key = ?2,
+    name_sort_key = ?3,
     revision = revision + 1,
-    updated_at_ms = ?3
-WHERE id = ?4
+    updated_at_ms = ?4
+WHERE id = ?5
 RETURNING
     id,
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
@@ -258,6 +267,7 @@ RETURNING
 type RenameLibraryParams struct {
 	Name        string
 	NameKey     string
+	NameSortKey []byte
 	UpdatedAtMs int64
 	ID          int64
 }
@@ -266,6 +276,7 @@ type RenameLibraryRow struct {
 	ID                int64
 	Name              string
 	NameKey           string
+	NameSortKey       []byte
 	RootRelPath       string
 	Status            string
 	CurrentGeneration int64
@@ -278,6 +289,7 @@ func (q *Queries) RenameLibrary(ctx context.Context, arg RenameLibraryParams) (R
 	row := q.db.QueryRowContext(ctx, renameLibrary,
 		arg.Name,
 		arg.NameKey,
+		arg.NameSortKey,
 		arg.UpdatedAtMs,
 		arg.ID,
 	)
@@ -286,6 +298,7 @@ func (q *Queries) RenameLibrary(ctx context.Context, arg RenameLibraryParams) (R
 		&i.ID,
 		&i.Name,
 		&i.NameKey,
+		&i.NameSortKey,
 		&i.RootRelPath,
 		&i.Status,
 		&i.CurrentGeneration,

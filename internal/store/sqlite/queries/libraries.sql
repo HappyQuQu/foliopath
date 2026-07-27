@@ -23,6 +23,7 @@ LIMIT 1;
 INSERT INTO libraries(
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
@@ -32,6 +33,7 @@ INSERT INTO libraries(
 ) VALUES (
     sqlc.arg(name),
     sqlc.arg(name_key),
+    sqlc.arg(name_sort_key),
     sqlc.arg(root_rel_path),
     'pending',
     0,
@@ -43,6 +45,7 @@ RETURNING
     id,
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
@@ -54,6 +57,7 @@ RETURNING
 UPDATE libraries
 SET name = sqlc.arg(name),
     name_key = sqlc.arg(name_key),
+    name_sort_key = sqlc.arg(name_sort_key),
     revision = revision + 1,
     updated_at_ms = sqlc.arg(updated_at_ms)
 WHERE id = sqlc.arg(id)
@@ -61,6 +65,7 @@ RETURNING
     id,
     name,
     name_key,
+    name_sort_key,
     root_rel_path,
     status,
     current_generation,
