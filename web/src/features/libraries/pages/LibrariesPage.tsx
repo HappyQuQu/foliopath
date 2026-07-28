@@ -61,10 +61,20 @@ export function LibrariesPage({ session }: { session: AuthenticatedSession }) {
     () => query.data?.pages.flatMap((page) => page.items) ?? [],
     [query.data],
   );
+  const browseLibrary = useMemo(
+    () =>
+      libraries.find((library) => library.status === "ready") ??
+      libraries.find((library) => library.assetCount > 0) ??
+      libraries[0],
+    [libraries],
+  );
 
   return (
     <AppShell
       active="libraries"
+      {...(browseLibrary
+        ? { browseHref: paths.browse(browseLibrary.id) }
+        : {})}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       searchHref={paths.search}
@@ -335,6 +345,13 @@ function LibraryRow({
           <StatusPill status={library.status} />
         </div>
         <div className={styles.rowActions}>
+          <Button
+            onClick={() => navigate(paths.browse(library.id))}
+            size="small"
+            variant="primary"
+          >
+            {t("libraries.browse")}
+          </Button>
           <Button
             disabled={!library.latestScanId}
             onClick={() => navigate(paths.libraryStatus(library.id))}

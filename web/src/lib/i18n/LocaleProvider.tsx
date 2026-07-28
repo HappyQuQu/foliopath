@@ -149,6 +149,7 @@ const zhCN = {
   "error.serviceOffline":
     "无法连接 FolioPath 服务。原始媒体未被修改，请确认服务正在运行后重新检查。",
   "libraries.assetCount": "{count} 项",
+  "libraries.browse": "浏览",
   "libraries.actionFailed": "操作没有完成，请重新载入后再试。",
   "libraries.changedElsewhere": "媒体库状态已发生变化，请重新载入后再试。",
   "libraries.confirmRemove": "确认移除",
@@ -560,6 +561,7 @@ const en: Record<MessageKey, string> = {
   "error.serviceOffline":
     "Unable to reach the FolioPath service. Original media was not modified. Confirm the service is running and check again.",
   "libraries.assetCount": "{count} items",
+  "libraries.browse": "Browse",
   "libraries.actionFailed": "The operation did not complete. Reload and try again.",
   "libraries.changedElsewhere": "The library changed elsewhere. Reload and try again.",
   "libraries.confirmRemove": "Remove library",
