@@ -32,6 +32,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { createRequestKey } from "../../../lib/requestKey";
 import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import {
@@ -66,7 +67,7 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
   const [parent, setParent] = useState("");
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string>();
-  const requestKey = useRef(crypto.randomUUID());
+  const requestKey = useRef(createRequestKey());
   const runSubmission = useSubmissionGuard();
   const pathQuery = useLibraryPathsQuery(parent);
   const {
@@ -84,13 +85,13 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
   function updateName(nextName: string) {
     setName(nextName);
     setNameError(undefined);
-    requestKey.current = crypto.randomUUID();
+    requestKey.current = createRequestKey();
   }
 
   function updateSelectedPath(nextPath: string) {
     setSelectedPath(nextPath);
     setPageError(undefined);
-    requestKey.current = crypto.randomUUID();
+    requestKey.current = createRequestKey();
   }
 
   function continueFromName(event: FormEvent<HTMLFormElement>) {

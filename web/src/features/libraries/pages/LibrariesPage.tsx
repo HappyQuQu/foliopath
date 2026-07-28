@@ -29,6 +29,7 @@ import {
   useLocale,
   type MessageKey,
 } from "../../../lib/i18n/LocaleProvider";
+import { createRequestKey } from "../../../lib/requestKey";
 import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
 import { useRequestScanMutation } from "../scan-queries";
@@ -223,7 +224,7 @@ function LibraryRow({
   const [actionError, setActionError] = useState<string>();
   const [removalId, setRemovalId] = useState<string>();
   const removalQuery = useLibraryRemovalQuery(removalId);
-  const removalKey = useRef(crypto.randomUUID());
+  const removalKey = useRef(createRequestKey());
   const runSubmission = useSubmissionGuard();
 
   useEffect(() => {
@@ -360,7 +361,7 @@ function LibraryRow({
           </Button>
           <Button
             onClick={() => {
-              removalKey.current = crypto.randomUUID();
+              removalKey.current = createRequestKey();
               setActionError(undefined);
               setRemoveOpen(true);
             }}
