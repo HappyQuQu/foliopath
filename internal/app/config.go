@@ -229,13 +229,10 @@ func validateListenAddress(address string, trustedProxiesSet bool) (string, bool
 			errInvalidConfiguration,
 		)
 	}
-	requireProxy := !hostIP.IsLoopback()
-	if requireProxy && !trustedProxiesSet {
-		return "", false, fmt.Errorf(
-			"%w: non-loopback listen requires trusted proxy CIDRs",
-			errInvalidConfiguration,
-		)
-	}
+	// A non-loopback listener may serve authenticated HTTP directly on a
+	// trusted LAN. Supplying trusted proxy CIDRs opts that listener into the
+	// stricter proxy-only boundary.
+	requireProxy := !hostIP.IsLoopback() && trustedProxiesSet
 
 	port, err := strconv.Atoi(portText)
 	if err != nil || port < 1 || port > 65535 || strconv.Itoa(port) != portText {

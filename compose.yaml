@@ -11,12 +11,11 @@ services:
     stop_grace_period: 15s
     environment:
       FOLIOPATH_LISTEN: "0.0.0.0:8080"
-      FOLIOPATH_TRUSTED_PROXIES: ${FOLIOPATH_TRUSTED_PROXIES:?set the exact proxy IP CIDR}
       TZ: ${TZ:-UTC}
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532,mode=0700
     ports:
-      - "127.0.0.1:${FOLIOPATH_PORT:-8080}:8080"
+      - "${FOLIOPATH_BIND_ADDRESS:-0.0.0.0}:${FOLIOPATH_PORT:-8080}:8080"
     volumes:
       - type: bind
         source: ${FOLIOPATH_LIBRARY_PATH:?set the host media root}

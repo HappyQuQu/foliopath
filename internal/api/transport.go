@@ -23,8 +23,8 @@ type requestTransport struct {
 }
 
 // TransportConfig defines the only peers allowed to assert the public HTTPS
-// transport and client identity. RequireTrustedProxy is used for non-loopback
-// listeners so direct requests cannot bypass the configured proxy boundary.
+// transport and client identity. RequireTrustedProxy opts a listener into a
+// proxy-only boundary; direct authenticated LAN HTTP leaves it disabled.
 type TransportConfig struct {
 	TrustedProxyPrefixes []netip.Prefix
 	RequireTrustedProxy  bool

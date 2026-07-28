@@ -52,7 +52,7 @@ SQLite 不保存 errno、绝对路径或任意内部错误文本。
 
 ## 网络和认证
 
-开发预览版在内建认证完成前默认绑定 `127.0.0.1`，或通过可信认证反向代理访问；不得将其直接暴露到局域网或互联网。首个稳定版必须包含首次设置的单管理员认证，不提供匿名局域网模式，详见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)。
+开发预览版在内建认证完成前默认绑定 `127.0.0.1`，或通过可信认证反向代理访问；不得将其直接暴露到局域网或互联网。内建认证完成后，受信局域网可通过 HTTP 直连，但不提供匿名模式；公网或不可信网络的 TLS 与访问控制由部署者负责。详见 [ADR-0005](adr/0005-built-in-single-admin-auth.md)与 [ADR-0010](adr/0010-authenticated-lan-http.md)。
 
 稳定版内建认证至少需要：
 
@@ -115,11 +115,13 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 [认证 Backend Evidence Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)，允许正式
 前端连接真实认证 API，但不放宽回环监听、可信代理或发布限制。
 
-`S5-003` 已实现反向代理信任边界。默认回环模式清除并忽略所有客户端转发声明。非回环
-监听必须配置 `FOLIOPATH_TRUSTED_PROXIES` 的显式 IP CIDR；只有匹配的直连 peer 才能提交
+`S5-003` 已实现反向代理信任边界。默认直连模式清除并忽略所有客户端转发声明，使用实际
+peer、Host 与 TLS 状态。非回环监听可直接提供经认证的 LAN HTTP；配置
+`FOLIOPATH_TRUSTED_PROXIES` 的显式 IP CIDR 后进入代理专用模式，只有匹配的直连 peer 才能提交
 单跳、单值的 `X-Forwarded-Proto: https`、`X-Forwarded-Host` 和数值
 `X-Forwarded-For`。缺失、多值、逗号链、非 HTTPS、非法 authority/IP 或同时提交标准
-`Forwarded` 均失败关闭。验证后的 transport 是 Origin、Secure Cookie、HSTS 和认证限流
+`Forwarded` 均失败关闭。直接 HTTP 或验证后的 HTTPS transport 都是 Origin 与认证限流
+身份的唯一来源；Secure Cookie 和 HSTS 仅由 HTTPS transport 启用。
 客户端 key 的唯一输入。
 
 所有 HTTP 响应统一设置限制型 CSP、禁止 frame、`nosniff`、`no-referrer` 和禁用相机/

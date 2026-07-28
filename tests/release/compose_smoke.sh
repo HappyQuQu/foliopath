@@ -12,7 +12,7 @@ cleanup() {
 	FOLIOPATH_IMAGE="${image}" \
 	FOLIOPATH_LIBRARY_PATH="${media_root}" \
 	FOLIOPATH_DATA_PATH="${data_root}" \
-	FOLIOPATH_TRUSTED_PROXIES="192.0.2.1/32" \
+	FOLIOPATH_BIND_ADDRESS="127.0.0.1" \
 	FOLIOPATH_PORT=0 \
 		docker compose --project-name "${project}" \
 		--file "${repo_root}/compose.yaml" down --volumes >/dev/null 2>&1 || true
@@ -22,7 +22,7 @@ trap cleanup EXIT HUP INT TERM
 FOLIOPATH_IMAGE="${image}" \
 FOLIOPATH_LIBRARY_PATH="${media_root}" \
 FOLIOPATH_DATA_PATH="${data_root}" \
-FOLIOPATH_TRUSTED_PROXIES="192.0.2.1/32" \
+FOLIOPATH_BIND_ADDRESS="127.0.0.1" \
 FOLIOPATH_PORT=0 \
 	docker compose --project-name "${project}" \
 	--file "${repo_root}/compose.yaml" up --detach
@@ -30,7 +30,7 @@ FOLIOPATH_PORT=0 \
 container=$(FOLIOPATH_IMAGE="${image}" \
 	FOLIOPATH_LIBRARY_PATH="${media_root}" \
 	FOLIOPATH_DATA_PATH="${data_root}" \
-	FOLIOPATH_TRUSTED_PROXIES="192.0.2.1/32" \
+	FOLIOPATH_BIND_ADDRESS="127.0.0.1" \
 	FOLIOPATH_PORT=0 \
 	docker compose --project-name "${project}" \
 	--file "${repo_root}/compose.yaml" ps --quiet foliopath)
@@ -52,6 +52,6 @@ published=$(docker port "${container}" 8080/tcp)
 port=${published##*:}
 status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
 	"http://127.0.0.1:${port}/api/v1/auth/status")
-test "${status}" = "400"
+test "${status}" = "200"
 
-printf '%s\n' "candidate Compose security smoke passed"
+printf '%s\n' "candidate Compose authenticated LAN HTTP smoke passed"

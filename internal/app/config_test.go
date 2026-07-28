@@ -22,7 +22,7 @@ func TestLoadConfigurationDefaultsToFixedRuntimeBoundaries(t *testing.T) {
 	}
 }
 
-func TestLoadConfigurationAllowsNonLoopbackOnlyWithTrustedProxyCIDRs(t *testing.T) {
+func TestLoadConfigurationAllowsNonLoopbackWithTrustedProxyCIDRs(t *testing.T) {
 	got, err := loadConfiguration(Input{
 		Environ: []string{
 			"FOLIOPATH_LISTEN=0.0.0.0:8080",
@@ -35,6 +35,20 @@ func TestLoadConfigurationAllowsNonLoopbackOnlyWithTrustedProxyCIDRs(t *testing.
 	if got.listenAddress != "0.0.0.0:8080" ||
 		got.trustedProxies != "192.0.2.0/24,2001:db8::/64" ||
 		!got.requireProxy {
+		t.Fatalf("loadConfiguration() = %#v", got)
+	}
+}
+
+func TestLoadConfigurationAllowsAuthenticatedLANHTTPWithoutProxy(t *testing.T) {
+	got, err := loadConfiguration(Input{
+		Environ: []string{"FOLIOPATH_LISTEN=0.0.0.0:8080"},
+	})
+	if err != nil {
+		t.Fatalf("loadConfiguration() error = %v", err)
+	}
+	if got.listenAddress != "0.0.0.0:8080" ||
+		got.trustedProxies != "" ||
+		got.requireProxy {
 		t.Fatalf("loadConfiguration() = %#v", got)
 	}
 }
@@ -113,8 +127,6 @@ func TestLoadConfigurationRejectsInvalidListenAddresses(t *testing.T) {
 	addresses := []string{
 		"",
 		"localhost:8080",
-		"0.0.0.0:8080",
-		"[::]:8080",
 		"127.0.0.1",
 		"127.0.0.1:http",
 		"127.0.0.1:0",
@@ -201,8 +213,12 @@ func TestComposeOwnsValidatedConfiguration(t *testing.T) {
 		t.Fatalf("composed components = %q, want %q", got, want)
 	}
 
-	_, err = compose(Input{Args: []string{"--listen=0.0.0.0:9090"}})
-	if !errors.Is(err, errInvalidConfiguration) {
-		t.Fatalf("compose() error = %v, want errInvalidConfiguration", err)
+	application, err = compose(Input{Args: []string{"--listen=0.0.0.0:9090"}})
+	if err != nil {
+		t.Fatalf("compose() LAN listen error = %v", err)
+	}
+	if application.configuration.listenAddress != "0.0.0.0:9090" ||
+		application.configuration.requireProxy {
+		t.Fatalf("LAN application configuration = %#v", application.configuration)
 	}
 }

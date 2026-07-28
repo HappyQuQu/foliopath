@@ -1,249 +1,486 @@
 # FolioPath
 
-> A folder-first, self-hosted photo and video browser.
+<p align="center">
+  <strong>以文件夹为核心的自托管图片与视频浏览器</strong>
+</p>
 
-FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频浏览器。
+<p align="center">
+  保留你已有的目录结构，只读扫描原始媒体，在浏览器中快速浏览、搜索与查看。
+</p>
 
-只需将一个媒体根目录挂载到 Docker 容器中，再通过 Web 设置创建一个或多个媒体库。FolioPath 会扫描所选目录并生成缩略图，让你通过浏览器按照原始文件夹层级查看内容。它提供清晰的目录树、瀑布流布局，以及可以一次浏览当前目录及所有子目录内容的递归模式。
+<p align="center">
+  <a href="https://github.com/HappyQuQu/foliopath/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HappyQuQu/foliopath/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg"></a>
+  <img alt="Release status: Stage 5 candidate" src="https://img.shields.io/badge/release-Stage%205%20candidate-orange.svg">
+  <img alt="Platforms: Linux amd64 and arm64" src="https://img.shields.io/badge/platform-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey.svg">
+</p>
 
-你的文件夹，就是你的相册。
+![FolioPath 自适应媒体网格](web/qa/s3-103-implementation-grid-light-v2.png)
 
 > [!IMPORTANT]
-> FolioPath 的 Stage 0～4 核心产品切片已完成，Stage 5 发布加固正在进行。
-> 当前根 `Dockerfile` 已能把真实 React SPA、Go API、SQLite、libvips 和 FFmpeg 构建进
-> 同一非 root 候选镜像，并通过 linux/arm64 本地只读媒体/只读根/health/SIGTERM、
-> MVP 媒体和安全 Compose smoke。可信代理与非回环应用边界已通过 `S5-003`；
-> 本机 100k 媒体/10k 目录候选容量档以及 Chromium、Firefox、WebKit 自动化候选矩阵
-> 已通过；原生 arm64 与 amd64 也已用两个不同的不可变候选 image ID 通过向前升级和
-> 配对数据回滚。最终不可变 digest、代表性物理设备、
-> 供应链漏洞处置和 Release Candidate Gate 尚未完成。
-> 不要把当前 candidate
-> 当作稳定发布版部署。
+> FolioPath 当前是 **Stage 5 发布候选，不是稳定版本**。Stage 0～4 的产品纵向切片已经完成，
+> 候选容器、Compose、双架构运行、恢复、容量和浏览器自动化已有验证证据；最终不可变镜像
+> digest、完整真实设备/辅助功能签署和供应链高危项处置尚未完成。当前 Release Candidate
+> 判定为 **No-Go**。不要把当前 candidate 当作正式发布版用于关键数据或公网服务。
 
-## Why FolioPath?
+## 目录
 
-许多照片管理工具以时间线、数据库相册或 AI 分类为核心，真实目录结构往往只是附加功能。
+- [FolioPath 是什么](#foliopath-是什么)
+- [核心能力](#核心能力)
+- [产品界面](#产品界面)
+- [媒体格式](#supported-media--媒体格式)
+- [快速开始](#快速开始)
+- [媒体库与存储模型](#媒体库与存储模型)
+- [安全与网络边界](#安全与网络边界)
+- [技术架构](#技术架构)
+- [开发与验证](#开发与验证)
+- [项目状态与路线图](#项目状态与路线图)
+- [贡献指南](#贡献指南)
+- [许可证](#许可证)
 
-FolioPath 选择另一条路线：
+## FolioPath 是什么
 
-- 文件系统是媒体内容与目录层级的唯一事实来源
-- 保留现有目录结构，无需复制、移动或导入照片
-- 快速浏览拥有大量层级和文件的图片目录
-- 通过递归模式穿透子文件夹，连续查看全部内容
-- 在 Web 设置中创建和管理多个媒体库
-- 使用 Docker 部署，适合 NAS、家庭服务器和个人设备
+FolioPath 是一个面向 NAS、家庭服务器和个人媒体归档的 Web 图片/视频浏览器。它不要求
+导入、复制或重组现有文件：只需把一个共同媒体根目录以只读方式挂载到容器的 `/library`，
+再从 Web 设置中选择一个或多个普通子目录作为媒体库。
 
-## Features
+FolioPath 的基本理念是：
 
-### MVP candidate capabilities
+- **文件夹就是相册**：真实目录层级是主要导航方式，而不是数据库相册的附属视图。
+- **原始媒体只读**：不移动、不重命名、不编辑、不删除用户文件。
+- **文件系统是真相来源**：SQLite 索引和缩略图都是可恢复、可重建的派生状态。
+- **面向大集合**：扫描、游标分页、虚拟化和后台任务都有明确边界。
+- **单容器部署**：Go API 与 React SPA 通过一个进程、一个端口交付。
 
-- 🌲 清晰、可折叠的完整文件夹树，包括没有媒体的可读目录
-- 📚 在 Web 设置中创建和管理多个媒体库
-- 🖼️ 默认自适应网格，并可切换为记忆的瀑布流布局
-- 🔭 递归浏览当前目录及所有子目录
-- 📍 面包屑导航与媒体库内相对路径显示
-- ⚡ 默认 10 GiB 可配置缩略图缓存、虚拟滚动和增量扫描
-- 🔎 按文件名、类型、日期和路径搜索
-- 🎞️ JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV 索引与封面
-- 🌙 明暗主题
-- 🌐 简体中文与英文，默认跟随浏览器
-- 📱 响应式 Web 界面
-- 🐳 Docker 与 Docker Compose 部署
-- 🔒 默认支持只读媒体目录
-- 🔐 稳定版内建首次设置的单管理员认证
+它适合希望保留既有文件夹组织方式，同时获得现代 Web 浏览体验的用户；它不是照片备份、
+上传整理、AI 分类或视频转码平台。
 
-这些能力已经进入 Stage 1～4 的 Integrated Done 候选，不等于已经发布稳定镜像。
-Stage 5 的平台、恢复、容量、浏览器、供应链与文档 Gate 仍决定能否发布。
+## 核心能力
 
-### Possible future features
+| 能力 | 当前候选行为 |
+| --- | --- |
+| 多媒体库 | 在 `/library` 下创建多个名称唯一、路径互不重叠的媒体库 |
+| 目录浏览 | 展示完整可读目录树，包括没有媒体的空目录 |
+| 递归视图 | 一次浏览当前目录及所有后代目录，并保留来源路径 |
+| 媒体布局 | 默认自适应网格，可切换为记忆的瀑布流布局 |
+| 搜索与过滤 | 按文件名、路径、媒体类型和日期搜索；支持库、目录和全局范围 |
+| 图片查看 | 适应窗口、缩放/平移、1:1、前后切换、全屏和基本文件信息 |
+| 视频查看 | 原文件 HTTP Range 播放、poster、浏览器不兼容编码的明确降级状态 |
+| 扫描 | 创建时、启动时和默认每 24 小时完整校准；支持手动扫描与合作式取消 |
+| 可靠性 | 失败、取消、离线或部分不可读扫描保留最后可靠索引 |
+| 缩略图缓存 | 默认 10 GiB、可配置配额、LRU 水位回收和安全磁盘余量 |
+| 身份验证 | 首次启动创建单一管理员，会话、退出登录和 CSRF 防护 |
+| 可访问性 | 语义控件、键盘操作、焦点可见、减少动效与响应式布局 |
+| 本地化 | 简体中文与英文，默认跟随浏览器语言 |
+| 外观 | 明暗主题；桌面固定目录栏，移动端目录抽屉 |
 
-- EXIF 和媒体信息面板
-- 收藏、评分和浏览历史
-- SVG、HEIC/HEIF、AVIF、RAW 及更多格式的缩略图
-- 文件系统变更监控
-- 分享链接和细粒度访问控制
-- 重复文件检测
-- 地图与时间线视图
+### 明确不属于 MVP
 
-## Supported Media
+- 上传、备份、移动、重命名、删除或编辑原始媒体
+- 多用户、角色权限、匿名访问和分享链接
+- AI 分类、人脸/对象识别、语义搜索和重复文件检测
+- 视频转码、自适应码率流媒体和兼容播放副本
+- 收藏、评分、评论、地图、时间线和浏览历史
+- RAW 工作流、完整 EXIF 面板和图片编辑
+- 多实例共享写入、外部数据库或独立任务服务
+- 依靠文件系统 watcher 保证索引正确性
 
-MVP 的服务端索引与派生格式契约如下：
+这些方向若进入后续版本，需要独立的范围变更、架构评估和发布证据。
 
-| 类型 | 扩展名 | 候选行为 |
-| --- | --- | --- |
-| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、WebP 缩略图和原内容查看 |
-| 动图 | `.gif` | 索引、静态缩略图和浏览器原内容动画 |
-| 视频容器 | `.mp4`、`.mov`、`.mkv` | 索引、FFmpeg poster；兼容编码从原文件通过 HTTP Range 直接播放 |
+## 产品界面
 
-扩展名匹配不区分大小写。视频不会转码；容器受支持不表示当前浏览器一定能解码其中的
-video/audio codec，不兼容时会显示明确降级状态。SVG、HEIC/HEIF、AVIF 和 RAW 不属于
-MVP 索引/缩略图契约。
+<table>
+  <tr>
+    <td width="50%">
+      <img src="web/qa/s3-103-implementation-masonry-dark-v2.png" alt="FolioPath 深色瀑布流布局">
+      <br>
+      <sub>深色主题与瀑布流布局</sub>
+    </td>
+    <td width="50%">
+      <img src="web/qa/s4-008/01-desktop-viewer-keyboard.jpg" alt="FolioPath 桌面媒体查看器">
+      <br>
+      <sub>支持键盘操作的完整媒体查看器</sub>
+    </td>
+  </tr>
+</table>
 
-## Media Libraries
+以上图片是当前产品候选的 QA 截图，使用仓库内的合成测试媒体，不代表稳定版已经发布。
 
-Docker 挂载只负责划定 FolioPath 可以读取的媒体根目录。具体媒体库在 Web 设置中创建，无需为每个媒体库修改 Compose 配置。
+## Supported Media / 媒体格式
 
-例如，将宿主机的 `/mnt/photos` 挂载为容器内的 `/library` 后，可以创建：
+| 类型 | 扩展名 | 服务端能力 | 浏览器行为 |
+| --- | --- | --- | --- |
+| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 查看原始内容 |
+| 动图 | `.gif` | 索引、元数据、静态缩略图 | 使用原文件播放动画 |
+| 视频 | `.mp4`、`.mov`、`.mkv` | ffprobe 元数据、FFmpeg poster、HTTP Range | 播放浏览器原生支持的编码 |
 
-```text
-家庭照片  → /library/family
-工作素材  → /library/work
-手机备份  → /library/mobile
-```
+扩展名匹配不区分大小写。FolioPath 的视频支持指容器格式与服务端处理契约，不表示浏览器能
+解码容器内的任意视频/音频 codec。视频不会转码；不兼容内容会显示可理解的降级状态。
 
-媒体库可以选择 `/library` 本身或其任一安全后代，默认包含所选目录下的全部子目录，并保留原始层级。选择 `/library` 本身会与所有其他媒体库重叠，因此该实例不能再创建第二个库。FolioPath 将库根保存为相对于 `/library` 的路径，将目录和媒体保存为相对于具体库根的路径；删除媒体库只会移除索引、设置和派生缓存，不会修改原始文件。
+SVG、HEIC/HEIF、AVIF 和 RAW 当前不属于索引与缩略图契约。
 
-为避免重复索引，首个版本默认不允许媒体库根目录互相包含。如果挂载暂时不可用，媒体库会被标记为离线，而不会被视为空目录并清除索引。
+## 快速开始
 
-媒体库名称必须在实例内唯一且可以改名；首版不允许原地修改根路径，更换路径通过从 FolioPath 移除后重新创建完成。创建后立即扫描，应用启动时校准，并默认每 24 小时完整扫描；周期可以在设置中修改或关闭。
+### 前置条件
 
-## Recursive View
+- Linux `amd64` 或 `arm64`
+- 支持 Compose v2 的 Docker
+- 一个可只读提供给 FolioPath 的共同媒体目录
+- 一个位于可靠本地文件系统上的独立可写数据目录
 
-递归模式是 FolioPath 的核心功能。
+Linux 运行环境必须允许 FolioPath 使用 `openat2` 及所需解析标志。若内核、seccomp 或 LSM
+无法提供安全路径边界，应用会失败关闭，不会自动降级到较弱的路径检查。
 
-假设目录结构如下：
+### 1. 构建候选镜像
 
-```text
-Photos/
-├── 2024/
-│   ├── Beijing/
-│   └── Shanghai/
-└── 2025/
-    ├── Tokyo/
-    └── Kyoto/
-```
-
-选择 `Photos/2025/Tokyo` 时，只显示 Tokyo 目录中的内容。
-
-选择 `Photos` 并开启递归模式时，将连续显示所有子目录中的图片和视频，同时保留每个文件的来源路径，方便随时定位回原目录。
-
-普通目录默认按文件名自然升序；递归视图和搜索结果默认按文件修改时间倒序。搜索默认作用于当前媒体库，并可切换当前目录（可递归）或全部媒体库。
-
-## Docker
-
-> [!WARNING]
-> 仓库中的 Compose 是 Stage 5 候选配置；尚无可作为稳定版部署的公开镜像。
-
-目前没有可直接拉取的稳定镜像。只进行候选评估时，先从当前检出的源码构建一个明确本地
-标签，再复制 [`.env.example`](.env.example) 为 `.env`，把 `FOLIOPATH_IMAGE` 改为该
-标签，并填写媒体目录、数据目录和实际 TLS 代理的精确 CIDR：
+当前没有可直接拉取的稳定镜像。仅用于评估当前源码时：
 
 ```bash
+git clone https://github.com/HappyQuQu/foliopath.git
+cd foliopath
 docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
-docker compose up -d
 ```
 
-本地 tag 不是不可变发布引用，只能用于当前源码候选验证。正式部署必须使用发布说明指定的
-版本或 digest；当前还没有这样的稳定引用。
+构建会生成 React SPA，并将 Go API、SQLite、libvips 和精简 FFmpeg 运行时打包到非 root
+distroless 镜像中。
 
-通过你配置的单跳 TLS 反向代理访问其 HTTPS 地址。应用端口仅发布到宿主机回环地址，
-且没有合法代理声明的直连请求会失败关闭；不要把 `http://localhost:8080` 当作用户入口。
+### 2. 准备配置与数据目录
 
-建议将一个足够大的共同目录以只读方式挂载到 `/library`：
+```bash
+cp .env.example .env
+mkdir -p ./foliopath-data
+sudo chown 65532:65532 ./foliopath-data
+chmod 750 ./foliopath-data
+```
+
+编辑 `.env`，至少设置：
+
+```dotenv
+FOLIOPATH_IMAGE=foliopath:stage5-local
+FOLIOPATH_LIBRARY_PATH=/mnt/photos
+FOLIOPATH_DATA_PATH=./foliopath-data
+FOLIOPATH_BIND_ADDRESS=0.0.0.0
+FOLIOPATH_PORT=8080
+TZ=Asia/Shanghai
+```
+
+不要使用浮动的 `latest` 标签。正式发布后应使用发布说明给出的明确版本或不可变 digest。
+
+### 3. 启动并完成首次设置
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs -f foliopath
+```
+
+容器健康后，在受信局域网中访问：
 
 ```text
-/mnt/photos:/library:ro
+http://<服务器局域网地址>:8080
 ```
 
-这样 FolioPath 可以在 Web 设置中选择 `/library` 下的子目录作为媒体库，但不能修改或删除原始内容。`/app/data` 用于保存设置、SQLite 索引和缩略图缓存。
+首次打开时创建唯一管理员，然后进入“设置 → 媒体库”，从 `/library` 中选择目录并创建媒体库。
+创建成功后会立即安排一次完整扫描。
 
-`/library` 是唯一媒体挂载目标；它下面只能是普通目录，不能再嵌套 Docker volume、
-bind mount 或其他挂载点。媒体位于多个独立宿主卷时，需要先由宿主机提供一个经过验证的
-单一呈现根，再将该根一次性只读挂载到 `/library`。详细约束见
-[ADR-0009](docs/adr/0009-linux-openat2-single-media-root.md)。
+只在本机或同机反向代理后使用时，可在 `.env` 中设置：
 
-默认端口仅绑定本机回环地址并要求可信 TLS 反向代理。内建单管理员初始化、会话和退出登录
-已经实现，但 Stage 5 发布 Gate 尚未通过，不得将当前候选版当作稳定服务暴露到局域网或互联网。
+```dotenv
+FOLIOPATH_BIND_ADDRESS=127.0.0.1
+```
 
-## Design Principles
+### 常用运维命令
 
-1. **Folder first** — 文件夹层级是主要导航方式，不是附加功能。
-2. **Non-destructive** — 默认不移动、不重命名、不修改原始媒体文件。
-3. **Fast browsing** — 面向大型目录优化扫描、缩略图和滚动性能。
-4. **Simple deployment** — 尽量通过一个 Docker Compose 配置完成部署。
-5. **Progressive features** — 核心浏览功能保持轻量，高级功能按需启用。
+```bash
+# 查看状态
+docker compose ps
 
-## Technical Architecture
+# 查看日志
+docker compose logs --tail=200 foliopath
 
-FolioPath 采用单体、单进程、单端口架构：
+# 重启
+docker compose restart foliopath
 
-- **Backend:** Go 与标准库 `net/http`
-- **Database:** SQLite；媒体索引是可重建的派生状态
-- **Image processing:** libvips，通过 govips 生成缩略图
-- **Video processing:** ffprobe 提取信息，FFmpeg 生成封面；首版不转码
-- **Frontend:** React、TypeScript、Vite、TanStack Query 与 TanStack Virtual
-- **API:** 同源 REST API、游标分页和媒体 ID
-- **Authentication:** 首次设置的单管理员账号与安全 Cookie 会话
-- **Deployment:** 前端产物嵌入 Go 服务，以单个 Docker 容器发布
+# 停止
+docker compose down
+```
 
-完整入口参阅[项目文档索引](docs/README.md)。架构、数据模型、安全、API、界面、部署、测试和路线图都从该页进入；重要决策记录在 [`docs/adr`](docs/adr) 中。
+备份、恢复、升级、回滚、代理和故障处理请以[部署与运维文档](docs/deployment.md)为准。
+SQLite 使用 WAL 模式；应用运行时不要只复制 `foliopath.db` 而忽略可能存在的
+`foliopath.db-wal` 和 `foliopath.db-shm`。
 
-项目使用[系统架构档案](docs/architecture/README.md)约束模块所有权、依赖、数据、任务、前端设计系统和
-质量门禁。当前 MVP 范围由[版本 scope manifest](docs/releases/MVP-2026-07-23-scope.md)冻结；新能力默认进入后续版本。每个纵向切片按“需求/架构 → OpenAPI 与
-数据契约 → 后端及集成证据 → 前端消费 → 发布验证”推进，不允许由页面临时实现反向定义系统行为。
+## 媒体库与存储模型
 
-## Development Status
+Compose 只定义 FolioPath 有权读取的共同媒体边界。具体媒体库由管理员在 Web UI 中创建，
+无需为每个库增加 volume 或重启服务。
 
-Stage 0～4 已通过各自 Gate。当前源码包含完整的 React SPA、单管理员认证、媒体库与扫描、
-游标浏览与搜索、缩略图/缓存、图片查看器、原视频 Range 交付，以及真实 Go composition
-root。根 `Dockerfile` 与 `compose.yaml` 是 Stage 5 候选，不是稳定发行物。
+```text
+宿主机
+├── /mnt/photos/                    只读媒体呈现根
+│   ├── family/
+│   ├── mobile/
+│   └── work/
+└── /srv/foliopath-data/            可写应用数据
 
-Stage 5 当前证据包括：安全候选容器与 Compose、可信代理边界、离线备份/恢复及失败关闭、
-本机 linux/arm64 与指定原生 linux/amd64 的 100k/10k 产品容量档、100k 全量媒体与
-cache 水位，以及 Chromium/Firefox/WebKit 候选自动化。仍阻断发布的项目包括最终不可变
-digest、真实 Firefox、读屏/缩放/触摸和移动物理设备签署，以及候选供应链扫描中的
-1 Critical / 8 High。详见[任务清单](docs/task-list.md)与
-[Stage 5 Gate 记录](docs/gates/README.md)。当前统一
-[Release Candidate 判断](docs/gates/MVP-2026-07-23/s5-release-candidate-current.md)
-为 No-Go。
+容器
+├── /library/                       唯一媒体挂载目标，只读
+│   ├── family/                     可创建为“家庭照片”
+│   ├── mobile/                     可创建为“手机备份”
+│   └── work/                       可创建为“工作素材”
+└── /app/data/
+    ├── foliopath.db                SQLite 数据库
+    ├── foliopath.db-wal            运行时可能存在
+    ├── foliopath.db-shm            运行时可能存在
+    ├── cache/                      可重建缩略图与视频 poster
+    └── tmp/                        受控临时文件
+```
 
-## Roadmap
+### 必须遵守的约束
 
-详细阶段、依赖和出口条件见[项目路线图](docs/roadmap.md)；编码前的条件 Go 结论与必做验证见[可行性研究](docs/feasibility-study.md)。
+- `/library` 是唯一媒体挂载目标，其后代必须是普通目录。
+- 不得在 `/library/family` 等后代路径嵌套 volume、bind mount 或其他 mount point。
+- 媒体库根目录必须互不重叠，避免重复索引。
+- 选择 `/library` 本身作为媒体库会覆盖整个允许根，因此不能再创建其他库。
+- 库根创建后在 MVP 中不可修改；需要换根时移除配置并重新创建。
+- 删除媒体库只删除配置、索引、任务和派生缓存，不修改原始目录。
+- 媒体根暂时不可读时，库会标记为离线并保留旧索引，不会被当作空库清理。
+- `/app/data` 必须由单一 FolioPath 实例独占，不支持把活动 SQLite 放在 SMB/NFS 上。
 
-- [x] 确定技术栈和基础架构
-- [x] 确认 MVP 需求基线（RQ-001～RQ-014 全部采用 A）
-- [x] FS-02 SQLite/generation 当前正确性验证
-- [x] 第一版权威 OpenAPI 契约与离线契约检查
-- [x] FS-01 原生 Linux amd64/arm64 `openat2` mount 边界与 Stage 0 HTTP harness 范围
-- [x] FS-04 目标档的扫描/索引子范围
-- [x] FS-05 原生双架构运行、恢复和失败关闭范围
-- [x] Stage 0 SBOM/license 与风险复审，Gate 允许进入 Stage 1
-- [x] Stage 1 后端运行骨架、SQLite migration、health、单管理员认证与前端
-- [x] Stage 2 安全媒体库、可靠扫描及产品 UI
-- [x] Stage 3 目录/递归浏览、缩略图、网格/瀑布流及预览
-- [x] Stage 4 搜索、过滤、图片查看器、原视频 Range 与降级状态
-- [x] Stage 5 候选 Dockerfile、Compose、可信代理、恢复/失败关闭、容量和浏览器自动化基础
-- [ ] 完成多架构镜像、真实升级、代表性设备、供应链和 RC 发布加固
-- [ ] 关闭供应链、真实升级、代表性设备和 Release Candidate 阻断项
-- [ ] 文件系统实时监控
-- [ ] 分享功能
+如果媒体分布在多个宿主卷，部署者需要先在宿主机侧提供一个没有后代 mount crossing 的
+共同呈现根，再把它一次性挂载到 `/library`。完整理由见
+[ADR-0009：Linux openat2 与单一媒体根](docs/adr/0009-linux-openat2-single-media-root.md)。
 
-## Inspiration
+## 安全与网络边界
+
+FolioPath 把媒体文件和元数据视为不可信输入，并以失败关闭为默认策略：
+
+- 所有真实媒体访问集中通过 `internal/files` 的内核锚定边界。
+- Linux 使用 `openat2` 和
+  `RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS | RESOLVE_NO_XDEV`。
+- API 只接受媒体库 ID、媒体 ID 和库内相对路径，不接受任意绝对路径。
+- 拒绝路径穿越、重复编码穿越、NUL、符号链接逃逸和嵌套挂载。
+- 容器以 UID/GID `65532:65532` 运行，根文件系统只读，丢弃全部 capabilities，并启用
+  `no-new-privileges`。
+- 图片/视频处理具有超时、取消、输入保护和全局并发限制。
+- 管理 API 与媒体 API 默认要求身份验证，状态修改受 session-bound CSRF 保护。
+- API 错误和日志不得泄露宿主绝对路径、SQL、子进程输出或堆栈。
+
+### 局域网 HTTP 与公网访问
+
+推荐 Compose 支持通过受信局域网直接使用带单管理员认证的 HTTP。这不是匿名模式，但 HTTP
+本身不提供链路机密性，只适用于你确认可信且有边界控制的家庭/办公局域网。
+
+如果服务会经过公网、访客网络或其他不可信链路，必须在 FolioPath 外部配置 TLS 反向代理、
+防火墙或访问控制，并阻止绕过代理直连应用端口。显式配置可信代理后，应用只接受严格的单跳
+HTTPS 转发语义。详细威胁模型参阅[安全文档](docs/security.md)和
+[ADR-0010：经认证的局域网 HTTP](docs/adr/0010-authenticated-lan-http.md)。
+
+## 技术架构
+
+FolioPath 是一个模块化 Go 单体。React 生产产物嵌入 Go 二进制，由同一个 HTTP 进程同时
+提供 SPA、REST API、媒体内容和健康检查。
+
+```mermaid
+flowchart LR
+    Browser["浏览器<br/>React SPA"] --> HTTP["Go HTTP 进程<br/>/api/v1 · /health · 媒体 Range"]
+    HTTP --> Auth["auth"]
+    HTTP --> Library["library"]
+    HTTP --> Catalog["catalog"]
+    HTTP --> Scanner["scanner / jobs"]
+    HTTP --> Media["media / thumbnail"]
+    Auth --> SQLite[("SQLite WAL<br/>/app/data")]
+    Library --> SQLite
+    Catalog --> SQLite
+    Scanner --> SQLite
+    Media --> Cache["派生缓存<br/>/app/data/cache"]
+    Scanner --> Files["安全文件边界<br/>openat2"]
+    Media --> Files
+    Files --> Root["只读媒体根<br/>/library"]
+    Media --> Tools["libvips · ffprobe · FFmpeg"]
+```
+
+### 技术栈
+
+| 层 | 技术 |
+| --- | --- |
+| 后端 | Go、`net/http`、模块化 capability/service 边界 |
+| API | REST `/api/v1`、OpenAPI、统一错误结构、opaque keyset cursor |
+| 数据 | SQLite WAL、只追加迁移、sqlc 生成查询 |
+| 图片 | libvips，通过 govips 获取元数据并生成 WebP 缩略图 |
+| 视频 | ffprobe 元数据、FFmpeg poster、原文件 HTTP Range |
+| 前端 | React、TypeScript、Vite、React Router |
+| 服务端状态 | TanStack Query |
+| 大列表 | TanStack Virtual、游标分页 |
+| UI 工程 | Storybook、Vitest、Testing Library、Playwright、axe |
+| 发布 | 多阶段 Docker 构建、distroless、单进程非 root 容器 |
+
+### 代码边界
+
+```text
+cmd/foliopath        最小进程入口
+internal/app         依赖组装、配置、生命周期与优雅退出
+internal/api         HTTP handler、DTO 与 middleware
+internal/auth        管理员、会话与 CSRF
+internal/library     媒体库配置、状态与重叠规则
+internal/catalog     目录、浏览、搜索与 cursor 语义
+internal/scanner     增量遍历、扫描代次与校准
+internal/thumbnail   派生任务、缓存配额与淘汰
+internal/media       元数据、图片/视频处理与原内容服务
+internal/jobs        有界、可恢复、幂等后台任务
+internal/files       /library 的真实文件系统安全边界
+internal/pathpolicy  纯相对路径词法规则
+internal/store/sqlite SQLite adapter 与生成查询
+internal/webassets   嵌入 Vite 生产产物
+web                  React 产品应用与组件工作台
+api/openapi.yaml     权威公开 API 契约
+migrations           只追加 SQLite migration
+```
+
+业务能力不依赖具体 SQLite、HTTP DTO 或真实文件系统实现；具体适配器只在 `internal/app`
+组合。完整设计入口见[系统架构档案](docs/architecture/README.md)。
+
+## 开发与验证
+
+### 工具链
+
+- Go `1.26.5`
+- Node.js `22.22.x`
+- npm（锁文件当前使用 npm `10.9.7`）
+- Docker + Compose v2
+- 完整图片适配器开发需要 libvips；视频集成测试需要 FFmpeg
+
+### 后端
+
+```bash
+go mod download
+go test ./...
+go test -race ./...
+```
+
+普通 Go 测试不应读取开发者的真实媒体库；集成测试使用临时目录与合成 fixture。生产
+libvips 适配器使用 `libvips` build tag。
+
+### 前端
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Vite 默认把 `/api` 与 `/health` 代理到 `http://127.0.0.1:8080`，可通过
+`FOLIOPATH_API_ORIGIN` 修改后端地址。
+
+常用前端检查：
+
+```bash
+npm run test
+npm run check
+npm run storybook
+npm run test:e2e
+```
+
+### 生成代码
+
+公开 API 以 [`api/openapi.yaml`](api/openapi.yaml) 为权威来源。修改契约或 SQL 查询后，
+修改源文件并重新生成，不要手工编辑生成结果：
+
+```bash
+make generate
+make generate-check
+```
+
+### 完整验证面
+
+仓库约定的完整检查入口是：
+
+```bash
+make fmt
+make arch-check
+make generate-check
+make lint
+make test
+make test-integration
+make test-e2e
+```
+
+部分发布、浏览器、容量与双架构验证需要 Docker、Playwright 浏览器、特定宿主机或显式环境
+变量。测试层次与要求见[测试策略](docs/testing-strategy.md)，所有 Make 目标见
+[`Makefile`](Makefile)。
+
+### 文档导航
+
+| 主题 | 文档 |
+| --- | --- |
+| 文档总索引 | [`docs/README.md`](docs/README.md) |
+| 产品范围与验收 | [产品需求](docs/product-requirements.md) |
+| 当前冻结范围 | [MVP scope revision 2](docs/releases/MVP-2026-07-23-scope-r2.md) |
+| 系统架构 | [架构档案](docs/architecture/README.md) |
+| OpenAPI | [`api/openapi.yaml`](api/openapi.yaml) |
+| 数据与迁移 | [数据模型](docs/data-model.md) |
+| 安全 | [安全模型](docs/security.md) |
+| UI 与可访问性 | [界面设计规范](docs/ui-design.md) |
+| 部署与恢复 | [部署文档](docs/deployment.md) |
+| Gate 与发布证据 | [Gate 索引](docs/gates/README.md) |
+| 风险 | [风险登记](docs/risk-register.md) |
+| 路线图 | [项目路线图](docs/roadmap.md) |
+
+## 项目状态与路线图
+
+截至 2026-07-28：
+
+- [x] Stage 0：需求、架构、关键安全/容量/媒体可行性与基础 Gate
+- [x] Stage 1：运行骨架、SQLite migration、健康检查、单管理员认证与应用壳
+- [x] Stage 2：安全媒体库、可靠扫描与对应产品 UI
+- [x] Stage 3：目录树、当前/递归浏览、缩略图、网格/瀑布流与非模态预览
+- [x] Stage 4：搜索、过滤、完整图片查看器、视频 Range 与降级状态
+- [x] Stage 5 候选：容器、Compose、双架构运行、恢复、升级/回滚和容量验证
+- [ ] 完成最终不可变镜像 digest 与干净提交 provenance
+- [ ] 完成真实 Firefox、读屏、缩放、触摸与移动物理设备签署
+- [ ] 清理或正式限时接受当前供应链扫描中的 `1 Critical / 8 High` 发现
+- [ ] 通过最终 Release Candidate Gate 并发布首个稳定版本
+
+权威机器可读判断位于
+[`docs/releases/MVP-2026-07-23-rc-readiness.json`](docs/releases/MVP-2026-07-23-rc-readiness.json)。
+完成的阶段不等同于稳定发布；只有全部版本 Gate 和发布阻断风险关闭后才能标记为 Released。
+
+未来功能（watcher、分享、更多格式、收藏/评分、重复检测、地图/时间线等）不属于当前 MVP，
+详细排序以[路线图](docs/roadmap.md)和后续 Change Record 为准。
+
+## 贡献指南
+
+FolioPath 采用契约驱动、后端优先的纵向切片交付方式。提交代码前请：
+
+1. 阅读仓库级 [`AGENTS.md`](AGENTS.md) 与[开发就绪评审](docs/development-readiness.md)。
+2. 先通过 Issue 描述问题、需求 ID、目标版本和验收证据。
+3. 用户可见能力、架构变化或高风险切片必须有可追踪的 Change Record/Gate。
+4. API 变化先修改 OpenAPI；数据变化通过新的 migration，不改写可能已经发布的迁移。
+5. 保持原始媒体只读，并为路径、离线、取消、恢复和损坏媒体等失败语义补充回归测试。
+6. 运行与改动范围相称的检查，并准确报告实际执行结果。
+
+请勿提交真实私人媒体、运行时数据库、日志、缓存、Vite 构建产物或来源/许可证不清晰的素材。
+
+## 灵感来源
 
 FolioPath 的产品方向受到以下开源项目启发：
 
-- [Immich](https://github.com/immich-app/immich) — 高性能、自托管的照片与视频管理平台
-- [FlowVision](https://github.com/netdcy/FlowVision) — 具有瀑布流、文件夹导航和递归浏览体验的 macOS 图片查看器
+- [Immich](https://github.com/immich-app/immich)：高性能、自托管的照片与视频管理平台。
+- [FlowVision](https://github.com/netdcy/FlowVision)：以瀑布流、目录导航和递归浏览见长的
+  macOS 图片查看器。
 
-FolioPath 是独立项目，与 Immich 或 FlowVision 没有从属或官方关联。项目将专注于以文件夹为核心的 Web 浏览体验，而不是成为完整的照片备份平台或桌面文件管理器。
+FolioPath 是独立项目，与上述项目没有从属或官方关联，也不以复制它们的完整产品范围为目标。
 
-## Contributing
+## 许可证
 
-项目仍处于早期阶段，欢迎通过 Issue 参与功能讨论、交互设计、技术选型和测试。
+FolioPath 采用
+[GNU Affero General Public License v3.0 or later](LICENSE)（`AGPL-3.0-or-later`）。
 
-在提交代码前，请先创建 Issue 描述问题或提案，以便保持实现方向一致。
-
-## License
-
-FolioPath 采用 [GNU Affero General Public License v3.0 or later](https://www.gnu.org/licenses/agpl-3.0.html)（`AGPL-3.0-or-later`）许可证。
-
-你可以使用、研究、修改和分发 FolioPath。分发原始版本或修改版本时，需要依照许可证提供对应源代码；如果修改后的程序通过网络向用户提供服务，也需要向这些用户提供相应版本的源代码。
-
-完整条款请参阅仓库中的 [`LICENSE`](LICENSE) 文件。
-
-FolioPath 是独立实现的项目。它的产品方向受到 Immich 和 FlowVision 启发，但这并不表示 FolioPath 隶属于上述项目。贡献代码时，请勿提交来源不明、许可证不兼容，或直接复制自其他项目的代码。
+你可以使用、研究、修改和分发本项目。分发原始或修改版本时，需要按照许可证提供对应源代码；
+如果修改后的程序通过网络向用户提供服务，也需要向这些用户提供相应版本的源代码。第三方组件
+仍适用各自许可证，发布镜像的 notices、SBOM 和合规材料以对应版本发布物为准。
 
 ---
 
-**FolioPath** — Your folders, beautifully browsed.
+<p align="center">
+  <strong>FolioPath — Your folders, beautifully browsed.</strong>
+</p>

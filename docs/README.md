@@ -24,12 +24,14 @@
 ## 产品与体验
 
 - [产品需求](product-requirements.md)：愿景、用户、范围、需求编号和验收标准。
-- [MVP scope manifest](releases/MVP-2026-07-23-scope.md)：冻结版本、revision、精确需求/非目标/验收 ID；已合入 revision 不原地改写。
+- [MVP scope manifest revision 2](releases/MVP-2026-07-23-scope-r2.md)：冻结版本、revision、精确需求/非目标/验收 ID；已合入 revision 不原地改写。
 - [需求确认清单](requirements-checklist.md)：全部 14 项 A 方案的确认记录与未采用备选。
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
 - [静态 UI 原型](../prototypes/foliopath-static-ui/README.md)：15 个可点击界面/状态、浅色/深色与响应式设计验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。
+- [CR-2026-002 经认证的局域网 HTTP](changes/CR-2026-002-authenticated-lan-http.md)：直接
+  LAN 访问与外部 TLS/反向代理职责边界。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。
 - [开发任务清单](task-list.md)：总进度、前后端交接点和共同发布任务。
 - [后端开发清单](backend-task-list.md)：Go、API、SQLite、认证、扫描与媒体服务任务。
@@ -87,6 +89,7 @@
 - [ADR-0007：单一共享前端设计系统](adr/0007-shared-frontend-system.md)
 - [ADR-0008：统一应用组合根并分离纯路径策略](adr/0008-composition-root-and-path-policy.md)
 - [ADR-0009：Linux `openat2` 与单一媒体根挂载](adr/0009-linux-openat2-single-media-root.md)
+- [ADR-0010：经认证的局域网 HTTP 与可选外部 TLS](adr/0010-authenticated-lan-http.md)
 
 新的架构决策使用连续编号和 [ADR 模板](adr/template.md)。已接受 ADR 不直接改写；方向改变时新增 ADR，并将旧记录标记为被替代。
 

@@ -2,7 +2,7 @@
 
 ## 文档状态
 
-本文是首个可用版本（MVP）的已确认产品基线，不表示下述功能已经发布。用户已于 2026-07-23 确认 [RQ-001～RQ-014](requirements-checklist.md) 全部采用 A；实现与验收必须按这些选择执行。当前范围由 [`MVP-2026-07-23` scope manifest revision 1](releases/MVP-2026-07-23-scope.md) 锁定，新用户能力默认进入后续版本；改变范围必须遵守[交付与架构治理](architecture/delivery-governance.md)的 Change Record、影响分析和 scope trade-off，不能靠不断追加 FR 延后发布。
+本文是首个可用版本（MVP）的已确认产品基线，不表示下述功能已经发布。用户已于 2026-07-23 确认 [RQ-001～RQ-014](requirements-checklist.md) 全部采用 A，并于 2026-07-28 通过 [CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md) 确认受信局域网 HTTP 部署；实现与验收必须按这些选择执行。当前范围由 [`MVP-2026-07-23` scope manifest revision 2](releases/MVP-2026-07-23-scope-r2.md) 锁定，新用户能力默认进入后续版本；改变范围必须遵守[交付与架构治理](architecture/delivery-governance.md)的 Change Record、影响分析和 scope trade-off，不能靠不断追加 FR 延后发布。
 
 ## 产品愿景
 
@@ -44,7 +44,8 @@ MVP 包含：
 - 扫描进度、离线、失败、部分不可读、损坏媒体和不支持播放等状态反馈。
 - 明暗主题、键盘操作、焦点可见、减少动态效果和响应式布局。
 - 创建后、应用启动、手动和定时完整校准扫描；定时扫描默认每 24 小时，可在 UI 修改或关闭。
-- 首个稳定版的首次设置单管理员账号、会话和退出登录；开发预览版只允许回环地址或可信认证反向代理。
+- 首个稳定版的首次设置单管理员账号、会话和退出登录；认证完成后支持受信局域网 HTTP
+  直连，公网 TLS 与反向代理由部署者按需提供。
 - 简体中文和英文界面，默认跟随浏览器并可在设置中切换。
 
 ## 明确非目标
@@ -70,6 +71,7 @@ MVP 不包含（稳定 ID 由 [scope manifest](releases/MVP-2026-07-23-scope.md)
 | FR-DEP-002 | 推荐部署必须支持仅用 `/host/media:/library:ro` 与 `/host/data:/app/data` 两个 volume 开始使用。 |
 | FR-DEP-003 | 除宿主机挂载、网络和运行环境等容器边界外，媒体库及面向用户的应用设置必须通过 Web 界面管理并持久化。 |
 | FR-DEP-004 | 应用必须明确显示其处于规划、初始化、可用或需要处理的状态，不能把未完成初始化表现为空媒体库。 |
+| FR-DEP-005 | 推荐 Compose 必须可通过单个宿主端口直接提供受单管理员认证保护的局域网 HTTP 访问；公网或其他不可信网络的 TLS 终止与反向代理由部署者负责，不是 FolioPath 的必需部署单元。 |
 
 ### 认证与会话
 

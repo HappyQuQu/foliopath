@@ -5,7 +5,8 @@
 本文描述首个可用版本的候选部署方式。Stage 5 `S5-001A` 已建立根 `Dockerfile` 候选镜像：
 它构建并嵌入真实 Vite SPA，以 UID/GID `65532:65532` 运行真实 `cmd/foliopath`，并在
 linux/arm64 本地验证只读容器根、丢弃 capabilities、只读媒体、健康检查、MVP 媒体矩阵
-和 SIGTERM。可信代理与非回环应用边界已通过 `S5-003`；根 `compose.yaml` 已通过同架构
+和 SIGTERM。可信代理边界已通过 `S5-003`；[CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md)
+进一步允许经认证的 LAN HTTP，根 `compose.yaml` 已通过同架构
 smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也已通过。
 原生 amd64/arm64 候选结果、真实升级、代表性设备和其余 Release Gate 尚未完成，当前
 候选仍不可作为稳定版部署。
@@ -29,7 +30,8 @@ smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也�
 - `FOLIOPATH_IMAGE`：明确版本或 digest；不得使用会静默漂移的 `latest`；
 - `FOLIOPATH_LIBRARY_PATH`：宿主机唯一媒体呈现根；
 - `FOLIOPATH_DATA_PATH`：宿主机本地、由 UID/GID `65532:65532` 可写的数据目录；
-- `FOLIOPATH_TRUSTED_PROXIES`：实际 TLS 反向代理 peer 的精确 IP CIDR。
+- `FOLIOPATH_BIND_ADDRESS`：宿主端口绑定地址，默认 `0.0.0.0` 供受信局域网访问；
+- `FOLIOPATH_PORT`：宿主端口，默认 `8080`。
 
 仓库尚未发布可拉取的稳定镜像。只做当前源码候选验证时，可以先运行：
 
@@ -38,7 +40,7 @@ docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 ```
 
 并把 `.env` 中的 `FOLIOPATH_IMAGE` 设为 `foliopath:stage5-local` 后运行
-`docker compose up -d`。Compose 将宿主端口绑定到回环地址，以
+`docker compose up -d`。Compose 默认将宿主端口发布到所有 IPv4 接口，以
 UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
 `/tmp` tmpfs 启动。镜像内 healthcheck 已由候选 smoke 验证。
 
@@ -144,8 +146,9 @@ worker 都会有界恢复并重新领取。取消、离线、权限失败或异�
 4. 创建成功后异步启动首次完整扫描，页面显示阶段、跳过统计与计数；应用启动时校准，之后默认每 24 小时完整扫描。
 5. 媒体库可浏览后继续在后台生成所需缩略图；默认 10 GiB 配额达到水位时按 LRU 清理可重建缓存。
 
-当前候选已包含内建单管理员、会话、CSRF 和退出登录。Stage 5 尚未通过，因此仍不能把
-候选直接作为公网或匿名 LAN 服务。
+当前候选已包含内建单管理员、会话、CSRF 和退出登录，可在受信局域网通过 HTTP 使用。
+Stage 5 尚未通过，因此仍不能把候选作为稳定发行版或匿名服务；公网和不可信网络必须由
+部署者在应用外提供 TLS 与访问控制。
 
 ## 健康检查与可观察性
 
@@ -173,19 +176,22 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 
 ## 网络、反向代理与认证
 
-- 应用默认监听 `127.0.0.1:8080`。可通过 `FOLIOPATH_LISTEN` 或
+- 应用二进制默认监听 `127.0.0.1:8080`，根 Compose 在容器内设置为
+  `0.0.0.0:8080`。可通过 `FOLIOPATH_LISTEN` 或
   `--listen=<IP>:<PORT>` 设置，参数优先于环境变量；两者都只接受一个数值 IP 与
   `1～65535` 端口。
 - `/library` 与 `/app/data` 是固定容器边界，不提供改写它们的环境变量或参数。媒体库在
   Web/SQLite 中配置，不能转化为每库一个启动变量。
-- 非回环监听必须同时设置 `FOLIOPATH_TRUSTED_PROXIES`，例如
-  `FOLIOPATH_TRUSTED_PROXIES=172.20.0.2/32`。只接受逗号分隔的显式 IP CIDR；不要使用
-  `/0`，也不要填写会包含普通客户端/NAT 出口的宽泛网段。
+- 非回环监听可直接服务经认证的受信 LAN HTTP。没有可信代理配置时，应用清除所有
+  `Forwarded`/`X-Forwarded-*` 声明，并使用直连 peer 作为客户端身份。
+- 外部 HTTPS 代理可显式设置 `FOLIOPATH_TRUSTED_PROXIES`。只接受逗号分隔的精确 IP CIDR；
+  不要使用 `/0` 或包含普通客户端/NAT 出口的宽泛网段。非回环监听设置该变量后进入
+  代理专用模式，远程直连失败关闭。
 - MVP 契约与当前候选只支持单跳代理。代理必须覆盖客户端提交的转发头并发送恰好一个
   `X-Forwarded-Proto: https`、公共 `X-Forwarded-Host` 和数值客户端 IP
   `X-Forwarded-For`。应用拒绝链式、多值、缺失、非 HTTPS或与 `Forwarded` 混用的请求。
-- 对局域网或公网提供访问时，必须使用 TLS 反向代理，并通过宿主机回环端口、私有容器网络
-  或 firewall 防止绕过代理直接访问应用端口。可信 CIDR 不是网络 ACL。
+- 公网或其他不可信网络必须由部署者使用 TLS 反向代理，并通过回环绑定、私有容器网络或
+  firewall 防止绕过代理。TLS/代理不是 FolioPath 的必需部署单元；可信 CIDR 也不是网络 ACL。
 - 反向代理需要允许图片和视频响应流式传输、Range、较长读取和客户端取消；不应缓冲整个视频到内存。
 - 验证后的代理 HTTPS transport 会启用 Secure Cookie 与 HSTS；状态修改继续要求
   session-bound CSRF，setup/login 要求公共 HTTPS origin 与 host/port 完整同源。

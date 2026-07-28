@@ -29,6 +29,9 @@ them.
 - Ship the first stable release with first-run single-administrator setup, sessions,
   logout, and CSRF protection. Before that exists, bind previews to loopback or put
   them behind a trusted authenticating proxy; never support anonymous LAN mode.
+  Once authentication exists, support direct HTTP on a trusted LAN; TLS termination
+  and public-network exposure are deployment concerns outside FolioPath's required
+  single-container topology.
 
 ## Repository and dependency boundaries
 

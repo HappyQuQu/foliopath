@@ -47,7 +47,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	requireFragments(t, "compose.yaml", compose, []string{
 		"${FOLIOPATH_IMAGE:?set FOLIOPATH_IMAGE to an immutable version tag or digest}",
 		`FOLIOPATH_LISTEN: "0.0.0.0:8080"`,
-		`- "127.0.0.1:${FOLIOPATH_PORT:-8080}:8080"`,
+		`- "${FOLIOPATH_BIND_ADDRESS:-0.0.0.0}:${FOLIOPATH_PORT:-8080}:8080"`,
 		"target: /library",
 		"read_only: true",
 		"target: /app/data",
@@ -58,7 +58,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"FOLIOPATH_IMAGE=ghcr.io/HappyQuQu/foliopath:VERSION",
 		"FOLIOPATH_LIBRARY_PATH=/mnt/photos",
 		"FOLIOPATH_DATA_PATH=./foliopath-data",
-		"FOLIOPATH_TRUSTED_PROXIES=172.20.0.1/32",
+		"FOLIOPATH_BIND_ADDRESS=0.0.0.0",
 		"FOLIOPATH_PORT=8080",
 		"TZ=UTC",
 	})

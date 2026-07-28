@@ -229,8 +229,9 @@ MVP 的日期语义是文件修改时间；不提供完整 EXIF 面板。未可�
 S1-104 已实现上述 HTTP 边界：匿名白名单同时匹配方法和路径，其余 `/api/v1`（包括未知
 业务路由）先认证；非 GET/HEAD/OPTIONS 请求再校验 session-bound CSRF。Origin 按实际
 请求 scheme、完整 host 和有效端口比较，不接受缺失、`null`、userinfo、path 或多值；
-`S5-003` 后，默认回环模式仍只使用真实 TLS 与直连 peer，并清除所有转发声明。非回环模式
-要求显式可信代理 CIDR；只接受受信直连 peer 提交的单跳、单值 HTTPS
+`S5-003` 后，默认直连模式只使用真实 TLS、Host 与直连 peer，并清除所有转发声明。
+[ADR-0010](adr/0010-authenticated-lan-http.md) 允许该模式在受信 LAN 使用 HTTP。显式配置
+可信代理 CIDR 后进入代理专用模式；只接受受信直连 peer 提交的单跳、单值 HTTPS
 `X-Forwarded-Proto/Host/For` 三元组，其他组合在路由前失败关闭。setup/login 每个验证后
 客户端 IP 每分钟最多 10 次，status/session 每分钟 120 次，logout 每分钟 60 次；限流
 bucket 最多 4096 个并在满载时失败关闭。Origin、Secure Cookie 与 HSTS 共享同一验证后

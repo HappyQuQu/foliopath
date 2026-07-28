@@ -41,7 +41,7 @@ migration 成功后才进入 ready，失败时进程不提供业务服务。系�
 | P0 | 原始媒体即使在删除媒体库、扫描失败或缓存故障时也不能被修改 | `/library` 只读挂载；所有原媒体访问集中在文件边界；删除仅作用于配置、索引、任务和缓存 | [产品需求](../product-requirements.md)、[安全模型](../security.md)、只读容器与删除流程测试 |
 | P0 | 用户在 Web 中创建多个媒体库，只选择已映射根目录下的子目录，并默认包含后代 | Docker 只声明一个 `/library` 媒体根和 `/app/data`；拒绝后代嵌套挂载；库根保存为安全相对路径；拒绝重叠；根路径在 MVP 中不可变 | [ADR-0002](../adr/0002-library-path-model.md)、[ADR-0004](../adr/0004-library-root-immutable.md)、[ADR-0009](../adr/0009-linux-openat2-single-media-root.md)、路径/mount/重叠测试 |
 | P0 | 挂载离线、权限错误、取消或进程中断不能把可靠索引误判为空 | 文件系统是存在性与层级事实来源；SQLite 是派生状态；完整扫描使用 generation，只有全程成功才清理旧代次 | [ADR-0003](../adr/0003-scan-consistency.md)、故障注入和恢复测试 |
-| P0 | 私人媒体不能因默认网络配置而匿名暴露 | 稳定版内建单管理员、会话、退出和 CSRF；认证完成前只允许回环预览或可信认证代理 | [ADR-0005](../adr/0005-built-in-single-admin-auth.md)、[安全模型](../security.md)、认证与代理测试 |
+| P0 | 私人媒体不能因默认网络配置而匿名暴露 | 稳定版内建单管理员、会话、退出和 CSRF；认证完成后可直接服务受信 LAN HTTP，公网 TLS/代理由部署者提供 | [ADR-0005](../adr/0005-built-in-single-admin-auth.md)、[ADR-0010](../adr/0010-authenticated-lan-http.md)、[安全模型](../security.md)、认证与 transport 测试 |
 | P0 | 路径、文件名、媒体编码和元数据均视为不可信输入 | 相对路径先经唯一词法策略；Linux 实际打开由根 FD 锚定的 `openat2` 原子执行并拒绝 symlink/mount crossing；原生媒体处理有超时、取消、大小限制和并发上限 | [安全模型](../security.md)、FS-01 与 FS-03 |
 | P1 | 在四核、4 GiB 的主要验收环境中处理约 10 万媒体和 1 万目录，且交互请求不被后台工作饿死 | 流式遍历、有界队列、批量短事务、写入串行化、游标分页、虚拟化和按资源类别限流 | [测试策略](../testing-strategy.md)、FS-04；该规模是验收目标，不是已证明性能 |
 | P1 | 自托管部署、升级、备份和故障排查保持简单 | 一个应用容器、一个 Go 服务端口、嵌入式 SPA、本地 SQLite、两个主要 volume；不引入额外服务 | [ADR-0001](../adr/0001-go-react-sqlite.md)、[部署草案](../deployment.md)、FS-05 |
@@ -60,9 +60,9 @@ flowchart LR
     backup["备份存储与恢复流程\n保护 /app/data [T]"]
 
     admin --> browser
-    browser -->|"稳定部署：HTTPS / 同源请求"| proxy
+    browser -->|"公网或不可信网络：HTTPS"| proxy
     proxy -->|"受信转发头；支持流式与 Range"| foliopath
-    browser -.->|"认证完成前仅回环预览"| foliopath
+    browser -->|"受信 LAN：经认证 HTTP / 同源请求"| foliopath
     mediaHost -->|"一个只读根映射到 /library；无后代挂载"| foliopath
     foliopath -->|"安全读取；离线时保留索引"| mediaHost
     foliopath -->|"停机或 SQLite 安全备份流程"| backup

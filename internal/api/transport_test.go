@@ -180,6 +180,34 @@ func TestRequiredProxyRejectsDirectRemoteButKeepsLoopbackHealthPossible(t *testi
 	}
 }
 
+func TestDirectRemoteHTTPUsesPeerAndIgnoresForwardingHeaders(t *testing.T) {
+	var observed requestTransport
+	handler := withTrustedTransport(http.HandlerFunc(func(
+		writer http.ResponseWriter,
+		request *http.Request,
+	) {
+		observed = requestTransportFrom(request)
+		writer.WriteHeader(http.StatusNoContent)
+	}), TransportConfig{})
+	request := httptest.NewRequest(http.MethodGet, "http://192.168.2.222:8080/", nil)
+	request.RemoteAddr = "192.168.2.50:4321"
+	request.Header.Set(forwardedProtoHeader, "https")
+	request.Header.Set(forwardedHostHeader, "attacker.example")
+	request.Header.Set(forwardedForHeader, "203.0.113.9")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204", response.Code)
+	}
+	if observed.secure ||
+		observed.authority != "192.168.2.222:8080" ||
+		observed.clientHost != "192.168.2.50" {
+		t.Fatalf("observed transport = %#v", observed)
+	}
+}
+
 func TestDirectTLSTransportRemainsSecure(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "https://foliopath.test/", nil)
 	request.TLS = &tls.ConnectionState{}
