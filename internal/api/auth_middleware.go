@@ -109,8 +109,9 @@ func requestHasSameOrigin(request *http.Request) bool {
 		return false
 	}
 
+	transport := requestTransportFrom(request)
 	requestScheme := "http"
-	if request.TLS != nil {
+	if transport.secure {
 		requestScheme = "https"
 	}
 	if !strings.EqualFold(origin.Scheme, requestScheme) {
@@ -120,7 +121,7 @@ func requestHasSameOrigin(request *http.Request) bool {
 	if !ok {
 		return false
 	}
-	requestHost, requestPort, ok := canonicalAuthority(request.Host, requestScheme)
+	requestHost, requestPort, ok := canonicalAuthority(transport.authority, requestScheme)
 	return ok &&
 		strings.EqualFold(originHost, requestHost) &&
 		originPort == requestPort

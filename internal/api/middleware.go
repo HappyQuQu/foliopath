@@ -9,6 +9,16 @@ import (
 // NewHandler applies the transport invariants shared by every route. A nil
 // next handler becomes the contract-shaped not-found fallback.
 func NewHandler(next http.Handler, logger *slog.Logger) http.Handler {
+	return NewHandlerWithTransport(next, logger, TransportConfig{})
+}
+
+// NewHandlerWithTransport applies the shared transport invariants with an
+// explicit trusted-proxy policy.
+func NewHandlerWithTransport(
+	next http.Handler,
+	logger *slog.Logger,
+	transport TransportConfig,
+) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -17,9 +27,17 @@ func NewHandler(next http.Handler, logger *slog.Logger) http.Handler {
 	}
 
 	return withRequestID(
-		logRequests(
-			recoverPanics(next, logger),
-			logger,
+		withSecurityHeaders(
+			logRequests(
+				recoverPanics(
+					withTrustedTransport(
+						withHSTS(next),
+						transport,
+					),
+					logger,
+				),
+				logger,
+			),
 		),
 		nil,
 	)

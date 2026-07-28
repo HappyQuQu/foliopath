@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -261,6 +262,59 @@ func TestAuthenticationRepositoryRollsBackAdministratorWhenInitialSessionFails(t
 	}
 	if initialized {
 		t.Fatal("failed initial session left an administrator behind")
+	}
+}
+
+func TestTouchSessionQueuesBehindExistingWriteTransaction(t *testing.T) {
+	now := time.UnixMilli(1700000000000)
+	store, _ := openTestStoreWithOptions(t, Options{BusyTimeout: 100 * time.Millisecond})
+	_, session, err := store.CreateAdministratorWithSession(
+		context.Background(),
+		testAdministratorParams(),
+		testSessionParams(0, 0x61, now, now.Add(auth.SessionLifetime)),
+	)
+	if err != nil {
+		t.Fatalf("create administrator: %v", err)
+	}
+
+	writeStarted := make(chan struct{})
+	releaseWrite := make(chan struct{})
+	writeDone := make(chan error, 1)
+	go func() {
+		writeDone <- store.withWriteTx(context.Background(), func(*sql.Tx) error {
+			close(writeStarted)
+			<-releaseWrite
+			return nil
+		})
+	}()
+	<-writeStarted
+
+	touchDone := make(chan error, 1)
+	go func() {
+		touched, touchErr := store.TouchSession(context.Background(), auth.TouchSessionParams{
+			SessionID:       session.ID,
+			TokenHash:       [32]byte{0x61},
+			ExpectedVersion: 1,
+			UsedAtMS:        now.Add(time.Minute).UnixMilli(),
+		})
+		if touchErr == nil && !touched {
+			touchErr = errors.New("session was not touched")
+		}
+		touchDone <- touchErr
+	}()
+
+	select {
+	case touchErr := <-touchDone:
+		close(releaseWrite)
+		t.Fatalf("TouchSession returned before write gate released: %v", touchErr)
+	case <-time.After(150 * time.Millisecond):
+	}
+	close(releaseWrite)
+	if err := <-writeDone; err != nil {
+		t.Fatalf("finish held write: %v", err)
+	}
+	if err := <-touchDone; err != nil {
+		t.Fatalf("TouchSession after write gate release: %v", err)
 	}
 }
 

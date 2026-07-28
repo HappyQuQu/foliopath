@@ -7,9 +7,20 @@
 [后端开发清单](backend-task-list.md)与[前端开发清单](frontend-task-list.md)；任务清单不能
 改变本文阶段顺序或冻结 scope。
 
-当前已通过 Stage 0 Gate；认证、媒体库管理与可靠扫描后端已经分别通过 Backend Ready，
-Stage 3 目录与媒体浏览已通过 S3-001 Contract Ready，S3-002 catalog 排序/cursor 已完成，
-后端当前进入 S3-003 目录树、详情与 breadcrumb 实现。生产前端仍按独立清单推进：
+Stage 0～4 已通过各自 Gate，认证、媒体库/扫描、浏览/缩略图与搜索/查看器核心纵向切片
+均已 Integrated Done。Stage 5 发布加固已经启动；`S5-001A` 已建立嵌入真实 Vite SPA、
+libvips 与 FFmpeg 的非 root 候选镜像基础，`S5-003` 已完成可信代理与非回环应用边界。
+安全 Compose 与统一候选镜像 smoke 已建立并在本机原生 arm64 通过；离线恢复、强杀
+恢复、盘满与损坏数据库失败关闭也已进入该 smoke。`S5-005A` 已通过本机真实候选
+100k/10k 容量档并建立原生双架构门禁；`S5-006A` 已建立 Firefox/WebKit 稳定状态矩阵
+和固定 Linux Chromium 视觉回归；`S5-007A` 已建立候选 SPDX、固定
+digest 漏洞扫描和许可证证据；`S5-007C/D/E/F` 已用最小 libvips、FFmpeg、内建
+健康检查和无 shell distroless 运行时将扫描降至
+1 Critical / 8 High，因此供应链 Gate 仍是
+No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并建立防漂移检查。
+`S5-009A` 已建立统一 RC readiness 快照和失败关闭检查，当前明确为 No-Go。
+原生 amd64/arm64 候选已分别通过运行与升级/配对回滚；最终不可变 digest、
+完整容量、最终浏览器/物理设备签署、漏洞处置和 RC Gate 仍未完成：
 
 - [FS-02 SQLite/generation](spikes/fs-02-sqlite-generation.md) 已通过当前正确性 scope。
 - [FS-01 路径边界](spikes/fs-01-path-boundary.md) 已通过 Darwin 与原生 Linux amd64/arm64 路径矩阵、
@@ -22,11 +33,10 @@ Stage 3 目录与媒体浏览已通过 S3-001 Contract Ready，S3-002 catalog �
   Stage 0 扫描/索引范围、Linux RSS 与三档趋势通过；代表性存储、媒体、FTS、HTTP 与前端
   容量按 S0-106 转入后续 Gate。[FS-05](spikes/fs-05-runtime-recovery.md) 双架构运行、
   恢复和失败关闭范围通过。
-- Go 运行骨架、认证和 7 个媒体库管理 operation 已接入真实 composition root；权威
+- Go 运行骨架、认证和全部冻结 MVP capability 已接入真实 composition root；权威
   OpenAPI、TypeScript/sqlc 生成、摘要锁、语义兼容检查和双架构 CI 工作流已经建立。
-  媒体库 Backend Gate 已覆盖认证 HTTP、SQLite、路径/mount、并发/幂等、重启移除和原媒体
-  不变。可靠扫描已通过 Backend Ready，React 产品前端和正式 Dockerfile仍未完成；
-  不能把后端 Gate 扩张为阶段 2 Integrated Done 或可发布版本。
+  根 `Dockerfile` 当前是 Stage 5 candidate，不是稳定发布镜像；只有 `S5-001～010`
+  全部通过后才能更新这一结论。
 
 ## 阶段 0：基线同步与可行性验证
 

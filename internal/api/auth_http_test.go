@@ -627,6 +627,14 @@ func authenticationTestRoutes(
 	service AuthenticationService,
 ) http.Handler {
 	t.Helper()
+	return NewHandler(authenticationRoutes(t, service), discardLogger())
+}
+
+func authenticationRoutes(
+	t *testing.T,
+	service AuthenticationService,
+) http.Handler {
+	t.Helper()
 	routes, err := NewRoutes(RouteDependencies{
 		Readiness:      func() Readiness { return Readiness{Ready: true} },
 		Authentication: service,
@@ -653,7 +661,7 @@ func authenticationTestRoutes(
 	if err != nil {
 		t.Fatalf("NewRoutes() error = %v", err)
 	}
-	return NewHandler(routes, discardLogger())
+	return routes
 }
 
 func requestAuthentication(

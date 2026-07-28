@@ -1,10 +1,17 @@
-# FolioPath 部署与运维草案
+# FolioPath 候选部署与运维
 
 ## 状态
 
-本文描述首个可用版本的目标部署方式。FS-05 probe 与 Stage 1 测试专用应用镜像已以 UID/GID
-`65532:65532` 验证非 root、健康检查、只读挂载、重复启动和 SIGTERM；后者运行真实
-`cmd/foliopath`，但包含测试工具且不是正式发布镜像。当前仍没有发布镜像，示例不可直接用于生产。
+本文描述首个可用版本的候选部署方式。Stage 5 `S5-001A` 已建立根 `Dockerfile` 候选镜像：
+它构建并嵌入真实 Vite SPA，以 UID/GID `65532:65532` 运行真实 `cmd/foliopath`，并在
+linux/arm64 本地验证只读容器根、丢弃 capabilities、只读媒体、健康检查、MVP 媒体矩阵
+和 SIGTERM。可信代理与非回环应用边界已通过 `S5-003`；根 `compose.yaml` 已通过同架构
+smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也已通过。
+原生 amd64/arm64 候选结果、真实升级、代表性设备和其余 Release Gate 尚未完成，当前
+候选仍不可作为稳定版部署。
+候选运行层已更新到固定 digest 的 Debian 13 distroless，Go 构建层固定为 1.26.5；
+这不是安全签署。当前 [S5-007 供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
+仍被 1 Critical / 8 High 阻断。
 
 ## 部署目标
 
@@ -14,28 +21,29 @@
 - 媒体原件始终只读；数据库、设置、任务状态和缓存全部位于 `/app/data`。
 - 目标发布 `linux/amd64` 与 `linux/arm64` 镜像，并用不可变版本标签升级。
 
-## 目标 Compose
+## 候选 Compose
 
-```yaml
-services:
-  foliopath:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/foliopath:VERSION
-    container_name: foliopath
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:8080"
-    volumes:
-      - /mnt/photos:/library:ro
-      - ./foliopath-data:/app/data
-    environment:
-      TZ: Asia/Shanghai
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+权威候选配置是仓库根 [`compose.yaml`](../compose.yaml)，参数清单见
+根 [`.env.example`](../.env.example)。复制为 `.env` 后必须填写：
+
+- `FOLIOPATH_IMAGE`：明确版本或 digest；不得使用会静默漂移的 `latest`；
+- `FOLIOPATH_LIBRARY_PATH`：宿主机唯一媒体呈现根；
+- `FOLIOPATH_DATA_PATH`：宿主机本地、由 UID/GID `65532:65532` 可写的数据目录；
+- `FOLIOPATH_TRUSTED_PROXIES`：实际 TLS 反向代理 peer 的精确 IP CIDR。
+
+仓库尚未发布可拉取的稳定镜像。只做当前源码候选验证时，可以先运行：
+
+```sh
+docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 ```
 
-首个镜像发布时必须替换占位仓库、固定 `VERSION`、记录镜像内非 root UID/GID，并加入经过真实镜像验证的 healthcheck。生产部署不建议使用会静默漂移的 `latest`。
+并把 `.env` 中的 `FOLIOPATH_IMAGE` 设为 `foliopath:stage5-local` 后运行
+`docker compose up -d`。Compose 将宿主端口绑定到回环地址，以
+UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
+`/tmp` tmpfs 启动。镜像内 healthcheck 已由候选 smoke 验证。
+
+本地 tag 只标识当前源码验证，不是不可变发布引用。发布前仍必须把示例替换为正式版本或
+digest，并完成原生双架构与其余 Release Gate；当前文件存在不表示已有稳定镜像可供拉取。
 
 ### 为什么只需要两个 volume
 
@@ -92,17 +100,19 @@ Linux 版本从已锚定的 `/library` 目录文件描述符打开每个媒体�
 
 ## 文件权限
 
-- 最终镜像以固定非 root 用户运行；发布前需文档化 UID/GID。
+- 候选镜像以固定非 root UID/GID `65532:65532` 运行。
 - 该用户对 `/library` 及所选普通子目录需要读取和目录遍历权限，对 `/app/data` 需要读写、创建、重命名和同步权限。
 - 媒体映射必须使用 `:ro`。应用报“只读”不能替代 Docker 层的只读保护。
 - 建议在首次启动前创建数据目录并设置精确所有者，不使用全局可写 `0777` 作为长期方案。
 - SELinux 主机可能需要专用 volume label；准确选项应在对应发行版验证后加入平台说明。
 
-应用需要临时文件时，应使用受控的 `/app/data/tmp` 或受限 tmpfs。若启用只读容器根文件系统，需先确认 libvips、FFmpeg、时区和证书在该模式下均通过集成测试。
+应用需要临时文件时，应使用受控的 `/app/data/tmp` 或 Compose 中受限的 `/tmp` tmpfs。
+候选 smoke 已确认 libvips、FFmpeg 和健康检查可在只读容器根下运行；时区/证书的最终
+平台矩阵仍归发布 Gate。
 
 ## 数据目录布局
 
-目标布局：
+当前布局：
 
 ```text
 /app/data/
@@ -113,7 +123,9 @@ Linux 版本从已锚定的 `/library` 目录文件描述符打开每个媒体�
 └── tmp/                  可清理的受控临时文件
 ```
 
-具体文件名在实现迁移前可调整，但所有持久状态必须留在 `/app/data`。不得把数据库放入媒体 volume，也不得把原媒体复制进缓存目录。
+`foliopath.db`、`cache/` 与 `tmp/` 已由当前 composition root 固定。WAL/SHM 是 SQLite
+运行时文件，停止后的安全备份中可能不存在。所有持久状态必须留在 `/app/data`；不得把
+数据库放入媒体 volume，也不得把原媒体复制进缓存目录。
 
 SQLite WAL 依赖正确的锁和同步语义。`/app/data` 必须使用宿主机本地文件系统或明确验证兼容的存储；MVP 不支持直接把活动数据库放在 SMB/NFS 上。单一 `/library` 根可以来自经过验证的 NAS 挂载，但不得在其后代再嵌套其他挂载；断连时应用应把受影响的库标为离线并保留索引。
 
@@ -124,7 +136,7 @@ worker 都会有界恢复并重新领取。取消、离线、权限失败或异�
 
 ## 首次启动
 
-目标流程：
+当前候选流程：
 
 1. 容器验证 `/app/data` 可写、数据库可打开且迁移可以安全执行。
 2. 服务启动 API 和前端；未完成初始化时只开放受限的单管理员创建流程，不存在默认密码。
@@ -132,23 +144,32 @@ worker 都会有界恢复并重新领取。取消、离线、权限失败或异�
 4. 创建成功后异步启动首次完整扫描，页面显示阶段、跳过统计与计数；应用启动时校准，之后默认每 24 小时完整扫描。
 5. 媒体库可浏览后继续在后台生成所需缩略图；默认 10 GiB 配额达到水位时按 LRU 清理可重建缓存。
 
-首个稳定版必须包含内建单管理员、会话和退出登录。认证未完成的开发预览版只能绑定回环地址或位于可信认证反向代理后，不属于可公网部署版本。
+当前候选已包含内建单管理员、会话、CSRF 和退出登录。Stage 5 尚未通过，因此仍不能把
+候选直接作为公网或匿名 LAN 服务。
 
 ## 健康检查与可观察性
 
-当前 HTTP 运行骨架已提供：
+当前候选应用提供：
 
 - `GET /health/live`：进程事件循环可响应，不检查媒体库是否在线。
 - `GET /health/ready`：数据库已打开、迁移完成且服务可以接受业务请求；一个媒体库离线不应让整个实例不就绪。
 - `GET /api/v1/status`：认证后返回版本和安全的能力/初始化状态。
 
-正式应用启动时会先准备固定 `/app/data`，打开 SQLite 并执行嵌入 migration，成功后才启动
+应用启动时会先准备固定 `/app/data`，打开 SQLite 并执行嵌入 migration，成功后才启动
 HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration 失败时进程失败关闭，不会带着
-部分 schema 提供业务服务。系统状态路由已建立，但在认证服务接线前默认拒绝访问。
+部分 schema 提供业务服务。系统状态路由要求有效管理员会话。
 
-健康端点不得泄露路径、数据库错误或版本依赖细节。容器 healthcheck 的命令、间隔和启动宽限需要用最终镜像验证，避免长扫描导致误杀。
+健康端点不得泄露路径、数据库错误或版本依赖细节。候选 healthcheck 的命令、间隔和启动
+宽限已经通过本机镜像 smoke；最终 digest 仍须在原生双架构重复。
 
-最低可观察信息包括扫描状态、最近成功时间、安全错误码、队列深度、缓存占用和可写数据目录的磁盘余量。日志输出到标准输出/错误；轮转由容器平台负责。默认不记录宿主机路径、认证信息或媒体工具完整 stderr。
+当前可观察面包括 JSON 标准输出/错误日志、live/ready、认证系统状态、扫描运行/历史和
+设置中的缓存配额。日志轮转由容器平台负责。当前没有 Prometheus/metrics endpoint，也不
+直接暴露队列深度或宿主磁盘余量；部署者必须在容器/宿主平台监控 `/app/data` 容量。
+正常日志不记录宿主机路径、认证信息或媒体工具完整 stderr。
+
+生产 final stage 有意不包含 shell、curl、tar 或包管理器。不要进入运行容器安装调试
+工具或改变其不可变闭包；诊断、归档或网络探测应从宿主机执行，或使用固定版本的短生命周期
+辅助容器，并只授予完成该操作所需的精确 volume、网络和权限。下文备份命令均为宿主机命令。
 
 ## 网络、反向代理与认证
 
@@ -157,11 +178,17 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
   `1～65535` 端口。
 - `/library` 与 `/app/data` 是固定容器边界，不提供改写它们的环境变量或参数。媒体库在
   Web/SQLite 中配置，不能转化为每库一个启动变量。
-- 内建认证完成并通过测试前，监听配置只接受 IPv4/IPv6 回环地址；不得改成局域网或公网监听。
-- 对局域网或公网提供访问时，使用 TLS 与可信认证反向代理；不得直接暴露无认证端口。
-- 应用只能信任显式配置的代理来源提交的 `Forwarded`/`X-Forwarded-*` 头。
+- 非回环监听必须同时设置 `FOLIOPATH_TRUSTED_PROXIES`，例如
+  `FOLIOPATH_TRUSTED_PROXIES=172.20.0.2/32`。只接受逗号分隔的显式 IP CIDR；不要使用
+  `/0`，也不要填写会包含普通客户端/NAT 出口的宽泛网段。
+- MVP 契约与当前候选只支持单跳代理。代理必须覆盖客户端提交的转发头并发送恰好一个
+  `X-Forwarded-Proto: https`、公共 `X-Forwarded-Host` 和数值客户端 IP
+  `X-Forwarded-For`。应用拒绝链式、多值、缺失、非 HTTPS或与 `Forwarded` 混用的请求。
+- 对局域网或公网提供访问时，必须使用 TLS 反向代理，并通过宿主机回环端口、私有容器网络
+  或 firewall 防止绕过代理直接访问应用端口。可信 CIDR 不是网络 ACL。
 - 反向代理需要允许图片和视频响应流式传输、Range、较长读取和客户端取消；不应缓冲整个视频到内存。
-- 稳定版应用内 Cookie 会话必须配置 HTTPS、安全 Cookie、CSRF 防护和会话失效流程。
+- 验证后的代理 HTTPS transport 会启用 Secure Cookie 与 HSTS；状态修改继续要求
+  session-bound CSRF，setup/login 要求公共 HTTPS origin 与 host/port 完整同源。
 
 认证产品决策和威胁要求见[安全模型](security.md)与[需求确认清单](requirements-checklist.md)。
 
@@ -169,13 +196,11 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 
 ### 备份范围
 
-必须备份：
+必须备份整个 SQLite family；它包含管理员凭据、媒体库配置、应用设置、扫描历史、索引和
+任务状态。停止应用后通常只剩 `foliopath.db`，但运维流程不应依赖这一假设。
 
-- SQLite 中的媒体库配置、管理员凭据、应用设置，以及未来其他不可重建的用户数据。
-
-可选备份：
-
-- 索引、缩略图和视频封面。这些数据可重建，但大型媒体库重建成本可能较高。
+`cache/` 与 `tmp/` 可以不备份：其中只有可重建缩略图、视频 poster 和临时文件。保留
+`cache/` 可以减少大型媒体库恢复后的重建成本，但不是数据完整性的必要条件。
 
 原媒体不属于 FolioPath 数据备份；用户仍需独立备份 `/mnt/photos`。
 
@@ -183,11 +208,28 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 
 在没有内建在线备份命令前，推荐：
 
-1. 停止 FolioPath 容器并确认进程退出。
-2. 备份整个 `/app/data` 到另一个存储位置，保留权限和时间信息。
-3. 重新启动容器并检查 readiness 与媒体库状态。
+1. 在 `compose.yaml` 所在目录运行 `docker compose stop foliopath`。
+2. 用 `docker compose ps --status running --quiet foliopath` 确认没有运行中的应用容器。
+3. 从 `.env` 确认 `FOLIOPATH_DATA_PATH` 的精确宿主路径，归档该目录的全部内容；最安全的
+   默认是包含 `foliopath.db`、可能存在的 `-wal`/`-shm`、`cache/` 和 `tmp/`。
+4. 把归档复制到不与活动数据共盘的受保护位置，记录当前镜像版本/digest，并验证归档可读。
+5. 运行 `docker compose start foliopath`，等待 `docker compose ps` 显示 healthy。
+
+示例中的路径必须替换为经过人工确认的精确数据目录，不能把未展开变量、空值、工作区根或
+媒体目录作为归档目标：
+
+```sh
+docker compose stop foliopath
+docker compose ps --status running --quiet foliopath
+tar --numeric-owner -C /srv/foliopath-data -cpf /srv/backups/foliopath-data.tar .
+docker compose start foliopath
+```
 
 不要在运行时只复制 `foliopath.db` 而忽略 `-wal`/`-shm`。未来如提供在线备份，必须使用 SQLite backup API 或受控 checkpoint，并通过恢复演练证明。
+
+Stage 5 候选 smoke 已在应用停止后归档完整 SQLite family，并有意省略可重建的
+`cache/` 与 `tmp/`；恢复到新空目录后，管理员初始化状态保留且这两个目录会重新创建。
+这证明离线最小恢复路径，不授权在应用运行时复制数据库文件。
 
 ### 恢复演练
 
@@ -197,7 +239,14 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 4. 验证迁移、媒体库配置、扫描历史和抽样媒体浏览。
 5. 若宿主机媒体位置改变，先恢复相同的容器内 `/library` 布局；数据库不应依赖宿主机绝对路径。
 
-发布前必须自动化或至少记录一次真实恢复演练。
+恢复目标必须由容器内 UID/GID `65532:65532` 读写。rootless Docker 或启用 user namespace
+remapping 时，宿主机实际 ID 可能不同，应以该运行时的映射为准，不能机械执行全局
+`chown -R`。先在新目录演练并验证成功，再切换 `.env` 的 `FOLIOPATH_DATA_PATH`；不要解包
+覆盖唯一活动副本。
+
+候选镜像的自动恢复演练已经建立并在本机 linux/arm64 通过；原生 linux/arm64 与
+linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升级和“旧镜像＋升级前
+离线备份”配对回滚。最终不可变 digest 与供应链签署仍是发布阻断。
 
 ## 升级与回滚
 
@@ -210,6 +259,42 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 5. 检查迁移、readiness、媒体库离线状态和抽样浏览，再清理旧镜像。
 
 数据库只做向前迁移。升级后直接运行旧镜像可能不安全，因此“回滚”必须同时恢复升级前数据备份，除非版本说明明确保证 schema 向后兼容。迁移失败时服务应停止进入业务就绪，而不是带着部分 schema 继续运行。
+
+当前仓库尚无已发布的稳定 digest，因此本阶段使用两个不同的不可变候选 image ID 验证
+升级/回滚流程，并已通过 `S5-004B`。首个稳定版本发布后，每次新增 migration 仍必须以
+当时真实前一稳定 digest 和升级前离线备份复跑同一演练。
+
+## 媒体格式与播放边界
+
+| 类型 | 扩展名 | 服务端承诺 | 浏览器行为 |
+| --- | --- | --- | --- |
+| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 原内容查看 |
+| 动图 | `.gif` | 索引、元数据、静态缩略图 | 原内容动画 |
+| 视频 | `.mp4`、`.mov`、`.mkv` | 索引、ffprobe 元数据、FFmpeg poster、原文件 Range | 仅当前浏览器原生兼容 codec 可直接播放 |
+
+扩展名匹配不区分大小写。MVP 不转码，也不生成兼容播放副本；支持视频容器不等于支持其中
+任意 codec。SVG、HEIC/HEIF、AVIF 与 RAW 不进入 MVP 索引/缩略图契约。
+
+## 当前候选已知限制
+
+- 没有公开稳定镜像或稳定 tag；根 Dockerfile/Compose 只供当前 Stage 5 候选验证。
+- 发布平台目标是 Linux amd64/arm64。非 Linux adapter 只用于开发；本轮候选已由本机
+  原生 arm64 与操作者指定的原生 amd64 服务器完成运行矩阵，最终不可变 digest 尚未签署。
+- `/library` 只能有一个顶层媒体挂载，后代不能是 mount point；目录 symlink 不跟随。
+- `/app/data` 只支持单实例独占的可靠本地文件系统，不支持把活动 SQLite 放在 SMB/NFS，
+  也不支持多实例共享写入。
+- 离线备份/恢复及不同不可变候选间的升级/配对回滚已自动化并通过；在线备份不在当前
+  自动化承诺内，未来新增 migration 仍须对真实前一稳定 digest 复跑。
+- 100k 媒体/10k 目录候选档已在本机 linux/arm64 与指定原生 linux/amd64 服务器通过；
+  100k 全量媒体、cache 90%→80% 水位和 Chromium/Firefox/WebKit 的 100k FPS/RSS
+  预算也已通过，`S5-005` 已关闭。
+- Chromium、Firefox、WebKit 自动化候选矩阵已建立，但 WebKit 不等同于 Safari 真机；
+  最终浏览器版本、读屏和物理设备仍待 `S5-006B`。
+- 当前供应链扫描仍有 1 Critical / 8 High，未处置或正式接受前是发布阻断。
+- 当前没有 Prometheus/metrics endpoint、内建日志轮转或宿主磁盘余量采集；这些由部署平台监控。
+- MVP 只有一个管理员，不支持匿名 LAN、多用户角色、分享链接、上传或原媒体整理。
+- 正确性依赖启动、手动和计划完整扫描，不依赖 filesystem watcher；默认计划间隔为 24 小时。
+- 查看器不提供完整 EXIF、显式下载按钮或移动端滑动切换。
 
 ## 故障语义
 
@@ -228,7 +313,8 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 - 非 root、`:ro` 媒体、capabilities 丢弃和只读根文件系统组合经过验证。
 - Compose 中的镜像、端口、UID/GID、healthcheck 和环境变量全部为真实值。
 - 完成数据库备份/恢复、升级失败和磁盘已满演练。
-- SBOM、第三方许可证和镜像漏洞扫描纳入发布流程。
+- SBOM、第三方许可证和镜像漏洞扫描纳入发布流程；候选自动化已经建立，但只有最终
+  双架构 digest 的全阻断扫描、notices/provenance 与签署完成后才满足此项。
 - 明确支持的宿主机、CPU/内存建议和目标库规模，不用未验证的数字宣传。
 - 以约 10 万媒体、1 万目录、4 GiB 内存的四核 NAS/家庭服务器完成主要容量验收；具体吞吐与延迟只能引用可重复 benchmark。
 - 单管理员初始化、登录、会话、退出和 CSRF 测试通过；无认证开发构建不会被文档引导直接暴露到互联网。

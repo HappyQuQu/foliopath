@@ -68,7 +68,8 @@ FolioPath Go process
 - 视频：`ffprobe` 获取元数据，FFmpeg 抽取封面；首版不转码。
 - 前端：React、TypeScript、Vite、React Router、TanStack Query 和 TanStack Virtual。
 - API：同源 `/api/v1` REST API、OpenAPI 契约和不透明游标分页。
-- 发布：基于 Debian slim 的多阶段、多架构 Docker 镜像。
+- 发布：基于固定 digest Debian-family 构建层和 distroless final stage 的多阶段、
+  多架构 Docker 镜像。
 
 ## 代码布局
 

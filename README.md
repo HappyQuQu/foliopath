@@ -9,12 +9,16 @@ FolioPath 是一个以真实文件夹结构为核心的自托管图片与视频�
 你的文件夹，就是你的相册。
 
 > [!IMPORTANT]
-> FolioPath 目前处于早期开发阶段，后端运行骨架已通过真实组合与测试容器 smoke，但尚无可用产品界面或发布镜像。FS-01 已在
-> 原生 Linux amd64/arm64 验证 `openat2` 同设备、跨设备和 self-bind 边界及真实 HTTP test harness，
-> FS-02 当前正确性范围、FS-03 双架构媒体链路、FS-04 Stage 0 容量范围和 FS-05 双架构
-> 运行/恢复范围均通过；OpenAPI、生成类型、唯一 Web API 客户端和供应链 CI 已建立。
-> 测试容器不是可供部署的正式镜像。
-> Stage 0 Gate 已通过并只授权后端优先的 Stage 1；这不代表应用、业务 UI 或发布镜像已完成。
+> FolioPath 的 Stage 0～4 核心产品切片已完成，Stage 5 发布加固正在进行。
+> 当前根 `Dockerfile` 已能把真实 React SPA、Go API、SQLite、libvips 和 FFmpeg 构建进
+> 同一非 root 候选镜像，并通过 linux/arm64 本地只读媒体/只读根/health/SIGTERM、
+> MVP 媒体和安全 Compose smoke。可信代理与非回环应用边界已通过 `S5-003`；
+> 本机 100k 媒体/10k 目录候选容量档以及 Chromium、Firefox、WebKit 自动化候选矩阵
+> 已通过；原生 arm64 与 amd64 也已用两个不同的不可变候选 image ID 通过向前升级和
+> 配对数据回滚。最终不可变 digest、代表性物理设备、
+> 供应链漏洞处置和 Release Candidate Gate 尚未完成。
+> 不要把当前 candidate
+> 当作稳定发布版部署。
 
 ## Why FolioPath?
 
@@ -31,7 +35,7 @@ FolioPath 选择另一条路线：
 
 ## Features
 
-### Planned core features
+### MVP candidate capabilities
 
 - 🌲 清晰、可折叠的完整文件夹树，包括没有媒体的可读目录
 - 📚 在 Web 设置中创建和管理多个媒体库
@@ -48,6 +52,9 @@ FolioPath 选择另一条路线：
 - 🔒 默认支持只读媒体目录
 - 🔐 稳定版内建首次设置的单管理员认证
 
+这些能力已经进入 Stage 1～4 的 Integrated Done 候选，不等于已经发布稳定镜像。
+Stage 5 的平台、恢复、容量、浏览器、供应链与文档 Gate 仍决定能否发布。
+
 ### Possible future features
 
 - EXIF 和媒体信息面板
@@ -57,6 +64,20 @@ FolioPath 选择另一条路线：
 - 分享链接和细粒度访问控制
 - 重复文件检测
 - 地图与时间线视图
+
+## Supported Media
+
+MVP 的服务端索引与派生格式契约如下：
+
+| 类型 | 扩展名 | 候选行为 |
+| --- | --- | --- |
+| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、WebP 缩略图和原内容查看 |
+| 动图 | `.gif` | 索引、静态缩略图和浏览器原内容动画 |
+| 视频容器 | `.mp4`、`.mov`、`.mkv` | 索引、FFmpeg poster；兼容编码从原文件通过 HTTP Range 直接播放 |
+
+扩展名匹配不区分大小写。视频不会转码；容器受支持不表示当前浏览器一定能解码其中的
+video/audio codec，不兼容时会显示明确降级状态。SVG、HEIC/HEIF、AVIF 和 RAW 不属于
+MVP 索引/缩略图契约。
 
 ## Media Libraries
 
@@ -100,35 +121,23 @@ Photos/
 
 ## Docker
 
-> [!NOTE]
-> 以下配置是计划中的部署方式。首个可用镜像发布后，将补充准确的镜像地址、端口和环境变量。
+> [!WARNING]
+> 仓库中的 Compose 是 Stage 5 候选配置；尚无可作为稳定版部署的公开镜像。
 
-```yaml
-services:
-  foliopath:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/foliopath:VERSION
-    container_name: foliopath
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:8080"
-    volumes:
-      - /mnt/photos:/library:ro
-      - ./foliopath-data:/app/data
-    environment:
-      - TZ=Asia/Shanghai
-```
-
-启动服务：
+目前没有可直接拉取的稳定镜像。只进行候选评估时，先从当前检出的源码构建一个明确本地
+标签，再复制 [`.env.example`](.env.example) 为 `.env`，把 `FOLIOPATH_IMAGE` 改为该
+标签，并填写媒体目录、数据目录和实际 TLS 代理的精确 CIDR：
 
 ```bash
+docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 docker compose up -d
 ```
 
-然后访问：
+本地 tag 不是不可变发布引用，只能用于当前源码候选验证。正式部署必须使用发布说明指定的
+版本或 digest；当前还没有这样的稳定引用。
 
-```text
-http://localhost:8080
-```
+通过你配置的单跳 TLS 反向代理访问其 HTTPS 地址。应用端口仅发布到宿主机回环地址，
+且没有合法代理声明的直连请求会失败关闭；不要把 `http://localhost:8080` 当作用户入口。
 
 建议将一个足够大的共同目录以只读方式挂载到 `/library`：
 
@@ -143,7 +152,8 @@ bind mount 或其他挂载点。媒体位于多个独立宿主卷时，需要先
 单一呈现根，再将该根一次性只读挂载到 `/library`。详细约束见
 [ADR-0009](docs/adr/0009-linux-openat2-single-media-root.md)。
 
-默认端口仅绑定本机回环地址，适合配合认证反向代理使用。在单管理员认证功能完成前，不得将开发预览版直接暴露到局域网或互联网；首个稳定版将提供内建管理员初始化、会话和退出登录。
+默认端口仅绑定本机回环地址并要求可信 TLS 反向代理。内建单管理员初始化、会话和退出登录
+已经实现，但 Stage 5 发布 Gate 尚未通过，不得将当前候选版当作稳定服务暴露到局域网或互联网。
 
 ## Design Principles
 
@@ -174,30 +184,18 @@ FolioPath 采用单体、单进程、单端口架构：
 
 ## Development Status
 
-仓库已经有固定的 Go toolchain、SQLite 初始迁移、路径边界与 generation 扫描实验代码、
-权威 [`api/openapi.yaml`](api/openapi.yaml)，以及 Go 单元、契约、集成和显式容量测试；这批
-代码仍是运行骨架、可行性和契约证据，不是可供用户部署的完整 FolioPath。正式
-`cmd/foliopath` 入口、HTTP health/status、SQLite migration 和优雅停机已经建立，并由真实
-composition root 与测试专用容器覆盖；当前还没有 React 产品前端、正式发布 Dockerfile、
-认证实现或生产媒体处理链路。仓库已有隔离的 FS-05 probe/应用 smoke Dockerfile、契约生成
-和 CI，原生双架构 runtime/recovery 与 SBOM jobs 已通过；这仍不是可发布应用证据。
+Stage 0～4 已通过各自 Gate。当前源码包含完整的 React SPA、单管理员认证、媒体库与扫描、
+游标浏览与搜索、缩略图/缓存、图片查看器、原视频 Range 交付，以及真实 Go composition
+root。根 `Dockerfile` 与 `compose.yaml` 是 Stage 5 候选，不是稳定发行物。
 
-- [FS-01 路径边界](docs/spikes/fs-01-path-boundary.md)：**Passed（Stage 0 范围）**。Darwin 与原生
-  Linux amd64/arm64 路径矩阵、Linux `openat2` 的同设备/跨设备/self-bind mount 拒绝，以及真实
-  HTTP test harness 已通过；生产 handler/auth 转入首个受保护 API Backend Gate，只读发布
-  volume 与运行期 unmount 转入 FS-05/Release Gate。
-- [FS-02 SQLite 与扫描 generation](docs/spikes/fs-02-sqlite-generation.md)：**当前正确性范围通过**。真实文件 SQLite、Goose、WAL、故障/取消/离线/重启保留、原子 finalize 与跨媒体库隔离已有自动化证据；磁盘满、真实强杀、长期 WAL 压力及备份恢复仍未验证。
-- [FS-03 媒体矩阵](docs/spikes/fs-03-media-matrix.md)：**Stage 0 范围通过，完整范围
-  Conditional**。govips/FFmpeg fixture 已在原生双架构通过；生产任务隔离、更多敌意输入、
-  浏览器和最终镜像仍由后续 Gate 验证。
-- [FS-04 容量基线](docs/spikes/fs-04-capacity-baseline.md)：**扫描/索引子范围通过，整体
-  Conditional**。Linux/arm64、四核/4 GiB 下完成 10 万媒体/1 万目录档并修复 finalize
-  复杂度问题；代表性存储、FTS、媒体/缩略图、HTTP 和前端并发仍未验证。
-- [FS-05 运行与恢复](docs/spikes/fs-05-runtime-recovery.md)：**Stage 0 范围通过**。原生
-  双架构同 Dockerfile 已验证非 root/只读、health、退出、离线恢复、重复迁移与故障关闭。
-
-项目已获准进入[后端优先的 Stage 1](docs/gates/MVP-2026-07-23/stage-0-current.md)，但上述
-spike 结果不能解释为应用功能已可用或发布门槛已满足。
+Stage 5 当前证据包括：安全候选容器与 Compose、可信代理边界、离线备份/恢复及失败关闭、
+本机 linux/arm64 与指定原生 linux/amd64 的 100k/10k 产品容量档、100k 全量媒体与
+cache 水位，以及 Chromium/Firefox/WebKit 候选自动化。仍阻断发布的项目包括最终不可变
+digest、真实 Firefox、读屏/缩放/触摸和移动物理设备签署，以及候选供应链扫描中的
+1 Critical / 8 High。详见[任务清单](docs/task-list.md)与
+[Stage 5 Gate 记录](docs/gates/README.md)。当前统一
+[Release Candidate 判断](docs/gates/MVP-2026-07-23/s5-release-candidate-current.md)
+为 No-Go。
 
 ## Roadmap
 
@@ -211,22 +209,13 @@ spike 结果不能解释为应用功能已可用或发布门槛已满足。
 - [x] FS-04 目标档的扫描/索引子范围
 - [x] FS-05 原生双架构运行、恢复和失败关闭范围
 - [x] Stage 0 SBOM/license 与风险复审，Gate 允许进入 Stage 1
-- [x] Stage 1 后端运行骨架、SQLite migration、health、取消与真实应用容器 smoke
-- [ ] 在对应 Backend/Release Gate 完成生产 handler/auth、只读发布 volume、运行期 unmount
-  与长期 churn；不反向阻断 FS-01 Stage 0 可行性结论
-- [ ] 在对应 Gate 完成 FS-03 生产媒体任务、更多敌意输入、浏览器与最终镜像矩阵
-- [ ] 完成 FS-04 代表性存储与完整媒体/搜索/HTTP/前端容量验证
-- [ ] 单管理员认证契约与后端
-- [ ] 安全媒体根目录与多媒体库管理
-- [ ] 目录扫描与媒体索引
-- [ ] 缩略图生成和缓存
-- [ ] 文件夹树与面包屑导航
-- [ ] 网格与瀑布流布局
-- [ ] 递归目录浏览
-- [ ] 图片查看器与视频播放器
-- [ ] Docker 镜像与 Compose 示例
-- [ ] 搜索、排序和过滤
-- [ ] 发布安全加固、认证和多架构镜像
+- [x] Stage 1 后端运行骨架、SQLite migration、health、单管理员认证与前端
+- [x] Stage 2 安全媒体库、可靠扫描及产品 UI
+- [x] Stage 3 目录/递归浏览、缩略图、网格/瀑布流及预览
+- [x] Stage 4 搜索、过滤、图片查看器、原视频 Range 与降级状态
+- [x] Stage 5 候选 Dockerfile、Compose、可信代理、恢复/失败关闭、容量和浏览器自动化基础
+- [ ] 完成多架构镜像、真实升级、代表性设备、供应链和 RC 发布加固
+- [ ] 关闭供应链、真实升级、代表性设备和 Release Candidate 阻断项
 - [ ] 文件系统实时监控
 - [ ] 分享功能
 

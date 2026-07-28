@@ -12,6 +12,7 @@ type cacheRepositoryStub struct {
 	usage   int64
 	entries []CacheEntry
 	pending []PendingCacheDeletion
+	batches [][]CacheEntry
 }
 
 func (stub *cacheRepositoryStub) CacheQuota(context.Context) (int64, error) {
@@ -29,15 +30,19 @@ func (stub *cacheRepositoryStub) ListLRUCacheEntries(
 	return slices.Clone(stub.entries[:min(limit, len(stub.entries))]), nil
 }
 
-func (stub *cacheRepositoryStub) DeleteReadyCacheEntry(
+func (stub *cacheRepositoryStub) DeleteReadyCacheEntries(
 	_ context.Context,
-	entry CacheEntry,
+	entries []CacheEntry,
 ) error {
-	if len(stub.entries) == 0 || stub.entries[0] != entry {
+	if len(entries) == 0 || len(entries) > len(stub.entries) ||
+		!slices.Equal(stub.entries[:len(entries)], entries) {
 		return errors.New("cache entries were not evicted in LRU order")
 	}
-	stub.entries = stub.entries[1:]
-	stub.usage -= entry.ByteSize
+	for _, entry := range entries {
+		stub.usage -= entry.ByteSize
+	}
+	stub.batches = append(stub.batches, slices.Clone(entries))
+	stub.entries = stub.entries[len(entries):]
 	return nil
 }
 
@@ -64,6 +69,7 @@ type cacheStorageStub struct {
 	sizes     map[string]int64
 	removed   []string
 	removeErr error
+	failPath  string
 }
 
 func (stub *cacheStorageStub) AvailableBytes(context.Context) (int64, error) {
@@ -71,7 +77,7 @@ func (stub *cacheStorageStub) AvailableBytes(context.Context) (int64, error) {
 }
 
 func (stub *cacheStorageStub) Remove(_ context.Context, path string) error {
-	if stub.removeErr != nil {
+	if stub.removeErr != nil && (stub.failPath == "" || stub.failPath == path) {
 		return stub.removeErr
 	}
 	stub.removed = append(stub.removed, path)
@@ -106,6 +112,9 @@ func TestCacheManagerEvictsToLowWaterlineInLRUOrder(t *testing.T) {
 	if !slices.Equal(storage.removed, []string{"old.webp", "new.webp"}) ||
 		repository.usage != 750 {
 		t.Fatalf("removed = %v, usage = %d", storage.removed, repository.usage)
+	}
+	if len(repository.batches) != 1 || len(repository.batches[0]) != 2 {
+		t.Fatalf("eviction batches = %v", repository.batches)
 	}
 }
 
@@ -190,6 +199,37 @@ func TestCacheManagerPreservesDatabaseStateWhenEvictionFails(t *testing.T) {
 	if repository.usage != 100 || len(repository.entries) != 1 {
 		t.Fatalf(
 			"database state changed after failed deletion: usage %d entries %v",
+			repository.usage, repository.entries,
+		)
+	}
+}
+
+func TestCacheManagerReconcilesRemovedPrefixWhenEvictionFails(t *testing.T) {
+	repository := &cacheRepositoryStub{
+		quota: 1000, usage: 950,
+		entries: []CacheEntry{
+			{AssetID: 1, CacheRelativePath: "removed.webp", ByteSize: 100},
+			{AssetID: 2, CacheRelativePath: "failed.webp", ByteSize: 100},
+		},
+	}
+	storage := &cacheStorageStub{
+		available: CacheSafeFreeBytes - 1,
+		sizes: map[string]int64{
+			"removed.webp": 100,
+			"failed.webp":  100,
+		},
+		removeErr: errors.New("injected cache filesystem failure"),
+		failPath:  "failed.webp",
+	}
+	manager, _ := NewCacheManager(repository, storage)
+	if _, err := manager.Reserve(context.Background(), 1); err == nil {
+		t.Fatal("cache filesystem failure unexpectedly succeeded")
+	}
+	if repository.usage != 850 ||
+		len(repository.entries) != 1 ||
+		repository.entries[0].CacheRelativePath != "failed.webp" {
+		t.Fatalf(
+			"removed prefix did not reconcile: usage %d entries %v",
 			repository.usage, repository.entries,
 		)
 	}

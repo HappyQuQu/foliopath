@@ -94,11 +94,11 @@ func TestLoginRateLimitStopsBeforePasswordVerification(t *testing.T) {
 	}
 }
 
-func TestDirectPeerHostNeverUsesForwardedHeaders(t *testing.T) {
-	if got := directPeerHost("192.0.2.10:4321"); got != "192.0.2.10" {
-		t.Fatalf("directPeerHost() = %q", got)
+func TestRemoteAddressParsingRequiresHostAndPort(t *testing.T) {
+	if got, ok := splitRemoteAddress("192.0.2.10:4321"); !ok || got != "192.0.2.10" {
+		t.Fatalf("splitRemoteAddress() = (%q, %t)", got, ok)
 	}
-	if got := directPeerHost("spoofed-client"); got != "unknown" {
-		t.Fatalf("malformed directPeerHost() = %q, want unknown", got)
+	if got, ok := splitRemoteAddress("spoofed-client"); ok || got != "unknown" {
+		t.Fatalf("malformed splitRemoteAddress() = (%q, %t)", got, ok)
 	}
 }

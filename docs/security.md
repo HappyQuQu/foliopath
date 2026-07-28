@@ -115,7 +115,22 @@ SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错�
 [认证 Backend Evidence Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)，允许正式
 前端连接真实认证 API，但不放宽回环监听、可信代理或发布限制。
 
-反向代理负责公网 TLS 时，应用必须正确处理受信代理范围，不能无条件信任客户端提交的转发头。
+`S5-003` 已实现反向代理信任边界。默认回环模式清除并忽略所有客户端转发声明。非回环
+监听必须配置 `FOLIOPATH_TRUSTED_PROXIES` 的显式 IP CIDR；只有匹配的直连 peer 才能提交
+单跳、单值的 `X-Forwarded-Proto: https`、`X-Forwarded-Host` 和数值
+`X-Forwarded-For`。缺失、多值、逗号链、非 HTTPS、非法 authority/IP 或同时提交标准
+`Forwarded` 均失败关闭。验证后的 transport 是 Origin、Secure Cookie、HSTS 和认证限流
+客户端 key 的唯一输入。
+
+所有 HTTP 响应统一设置限制型 CSP、禁止 frame、`nosniff`、`no-referrer` 和禁用相机/
+位置/麦克风的 Permissions Policy；只有验证后的 HTTPS transport 返回一年 HSTS。
+部署者仍必须用宿主机端口绑定/firewall 阻止代理旁路，CIDR 本身不替代网络隔离。
+
+Stage 5 候选使用固定 digest 的 Go 1.26.5 trixie build layer 与 Debian 13
+distroless runtime；生产 final stage 不含 shell、curl、tar 或包管理器。
+固定来源和升级安全修复不能替代镜像审查：
+[S5-007 候选供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)仍记录
+1 Critical / 8 High，发布前必须处置或逐项正式接受，并在最终双架构 digest 上复扫。
 
 ## 媒体解析
 

@@ -325,30 +325,35 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) withWriteTx(ctx context.Context, operation func(*sql.Tx) error) error {
+	return s.withWriteGate(ctx, func() error {
+		// _txlock=immediate in the DSN makes this BEGIN IMMEDIATE. The database
+		// lock and schema constraints protect generation allocation across
+		// processes; writeGate only provides fair, context-aware local queuing.
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin sqlite write transaction: %w", err)
+		}
+		if err := operation(tx); err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				return errors.Join(err, fmt.Errorf("rollback sqlite transaction: %w", rollbackErr))
+			}
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit sqlite write transaction: %w", err)
+		}
+		return nil
+	})
+}
+
+func (s *Store) withWriteGate(ctx context.Context, operation func() error) error {
 	select {
 	case s.writeGate <- struct{}{}:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 	defer func() { <-s.writeGate }()
-
-	// _txlock=immediate in the DSN makes this BEGIN IMMEDIATE. The database
-	// lock and schema constraints protect generation allocation across
-	// processes; writeGate only provides fair, context-aware local queuing.
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin sqlite write transaction: %w", err)
-	}
-	if err := operation(tx); err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			return errors.Join(err, fmt.Errorf("rollback sqlite transaction: %w", rollbackErr))
-		}
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit sqlite write transaction: %w", err)
-	}
-	return nil
+	return operation()
 }
 
 func (s *Store) nowMS() int64 {

@@ -379,9 +379,39 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	if err != nil {
 		return false, fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
 	}
-	newlySeen, err := notSeenInGeneration(ctx, tx, "assets", run.LibraryID, entry.RelativePath, run.Generation)
-	if err != nil {
-		return false, err
+	newlySeen := true
+	sourceChanged := true
+	mediaJobCurrent := false
+	var assetID int64
+	var existingFingerprint string
+	var existingGeneration int64
+	var currentMediaJob int
+	err = tx.QueryRowContext(ctx, `
+        SELECT assets.id, assets.source_fingerprint, assets.last_seen_generation,
+               EXISTS (
+                   SELECT 1
+                   FROM media_jobs
+                   WHERE asset_id = assets.id
+                     AND variant = 'grid'
+                     AND transform_version = ?
+                     AND source_fingerprint = ?
+               )
+        FROM assets
+        WHERE assets.library_id = ? AND assets.relative_path = ?`,
+		thumbnail.GridTransformVersion, sourceFingerprint.String(),
+		run.LibraryID, entry.RelativePath,
+	).Scan(
+		&assetID, &existingFingerprint, &existingGeneration, &currentMediaJob,
+	)
+	switch {
+	case err == nil:
+		newlySeen = existingGeneration != run.Generation
+		sourceChanged = existingFingerprint != sourceFingerprint.String()
+		mediaJobCurrent = currentMediaJob != 0
+	case errors.Is(err, sql.ErrNoRows):
+		err = nil
+	default:
+		return false, fmt.Errorf("read existing asset state: %w", err)
 	}
 
 	var directoryID int64
@@ -396,7 +426,7 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 		return false, fmt.Errorf("find asset parent directory: %w", err)
 	}
 
-	if _, err := tx.ExecContext(ctx, `
+	if err := tx.QueryRowContext(ctx, `
         INSERT INTO assets(
             library_id, directory_id, relative_path, name, kind, media_format,
             mime_type, size_bytes, mtime_ns, source_fingerprint,
@@ -433,42 +463,40 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
             natural_name_key = excluded.natural_name_key,
             search_name_key = excluded.search_name_key,
             search_path_key = excluded.search_path_key,
-            last_seen_generation = excluded.last_seen_generation`,
+            last_seen_generation = excluded.last_seen_generation
+        RETURNING id`,
 		run.LibraryID, directoryID, entry.RelativePath, entry.Name,
 		string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
 		entry.SizeBytes, entry.MTimeNS, sourceFingerprint.String(),
 		catalog.NaturalNameKey(entry.Name),
 		catalog.SearchTextKey(entry.Name),
 		catalog.SearchTextKey(entry.RelativePath),
-		run.Generation); err != nil {
+		run.Generation,
+	).Scan(&assetID); err != nil {
 		return false, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
 	}
-	var assetID int64
-	if err := tx.QueryRowContext(ctx, `
-        SELECT id FROM assets WHERE library_id = ? AND relative_path = ?`,
-		run.LibraryID, entry.RelativePath,
-	).Scan(&assetID); err != nil {
-		return false, fmt.Errorf("read upserted asset identity: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `
+	if sourceChanged {
+		if _, err := tx.ExecContext(ctx, `
         INSERT OR IGNORE INTO cache_deletions(
             library_id, cache_rel_path, byte_size, created_at_ms
         )
         SELECT library_id, cache_rel_path, byte_size, ?
         FROM thumbnails
         WHERE asset_id = ? AND source_fingerprint <> ? AND status = 'ready'`,
-		run.CreatedAtMS, assetID, sourceFingerprint.String(),
-	); err != nil {
-		return false, fmt.Errorf("schedule stale thumbnail cleanup: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `
+			run.CreatedAtMS, assetID, sourceFingerprint.String(),
+		); err != nil {
+			return false, fmt.Errorf("schedule stale thumbnail cleanup: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
         DELETE FROM thumbnails
         WHERE asset_id = ? AND source_fingerprint <> ?`,
-		assetID, sourceFingerprint.String(),
-	); err != nil {
-		return false, fmt.Errorf("invalidate stale thumbnail: %w", err)
+			assetID, sourceFingerprint.String(),
+		); err != nil {
+			return false, fmt.Errorf("invalidate stale thumbnail: %w", err)
+		}
 	}
-	if _, err := tx.ExecContext(ctx, `
+	if !mediaJobCurrent {
+		if _, err := tx.ExecContext(ctx, `
         INSERT INTO media_jobs(
             library_id, asset_id, variant, transform_version, source_fingerprint,
             status, available_at_ms, attempt_count, created_at_ms
@@ -488,11 +516,12 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
             finished_at_ms = NULL
         WHERE media_jobs.source_fingerprint <> excluded.source_fingerprint
            OR media_jobs.transform_version <> excluded.transform_version`,
-		run.LibraryID, assetID, thumbnail.GridTransformVersion,
-		sourceFingerprint.String(),
-		run.CreatedAtMS, run.CreatedAtMS,
-	); err != nil {
-		return false, fmt.Errorf("admit media job: %w", err)
+			run.LibraryID, assetID, thumbnail.GridTransformVersion,
+			sourceFingerprint.String(),
+			run.CreatedAtMS, run.CreatedAtMS,
+		); err != nil {
+			return false, fmt.Errorf("admit media job: %w", err)
+		}
 	}
 	return newlySeen, nil
 }

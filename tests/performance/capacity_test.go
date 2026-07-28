@@ -50,6 +50,8 @@ type capacityMetrics struct {
 	DirectoryListP95US      int64    `json:"directoryListP95Us"`
 	AssetListP50US          int64    `json:"assetListP50Us"`
 	AssetListP95US          int64    `json:"assetListP95Us"`
+	RecursiveBrowseP50US    int64    `json:"recursiveBrowseP50Us"`
+	RecursiveBrowseP95US    int64    `json:"recursiveBrowseP95Us"`
 	FTSSearchP50US          int64    `json:"ftsSearchP50Us"`
 	FTSSearchP95US          int64    `json:"ftsSearchP95Us"`
 	ShortSearchP50US        int64    `json:"shortSearchP50Us"`
@@ -254,6 +256,9 @@ scanLoop:
 	assetLatencies := measureQuery(t, 30, func(ctx context.Context) error {
 		return readAssetPage(ctx, inspector, created.ID)
 	})
+	recursiveBrowseLatencies := measureQuery(t, 10, func(ctx context.Context) error {
+		return readRecursiveBrowse(ctx, catalogService, created.ID)
+	})
 	ftsSearchLatencies := measureQuery(t, 30, func(ctx context.Context) error {
 		return readLibrarySearch(
 			ctx, catalogService, created.ID, "asset-099", catalog.SortModifiedAt,
@@ -315,6 +320,8 @@ scanLoop:
 		DirectoryListP95US:      percentile(directoryLatencies, 95).Microseconds(),
 		AssetListP50US:          percentile(assetLatencies, 50).Microseconds(),
 		AssetListP95US:          percentile(assetLatencies, 95).Microseconds(),
+		RecursiveBrowseP50US:    percentile(recursiveBrowseLatencies, 50).Microseconds(),
+		RecursiveBrowseP95US:    percentile(recursiveBrowseLatencies, 95).Microseconds(),
 		FTSSearchP50US:          percentile(ftsSearchLatencies, 50).Microseconds(),
 		FTSSearchP95US:          percentile(ftsSearchLatencies, 95).Microseconds(),
 		ShortSearchP50US:        percentile(shortSearchLatencies, 50).Microseconds(),
@@ -693,6 +700,25 @@ func readLibrarySearch(
 	return nil
 }
 
+func readRecursiveBrowse(
+	ctx context.Context,
+	service *catalog.Service,
+	libraryID int64,
+) error {
+	page, err := service.ListAssets(ctx, catalog.AssetRequest{
+		LibraryID: libraryID,
+		Recursive: true,
+		Limit:     100,
+	})
+	if err != nil {
+		return err
+	}
+	if len(page.Items) != 100 {
+		return fmt.Errorf("recursive browse returned %d items, want 100", len(page.Items))
+	}
+	return nil
+}
+
 func readGlobalSearch(
 	ctx context.Context,
 	service *catalog.Service,
@@ -977,6 +1003,9 @@ func capacityBudgetViolations(metrics capacityMetrics) []string {
 	}
 	if metrics.AssetListP95US > 100_000 {
 		violations = append(violations, "assetListP95Us > 100000")
+	}
+	if metrics.RecursiveBrowseP95US > 250_000 {
+		violations = append(violations, "recursiveBrowseP95Us > 250000")
 	}
 	if metrics.FTSSearchP95US > 250_000 {
 		violations = append(violations, "ftsSearchP95Us > 250000")

@@ -117,6 +117,75 @@ func TestExecuteVersionDoesNotStartApplication(t *testing.T) {
 	}
 }
 
+func TestExecuteHealthcheckDoesNotStartApplication(t *testing.T) {
+	tests := []struct {
+		name       string
+		check      healthcheckRunner
+		wantCode   int
+		wantStderr string
+	}{
+		{
+			name:     "ready",
+			check:    func() error { return nil },
+			wantCode: exitOK,
+		},
+		{
+			name:       "unavailable",
+			check:      func() error { return errors.New("/secret/readiness detail") },
+			wantCode:   exitFailure,
+			wantStderr: "foliopath: readiness check failed\n",
+		},
+		{
+			name:       "missing checker",
+			wantCode:   exitFailure,
+			wantStderr: "foliopath: readiness check failed\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var stderr bytes.Buffer
+			started := false
+			var code int
+			if test.check == nil {
+				code = execute(
+					[]string{"healthcheck"},
+					nil,
+					"test",
+					&bytes.Buffer{},
+					&stderr,
+					func(app.Input) error {
+						started = true
+						return nil
+					},
+				)
+			} else {
+				code = execute(
+					[]string{"healthcheck"},
+					nil,
+					"test",
+					&bytes.Buffer{},
+					&stderr,
+					func(app.Input) error {
+						started = true
+						return nil
+					},
+					test.check,
+				)
+			}
+			if code != test.wantCode {
+				t.Fatalf("execute() code = %d, want %d", code, test.wantCode)
+			}
+			if stderr.String() != test.wantStderr {
+				t.Fatalf("stderr = %q, want %q", stderr.String(), test.wantStderr)
+			}
+			if started {
+				t.Fatal("healthcheck command started the application")
+			}
+		})
+	}
+}
+
 func TestExecuteHelpDoesNotStartApplication(t *testing.T) {
 	for _, command := range []string{"help", "-h", "--help"} {
 		t.Run(command, func(t *testing.T) {

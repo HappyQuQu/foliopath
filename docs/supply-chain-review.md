@@ -47,5 +47,22 @@ copyright；全部 jobs 已通过，构成 S0-108 的正式证据。
 - 对最终 amd64/arm64 digest 生成并附加 SBOM/provenance；
 - 执行 OS、Go 与 npm 漏洞扫描，按严重度策略阻断；
 - 汇总第三方 notices、许可证文本与必要源码/构建脚本；
-- 对 GPL FFmpeg 组合和 govips/libvips 动态链接方式完成发布签署；
+- 对最终 LGPL FFmpeg 组合和 govips/libvips 动态链接方式完成发布签署；
 - 任何 apt 包、codec、base digest 变化都必须重新生成证据。
+
+## Stage 5 更新
+
+2026-07-28 的生产候选复审见
+[S5-007 候选镜像供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)。
+该复审升级了 Go、`x/image` 和 Debian 候选基础，并把确定性生产候选 SPDX、固定
+digest Trivy、双架构第三方许可证 notices 与 artifact 接入 CI；S5-007C/D/E/F 又以
+固定源码构建、可由 SBOM 识别并保留许可证的
+`foliopath-libvips` 8.16.1-1 与 `foliopath-ffmpeg` 7.1.5-1 替换通用媒体闭包。
+最终 FFmpeg 构建关闭 GPL/x264 和网络，许可证为 LGPL 2.1+；内建 readiness probe
+同时替换了生产 curl 闭包；固定 digest 的无 shell distroless final stage 保留实际运行
+包的 `status.d` 元数据。候选流程还会生成绑定不可变镜像 digest、干净 Git commit、
+Dockerfile digest、目标架构和构建调用的 in-toto/SLSA provenance；生成器对 dirty
+worktree fail closed，因此最终 provenance 要等已接受的 Stage 5 改动提交并从该干净
+commit 重建后才能签发。发现由
+15 Critical / 136 High 降为 1 Critical / 8 High。剩余发现尚未处置，因此不改变
+本文 Stage 0 Passed 的历史范围，也不构成 Release Candidate 通过。

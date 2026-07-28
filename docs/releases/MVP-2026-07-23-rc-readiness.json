@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "release": "MVP-2026-07-23",
+  "assessedAt": "2026-07-28",
+  "decision": "no-go",
+  "prerequisiteGates": [
+    {
+      "id": "S5-001",
+      "status": "blocked",
+      "owner": "release",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-release-candidate-current.md",
+      "blockingConditions": [
+        "The operator-designated native linux/amd64 server and native linux/arm64 Mac passed the release runtime matrix, but no final immutable image digest has been signed.",
+        "Final clean-commit provenance and the dependent security/compliance sign-off are still missing."
+      ]
+    },
+    {
+      "id": "S5-002",
+      "status": "passed",
+      "owner": "release",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-compose-candidate-matrix.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "S5-003",
+      "status": "passed",
+      "owner": "security",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-trusted-proxy-security.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "S5-004",
+      "status": "passed",
+      "owner": "release",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-recovery-failure-smoke.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "S5-005",
+      "status": "passed",
+      "owner": "performance",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-release-capacity-candidate.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "S5-006",
+      "status": "blocked",
+      "owner": "qa",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-browser-quality-candidate.md",
+      "blockingConditions": [
+        "Safari 26.5.2 passed the physical Mac vertical flow and installed Chrome 150 passed normal plus forced-colors media matrices, but real Firefox plus screen-reader, zoom, touch, and mobile hardware sign-off are missing."
+      ]
+    },
+    {
+      "id": "S5-007",
+      "status": "blocked",
+      "owner": "security",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-supply-chain-candidate.md",
+      "blockingConditions": [
+        "One Critical and eight High package findings are neither removed nor individually time-bounded and accepted.",
+        "Deterministic dual-architecture SPDX, notices, and a fail-closed in-toto/SLSA provenance generator exist, but the final clean-commit digest statements, all-findings enforcement, and LGPL distribution sign-off are missing."
+      ]
+    },
+    {
+      "id": "S5-008",
+      "status": "passed",
+      "owner": "release",
+      "evidence": "docs/gates/MVP-2026-07-23/s5-release-documentation.md",
+      "blockingConditions": []
+    }
+  ],
+  "releaseBlockingRisks": [
+    {
+      "id": "R-002",
+      "status": "mitigating",
+      "owner": "security",
+      "closureCondition": "Review final native release-volume and runtime-unmount evidence."
+    },
+    {
+      "id": "R-003",
+      "status": "mitigating",
+      "owner": "backend",
+      "closureCondition": "Review representative storage interruption and reconciliation evidence."
+    },
+    {
+      "id": "R-006",
+      "status": "mitigating",
+      "owner": "media",
+      "closureCondition": "Review final native candidate hostile-media and representative peak-resource results."
+    },
+    {
+      "id": "R-008",
+      "status": "closed",
+      "owner": "release",
+      "closureCondition": "Review the native amd64 and arm64 image matrix.",
+      "dispositionEvidence": "docs/gates/MVP-2026-07-23/s5-compose-candidate-matrix.md"
+    },
+    {
+      "id": "R-010",
+      "status": "mitigating",
+      "owner": "security",
+      "closureCondition": "Review final Compose topology and proxy-bypass evidence on both release architectures."
+    },
+    {
+      "id": "R-011",
+      "status": "closed",
+      "owner": "release",
+      "closureCondition": "Pass real previous-version upgrade and paired rollback recovery.",
+      "dispositionEvidence": "docs/gates/MVP-2026-07-23/s5-recovery-failure-smoke.md"
+    },
+    {
+      "id": "R-014",
+      "status": "mitigating",
+      "owner": "compliance",
+      "closureCondition": "Complete final digest notices, provenance, GPL source offer, and compliance sign-off."
+    },
+    {
+      "id": "R-017",
+      "status": "open",
+      "owner": "security",
+      "closureCondition": "Remove or individually accept every Critical and High finding with scope, reachability, expiry, and approver."
+    }
+  ]
+}

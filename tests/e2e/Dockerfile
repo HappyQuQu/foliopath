@@ -2,7 +2,7 @@
 
 # This image exists only to exercise the real application binary in CI. It is
 # not the release image and intentionally includes curl for internal probes.
-FROM golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b AS build
+FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
 ARG VERSION=s1-smoke
 WORKDIR /src
 RUN apt-get update \
@@ -17,7 +17,7 @@ RUN CGO_ENABLED=1 go build -tags=libvips -trimpath \
     -ldflags="-s -w -X main.version=${VERSION}" \
     -o /out/foliopath ./cmd/foliopath
 
-FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
+FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd
 ARG VERSION=s1-smoke
 LABEL org.opencontainers.image.title="FolioPath application smoke" \
       org.opencontainers.image.version="${VERSION}" \

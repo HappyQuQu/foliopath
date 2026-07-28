@@ -9,6 +9,7 @@ proxy_container="foliopath-browser-e2e-proxy-$$"
 proxy_image=${FOLIOPATH_SOCAT_IMAGE:-"alpine/socat@sha256:f134cb7ebb983f971f5deb44e92bc62c1385b0a3b525393f32dd0722acc30315"}
 backend_port=${FOLIOPATH_BROWSER_BACKEND_PORT:-18080}
 web_port=${FOLIOPATH_BROWSER_WEB_PORT:-4174}
+e2e_suite=${FOLIOPATH_E2E_SUITE:-chromium}
 data_root="${e2e_root}/data"
 media_root="${e2e_root}/library"
 long_path_one="family-archives-with-a-deliberately-long-directory-name"
@@ -92,9 +93,25 @@ if ! wait_for_url "http://127.0.0.1:${web_port}/"; then
 	exit 1
 fi
 
+case "${e2e_suite}" in
+chromium)
+	playwright_projects="--project=chromium --project=mobile-chromium"
+	;;
+release)
+	playwright_projects="--project=firefox --project=webkit --project=visual-chromium"
+	;;
+chrome-stable)
+	playwright_projects="--project=chrome-stable --project=chrome-forced-colors"
+	;;
+*)
+	printf '%s\n' "unsupported FOLIOPATH_E2E_SUITE: ${e2e_suite}" >&2
+	exit 2
+	;;
+esac
+
 FOLIOPATH_WEB_E2E_URL="http://127.0.0.1:${web_port}" \
 	FOLIOPATH_E2E_LONG_PATH_ONE="${long_path_one}" \
 	FOLIOPATH_E2E_LONG_PATH_TWO="${long_path_two}" \
-	npm --prefix "${repo_root}/web" run test:e2e
+	npm --prefix "${repo_root}/web" run test:e2e -- ${playwright_projects}
 
-printf '%s\n' "authentication and library browser e2e passed"
+printf '%s\n' "${e2e_suite} browser e2e suite passed"

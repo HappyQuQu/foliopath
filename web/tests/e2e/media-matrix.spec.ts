@@ -12,10 +12,25 @@ const imageBytes = Buffer.from(
 );
 const libraryId = "lib_matrix";
 
-test("desktop keyboard, focus, Range, and degraded-state matrix", async ({
+test("desktop keyboard, focus, and degraded-state matrix", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium");
+  const chromiumBased = [
+    "chromium",
+    "chrome-stable",
+    "chrome-forced-colors",
+  ].includes(
+    testInfo.project.name,
+  );
+  test.skip(
+    ![
+      "chromium",
+      "chrome-stable",
+      "chrome-forced-colors",
+      "firefox",
+      "webkit",
+    ].includes(testInfo.project.name),
+  );
   const rangeRequests: string[] = [];
   await mockViewerBackend(page, rangeRequests);
 
@@ -26,23 +41,28 @@ test("desktop keyboard, focus, Range, and degraded-state matrix", async ({
   await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
   await expectNoPageOverflow(page);
 
-  await page.evaluate(() => {
-    window.history.replaceState(
-      {
-        ...window.history.state,
-        usr: {
-          returnTo: "/search?q=matrix",
-          sequence: [
-            { id: "image_ready", libraryId: "lib_matrix" },
-            { id: "image_next", libraryId: "lib_matrix" },
-          ],
+  // Directly injected React Router history state is not retained by Firefox
+  // across reload. Keep that internal-state navigation assertion in Chromium;
+  // every engine still verifies the public keyboard and recovery behavior.
+  if (chromiumBased) {
+    await page.evaluate(() => {
+      window.history.replaceState(
+        {
+          ...window.history.state,
+          usr: {
+            returnTo: "/search?q=matrix",
+            sequence: [
+              { id: "image_ready", libraryId: "lib_matrix" },
+              { id: "image_next", libraryId: "lib_matrix" },
+            ],
+          },
         },
-      },
-      "",
-    );
-  });
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+        "",
+      );
+    });
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+  }
   await page.keyboard.press("i");
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
@@ -51,26 +71,34 @@ test("desktop keyboard, focus, Range, and degraded-state matrix", async ({
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
   ).toBeVisible();
-  await page.keyboard.press("ArrowRight");
-  await expect(page).toHaveURL(
-    new RegExp(`/libraries/${libraryId}/media/image_next`),
-  );
-  await expect(page.getByRole("img", { name: "next.png" })).toBeVisible();
+  if (chromiumBased) {
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(
+      new RegExp(`/libraries/${libraryId}/media/image_next`),
+    );
+    await expect(page.getByRole("img", { name: "next.png" })).toBeVisible();
+  }
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL("/search?q=matrix&scope=all");
 
-  await page.goto(`/libraries/${libraryId}/media/video_range`);
-  const video = page.getByLabel("range-video.mp4");
-  await expect(video).toHaveAttribute("controls", "");
-  await expect(video).toHaveAttribute(
-    "poster",
-    "/api/v1/assets/video_range/thumbnail",
-  );
-  await expect
-    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
-    .toBeGreaterThan(0);
-  await expect.poll(() => rangeRequests.length).toBeGreaterThan(0);
-  expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(true);
+  // Browser codec stacks vary. Chromium owns the real MP4/206 assertion, while
+  // all supported engines exercise the product-owned fallback states below.
+  if (chromiumBased) {
+    await page.goto(`/libraries/${libraryId}/media/video_range`);
+    const video = page.getByLabel("range-video.mp4");
+    await expect(video).toHaveAttribute("controls", "");
+    await expect(video).toHaveAttribute(
+      "poster",
+      "/api/v1/assets/video_range/thumbnail",
+    );
+    await expect
+      .poll(() =>
+        video.evaluate((element) => (element as HTMLVideoElement).readyState),
+      )
+      .toBeGreaterThan(0);
+    await expect.poll(() => rangeRequests.length).toBeGreaterThan(0);
+    expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(true);
+  }
 
   await page.goto(`/libraries/${libraryId}/media/video_codec`);
   await expect(

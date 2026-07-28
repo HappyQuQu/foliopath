@@ -23,6 +23,7 @@ import (
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail/cachefs"
+	"github.com/HappyQuQu/foliopath/internal/webassets"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
@@ -266,7 +267,14 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	}
 	httpComponent, httpService := newHTTPComponent(
 		configuration.listenAddress,
-		api.NewHandler(routes, logger),
+		api.NewHandlerWithTransport(
+			webassets.NewHandler(routes),
+			logger,
+			api.TransportConfig{
+				TrustedProxyPrefixes: parseTrustedProxyPrefixes(configuration.trustedProxies),
+				RequireTrustedProxy:  configuration.requireProxy,
+			},
+		),
 		logger,
 	)
 	application, err := newApplication(

@@ -17,6 +17,8 @@
 
 ```sh
 make arch-check
+make release-docs-check
+make release-readiness-check
 make contract-check
 make generate-check
 make lint
@@ -40,16 +42,17 @@ make test-e2e
 | AF-005 | 已发布 migration 只追加且可从空库／上一版本升级 | migration checksum、升级测试、外键和完整性检查 | **部分执行**：正式应用已有空目录/重复迁移、冲突 schema 失败关闭、外键和完整性测试；追加认证 migration 已验证单管理员、摘要、期限与级联约束。migration checksum 与真实上一版本升级仍待实现 | 首个预览版前 |
 | AF-006 | 所有媒体路径经过唯一策略和 `internal/files`，不越界、不泄露 | 恶意路径矩阵、Linux mount/openat2、HTTP E2E | **媒体库 Backend Ready**：Darwin 与原生 Linux amd64/arm64 路径矩阵、同/跨设备及 self-bind mount、认证 path/create HTTP 与真实 composition、TOCTOU/ABA、权限和错误脱敏均通过；扫描/媒体读取 handler 继续逐切片强制，发布 volume/unmount 由 Release Gate 强制 | 按 S0-105 持续分层强制 |
 | AF-007 | 失败、取消、离线或中断扫描绝不清理旧索引 | generation 故障矩阵、重启与竞态测试 | **扫描故障矩阵已自动化**：FS-02、S2-103～106 已验证失败、取消、offline、部分不可读、nested mount、根替换、重启和 SQLite 满页不发布不可靠代次或清理旧索引；startup scan 与晚到期 lease 自动恢复，解除满页限制后的完整扫描可收敛。生产强杀与代表性存储故障仍由 Release Gate 补齐 | 持续，发布前补强杀/存储故障 |
-| AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | **扫描与媒体边界已自动化**：扫描固定 256 active/256 batch/2 worker；媒体固定 2 worker/3 attempt、256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips concurrency 1/64 MiB cache、FFmpeg 单线程/进程组取消/15 秒/8 MiB 输出。真实 8 MiB tmpfs `ENOSPC` 与双架构 tagged fixture 已接入 CI | 持续；完整产品/代表性存储峰值在 Performance/Release Gate |
+| AF-008 | 后台任务、数据库写入和媒体工具全部有界 | 队列/并发配置测试、压力指标、取消与超时测试 | **S5-005 已通过**：扫描固定 256 active/256 batch/2 worker；媒体固定 2 worker/3 attempt、govips concurrency 1/64 MiB cache。原生目标档关闭 session touch、unchanged fingerprint 与 cache 淘汰写放大，并以 100k 全量派生、80% 水位和持续健康验证边界 | 持续强制并在发布前复测 |
 | AF-009 | 前端依赖方向、共享组件唯一所有权与 token 单一来源 | TypeScript boundary/cycle lint、受限基础库/import 位置 allowlist、token lint、组件目录检查 | **本地与 CI 入口已建立**：strict TypeScript、唯一生成 client、禁止散落 `fetch`、app/routes/features/components/lib 依赖方向、共享组件目录、CSS token 与颜色字面量由 `npm run check:architecture` 强制；认证首个业务 feature 通过该门禁 | 持续强制 |
-| AF-010 | 前端稳定原语在主题、语言、宽度和异步状态下行为一致 | component workbench build、Testing Library、axe、聚焦视觉回归 | **认证切片已自动化**：Storybook/Testing Library、简中/英文、浅/深主题、390/768/1024/1440、Chromium axe 与三组并排视觉证据已通过；完整业务组件和最终目标浏览器矩阵随 Stage 2～5 扩展 | 行为/axe 在首次消费前；视觉基线在 API 稳定或第二消费者前；完整矩阵在 RC 前 |
+| AF-010 | 前端稳定原语在主题、语言、宽度和异步状态下行为一致 | component workbench build、Testing Library、axe、聚焦视觉回归 | **S5-006A 候选自动化已建立**：既有 Storybook/Testing Library、简中/英文、浅/深主题、390/768/1024/1440 与 Chromium axe 继续执行；Firefox/WebKit 新增查看器键盘、焦点、降级状态、overflow 与 axe 矩阵，固定 Linux Chromium 深色/reduced-motion 视觉基线已独立复跑。最终浏览器版本、Safari 真机和物理设备签署仍待 S5-006B | 行为/axe 在首次消费前；视觉基线在 API 稳定或第二消费者前；完整矩阵在 RC 前 |
 | AF-011 | 大列表只使用游标分页和统一虚拟化模式 | API 契约测试、SQLite query 测试、前端 pattern 测试、E2E DOM/请求上限 | **后端查询已执行**：目录/资产默认 50、最大 200，query/generation-bound opaque keyset、完整 tuple、唯一 ID tie-breaker、context cancellation 与生产 SQLite 禁用 `OFFSET` 已由 S3-001/002 固定；S4-002 固定库内 generation 与跨库 catalog-revision search cursor、global name tuple 和 mtime tuple，S4-003 又以 100k 两页 keyset 和取消收敛验证预算。前端统一虚拟化和 E2E DOM/请求上限仍待对应前端 Gate | 浏览/搜索切片持续强制 |
-| AF-012 | 单容器、非 root、`/library:ro`、本地 `/app/data` 运行 | 双架构容器 smoke、安全挂载和健康检查 | **部分执行**：原生双架构 FS-05 已通过；真实 `cmd/foliopath` 的测试专用镜像已接入双架构 CI，并验证 health、重复启动、SIGTERM 与媒体不变；正式发布镜像及发布级权限组合仍待验证 | 首个预览镜像前 |
-| AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | **认证 Integrated Done**：S1-101～106 Backend Ready 加上真实后端 Chromium setup/session/logout/expired/login、CSRF adapter、安全 readiness 与 CI browser job 已通过；可信代理配置和非回环网络发布仍由 Stage 5 Gate 阻断 | 首个可共享预览版前 |
-| AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **部分执行**：FS-05 离线恢复、重复 migration、只读/满盘/损坏失败关闭通过；在线备份、强杀和真实版本升级未测 | Release Candidate 前 |
-| AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **后端扫描与搜索已执行**：S4-003 在 macOS arm64 四核及 Linux arm64 2 CPU/4 GiB 的 100k/10k 档验证扫描并发搜索、FTS/短词/全局/keyset、取消、rebuild、RSS 与 DB 预算；完整媒体/HTTP/前端与代表性存储未测 | 各容量切片持续，发布前复测 |
-| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行**：source/npm/image SPDX 与关键 codec/license 审查通过；最终 digest attestation、漏洞与 notices 未完成 | Release Candidate 前 |
+| AF-012 | 单容器、非 root、`/library:ro`、本地 `/app/data` 运行 | 双架构容器 smoke、安全挂载和健康检查 | **候选执行、发布签署待完成**：S5-001A/001B 已用真实 SPA/Go/libvips/FFmpeg 候选验证 UID/GID 65532、只读根/媒体、cap-drop、health、SIGTERM 和安全 Compose；S5-002 又在本机原生 arm64 与指定原生 amd64 服务器关闭完整运行矩阵。S5-001C 的 CI JSON 合同仍拒绝跨 run 拼接；最终不可变 digest 尚待供应链与发布签署 | 首个预览镜像前 |
+| AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | **S5-003 通过**：S1 认证 Integrated Done 加上显式 CIDR、非回环 require-proxy、严格单跳 HTTPS transport、Secure Cookie/Origin/HSTS/客户端限流集成矩阵；Compose 实际网络拓扑已由 S5-001B/002 在双架构复验 | 首个可共享预览版前 |
+| AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **S5-004 通过**：原生 arm64/amd64 已验证离线恢复、强杀/WAL、满盘、损坏失败关闭，以及不同不可变候选间的向前升级和旧镜像＋升级前备份配对回滚 | Release Candidate 前 |
+| AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **S5-005 已通过**：原生 arm64/amd64 的 4 CPU/4 GiB 候选通过 100k/10k 扫描、认证查询、重扫、取消和 offline；指定 amd64 服务器完成 100k 全量派生、cache 水位及稳定性，三引擎 100k FPS/RSS 通过 | 发布前持续复测 |
+| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行、RC 阻断**：[S5-007A](../gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已为生产候选建立确定性 source/npm/image SPDX、固定 digest Trivy、修复可用时阻断、双架构 notices 和 in-toto/SLSA provenance 入口；最小运行时与固定源码 Expat 2.8.2 已把发现降至 1 Critical / 8 High。最终 clean-commit provenance、全阻断和安全/合规签署未完成 | Release Candidate 前 |
 | AF-017 | SQLite 查询以 adapter 内的 SQL 源为唯一事实，生成代码不可手改或漂移 | sqlc 固定版本、临时目录重生成 diff、生成标记与 adapter 重复 SQL 检查 | **本地执行，CI 已接线**：媒体库及 scan claim/lease/recovery 查询由 `queries/` 生成到 `dbgen/` 并被 adapter 消费；复杂 generation finalize 仍在 adapter 内受事务测试约束 | 持续强制 |
+| AF-018 | RC 决策与 Stage 5 Gate、风险登记和证据不得矛盾，未处置项必须失败关闭 | `make release-readiness-check` 校验机器快照；`make release-ready` 强制全部 Gate passed、风险 closed/accepted | **S5-009A 已执行、当前 No-Go**：八个前置 Gate 中 S5-002/003/004/005/008 passed；五项发布风险 mitigating、R-008/R-011 closed、R-017 open。普通一致性检查通过，promotion 入口按预期非零失败 | Release Candidate 前持续强制 |
 
 ## 前后端门禁顺序
 

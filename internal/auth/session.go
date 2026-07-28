@@ -17,6 +17,7 @@ const (
 	sessionDigestBytes   = sha256.Size
 	SessionLifetime      = 7 * 24 * time.Hour
 	obsoleteSessionGrace = 24 * time.Hour
+	sessionTouchInterval = 30 * time.Second
 )
 
 type AdministratorCredential struct {
@@ -158,20 +159,22 @@ func (service *Service) Session(
 	if subtle.ConstantTimeCompare(record.CSRFTokenHash[:], csrfHash[:]) != 1 {
 		return CurrentSession{}, ErrSessionExpired
 	}
-	touched, err := service.repository.TouchSession(
-		ctx,
-		TouchSessionParams{
-			SessionID:       record.ID,
-			TokenHash:       tokenHash,
-			ExpectedVersion: record.AuthVersion,
-			UsedAtMS:        now.UnixMilli(),
-		},
-	)
-	if err != nil {
-		return CurrentSession{}, fmt.Errorf("touch administrator session: %w", err)
-	}
-	if !touched {
-		return CurrentSession{}, ErrSessionExpired
+	if record.LastSeenAtMS <= now.Add(-sessionTouchInterval).UnixMilli() {
+		touched, err := service.repository.TouchSession(
+			ctx,
+			TouchSessionParams{
+				SessionID:       record.ID,
+				TokenHash:       tokenHash,
+				ExpectedVersion: record.AuthVersion,
+				UsedAtMS:        now.UnixMilli(),
+			},
+		)
+		if err != nil {
+			return CurrentSession{}, fmt.Errorf("touch administrator session: %w", err)
+		}
+		if !touched {
+			return CurrentSession{}, ErrSessionExpired
+		}
 	}
 	return CurrentSession{
 		Administrator: record.Administrator,

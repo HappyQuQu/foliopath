@@ -165,7 +165,7 @@ func registerAuthenticationRoutes(mux *http.ServeMux, service AuthenticationServ
 			writeAuthenticationError(writer, request, mapAuthenticationError(err))
 			return
 		}
-		expired := ExpiredSessionCookie(request.TLS != nil)
+		expired := ExpiredSessionCookie(requestTransportFrom(request).secure)
 		http.SetCookie(writer, &expired)
 		writeNoContent(writer)
 	})
@@ -182,7 +182,7 @@ func writeEstablishedSession(
 		established.CookieToken,
 		time.Now().UTC(),
 		expiresAt,
-		request.TLS != nil,
+		requestTransportFrom(request).secure,
 	)
 	if err != nil {
 		writeInternalError(writer, request)

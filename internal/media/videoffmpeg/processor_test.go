@@ -22,6 +22,9 @@ case "$*" in
   *) echo "missing inherited descriptor" >&2; exit 2 ;;
 esac
 case "$*" in
+  *"-nostdin"*) echo "ffprobe does not portably support -nostdin" >&2; exit 2 ;;
+esac
+case "$*" in
   *"-threads 1"*) ;;
   *) echo "missing decoder thread bound" >&2; exit 2 ;;
 esac

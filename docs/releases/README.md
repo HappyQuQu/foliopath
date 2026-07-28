@@ -4,6 +4,8 @@
 产品需求文档可以补充说明，但不能通过直接改写它来悄悄改变已冻结版本。
 
 - [MVP-2026-07-23 scope revision 1](MVP-2026-07-23-scope.md)
+- [MVP-2026-07-23 当前 RC readiness 快照](MVP-2026-07-23-rc-readiness.json)：
+  聚合 Stage 5 前置 Gate 与发布阻断风险；不改变冻结 scope。
 
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。

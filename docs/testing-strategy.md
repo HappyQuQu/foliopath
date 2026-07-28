@@ -130,6 +130,9 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
   responsive、overflow 和 axe，并形成 Stage 4 Integrated Done。
 - S3-107 容量测试使用 100,000 个稳定资产 ID 验证默认视口挂载不超过 64 个 DOM 项、
   首屏不预取、末端仅允许一个在途 cursor 请求、远距离虚拟锚点恢复和 12 帧焦点重试。
+- Stage 5 的 `make test-browser-capacity` 使用同一 100,000 项工作台主档，在 Chromium、
+  Firefox 与 WebKit 记录连续滚动 FPS、帧间隔 P95、浏览器进程树 RSS 和挂载 DOM，并
+  强制 `S5-005B` 预算；它不替代真实浏览器、读屏或移动物理设备签署。
   原生视频 rerender 必须卸载旧节点且只留下一个 video。组件工作台同一主档在真实
   1280×720 Chromium 中记录首屏 42 项、末端 40 项、`aria-posinset` 99,961～100,000
   与末项焦点；代表性低性能客户端 FPS/RSS 仍由 Stage 5 发布 Gate 固定。
@@ -216,12 +219,15 @@ volume 或运行期 unmount。
 5. 删除媒体库 → 明确非破坏性确认 → 配置消失且 fixture 原文件仍存在。
 6. 桌面固定侧栏、移动目录抽屉、网格/瀑布流切换与键盘关键路径；检查中英界面、reduced motion 与高对比模式。
 
-当前 `make test-web-e2e` 已固定 Stage 1～3 的一次性真实后端成功链。测试镜像以
+当前 `make test-web-e2e` 已固定 Stage 1～4 的一次性真实后端 Chromium/Pixel 5 成功链。测试镜像以
 `libvips` build tag 和 Debian libvips runtime 构建，使用只读合成 JPEG 验证扫描后的
 ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补齐运行、取消、部分不可读
 和离线等无法稳定定时制造的 UI 状态。它同时断言长名称/路径、同操作快速双击只提交一次、
 对话框焦点恢复、390/768/1024/1440px 横向溢出和 axe serious/critical；搜索、预览和
-查看器仍须在 Stage 3～4 扩展同一入口。
+查看器已在 Stage 3～4 扩展同一入口。Stage 5 的 `make test-web-release-e2e` 另以完全
+模拟的稳定 API 状态运行 Firefox、WebKit 和 Linux Chromium 视觉回归，避免多引擎争用
+唯一首次管理员 fixture；真实 MP4 Range/206 仍由 Chromium 负责，三个桌面引擎共同验证
+键盘/焦点、unsupported codec、offline/deleted、overflow 和 axe serious/critical。
 7. 会话过期、退出、CSRF 拒绝和再次访问受保护媒体，不泄露内容或敏感状态。
 
 端到端测试不能通过固定长时间 sleep 等待扫描，应轮询可观察状态并设置明确超时。
@@ -276,6 +282,27 @@ finalize 为 147 ms；它不创建宿主深目录，只证明目录 rollup 算�
 该环境不是代表性 NAS 存储，且未包含媒体、FTS、正式 HTTP 或前端，因此这些数字不是发布
 SLA，也不能代替完整容量门槛。
 
+S5-005A 已补充 `tests/release/capacity_smoke.sh`：以真实生产候选、有效独立 PNG、
+管理员会话、后台 libvips 缩略图和正式浏览/搜索 API 运行同一 100k/10k 主档。本机
+Docker Desktop linux/arm64、4 CPU/4 GiB 记录扫描 189 秒，浏览/库内搜索/全局搜索 P95
+为 57.311/45.602/72.586 ms，容器 memory peak 350,633,984 B。该档发现并修复 session
+touch 绕过 SQLite 单写门导致的后台媒体写入竞争。原生 amd64/arm64 CI 保留 180 秒扫描
+回归护栏和 JSON artifact 契约；本机 bind-mount 档使用 240 秒护栏。本轮按操作者决定，
+以指定原生 amd64 服务器与本机原生 arm64 结果作为实际架构证据。
+
+S5-005D 已在 4 CPU/4 GiB 原生 amd64 执行同一 100k/10k 后端目标档：首次扫描
+148.293 秒，修复后的两次纯无变化重扫为 100.303/105.548 秒，恢复 94,234 个媒体任务
+调度后重扫为 140.190 秒。逐请求认证读取保留，但 `last_seen` 审计写入限制为最多每
+30 秒一次；unchanged fingerprint 不再重复失效 ready 派生状态或写已有媒体任务。
+扫描并发浏览 P95 从约 555 ms 降至 6.116 ms；跨审计写入边界为 6.614 ms。
+
+同一原生 amd64 目标档随后在 6,202,317 ms 内完成全部 100,000 个媒体任务，0 个
+terminal failure，容器峰值内存 176,287,744 B。在线把 cache 配额降至 4 MiB 时发现并
+修复 cache 删除绕过单写门和逐文件事务写放大；最终 cache 从高水位收敛至
+3,355,440 B（80% 上限 3,355,443 B），0 pending deletion，容器持续 healthy、OOM=0，
+原媒体哨兵不变。容量回归护栏固定为全量派生不超过 2.5 小时、峰值不超过 1.5 GiB、
+terminal failure 为零并正确收敛到低水位；它们不是用户可见 SLA。
+
 目录计数实现不得回到每目录扫描全部资产或展开 asset×ancestor 的复杂度。当前基线在
 SQLite O(D) 临时工作表中以最多 500 个叶节点为一批向父目录传播，每条目录边只处理一次；
 现有索引下按 O(A + D log D) 评估，Go 侧不加载完整目录树。循环、无效根、缺失/跨库关系，
@@ -298,6 +325,8 @@ stale cleanup 级联删除另一媒体库或当前代次条目。
 - HTTP：认证绕过、CSRF、开放重定向、可信代理头、限流、错误信息与安全响应头。
 - 媒体：像素炸弹、损坏容器、探测超时、命令参数注入和主动内容同源执行。
 - 依赖：Go/npm 系统依赖漏洞扫描、镜像 SBOM、第三方许可证检查和固定构建来源。
+  `S5-007A` 已对候选建立固定 digest Syft/Trivy 与 CI artifact；持续 CI 拒绝已有修复的
+  High/Critical，Release Candidate 必须以全阻断策略处置或逐项正式接受全部发现。
 - 日志：令牌、Cookie、宿主机路径、SQL 和原始 stderr 不得出现在正常或故障日志中。
 
 认证范围已经确认；上述单管理员安全测试是稳定版发布阻断项，不能用“以后补”作为公网发布依据。
@@ -343,6 +372,12 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 发布候选额外要求：
 
 - 全量集成、E2E、双架构容器和恢复演练通过。
+- `make test-release-image` 必须在原生 linux/amd64 与 linux/arm64 runner 对同一提交
+  成功；它覆盖真实 SPA、MVP 媒体 probe/poster、损坏输入、Compose 安全约束、代理
+  失败关闭、HSTS、健康检查、SIGTERM、离线恢复、强杀恢复、数据盘满和损坏数据库。
+- 两个原生 job 必须上传 `release-image-<sha>-<arch>` artifact，并以
+  `make verify-release-image-evidence` 证明 release、commit、workflow run、实际架构、
+  digest/size 和 passed smoke 一致；不能拼接不同 run 的单架构结果。
 - 没有未处置的高危安全问题或会修改原媒体的缺陷。
 - 性能没有超过已确认预算，或退化已明确接受。
 - 支持格式、部署参数、迁移和已知限制与 README/发布说明一致。
@@ -355,6 +390,11 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 - `go test -race ./...`
 - `make fmt` / `make fmt-check`
 - `make arch-check`
+- `make release-docs-check`（README/部署/Compose/.env/Dockerfile/媒体格式与候选限制防漂移）
+- `make release-readiness-check`（校验当前 RC Gate/risk 快照；准确的 No-Go 也应通过）
+- `make release-ready`（实际 RC promotion 门；只要有 Gate/risk 未处置就必须非零失败）
+- `make verify-release-image-evidence EVIDENCE_DIR=... RELEASE_SHA=...`（成对校验原生
+  amd64/arm64 候选 JSON，拒绝 commit/run/架构/结果不一致）
 - `make contract-check`
 - `make generate-check`
 - `make web-check`
@@ -366,6 +406,8 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 - `make test-integration`
 - `make test-e2e`（真实后端进程的测试专用容器 smoke；不是浏览器或发布镜像验收）
 - `make test-web-e2e`（一次性真实后端的 Stage 1～4 Chromium 产品 E2E 与媒体矩阵）
+- `make test-web-release-e2e`（Linux 发布候选 Firefox/WebKit 稳定状态与 Chromium
+  视觉基线；需要锁定的三个 Playwright browser runner）
 - `npm --prefix web run check`
 - `npm --prefix web run build`
 - `make spike-capacity`（显式重型目标档）
@@ -376,7 +418,7 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
-只读发布 volume/运行期 unmount、Firefox/Safari/物理设备发布矩阵、代表性客户端性能、
+只读发布 volume/运行期 unmount、最终 Firefox/Safari/物理设备发布签署、代表性客户端性能、
 双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI

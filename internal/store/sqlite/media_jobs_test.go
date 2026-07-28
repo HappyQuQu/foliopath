@@ -205,6 +205,87 @@ func TestFingerprintChangeInvalidatesThumbnailAndRequeuesSameAsset(t *testing.T)
 	}
 }
 
+func TestUnchangedFingerprintPreservesReadyDerivedState(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var assetID int64
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT id FROM assets
+        WHERE library_id = ? AND relative_path = 'photo-2.jpg'`,
+		libraryID,
+	).Scan(&assetID); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := store.GetAssetForDerivation(context.Background(), assetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CommitReady(context.Background(), thumbnail.Ready{
+		AssetID: assetID, SourceFingerprint: asset.SourceFingerprint,
+		Result: media.ProcessingResult{
+			Metadata: media.Metadata{
+				Width: 20, Height: 10,
+				PlaybackStatus: media.PlaybackNotApplicable,
+			},
+			Thumbnail: media.Thumbnail{
+				Bytes: []byte("webp"), Width: 20, Height: 10,
+			},
+		},
+		CacheRelativePath: "libraries/lib_1/ready.webp",
+		ByteSize:          4,
+		CreatedAtMS:       100,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(context.Background(), `
+        UPDATE media_jobs
+        SET status = 'succeeded', attempt_count = 2,
+            created_at_ms = 50, finished_at_ms = 100
+        WHERE asset_id = ?`,
+		assetID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	run, err := store.BeginFullScan(
+		context.Background(), libraryID, scanner.TriggerManual,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.UpsertCatalogBatch(context.Background(), run.ID, []scanner.CatalogEntry{
+		{Kind: scanner.CatalogEntryDirectory},
+		{
+			Kind: scanner.CatalogEntryAsset, RelativePath: "photo-2.jpg",
+			Name: "photo-2.jpg", AssetKind: scanner.AssetKindImage,
+			MediaFormat: scanner.MediaFormatJPEG, MIMEType: "image/jpeg",
+			SizeBytes: 20, MTimeNS: 20,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var status string
+	var attempts, createdAt, thumbnails, deletions int
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT status, attempt_count, created_at_ms,
+               (SELECT count(*) FROM thumbnails WHERE asset_id = ?),
+               (SELECT count(*) FROM cache_deletions
+                WHERE cache_rel_path = 'libraries/lib_1/ready.webp')
+        FROM media_jobs WHERE asset_id = ?`,
+		assetID, assetID,
+	).Scan(&status, &attempts, &createdAt, &thumbnails, &deletions); err != nil {
+		t.Fatal(err)
+	}
+	if status != "succeeded" || attempts != 2 || createdAt != 50 ||
+		thumbnails != 1 || deletions != 0 {
+		t.Fatalf(
+			"unchanged state = job %q/%d created %d thumbnails %d deletions %d",
+			status, attempts, createdAt, thumbnails, deletions,
+		)
+	}
+}
+
 func TestTransformVersionReconciliationIsBoundedAndRequeues(t *testing.T) {
 	store, _ := openTestStore(t)
 	seedBrowseCatalog(t, store)

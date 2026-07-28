@@ -69,7 +69,7 @@ jobs:
             --env GOMAXPROCS=2 \
             --env GOMODCACHE=/tmp/gomodcache \
             --env GOCACHE=/tmp/gocache \
-            golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b \
+            golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 \
             go test -timeout=20m -count=1 \
               -run '^Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)$' \
               -v ./tests/performance
@@ -218,7 +218,7 @@ jobs:
             --workdir /src \
             --env GOMODCACHE=/tmp/mod \
             --env GOCACHE=/tmp/cache \
-            golang:1.26.4-bookworm \
+            golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 \
             sh -c "go test -count=1 -tags fsboundary ./tests/integration \
               -run '^TestFS01Rejects.*BindMount$' &&
               go test -race -count=1 -tags fsboundary ./tests/integration \
@@ -275,10 +275,85 @@ jobs:
           FOLIOPATH_SMOKE_IMAGE: foliopath-application-smoke:${{ github.sha }}-${{ matrix.arch }}
         run: make test-e2e
 
+  release-candidate:
+    name: Release candidate (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Build and verify the native production candidate
+        env:
+          FOLIOPATH_RELEASE_IMAGE: foliopath-release:${{ github.sha }}-${{ matrix.arch }}
+          FOLIOPATH_RELEASE_EVIDENCE: ${{ runner.temp }}/release-image-${{ matrix.arch }}.json
+          FOLIOPATH_RELEASE_EXPECTED_ARCH: ${{ matrix.arch }}
+          FOLIOPATH_RELEASE_COMMIT: ${{ github.sha }}
+          FOLIOPATH_RELEASE_RUN_ID: ${{ github.run_id }}
+          FOLIOPATH_RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+          FOLIOPATH_RELEASE_PROVENANCE: ${{ runner.temp }}/release-provenance-${{ matrix.arch }}.json
+          FOLIOPATH_PROVENANCE_BUILDER_ID: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FOLIOPATH_PROVENANCE_INVOCATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.arch }}
+        run: make test-release-image
+      - name: Upload native release image evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-image-${{ github.sha }}-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/release-image-${{ matrix.arch }}.json
+            ${{ runner.temp }}/release-provenance-${{ matrix.arch }}.json
+          if-no-files-found: error
+          include-hidden-files: false
+
+  release-capacity:
+    name: Release capacity (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Run the native production candidate capacity gate
+        env:
+          FOLIOPATH_RELEASE_IMAGE: foliopath-release-capacity:${{ github.sha }}-${{ matrix.arch }}
+          FOLIOPATH_CAPACITY_BUILD_IMAGE: "1"
+          FOLIOPATH_CAPACITY_SCAN_BUDGET_MS: "180000"
+          FOLIOPATH_CAPACITY_WORK_ROOT: ${{ runner.temp }}
+          FOLIOPATH_CAPACITY_METRICS_OUTPUT: ${{ runner.temp }}/release-capacity-${{ matrix.arch }}.json
+        run: make release-capacity
+      - name: Upload native capacity evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-capacity-${{ github.sha }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/release-capacity-${{ matrix.arch }}.json
+          if-no-files-found: error
+          include-hidden-files: false
+
   web-browser:
-    name: Authentication, library, and browse E2E
+    name: Authentication and release browser E2E
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -290,13 +365,25 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install locked Node dependencies
         run: npm ci --prefix web
-      - name: Install the locked Chromium runner
-        run: npm exec --prefix web -- playwright install --with-deps chromium
+      - name: Install the locked browser runners
+        run: npm exec --prefix web -- playwright install --with-deps chromium firefox webkit
       - name: Exercise authentication, library, scan, browse, preview, and safe readiness states
         run: make test-web-e2e
+      - name: Exercise Firefox, WebKit, and the visual regression baseline
+        run: make test-web-release-e2e
+      - name: Upload browser failure evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-evidence-${{ github.sha }}
+          path: |
+            web/playwright-report
+            test-results/playwright
+          if-no-files-found: ignore
+          include-hidden-files: false
 
   supply-chain:
-    name: SBOM and license evidence
+    name: Candidate SBOM, vulnerabilities, and licenses
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -308,24 +395,44 @@ jobs:
           node-version-file: .node-version
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Build the runtime spike image
+      - name: Build the production candidate image
         run: |
-          docker build -f spikes/fs05-runtime/Dockerfile \
-            -t "foliopath-fs05:${GITHUB_SHA}-sbom" \
+          docker build -f Dockerfile \
+            -t "foliopath-release:${GITHUB_SHA}-supply-chain" \
             --build-arg VERSION="${GITHUB_SHA}" .
       - name: Generate and validate SPDX SBOMs
         run: |
           scripts/generate-sbom.sh \
-            "foliopath-fs05:${GITHUB_SHA}-sbom" "${RUNNER_TEMP}/sbom"
-          jq -e '.packages | length > 0' "${RUNNER_TEMP}/sbom/source.spdx.json"
-          jq -e '.packages | length > 0' "${RUNNER_TEMP}/sbom/npm.spdx.json"
+            "foliopath-release:${GITHUB_SHA}-supply-chain" \
+            "${RUNNER_TEMP}/supply-chain"
+          jq -e '.packages | length > 0' \
+            "${RUNNER_TEMP}/supply-chain/source.spdx.json"
+          jq -e '.packages | length > 0' \
+            "${RUNNER_TEMP}/supply-chain/npm.spdx.json"
           jq -e \
-            '[.packages[].name] | index("ffmpeg") != null and index("libvips42") != null' \
-            "${RUNNER_TEMP}/sbom/image.spdx.json"
+            '[.packages[].name] |
+              index("foliopath-ffmpeg") != null and
+              index("foliopath-expat") != null and
+              index("foliopath-libvips") != null' \
+            "${RUNNER_TEMP}/supply-chain/image.spdx.json"
+      - name: Scan the candidate and reject findings with available fixes
+        env:
+          FOLIOPATH_VULNERABILITY_POLICY: fixed
+        run: |
+          scripts/scan-release-image.sh \
+            "foliopath-release:${GITHUB_SHA}-supply-chain" \
+            "${RUNNER_TEMP}/supply-chain"
       - name: Record codec build and packaged license evidence
         run: |
-          image="foliopath-fs05:${GITHUB_SHA}-sbom"
+          image="foliopath-release:${GITHUB_SHA}-supply-chain"
           docker run --rm --entrypoint ffmpeg "$image" -hide_banner -buildconf
-          docker run --rm --entrypoint sh "$image" -c \
-            "grep -E '^(Files:|License:)' /usr/share/doc/ffmpeg/copyright \
-              /usr/share/doc/libvips42/copyright | head -80"
+          scripts/collect-release-notices.sh \
+            "$image" "${RUNNER_TEMP}/supply-chain/notices"
+      - name: Upload immutable supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: supply-chain-${{ github.sha }}
+          path: ${{ runner.temp }}/supply-chain
+          if-no-files-found: error
+          include-hidden-files: false

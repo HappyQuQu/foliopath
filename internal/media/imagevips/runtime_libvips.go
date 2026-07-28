@@ -24,6 +24,10 @@ func (runtime *Runtime) Start() error {
 	if runtime.started {
 		return errors.New("libvips runtime is already started")
 	}
+	// libvips emits an informational line for every load and transformation.
+	// Media libraries make that an unbounded operational log stream, so keep
+	// routine processing silent while retaining warnings and errors.
+	vips.LoggingSettings(nil, vips.LogLevelWarning)
 	if err := vips.Startup(&vips.Config{
 		ConcurrencyLevel: NativeConcurrency,
 		MaxCacheFiles:    NativeCacheFiles,

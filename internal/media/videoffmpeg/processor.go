@@ -123,7 +123,6 @@ func (processor *Processor) Process(
 
 func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDocument, error) {
 	output, err := processor.run(ctx, processor.ffprobe, source,
-		"-nostdin",
 		"-v", "error",
 		"-threads", "1",
 		"-print_format", "json",

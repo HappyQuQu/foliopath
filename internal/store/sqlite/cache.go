@@ -9,6 +9,8 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
+const maxCacheEvictionBatch = 256
+
 func (s *Store) CacheQuota(ctx context.Context) (int64, error) {
 	var quota int64
 	if err := s.db.QueryRowContext(ctx, `
@@ -66,30 +68,39 @@ func (s *Store) ListLRUCacheEntries(
 	return entries, nil
 }
 
-func (s *Store) DeleteReadyCacheEntry(
+func (s *Store) DeleteReadyCacheEntries(
 	ctx context.Context,
-	entry thumbnail.CacheEntry,
+	entries []thumbnail.CacheEntry,
 ) error {
-	if entry.AssetID <= 0 || entry.CacheRelativePath == "" || entry.ByteSize <= 0 {
+	if len(entries) < 1 || len(entries) > maxCacheEvictionBatch {
 		return thumbnail.ErrInvalidState
 	}
-	result, err := s.db.ExecContext(ctx, `
-        DELETE FROM thumbnails
-        WHERE asset_id = ? AND cache_rel_path = ?
-          AND byte_size = ? AND status = 'ready'`,
-		entry.AssetID, entry.CacheRelativePath, entry.ByteSize,
-	)
-	if err != nil {
-		return fmt.Errorf("delete evicted thumbnail state: %w", err)
+	for _, entry := range entries {
+		if entry.AssetID <= 0 || entry.CacheRelativePath == "" || entry.ByteSize <= 0 {
+			return thumbnail.ErrInvalidState
+		}
 	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("inspect evicted thumbnail state: %w", err)
-	}
-	if changed > 1 {
-		return errors.New("cache eviction deleted multiple states")
-	}
-	return nil
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		for _, entry := range entries {
+			result, err := tx.ExecContext(ctx, `
+            DELETE FROM thumbnails
+            WHERE asset_id = ? AND cache_rel_path = ?
+              AND byte_size = ? AND status = 'ready'`,
+				entry.AssetID, entry.CacheRelativePath, entry.ByteSize,
+			)
+			if err != nil {
+				return fmt.Errorf("delete evicted thumbnail state: %w", err)
+			}
+			changed, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("inspect evicted thumbnail state: %w", err)
+			}
+			if changed > 1 {
+				return errors.New("cache eviction deleted multiple states")
+			}
+		}
+		return nil
+	})
 }
 
 func (s *Store) ListPendingCacheDeletions(
@@ -131,19 +142,21 @@ func (s *Store) CompleteCacheDeletion(
 	if item.ID <= 0 || item.CacheRelativePath == "" {
 		return thumbnail.ErrInvalidState
 	}
-	result, err := s.db.ExecContext(ctx, `
-        DELETE FROM cache_deletions WHERE id = ? AND cache_rel_path = ?`,
-		item.ID, item.CacheRelativePath,
-	)
-	if err != nil {
-		return fmt.Errorf("complete cache deletion: %w", err)
-	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("inspect completed cache deletion: %w", err)
-	}
-	if changed == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
+	return s.withWriteGate(ctx, func() error {
+		result, err := s.db.ExecContext(ctx, `
+            DELETE FROM cache_deletions WHERE id = ? AND cache_rel_path = ?`,
+			item.ID, item.CacheRelativePath,
+		)
+		if err != nil {
+			return fmt.Errorf("complete cache deletion: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect completed cache deletion: %w", err)
+		}
+		if changed == 0 {
+			return sql.ErrNoRows
+		}
+		return nil
+	})
 }

@@ -41,8 +41,11 @@ root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 A
 Backend Ready Gate；安全目录选择、媒体库生命周期、manual scan admission 与异步移除
 handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。生产扫描 worker
 已消费 creation/startup/scheduled scan，扫描观察、取消和设置 HTTP 已接线并通过 Backend Ready；
-当前还没有可信代理配置、
-完整认证产品 UI、正式 Dockerfile、浏览器 E2E 或可发布镜像；
+Stage 1～4 认证产品 UI 与 Chromium E2E、Stage 5 可信代理边界、生产候选 Dockerfile、
+安全 Compose 和原生双架构候选 CI 入口已经建立；当前仍没有可发布镜像，但本机原生
+arm64 与操作者指定的原生 amd64 服务器候选矩阵已经审阅通过；S5-006A 已建立
+Firefox/WebKit 稳定状态与 Linux 视觉回归，
+最终浏览器/真机、恢复与 RC Gate 尚未完成；S5-009A 的统一 RC 审计当前明确为 No-Go；
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
@@ -65,22 +68,24 @@ ADR 流程。
 | --- | --- | --- |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
-| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；认证、媒体库生命周期、安全目录选择与 manual scan admission handler 已实现，其余业务 handler 尚未实现 |
-| UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、非模态预览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 2026-07-24 完整静态原型已覆盖 15 个界面/状态；生产 token、共享组件、虚拟化、浅/深主题、390～1440px、axe、Chromium 桌面/移动与 Stage 1～4 纵向 E2E 已通过各自 Integrated Done Gate，最终跨浏览器/真机矩阵仍待 Stage 5 |
+| API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；冻结 MVP 的认证、媒体库/扫描、浏览/搜索、设置、资产详情/缩略图/原内容 handler 已接入真实 composition |
+| UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、非模态预览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 2026-07-24 完整静态原型已覆盖 15 个界面/状态；生产 token、共享组件、虚拟化、浅/深主题、390～1440px、axe、Chromium 桌面/移动与 Stage 1～4 纵向 E2E 已通过各自 Integrated Done Gate。S5-006A 又建立 Firefox/WebKit 查看器稳定状态和固定 Linux 视觉基线，Safari 26.5.2 与 Chrome 150 真机链通过；真实 Firefox、读屏与物理设备签署仍待 S5-006B |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～10 已执行；媒体库 revision/removal/idempotency、扫描与媒体 durable contract、typed settings、目录/资产自然名称 keyset、asset source fingerprint、thumbnail/cache deletion、搜索规范键/FTS 与 global revision 具备真实升级与约束测试；发布版本升级仍待 Release Gate |
-| 测试 | 测试层次、合成 fixture、风险用例、CI 命令和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 SBOM CI 已通过；Stage 1～4 前端纵向切片已有锁定 Chromium、一次性真实后端和受控状态 E2E，最终跨浏览器/真机与发布容器验证仍待 Stage 5 |
-| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | FS-05 probe 与真实应用测试镜像已验证目标运行模式；正式发布镜像、真实版本升级和发布签署未完成 |
-| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径可行性范围通过；认证 Backend Gate 已覆盖密码、原子 setup、安全会话、CSRF/default-deny、直连 peer 限流、错误脱敏和依赖 audit。可信代理、非回环暴露和发布 volume/unmount 仍由 Stage 5 Gate 阻断 |
+| 测试 | 测试层次、合成 fixture、风险用例和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 Stage 0 SBOM CI 已通过；候选镜像/Compose 同入口已在本机原生 arm64 与指定原生 amd64 服务器通过。S5-005 的真实候选 100k/10k、100k 全量媒体、cache 水位和三引擎 100k FPS/RSS 预算已通过；S5-006A 的 Firefox/WebKit 稳定状态与 Linux 视觉基线已本机通过，Safari 26.5.2 真机纵向链和 Chrome 150 normal/forced-colors 通过；固定源码 Expat 2.8.2 将候选扫描降至 1 Critical / 8 High。真实 Firefox、读屏/缩放/触摸与移动物理客户端、正式安全/合规风险决定仍阻断 |
+| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | 生产候选 Dockerfile、Compose、固定 UID/GID、只读根/媒体、health、媒体工具、代理、离线恢复、强杀/WAL 恢复和盘满/损坏失败关闭 smoke 已在原生 arm64/amd64 通过；两架构也已用不同的不可变候选 image ID 通过向前升级和配对回滚；S5-008 已校对 README/部署/备份/格式/限制并建立防漂移检查。最终不可变 digest、供应链和发布签署未完成 |
+| 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径范围通过；S5-003 已覆盖可信代理 transport；候选 Compose 已验证回环发布端口、只读根、最小权限和代理失败关闭。发布 volume/unmount 仍由后续 Stage 5 Gate 阻断 |
 
 ## 环境与工具链状态
 
 已落地的实验基线：
 
-- Go 版本已写入 `go.mod`，`.go-version` 为 1.26.4；CI 直接读取该文件，但尚需首次远端执行证明。
+- Go 版本已写入 `go.mod`，`.go-version` 为 1.26.5；CI 直接读取该文件。Stage 5
+  候选镜像和原生 CI 容器也固定到 Go 1.26.5 trixie digest。
 - SQLite 使用 `modernc.org/sqlite`，迁移使用 Goose；初始迁移通过 `go:embed` 运行。
 - sqlc 固定为 `v1.31.1`；配置、媒体库 SQL 源和提交的生成包归属
   `internal/store/sqlite`，`make generate-check` 在临时目录重生成并比较。
-- `Makefile` 当前提供 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`generate`、
+- `Makefile` 当前提供 `fmt`、`fmt-check`、`arch-check`、`release-docs-check`、
+  `release-readiness-check`、失败关闭的 `release-ready`、`contract-check`、`generate`、
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
   `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；CI 已
   复用这些入口。

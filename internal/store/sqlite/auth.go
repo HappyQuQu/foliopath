@@ -185,19 +185,24 @@ func (store *Store) TouchSession(
 	ctx context.Context,
 	params auth.TouchSessionParams,
 ) (bool, error) {
-	affected, err := store.queries.TouchSession(
-		ctx,
-		dbgen.TouchSessionParams{
-			UsedAtMs:        params.UsedAtMS,
-			ID:              params.SessionID,
-			TokenHash:       params.TokenHash[:],
-			ExpectedVersion: params.ExpectedVersion,
-		},
-	)
-	if err != nil {
-		return false, fmt.Errorf("touch session: %w", err)
-	}
-	return affected == 1, nil
+	var touched bool
+	err := store.withWriteTx(ctx, func(tx *sql.Tx) error {
+		affected, err := dbgen.New(tx).TouchSession(
+			ctx,
+			dbgen.TouchSessionParams{
+				UsedAtMs:        params.UsedAtMS,
+				ID:              params.SessionID,
+				TokenHash:       params.TokenHash[:],
+				ExpectedVersion: params.ExpectedVersion,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("touch session: %w", err)
+		}
+		touched = affected == 1
+		return nil
+	})
+	return touched, err
 }
 
 func (store *Store) RevokeSession(

@@ -4,7 +4,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e spike-capacity spike-vips spike-runtime sbom capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready verify-release-image-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-release-image test-release-upgrade test-release-capacity release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -14,6 +14,25 @@ fmt-check:
 
 arch-check:
 	$(GO) test ./tests/architecture/...
+
+release-docs-check:
+	$(GO) test -run '^TestReleaseDocumentationMatchesCandidateBoundaries$$' \
+		./tests/architecture/...
+
+release-readiness-check:
+	$(GO) test -run '^TestReleaseReadinessManifestFailsClosed$$' \
+		./tests/architecture/...
+
+release-ready:
+	FOLIOPATH_REQUIRE_RELEASE_GO=1 $(GO) test -count=1 \
+		-run '^TestReleaseReadinessManifestFailsClosed$$' \
+		./tests/architecture/...
+
+verify-release-image-evidence:
+	@test -n "$(EVIDENCE_DIR)" || (echo "EVIDENCE_DIR is required" >&2; exit 2)
+	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
+	$(GO) run ./tests/release/evidence \
+		-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"
 
 contract-check:
 	$(GO) test -count=1 ./tests/contract/...
@@ -60,6 +79,31 @@ test-e2e:
 test-web-e2e:
 	tests/e2e/web_auth.sh
 
+test-web-release-e2e:
+	FOLIOPATH_E2E_SUITE=release tests/e2e/web_auth.sh
+
+test-web-chrome-stable:
+	FOLIOPATH_E2E_SUITE=chrome-stable tests/e2e/web_auth.sh
+
+test-browser-capacity:
+	cd web && npm run build:storybook
+	cd web && FOLIOPATH_BROWSER_CAPACITY_ENFORCE=1 npm run test:capacity
+
+test-release-image:
+	tests/release/image_smoke.sh
+
+test-release-upgrade:
+	@test -n "$(PREVIOUS_IMAGE)" || (echo "PREVIOUS_IMAGE is required" >&2; exit 2)
+	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
+	tests/release/upgrade_rollback_smoke.sh "$(PREVIOUS_IMAGE)" "$(IMAGE)"
+
+test-release-capacity:
+	tests/release/capacity_smoke.sh
+
+release-capacity:
+	FOLIOPATH_CAPACITY=1 FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 \
+		tests/release/capacity_smoke.sh
+
 spike-capacity:
 	FOLIOPATH_CAPACITY=1 FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1 GOMAXPROCS=4 \
 		$(GO) test -timeout=20m -count=1 \
@@ -77,6 +121,19 @@ spike-runtime:
 sbom:
 	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
 	scripts/generate-sbom.sh "$(IMAGE)" "$${SBOM_OUTPUT:-build/sbom}"
+
+provenance:
+	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
+	@test -n "$(OUTPUT)" || (echo "OUTPUT is required" >&2; exit 2)
+	scripts/generate-provenance.sh "$(IMAGE)" "$(OUTPUT)"
+
+release-notices:
+	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
+	scripts/collect-release-notices.sh "$(IMAGE)" "$${NOTICES_OUTPUT:-build/notices}"
+
+scan-release-image:
+	@test -n "$(IMAGE)" || (echo "IMAGE is required" >&2; exit 2)
+	scripts/scan-release-image.sh "$(IMAGE)" "$${SCAN_OUTPUT:-build/security}"
 
 capacity-trend:
 	@set -e; for tier in "1000 10000" "5000 50000" "10000 100000"; do \

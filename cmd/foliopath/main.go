@@ -16,20 +16,31 @@ const (
 	exitUsage    = 2
 	usageMessage = `Usage:
   foliopath [serve] [--listen=IP:PORT]
+  foliopath healthcheck
   foliopath version
   foliopath help
 
 Environment:
-  FOLIOPATH_LISTEN  Numeric loopback IP and port (default 127.0.0.1:8080)
+  FOLIOPATH_LISTEN           Numeric IP and port (default 127.0.0.1:8080)
+  FOLIOPATH_TRUSTED_PROXIES  Comma-separated trusted proxy IP CIDRs
 `
 )
 
 var version = "dev"
 
 type applicationRunner func(app.Input) error
+type healthcheckRunner func() error
 
 func main() {
-	os.Exit(execute(os.Args[1:], os.Environ(), version, os.Stdout, os.Stderr, app.Run))
+	os.Exit(execute(
+		os.Args[1:],
+		os.Environ(),
+		version,
+		os.Stdout,
+		os.Stderr,
+		app.Run,
+		checkReadiness,
+	))
 }
 
 func execute(
@@ -39,9 +50,18 @@ func execute(
 	stdout io.Writer,
 	stderr io.Writer,
 	run applicationRunner,
+	healthchecks ...healthcheckRunner,
 ) int {
 	if len(args) == 1 {
 		switch args[0] {
+		case "healthcheck":
+			if len(healthchecks) != 1 ||
+				healthchecks[0] == nil ||
+				healthchecks[0]() != nil {
+				fmt.Fprintln(stderr, "foliopath: readiness check failed")
+				return exitFailure
+			}
+			return exitOK
 		case "version":
 			fmt.Fprintf(stdout, "foliopath %s\n", normalizedVersion(buildVersion))
 			return exitOK

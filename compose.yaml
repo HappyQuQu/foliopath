@@ -1,0 +1,27 @@
+services:
+  foliopath:
+    image: ${FOLIOPATH_IMAGE:?set FOLIOPATH_IMAGE to an immutable version tag or digest}
+    restart: unless-stopped
+    user: "65532:65532"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+    environment:
+      FOLIOPATH_LISTEN: "0.0.0.0:8080"
+      FOLIOPATH_TRUSTED_PROXIES: ${FOLIOPATH_TRUSTED_PROXIES:?set the exact proxy IP CIDR}
+      TZ: ${TZ:-UTC}
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532,mode=0700
+    ports:
+      - "127.0.0.1:${FOLIOPATH_PORT:-8080}:8080"
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_LIBRARY_PATH:?set the host media root}
+        target: /library
+        read_only: true
+      - type: bind
+        source: ${FOLIOPATH_DATA_PATH:?set the host data directory}
+        target: /app/data

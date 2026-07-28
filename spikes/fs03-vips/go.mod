@@ -1,6 +1,6 @@
 module github.com/HappyQuQu/foliopath/spikes/fs03-vips
 
-go 1.26.4
+go 1.26.5
 
 require github.com/davidbyttow/govips/v2 v2.18.0
 

@@ -22,6 +22,46 @@ func TestLoadConfigurationDefaultsToFixedRuntimeBoundaries(t *testing.T) {
 	}
 }
 
+func TestLoadConfigurationAllowsNonLoopbackOnlyWithTrustedProxyCIDRs(t *testing.T) {
+	got, err := loadConfiguration(Input{
+		Environ: []string{
+			"FOLIOPATH_LISTEN=0.0.0.0:8080",
+			"FOLIOPATH_TRUSTED_PROXIES=192.0.2.19/24, 2001:db8::1/64",
+		},
+	})
+	if err != nil {
+		t.Fatalf("loadConfiguration() error = %v", err)
+	}
+	if got.listenAddress != "0.0.0.0:8080" ||
+		got.trustedProxies != "192.0.2.0/24,2001:db8::/64" ||
+		!got.requireProxy {
+		t.Fatalf("loadConfiguration() = %#v", got)
+	}
+}
+
+func TestLoadConfigurationRejectsInvalidTrustedProxyConfiguration(t *testing.T) {
+	tests := [][]string{
+		{"FOLIOPATH_TRUSTED_PROXIES="},
+		{"FOLIOPATH_TRUSTED_PROXIES=192.0.2.10"},
+		{"FOLIOPATH_TRUSTED_PROXIES=0.0.0.0/0"},
+		{"FOLIOPATH_TRUSTED_PROXIES=::/0"},
+		{"FOLIOPATH_TRUSTED_PROXIES=::ffff:192.0.2.0/120"},
+		{"FOLIOPATH_TRUSTED_PROXIES=192.0.2.0/24,192.0.2.1/24"},
+		{
+			"FOLIOPATH_TRUSTED_PROXIES=192.0.2.0/24",
+			"FOLIOPATH_TRUSTED_PROXIES=198.51.100.0/24",
+		},
+	}
+	for _, environ := range tests {
+		if _, err := loadConfiguration(Input{Environ: environ}); !errors.Is(
+			err,
+			errInvalidConfiguration,
+		) {
+			t.Fatalf("loadConfiguration(%q) error = %v", environ, err)
+		}
+	}
+}
+
 func TestLoadConfigurationAcceptsListenEnvironment(t *testing.T) {
 	got, err := loadConfiguration(Input{
 		Environ: []string{"TZ=Asia/Shanghai", "FOLIOPATH_LISTEN=[::1]:9090"},

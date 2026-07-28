@@ -232,16 +232,16 @@ func (service *databaseService) ListLRUCacheEntries(
 	return service.store.ListLRUCacheEntries(ctx, limit)
 }
 
-func (service *databaseService) DeleteReadyCacheEntry(
+func (service *databaseService) DeleteReadyCacheEntries(
 	ctx context.Context,
-	entry thumbnail.CacheEntry,
+	entries []thumbnail.CacheEntry,
 ) error {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 	if service.store == nil {
 		return thumbnail.ErrRepositoryNotReady
 	}
-	return service.store.DeleteReadyCacheEntry(ctx, entry)
+	return service.store.DeleteReadyCacheEntries(ctx, entries)
 }
 
 func (service *databaseService) ListPendingCacheDeletions(

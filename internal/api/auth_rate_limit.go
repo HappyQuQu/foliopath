@@ -2,7 +2,6 @@ package api
 
 import (
 	"math"
-	"net"
 	"net/http"
 	"strconv"
 	"sync"
@@ -51,7 +50,7 @@ func limitAuthenticationRequests(
 			return
 		}
 		retryAfter, allowed := limiter.allow(
-			directPeerHost(request.RemoteAddr)+"\x00"+policy.operation,
+			requestTransportFrom(request).clientHost+"\x00"+policy.operation,
 			policy.limit,
 		)
 		if !allowed {
@@ -124,12 +123,4 @@ func (limiter *authenticationRateLimiter) deleteExpired(now time.Time) {
 			delete(limiter.buckets, key)
 		}
 	}
-}
-
-func directPeerHost(remoteAddress string) string {
-	host, _, err := net.SplitHostPort(remoteAddress)
-	if err != nil || host == "" {
-		return "unknown"
-	}
-	return host
 }

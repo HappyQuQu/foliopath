@@ -272,6 +272,36 @@ func TestServiceSessionRecoversCSRFAndTouchesWithoutExtendingExpiry(t *testing.T
 	}
 }
 
+func TestServiceSessionSkipsRecentLastSeenWrite(t *testing.T) {
+	now := time.UnixMilli(1700000000000)
+	cookieToken := encodedSessionCookie(0x73, 0x74)
+	repository := &sessionRepository{
+		session: StoredSession{
+			ID:              11,
+			Administrator:   Administrator{ID: 7},
+			AuthVersion:     1,
+			UserAuthVersion: 1,
+			LastSeenAtMS:    now.Add(-sessionTouchInterval / 2).UnixMilli(),
+			ExpiresAtMS:     now.Add(time.Hour).UnixMilli(),
+			CSRFTokenHash:   mustDigestSecret(t, encodedSecret(0x74)),
+		},
+	}
+	service := newSessionTestService(
+		t,
+		repository,
+		&verifyingPasswordManager{},
+		now,
+		0x50,
+	)
+
+	if _, err := service.Session(context.Background(), cookieToken); err != nil {
+		t.Fatalf("Session() error = %v", err)
+	}
+	if repository.touched != (TouchSessionParams{}) {
+		t.Fatalf("recent session was touched: %#v", repository.touched)
+	}
+}
+
 func TestServiceAcceptsSessionUntilAbsoluteExpiryBoundary(t *testing.T) {
 	now := time.UnixMilli(1700000000000)
 	cookieToken := encodedSessionCookie(0x75, 0x76)

@@ -24,7 +24,7 @@ type CacheRepository interface {
 	CacheQuota(context.Context) (int64, error)
 	ReadyCacheUsage(context.Context) (int64, error)
 	ListLRUCacheEntries(context.Context, int) ([]CacheEntry, error)
-	DeleteReadyCacheEntry(context.Context, CacheEntry) error
+	DeleteReadyCacheEntries(context.Context, []CacheEntry) error
 	ListPendingCacheDeletions(context.Context, int) ([]PendingCacheDeletion, error)
 	CompleteCacheDeletion(context.Context, PendingCacheDeletion) error
 }
@@ -160,13 +160,19 @@ func (manager *CacheManager) reconcileLocked(
 		if len(candidates) == 0 {
 			return ErrCacheCapacity
 		}
+		evicted := make([]CacheEntry, 0, len(candidates))
 		for _, candidate := range candidates {
 			if err := manager.storage.Remove(ctx, candidate.CacheRelativePath); err != nil {
+				if len(evicted) > 0 {
+					if deleteErr := manager.repository.DeleteReadyCacheEntries(
+						ctx, evicted,
+					); deleteErr != nil {
+						return errors.Join(err, deleteErr)
+					}
+				}
 				return err
 			}
-			if err := manager.repository.DeleteReadyCacheEntry(ctx, candidate); err != nil {
-				return err
-			}
+			evicted = append(evicted, candidate)
 			usage -= candidate.ByteSize
 			if usage < 0 {
 				usage = 0
@@ -180,6 +186,9 @@ func (manager *CacheManager) reconcileLocked(
 					break
 				}
 			}
+		}
+		if err := manager.repository.DeleteReadyCacheEntries(ctx, evicted); err != nil {
+			return err
 		}
 		available, err = manager.storage.AvailableBytes(ctx)
 		if err != nil {

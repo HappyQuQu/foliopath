@@ -2,9 +2,11 @@
 
 ## 先看这里：项目现在到哪了
 
-一句话：**认证、媒体库、扫描、浏览、缩略图、搜索与原内容后端已经 Backend Ready；
-认证、媒体库/扫描及浏览/非模态预览前端均已 Integrated Done，搜索、共享预览与完整
-查看器前端已完成，下一步补齐媒体降级矩阵和 Stage 4 综合验收。**
+一句话：**Stage 0～4 已 Integrated Done，Stage 5 发布加固正在进行；候选镜像、
+安全 Compose 和原生双架构验收面已经建立；本机 arm64 与指定原生 amd64 服务器
+已分别通过候选运行和升级/配对回滚，按操作者决定本轮不等待计费阻断的 amd64 CI。
+全量媒体吞吐与缓存水位已完成；真实 Firefox/读屏/移动设备、供应链和 RC Gate
+仍未完成。候选供应链扫描仍有 1 Critical / 8 High，是明确 No-Go。**
 
 目前还没有可供用户使用的 FolioPath。开发工作现拆成独立的
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
@@ -17,8 +19,8 @@
 | 1F. 前端基础与登录 | React 应用壳、设计系统和认证页面 | ✅ Integrated Done | 可以初始化管理员、登录、恢复会话并退出 |
 | 2. 媒体库和扫描 | 在设置中选择 `/library` 子目录，创建多个媒体库并扫描 | ✅ Integrated Done | 可以创建、改名、扫描、取消和安全移除媒体库 |
 | 3. 文件夹浏览和缩略图 | 展示目录树、图片/视频缩略图和递归浏览 | ✅ Integrated Done | 可以按真实文件夹浏览并非模态预览媒体 |
-| 4. 搜索和查看器 | 搜索、筛选、查看大图和播放兼容视频 | 🟡 搜索、预览与查看器前端已完成；降级/浏览器矩阵待验收 | MVP 的主要使用流程完整 |
-| 5. 发布 | 安全、恢复、性能、双架构镜像和部署文档验收 | ⬜ 未开始 | 才可以称为可发布版本 |
+| 4. 搜索和查看器 | 搜索、筛选、查看大图和播放兼容视频 | ✅ Integrated Done | MVP 的主要使用流程完整 |
+| 5. 发布 | 安全、恢复、性能、双架构镜像和部署文档验收 | 🟡 `S5-002/003/004/005/008` 通过，`001/006/007` 阻断 RC | 才可以称为可发布版本 |
 
 ### 当前只做什么
 
@@ -50,7 +52,7 @@
 [路线图](roadmap.md)为准，架构与交付门禁以
 [交付与架构治理](architecture/delivery-governance.md)为准。
 
-当前后端里程碑：**Stage 4 / 搜索与媒体内容**。媒体库 `S2-001～007` 已通过 Backend Ready，
+当前共同里程碑：**Stage 5 / 发布加固**。媒体库 `S2-001～007` 已通过 Backend Ready，
 扫描 `S2-101～107` 已完成契约、worker、全部可读目录/计数、媒体候选、fingerprint、
 增量收敛、故障恢复、容量并发、观察/取消 HTTP 和定时设置，并通过 Backend Ready；
 `S3-001` 已固定 root、breadcrumb、direct/recursive scope、排序 tuple、generation cursor
@@ -59,9 +61,15 @@
 `S3-004` 已实现媒体探测、缩略图/视频封面、派生状态和原子缓存发布；`S3-005` 已实现
 durable 媒体任务、fingerprint 失效、LRU 与磁盘保护；`S3-006` 已完成敌意媒体、真实
 磁盘满和并发资源矩阵；`S3-007` 已接入资产页/详情与认证缩略图并通过 Backend Ready。
-`S4-003` 已以 100k/10k 主档验证扫描并发搜索、FTS/短词/全局/keyset、取消和 rebuild，
-搜索后端已通过 Backend Ready 并可交接前端。当前后端任务是 `S4-005` 资产详情与原内容；
-Stage 5 仍未授权。
+`S4-003` 已以 100k/10k 主档验证扫描并发搜索、FTS/短词/全局/keyset、取消和 rebuild；
+Stage 4 已通过 Integrated Done 并授权进入 Stage 5。`S5-001A` 已建立嵌入真实 SPA 的
+候选镜像基础，`S5-003` 已完成可信代理与网络安全边界；`S5-001B/S5-002` 已建立安全
+Compose、媒体/代理 smoke 与原生双架构 CI；`S5-002A/S5-005C` 又在原生 amd64
+服务器通过完整候选 smoke 和 31,899 项真实 ZFS 媒体验证。`S5-005A` 已建立完整候选
+容量自动化并通过本机 100k/10k 档；指定原生 amd64 服务器又完成 100k 全量媒体吞吐、
+cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭。`S5-007A` 已建立候选
+供应链自动化；按操作者决定，本轮 amd64 以指定原生服务器证据替代计费阻断的 CI。
+真实 Firefox/物理辅助功能签署、最终镜像 provenance 与漏洞处置尚未通过。
 
 执行约束：
 
@@ -184,14 +192,84 @@ Stage 5 仍未授权。
 ## Stage 5：发布加固
 
 - [ ] `[后端]` `S5-001` 完成非 root、只读媒体、最小权限和默认安全配置的最终镜像。
-- [ ] `[后端]` `S5-002` 完成 linux/amd64 与 linux/arm64 构建、启动、健康和媒体矩阵。
-- [ ] `[后端]` `S5-003` 完成反向代理信任、Secure Cookie、CSRF、限流和安全响应头验证。
-- [ ] `[后端]` `S5-004` 完成备份、恢复、升级、回滚、强杀、磁盘满和缓存重建演练。
-- [ ] `[共同]` `S5-005` 完成 10 万媒体/1 万目录/4 核/4 GiB 的完整产品容量验收。
+  - [x] `S5-001A` 建立嵌入真实 SPA 的候选镜像，以 UID/GID 65532、只读根、
+    `cap_drop: ALL`、`no-new-privileges`、`/library:ro` 和持久 `/app/data` 通过
+    linux/arm64 本地 smoke；证据见 [发布镜像基础](gates/MVP-2026-07-23/s5-release-image-foundation.md)。
+  - [x] `S5-001B` 在 `S5-003` 网络边界通过后固定可部署 Compose 与最终默认配置，并在
+    原生双架构重复完整 smoke。
+    - [x] 根 `compose.yaml`、`.env.example`、媒体/代理/Compose smoke 与原生双架构 CI
+      已建立；linux/arm64 本机通过。证据和未满足条件见
+      [Compose 与候选镜像矩阵](gates/MVP-2026-07-23/s5-compose-candidate-matrix.md)。
+    - [x] `S5-001C` 每个原生 job 生成绑定 release、commit、architecture、digest、
+      size、run ID/attempt 和完整 smoke 结果的 JSON artifact；成对校验拒绝缺失架构、
+      不同 commit/run 或非 passed 结果。
+    - [x] 当前候选已在本机原生 linux/arm64 与操作者指定的原生 linux/amd64 服务器通过；
+      按操作者决定，本轮不以计费阻断的 amd64 CI job 作为完成条件。
+- [x] `[后端]` `S5-002` 完成 linux/amd64 与 linux/arm64 构建、启动、健康和媒体矩阵。
+  - [x] `S5-002A` 在原生 linux/amd64 服务器重复完整镜像、媒体、Compose/代理和恢复
+    smoke；按操作者决定，本轮 amd64 以指定原生服务器证据为准，不等待计费阻断的 CI。
+    两架构候选返回相同的嵌入 SPA asset 标识并具有相同运行包闭包。证据见
+    [原生 amd64 与真实媒体验证](gates/MVP-2026-07-23/s5-native-amd64-real-media.md)。
+- [x] `[后端]` `S5-003` 完成反向代理信任、Secure Cookie、CSRF、限流和安全响应头验证。
+  - 完成证据：[可信代理与发布 HTTP 安全 Gate](gates/MVP-2026-07-23/s5-trusted-proxy-security.md)。
+  - 非回环监听要求显式可信 CIDR；单跳 HTTPS authority/client transport 是 Origin、
+    Secure Cookie、HSTS 和认证限流的唯一输入，伪造/链式/混用头失败关闭。
+- [x] `[后端]` `S5-004` 完成备份、恢复、升级、回滚、强杀、磁盘满和缓存重建演练。
+  - [x] `S5-004A` 候选镜像已验证真实管理员状态的离线备份/恢复、cache/tmp 重建、
+    同版本 migration 幂等、`SIGKILL` 后 WAL 恢复、数据盘满和损坏数据库失败关闭；
+    见 [恢复与失败关闭候选演练](gates/MVP-2026-07-23/s5-recovery-failure-smoke.md)。
+  - [x] `S5-004B` 使用两个架构各自不同的真实前一候选不可变 image ID 完成向前升级，
+    并验证回滚必须配对恢复升级前数据备份；arm64 本机与用户指定的原生 amd64 服务器
+    均通过同一自动化入口。Billing 阻止的 CI 不被冒充为运行证据。
+- [x] `[共同]` `S5-005` 完成 10 万媒体/1 万目录/4 核/4 GiB 的完整产品容量验收。
+  - [x] `S5-005A` 建立真实候选容器、独立有效媒体 fixture、认证 HTTP、后台缩略图和
+    只读哨兵校验；本机 linux/arm64 100k/10k 档通过，并接入原生双架构 CI artifact。
+  - [x] `S5-005B` 审阅原生双架构结果，在代表性 NAS/存储和目标浏览器记录扫描、
+    API p95、RSS/FPS、媒体吞吐与缓存增长，并冻结发布预算。
+  - [x] `S5-005C` 在 4 核/4 GiB 原生 amd64、本地 ZFS 的 31,899 项真实媒体树完成
+    只读扫描、认证浏览和视频封面抽样；该诊断不替代 100k/10k 与浏览器签署。
+  - [x] `S5-005D` 在同一规格原生 amd64 完成精确 100k/10k、首次/无变化/后台任务并发
+    重扫、认证查询、取消、offline 与只读哨兵；后端目标预算通过。按操作者决定，本轮
+    指定原生 amd64 服务器与本机 arm64 结果构成容量架构证据，不等待计费阻断的 amd64 CI。
+  - [x] 现有 `S5-005B` 范围内已用 100k Storybook 主档记录 Chromium/Firefox/WebKit
+    长列表 FPS、帧间隔、进程树 RSS 与有界 DOM，并冻结自动化预算；真实浏览器/物理设备
+    签署仍归 `S5-006B`。
 - [ ] `[共同]` `S5-006` 完成单元、race、集成、组件、axe、浏览器 E2E 和视觉回归。
+  - [x] `S5-006A` 建立 Chromium 日常纵向链、Firefox/WebKit 稳定状态矩阵和固定
+    Linux Chromium 视觉基线；本机三引擎功能与独立 Linux 视觉复跑通过，证据见
+    [浏览器质量候选 Gate](gates/MVP-2026-07-23/s5-browser-quality-candidate.md)。
+  - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome 150 normal/forced-colors 及三引擎
+    100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成读屏、缩放、触摸和视觉签署。
 - [ ] `[后端]` `S5-007` 生成最终 SBOM，完成依赖漏洞、许可证和 FFmpeg 构建配置审查。
-- [ ] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
+  - [x] `S5-007A` 建立候选 source/npm/image SPDX、固定 digest 漏洞扫描、CI artifact、
+    修复可用时阻断策略，并升级 Go 1.26.5、`x/image` v0.44.0 与 Debian 13 候选基础；
+    证据见 [候选镜像供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)。
+  - [x] `S5-007C` 以固定源码、最小 loader 的 libvips 生产包替换通用 Debian
+    `libvips42` 闭包，完整媒体/Compose/恢复 smoke 通过；发现由 15 Critical /
+    136 High 降为 8 / 73，证据见
+    [最小媒体运行时切片](gates/MVP-2026-07-23/s5-minimal-media-runtime.md)。
+  - [x] `S5-007D` 以固定源码、关闭网络和最小组件的 FFmpeg 生产包替换 Debian
+    通用闭包，完整媒体/Compose/恢复 smoke 通过；发现进一步降至 5 Critical /
+    44 High，证据见
+    [最小 FFmpeg 运行时切片](gates/MVP-2026-07-23/s5-minimal-ffmpeg-runtime.md)。
+  - [x] `S5-007E` 以内建、固定 loopback 的 readiness probe 替换生产 `curl`
+    健康检查闭包，完整媒体/Compose/恢复 smoke 通过；发现进一步降至 5 Critical /
+    30 High，证据见
+    [内建健康检查运行时切片](gates/MVP-2026-07-23/s5-built-in-healthcheck-runtime.md)。
+  - [x] `S5-007F` 以固定 digest 的 Debian 13 distroless final stage 替换通用
+    Debian runtime，保留可扫描的包状态与许可证元数据；无 shell 生产镜像通过完整
+    release smoke 和快速容量复验，发现进一步降至 1 Critical / 14 High，证据见
+    [无 shell 最小运行时切片](gates/MVP-2026-07-23/s5-distroless-runtime.md)。
+  - [ ] `S5-007B` 处置或逐项正式接受候选扫描的 1 条 Critical / 8 条 High，
+    在最终双架构 digest 上执行全阻断策略，并完成 notices、provenance 与许可证签署。
+- [x] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
+  - 完成证据：[发布文档 Gate](gates/MVP-2026-07-23/s5-release-documentation.md)。
+    `make release-docs-check` 固定 candidate 警告、Compose 安全默认、格式、备份/回滚和限制披露。
 - [ ] `[共同]` `S5-009` 关闭或正式接受发布阻断风险，形成 Release Candidate Gate。
+  - [x] `S5-009A` 完成首次统一 RC 审计、机器可读 readiness 快照和失败关闭检查；当前结论
+    为 No-Go，证据见 [Release Candidate 当前判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)。
+  - [ ] 所有前置 Gate 通过，发布阻断风险逐项关闭或有时限地正式接受，人工审阅
+    `make release-ready` 的 Go 结果后形成 RC。
 - [ ] `[共同]` `S5-010` 完成稳定 MVP 发布 Gate；只有此项通过后才能宣称 FolioPath 可发布。
 
 ## 明确不进入当前 MVP

@@ -8,6 +8,7 @@
 
 # Go build and test output
 /bin/
+/build/
 /foliopath
 *.test
 coverage.out
@@ -17,7 +18,8 @@ coverage.out
 /web/dist/
 /web/coverage/
 /web/storybook-static/
-/internal/webassets/dist/
+/internal/webassets/dist/*
+!/internal/webassets/dist/.gitkeep
 /prototypes/*/node_modules/
 /prototypes/*/dist/
 /prototypes/*/.vite/

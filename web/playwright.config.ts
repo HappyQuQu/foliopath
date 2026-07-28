@@ -19,12 +19,48 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /visual-regression\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "firefox",
+      testIgnore: [/auth\.spec\.ts/, /visual-regression\.spec\.ts/],
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      testIgnore: [/auth\.spec\.ts/, /visual-regression\.spec\.ts/],
+      use: { ...devices["Desktop Safari"] },
     },
     {
       name: "mobile-chromium",
       testMatch: /media-matrix\.spec\.ts/,
       use: { ...devices["Pixel 5"] },
+    },
+    {
+      name: "chrome-stable",
+      testMatch: /media-matrix\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], channel: "chrome" },
+    },
+    {
+      name: "chrome-forced-colors",
+      testMatch: /media-matrix\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chrome",
+        forcedColors: "active",
+      },
+    },
+    {
+      name: "visual-chromium",
+      testMatch: /visual-regression\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        colorScheme: "dark",
+        locale: "en-US",
+        reducedMotion: "reduce",
+        viewport: { width: 1280, height: 800 },
+      },
     },
   ],
   outputDir: "../test-results/playwright",
