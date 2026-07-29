@@ -346,6 +346,11 @@ Chromium/Firefox/WebKit，并以 100-video 三引擎档验证活动数、FPS 与
 fixture、5×2/10 帧布局、decoded pixel hash、cache repair 或资源限制漂移。Gate 必须等
 同一提交的原生 workflow 实际成功后才能签署。
 
+`docs/releases/POST-MVP-1-readiness.json` 进一步汇总 VSP Gate、`VSP-AC-001～008` 和
+R-018。`make storyboard-readiness-check` 不只检查证据路径存在，还要求每个验收项的
+稳定事实锚点确实出现在对应 Gate 记录中，并与 feature spec、S4 聚合表及任务勾选一致；
+`make storyboard-ready` 在任一 Gate、验收或风险未处置时失败关闭。
+
 ## 安全验证
 
 - 路径输入表：绝对路径、`..`、双重编码、NUL、不同分隔符、Unicode 归一化和 symlink race。

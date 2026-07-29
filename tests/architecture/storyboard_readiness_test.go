@@ -35,6 +35,7 @@ type storyboardAcceptance struct {
 	ID       string   `json:"id"`
 	Status   string   `json:"status"`
 	Evidence []string `json:"evidence"`
+	Anchors  []string `json:"anchors"`
 }
 
 type storyboardRisk struct {
@@ -130,18 +131,51 @@ func TestStoryboardReadinessManifestFailsClosed(t *testing.T) {
 	}
 	actualAcceptance := make([]string, 0, len(manifest.AcceptanceCriteria))
 	allAcceptancePassed := true
+	featureSpec := readArchitectureFile(t, root, "docs/features/video-storyboard-preview.md")
+	integratedGate := readArchitectureFile(
+		t,
+		root,
+		"docs/gates/POST-MVP-1/vsp-s4-integrated-slice-done.md",
+	)
 	for _, criterion := range manifest.AcceptanceCriteria {
 		actualAcceptance = append(actualAcceptance, criterion.ID)
 		if len(criterion.Evidence) == 0 {
 			t.Errorf("%s has no evidence", criterion.ID)
 		}
+		if len(criterion.Anchors) == 0 {
+			t.Errorf("%s has no evidence anchors", criterion.ID)
+		}
+		var evidenceContent strings.Builder
 		for _, evidence := range criterion.Evidence {
-			_ = readArchitectureFile(t, root, evidence)
+			evidenceContent.WriteString(readArchitectureFile(t, root, evidence))
+			evidenceContent.WriteByte('\n')
+		}
+		for _, anchor := range criterion.Anchors {
+			if !strings.Contains(evidenceContent.String(), anchor) {
+				t.Errorf("%s evidence is missing anchor %q", criterion.ID, anchor)
+			}
+		}
+		if !strings.Contains(featureSpec, "| `"+criterion.ID+"` |") {
+			t.Errorf("%s is absent from the feature acceptance table", criterion.ID)
 		}
 		switch criterion.Status {
 		case "passed":
+			if !acceptanceTableContainsStatus(
+				integratedGate,
+				criterion.ID,
+				"已有自动证据",
+			) {
+				t.Errorf("%s passed but S4 aggregation disagrees", criterion.ID)
+			}
 		case "blocked":
 			allAcceptancePassed = false
+			if !acceptanceTableContainsStatus(
+				integratedGate,
+				criterion.ID,
+				"Blocked",
+			) {
+				t.Errorf("%s blocked but S4 aggregation disagrees", criterion.ID)
+			}
 		default:
 			t.Errorf("%s has invalid status %q", criterion.ID, criterion.Status)
 		}
@@ -213,6 +247,17 @@ func riskTableContainsStatus(content, id, status string) bool {
 	for _, line := range strings.Split(content, "\n") {
 		if strings.HasPrefix(line, "| "+id+" |") &&
 			strings.HasSuffix(line, "| "+status+" |") {
+			return true
+		}
+	}
+	return false
+}
+
+func acceptanceTableContainsStatus(content, id, status string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		normalized := strings.ReplaceAll(line, "**", "")
+		if strings.HasPrefix(normalized, "| `"+id+"` ") &&
+			strings.Contains(normalized, "| "+status) {
 			return true
 		}
 	}

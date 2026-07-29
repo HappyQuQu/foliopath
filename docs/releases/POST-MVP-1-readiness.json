@@ -86,6 +86,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "10 次 fast seek 和 5×2 sprite",
+        "原视频 hash 与 mtime 全程不变"
       ]
     },
     {
@@ -94,6 +98,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "grid 先完成",
+        "下一次 claim 仍为 grid"
       ]
     },
     {
@@ -102,6 +110,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "源变化、cache missing",
+        "ENOSPC 和临时文件清理"
       ]
     },
     {
@@ -111,6 +123,10 @@
         "docs/gates/POST-MVP-1/vsp-s1-contract-ready.md",
         "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "200/202/304/401/404/409/422",
+        "错误脱敏"
       ]
     },
     {
@@ -119,6 +135,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "300 ms 前不创建 decode 请求",
+        "leave、页面隐藏、组件卸载均清理"
       ]
     },
     {
@@ -127,6 +147,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "touch/粗指针、reduced-motion 与键盘焦点分支",
+        "焦点恢复回归保持通过"
       ]
     },
     {
@@ -135,6 +159,10 @@
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
         "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ],
+      "anchors": [
+        "100 个 ready 视频快速掠过时仅一个 decode/活动 interval",
+        "三端均挂载 100 项"
       ]
     },
     {
@@ -142,6 +170,10 @@
       "status": "blocked",
       "evidence": [
         "docs/gates/POST-MVP-1/vsp-302-target-platform.md"
+      ],
+      "anchors": [
+        "本 Gate 尚未签署",
+        "原生 `linux/amd64` 与 `linux/arm64`"
       ]
     }
   ],
