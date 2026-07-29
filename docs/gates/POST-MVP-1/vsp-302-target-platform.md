@@ -19,7 +19,11 @@
   cache 200→202→200 修复以及原媒体不变性；
 - `Verify paired storyboard evidence` 下载同一 workflow run 的两个 artifact，并执行
   `make verify-storyboard-evidence`，拒绝架构、commit、run、FFmpeg、fixture、布局或
-  解码像素不一致。
+  解码像素不一致，也拒绝同一 run 的不同 run attempt 被误配；
+- 校验成功后原子生成并上传
+  `storyboard-paired-evidence-<commit>/storyboard-paired-evidence.json`，聚合两个候选
+  image digest、实际架构、run/attempt、FFmpeg、fixture/layout/pixel hash、资源限制及
+  所有通过项，作为 VSP-302 可归档签署输入。
 
 目标浏览器与输入模式由同一 workflow 的 browser job 验证 Chromium、Firefox、WebKit，
 本地完整矩阵另覆盖 Chrome Stable、forced-colors、触摸/粗指针和 reduced-motion。

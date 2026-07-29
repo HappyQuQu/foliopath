@@ -374,7 +374,15 @@ jobs:
         run: |
           make verify-storyboard-evidence \
             EVIDENCE_DIR="${RUNNER_TEMP}/storyboard-evidence" \
-            RELEASE_SHA="${GITHUB_SHA}"
+            RELEASE_SHA="${GITHUB_SHA}" \
+            SUMMARY_FILE="${RUNNER_TEMP}/storyboard-paired-evidence.json"
+      - name: Upload verified paired storyboard summary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storyboard-paired-evidence-${{ github.sha }}
+          path: ${{ runner.temp }}/storyboard-paired-evidence.json
+          if-no-files-found: error
+          include-hidden-files: false
 
   release-capacity:
     name: Release capacity (${{ matrix.arch }})

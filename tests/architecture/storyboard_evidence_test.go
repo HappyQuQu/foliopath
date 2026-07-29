@@ -32,6 +32,9 @@ func TestStoryboardEvidenceRemainsPairedAcrossNativeArchitectures(t *testing.T) 
 		"actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53",
 		"merge-multiple: true",
 		"make verify-storyboard-evidence",
+		`SUMMARY_FILE="${RUNNER_TEMP}/storyboard-paired-evidence.json"`,
+		"name: Upload verified paired storyboard summary",
+		"name: storyboard-paired-evidence-${{ github.sha }}",
 	})
 	requireFragments(t, "tests/release/storyboard_vertical_smoke.sh", smoke, []string{
 		`test "${image_arch}" = "${FOLIOPATH_STORYBOARD_EXPECTED_ARCH}"`,
@@ -45,5 +48,6 @@ func TestStoryboardEvidenceRemainsPairedAcrossNativeArchitectures(t *testing.T) 
 		"verify-storyboard-evidence:",
 		`$(GO) run ./tests/release/storyboard_evidence`,
 		`-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"`,
+		`-output "$(SUMMARY_FILE)"`,
 	})
 }

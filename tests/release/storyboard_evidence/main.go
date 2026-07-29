@@ -59,60 +59,189 @@ type storyboardEvidence struct {
 	CreatedAt              string                `json:"createdAt"`
 }
 
+type candidateSummary struct {
+	Architecture   string `json:"architecture"`
+	OS             string `json:"os"`
+	ImageDigest    string `json:"imageDigest"`
+	ImageSizeBytes int64  `json:"imageSizeBytes"`
+	CreatedAt      string `json:"createdAt"`
+}
+
+type pairedEvidenceSummary struct {
+	SchemaVersion      int                   `json:"schemaVersion"`
+	Feature            string                `json:"feature"`
+	SourceCommit       string                `json:"sourceCommit"`
+	WorkflowRunID      string                `json:"workflowRunId"`
+	WorkflowRunAttempt int                   `json:"workflowRunAttempt"`
+	FFmpegVersion      string                `json:"ffmpegVersion"`
+	Fixture            fixtureEvidence       `json:"fixture"`
+	ResourceLimit      resourceLimitEvidence `json:"resourceLimit"`
+	Candidates         []candidateSummary    `json:"candidates"`
+	Checks             pairedChecks          `json:"checks"`
+	Result             string                `json:"result"`
+}
+
+type pairedChecks struct {
+	SourceCommitMatches    bool `json:"sourceCommitMatches"`
+	WorkflowRunMatches     bool `json:"workflowRunMatches"`
+	WorkflowAttemptMatches bool `json:"workflowAttemptMatches"`
+	FFmpegVersionMatches   bool `json:"ffmpegVersionMatches"`
+	FixtureMatches         bool `json:"fixtureMatches"`
+	DecodedPixelsMatch     bool `json:"decodedPixelsMatch"`
+	CacheRepairPassed      bool `json:"cacheRepairPassed"`
+	OriginalMediaUnchanged bool `json:"originalMediaUnchanged"`
+	ResourceLimitsMatch    bool `json:"resourceLimitsMatch"`
+}
+
 func main() {
 	evidenceDirectory := flag.String("dir", "", "directory containing native storyboard evidence")
 	sourceCommit := flag.String("commit", "", "source commit shared by both artifacts")
+	output := flag.String("output", "", "optional path for the verified paired evidence summary")
 	flag.Parse()
 
-	if err := verifyEvidence(*evidenceDirectory, *sourceCommit); err != nil {
+	summary, err := verifyEvidencePair(*evidenceDirectory, *sourceCommit)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	if *output != "" {
+		if err := writeSummary(*output, summary); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 	fmt.Printf("storyboard evidence verified for %s\n", *sourceCommit)
 }
 
 func verifyEvidence(directory, sourceCommit string) error {
+	_, err := verifyEvidencePair(directory, sourceCommit)
+	return err
+}
+
+func verifyEvidencePair(directory, sourceCommit string) (pairedEvidenceSummary, error) {
 	if directory == "" {
-		return errors.New("evidence directory is required")
+		return pairedEvidenceSummary{}, errors.New("evidence directory is required")
 	}
 	if !commitPattern.MatchString(sourceCommit) {
-		return fmt.Errorf("invalid source commit %q", sourceCommit)
+		return pairedEvidenceSummary{}, fmt.Errorf("invalid source commit %q", sourceCommit)
 	}
 
-	var baseline *storyboardEvidence
+	evidences := make([]storyboardEvidence, 0, 2)
 	for _, architecture := range []string{"amd64", "arm64"} {
 		path := filepath.Join(directory, "storyboard-evidence-"+architecture+".json")
 		content, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("%s evidence: %w", architecture, err)
+			return pairedEvidenceSummary{}, fmt.Errorf("%s evidence: %w", architecture, err)
 		}
 		var evidence storyboardEvidence
 		if err := json.Unmarshal(content, &evidence); err != nil {
-			return fmt.Errorf("%s evidence JSON: %w", architecture, err)
+			return pairedEvidenceSummary{}, fmt.Errorf(
+				"%s evidence JSON: %w",
+				architecture,
+				err,
+			)
 		}
 		if err := validateEvidence(evidence, architecture, sourceCommit); err != nil {
-			return fmt.Errorf("%s evidence: %w", architecture, err)
+			return pairedEvidenceSummary{}, fmt.Errorf("%s evidence: %w", architecture, err)
 		}
-		if baseline == nil {
-			baseline = &evidence
-			continue
-		}
+		evidences = append(evidences, evidence)
+	}
+
+	baseline := evidences[0]
+	for _, evidence := range evidences[1:] {
 		if evidence.WorkflowRunID != baseline.WorkflowRunID {
-			return fmt.Errorf(
+			return pairedEvidenceSummary{}, fmt.Errorf(
 				"architectures came from different workflow runs: %q and %q",
 				baseline.WorkflowRunID,
 				evidence.WorkflowRunID,
 			)
 		}
+		if evidence.WorkflowRunAttempt != baseline.WorkflowRunAttempt {
+			return pairedEvidenceSummary{}, fmt.Errorf(
+				"architectures came from different workflow run attempts: %d and %d",
+				baseline.WorkflowRunAttempt,
+				evidence.WorkflowRunAttempt,
+			)
+		}
 		if evidence.FFmpegVersion != baseline.FFmpegVersion {
-			return fmt.Errorf("FFmpeg versions differ across architectures")
+			return pairedEvidenceSummary{}, errors.New(
+				"FFmpeg versions differ across architectures",
+			)
 		}
 		if evidence.Fixture.SourceSHA256 != baseline.Fixture.SourceSHA256 {
-			return fmt.Errorf("source fixture hashes differ across architectures")
+			return pairedEvidenceSummary{}, errors.New(
+				"source fixture hashes differ across architectures",
+			)
 		}
 		if evidence.Fixture.DecodedPixelSHA256 != baseline.Fixture.DecodedPixelSHA256 {
-			return fmt.Errorf("decoded storyboard pixels differ across architectures")
+			return pairedEvidenceSummary{}, errors.New(
+				"decoded storyboard pixels differ across architectures",
+			)
 		}
+	}
+
+	candidates := make([]candidateSummary, 0, len(evidences))
+	for _, evidence := range evidences {
+		candidates = append(candidates, candidateSummary{
+			Architecture:   evidence.Architecture,
+			OS:             evidence.OS,
+			ImageDigest:    evidence.ImageDigest,
+			ImageSizeBytes: evidence.ImageSizeBytes,
+			CreatedAt:      evidence.CreatedAt,
+		})
+	}
+	return pairedEvidenceSummary{
+		SchemaVersion:      1,
+		Feature:            "FTR-VID-001",
+		SourceCommit:       sourceCommit,
+		WorkflowRunID:      baseline.WorkflowRunID,
+		WorkflowRunAttempt: baseline.WorkflowRunAttempt,
+		FFmpegVersion:      baseline.FFmpegVersion,
+		Fixture:            baseline.Fixture,
+		ResourceLimit:      baseline.ResourceLimit,
+		Candidates:         candidates,
+		Checks: pairedChecks{
+			SourceCommitMatches:    true,
+			WorkflowRunMatches:     true,
+			WorkflowAttemptMatches: true,
+			FFmpegVersionMatches:   true,
+			FixtureMatches:         true,
+			DecodedPixelsMatch:     true,
+			CacheRepairPassed:      true,
+			OriginalMediaUnchanged: true,
+			ResourceLimitsMatch:    true,
+		},
+		Result: "passed",
+	}, nil
+}
+
+func writeSummary(path string, summary pairedEvidenceSummary) error {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return fmt.Errorf("create paired summary directory: %w", err)
+	}
+	temporary, err := os.CreateTemp(directory, "."+filepath.Base(path)+".tmp-")
+	if err != nil {
+		return fmt.Errorf("create paired summary: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+
+	if err := temporary.Chmod(0o600); err != nil {
+		temporary.Close()
+		return fmt.Errorf("protect paired summary: %w", err)
+	}
+	encoder := json.NewEncoder(temporary)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(summary); err != nil {
+		temporary.Close()
+		return fmt.Errorf("encode paired summary: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return fmt.Errorf("close paired summary: %w", err)
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return fmt.Errorf("publish paired summary: %w", err)
 	}
 	return nil
 }

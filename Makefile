@@ -47,7 +47,8 @@ verify-storyboard-evidence:
 	@test -n "$(EVIDENCE_DIR)" || (echo "EVIDENCE_DIR is required" >&2; exit 2)
 	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
 	$(GO) run ./tests/release/storyboard_evidence \
-		-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"
+		-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)" \
+		-output "$(SUMMARY_FILE)"
 
 contract-check:
 	$(GO) test -count=1 ./tests/contract/...

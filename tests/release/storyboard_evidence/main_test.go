@@ -33,6 +33,53 @@ func TestVerifyEvidenceRejectsCrossArchitecturePixelDrift(t *testing.T) {
 	}
 }
 
+func TestVerifyEvidenceRejectsCrossAttemptPair(t *testing.T) {
+	directory := t.TempDir()
+	writeEvidence(t, directory, validEvidence("amd64"))
+	arm64 := validEvidence("arm64")
+	arm64.WorkflowRunAttempt = 2
+	writeEvidence(t, directory, arm64)
+
+	err := verifyEvidence(directory, testCommit)
+	if err == nil || !strings.Contains(err.Error(), "run attempts") {
+		t.Fatalf("verifyEvidence() error = %v, want run attempt drift", err)
+	}
+}
+
+func TestWriteSummaryPublishesVerifiedPair(t *testing.T) {
+	directory := t.TempDir()
+	writeEvidence(t, directory, validEvidence("amd64"))
+	writeEvidence(t, directory, validEvidence("arm64"))
+
+	summary, err := verifyEvidencePair(directory, testCommit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(t.TempDir(), "paired", "summary.json")
+	if err := writeSummary(output, summary); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded pairedEvidenceSummary
+	if err := json.Unmarshal(content, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Result != "passed" ||
+		decoded.SourceCommit != testCommit ||
+		decoded.WorkflowRunID != "123" ||
+		decoded.WorkflowRunAttempt != 1 ||
+		len(decoded.Candidates) != 2 ||
+		decoded.Candidates[0].Architecture != "amd64" ||
+		decoded.Candidates[1].Architecture != "arm64" ||
+		!decoded.Checks.WorkflowAttemptMatches ||
+		!decoded.Checks.DecodedPixelsMatch {
+		t.Fatalf("unexpected paired summary: %+v", decoded)
+	}
+}
+
 func TestValidateEvidenceRejectsIncompleteCacheRepair(t *testing.T) {
 	evidence := validEvidence("amd64")
 	evidence.CacheRepair.MissingStatus = 200
