@@ -3,7 +3,7 @@
 ## 文档状态
 
 - Feature ID：`FTR-VID-001`
-- 状态：Contract Ready；后端实现进行中，产品前端尚未获准
+- 状态：VSP-301 Product Vertical Done；目标双架构候选复验中
 - Change Record：[CR-2026-004](../changes/CR-2026-004-video-storyboard-preview.md)
 - 需求：`FR-MED-009～011`、`FR-UI-008`
 - 验收：`VSP-AC-001～008`
@@ -13,8 +13,8 @@
 - 架构负责人：FolioPath maintainers
 - Capability Owner：`internal/thumbnail`
 - 交互 Owner：共享 `web/src/components/patterns/MediaCollection`
-- 当前获准范围：[VSP-S1 Contract Ready](../gates/POST-MVP-1/vsp-s1-contract-ready.md)
-  已 Go，允许 `VSP-106～113` 后端实现与证据；S2 前不得实现产品业务 UI
+- 当前获准范围：[VSP-S3 Consumer/UI Ready](../gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)
+  已 Go，允许 `VSP-301～304` 完成真实纵向 E2E、目标平台复验与版本交付
 
 本 feature 是当前冻结 MVP 之后的新增能力。它不进入 `MVP-2026-07-23`，不改变当前
 Release Candidate 的范围或结论。
@@ -52,7 +52,7 @@ Release Candidate 的范围或结论。
 
 - 现有 MP4、MOV、MKV 视频格式；
 - `duration_ms >= 2000` 且 probe 成功的视频；
-- 每个视频 4～10 个均匀采样画面；
+- 每个视频按已冻结时长档生成 4 或 10 个均匀采样画面；
 - 单个 WebP sprite 交付；
 - 后台 durable job、重启恢复、取消、有限重试、源变化失效；
 - 统一缓存配额和 LRU；
@@ -115,27 +115,26 @@ Release Candidate 的范围或结论。
 
 ### 帧数
 
-设视频时长秒数为 `D`：
+Contract Ready 已根据 spike 将首版收敛为两个有界档位。设视频时长毫秒数为 `D`：
 
 ```text
-D < 2          → 不生成 storyboard
-2 <= D < 10    → clamp(floor(D), 4, 9) 帧
-D >= 10        → 10 帧
+D < 2,000             → 不生成 storyboard
+2,000 <= D < 5,000    → 4 帧
+D >= 5,000            → 10 帧
 ```
 
-这意味着 2～3.999 秒视频生成 4 帧，4～9.999 秒视频生成 4～9 帧，10 秒及以上生成
-10 帧。Contract Ready 可以在 spike 证据下调整阈值，但一旦写入 OpenAPI/transform
-version，不得在同一 transform version 中静默改变。
+首版 ready layout 的 `frameCount` 因此只能是 4 或 10。该规则已经写入
+OpenAPI、capability 和 transform version，不得在同一 transform version 中静默改变。
 
 ### 时间点
 
-把视频中间 90% 划分为 `N` 段，每帧位于对应段的中点：
+把时长划分为 `N + 1` 个间隔，取内部的 `N` 个等分点：
 
 ```text
-t(i) = D × (0.05 + 0.90 × (i + 0.5) / N), i = 0..N-1
+t(i) = floor(D × (i + 1) / (N + 1)), i = 0..N-1
 ```
 
-规则避免直接取 0% 和 100%，降低片头/片尾黑屏概率。实现必须 seek 到目标时间并解码目标
+规则不取 0% 和 100% 端点。实现必须 seek 到目标时间并解码目标
 附近画面，不能使用会从头到尾完整解码长视频的无界 `fps + tile` 流程。
 
 ### 输出
@@ -334,7 +333,7 @@ Architecture/Contract Ready 必须用可重复 spike 固定数值，至少记录
 
 | ID | 验收结果 |
 | --- | --- |
-| `VSP-AC-001` | 支持视频在 poster 可用后最终生成符合采样合同的 4～10 帧 WebP sprite；原视频字节、mtime 和路径不变。 |
+| `VSP-AC-001` | 支持视频在 poster 可用后最终生成符合采样合同的 4 或 10 帧 WebP sprite；原视频字节、mtime 和路径不变。 |
 | `VSP-AC-002` | grid/poster 优先于 storyboard；storyboard backfill、失败或重启不会阻塞扫描、浏览、搜索和原视频 Range 播放。 |
 | `VSP-AC-003` | 源指纹变化、取消、进程终止、缓存丢失和 ENOSPC 不会发布半成品或让旧任务覆盖新源，并能安全收敛。 |
 | `VSP-AC-004` | 认证 API 的 ready/pending/offline/failed/304 响应与 OpenAPI 一致，不暴露路径或工具输出，请求线程不运行 FFmpeg。 |
@@ -364,10 +363,12 @@ VSP-S0 Architecture Ready
 
 详细执行项见[开发任务清单](video-storyboard-preview-task-list.md)。
 
-截至 2026-07-29，`VSP-106` 已完成；migration 11、SQLite variant/priority/admission、
-FFmpeg fast-seek sprite adapter、durable worker dispatch 和 authenticated API/DTO 主链路已经
-实现并通过相关 Go 测试。`VSP-107～110` 仍保持进行中，直到真实目标镜像、完整恢复/安全矩阵
-和容量证据满足 `VSP-S2 Backend Evidence Ready`；本状态不授权产品前端。
+截至 2026-07-29，`VSP-S2 Backend Evidence Ready` 与
+`VSP-S3 Consumer/UI Ready` 均已 Go。生产 FFmpeg、durable backend、认证 API、生成
+client、唯一 availability adapter 和共享 hover/sprite controller 已实现；
+[VSP-301](../gates/POST-MVP-1/vsp-301-product-vertical.md) 又在真实生产镜像中贯通登录、
+扫描、浏览/搜索 hover、预览/焦点恢复与 cache repair。下一步必须完成 `VSP-302～304`
+的目标平台复验和版本收敛，只有 `VSP-S4` Go 才能宣称 feature 完成。
 
 ## 文档同步矩阵
 

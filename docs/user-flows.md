@@ -171,7 +171,8 @@ MVP 不提供移动端滑动切换或下滑关闭，始终使用可见按钮完�
 
 ### Post-MVP：视频故事板悬停预览
 
-该流程由 [FTR-VID-001](features/video-storyboard-preview.md)确认，但不属于冻结 MVP：
+该流程由 [FTR-VID-001](features/video-storyboard-preview.md)确认，并已通过
+`VSP-S3 Consumer/UI Ready`；它仍不属于冻结 MVP，完整交付由 `VSP-S4` 阻断：
 
 1. 视频卡片默认继续显示现有 poster，列表不会预先下载全部 storyboard。
 2. 在支持 hover 的桌面精细指针上，指针停留同一卡片 `300ms` 后才加载 ready sprite；

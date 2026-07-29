@@ -26,6 +26,16 @@ function page(status: "pending" | "ready" | "failed" | "unavailable"): AssetPage
         relativePath: "test.jpg",
         sizeBytes: 512,
         sourceAvailability: "available",
+        storyboard: {
+          cellHeight: null,
+          cellWidth: null,
+          columns: null,
+          errorCode: null,
+          frameCount: null,
+          rows: null,
+          status: "not_applicable",
+          url: null,
+        },
         thumbnail: {
           errorCode: status === "failed" ? "thumbnail_failed" : null,
           status,
@@ -49,6 +59,11 @@ it("polls only while at least one indexed thumbnail remains pending", () => {
     false,
   );
   expect(pendingThumbnailRefreshInterval(undefined)).toBe(false);
+  const storyboardPending = page("ready");
+  storyboardPending.items[0]!.storyboard.status = "pending";
+  expect(pendingThumbnailRefreshInterval([storyboardPending])).toBe(
+    pendingThumbnailRefreshMs,
+  );
 });
 
 it("stops periodic page refetches before a large collection can create a request storm", () => {

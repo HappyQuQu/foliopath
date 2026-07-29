@@ -165,15 +165,15 @@ handler 不接收缓存路径、不访问 SQLite/文件系统，也不调用媒�
 
 ### Post-MVP 视频故事板处理
 
-[FTR-VID-001](features/video-storyboard-preview.md)不新增信任边界，但会把一次 poster 抽取
-扩展为最多 10 个目标时间点的派生处理，因此必须在 `VSP-S0/S1` 重新固定总 job 超时、
+[FTR-VID-001](features/video-storyboard-preview.md)不新增信任边界，但把一次 poster 抽取
+扩展为最多 10 个目标时间点的派生处理。`VSP-S1/S2` 已固定并验证总 job 超时、
 seek/输出上限、峰值 RSS、worker 优先级和 backfill admission。它继续使用
 `internal/files` 的锚定只读 FD、参数数组、单 decoder/filter thread、进程组取消、原子缓存
 发布、认证 delivery 和错误脱敏。不得用完整顺序解码长视频、API 线程现场生成、任意路径或
 更高无界并发实现故事板。
 
-在对应 Backend Gate 通过前，本节只是 `Post-MVP/1` 威胁与验证要求，不改变 MVP 已验证的
-15 秒 poster 预算或当前生产处理行为。
+`VSP-S2 Backend Evidence Ready` 已 Go；本节仍不改变 MVP 已验证的 15 秒 poster 预算，
+完整 feature 发布继续由 `VSP-S4` 阻断。
 
 ## 容器和持久数据
 

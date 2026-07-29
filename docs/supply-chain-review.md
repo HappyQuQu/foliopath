@@ -57,7 +57,10 @@ copyright；全部 jobs 已通过，构成 S0-108 的正式证据。
 该复审升级了 Go、`x/image` 和 Debian 候选基础，并把确定性生产候选 SPDX、固定
 digest Trivy、双架构第三方许可证 notices 与 artifact 接入 CI；S5-007C/D/E/F 又以
 固定源码构建、可由 SBOM 识别并保留许可证的
-`foliopath-libvips` 8.16.1-1 与 `foliopath-ffmpeg` 7.1.5-1 替换通用媒体闭包。
+`foliopath-libvips` 8.16.1-1 与 `foliopath-ffmpeg` 7.1.5-2 替换通用媒体闭包。FFmpeg
+7.1.5-2 在原视频 probe/poster allowlist 上追加 storyboard 所需的 PNG 编解码、`image2`
+demuxer、`setsar` 与 `xstack`，并显式链接 PNG 编解码所需的 zlib；它仍禁用网络和
+自动探测，不扩大支持的原媒体格式。
 最终 FFmpeg 构建关闭 GPL/x264 和网络，许可证为 LGPL 2.1+；内建 readiness probe
 同时替换了生产 curl 闭包；固定 digest 的无 shell distroless final stage 保留实际运行
 包的 `status.d` 元数据。候选流程还会生成绑定不可变镜像 digest、干净 Git commit、

@@ -113,7 +113,7 @@ RUN mkdir -p /src/vips \
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS ffmpeg
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       build-essential libwebp-dev nasm pkg-config \
+       build-essential libwebp-dev nasm pkg-config zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 ADD --checksum=sha256:e3963a50831c985933e1a625ed566ec4c7adb5c012c34fa9f84438e1d61bdacc \
     https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.5.tar.gz \
@@ -132,12 +132,13 @@ RUN mkdir -p /src/ffmpeg \
        --enable-ffmpeg \
        --enable-ffprobe \
        --enable-libwebp \
+       --enable-zlib \
        --enable-protocol=file,pipe \
-       --enable-demuxer=mov,matroska \
-       --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,gif,ffv1,vp8,vp9,av1,prores,mpeg1video,mpeg2video,theora,vc1 \
+       --enable-demuxer=mov,matroska,image2 \
+       --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png,gif,ffv1,vp8,vp9,av1,prores,mpeg1video,mpeg2video,theora,vc1 \
        --enable-parser=h264,hevc,mpeg4video,mpegvideo,vp8,vp9,av1 \
-       --enable-filter=scale \
-       --enable-encoder=libwebp \
+       --enable-filter=scale,setsar,xstack \
+       --enable-encoder=libwebp,png \
        --enable-muxer=image2pipe \
     && make -j"$(nproc)" \
     && make install \
@@ -155,16 +156,16 @@ RUN mkdir -p /src/ffmpeg \
     && architecture=$(dpkg --print-architecture) \
     && printf '%s\n' \
        'Package: foliopath-ffmpeg' \
-       'Version: 7.1.5-1' \
+       'Version: 7.1.5-2' \
        "Architecture: ${architecture}" \
        'Maintainer: FolioPath release tooling' \
        'Homepage: https://ffmpeg.org/' \
-       'Depends: libc6, libwebp7' \
+       'Depends: libc6, libwebp7, zlib1g' \
        'Description: FolioPath minimal FFmpeg runtime' \
        ' Fixed-source FFmpeg build limited to the MVP video processing contract.' \
        >/pkg/DEBIAN/control \
     && dpkg-deb --build --root-owner-group \
-       /pkg /foliopath-ffmpeg_7.1.5-1.deb
+       /pkg /foliopath-ffmpeg_7.1.5-2.deb
 
 FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
 ARG VERSION=stage5-candidate
@@ -199,7 +200,7 @@ RUN apt-get update \
        libwebpmux3 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=vips /foliopath-libvips_8.16.1-1.deb /tmp/foliopath-libvips.deb
-COPY --from=ffmpeg /foliopath-ffmpeg_7.1.5-1.deb /tmp/foliopath-ffmpeg.deb
+COPY --from=ffmpeg /foliopath-ffmpeg_7.1.5-2.deb /tmp/foliopath-ffmpeg.deb
 COPY --from=expat /foliopath-expat_2.8.2-1.deb /tmp/foliopath-expat.deb
 RUN dpkg --auto-deconfigure --install \
        /tmp/foliopath-expat.deb \
@@ -224,7 +225,8 @@ RUN set -eu; \
       libsharpyuv0 \
       libwebp7 \
       libwebpdemux2 \
-      libwebpmux3; do \
+      libwebpmux3 \
+      zlib1g; do \
         dpkg-query --status "${package}" \
           >"/rootfs/var/lib/dpkg/status.d/${package}"; \
         dpkg-query --listfiles "${package}" | while IFS= read -r path; do \

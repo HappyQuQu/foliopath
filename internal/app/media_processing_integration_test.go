@@ -18,7 +18,9 @@ import (
 )
 
 type processingStub struct {
-	result media.ProcessingResult
+	result            media.ProcessingResult
+	storyboardBytes   []byte
+	storyboardFailure error
 }
 
 func TestMediaWorkerLifecycleClaimsAndCompletesDurableJob(t *testing.T) {
@@ -154,12 +156,25 @@ func (stub processingStub) Process(
 }
 
 func (stub processingStub) Storyboard(
-	context.Context,
-	io.ReadSeeker,
-	media.Format,
-	media.StoryboardRequest,
+	_ context.Context,
+	_ io.ReadSeeker,
+	_ media.Format,
+	request media.StoryboardRequest,
 ) (media.StoryboardResult, error) {
-	return media.StoryboardResult{}, media.ErrProcessingFailed
+	if stub.storyboardFailure != nil {
+		return media.StoryboardResult{}, stub.storyboardFailure
+	}
+	if len(stub.storyboardBytes) == 0 {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	return media.StoryboardResult{
+		Bytes:      stub.storyboardBytes,
+		FrameCount: len(request.TimestampsMS),
+		Columns:    request.Columns,
+		Rows:       request.Rows,
+		CellWidth:  request.CellWidth,
+		CellHeight: request.CellHeight,
+	}, nil
 }
 
 func TestMediaDerivationCompositionPreservesOriginalAndPublishesBeforeReady(t *testing.T) {
@@ -264,5 +279,197 @@ func TestMediaDerivationCompositionPreservesOriginalAndPublishesBeforeReady(t *t
 	}
 	if string(cached) != "synthetic-webp" {
 		t.Fatalf("cached bytes = %q", cached)
+	}
+}
+
+func TestStoryboardWorkerRunsAfterGridAndPublishesIndependentReadyState(t *testing.T) {
+	mediaRoot := t.TempDir()
+	dataRoot := t.TempDir()
+	original := []byte("synthetic immutable video original")
+	videoPath := filepath.Join(mediaRoot, "family", "clip.mp4")
+	writeRuntimeFixture(t, mediaRoot, "family/clip.mp4", string(original))
+	before, err := os.Stat(videoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	libraryID := seedRuntimeLibrary(t, dataRoot, mediaRoot)
+
+	databaseComponent, database := newDatabaseComponent(
+		dataRoot, newReadinessState(),
+	)
+	if err := databaseComponent.start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer databaseComponent.stop(context.Background())
+	source, mediaRootComponent, err := newMediaRootService(mediaRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mediaRootComponent.start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer mediaRootComponent.stop(context.Background())
+	publisher, err := cachefs.New(filepath.Join(dataRoot, "cache"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cacheManager, err := thumbnail.NewCacheManager(database, publisher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	durationMS := int64(10_000)
+	videoResult := media.ProcessingResult{
+		Metadata: media.Metadata{
+			Width:          1920,
+			Height:         1080,
+			DurationMS:     &durationMS,
+			PlaybackStatus: media.PlaybackPlayable,
+		},
+		Thumbnail: media.Thumbnail{
+			Bytes: []byte("grid-webp"),
+			Width: 320, Height: 180,
+		},
+	}
+	gridService, err := thumbnail.NewService(
+		database,
+		source,
+		publisher,
+		cacheManager,
+		processingStub{},
+		processingStub{result: videoResult},
+		thumbnail.ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storyboardBytes := []byte("RIFFxxxxWEBP")
+	storyboardService, err := thumbnail.NewStoryboardService(
+		database,
+		source,
+		publisher,
+		cacheManager,
+		processingStub{storyboardBytes: storyboardBytes},
+		thumbnail.ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	processor, err := thumbnail.NewClaimedProcessor(
+		gridService,
+		storyboardService,
+		database,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaSignal := jobs.NewSignal()
+	cacheSignal := jobs.NewSignal()
+	worker, err := jobs.NewWorkerPool(
+		mediaJobQueue{database: database},
+		processor,
+		mediaSignal,
+		jobs.WorkerOptions{
+			Workers:           2,
+			HeartbeatInterval: 20 * time.Millisecond,
+			LeaseDuration:     200 * time.Millisecond,
+			IdlePollInterval:  10 * time.Millisecond,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	component, err := newMediaWorkerComponent(worker, cacheManager, cacheSignal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := component.start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer component.stop(context.Background())
+
+	inspector, err := sql.Open(
+		"sqlite", filepath.Join(dataRoot, databaseFilename),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer inspector.Close()
+	var cacheRelative string
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		var jobStatus, derivedStatus, gridStatus string
+		var frameCount, columns, rows, cellWidth, cellHeight int
+		err = inspector.QueryRow(`
+            SELECT job.status, storyboard.status, grid.status,
+                   storyboard.frame_count, storyboard.sprite_columns,
+                   storyboard.sprite_rows, storyboard.cell_width,
+                   storyboard.cell_height, storyboard.cache_rel_path
+            FROM assets AS asset
+            JOIN media_jobs AS job
+              ON job.asset_id = asset.id AND job.variant = 'storyboard'
+            JOIN thumbnails AS storyboard
+              ON storyboard.asset_id = asset.id
+             AND storyboard.variant = 'storyboard'
+            JOIN thumbnails AS grid
+              ON grid.asset_id = asset.id AND grid.variant = 'grid'
+            WHERE asset.library_id = ? AND asset.relative_path = 'clip.mp4'`,
+			libraryID,
+		).Scan(
+			&jobStatus,
+			&derivedStatus,
+			&gridStatus,
+			&frameCount,
+			&columns,
+			&rows,
+			&cellWidth,
+			&cellHeight,
+			&cacheRelative,
+		)
+		if err == nil && jobStatus == "succeeded" &&
+			derivedStatus == "ready" {
+			if gridStatus != "ready" ||
+				frameCount != 10 || columns != 5 || rows != 2 ||
+				cellWidth != 320 || cellHeight != 180 {
+				t.Fatalf(
+					"storyboard state = job %q derived %q grid %q layout %d/%dx%d/%dx%d",
+					jobStatus,
+					derivedStatus,
+					gridStatus,
+					frameCount,
+					columns,
+					rows,
+					cellWidth,
+					cellHeight,
+				)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("storyboard did not become ready: %v", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	afterBytes, err := os.ReadFile(videoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.Stat(videoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(afterBytes, original) ||
+		before.Size() != after.Size() ||
+		!before.ModTime().Equal(after.ModTime()) {
+		t.Fatal("storyboard processing modified the original video")
+	}
+	cached, err := os.ReadFile(
+		filepath.Join(dataRoot, "cache", filepath.FromSlash(cacheRelative)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(cached, storyboardBytes) {
+		t.Fatalf("cached storyboard bytes = %q", cached)
 	}
 }

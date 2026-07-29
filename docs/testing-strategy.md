@@ -330,10 +330,21 @@ stale cleanup 级联删除另一媒体库或当前代次条目。
 优先级/公平/重启、source fingerprint CAS、原子发布、ENOSPC、cache missing、认证 HTTP、
 原件 hash/mtime 不变和目标容量 backfill。
 
-`VSP-S2 Backend Evidence Ready` 后，前端证据覆盖生成 client、300ms hover intent、
-4～10 帧布局、decode failure、同页单活动动画、虚拟回收、页面隐藏、touch/键盘/
-reduced-motion、grid/masonry、axe、浅/深主题和 Chromium/Firefox/WebKit。真实纵向 E2E
-必须从扫描/poster/storyboard ready 贯通浏览和搜索，不能用静态 mock 替代后端状态。
+2026-07-29 的
+[VSP-S2 Backend Evidence Ready](gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)
+已通过双架构生产 FFmpeg、真实认证生产镜像纵向链、cache repair、故障矩阵，以及
+Linux 四核/4 GiB 的 100k/10k、10% 视频档。随后
+[VSP-S3 Consumer/UI Ready](gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)已覆盖生成
+client、300ms hover intent、4/10 帧布局、decode failure、同页单活动动画、虚拟回收、
+页面隐藏、touch/键盘/reduced-motion、grid/masonry、组件工作台、forced-colors 和
+Chromium/Firefox/WebKit，并以 100-video 三引擎档验证活动数、FPS 与 RSS。
+[VSP-301 真实产品纵向链](gates/POST-MVP-1/vsp-301-product-vertical.md)随后以生产镜像从
+扫描/poster/storyboard ready 贯通真实登录、浏览与搜索 hover、预览焦点恢复和 cache
+202→200。[VSP-302 目标平台与资源复验](gates/POST-MVP-1/vsp-302-target-platform.md)
+已经建立原生 amd64/arm64 candidate jobs、结构化 artifact 与
+`make verify-storyboard-evidence` 成对校验；它会拒绝 source commit、实际架构、FFmpeg、
+fixture、5×2/10 帧布局、decoded pixel hash、cache repair 或资源限制漂移。Gate 必须等
+同一提交的原生 workflow 实际成功后才能签署。
 
 ## 安全验证
 

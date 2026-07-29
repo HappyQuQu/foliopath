@@ -8,12 +8,14 @@
   --color-surface-hover: rgb(0 0 0 / 0.06);
   --color-glass: rgb(255 255 255 / 0.78);
   --color-text: #1d1d1f;
-  --color-text-muted: #86868b;
-  --color-text-tertiary: #aeaeb2;
+  --color-text-muted: #6e6e73;
+  --color-text-tertiary: #6e6e73;
   --color-border: rgb(0 0 0 / 0.08);
   --color-border-strong: #d1d1d6;
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
+  --color-accent: #0066cc;
+  --color-accent-hover: #005bb5;
+  --color-accent-fill: #0066cc;
+  --color-accent-fill-hover: #005bb5;
   --color-accent-soft: rgb(0 113 227 / 0.08);
   --color-on-accent: #ffffff;
   --color-danger: #ff3b30;
@@ -21,7 +23,7 @@
   --color-danger-soft: rgb(255 59 48 / 0.08);
   --color-success: #248a3d;
   --color-success-soft: rgb(52 199 89 / 0.1);
-  --color-warning: #c65d00;
+  --color-warning: #984b00;
   --color-warning-soft: rgb(255 149 0 / 0.1);
   --color-focus: #007aff;
   --color-scrim: rgb(0 0 0 / 0.4);
@@ -51,11 +53,13 @@
   --color-glass: rgb(28 28 30 / 0.78);
   --color-text: #f5f5f7;
   --color-text-muted: #98989d;
-  --color-text-tertiary: #636366;
+  --color-text-tertiary: #98989d;
   --color-border: rgb(255 255 255 / 0.08);
   --color-border-strong: #48484a;
   --color-accent: #0a84ff;
   --color-accent-hover: #409cff;
+  --color-accent-fill: #0066cc;
+  --color-accent-fill-hover: #005bb5;
   --color-accent-soft: rgb(10 132 255 / 0.12);
   --color-on-accent: #ffffff;
   --color-danger: #ff453a;
@@ -97,6 +101,8 @@
 @media (forced-colors: active) {
   :root {
     --color-accent: Highlight;
+    --color-accent-fill: Highlight;
+    --color-accent-fill-hover: Highlight;
     --color-on-accent: HighlightText;
     --color-focus: Highlight;
   }

@@ -37,6 +37,16 @@ const photo = (id: string, libraryId = "lib_family"): Asset => ({
   relativePath: `旅行/${id}.jpg`,
   sizeBytes: 1024,
   sourceAvailability: "available",
+  storyboard: {
+    cellHeight: null,
+    cellWidth: null,
+    columns: null,
+    errorCode: null,
+    frameCount: null,
+    rows: null,
+    status: "not_applicable",
+    url: null,
+  },
   thumbnail: { errorCode: null, status: "ready", url: "/thumbnail" },
   width: 1200,
 });

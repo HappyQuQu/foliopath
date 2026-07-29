@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:capacity": "node scripts/measure-capacity.mjs",
+    "test:storyboard-capacity": "node scripts/measure-storyboard-capacity.mjs",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
     "generate:api": "node scripts/generate-api.mjs",

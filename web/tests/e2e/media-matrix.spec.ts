@@ -160,6 +160,63 @@ test("mobile touch controls keep the viewer and recovery action reachable", asyn
   await expectNoSeriousAxeViolations(page);
 });
 
+test("storyboard hover is lazy, bounded, and input-mode aware", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name === "visual-chromium",
+    "The reduced-motion visual project owns a separate screenshot baseline.",
+  );
+  let storyboardRequests = 0;
+  await mockStoryboardBrowseBackend(page, () => {
+    storyboardRequests += 1;
+  });
+
+  await page.goto(`/libraries/${libraryId}/browse`);
+  const card = page.getByRole("article", {
+    name: "storyboard-video.mp4 · Video",
+  });
+  await expect(card).toBeVisible();
+  expect(storyboardRequests).toBe(0);
+
+  if (testInfo.project.name === "mobile-chromium") {
+    await card.tap();
+    await page.waitForTimeout(400);
+    expect(storyboardRequests).toBe(0);
+    await expect(card).not.toHaveAttribute("data-storyboard-playing");
+    return;
+  }
+
+  await card.hover();
+  await page.waitForTimeout(200);
+  expect(storyboardRequests).toBe(0);
+  await expect.poll(() => storyboardRequests).toBeGreaterThan(0);
+  await expect(card).toHaveAttribute("data-storyboard-playing", "true");
+  expect(storyboardRequests).toBeLessThanOrEqual(2);
+  const requestsAfterDecode = storyboardRequests;
+  const sprite = card.locator('[src*="variant=storyboard"]');
+  await expect(sprite).toBeVisible();
+  await expect
+    .poll(() => sprite.evaluate((element) => element.getAttribute("style")))
+    .toContain("--storyboard-x:");
+
+  await page.locator("header").hover();
+  await expect(card).not.toHaveAttribute("data-storyboard-playing");
+  await expect(sprite).toHaveCount(0);
+  expect(storyboardRequests).toBe(requestsAfterDecode);
+
+  storyboardRequests = 0;
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  const reducedCard = page.getByRole("article", {
+    name: "storyboard-video.mp4 · Video",
+  });
+  await reducedCard.hover();
+  await page.waitForTimeout(400);
+  expect(storyboardRequests).toBe(0);
+  await expect(reducedCard).not.toHaveAttribute("data-storyboard-playing");
+});
+
 async function mockViewerBackend(page: Page, rangeRequests: string[]) {
   await page.route("**/health/ready", async (route) => {
     await route.fulfill({
@@ -251,6 +308,16 @@ function assetFixture(assetId: string) {
     relativePath: `matrix/${assetId}`,
     sizeBytes: videoBytes.byteLength,
     sourceAvailability: offline ? "offline" : "available",
+    storyboard: {
+      cellHeight: null,
+      cellWidth: null,
+      columns: null,
+      errorCode: null,
+      frameCount: null,
+      rows: null,
+      status: "not_applicable",
+      url: null,
+    },
     thumbnail:
       assetId === "video_range"
         ? {
@@ -261,6 +328,114 @@ function assetFixture(assetId: string) {
         : { errorCode: null, status: "unavailable", url: null },
     width: video ? 320 : 1,
   };
+}
+
+async function mockStoryboardBrowseBackend(
+  page: Page,
+  onStoryboardRequest: () => void,
+) {
+  await mockViewerBackend(page, []);
+  const library = {
+    assetCount: 1,
+    directoryCount: 0,
+    displayPath: "/library/matrix",
+    id: libraryId,
+    lastSuccessfulScanAt: "2026-07-28T00:00:00Z",
+    latestScanId: "scan_matrix",
+    name: "Media matrix",
+    status: "ready",
+  };
+  await page.route("**/api/v1/libraries?*", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [library], nextCursor: null }),
+    });
+  });
+  await page.route(
+    new RegExp(`/api/v1/libraries/${libraryId}$`),
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        headers: { ETag: '"library-matrix"' },
+        body: JSON.stringify(library),
+      });
+    },
+  );
+  await page.route(
+    new RegExp(`/api/v1/libraries/${libraryId}/directories`),
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ items: [], nextCursor: null }),
+      });
+    },
+  );
+  await page.route(
+    new RegExp(`/api/v1/libraries/${libraryId}/assets`),
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          items: [
+            {
+              directoryId: "dir_matrix",
+              durationMs: 60_000,
+              height: 1080,
+              id: "video_storyboard",
+              kind: "video",
+              libraryId,
+              libraryName: "Media matrix",
+              mimeType: "video/mp4",
+              modifiedAt: "2026-07-28T00:00:00Z",
+              name: "storyboard-video.mp4",
+              playbackStatus: "playable",
+              probeStatus: "ready",
+              relativePath: "storyboard-video.mp4",
+              sizeBytes: videoBytes.byteLength,
+              sourceAvailability: "available",
+              storyboard: {
+                cellHeight: 180,
+                cellWidth: 320,
+                columns: 5,
+                errorCode: null,
+                frameCount: 10,
+                rows: 2,
+                status: "ready",
+                url: "/api/v1/assets/video_storyboard/thumbnail?variant=storyboard",
+              },
+              thumbnail: {
+                errorCode: null,
+                status: "ready",
+                url: "/api/v1/assets/video_storyboard/thumbnail",
+              },
+              width: 1920,
+            },
+          ],
+          nextCursor: null,
+        }),
+      });
+    },
+  );
+  await page.route(
+    "**/api/v1/assets/video_storyboard/thumbnail",
+    async (route) => {
+      await route.fulfill({ contentType: "image/png", body: imageBytes });
+    },
+  );
+  await page.route(
+    "**/api/v1/assets/video_storyboard/thumbnail?variant=storyboard",
+    async (route) => {
+      onStoryboardRequest();
+      await route.fulfill({
+        contentType: "image/png",
+        headers: {
+          "Cache-Control": "private, max-age=31536000, immutable",
+          ETag: '"storyboard-matrix"',
+        },
+        body: imageBytes,
+      });
+    },
+  );
 }
 
 async function fulfillRange(route: Route, rangeRequests: string[]) {

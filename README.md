@@ -91,6 +91,14 @@ FolioPath 的基本理念是：
 
 这些方向若进入后续版本，需要独立的范围变更、架构评估和发布证据。
 
+### 正在开发的 Post-MVP/1 能力
+
+视频故事板悬停预览已完成后端与 Consumer/UI Ready Gate：支持视频会在 poster 后以低优先级
+生成 4 或 10 帧 WebP sprite；桌面精细指针停留 300ms 后按 500ms/帧预览，触摸、键盘焦点
+和 reduced-motion 保持 poster。该能力仍在真实纵向集成与双架构候选复验阶段，不属于当前
+MVP 候选，也未获准作为稳定功能发布。当前生产镜像纵向链已贯通，剩余阻断是同一最终
+源码状态的原生 linux/amd64 与 linux/arm64 候选复验及 Integrated Done Gate。
+
 ## 产品界面
 
 <table>

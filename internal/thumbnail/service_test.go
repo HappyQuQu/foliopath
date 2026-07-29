@@ -72,16 +72,23 @@ type storyboardProcessorStub struct {
 	request media.StoryboardRequest
 	err     error
 	calls   int
+	run     func(
+		context.Context,
+		media.StoryboardRequest,
+	) (media.StoryboardResult, error)
 }
 
 func (stub *storyboardProcessorStub) Storyboard(
-	_ context.Context,
+	ctx context.Context,
 	_ io.ReadSeeker,
 	_ media.Format,
 	request media.StoryboardRequest,
 ) (media.StoryboardResult, error) {
 	stub.calls++
 	stub.request = request
+	if stub.run != nil {
+		return stub.run(ctx, request)
+	}
 	return stub.result, stub.err
 }
 
@@ -316,6 +323,150 @@ func TestStoryboardServiceRejectsIneligibleAndPersistsProcessingFailure(t *testi
 		repository.storyboardFailure.Code != media.ErrorInvalidMedia {
 		t.Fatalf("storyboard failure = %#v", repository.storyboardFailure)
 	}
+}
+
+func TestStoryboardServiceFailsClosedAcrossCancellationInvalidOutputAndENOSPC(
+	t *testing.T,
+) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	duration := int64(10_000)
+	asset := Asset{
+		ID: 9, LibraryID: 7, LibraryRoot: "family",
+		RelativePath: "clip.mp4", Kind: media.KindVideo,
+		Format: media.FormatMP4, SourceFingerprint: fingerprint,
+		Width: 1920, Height: 1080, DurationMS: &duration,
+		ProbeStatus: media.ProbeReady, GridReady: true,
+	}
+	source := sourceStub{file: sourceFileStub{
+		Reader: bytes.NewReader([]byte("source")),
+		info:   fileInfoStub{size: 6, mtime: mtime},
+	}}
+	validResult := func(request media.StoryboardRequest) media.StoryboardResult {
+		return media.StoryboardResult{
+			Bytes:      []byte("RIFF\x04\x00\x00\x00WEBP"),
+			FrameCount: len(request.TimestampsMS),
+			Columns:    request.Columns,
+			Rows:       request.Rows,
+			CellWidth:  request.CellWidth,
+			CellHeight: request.CellHeight,
+		}
+	}
+
+	t.Run("cancellation after native processing", func(t *testing.T) {
+		repository := &repositoryStub{asset: asset}
+		publisher := &publisherStub{}
+		ctx, cancel := context.WithCancel(context.Background())
+		processor := &storyboardProcessorStub{run: func(
+			_ context.Context,
+			request media.StoryboardRequest,
+		) (media.StoryboardResult, error) {
+			cancel()
+			return validResult(request), nil
+		}}
+		service, err := NewStoryboardService(
+			repository,
+			source,
+			publisher,
+			&capacityStub{},
+			processor,
+			ServiceOptions{},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := service.Process(ctx, 9); !errors.Is(err, context.Canceled) {
+			t.Fatalf("cancelled storyboard error = %v", err)
+		}
+		if publisher.calls != 0 ||
+			repository.storyboardReady != nil ||
+			repository.storyboardFailure != nil {
+			t.Fatalf(
+				"cancelled storyboard published/committed = %d/%#v/%#v",
+				publisher.calls,
+				repository.storyboardReady,
+				repository.storyboardFailure,
+			)
+		}
+	})
+
+	t.Run("invalid sprite", func(t *testing.T) {
+		repository := &repositoryStub{asset: asset}
+		publisher := &publisherStub{}
+		processor := &storyboardProcessorStub{run: func(
+			_ context.Context,
+			request media.StoryboardRequest,
+		) (media.StoryboardResult, error) {
+			result := validResult(request)
+			result.Bytes = []byte("not-webp")
+			return result, nil
+		}}
+		service, err := NewStoryboardService(
+			repository,
+			source,
+			publisher,
+			&capacityStub{},
+			processor,
+			ServiceOptions{},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := service.Process(
+			context.Background(),
+			9,
+		); !errors.Is(err, ErrInvalidState) {
+			t.Fatalf("invalid storyboard output error = %v", err)
+		}
+		if publisher.calls != 0 ||
+			repository.storyboardReady != nil ||
+			repository.storyboardFailure != nil {
+			t.Fatal("invalid storyboard output became visible")
+		}
+	})
+
+	t.Run("cache publication ENOSPC", func(t *testing.T) {
+		repository := &repositoryStub{asset: asset}
+		derivation, err := StoryboardDerivation(7, 9, fingerprint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cachePath, err := derivation.CacheRelativePath()
+		if err != nil {
+			t.Fatal(err)
+		}
+		publisher := &publisherStub{
+			published: Published{CacheRelativePath: cachePath},
+			err:       errors.New("injected ENOSPC"),
+		}
+		processor := &storyboardProcessorStub{run: func(
+			_ context.Context,
+			request media.StoryboardRequest,
+		) (media.StoryboardResult, error) {
+			return validResult(request), nil
+		}}
+		service, err := NewStoryboardService(
+			repository,
+			source,
+			publisher,
+			&capacityStub{},
+			processor,
+			ServiceOptions{},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := service.Process(
+			context.Background(),
+			9,
+		); !errors.Is(err, ErrPublishFailed) {
+			t.Fatalf("storyboard ENOSPC error = %v", err)
+		}
+		if repository.storyboardReady != nil ||
+			repository.storyboardFailure != nil {
+			t.Fatal("storyboard ENOSPC committed visible state")
+		}
+	})
 }
 
 func TestServicePersistsStableProcessingFailureButNotSourceChange(t *testing.T) {

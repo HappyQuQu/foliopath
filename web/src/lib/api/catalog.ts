@@ -1,5 +1,6 @@
 import { apiClient } from "./client";
 import { createApiError } from "./errors";
+import type { components } from "./generated/schema";
 
 export interface Breadcrumb {
   id: string;
@@ -30,6 +31,8 @@ export interface DirectoryPage {
 export type AssetKind = "image" | "animated" | "video";
 export type AssetSort = "name" | "modifiedAt";
 export type SortOrder = "asc" | "desc";
+export type StoryboardReference =
+  components["schemas"]["StoryboardReference"];
 
 export interface Asset {
   directoryId: string;
@@ -47,6 +50,7 @@ export interface Asset {
   relativePath: string;
   sizeBytes: number;
   sourceAvailability: "available" | "offline" | "missing" | "unreadable";
+  storyboard: StoryboardReference;
   thumbnail: {
     errorCode: string | null;
     status: "pending" | "ready" | "failed" | "unavailable";
@@ -294,6 +298,7 @@ function mapAssetPage(data: {
 function mapAsset(data: Asset): Asset {
   return {
     ...data,
+    storyboard: { ...data.storyboard },
     thumbnail: { ...data.thumbnail },
   };
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 	_ "modernc.org/sqlite"
 )
 
@@ -60,6 +61,11 @@ type capacityMetrics struct {
 	SearchKeysetP95US       int64    `json:"searchKeysetP95Us"`
 	SearchCancelLatencyUS   int64    `json:"searchCancelLatencyUs"`
 	SearchRebuildDurationMS int64    `json:"searchRebuildDurationMs"`
+	StoryboardVideoCount    int      `json:"storyboardVideoCount"`
+	StoryboardAdmissionRuns int      `json:"storyboardAdmissionRuns"`
+	StoryboardAdmissionMax  int64    `json:"storyboardAdmissionMax"`
+	StoryboardAdmissionMS   int64    `json:"storyboardAdmissionMs"`
+	StoryboardBrowseP95US   int64    `json:"storyboardBrowseP95Us"`
 	PeakGoHeapAllocBytes    uint64   `json:"peakGoHeapAllocBytes"`
 	PeakRSSBytes            uint64   `json:"peakRssBytes,omitempty"`
 	PeakRSSSource           string   `json:"peakRssSource,omitempty"`
@@ -274,6 +280,14 @@ scanLoop:
 		return readSearchKeyset(ctx, catalogService, created.ID)
 	})
 	cancelLatency := measureActiveSearchCancellation(t, catalogService, created.ID)
+	storyboardCapacity := measureStoryboardAdmissionCapacity(
+		t,
+		store,
+		inspector,
+		catalogService,
+		created.ID,
+		assetCount,
+	)
 	rebuildStarted := time.Now()
 	if _, err := inspector.ExecContext(context.Background(),
 		`INSERT INTO asset_search(asset_search) VALUES('rebuild')`,
@@ -330,6 +344,14 @@ scanLoop:
 		SearchKeysetP95US:       percentile(keysetLatencies, 95).Microseconds(),
 		SearchCancelLatencyUS:   cancelLatency.Microseconds(),
 		SearchRebuildDurationMS: rebuildDuration.Milliseconds(),
+		StoryboardVideoCount:    storyboardCapacity.videoCount,
+		StoryboardAdmissionRuns: storyboardCapacity.admissionRuns,
+		StoryboardAdmissionMax:  storyboardCapacity.admissionMax,
+		StoryboardAdmissionMS:   storyboardCapacity.admissionDuration.Milliseconds(),
+		StoryboardBrowseP95US: percentile(
+			storyboardCapacity.browseLatencies,
+			95,
+		).Microseconds(),
 		PeakGoHeapAllocBytes:    peakHeap.Load(),
 		PeakRSSBytes:            peakRSS,
 		PeakRSSSource:           peakRSSSource,
@@ -351,6 +373,195 @@ scanLoop:
 			searchCapacityBudgetProfile,
 			metrics.BudgetViolations,
 		)
+	}
+}
+
+type storyboardCapacityMetrics struct {
+	videoCount        int
+	admissionRuns     int
+	admissionMax      int64
+	admissionDuration time.Duration
+	browseLatencies   []time.Duration
+}
+
+func measureStoryboardAdmissionCapacity(
+	t *testing.T,
+	store *sqlitestore.Store,
+	inspector *sql.DB,
+	catalogService *catalog.Service,
+	libraryID int64,
+	assetCount int,
+) storyboardCapacityMetrics {
+	t.Helper()
+	videoCount := assetCount / 10
+	if videoCount < 1 {
+		videoCount = 1
+	}
+	tx, err := inspector.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin storyboard capacity seed: %v", err)
+	}
+	rollback := true
+	defer func() {
+		if rollback {
+			_ = tx.Rollback()
+		}
+	}()
+	if _, err := tx.Exec(`
+        UPDATE assets
+        SET kind = 'video', media_format = 'mp4', mime_type = 'video/mp4',
+            width = 1920, height = 1080, duration_ms = 10000,
+            probe_status = 'ready', probe_error_code = NULL,
+            playback_status = 'playable'
+        WHERE id IN (
+            SELECT id FROM assets
+            WHERE library_id = ?
+            ORDER BY id LIMIT ?
+        )`,
+		libraryID,
+		videoCount,
+	); err != nil {
+		t.Fatalf("seed storyboard video metadata: %v", err)
+	}
+	if _, err := tx.Exec(`
+        INSERT INTO thumbnails(
+            library_id, asset_id, variant, source_fingerprint,
+            transform_version, cache_rel_path, status, width, height,
+            byte_size, created_at_ms, last_accessed_at_ms
+        )
+        SELECT library_id, id, 'grid', source_fingerprint, ?,
+               'capacity/grid/' || id || '.webp', 'ready', 320, 180,
+               1, 1, 1
+        FROM assets
+        WHERE library_id = ? AND kind = 'video'
+        ORDER BY id LIMIT ?`,
+		thumbnail.GridTransformVersion,
+		libraryID,
+		videoCount,
+	); err != nil {
+		t.Fatalf("seed storyboard grid state: %v", err)
+	}
+	if _, err := tx.Exec(`
+        UPDATE media_jobs
+        SET status = 'succeeded', finished_at_ms = 1
+        WHERE variant = 'grid'
+          AND asset_id IN (
+              SELECT id FROM assets
+              WHERE library_id = ? AND kind = 'video'
+              ORDER BY id LIMIT ?
+          )`,
+		libraryID,
+		videoCount,
+	); err != nil {
+		t.Fatalf("seed completed grid jobs: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit storyboard capacity seed: %v", err)
+	}
+	rollback = false
+
+	type admissionResult struct {
+		total    int64
+		runs     int
+		max      int64
+		duration time.Duration
+		err      error
+	}
+	resultChannel := make(chan admissionResult, 1)
+	go func() {
+		started := time.Now()
+		var result admissionResult
+		for {
+			admitted, admitErr := store.AdmitStoryboardJobs(
+				context.Background(),
+				sqlitestore.MaxStoryboardAdmissionBatch,
+			)
+			if admitErr != nil {
+				result.err = admitErr
+				break
+			}
+			result.runs++
+			if admitted > result.max {
+				result.max = admitted
+			}
+			result.total += admitted
+			if admitted == 0 {
+				break
+			}
+		}
+		result.duration = time.Since(started)
+		resultChannel <- result
+	}()
+
+	browseLatencies := make([]time.Duration, 0, 32)
+	var admission admissionResult
+	for {
+		select {
+		case admission = <-resultChannel:
+			goto admissionComplete
+		default:
+			started := time.Now()
+			if err := readRecursiveBrowse(
+				context.Background(),
+				catalogService,
+				libraryID,
+			); err != nil {
+				t.Fatalf("browse during storyboard admission: %v", err)
+			}
+			browseLatencies = append(
+				browseLatencies,
+				time.Since(started),
+			)
+		}
+	}
+
+admissionComplete:
+	if admission.err != nil {
+		t.Fatalf("admit storyboard capacity jobs: %v", admission.err)
+	}
+	if admission.total != int64(videoCount) ||
+		admission.max > sqlitestore.MaxStoryboardAdmissionBatch {
+		t.Fatalf(
+			"storyboard admission total/max = %d/%d, want %d/<=%d",
+			admission.total,
+			admission.max,
+			videoCount,
+			sqlitestore.MaxStoryboardAdmissionBatch,
+		)
+	}
+	var queued int
+	if err := inspector.QueryRow(`
+        SELECT count(*) FROM media_jobs
+        WHERE library_id = ? AND variant = 'storyboard'`,
+		libraryID,
+	).Scan(&queued); err != nil {
+		t.Fatalf("count storyboard capacity jobs: %v", err)
+	}
+	if queued != videoCount {
+		t.Fatalf("storyboard capacity jobs = %d, want %d", queued, videoCount)
+	}
+	if assetCount > videoCount {
+		job, found, err := store.ClaimNextMediaJob(
+			context.Background(),
+			time.Minute,
+		)
+		if err != nil {
+			t.Fatalf("claim beside storyboard capacity queue: %v", err)
+		}
+		if !found || job.Variant != thumbnail.VariantGrid {
+			t.Fatalf(
+				"capacity priority claim = %#v, found %t; want grid",
+				job,
+				found,
+			)
+		}
+	}
+	return storyboardCapacityMetrics{
+		videoCount:        videoCount,
+		admissionRuns:     admission.runs,
+		admissionMax:      admission.max,
+		admissionDuration: admission.duration,
+		browseLatencies:   browseLatencies,
 	}
 }
 
@@ -1024,6 +1235,15 @@ func capacityBudgetViolations(metrics capacityMetrics) []string {
 	}
 	if metrics.SearchRebuildDurationMS > 120_000 {
 		violations = append(violations, "searchRebuildDurationMs > 120000")
+	}
+	if metrics.StoryboardAdmissionMax > sqlitestore.MaxStoryboardAdmissionBatch {
+		violations = append(violations, "storyboardAdmissionMax > 128")
+	}
+	if metrics.StoryboardAdmissionMS > 60_000 {
+		violations = append(violations, "storyboardAdmissionMs > 60000")
+	}
+	if metrics.StoryboardBrowseP95US > 250_000 {
+		violations = append(violations, "storyboardBrowseP95Us > 250000")
 	}
 	if metrics.PeakRSSBytes > 0 && metrics.PeakRSSBytes > 1<<30 {
 		violations = append(violations, "peakRssBytes > 1073741824")

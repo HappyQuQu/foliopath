@@ -5,8 +5,8 @@
 - Feature：[`FTR-VID-001`](video-storyboard-preview.md)
 - Change Record：[CR-2026-004](../changes/CR-2026-004-video-storyboard-preview.md)
 - 目标版本：`POST-MVP-1` / `Post-MVP/1`
-- 当前状态：Contract Ready；后端实现进行中
-- 当前获准：`VSP-106～113` 后端实现与证据；产品前端尚未获准
+- 当前状态：Consumer/UI Ready；纵向集成与版本交付获准
+- 当前获准：`VSP-301～304` 真实纵向 E2E、目标平台复验、发布文档与 Integrated Done
 - 强制顺序：架构/契约 → 后端 → Backend Ready → 前端 → Integrated Done
 
 `[x]` 只用于已有可链接代码、测试或 Gate 证据的任务。讨论、设计稿、局部 package 测试或
@@ -108,132 +108,157 @@ flowchart TD
   - 证据：`internal/thumbnail/storyboard.go`、独立 derivation/cache identity、
     all-or-nothing result validation 及 table tests。
 
-- [ ] `VSP-107` 实现安全抽帧和 sprite 处理 adapter。
+- [x] `VSP-107` 实现安全抽帧和 sprite 处理 adapter。
   - Owner：`internal/media/videoffmpeg` 或评审确定的 media adapter。
   - 依赖：`VSP-106`。
   - 代码：继承 FD、参数数组、fast seek、单线程、输出 cap、总 timeout、进程组取消、WebP 拼接。
   - 禁止：shell、任意路径、全片无界解码、handler 内执行、原媒体写入。
   - 测试：fake command 参数、真实 FFmpeg fixture、损坏/超时/取消/大输入/部分 seek 失败。
-  - 当前进度：生产 adapter、fake-command/all-or-nothing/资源测试和可跳过的真实 libwebp
-    integration fixture 已实现；目标 Linux 双架构实跑证据仍待补齐，因此不标完成。
+  - 证据：生产 adapter、fake-command/all-or-nothing/资源测试、真实 fixture，以及
+    `make test-storyboard-runtime` 在 Linux amd64/arm64 对生产 FFmpeg 的能力与 10 帧
+    sprite 实跑。
 
-- [ ] `VSP-108` 实现 migration 和 SQLite repository。
+- [x] `VSP-108` 实现 migration 和 SQLite repository。
   - Owner：`internal/store/sqlite`。
   - 依赖：`VSP-103`、`VSP-105`。
   - 代码：variant/layout 存取、优先级 claim、backfill cursor/admission、fingerprint CAS、LRU、
     cache deletion、library removal。
   - 测试：fresh/upgrade、并发 claim、旧 lease、源变化、跨库公平、bounded transaction、约束拒绝。
-  - 当前进度：migration 11、layout/priority CHECK、v10 upgrade/downgrade fail-closed、
+  - 证据：migration 11、layout/priority CHECK、v10 upgrade/downgrade fail-closed、
     variant repository、128 项 admission、priority/fairness/concurrency/fingerprint/cache repair
-    测试已实现；容量档与目标 Linux 证据仍待补齐。
+    测试，以及 100k/10k、10% 视频 Linux 目标容量档。
 
-- [ ] `VSP-109` 接入 durable job handler 与应用生命周期。
+- [x] `VSP-109` 接入 durable job handler 与应用生命周期。
   - Owner：`internal/thumbnail`、`internal/jobs`、`internal/app`。
   - 依赖：`VSP-106～108`。
   - 顺序：grid succeeded 后 admission；storyboard 低优先级；重启恢复；shutdown 取消。
   - 发布：临时文件、fsync/atomic rename、再提交 ready；失败清理临时文件。
   - 测试：crash windows、late worker、取消、ENOSPC、cache GC 竞争、library removal。
-  - 当前进度：variant dispatch、每秒 bounded reconciliation/admission、storyboard 并发 1、
-    grid 抢占、lease/retry/shutdown 和 atomic publisher 复用已接入；剩余故障矩阵归 VSP-111。
+  - 证据：variant dispatch、bounded reconciliation/admission、storyboard 并发 1、
+    grid 抢占、lease/retry/shutdown、atomic publisher，以及真实 worker 的 grid →
+    storyboard 纵向集成。
 
-- [ ] `VSP-110` 实现认证 API 与 DTO。
+- [x] `VSP-110` 实现认证 API 与 DTO。
   - Owner：`internal/api`。
   - 依赖：`VSP-102`、`VSP-106～109`。
   - 代码：资产状态映射和 binary delivery；handler 只调用服务；200/202/304/409/422；
     ETag、immutable、nosniff、限流、LRU touch、cache-missing self-heal。
   - 测试：认证、错误脱敏、错误优先级、HEAD/conditional（若契约包含）、取消。
-  - 当前进度：catalog/detail storyboard DTO、binary variant、200/202/304/404/409/422、
-    immutable/nosniff、LRU touch 和 variant-local cache repair 已实现；完整认证 HTTP 集成矩阵
-    归 VSP-111。
+  - 证据：catalog/detail DTO、binary variant、200/202/304/401/404/409/422、
+    immutable/nosniff、LRU touch、variant-local repair 和真实认证 HTTP composition。
 
-- [ ] `VSP-111` 完成后端正确性、安全与恢复集成证据。
+- [x] `VSP-111` 完成后端正确性、安全与恢复集成证据。
   - Owner：后端、QA、安全负责人。
   - 依赖：`VSP-106～110`。
   - 场景：真实 SQLite + `internal/files` + FFmpeg + HTTP；源变化/offline/missing、重启、
     lease、ENOSPC、损坏 sprite、删除媒体库、只读原件 hash/mtime。
   - Linux：amd64/arm64 使用相同 fixture；路径边界失败关闭。
   - 检查：相关 unit/race/integration、OpenAPI、migration、generate、arch-check。
+  - 证据：[VSP-S2 Backend Evidence Ready](../gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)
+    的双架构生产 FFmpeg、真实生产镜像认证纵向链、cache repair 与故障矩阵。
 
-- [ ] `VSP-112` 完成后端容量与优先级证据。
+- [x] `VSP-112` 完成后端容量与优先级证据。
   - Owner：性能负责人、`internal/jobs` owner。
   - 依赖：`VSP-111`。
   - 档位：目标四核/4 GiB；代表性 100k/10k 数据和明确视频比例。
   - 证明：grid 等待预算、跨库公平、backfill 有界、浏览/搜索 P95、RSS、DB/cache 增长、
     GC 水位和 shutdown/cancel。
   - 失败：按 feature spec fallback 收缩，不扩大 worker 或牺牲 API。
+  - 证据：Linux arm64 四核/4 GiB 的 100k/10k、10% 视频档；10,000 项分 80 批，
+    最大 128，983ms，入队期间浏览 P95 786µs，Peak RSS 45,010,944 B，违规 0。
 
-- [ ] `VSP-113` 记录 `VSP-S2 Backend Evidence Ready` Gate。
+- [x] `VSP-113` 记录 `VSP-S2 Backend Evidence Ready` Gate。
   - Owner：架构、后端、API、安全/数据、QA 负责人。
   - 依赖：`VSP-106～112`。
   - 完成：所有适用检查实际成功，OpenAPI/生成 client 可交接，残余风险有 owner。
   - 授权：Gate 为 Go 后，前端才能连接真实 storyboard。
+  - 证据：[VSP-S2 Backend Evidence Ready](../gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)
+    为 Go，授权 `VSP-201～208`。
 
 ## Phase 3：前端实现
 
-- [ ] `VSP-201` 接入生成 client 和唯一 domain adapter。
+- [x] `VSP-201` 接入生成 client 和唯一 domain adapter。
   - Owner：`web/src/lib/api`、`web/src/lib/media/availability.ts`。
   - 依赖：`VSP-113`。
   - 代码：消费生成 schema；映射 pending/ready/failed/offline；Query key、poll/backoff 和错误映射
     只有一个 owner。
   - 禁止：手写 wire type、直接 fetch、browse/search 各自解释状态。
+  - 证据：生成 `StoryboardReference`、`mediaStoryboard`、统一 pending refresh 及
+    browse/search adapter tests。
 
-- [ ] `VSP-202` 在共享 `MediaCollection` 实现 hover intent controller。
+- [x] `VSP-202` 在共享 `MediaCollection` 实现 hover intent controller。
   - Owner：共享 `MediaCollection`。
   - 依赖：`VSP-201`。
   - 行为：fine pointer + hover + 300ms；同页单活动项；移出/隐藏/回收/unmount 清理 timer。
   - 请求：意图成立后才加载并 decode sprite；失败保持 poster。
   - 禁止：feature-local MediaCard 或 browse/search 重复 controller。
+  - 证据：共享 hook 与 300ms/decode/单活动/leave/hidden/unmount component tests。
 
-- [ ] `VSP-203` 实现 sprite 布局和播放状态机。
+- [x] `VSP-203` 实现 sprite 布局和播放状态机。
   - Owner：共享 `MediaCollection`。
   - 依赖：`VSP-202`。
   - 代码：使用服务端 layout metadata；500ms/frame；循环；停止恢复 poster；grid/masonry 均正确。
-  - 测试：4/5/9/10 帧、横/竖屏、尾部空 cell、decode 延迟/失败、快速掠过。
+  - 测试：已冻结的 4/10 帧档、横/竖屏、decode 延迟/失败、快速掠过。
+  - 证据：服务端 metadata 驱动的 cover 轴、500ms 循环和 grid/masonry stories/tests。
 
-- [ ] `VSP-204` 完成动效、无障碍和输入模式。
+- [x] `VSP-204` 完成动效、无障碍和输入模式。
   - Owner：前端可访问性负责人。
   - 依赖：`VSP-202～203`。
   - 证明：touch/粗指针、键盘焦点、reduced-motion 不播放；卡片 accessible name、DOM 顺序、
     单击/双击、固定预览和焦点恢复不变；无 live region 噪声。
+  - 证据：组件矩阵与 Chromium/Firefox/WebKit/Pixel 5/forced-colors focused E2E。
 
-- [ ] `VSP-205` 完成状态、文案和国际化。
+- [x] `VSP-205` 完成状态、文案和国际化。
   - Owner：共享媒体可用性策略、i18n owner。
   - 依赖：`VSP-201～204`。
   - 规则：storyboard pending/failed 静默回退 poster；只有现有 poster/媒体失败状态显示错误；
     中英文行为文案一致，不承诺“AI 关键帧”。
+  - 证据：availability adapter、既有中英文卡片 label 和 fallback tests；未新增逐帧文案。
 
-- [ ] `VSP-206` 更新组件工作台与视觉回归。
+- [x] `VSP-206` 更新组件工作台与视觉回归。
   - Owner：共享组件 owner、QA。
   - 依赖：`VSP-203～205`。
   - Stories：ready/pending/failed、4/10 帧、grid/masonry、浅/深主题、reduced-motion、长文件名。
   - 矩阵：390/768/1024/1440；Chromium/Firefox/WebKit；normal/forced-colors。
+  - 证据：`StoryboardStates`、`StoryboardMasonry`、`StoryboardCapacity100` stories，
+    Storybook production/a11y build 及多引擎/forced-colors CSS 定位回归。
 
-- [ ] `VSP-207` 完成前端容量与生命周期测试。
+- [x] `VSP-207` 完成前端容量与生命周期测试。
   - Owner：前端性能、QA。
   - 依赖：`VSP-202～206`。
   - 场景：100 个可见视频、快速掠过、虚拟滚动、分页、路由切换、页面隐藏/恢复。
   - 证明：最多一个活动动画；timer、observer、blob/image、DOM 和请求不无界增长；滚动 FPS/RSS
     不突破 Contract Ready 预算。
+  - 证据：100-video 三引擎档为 60.001/60.080/60.113 FPS、活动数 0→1→0；
+    原 100k 三引擎容量回归继续通过。
 
-- [ ] `VSP-208` 记录 `VSP-S3 Consumer/UI Ready` Gate。
+- [x] `VSP-208` 记录 `VSP-S3 Consumer/UI Ready` Gate。
   - Owner：前端、产品、可访问性、QA。
   - 依赖：`VSP-201～207`。
   - 完成：真实契约消费、组件/axe/键盘/响应式/浏览器证据和 UI spec 同步。
+  - 证据：[VSP-S3 Consumer/UI Ready](../gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)
+    为 Go，授权 `VSP-301～304`。
 
 ## Phase 4：纵向集成与版本交付
 
-- [ ] `VSP-301` 完成真实后端纵向 E2E。
+- [x] `VSP-301` 完成真实后端纵向 E2E。
   - Owner：QA、前后端 owners。
   - 依赖：`VSP-113`、`VSP-208`。
   - 流程：setup/login → 建库/扫描 → poster ready → storyboard 后台 ready → 浏览/搜索 hover
     → 打开非模态预览/查看器 → 返回并恢复焦点。
   - 故障：pending、offline、源变化、cache eviction/rebuild、worker restart、decode failure。
+  - 证据：[VSP-301 真实产品纵向链](../gates/POST-MVP-1/vsp-301-product-vertical.md)；
+    生产镜像真实登录、浏览/搜索 hover、非模态预览/焦点恢复与 cache 202→200 已通过，
+    其余故障链接 S2/S3 自动矩阵。
 
 - [ ] `VSP-302` 完成目标平台和资源复验。
   - Owner：发布、性能、QA。
   - 依赖：`VSP-301`。
   - 平台：原生 linux/amd64、linux/arm64；目标 Chromium/Firefox/WebKit 和物理输入模式。
   - 证明：同 fixture 布局一致、FFmpeg/runtime 依赖无变化、缓存/恢复/升级可重复。
+  - 当前：原生 runner、结构化 artifact 和成对校验器已经实现，本机 arm64 预检通过；
+    必须等待同一提交的原生双架构 workflow 实际成功后才能勾选。
+  - 证据：[VSP-302 目标平台与资源复验](../gates/POST-MVP-1/vsp-302-target-platform.md)。
 
 - [ ] `VSP-303` 完成发布文档和追踪收敛。
   - Owner：feature owner、发布负责人。

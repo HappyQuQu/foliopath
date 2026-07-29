@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -12,6 +13,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/internal/media"
+	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail/cachefs"
 )
 
 type runtimeContentResponse struct {
@@ -160,6 +166,360 @@ func TestComposedMediaContentAuthenticationRangeAndSourceFailures(t *testing.T) 
 	setRuntimeLibraryStatus(t, dataRoot, libraryID, "offline")
 	offline := requestRuntimeContent(t, client, address, http.MethodGet, target, setup.Cookie, nil)
 	assertSafeContentFailure(t, offline, "source_offline", mediaRoot, string(content))
+}
+
+func TestComposedStoryboardAuthenticationDeliveryAndStateMapping(t *testing.T) {
+	mediaRoot := t.TempDir()
+	dataRoot := t.TempDir()
+	original := []byte("synthetic immutable storyboard source")
+	writeRuntimeFixture(t, mediaRoot, "family/clip.mp4", string(original))
+	libraryID := seedRuntimeLibrary(t, dataRoot, mediaRoot)
+	assetID, storyboardBytes := seedReadyRuntimeStoryboard(
+		t,
+		dataRoot,
+		libraryID,
+	)
+
+	application, err := composeConfiguration(
+		Input{Version: "integration"},
+		configuration{
+			listenAddress: "127.0.0.1:0",
+			mediaRoot:     mediaRoot,
+			dataRoot:      dataRoot,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() { result <- application.run(ctx) }()
+	defer func() {
+		cancel()
+		select {
+		case runErr := <-result:
+			if runErr != nil {
+				t.Errorf("application.run() error = %v", runErr)
+			}
+		case <-time.After(runtimeIntegrationTimeout):
+			t.Error("application did not stop")
+		}
+	}()
+
+	address := waitForListenAddress(t, application.http)
+	client := &http.Client{Timeout: runtimeIntegrationTimeout}
+	setup := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodPost,
+		"/api/v1/auth/setup",
+		`{"username":"Administrator","displayName":"Administrator","password":"correct horse battery staple"}`,
+		"",
+		"",
+	)
+	if setup.StatusCode != http.StatusCreated {
+		t.Fatalf("setup response = %#v", setup)
+	}
+	target := "/api/v1/assets/ast_" +
+		strconv.FormatInt(assetID, 10) +
+		"/thumbnail?variant=storyboard"
+
+	unauthorized := requestRuntimeContent(
+		t, client, address, http.MethodGet, target, "", nil,
+	)
+	if unauthorized.status != http.StatusUnauthorized ||
+		unauthorized.code != "authentication_required" ||
+		bytes.Contains(unauthorized.body, storyboardBytes) {
+		t.Fatalf("unauthorized storyboard response = %#v", unauthorized)
+	}
+
+	ready := requestRuntimeContent(
+		t, client, address, http.MethodGet, target, setup.Cookie, nil,
+	)
+	if ready.status != http.StatusOK ||
+		!bytes.Equal(ready.body, storyboardBytes) ||
+		ready.headers.Get("Content-Type") != "image/webp" ||
+		ready.headers.Get("Cache-Control") !=
+			"private, max-age=31536000, immutable" ||
+		ready.headers.Get("X-Content-Type-Options") != "nosniff" ||
+		ready.headers.Get("ETag") == "" {
+		t.Fatalf("ready storyboard response = %#v", ready)
+	}
+	conditional := requestRuntimeContent(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		target,
+		setup.Cookie,
+		map[string]string{"If-None-Match": ready.headers.Get("ETag")},
+	)
+	if conditional.status != http.StatusNotModified ||
+		len(conditional.body) != 0 ||
+		conditional.headers.Get("ETag") != ready.headers.Get("ETag") {
+		t.Fatalf("conditional storyboard response = %#v", conditional)
+	}
+	detail := runtimeAuthenticationRequest(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		"/api/v1/assets/ast_"+strconv.FormatInt(assetID, 10),
+		"",
+		setup.Cookie,
+		"",
+	)
+	if detail.StatusCode != http.StatusOK ||
+		!strings.Contains(detail.Body, `"storyboard":{"status":"ready"`) ||
+		!strings.Contains(detail.Body, `"frameCount":10`) ||
+		!strings.Contains(detail.Body, `"columns":5`) ||
+		!strings.Contains(detail.Body, `"rows":2`) {
+		t.Fatalf("storyboard asset detail = %#v", detail)
+	}
+
+	setRuntimeLibraryStatus(t, dataRoot, libraryID, "offline")
+	offline := requestRuntimeContent(
+		t, client, address, http.MethodGet, target, setup.Cookie, nil,
+	)
+	if offline.status != http.StatusConflict ||
+		offline.code != "source_offline" ||
+		strings.Contains(string(offline.body), mediaRoot) {
+		t.Fatalf("offline storyboard response = %#v", offline)
+	}
+	setRuntimeLibraryStatus(t, dataRoot, libraryID, "ready")
+
+	setRuntimeStoryboardState(t, dataRoot, assetID, "pending", "")
+	pending := requestRuntimeContent(
+		t, client, address, http.MethodGet, target, setup.Cookie, nil,
+	)
+	if pending.status != http.StatusAccepted ||
+		!bytes.Contains(pending.body, []byte(`"variant":"storyboard"`)) {
+		t.Fatalf("pending storyboard response = %#v", pending)
+	}
+
+	setRuntimeStoryboardState(
+		t,
+		dataRoot,
+		assetID,
+		"failed",
+		string(media.ErrorInvalidMedia),
+	)
+	failed := requestRuntimeContent(
+		t, client, address, http.MethodGet, target, setup.Cookie, nil,
+	)
+	if failed.status != http.StatusUnprocessableEntity ||
+		failed.code != string(media.ErrorInvalidMedia) ||
+		strings.Contains(string(failed.body), mediaRoot) {
+		t.Fatalf("failed storyboard response = %#v", failed)
+	}
+
+	missing := requestRuntimeContent(
+		t,
+		client,
+		address,
+		http.MethodGet,
+		"/api/v1/assets/ast_999999/thumbnail?variant=storyboard",
+		setup.Cookie,
+		nil,
+	)
+	if missing.status != http.StatusNotFound ||
+		missing.code != "asset_not_found" {
+		t.Fatalf("missing storyboard response = %#v", missing)
+	}
+	after, err := os.ReadFile(filepath.Join(mediaRoot, "family", "clip.mp4"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(after, original) {
+		t.Fatal("storyboard HTTP delivery modified original source")
+	}
+}
+
+func seedReadyRuntimeStoryboard(
+	t *testing.T,
+	dataRoot string,
+	libraryID int64,
+) (int64, []byte) {
+	t.Helper()
+	ctx := context.Background()
+	inspector, err := sql.Open(
+		"sqlite",
+		filepath.Join(dataRoot, databaseFilename),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var assetID int64
+	if err := inspector.QueryRow(`
+        SELECT id FROM assets
+        WHERE library_id = ? AND relative_path = 'clip.mp4'`,
+		libraryID,
+	).Scan(&assetID); err != nil {
+		_ = inspector.Close()
+		t.Fatal(err)
+	}
+	if err := inspector.Close(); err != nil {
+		t.Fatal(err)
+	}
+	store, err := sqlitestore.Open(
+		ctx,
+		filepath.Join(dataRoot, databaseFilename),
+		sqlitestore.Options{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	asset, err := store.GetAssetForDerivation(ctx, assetID)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	publisher, err := cachefs.New(filepath.Join(dataRoot, "cache"))
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	gridBytes := []byte("grid-webp")
+	gridDerivation, err := thumbnail.GridDerivation(
+		libraryID,
+		assetID,
+		asset.SourceFingerprint,
+	)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	gridPublished, err := publisher.Publish(ctx, gridDerivation, gridBytes)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	durationMS := int64(10_000)
+	if err := store.CommitReady(ctx, thumbnail.Ready{
+		AssetID:           assetID,
+		SourceFingerprint: asset.SourceFingerprint,
+		Result: media.ProcessingResult{
+			Metadata: media.Metadata{
+				Width:          1920,
+				Height:         1080,
+				DurationMS:     &durationMS,
+				PlaybackStatus: media.PlaybackPlayable,
+			},
+			Thumbnail: media.Thumbnail{
+				Bytes: gridBytes,
+				Width: 320, Height: 180,
+			},
+		},
+		CacheRelativePath: gridPublished.CacheRelativePath,
+		ByteSize:          gridPublished.ByteSize,
+		CreatedAtMS:       1,
+	}); err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	storyboardBytes := []byte("RIFFxxxxWEBP")
+	storyboardDerivation, err := thumbnail.StoryboardDerivation(
+		libraryID,
+		assetID,
+		asset.SourceFingerprint,
+	)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	storyboardPublished, err := publisher.Publish(
+		ctx,
+		storyboardDerivation,
+		storyboardBytes,
+	)
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	storyboardResult := media.StoryboardResult{
+		Bytes:      storyboardBytes,
+		FrameCount: 10,
+		Columns:    5,
+		Rows:       2,
+		CellWidth:  320,
+		CellHeight: 180,
+	}
+	if err := store.CommitStoryboardReady(ctx, thumbnail.StoryboardReady{
+		AssetID:           assetID,
+		SourceFingerprint: asset.SourceFingerprint,
+		Result:            storyboardResult,
+		CacheRelativePath: storyboardPublished.CacheRelativePath,
+		ByteSize:          storyboardPublished.ByteSize,
+		CreatedAtMS:       1,
+	}); err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`
+        UPDATE media_jobs
+        SET status = 'succeeded', finished_at_ms = 1
+        WHERE asset_id = ? AND variant = 'grid'`,
+		assetID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+        INSERT INTO media_jobs(
+            library_id, asset_id, variant, priority, transform_version,
+            source_fingerprint, status, available_at_ms, attempt_count,
+            created_at_ms, finished_at_ms
+        ) VALUES (?, ?, 'storyboard', 100, ?, ?, 'succeeded', 0, 0, 0, 1)`,
+		libraryID,
+		assetID,
+		thumbnail.StoryboardTransformVersion,
+		asset.SourceFingerprint.String(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	return assetID, storyboardBytes
+}
+
+func setRuntimeStoryboardState(
+	t *testing.T,
+	dataRoot string,
+	assetID int64,
+	status string,
+	errorCode string,
+) {
+	t.Helper()
+	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var code any
+	if errorCode != "" {
+		code = errorCode
+	}
+	if _, err := db.Exec(`
+        UPDATE thumbnails
+        SET status = ?, error_code = ?, cache_rel_path = NULL,
+            width = NULL, height = NULL, byte_size = NULL,
+            created_at_ms = NULL, last_accessed_at_ms = NULL,
+            frame_count = NULL, sprite_columns = NULL, sprite_rows = NULL,
+            cell_width = NULL, cell_height = NULL
+        WHERE asset_id = ? AND variant = 'storyboard'`,
+		status,
+		code,
+		assetID,
+	); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func waitForRuntimeContentAsset(t *testing.T, dataRoot string, libraryID int64) int64 {

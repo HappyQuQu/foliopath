@@ -61,6 +61,7 @@ import {
   mediaAvailability,
   mediaAvailabilityPresentation,
   mediaPosterUrl,
+  mediaStoryboard,
 } from "../../../lib/media/availability";
 import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
@@ -156,29 +157,33 @@ export function BrowsePage({
       dateStyle: "medium",
       timeStyle: "short",
     });
-    return assets.map((asset) => ({
-      height: asset.height,
-      id: asset.id,
-      kind: asset.kind,
-      modifiedLabel: formatter.format(new Date(asset.modifiedAt)),
-      name: asset.name,
-      ...(browseState.recursive
-        ? {
-            sourceHref: browseUrl(
-              libraryId,
-              asset.directoryId,
-              defaultBrowseUrlState(),
-            ),
-            sourceLabel: t("browse.openSourceDirectory").replace(
-              "{path}",
-              sourceDirectory(asset.relativePath),
-            ),
-          }
-        : {}),
-      thumbnailStatus: asset.thumbnail.status,
-      thumbnailUrl: asset.thumbnail.url,
-      width: asset.width,
-    }));
+    return assets.map((asset) => {
+      const storyboard = mediaStoryboard(asset);
+      return {
+        height: asset.height,
+        id: asset.id,
+        kind: asset.kind,
+        modifiedLabel: formatter.format(new Date(asset.modifiedAt)),
+        name: asset.name,
+        ...(browseState.recursive
+          ? {
+              sourceHref: browseUrl(
+                libraryId,
+                asset.directoryId,
+                defaultBrowseUrlState(),
+              ),
+              sourceLabel: t("browse.openSourceDirectory").replace(
+                "{path}",
+                sourceDirectory(asset.relativePath),
+              ),
+            }
+          : {}),
+        ...(storyboard ? { storyboard } : {}),
+        thumbnailStatus: asset.thumbnail.status,
+        thumbnailUrl: asset.thumbnail.url,
+        width: asset.width,
+      };
+    });
   }, [assets, browseState.recursive, libraryId, locale, t]);
   const preview = useMediaPreviewController({
     items: assets,

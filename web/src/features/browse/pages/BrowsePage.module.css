@@ -594,7 +594,7 @@
 }
 
 .treeLinkCurrent {
-  color: var(--color-accent);
+  color: var(--color-text);
   background: var(--color-accent-soft);
 }
 

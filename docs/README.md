@@ -44,6 +44,14 @@
 - [POST-MVP-1 scope revision 1](releases/POST-MVP-1-scope.md)与
   [VSP-S0 Architecture Ready](gates/POST-MVP-1/vsp-s0-architecture-ready.md)：
   feature 冻结范围和允许进入 Contract Ready 的 Gate。
+- [VSP-S2 Backend Evidence Ready](gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)：
+  双架构生产 FFmpeg、真实认证纵向链、故障恢复和 100k/10k 后端容量通过，前端已获准。
+- [VSP-S3 Consumer/UI Ready](gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)：
+  生成 client、共享 hover/sprite、输入模式、组件工作台与三引擎前端容量通过，纵向集成已获准。
+- [VSP-301 真实产品纵向链](gates/POST-MVP-1/vsp-301-product-vertical.md)：
+  生产镜像真实登录、扫描、浏览/搜索 hover、预览焦点恢复与 cache repair 贯通。
+- [VSP-302 目标平台与资源复验](gates/POST-MVP-1/vsp-302-target-platform.md)：
+  原生 amd64/arm64 结构化证据与成对校验入口已建立，等待同一提交的远端矩阵签署。
 - [CR-2026-004 视频故事板悬停预览](changes/CR-2026-004-video-storyboard-preview.md)：
   后续版本归属、范围影响和 Conditional Go 决定。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。

@@ -30,9 +30,19 @@ export interface MediaCollectionItem {
   name: string;
   sourceHref?: string;
   sourceLabel?: string;
+  storyboard?: MediaCollectionStoryboard;
   thumbnailStatus: "pending" | "ready" | "failed" | "unavailable";
   thumbnailUrl: string | null;
   width: number | null;
+}
+
+export interface MediaCollectionStoryboard {
+  cellHeight: number;
+  cellWidth: number;
+  columns: number;
+  frameCount: 4 | 10;
+  rows: number;
+  url: string;
 }
 
 export interface MediaCollectionLabels {
@@ -58,6 +68,16 @@ export const mediaCollectionCapacityBudget = {
   focusRestoreFrames: 12,
   primaryTierItems: 100_000,
 } as const;
+
+export const storyboardPlaybackTiming = {
+  frameMs: 500,
+  hoverIntentMs: 300,
+} as const;
+
+interface StoryboardPlayback {
+  frame: number;
+  itemId: string;
+}
 
 export function shouldLoadNextMediaPage({
   columns,
@@ -116,6 +136,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
 ) {
   const hostRef = useRef<HTMLDivElement>(null);
   const focusRestoreFrameRef = useRef<number | undefined>(undefined);
+  const storyboard = useStoryboardPlayback();
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
   const columns = columnCount(geometry.width);
   const gap = 12;
@@ -281,9 +302,14 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
                 item={item}
                 labels={labels}
                 layout={layout}
+                onStoryboardEnter={storyboard.start}
+                onStoryboardLeave={storyboard.stop}
                 {...(onItemActivate ? { onActivate: onItemActivate } : {})}
                 previewing={item.id === previewItemId}
                 selected={item.id === selectedItemId}
+                {...(storyboard.playback?.itemId === item.id
+                  ? { storyboardFrame: storyboard.playback.frame }
+                  : {})}
               />
             </li>
           );
@@ -343,8 +369,11 @@ function MediaCard({
   labels,
   layout,
   onActivate,
+  onStoryboardEnter,
+  onStoryboardLeave,
   previewing,
   selected,
+  storyboardFrame,
 }: {
   item: MediaCollectionItem;
   labels: MediaCollectionLabels;
@@ -354,8 +383,11 @@ function MediaCard({
     activation: "single" | "double",
     trigger: HTMLButtonElement,
   ) => void;
+  onStoryboardEnter: (item: MediaCollectionItem) => void;
+  onStoryboardLeave: (itemId?: string) => void;
   previewing: boolean;
   selected: boolean;
+  storyboardFrame?: number;
 }) {
   const kindLabel =
     item.kind === "video"
@@ -371,6 +403,12 @@ function MediaCard({
         : labels.pendingThumbnail;
   const aspectRatio =
     layout === "masonry" ? safeAspectRatio(item) : 4 / 3;
+  useEffect(
+    () => () => {
+      onStoryboardLeave(item.id);
+    },
+    [item.id, onStoryboardLeave],
+  );
 
   return (
     <article
@@ -378,6 +416,11 @@ function MediaCard({
       className={styles.card}
       data-previewing={previewing || undefined}
       data-selected={selected || undefined}
+      data-storyboard-playing={
+        storyboardFrame !== undefined ? true : undefined
+      }
+      onPointerEnter={() => onStoryboardEnter(item)}
+      onPointerLeave={() => onStoryboardLeave(item.id)}
     >
       {onActivate && (
         <button
@@ -419,6 +462,39 @@ function MediaCard({
             <span>{thumbnailLabel}</span>
           </div>
         )}
+        {item.storyboard && storyboardFrame !== undefined && (
+          <img
+            alt=""
+            aria-hidden="true"
+            className={styles.storyboardSprite}
+            data-cover-axis={
+              item.storyboard.cellWidth / item.storyboard.cellHeight >=
+              aspectRatio
+                ? "height"
+                : "width"
+            }
+            decoding="async"
+            draggable={false}
+            src={item.storyboard.url}
+            style={
+              {
+                "--storyboard-columns": item.storyboard.columns,
+                "--storyboard-rows": item.storyboard.rows,
+                "--storyboard-x": `${
+                  ((storyboardFrame % item.storyboard.columns) + 0.5) /
+                  item.storyboard.columns *
+                  100
+                }%`,
+                "--storyboard-y": `${
+                  (Math.floor(storyboardFrame / item.storyboard.columns) +
+                    0.5) /
+                  item.storyboard.rows *
+                  100
+                }%`,
+              } as CSSProperties
+            }
+          />
+        )}
         {item.kind === "video" && (
           <span className={styles.videoBadge} aria-hidden="true">
             <Play size={12} weight="fill" />
@@ -441,6 +517,127 @@ function MediaCard({
       </div>
     </article>
   );
+}
+
+function useStoryboardPlayback(): {
+  playback: StoryboardPlayback | undefined;
+  start: (item: MediaCollectionItem) => void;
+  stop: (itemId?: string) => void;
+} {
+  const [playback, setPlayback] = useState<StoryboardPlayback>();
+  const pendingItemRef = useRef<string | undefined>(undefined);
+  const intentTimerRef = useRef<number | undefined>(undefined);
+  const frameTimerRef = useRef<number | undefined>(undefined);
+  const decodeImageRef = useRef<HTMLImageElement | undefined>(undefined);
+  const generationRef = useRef(0);
+  const playbackRef = useRef<StoryboardPlayback | undefined>(undefined);
+
+  const stop = useCallback((itemId?: string) => {
+    if (
+      itemId &&
+      pendingItemRef.current !== itemId &&
+      playbackRef.current?.itemId !== itemId
+    ) {
+      return;
+    }
+    generationRef.current += 1;
+    pendingItemRef.current = undefined;
+    if (intentTimerRef.current !== undefined) {
+      window.clearTimeout(intentTimerRef.current);
+      intentTimerRef.current = undefined;
+    }
+    if (frameTimerRef.current !== undefined) {
+      window.clearInterval(frameTimerRef.current);
+      frameTimerRef.current = undefined;
+    }
+    if (decodeImageRef.current) {
+      decodeImageRef.current.src = "";
+      decodeImageRef.current = undefined;
+    }
+    playbackRef.current = undefined;
+    setPlayback(undefined);
+  }, []);
+
+  const start = useCallback(
+    (item: MediaCollectionItem) => {
+      stop();
+      if (!item.storyboard || !storyboardMotionAllowed()) return;
+      const story = item.storyboard;
+      const generation = generationRef.current;
+      pendingItemRef.current = item.id;
+      intentTimerRef.current = window.setTimeout(() => {
+        intentTimerRef.current = undefined;
+        const image = new Image();
+        decodeImageRef.current = image;
+        image.decoding = "async";
+        image.src = story.url;
+        void decodeImage(image)
+          .then(() => {
+            if (
+              generation !== generationRef.current ||
+              pendingItemRef.current !== item.id ||
+              document.visibilityState === "hidden"
+            ) {
+              return;
+            }
+            pendingItemRef.current = undefined;
+            decodeImageRef.current = undefined;
+            const initial = { frame: 0, itemId: item.id };
+            playbackRef.current = initial;
+            setPlayback(initial);
+            frameTimerRef.current = window.setInterval(() => {
+              const current = playbackRef.current;
+              if (!current || current.itemId !== item.id) return;
+              const next = {
+                frame: (current.frame + 1) % story.frameCount,
+                itemId: item.id,
+              };
+              playbackRef.current = next;
+              setPlayback(next);
+            }, storyboardPlaybackTiming.frameMs);
+          })
+          .catch(() => {
+            if (generation === generationRef.current) stop(item.id);
+          });
+      }, storyboardPlaybackTiming.hoverIntentMs);
+    },
+    [stop],
+  );
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") stop();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      stop();
+    };
+  }, [stop]);
+
+  return { playback, start, stop };
+}
+
+function storyboardMotionAllowed(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return (
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function decodeImage(image: HTMLImageElement): Promise<void> {
+  if (typeof image.decode === "function") {
+    return image.decode();
+  }
+  return new Promise((resolve, reject) => {
+    image.addEventListener("load", () => resolve(), { once: true });
+    image.addEventListener("error", () => reject(new Error("decode failed")), {
+      once: true,
+    });
+  });
 }
 
 function columnCount(width: number): number {

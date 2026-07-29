@@ -1098,8 +1098,11 @@ export interface components {
              * @enum {string|null}
              */
             errorCode: "source_offline" | "source_missing" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | null;
-            /** Format: int32 */
-            frameCount: number | null;
+            /**
+             * Format: int32
+             * @enum {integer|null}
+             */
+            frameCount: 4 | 10 | null;
             /** Format: int32 */
             rows: number | null;
             /** @enum {string} */

@@ -1,11 +1,12 @@
 import { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import {
   MediaCollection,
   mediaCollectionCapacityBudget,
   shouldLoadNextMediaPage,
+  storyboardPlaybackTiming,
   type MediaCollectionHandle,
   type MediaCollectionItem,
 } from "./MediaCollection";
@@ -24,6 +25,42 @@ const labels = {
   unavailableThumbnail: "Thumbnail unavailable",
   video: "Video",
 };
+
+const storyboardItem: MediaCollectionItem = {
+  height: 1080,
+  id: "video-storyboard",
+  kind: "video",
+  modifiedLabel: "Today",
+  name: "video-storyboard.mp4",
+  storyboard: {
+    cellHeight: 180,
+    cellWidth: 320,
+    columns: 5,
+    frameCount: 10,
+    rows: 2,
+    url: "/storyboard.webp",
+  },
+  thumbnailStatus: "ready",
+  thumbnailUrl: "/poster.webp",
+  width: 1920,
+};
+
+beforeEach(() => {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    value: "visible",
+  });
+  Object.defineProperty(HTMLImageElement.prototype, "decode", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  Reflect.deleteProperty(HTMLImageElement.prototype, "decode");
+});
 
 it("renders a bounded virtual window in query order with stable media identity", () => {
   const items: MediaCollectionItem[] = Array.from({ length: 200 }, (_, index) => ({
@@ -298,3 +335,333 @@ it("activates a media preview without hiding the source-directory link", () => {
   expect(screen.getByText("Currently previewing")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Source: photos" })).toBeVisible();
 });
+
+it("waits for hover intent and sprite decode before starting the storyboard", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  const decode = vi.mocked(HTMLImageElement.prototype.decode);
+  renderStoryboard();
+
+  const card = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  fireEvent.pointerEnter(card);
+
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs - 1),
+  );
+  expect(decode).not.toHaveBeenCalled();
+  expect(card).not.toHaveAttribute("data-storyboard-playing");
+  expect(card.querySelector('[src="/poster.webp"]')).toBeInTheDocument();
+
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(decode).toHaveBeenCalledOnce();
+  expect(card).toHaveAttribute("data-storyboard-playing", "true");
+  expect(card.querySelector('[src="/storyboard.webp"]')).toBeInTheDocument();
+});
+
+it("cycles sprite frames every 500ms and restores the poster on leave", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  renderStoryboard();
+
+  const card = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  fireEvent.pointerEnter(card);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+
+  const sprite = card.querySelector<HTMLImageElement>('[src="/storyboard.webp"]');
+  expect(sprite?.style.getPropertyValue("--storyboard-x")).toBe("10%");
+  expect(sprite?.style.getPropertyValue("--storyboard-y")).toBe("25%");
+  expect(sprite).toHaveAttribute("data-cover-axis", "height");
+
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.frameMs * 6),
+  );
+  expect(sprite?.style.getPropertyValue("--storyboard-x")).toBe("30%");
+  expect(sprite?.style.getPropertyValue("--storyboard-y")).toBe("75%");
+
+  fireEvent.pointerLeave(card);
+  expect(card).not.toHaveAttribute("data-storyboard-playing");
+  expect(card.querySelector('[src="/storyboard.webp"]')).not.toBeInTheDocument();
+  expect(card.querySelector('[src="/poster.webp"]')).toBeInTheDocument();
+});
+
+it.each([
+  { columns: 4, frameCount: 4, rows: 1 },
+  { columns: 5, frameCount: 10, rows: 2 },
+] as const)(
+  "uses server layout and loops a $frameCount-frame sprite",
+  async ({ columns, frameCount, rows }) => {
+    vi.useFakeTimers();
+    allowStoryboardMotion();
+    const item = {
+      ...storyboardItem,
+      storyboard: {
+        ...storyboardItem.storyboard!,
+        columns,
+        frameCount,
+        rows,
+      },
+    };
+    renderStoryboard([item]);
+    const card = screen.getByRole("article", {
+      name: "video-storyboard.mp4 · Video",
+    });
+    fireEvent.pointerEnter(card);
+    await act(() =>
+      vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+    );
+    const sprite = card.querySelector<HTMLImageElement>(
+      '[src="/storyboard.webp"]',
+    );
+
+    await act(() =>
+      vi.advanceTimersByTimeAsync(
+        storyboardPlaybackTiming.frameMs * (frameCount - 1),
+      ),
+    );
+    expect(sprite?.style.getPropertyValue("--storyboard-x")).toBe(
+      `${(((frameCount - 1) % columns) + 0.5) / columns * 100}%`,
+    );
+    expect(sprite?.style.getPropertyValue("--storyboard-y")).toBe(
+      `${
+        (Math.floor((frameCount - 1) / columns) + 0.5) / rows * 100
+      }%`,
+    );
+
+    await act(() =>
+      vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.frameMs),
+    );
+    expect(sprite?.style.getPropertyValue("--storyboard-x")).toBe(
+      `${0.5 / columns * 100}%`,
+    );
+    expect(sprite?.style.getPropertyValue("--storyboard-y")).toBe(
+      `${0.5 / rows * 100}%`,
+    );
+  },
+);
+
+it("preserves portrait sprite cells when covering a grid card", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  renderStoryboard([
+    {
+      ...storyboardItem,
+      storyboard: {
+        ...storyboardItem.storyboard!,
+        cellHeight: 320,
+        cellWidth: 180,
+      },
+    },
+  ]);
+  const card = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  fireEvent.pointerEnter(card);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+
+  expect(card.querySelector('[src="/storyboard.webp"]')).toHaveAttribute(
+    "data-cover-axis",
+    "width",
+  );
+});
+
+it("keeps only one active storyboard and cancels playback when the page hides", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  renderStoryboard([
+    storyboardItem,
+    {
+      ...storyboardItem,
+      id: "video-storyboard-2",
+      name: "video-storyboard-2.mp4",
+      storyboard: {
+        ...storyboardItem.storyboard!,
+        url: "/storyboard-2.webp",
+      },
+    },
+  ]);
+
+  const first = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  const second = screen.getByRole("article", {
+    name: "video-storyboard-2.mp4 · Video",
+  });
+  fireEvent.pointerEnter(first);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(first).toHaveAttribute("data-storyboard-playing", "true");
+
+  fireEvent.pointerEnter(second);
+  expect(first).not.toHaveAttribute("data-storyboard-playing");
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(second).toHaveAttribute("data-storyboard-playing", "true");
+
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    value: "hidden",
+  });
+  fireEvent(document, new Event("visibilitychange"));
+  expect(second).not.toHaveAttribute("data-storyboard-playing");
+});
+
+it("does not animate for reduced motion or a non-fine pointer", async () => {
+  vi.useFakeTimers();
+  const decode = vi.mocked(HTMLImageElement.prototype.decode);
+  const { rerender } = renderStoryboard(undefined, {
+    finePointer: true,
+    reducedMotion: true,
+  });
+  const card = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  fireEvent.pointerEnter(card);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(decode).not.toHaveBeenCalled();
+
+  setStoryboardMotion({ finePointer: false, reducedMotion: false });
+  rerender(storyboardCollection([storyboardItem]));
+  fireEvent.pointerEnter(card);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(decode).not.toHaveBeenCalled();
+  expect(card.querySelector('[src="/storyboard.webp"]')).not.toBeInTheDocument();
+});
+
+it("does not start a storyboard from keyboard focus", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  const decode = vi.mocked(HTMLImageElement.prototype.decode);
+  render(
+    <MediaCollection
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={[storyboardItem]}
+      labels={labels}
+      layout="grid"
+      onItemActivate={vi.fn()}
+      onLoadMore={vi.fn()}
+    />,
+  );
+
+  screen.getByRole("button", { name: "Preview video-storyboard.mp4" }).focus();
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(decode).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("article", {
+      name: "video-storyboard.mp4 · Video",
+    }),
+  ).not.toHaveAttribute("data-storyboard-playing");
+});
+
+it("bounds rapid hover across a capacity window to one request and timer", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  const decode = vi.mocked(HTMLImageElement.prototype.decode);
+  const items = Array.from({ length: 100 }, (_, index) => ({
+    ...storyboardItem,
+    id: `rapid-${index}`,
+    name: `rapid-${index}.mp4`,
+  }));
+  const view = renderStoryboard(items);
+  const cards = screen.getAllByRole("article");
+  for (const card of cards) {
+    fireEvent.pointerEnter(card);
+  }
+  expect(decode).not.toHaveBeenCalled();
+
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+  expect(decode).toHaveBeenCalledOnce();
+  expect(
+    cards.filter((card) => card.hasAttribute("data-storyboard-playing")),
+  ).toHaveLength(1);
+  expect(vi.getTimerCount()).toBe(1);
+
+  view.unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("keeps the poster when storyboard decoding fails and clears timers on unmount", async () => {
+  vi.useFakeTimers();
+  allowStoryboardMotion();
+  vi.mocked(HTMLImageElement.prototype.decode).mockRejectedValue(
+    new Error("corrupt sprite"),
+  );
+  const view = renderStoryboard();
+  const card = screen.getByRole("article", {
+    name: "video-storyboard.mp4 · Video",
+  });
+  fireEvent.pointerEnter(card);
+  await act(() =>
+    vi.advanceTimersByTimeAsync(storyboardPlaybackTiming.hoverIntentMs),
+  );
+
+  expect(card).not.toHaveAttribute("data-storyboard-playing");
+  expect(card.querySelector('[src="/poster.webp"]')).toBeInTheDocument();
+  expect(card.querySelector('[src="/storyboard.webp"]')).not.toBeInTheDocument();
+  view.unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+function renderStoryboard(
+  items: MediaCollectionItem[] = [storyboardItem],
+  motion: { finePointer: boolean; reducedMotion: boolean } = {
+    finePointer: true,
+    reducedMotion: false,
+  },
+) {
+  setStoryboardMotion(motion);
+  return render(storyboardCollection(items));
+}
+
+function storyboardCollection(items: MediaCollectionItem[]) {
+  return (
+    <MediaCollection
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={items}
+      labels={labels}
+      layout="grid"
+      onLoadMore={vi.fn()}
+    />
+  );
+}
+
+function allowStoryboardMotion() {
+  setStoryboardMotion({ finePointer: true, reducedMotion: false });
+}
+
+function setStoryboardMotion({
+  finePointer,
+  reducedMotion,
+}: {
+  finePointer: boolean;
+  reducedMotion: boolean;
+}) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn((query: string) => ({
+      matches: query.includes("prefers-reduced-motion")
+        ? reducedMotion
+        : finePointer,
+      media: query,
+    })),
+  });
+}

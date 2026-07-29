@@ -16,8 +16,12 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 `VSP-S0 Architecture Ready`、`VSP-S1 Contract Ready`、`VSP-S2 Backend Evidence Ready`、
 `VSP-S3 Consumer/UI Ready` 和 `VSP-S4 Integrated Slice Done`。当前
 [VSP-S0 Architecture Ready](POST-MVP-1/vsp-s0-architecture-ready.md)与
-[VSP-S1 Contract Ready](POST-MVP-1/vsp-s1-contract-ready.md)已 Go，授权
-`VSP-106～113` 后端实现与证据；S2～S4 尚无通过证据。
+[VSP-S1 Contract Ready](POST-MVP-1/vsp-s1-contract-ready.md)、
+[VSP-S2 Backend Evidence Ready](POST-MVP-1/vsp-s2-backend-evidence-ready.md)和
+[VSP-S3 Consumer/UI Ready](POST-MVP-1/vsp-s3-consumer-ui-ready.md)已 Go；
+[VSP-301](POST-MVP-1/vsp-301-product-vertical.md)已完成真实产品纵切。
+[VSP-302](POST-MVP-1/vsp-302-target-platform.md)的原生证据入口已建立但仍为 Pending，
+因此 S4 尚未签署。
 
 当前记录：
 

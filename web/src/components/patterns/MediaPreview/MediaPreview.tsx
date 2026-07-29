@@ -206,8 +206,18 @@ export function MediaPreview({
 
       <dl className={styles.details}>
         <div className={styles.fileIdentity}>
-          <strong title={item.name}>{item.name}</strong>
-          <span>{item.kind === "video" ? "VIDEO" : item.kind === "animated" ? "GIF" : "JPG"}</span>
+          <dt>
+            <strong title={item.name}>{item.name}</strong>
+          </dt>
+          <dd>
+            <span>
+              {item.kind === "video"
+                ? "VIDEO"
+                : item.kind === "animated"
+                  ? "GIF"
+                  : "JPG"}
+            </span>
+          </dd>
         </div>
         {item.details.map((detail) => (
           <div key={detail.label}>

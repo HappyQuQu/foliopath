@@ -36,6 +36,7 @@ import {
   mediaAvailability,
   mediaAvailabilityPresentation,
   mediaPosterUrl,
+  mediaStoryboard,
 } from "../../../lib/media/availability";
 import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
@@ -542,20 +543,24 @@ function mapSearchItems(
     dateStyle: "medium",
     timeStyle: "short",
   });
-  return assets.map((asset) => ({
-    height: asset.height,
-    id: asset.id,
-    kind: asset.kind,
-    modifiedLabel: formatter.format(new Date(asset.modifiedAt)),
-    name: asset.name,
-    sourceHref: paths.browse(asset.libraryId, asset.directoryId),
-    sourceLabel: sourceTemplate
-      .replace("{library}", asset.libraryName)
-      .replace("{path}", sourceDirectory(asset.relativePath)),
-    thumbnailStatus: asset.thumbnail.status,
-    thumbnailUrl: asset.thumbnail.url,
-    width: asset.width,
-  }));
+  return assets.map((asset) => {
+    const storyboard = mediaStoryboard(asset);
+    return {
+      height: asset.height,
+      id: asset.id,
+      kind: asset.kind,
+      modifiedLabel: formatter.format(new Date(asset.modifiedAt)),
+      name: asset.name,
+      sourceHref: paths.browse(asset.libraryId, asset.directoryId),
+      sourceLabel: sourceTemplate
+        .replace("{library}", asset.libraryName)
+        .replace("{path}", sourceDirectory(asset.relativePath)),
+      ...(storyboard ? { storyboard } : {}),
+      thumbnailStatus: asset.thumbnail.status,
+      thumbnailUrl: asset.thumbnail.url,
+      width: asset.width,
+    };
+  });
 }
 
 function sourceDirectory(relativePath: string): string {

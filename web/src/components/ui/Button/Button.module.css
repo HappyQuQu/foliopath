@@ -61,14 +61,14 @@
 
 .primary {
   color: var(--color-on-accent);
-  border-color: var(--color-accent);
-  background: var(--color-accent);
+  border-color: var(--color-accent-fill);
+  background: var(--color-accent-fill);
   box-shadow: var(--shadow-1);
 }
 
 .primary:hover:not(:disabled) {
-  border-color: var(--color-accent-hover);
-  background: var(--color-accent-hover);
+  border-color: var(--color-accent-fill-hover);
+  background: var(--color-accent-fill-hover);
 }
 
 .quiet {

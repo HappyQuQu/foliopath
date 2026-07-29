@@ -25,16 +25,61 @@ const labels = {
   video: "视频",
 };
 
-const items: MediaCollectionItem[] = Array.from({ length: 80 }, (_, index) => ({
-  height: index % 4 === 0 ? 1200 : 800,
-  id: `asset-${index}`,
-  kind: index % 5 === 0 ? "video" : "image",
-  modifiedLabel: `2026-07-${String(28 - (index % 20)).padStart(2, "0")}`,
-  name: `family-archive-${String(index + 1).padStart(3, "0")}.jpg`,
-  thumbnailStatus: "pending",
-  thumbnailUrl: null,
-  width: index % 4 === 0 ? 800 : 1200,
-}));
+const storyboardSprite = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="360">
+    <rect width="1600" height="360" fill="#182235"/>
+    ${Array.from({ length: 10 }, (_, index) => {
+      const x = (index % 5) * 320;
+      const y = Math.floor(index / 5) * 180;
+      const hue = 205 + index * 7;
+      return `<g transform="translate(${x} ${y})">
+        <rect width="320" height="180" fill="hsl(${hue} 55% 35%)"/>
+        <circle cx="${60 + index * 12}" cy="82" r="32" fill="hsl(${hue + 35} 70% 68%)"/>
+        <text x="24" y="156" fill="white" font-family="sans-serif" font-size="28">${index + 1}</text>
+      </g>`;
+    }).join("")}
+  </svg>
+`)}`;
+
+const portraitStoryboardSprite = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="720" height="320">
+    ${Array.from({ length: 4 }, (_, index) => `
+      <g transform="translate(${index * 180} 0)">
+        <rect width="180" height="320" fill="hsl(${160 + index * 18} 48% 32%)"/>
+        <rect x="28" y="${45 + index * 28}" width="124" height="92" rx="18" fill="hsl(${205 + index * 12} 68% 70%)"/>
+        <text x="20" y="292" fill="white" font-family="sans-serif" font-size="28">${index + 1}</text>
+      </g>
+    `).join("")}
+  </svg>
+`)}`;
+
+const items: MediaCollectionItem[] = Array.from({ length: 80 }, (_, index) => {
+  const video = index % 5 === 0;
+  return {
+    height: index % 4 === 0 ? 1200 : 800,
+    id: `asset-${index}`,
+    kind: video ? "video" : "image",
+    modifiedLabel: `2026-07-${String(28 - (index % 20)).padStart(2, "0")}`,
+    name: `family-archive-${String(index + 1).padStart(3, "0")}.${
+      video ? "mp4" : "jpg"
+    }`,
+    ...(video
+      ? {
+          storyboard: {
+            cellHeight: 180,
+            cellWidth: 320,
+            columns: 5,
+            frameCount: 10,
+            rows: 2,
+            url: storyboardSprite,
+          },
+        }
+      : {}),
+    thumbnailStatus: video ? "ready" : "pending",
+    thumbnailUrl: video ? "/api/v1/assets/example/thumbnail" : null,
+    width: index % 4 === 0 ? 800 : 1200,
+  };
+});
 
 const capacityItems: MediaCollectionItem[] = Array.from(
   { length: mediaCollectionCapacityBudget.primaryTierItems },
@@ -47,6 +92,28 @@ const capacityItems: MediaCollectionItem[] = Array.from(
     thumbnailStatus: "pending",
     thumbnailUrl: null,
     width: index % 4 === 0 ? 800 : 1200,
+  }),
+);
+
+const storyboardCapacityItems: MediaCollectionItem[] = Array.from(
+  { length: 100 },
+  (_, index) => ({
+    height: 1080,
+    id: `storyboard-capacity-${index}`,
+    kind: "video",
+    modifiedLabel: "2026-07-29",
+    name: `storyboard-capacity-${String(index + 1).padStart(3, "0")}.mp4`,
+    storyboard: {
+      cellHeight: 180,
+      cellWidth: 320,
+      columns: 5,
+      frameCount: 10,
+      rows: 2,
+      url: storyboardSprite,
+    },
+    thumbnailStatus: "ready",
+    thumbnailUrl: storyboardSprite,
+    width: 1920,
   }),
 );
 
@@ -99,6 +166,83 @@ export const ThumbnailStates: Story = {
   },
 };
 
+export const StoryboardStates: Story = {
+  args: {
+    hasNextPage: false,
+    items: [
+      {
+        ...items[0]!,
+        id: "storyboard-ready-10",
+        name: "ready-landscape-10-frames.mp4",
+        storyboard: {
+          cellHeight: 180,
+          cellWidth: 320,
+          columns: 5,
+          frameCount: 10,
+          rows: 2,
+          url: storyboardSprite,
+        },
+      },
+      {
+        ...items[5]!,
+        height: 1920,
+        id: "storyboard-ready-4",
+        name: "ready-portrait-4-frames.mp4",
+        storyboard: {
+          cellHeight: 320,
+          cellWidth: 180,
+          columns: 4,
+          frameCount: 4,
+          rows: 1,
+          url: portraitStoryboardSprite,
+        },
+        width: 1080,
+      },
+      {
+        ...withoutStoryboard(items[10]!),
+        id: "storyboard-pending",
+        name: "pending-silently-uses-poster.mp4",
+      },
+      {
+        ...withoutStoryboard(items[15]!),
+        id: "storyboard-failed",
+        name: "failed-silently-uses-poster-with-a-very-long-filename.mp4",
+      },
+    ],
+  },
+};
+
+export const StoryboardMasonry: Story = {
+  args: {
+    hasNextPage: false,
+    items: [
+      {
+        ...items[0]!,
+        height: 1080,
+        id: "storyboard-masonry-landscape",
+        name: "masonry-landscape.mp4",
+        width: 1920,
+      },
+      {
+        ...items[5]!,
+        height: 1920,
+        id: "storyboard-masonry-portrait",
+        name: "masonry-portrait.mp4",
+        storyboard: {
+          cellHeight: 320,
+          cellWidth: 180,
+          columns: 4,
+          frameCount: 4,
+          rows: 1,
+          url: portraitStoryboardSprite,
+        },
+        width: 1080,
+      },
+    ],
+    layout: "masonry",
+  },
+};
+
 export const NextPageFailed: Story = {
   args: {
     hasNextPage: true,
@@ -116,6 +260,16 @@ export const Capacity100k = {
     controls: { disable: true },
   },
   render: () => <CapacityTier />,
+};
+
+export const StoryboardCapacity100: Story = {
+  args: {
+    hasNextPage: false,
+    items: storyboardCapacityItems,
+  },
+  parameters: {
+    controls: { disable: true },
+  },
 };
 
 function CapacityTier() {
@@ -144,4 +298,11 @@ function CapacityTier() {
       />
     </>
   );
+}
+
+function withoutStoryboard(
+  item: MediaCollectionItem,
+): MediaCollectionItem {
+  const { storyboard: _storyboard, ...fallback } = item;
+  return fallback;
 }

@@ -158,8 +158,10 @@ test("administrator, library-management, and browsing vertical slice", async ({
   const createdLibraryId = libraryId ?? "";
   await page.goto(`/libraries/${createdLibraryId}/browse`);
   await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Media library" })).toHaveValue(
-    createdLibraryId,
+  await expect(
+    page.getByRole("button", { name: /^Media library[：:]/ }),
+  ).toContainText(
+    longLibraryName,
   );
   await expect(page.getByText("direct-photo.jpg")).toBeVisible({
     timeout: 15_000,
@@ -558,7 +560,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expectNoPageOverflow(page);
 
   await page.getByRole("link", { name: "Settings" }).click();
-  await expect(page).toHaveURL(/\/settings\/general$/);
+  await expect(page).toHaveURL(
+    new RegExp(`/settings/general\\?libraryId=${createdLibraryId}$`),
+  );
   await expect(page.getByRole("heading", { name: "General settings" })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Account" }).getByText(administrator.displayName),
@@ -708,6 +712,16 @@ function browseAssetPage(
         probeStatus: "ready",
         playbackStatus: "not_applicable",
         sourceAvailability: "available",
+        storyboard: {
+          cellHeight: null,
+          cellWidth: null,
+          columns: null,
+          errorCode: null,
+          frameCount: null,
+          rows: null,
+          status: "not_applicable",
+          url: null,
+        },
         thumbnail: {
           status: thumbnailStatus,
           url: null,

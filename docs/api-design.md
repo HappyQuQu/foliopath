@@ -369,7 +369,7 @@ composition，并固定强 ETag、HEAD、三种单 Range、If-Range fallback、�
 
 ### Post-MVP 视频故事板契约
 
-[FTR-VID-001](features/video-storyboard-preview.md)计划扩展
+[FTR-VID-001](features/video-storyboard-preview.md)已扩展
 `GET /api/v1/assets/{assetId}/thumbnail` 的 `variant=storyboard`，并在资产列表/详情中
 增加 storyboard 的 `status`、URL 和实际 `frameCount/columns/rows/cellWidth/cellHeight`。
 ready 二进制仍使用 WebP、强 ETag、private immutable cache 与 `nosniff`；pending、offline、
@@ -378,6 +378,7 @@ failed 和限流分别沿用结构化 `202/409/422/429` 语义。
 `VSP-S1 Contract Ready` 已 Go。当前 [`api/openapi.yaml`](../api/openapi.yaml)允许
 `variant=grid|storyboard`，并以 `StoryboardReference` 固定派生状态与布局；TypeScript
 client 已从权威源重新生成。
+首版 ready `frameCount` 只允许 4 或 10：2～5 秒视频为 4，5 秒及以上为 10。
 
 ## 游标规则
 

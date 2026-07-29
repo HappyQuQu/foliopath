@@ -45,6 +45,17 @@ const session: AuthenticatedSession = {
   expiresAt: "2026-08-04T00:00:00Z",
 };
 
+const notApplicableStoryboard = {
+  cellHeight: null,
+  cellWidth: null,
+  columns: null,
+  errorCode: null,
+  frameCount: null,
+  rows: null,
+  status: "not_applicable" as const,
+  url: null,
+};
+
 beforeEach(() => {
   vi.mocked(listLibraries).mockReset();
   vi.mocked(getLibrary).mockReset();
@@ -113,6 +124,16 @@ beforeEach(() => {
             relativePath: "旅行/日本/clip.mp4",
             sizeBytes: 1024,
             sourceAvailability: "available",
+            storyboard: {
+              cellHeight: 180,
+              cellWidth: 320,
+              columns: 5,
+              errorCode: null,
+              frameCount: 10,
+              rows: 2,
+              status: "ready",
+              url: "/api/v1/assets/ast_clip/thumbnail?variant=storyboard",
+            },
             thumbnail: { errorCode: null, status: "pending", url: null },
             width: 1920,
           },
@@ -134,6 +155,7 @@ beforeEach(() => {
             relativePath: "旅行/photo.jpg",
             sizeBytes: 512,
             sourceAvailability: "available",
+            storyboard: notApplicableStoryboard,
             thumbnail: { errorCode: null, status: "pending", url: null },
             width: 1200,
           },
@@ -428,6 +450,7 @@ it("refreshes an expired cursor before retrying the next media page", async () =
             relativePath: "旅行/photo.jpg",
             sizeBytes: 512,
             sourceAvailability: "available",
+            storyboard: notApplicableStoryboard,
             thumbnail: { errorCode: null, status: "ready", url: "/photo.webp" },
             width: 1200,
           },
@@ -461,6 +484,7 @@ it("refreshes an expired cursor before retrying the next media page", async () =
           relativePath: "旅行/second.jpg",
           sizeBytes: 768,
           sourceAvailability: "available",
+          storyboard: notApplicableStoryboard,
           thumbnail: { errorCode: null, status: "ready", url: "/second.webp" },
           width: 1200,
         },

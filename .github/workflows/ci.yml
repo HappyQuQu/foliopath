@@ -313,6 +313,69 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
 
+  storyboard-candidate:
+    name: Storyboard candidate (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install fixture and evidence tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg jq
+      - name: Exercise the native storyboard candidate
+        env:
+          FOLIOPATH_RELEASE_IMAGE: foliopath-storyboard:${{ github.sha }}-${{ matrix.arch }}
+          FOLIOPATH_STORYBOARD_EVIDENCE: ${{ runner.temp }}/storyboard-evidence-${{ matrix.arch }}.json
+          FOLIOPATH_STORYBOARD_EXPECTED_ARCH: ${{ matrix.arch }}
+          FOLIOPATH_STORYBOARD_RUN_ATTEMPT: ${{ github.run_attempt }}
+          FOLIOPATH_STORYBOARD_RUN_ID: ${{ github.run_id }}
+          FOLIOPATH_STORYBOARD_SKIP_BROWSER: "1"
+          FOLIOPATH_STORYBOARD_SOURCE_COMMIT: ${{ github.sha }}
+        run: make test-storyboard-vertical
+      - name: Upload native storyboard evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storyboard-evidence-${{ github.sha }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/storyboard-evidence-${{ matrix.arch }}.json
+          if-no-files-found: error
+          include-hidden-files: false
+
+  storyboard-evidence:
+    name: Verify paired storyboard evidence
+    needs: storyboard-candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Download paired native evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          pattern: storyboard-evidence-${{ github.sha }}-*
+          path: ${{ runner.temp }}/storyboard-evidence
+          merge-multiple: true
+      - name: Verify source, runtime, layout, and decoded pixels match
+        run: |
+          make verify-storyboard-evidence \
+            EVIDENCE_DIR="${RUNNER_TEMP}/storyboard-evidence" \
+            RELEASE_SHA="${GITHUB_SHA}"
+
   release-capacity:
     name: Release capacity (${{ matrix.arch }})
     strategy:

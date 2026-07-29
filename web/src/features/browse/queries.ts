@@ -9,6 +9,7 @@ import {
   type AssetSort,
   type SortOrder,
 } from "../../lib/api/catalog";
+import { mediaDerivedStatePending } from "../../lib/media/availability";
 
 export const pendingThumbnailRefreshMs = 2_500;
 export const pendingThumbnailRefreshPageBudget = 4;
@@ -18,9 +19,7 @@ export function pendingThumbnailRefreshInterval(
 ): number | false {
   return pages &&
     pages.length <= pendingThumbnailRefreshPageBudget &&
-    pages.some((page) =>
-      page.items.some((asset) => asset.thumbnail.status === "pending"),
-    )
+    pages.some((page) => page.items.some(mediaDerivedStatePending))
     ? pendingThumbnailRefreshMs
     : false;
 }

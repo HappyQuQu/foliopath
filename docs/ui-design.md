@@ -186,14 +186,18 @@ FolioPath 使用统一的极简目录树标识：浅蓝主干、青色中层与�
 | `surface` | `#FFFFFF` | `#1C1C1E` | 侧栏、卡片、面板 |
 | `surface-raised` | `#FFFFFF` | `#2C2C2E` | 对话框、浮层 |
 | `text` | `#1D1D1F` | `#F5F5F7` | 主文字 |
-| `text-muted` | `#86868B` | `#98989D` | 次要信息 |
+| `text-muted` | `#6E6E73` | `#98989D` | 次要信息（浅色主题满足 WCAG AA 对比度） |
 | `border` | `rgba(0,0,0,.08)` | `rgba(255,255,255,.08)` | 分隔与边界 |
-| `accent` | `#0071E3` | `#0A84FF` | 主操作、选中、焦点辅助 |
+| `accent` | `#0066CC` | `#0A84FF` | 主操作、选中、焦点辅助（浅色主题满足 WCAG AA 对比度） |
+| `accent-fill` | `#0066CC` | `#0066CC` | 带白色文字的主按钮填充（满足 WCAG AA 对比度） |
 | `success` | `#248A3D` | `#30D158` | 成功 |
-| `warning` | `#C65D00` | `#FF9F0A` | 扫描警告、部分失败 |
+| `warning` | `#984B00` | `#FF9F0A` | 扫描警告、部分失败（浅色主题满足 WCAG AA 对比度） |
 | `danger` | `#FF3B30` | `#FF453A` | 失败与移除动作 |
 
 状态不能只靠颜色。焦点环使用独立高对比 token，并在深浅主题都达到可见要求。查看器使用独立近黑表面，不继承普通卡片阴影。
+浅色与深色主题的三级文字分别与次级文字统一为 `#6E6E73` 和 `#98989D`；
+选中项通过背景、正文色和 `aria-current` 共同表达，避免低对比强调色成为
+唯一状态线索。
 
 ### 字体、间距和形状
 
@@ -319,7 +323,7 @@ Escape 与关闭按钮都关闭预览，并通过共享虚拟控制器滚回当�
 
 ### Post-MVP 视频故事板动效
 
-[FTR-VID-001](features/video-storyboard-preview.md)计划由共享 `MediaCollection` 唯一实现
+[FTR-VID-001](features/video-storyboard-preview.md)由共享 `MediaCollection` 唯一实现
 视频卡片故事板：
 
 - 只在 `(hover: hover) and (pointer: fine)`、未启用 reduced-motion 且停留 `300ms`
@@ -328,9 +332,10 @@ Escape 与关闭按钮都关闭预览，并通过共享虚拟控制器滚回当�
 - 同页最多一个活动动画，浏览与搜索不得各自实现 timer/controller；
 - sprite 是装饰性视觉替换，不改变 accessible name、DOM 顺序或增加 live region；
 - touch、键盘焦点和 reduced-motion 不自动播放；
-- grid/masonry、浅/深主题、4～10 帧和横/竖屏必须进入组件工作台与视觉矩阵。
+- grid/masonry、浅/深主题、4/10 帧和横/竖屏必须进入组件工作台与视觉矩阵。
 
-本节是 `Post-MVP/1` 设计合同，不授权在 `VSP-S2 Backend Evidence Ready` 前接入生产 UI。
+`VSP-S3 Consumer/UI Ready` 已以共享实现、组件工作台、输入模式与浏览器容量证据确认
+本设计合同；完整 feature 仍由 `VSP-S4 Integrated Slice Done` 阻断。
 
 ## 内容与文案
 

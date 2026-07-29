@@ -72,6 +72,27 @@
   object-fit: cover;
 }
 
+.thumbnail .storyboardSprite {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  max-width: none;
+  width: calc(var(--storyboard-columns) * 100%);
+  height: calc(var(--storyboard-rows) * 100%);
+  object-fit: fill;
+  transform: translate(calc(-1 * var(--storyboard-x)), calc(-1 * var(--storyboard-y)));
+  pointer-events: none;
+}
+
+.thumbnail .storyboardSprite[data-cover-axis="height"] {
+  width: auto;
+}
+
+.thumbnail .storyboardSprite[data-cover-axis="width"] {
+  height: auto;
+}
+
 .thumbnailPlaceholder {
   width: 100%;
   height: 100%;

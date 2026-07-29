@@ -58,6 +58,16 @@ const result: Asset = {
   relativePath: "旅行/日本/京都夜景.jpg",
   sizeBytes: 512,
   sourceAvailability: "available",
+  storyboard: {
+    cellHeight: null,
+    cellWidth: null,
+    columns: null,
+    errorCode: null,
+    frameCount: null,
+    rows: null,
+    status: "not_applicable",
+    url: null,
+  },
   thumbnail: { errorCode: null, status: "pending", url: null },
   width: 1200,
 };

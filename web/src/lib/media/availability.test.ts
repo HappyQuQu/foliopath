@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { Asset } from "../api/catalog";
-import { mediaAvailability, mediaPosterUrl } from "./availability";
+import {
+  mediaAvailability,
+  mediaDerivedStatePending,
+  mediaPosterUrl,
+  mediaStoryboard,
+} from "./availability";
 
 const asset: Asset = {
   directoryId: "dir",
@@ -19,6 +24,16 @@ const asset: Asset = {
   relativePath: "photo.jpg",
   sizeBytes: 1024,
   sourceAvailability: "available",
+  storyboard: {
+    cellHeight: null,
+    cellWidth: null,
+    columns: null,
+    errorCode: null,
+    frameCount: null,
+    rows: null,
+    status: "not_applicable",
+    url: null,
+  },
   thumbnail: { errorCode: null, status: "ready", url: "/thumbnail" },
   width: 1200,
 };
@@ -69,5 +84,49 @@ describe("media availability policy", () => {
         thumbnail: { errorCode: null, status: "pending", url: null },
       }),
     ).toBeUndefined();
+  });
+
+  it("maps only a complete ready storyboard and polls pending derivations", () => {
+    const ready: Asset = {
+      ...asset,
+      kind: "video" as const,
+      storyboard: {
+        cellHeight: 180,
+        cellWidth: 320,
+        columns: 5,
+        errorCode: null,
+        frameCount: 10,
+        rows: 2,
+        status: "ready" as const,
+        url: "/storyboard",
+      },
+    };
+    expect(mediaStoryboard(ready)).toEqual({
+      cellHeight: 180,
+      cellWidth: 320,
+      columns: 5,
+      frameCount: 10,
+      rows: 2,
+      url: "/storyboard",
+    });
+    expect(
+      mediaStoryboard({
+        ...ready,
+        storyboard: { ...ready.storyboard, columns: null },
+      }),
+    ).toBeUndefined();
+    const invalidFrameCount = {
+      ...ready,
+      storyboard: { ...ready.storyboard, frameCount: 9 },
+    } as unknown as Asset;
+    expect(
+      mediaStoryboard(invalidFrameCount),
+    ).toBeUndefined();
+    expect(
+      mediaDerivedStatePending({
+        ...asset,
+        storyboard: { ...asset.storyboard, status: "pending" },
+      }),
+    ).toBe(true);
   });
 });
