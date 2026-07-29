@@ -174,6 +174,19 @@ poster，触摸、键盘焦点与 reduced-motion 不自动播放。
 VSP-302 正等待同一提交的原生 linux/amd64、linux/arm64 候选证据，VSP-303/304 尚未签署。
 完整影响与决定见 [CR-2026-004](changes/CR-2026-004-video-storyboard-preview.md)。
 
+## 已确认的 Post-MVP/2 Feature
+
+2026-07-29 用户确认“向已有媒体库新增文件或文件夹后后台自动、近实时索引，进入目录或
+点击刷新后显示”，方案记录为
+[FTR-SCN-001 媒体库自动发现](features/automatic-library-discovery.md)，提案需求为
+`FR-SCN-010～014`、`NFR-REL-002` 与 `NFR-PERF-003`，目标版本为
+[`POST-MVP-2 revision 2`](releases/POST-MVP-2-scope-r2.md)。
+
+该提案不修改本文件上方冻结的 MVP 范围，不改变 `MVP-NG-008`：完整扫描仍是正确性基线，
+watcher 只能触发安全、定向的增量校准。精确延迟预算、ADR、OpenAPI 和数据合同仍由
+[CR-2026-005](changes/CR-2026-005-automatic-library-discovery.md)及 `WCH-S0/S1`
+失败关闭；当前不授权生产实现。
+
 ## 非功能需求
 
 | ID | 类别 | 需求 |

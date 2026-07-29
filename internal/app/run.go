@@ -121,6 +121,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	}
 	scanSignal := jobs.NewSignal()
 	scheduleSignal := jobs.NewSignal()
+	discoveryConfigSignal := jobs.NewSignal()
+	discoveryRecoverySignal := jobs.NewSignal()
+	reconcileSignal := jobs.NewSignal()
 	mediaSignal := jobs.NewSignal()
 	cacheSignal := jobs.NewSignal()
 	scanAdmission, err := scanner.NewAdmissionService(database, scanSignal)
@@ -134,6 +137,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	settingsService, err := appsettings.NewService(
 		database,
 		scheduleSignal,
+		discoveryConfigSignal,
 		cacheSignal,
 		appsettings.FieldValidators{
 			Schedule:   scanner.ValidateScheduledScanInterval,
@@ -153,7 +157,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct media content service: %w", err)
 	}
 	scanService, err := scanner.NewService(
-		mediaWakeScanRepository{Repository: database, waker: mediaSignal},
+		mediaWakeScanRepository{
+			Repository:     database,
+			waker:          mediaSignal,
+			discoveryWaker: discoveryRecoverySignal,
+		},
 		scanner.Config{},
 	)
 	if err != nil {
@@ -179,6 +187,61 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct scan scheduler: %w", err)
 	}
 	scanComponent, err := newScanWorkerComponent(scanWorker, scanAdmission, scanScheduler)
+	if err != nil {
+		return nil, err
+	}
+	reconcileAdmission, err := scanner.NewReconcileAdmission(
+		database,
+		reconcileSignal,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"construct automatic discovery admission service: %w",
+			err,
+		)
+	}
+	discoveryCoordinator, err := newAutomaticDiscoveryCoordinator(
+		database,
+		directorySource,
+		reconcileAdmission,
+		scanAdmission,
+		discoveryConfigSignal,
+		discoveryRecoverySignal,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"construct automatic discovery coordinator: %w",
+			err,
+		)
+	}
+	reconcileProcessor, err := scanner.NewReconcileProcessor(
+		database,
+		directorySource,
+		mediaSignal,
+		discoveryCoordinator,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"construct automatic discovery processor: %w",
+			err,
+		)
+	}
+	reconcileWorker, err := jobs.NewWorkerPool(
+		reconcileJobQueue{database: database},
+		reconcileProcessor,
+		reconcileSignal,
+		jobs.WorkerOptions{Workers: scanner.MaxConcurrentReconciles},
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"construct automatic discovery worker: %w",
+			err,
+		)
+	}
+	automaticDiscoveryComponent, err := newAutomaticDiscoveryComponent(
+		reconcileWorker,
+		discoveryCoordinator,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -259,8 +322,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	libraries, err := library.NewLifecycleService(
 		database,
 		directorySource,
-		scanSignal,
-		removalWorker,
+		multiWaker{scanSignal, discoveryConfigSignal},
+		multiWaker{removalWorker, discoveryConfigSignal},
 		library.LifecycleOptions{},
 	)
 	if err != nil {
@@ -301,6 +364,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 			imageRuntimeComponent,
 			mediaComponent,
 			scanComponent,
+			automaticDiscoveryComponent,
 			removalComponent,
 			httpComponent,
 			readinessLifecycle(readiness),

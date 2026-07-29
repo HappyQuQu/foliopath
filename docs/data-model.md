@@ -202,8 +202,9 @@ singleton 约束防止并发创建多个账号；应用重启后从数据库恢�
 
 使用固定 `singleton_key=1` 的 typed row，只保存 schema 已知的应用级配置，包括默认
 24 小时完整扫描周期（允许 1～8760 小时或 null 关闭）、默认 10 GiB 缩略图缓存配额，
-以及默认跟随浏览器的中英语言偏好。`revision` 支持强 ETag/If-Match，提交后才唤醒
-scheduler。秘密值不得以明文日志输出；设置不能成为任意键值存储。
+默认开启的 `automatic_discovery_enabled`，以及默认跟随浏览器的中英语言偏好。
+`revision` 支持强 ETag/If-Match，提交后才唤醒对应 scheduler/watcher。秘密值不得以明文
+日志输出；设置不能成为任意键值存储。
 
 缓存 ready 使用量达到配额 90% 后按 `(last_accessed_at_ms, asset_id)` 清理到 80%，每次
 新发布还必须在写入后保留 512 MiB 文件系统可用空间。该策略只作用于可重建文件和
@@ -247,6 +248,35 @@ asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的
 完整扫描开始时分配新 generation；分批 upsert 时更新 `last_seen_generation`。只有完整扫描成功后，才能删除更旧 generation 的目录和媒体记录。根目录离线、权限失败、任一子树无法可靠遍历、进程中断或用户取消都会使本次扫描失去清理资格。
 
 增量扫描只更新明确检查过的路径，不进行媒体库级清理。定期完整扫描负责最终校准。详情见 [ADR-0003](adr/0003-scan-consistency.md)。
+
+## Post-MVP 自动发现持久化
+
+只向前 migration 12 扩展以下状态：
+
+- `libraries` 增加 `automatic_discovery_status`、可空
+  `automatic_discovery_error_code`、可空 `last_automatic_discovery_at_ms` 与正整数
+  `content_revision`。状态/错误组合由 CHECK 限制；已有库以 `disabled`、无错误、revision 1
+  升级，运行时依据设置、平台和 watch 建立结果转为 active/unsupported/degraded。
+- `catalog_search_state` 增加独立正整数 `content_revision`。媒体库创建/移除、可靠
+  full generation 发布和成功定向提交在同一写事务推进它；原有 `revision` 继续只绑定跨库
+  搜索 cursor。
+- `settings` 增加值域为 0/1、默认 1 的 `automatic_discovery_enabled`。
+- 新增 `catalog_reconcile_jobs`。身份为
+  `(library_id, relative_dir_path)`，路径只允许规范的媒体库相对目录，空字符串表示库根；
+  行保存 `queued|running|failed`、`requested_revision`、可空 `claimed_revision`、
+  debounce/available/lease 时间、有限 attempt、稳定错误码和创建/更新时间，不保存宿主机
+  或容器绝对路径。
+
+同路径事件使用 upsert 递增 `requested_revision`。claim 在短写事务中把当时水位复制到
+`claimed_revision`；成功提交后，只有 `requested_revision=claimed_revision` 才删除任务，
+否则清 lease 并重新排队。每库完整扫描与定向任务 claim 互斥；首版完整扫描不删除 queued
+任务，完成后允许它们再次安全枚举。最多尝试 5 次，退避为 1/2/4/8/16 秒；耗尽、overflow、
+资源不足或无法可靠枚举时保留旧索引、把库标记 degraded，并合并请求一次完整扫描。
+
+每次定向事务只提交已可靠枚举范围的目录/资产、直接和递归计数、派生任务、
+library/global content revision 与任务水位。文件系统 I/O、媒体探测和 watch 注册均在事务
+之外。只有可靠完整 generation 可以执行媒体库级 stale cleanup；定向删除仅限已确认缺失的
+直接子项或其子树。
 
 ## 删除与离线语义
 

@@ -98,7 +98,7 @@ func TestFrozenOpenAPIRevisionDigest(t *testing.T) {
 	}
 }
 
-func TestOpenAPIHasExactMVPResourceOperations(t *testing.T) {
+func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 	t.Parallel()
 
 	operations := readOperations(t)
@@ -113,6 +113,7 @@ func TestOpenAPIHasExactMVPResourceOperations(t *testing.T) {
 		"GET /api/v1/status",
 		"GET /api/v1/settings",
 		"PATCH /api/v1/settings",
+		"GET /api/v1/catalog/state",
 		"GET /api/v1/library-paths",
 		"GET /api/v1/libraries",
 		"POST /api/v1/libraries",

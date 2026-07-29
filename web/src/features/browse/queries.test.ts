@@ -1,10 +1,13 @@
+import { QueryClient } from "@tanstack/react-query";
 import { expect, it } from "vitest";
 
 import type { AssetPage } from "../../lib/api/catalog";
 import {
+  catalogKeys,
   pendingThumbnailRefreshInterval,
   pendingThumbnailRefreshMs,
   pendingThumbnailRefreshPageBudget,
+  refreshCatalogScope,
 } from "./queries";
 
 function page(status: "pending" | "ready" | "failed" | "unavailable"): AssetPage {
@@ -77,4 +80,32 @@ it("stops periodic page refetches before a large collection can create a request
   expect(
     pendingThumbnailRefreshInterval([...boundedPages, page("pending")]),
   ).toBe(false);
+});
+
+it("drops loaded cursor pages before refreshing the current scope", async () => {
+  const queryClient = new QueryClient();
+  const queryKey = catalogKeys.assets(
+    "lib_test",
+    "dir_test",
+    false,
+    undefined,
+    "name",
+    "asc",
+  );
+  queryClient.setQueryData(queryKey, {
+    pageParams: [undefined, "cursor-2"],
+    pages: [page("ready"), page("ready")],
+  });
+
+  await refreshCatalogScope(queryClient, {
+    directoryId: "dir_test",
+    libraryId: "lib_test",
+    order: "asc",
+    recursive: false,
+    sort: "name",
+  });
+
+  expect(
+    queryClient.getQueryData<{ pages: AssetPage[] }>(queryKey)?.pages,
+  ).toHaveLength(1);
 });

@@ -15,7 +15,23 @@ import (
 
 type mediaWakeScanRepository struct {
 	scanner.Repository
-	waker interface{ Wake() }
+	waker          interface{ Wake() }
+	discoveryWaker interface{ Wake() }
+}
+
+func (repository mediaWakeScanRepository) CompleteFullScan(
+	ctx context.Context,
+	runID int64,
+	skipped scanner.SkipCounts,
+) (scanner.ScanRun, error) {
+	run, err := repository.Repository.CompleteFullScan(ctx, runID, skipped)
+	if err != nil {
+		return scanner.ScanRun{}, err
+	}
+	if repository.discoveryWaker != nil {
+		repository.discoveryWaker.Wake()
+	}
+	return run, nil
 }
 
 func (repository mediaWakeScanRepository) UpsertCatalogBatch(

@@ -37,6 +37,9 @@
   `BrandMark` 唯一所有权与生产入口的确认记录。
 - [FIX-2026-07-29 管理员密码最低长度](changes/FIX-2026-07-29-admin-password-minimum.md)：
   首次 setup 调整为 8～128 个 Unicode 字符，保留 Argon2id、限流和会话安全边界。
+- [FIX-2026-07-29 redesign 应用壳恢复](changes/FIX-2026-07-29-redesign-shell-restoration.md)：
+  恢复 Apple redesign 的固定侧栏、底部导航、面包屑顶栏和精简浏览工具栏，同时保留刷新与
+  媒体类型筛选能力。
 - [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)：已确认的
   `Post-MVP/1` feature 规格；包含产品、交互、采样、架构、已冻结 API/data 合同、风险和验收。
 - [FTR-VID-001 开发任务清单](features/video-storyboard-preview-task-list.md)：严格按
@@ -64,6 +67,11 @@
   记录候选行为、升级/部署影响、已完成证据和发布前阻断；尚未发布。
 - [CR-2026-004 视频故事板悬停预览](changes/CR-2026-004-video-storyboard-preview.md)：
   后续版本归属、范围影响和 Conditional Go 决定。
+- [FTR-SCN-001 媒体库自动发现](features/automatic-library-discovery.md)：`Post-MVP/2`
+  已冻结 feature；以 Linux 文件事件触发安全定向校准，并保留完整 generation 扫描作为
+  正确性基线。WCH-S0 当前仅允许 spike 与 ADR 评审。
+- [CR-2026-005 媒体库自动发现](changes/CR-2026-005-automatic-library-discovery.md)：
+  记录自动近实时发现的用户确认、C3 架构影响、风险和 Gate 边界。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。
 - [开发任务清单](task-list.md)：总进度、前后端交接点和共同发布任务。
 - [后端开发清单](backend-task-list.md)：Go、API、SQLite、认证、扫描与媒体服务任务。
@@ -83,6 +91,8 @@
   数据档的扫描/索引结果、已修复瓶颈和仍待完整产品验证的边界。
 - [FS-05 运行与恢复 spike](spikes/fs-05-runtime-recovery.md)：原生双架构镜像、非 root/
   只读边界、健康、退出、离线恢复、重复迁移和故障关闭证据。
+- [WCH-001 Linux watcher spike](spikes/wch-001-linux-watcher.md)：`Post-MVP/2` 独立
+  inotify 探针、双架构交叉编译和待补原生 Linux 事件/overflow/10k watches 证据。
 - [供应链与许可证审查](supply-chain-review.md)：source/npm/image SPDX、FFmpeg codec/GPL
   组合与 Release Gate 未决项。
 - [风险登记](risk-register.md)：概率、影响、触发信号、缓解、fallback、Owner 角色和发布阻断风险。

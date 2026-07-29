@@ -113,6 +113,7 @@ export function GeneralSettingsPage({
       active="settings"
       browseHref={libraryId ? paths.browse(libraryId) : paths.root}
       identity={session.administrator.displayName}
+      librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={libraryId ? paths.librarySearch(libraryId) : paths.search}

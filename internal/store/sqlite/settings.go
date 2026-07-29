@@ -29,6 +29,7 @@ func (s *Store) UpdateSettings(
 	}
 	row, err := s.queries.UpdateSettings(ctx, dbgen.UpdateSettingsParams{
 		ScheduledScanIntervalHours: interval,
+		AutomaticDiscoveryEnabled:  boolToInt64(values.AutomaticDiscoveryEnabled),
 		ThumbnailCacheQuotaBytes:   values.ThumbnailCacheQuotaBytes,
 		Language:                   values.Language,
 		UpdatedAtMs:                s.nowMS(),
@@ -45,12 +46,20 @@ func (s *Store) UpdateSettings(
 
 func settingsValues(row dbgen.Setting) settings.Values {
 	values := settings.Values{
-		ThumbnailCacheQuotaBytes: row.ThumbnailCacheQuotaBytes,
-		Language:                 row.Language, Revision: row.Revision, UpdatedAtMS: row.UpdatedAtMs,
+		AutomaticDiscoveryEnabled: row.AutomaticDiscoveryEnabled != 0,
+		ThumbnailCacheQuotaBytes:  row.ThumbnailCacheQuotaBytes,
+		Language:                  row.Language, Revision: row.Revision, UpdatedAtMS: row.UpdatedAtMs,
 	}
 	if row.ScheduledScanIntervalHours.Valid {
 		value := row.ScheduledScanIntervalHours.Int64
 		values.ScheduledScanIntervalHours = &value
 	}
 	return values
+}
+
+func boolToInt64(value bool) int64 {
+	if value {
+		return 1
+	}
+	return 0
 }

@@ -18,6 +18,11 @@
   在 VSP-302～304 完成前不得改写为已发布。
 - [`POST-MVP-1` readiness 快照](POST-MVP-1-readiness.json)：机器校验 VSP Gate、
   `VSP-AC-001～008`、R-018 与最终 Go/No-Go；当前为 No-Go。
+- [`POST-MVP-2` scope revision 2](POST-MVP-2-scope-r2.md)：当前冻结；继承
+  [revision 1](POST-MVP-2-scope.md)的后端自动发现合同，并把页面消费改为目录导航重取和
+  手动刷新
+  [FTR-SCN-001 媒体库自动发现](../features/automatic-library-discovery.md)；
+  WCH-S0 当前只对 Linux watcher spike 与 ADR 评审 Conditional Go。
 
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。

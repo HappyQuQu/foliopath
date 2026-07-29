@@ -23,6 +23,18 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 [VSP-302](POST-MVP-1/vsp-302-target-platform.md)的原生证据入口已建立但仍为 Pending，
 因此 S4 尚未签署。
 
+后续切片 [FTR-SCN-001](../features/automatic-library-discovery.md)使用 `POST-MVP-2` 目录。
+[WCH-S0 Architecture Ready](POST-MVP-2/wch-s0-architecture-ready.md)已 Go；WCH-001
+Linux/arm64 spike 通过、ADR-0011 已接受；[WCH-S1 Contract Ready](POST-MVP-2/wch-s1-contract-ready.md)
+已 Go，WCH-S2 生产后端与证据已实现。
+WCH-S2 已完成首条 Linux/arm64 真实 watcher 到 catalog 的生产组合链，但仍缺原生 amd64、
+其余受控 ENOSPC、nested mount/unmount、强杀、目标容量和 HTTP 故障矩阵均已完成。
+[WCH-S2 Backend Evidence Ready](POST-MVP-2/wch-s2-backend-evidence-ready.md)当前仍为
+发布 No-Go。2026-07-29 产品负责人明确授权 revision 2 的有界消费者 UI 开发与本地
+Linux/arm64 验证；该有限授权不解除原生 amd64 发布阻塞，也不允许宣称跨平台完成。
+[WCH-S3 Consumer/UI](POST-MVP-2/wch-s3-consumer-ui.md)已完成刷新按钮、目录导航重取与
+cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go。
+
 当前记录：
 
 - [MVP-2026-07-23 / 阶段 0 当前判断](MVP-2026-07-23/stage-0-current.md)

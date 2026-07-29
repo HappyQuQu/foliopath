@@ -82,6 +82,21 @@
   color: var(--color-text);
 }
 
+.refresh {
+  justify-self: end;
+  color: var(--color-text-muted);
+  border-color: transparent;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-subtle);
+  font-weight: 500;
+}
+
+.refresh:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: transparent;
+  background: var(--color-surface-hover);
+}
+
 .checkLabel input {
   width: 1rem;
   height: 1rem;
@@ -166,5 +181,9 @@
   .summary {
     align-items: start;
     flex-direction: column;
+  }
+
+  .refresh {
+    width: 100%;
   }
 }

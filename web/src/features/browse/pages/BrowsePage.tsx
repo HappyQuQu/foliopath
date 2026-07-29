@@ -1,4 +1,5 @@
 import {
+  ArrowClockwise,
   CaretDown,
   CaretRight,
   Check,
@@ -6,13 +7,16 @@ import {
   CircleNotch,
   Columns,
   Folder,
+  Funnel,
   GridFour,
   House,
   ImageSquare,
   MagnifyingGlass,
   Square,
 } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -74,11 +78,13 @@ import {
   readViewerReturnState,
 } from "../../../lib/navigation/viewer";
 import {
+  refreshLibraryDetail,
   useLibrariesQuery,
   useLibraryQuery,
 } from "../../libraries";
 import type { LibrarySummary } from "../../../lib/api/libraries";
 import {
+  refreshCatalogScope,
   useAssetsQuery,
   useDirectoriesQuery,
   useDirectoryQuery,
@@ -109,11 +115,14 @@ export function BrowsePage({
   const { locale, t } = useLocale();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
   const [topbarQuery, setTopbarQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [manualRefreshPending, setManualRefreshPending] = useState(false);
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
     [searchParams],
@@ -122,9 +131,10 @@ export function BrowsePage({
   const libraryQuery = useLibraryQuery(libraryId);
   const directoryQuery = useDirectoryQuery(directoryId);
   const childrenQuery = useDirectoriesQuery({ libraryId, parentId: directoryId });
+  const browseKinds = kindsForBrowse(browseState.kind);
   const assetsQuery = useAssetsQuery({
     directoryId,
-    kinds: kindsForBrowse(browseState.kind),
+    kinds: browseKinds,
     libraryId,
     order: browseState.order,
     recursive: browseState.recursive,
@@ -228,6 +238,36 @@ export function BrowsePage({
   const currentMediaCount =
     directoryQuery.data?.directAssetCount ?? currentLibrary?.assetCount ?? 0;
   const canonicalSearch = serializeBrowseUrlState(browseState);
+  const navigationScope = `${libraryId}:${directoryId ?? "root"}`;
+  const previousNavigationScope = useRef(navigationScope);
+
+  const refreshCurrentScope = useCallback(async () => {
+    await Promise.all([
+      refreshCatalogScope(queryClient, {
+        directoryId,
+        kinds: browseKinds,
+        libraryId,
+        order: browseState.order,
+        recursive: browseState.recursive,
+        sort: browseState.sort,
+      }),
+      refreshLibraryDetail(queryClient, libraryId),
+    ]);
+  }, [
+    browseKinds,
+    browseState.order,
+    browseState.recursive,
+    browseState.sort,
+    directoryId,
+    libraryId,
+    queryClient,
+  ]);
+
+  useEffect(() => {
+    if (previousNavigationScope.current === navigationScope) return;
+    previousNavigationScope.current = navigationScope;
+    void refreshCurrentScope();
+  }, [navigationScope, refreshCurrentScope]);
 
   useEffect(() => {
     if (searchParams.toString() !== canonicalSearch) {
@@ -262,7 +302,9 @@ export function BrowsePage({
   return (
     <AppShell
       active="browse"
+      browseHref={browseUrl(libraryId, directoryId, browseState)}
       identity={session.administrator.displayName}
+      librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={
@@ -274,6 +316,7 @@ export function BrowsePage({
           : paths.librarySearch(libraryId)
       }
       settingsHref={paths.generalSettingsForLibrary(libraryId)}
+      showIdentityLabel={false}
       sidebarContent={
         <DirectoryNavigation
           currentLibraryName={currentLibrary?.name}
@@ -324,19 +367,52 @@ export function BrowsePage({
               value={topbarQuery}
             />
           </form>
-          <IconButton
-            label={t("shell.search")}
-            onClick={() =>
-              navigate(
-                `${paths.librarySearch(libraryId)}?${new URLSearchParams({
-                  scope: directoryId ? "directory" : "library",
-                  ...(directoryId ? { directoryId } : {}),
-                }).toString()}`,
-              )
-            }
+          <div
+            className={styles.topbarFilters}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setFilterOpen(false);
+              }
+            }}
           >
-            <MagnifyingGlass aria-hidden="true" size={19} />
-          </IconButton>
+            <IconButton
+              aria-controls="browse-media-filter"
+              aria-expanded={filterOpen}
+              label={t("search.filters")}
+              onClick={() => setFilterOpen((open) => !open)}
+              pressed={filterOpen}
+            >
+              <Funnel aria-hidden="true" size={19} />
+            </IconButton>
+            {filterOpen && (
+              <div
+                aria-label={t("browse.mediaType")}
+                className={styles.filterMenu}
+                id="browse-media-filter"
+                role="radiogroup"
+              >
+                {(["all", "image", "video"] as const).map((kind) => (
+                  <Button
+                    aria-checked={browseState.kind === kind}
+                    className={styles.filterOption}
+                    key={kind}
+                    onClick={() => {
+                      updateBrowseState({ ...browseState, kind });
+                      setFilterOpen(false);
+                    }}
+                    role="radio"
+                    variant="quiet"
+                  >
+                    {kind === "all"
+                      ? t("browse.kindAll")
+                      : kind === "image"
+                        ? t("browse.kindImage")
+                        : t("browse.kindVideo")}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       }
       title={t("browse.title")}
@@ -366,6 +442,15 @@ export function BrowsePage({
           mediaLayout={mediaLayout}
           onChange={updateBrowseState}
           onLayoutChange={updateMediaLayout}
+          onRefresh={async () => {
+            setManualRefreshPending(true);
+            try {
+              await refreshCurrentScope();
+            } finally {
+              setManualRefreshPending(false);
+            }
+          }}
+          refreshPending={manualRefreshPending}
         />
 
         <div
@@ -622,11 +707,15 @@ function BrowseToolbar({
   mediaLayout,
   onChange,
   onLayoutChange,
+  onRefresh,
+  refreshPending,
 }: {
   browseState: BrowseUrlState;
   mediaLayout: MediaCollectionLayout;
   onChange: (state: BrowseUrlState) => void;
   onLayoutChange: (layout: MediaCollectionLayout) => void;
+  onRefresh: () => Promise<void>;
+  refreshPending: boolean;
 }) {
   const { t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
@@ -640,68 +729,43 @@ function BrowseToolbar({
 
   return (
     <div className={styles.toolbar} role="region" aria-label={t("browse.tools")}>
-      <div className={styles.viewControls}>
-        <Button
-          aria-pressed={browseState.recursive}
-          className={styles.recursiveToggle}
-          onClick={() =>
-            onChange({
-              ...defaultBrowseUrlState(!browseState.recursive),
-              kind: browseState.kind,
-            })
-          }
-          variant="quiet"
-        >
-          {browseState.recursive ? (
-            <CheckSquare aria-hidden="true" size={18} weight="fill" />
-          ) : (
-            <Square aria-hidden="true" size={18} />
-          )}
-          {t("browse.includeSubdirectories")}
-        </Button>
-        <span aria-hidden="true" className={styles.toolbarDivider} />
-        <div
-          className={styles.layoutControls}
-          role="group"
-          aria-label={t("browse.layout")}
-        >
-          <IconButton
-            label={t("browse.layoutGrid")}
-            onClick={() => onLayoutChange("grid")}
-            pressed={mediaLayout === "grid"}
-          >
-            <GridFour aria-hidden="true" size={18} />
-          </IconButton>
-          <IconButton
-            label={t("browse.layoutMasonry")}
-            onClick={() => onLayoutChange("masonry")}
-            pressed={mediaLayout === "masonry"}
-          >
-            <Columns aria-hidden="true" size={18} />
-          </IconButton>
-        </div>
-      </div>
-      <div
-        className={styles.kindControls}
-        role="group"
-        aria-label={t("browse.mediaType")}
+      <Button
+        aria-pressed={browseState.recursive}
+        className={styles.recursiveToggle}
+        onClick={() =>
+          onChange({
+            ...defaultBrowseUrlState(!browseState.recursive),
+            kind: browseState.kind,
+          })
+        }
+        variant="secondary"
       >
-        {(["all", "image", "video"] as const).map((kind) => (
-          <Button
-            aria-pressed={browseState.kind === kind}
-            className={styles.kindButton}
-            key={kind}
-            onClick={() => onChange({ ...browseState, kind })}
-            size="small"
-            variant="quiet"
-          >
-            {kind === "all"
-              ? t("browse.kindAll")
-              : kind === "image"
-                ? t("browse.kindImage")
-                : t("browse.kindVideo")}
-          </Button>
-        ))}
+        {browseState.recursive ? (
+          <CheckSquare aria-hidden="true" size={18} weight="fill" />
+        ) : (
+          <Square aria-hidden="true" size={18} />
+        )}
+        {t("browse.includeSubdirectories")}
+      </Button>
+      <div
+        className={styles.layoutControls}
+        role="group"
+        aria-label={t("browse.layout")}
+      >
+        <IconButton
+          label={t("browse.layoutGrid")}
+          onClick={() => onLayoutChange("grid")}
+          pressed={mediaLayout === "grid"}
+        >
+          <GridFour aria-hidden="true" size={18} />
+        </IconButton>
+        <IconButton
+          label={t("browse.layoutMasonry")}
+          onClick={() => onLayoutChange("masonry")}
+          pressed={mediaLayout === "masonry"}
+        >
+          <Columns aria-hidden="true" size={18} />
+        </IconButton>
       </div>
       <label className={styles.sortControl}>
         <span>{t("browse.sort")}</span>
@@ -735,6 +799,16 @@ function BrowseToolbar({
           {t("browse.resetSort")}
         </Button>
       )}
+      <Button
+        aria-label={t("browse.refresh")}
+        className={styles.refresh}
+        loading={refreshPending}
+        onClick={() => void onRefresh()}
+        size="small"
+        variant="quiet"
+      >
+        <ArrowClockwise aria-hidden="true" size={17} />
+      </Button>
     </div>
   );
 }
@@ -969,19 +1043,6 @@ function DirectoryNavigation({
         >
           <span className={styles.libraryTriggerCopy}>
             <strong>{currentLibraryLabel}</strong>
-            <span className={styles.libraryStatus}>
-              <span
-                className={styles.libraryStatusDot}
-                data-status={currentLibrary?.status}
-              />
-              {currentStatusLabel}
-              {currentLibrary
-                ? ` · ${t("browse.mediaCount").replace(
-                    "{count}",
-                    String(currentLibrary.assetCount),
-                  )}`
-                : ""}
-            </span>
           </span>
           <CaretDown
             aria-hidden="true"
@@ -991,6 +1052,19 @@ function DirectoryNavigation({
             weight="bold"
           />
         </button>
+        <span className={styles.libraryStatus}>
+          <span
+            className={styles.libraryStatusDot}
+            data-status={currentLibrary?.status}
+          />
+          {currentStatusLabel}
+          {currentLibrary
+            ? ` · ${t("browse.mediaCount").replace(
+                "{count}",
+                String(currentLibrary.assetCount),
+              )}`
+            : ""}
+        </span>
         {libraryMenuOpen && (
           <div
             aria-label={t("browse.library")}

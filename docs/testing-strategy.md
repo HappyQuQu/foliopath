@@ -196,18 +196,40 @@ Stage 1 认证、Stage 2 媒体库/扫描、Stage 3 浏览/非模态预览和 St
   与 CLI 的调用使用参数数组而非 shell，Linux tmpfs 注入真实 `ENOSPC`。
 - 数据库迁移从每个已发布版本前进，并验证失败时不部分就绪。
 
+POST-MVP-2 自动发现的 WCH-S2 后端证据还必须覆盖：
+
+- fresh schema 与 migration 11→12、CHECK/FK/唯一键、运行 lease 恢复以及设置 ETag；
+- create/close-write/move-in/rename/delete、新建空目录、慢写稳定窗口和事件合并；
+- running 期间的新事件递增水位且不能被旧 claim 删除，完整扫描与定向校准按库互斥；
+- 父目录不可完整枚举、root replacement、symlink、nested mount、unmount、overflow、
+  watch `ENOSPC`、强杀、重启和 full-scan 最终收敛；
+- 原生 linux/amd64 与 linux/arm64 的 `openat2`/inotify 行为；模拟架构的 `ENOSYS`
+  只证明失败关闭；
+- 1 万目录 watch、10 万媒体和 100k burst 下的 RSS、FD、队列、SQLite 写放大、跨库公平、
+  自动发现 P95 及浏览/搜索 P95；
+- 认证 `GET /api/v1/catalog/state` 的 `200/304/401/429/500`、ETag/no-store、错误脱敏和
+  revision 与搜索 cursor revision 的独立性。
+
+WCH-S1 冻结的进程内上限是：每实例最多 32,768 个目录 watch、8,192 个未合并事件、
+4,096 个 dirty 目录、全局最多 2 个定向执行、每库最多 1 个；基础 debounce 750ms，
+持续事件最迟 5s admission，单次直接目录枚举最多 2,048 entries/批次。触及任一上限时不得
+无界扩容，而是把受影响媒体库标记 degraded 并合并完整扫描。WCH-S2 可以基于证据下调这些
+上限，提升必须重新评审资源预算。
+
 测试只使用临时 `/library` 等价目录，绝不读取开发者或 CI 宿主机的真实照片。
 
 当前 `tests/integration` 已使用 `t.TempDir()` 和真实文件 SQLite 覆盖首次递归扫描、空目录、
 直接/递归计数、格式及系统目录跳过、失败/取消/离线/根替换与 A → B → A 替换保留、后续
 成功收敛和跨媒体库隔离。测试专用 HTTP capability seam 还覆盖 opaque asset ID 到
 `internal/files` 的 GET、HEAD、条件请求、单 Range、416、路径攻击和错误脱敏。FS-03 另以
-运行时合成 fixture 调用真实 FFmpeg CLI；当前仍没有生产 handler/media adapter、真实
-`SIGKILL`、磁盘满或备份恢复集成测试，“重启”证据仅为关闭并重新打开同一数据库文件。
+运行时合成 fixture 调用真实 FFmpeg CLI。自动发现另以独立领取子进程被操作系统强杀、
+跨 SQLite 重开 lease 恢复、真实 watcher→catalog 纵向链和受控 catalog state 故障注入
+覆盖恢复及 HTTP 边界；磁盘满和备份恢复仍由既有 release 证据负责，不把它们重复归入 WCH。
 带 `linux && fsboundary` tag 的隔离高权限探针已在原生 Linux amd64/arm64 覆盖同设备、
 跨设备和 self-bind mount，现同时断言目录选择 adapter 不进入挂载内容并返回稳定
-`mount_boundary`；普通非 root 双架构 Go/race 回归也已通过。这些证据不覆盖最终只读发布
-volume 或运行期 unmount。
+`mount_boundary`；WCH 增加的同类探针进一步验证运行期 bind mount 覆盖时定向校准失败关闭、
+旧索引保留以及真实 unmount 后 durable 重试收敛。当前 WCH 新实现已通过 Linux/arm64 与
+本机 race；QEMU amd64 因 `openat2` 不可用按安全边界失败关闭，仍不能替代原生 amd64。
 
 ### 浏览器端到端测试
 

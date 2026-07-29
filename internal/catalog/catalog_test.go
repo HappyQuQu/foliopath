@@ -11,17 +11,28 @@ import (
 )
 
 type repositoryStub struct {
-	scope          Scope
-	directories    []Directory
-	assets         []Asset
-	directoryCalls []DirectoryListParams
-	assetCalls     []AssetListParams
-	resolveErr     error
-	lineage        DirectoryLineage
-	lineageErr     error
-	getAsset       Asset
-	getAssetErr    error
-	globalRevision int64
+	scope           Scope
+	directories     []Directory
+	assets          []Asset
+	directoryCalls  []DirectoryListParams
+	assetCalls      []AssetListParams
+	resolveErr      error
+	lineage         DirectoryLineage
+	lineageErr      error
+	getAsset        Asset
+	getAssetErr     error
+	globalRevision  int64
+	contentRevision int64
+}
+
+func (stub *repositoryStub) ResolveCatalogContentRevision(ctx context.Context) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	if stub.contentRevision == 0 {
+		return 1, nil
+	}
+	return stub.contentRevision, nil
 }
 
 func (stub *repositoryStub) ResolveScope(

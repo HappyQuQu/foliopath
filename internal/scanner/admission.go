@@ -69,6 +69,27 @@ func (service *AdmissionService) RequestManual(
 	return result, nil
 }
 
+func (service *AdmissionService) RequestAutomaticFallback(
+	ctx context.Context,
+	libraryID int64,
+) (AdmissionResult, error) {
+	if libraryID <= 0 {
+		return AdmissionResult{}, ErrLibraryNotFound
+	}
+	result, err := service.repository.AdmitFullScan(
+		ctx,
+		libraryID,
+		TriggerScheduled,
+	)
+	if err != nil {
+		return AdmissionResult{}, err
+	}
+	if !result.Coalesced {
+		service.waker.Wake()
+	}
+	return result, nil
+}
+
 func (service *AdmissionService) RequestStartup(
 	ctx context.Context,
 ) (StartupAdmissionSummary, error) {

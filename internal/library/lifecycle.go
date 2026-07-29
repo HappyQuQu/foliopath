@@ -61,10 +61,53 @@ type Scan struct {
 
 type Details struct {
 	Library
-	LastSuccessfulScanAtMS *int64
-	LatestScanID           *int64
-	AssetCount             int64
-	DirectoryCount         int64
+	LastSuccessfulScanAtMS      *int64
+	LatestScanID                *int64
+	AssetCount                  int64
+	DirectoryCount              int64
+	AutomaticDiscoveryStatus    AutomaticDiscoveryStatus
+	AutomaticDiscoveryErrorCode string
+	LastAutomaticDiscoveryAtMS  *int64
+	ContentRevision             int64
+}
+
+type AutomaticDiscoveryStatus string
+
+const (
+	AutomaticDiscoveryActive      AutomaticDiscoveryStatus = "active"
+	AutomaticDiscoveryDegraded    AutomaticDiscoveryStatus = "degraded"
+	AutomaticDiscoveryUnsupported AutomaticDiscoveryStatus = "unsupported"
+	AutomaticDiscoveryDisabled    AutomaticDiscoveryStatus = "disabled"
+)
+
+func ValidateAutomaticDiscoveryState(
+	status string,
+	errorCode string,
+) (AutomaticDiscoveryStatus, error) {
+	parsed := AutomaticDiscoveryStatus(status)
+	switch parsed {
+	case AutomaticDiscoveryActive, AutomaticDiscoveryDisabled:
+		if errorCode != "" {
+			return "", errors.New("automatic discovery error is invalid for status")
+		}
+	case AutomaticDiscoveryDegraded, AutomaticDiscoveryUnsupported:
+		if errorCode == "" {
+			return "", errors.New("automatic discovery error is required for status")
+		}
+	default:
+		return "", errors.New("automatic discovery status is invalid")
+	}
+	switch errorCode {
+	case "",
+		"watch_unavailable",
+		"watch_resource_limit",
+		"watch_overflow",
+		"source_unavailable",
+		"internal_error":
+		return parsed, nil
+	default:
+		return "", errors.New("automatic discovery error is invalid")
+	}
 }
 
 type CreateCommand struct {

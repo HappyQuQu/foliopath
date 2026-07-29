@@ -66,6 +66,7 @@ export function ScanStatusPage({
       active="libraries"
       browseHref={paths.root}
       identity={session.administrator.displayName}
+      librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={paths.search}

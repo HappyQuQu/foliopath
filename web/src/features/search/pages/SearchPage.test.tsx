@@ -143,6 +143,22 @@ it("restores a library search and exposes the source library and directory", asy
   );
 });
 
+it("refreshes the current search from an explicit button", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?q=京都");
+
+  expect(await screen.findByText("京都夜景.jpg")).toBeVisible();
+  const calls = vi.mocked(searchLibraryAssets).mock.calls.length;
+
+  await user.click(
+    screen.getByRole("button", { name: "刷新搜索结果" }),
+  );
+
+  await waitFor(() =>
+    expect(searchLibraryAssets).toHaveBeenCalledTimes(calls + 1),
+  );
+});
+
 it("moves scope and filters into the URL and selects the global endpoint", async () => {
   const user = userEvent.setup();
   renderSearch("/libraries/lib_family/search?q=京都");

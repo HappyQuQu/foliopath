@@ -1,4 +1,5 @@
 import {
+  type QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -23,6 +24,17 @@ export const libraryKeys = {
   paths: (parent: string) => ["libraries", "paths", parent] as const,
   removal: (removalId: string) => ["libraries", "removal", removalId] as const,
 };
+
+export async function refreshLibraryDetail(
+  queryClient: QueryClient,
+  libraryId: string,
+): Promise<void> {
+  await queryClient.refetchQueries({
+    exact: true,
+    queryKey: libraryKeys.detail(libraryId),
+    type: "active",
+  });
+}
 
 export function useLibrariesQuery() {
   return useInfiniteQuery({

@@ -12,6 +12,7 @@ var (
 
 type Values struct {
 	ScheduledScanIntervalHours *int64
+	AutomaticDiscoveryEnabled  bool
 	ThumbnailCacheQuotaBytes   int64
 	Language                   string
 	Revision                   int64
@@ -20,6 +21,7 @@ type Values struct {
 
 type Update struct {
 	ScheduledScanIntervalHours *int64
+	AutomaticDiscoveryEnabled  *bool
 	ThumbnailCacheQuotaBytes   *int64
 	Language                   *string
 	SetSchedule                bool
@@ -35,10 +37,11 @@ type WakeNotifier interface {
 }
 
 type Service struct {
-	repository    Repository
-	scheduleWaker WakeNotifier
-	cacheWaker    WakeNotifier
-	validators    FieldValidators
+	repository     Repository
+	scheduleWaker  WakeNotifier
+	discoveryWaker WakeNotifier
+	cacheWaker     WakeNotifier
+	validators     FieldValidators
 }
 
 type FieldValidators struct {
@@ -50,20 +53,22 @@ type FieldValidators struct {
 func NewService(
 	repository Repository,
 	scheduleWaker WakeNotifier,
+	discoveryWaker WakeNotifier,
 	cacheWaker WakeNotifier,
 	validators FieldValidators,
 ) (*Service, error) {
-	if repository == nil || scheduleWaker == nil || cacheWaker == nil ||
+	if repository == nil || scheduleWaker == nil || discoveryWaker == nil || cacheWaker == nil ||
 		validators.Schedule == nil ||
 		validators.CacheQuota == nil ||
 		validators.Language == nil {
 		return nil, errors.New("settings dependencies are required")
 	}
 	return &Service{
-		repository:    repository,
-		scheduleWaker: scheduleWaker,
-		cacheWaker:    cacheWaker,
-		validators:    validators,
+		repository:     repository,
+		scheduleWaker:  scheduleWaker,
+		discoveryWaker: discoveryWaker,
+		cacheWaker:     cacheWaker,
+		validators:     validators,
 	}, nil
 }
 
@@ -77,7 +82,8 @@ func (service *Service) Update(
 	update Update,
 ) (Values, error) {
 	if expectedRevision <= 0 ||
-		(!update.SetSchedule && update.ThumbnailCacheQuotaBytes == nil && update.Language == nil) {
+		(!update.SetSchedule && update.AutomaticDiscoveryEnabled == nil &&
+			update.ThumbnailCacheQuotaBytes == nil && update.Language == nil) {
 		return Values{}, ErrInvalid
 	}
 	current, err := service.repository.GetSettings(ctx)
@@ -87,6 +93,9 @@ func (service *Service) Update(
 	next := current
 	if update.SetSchedule {
 		next.ScheduledScanIntervalHours = update.ScheduledScanIntervalHours
+	}
+	if update.AutomaticDiscoveryEnabled != nil {
+		next.AutomaticDiscoveryEnabled = *update.AutomaticDiscoveryEnabled
 	}
 	if update.ThumbnailCacheQuotaBytes != nil {
 		next.ThumbnailCacheQuotaBytes = *update.ThumbnailCacheQuotaBytes
@@ -105,6 +114,9 @@ func (service *Service) Update(
 	}
 	if update.SetSchedule {
 		service.scheduleWaker.Wake()
+	}
+	if update.AutomaticDiscoveryEnabled != nil {
+		service.discoveryWaker.Wake()
 	}
 	if update.ThumbnailCacheQuotaBytes != nil {
 		service.cacheWaker.Wake()

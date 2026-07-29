@@ -220,6 +220,7 @@ type AssetListParams struct {
 type Repository interface {
 	ResolveScope(context.Context, int64, int64) (Scope, error)
 	ResolveGlobalCatalogRevision(context.Context) (int64, error)
+	ResolveCatalogContentRevision(context.Context) (int64, error)
 	ListDirectoryPage(context.Context, DirectoryListParams) ([]Directory, error)
 	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
 	GetAsset(context.Context, int64) (Asset, error)
@@ -351,6 +352,20 @@ func NewService(repository Repository, cursorKey []byte) (*Service, error) {
 		return nil, fmt.Errorf("construct catalog cursor codec: %w", err)
 	}
 	return &Service{repository: repository, codec: codec}, nil
+}
+
+func (service *Service) ContentRevision(ctx context.Context) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	revision, err := service.repository.ResolveCatalogContentRevision(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if revision < 1 {
+		return 0, errors.New("catalog repository returned an invalid content revision")
+	}
+	return revision, nil
 }
 
 func (service *Service) ListDirectories(

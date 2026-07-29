@@ -41,13 +41,14 @@ it("closes mobile navigation with Escape and restores focus", async () => {
   expect(openButton).toHaveFocus();
 });
 
-it("keeps the directory sidebar focused and moves app actions to the top right", () => {
+it("keeps the directory sidebar with redesign navigation at the bottom", () => {
   render(
     <ThemeProvider>
       <ToastProvider>
         <MemoryRouter>
           <AppShell
             active="browse"
+            browseHref="/libraries/lib_1/browse"
             identity="管理员"
             searchHref="/search"
             settingsHref="/settings/general"
@@ -63,8 +64,13 @@ it("keeps the directory sidebar focused and moves app actions to the top right",
   );
 
   expect(screen.getByText("家庭照片目录")).toBeVisible();
-  expect(screen.queryByRole("link", { name: "浏览" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "搜索" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "返回浏览" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "搜索" })).toHaveAttribute(
+    "href",
+    "/search",
+  );
   expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute(
     "href",
     "/settings/general",
@@ -136,7 +142,7 @@ it("places the account after theme and supports direct logout", async () => {
   expect(onLogout).toHaveBeenCalledOnce();
 });
 
-it("supports keyboard sidebar resizing and remembers the width", () => {
+it("uses the fixed redesign sidebar without a resize control", () => {
   render(
     <ThemeProvider>
       <ToastProvider>
@@ -155,14 +161,6 @@ it("supports keyboard sidebar resizing and remembers the width", () => {
     </ThemeProvider>,
   );
 
-  fireEvent.keyDown(
-    screen.getByRole("separator", { name: "调整目录栏宽度" }),
-    { key: "ArrowRight" },
-  );
-
-  expect(
-    JSON.parse(
-      window.localStorage.getItem("foliopath.preferences.v1") ?? "{}",
-    ),
-  ).toMatchObject({ sidebarWidth: 296 });
+  expect(screen.getByRole("complementary", { name: "主导航" })).toBeVisible();
+  expect(screen.queryByRole("separator")).not.toBeInTheDocument();
 });

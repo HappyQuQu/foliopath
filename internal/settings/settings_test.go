@@ -30,8 +30,9 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 		Revision:                   1,
 	}}
 	scheduleWaker := &wakerStub{}
+	discoveryWaker := &wakerStub{}
 	cacheWaker := &wakerStub{}
-	service, err := NewService(repository, scheduleWaker, cacheWaker, FieldValidators{
+	service, err := NewService(repository, scheduleWaker, discoveryWaker, cacheWaker, FieldValidators{
 		Schedule: func(value *int64) error {
 			if value != nil && *value < 1 {
 				return ErrInvalid
@@ -53,7 +54,7 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	if _, err := service.Update(context.Background(), 1, Update{Language: &language}); err != nil {
 		t.Fatal(err)
 	}
-	if scheduleWaker.count != 0 || cacheWaker.count != 0 {
+	if scheduleWaker.count != 0 || discoveryWaker.count != 0 || cacheWaker.count != 0 {
 		t.Fatal("non-schedule update woke scheduler")
 	}
 	quota := int64(20)
@@ -66,7 +67,16 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 		t.Fatalf("cache update wakes = schedule %d cache %d",
 			scheduleWaker.count, cacheWaker.count)
 	}
-	disabled, err := service.Update(context.Background(), 3, Update{SetSchedule: true})
+	enabled := false
+	if _, err := service.Update(context.Background(), 3, Update{
+		AutomaticDiscoveryEnabled: &enabled,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if discoveryWaker.count != 1 {
+		t.Fatalf("discovery wakes = %d, want 1", discoveryWaker.count)
+	}
+	disabled, err := service.Update(context.Background(), 4, Update{SetSchedule: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +84,7 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 		t.Fatalf("disabled settings = %#v, wakes %d", disabled, scheduleWaker.count)
 	}
 	invalid := int64(0)
-	if _, err := service.Update(context.Background(), 4, Update{
+	if _, err := service.Update(context.Background(), 5, Update{
 		SetSchedule: true, ScheduledScanIntervalHours: &invalid,
 	}); err != ErrInvalid {
 		t.Fatalf("invalid interval error = %v", err)

@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  type InfiniteData,
+  type QueryClient,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 
 import {
   getDirectory,
@@ -7,6 +12,7 @@ import {
   type AssetPage,
   type AssetKind,
   type AssetSort,
+  type DirectoryPage,
   type SortOrder,
 } from "../../lib/api/catalog";
 import { mediaDerivedStatePending } from "../../lib/media/availability";
@@ -49,6 +55,49 @@ export const catalogKeys = {
       order,
     ] as const,
 };
+
+export interface CatalogScope {
+  directoryId?: string | undefined;
+  kinds?: AssetKind[] | undefined;
+  libraryId: string;
+  order: SortOrder;
+  recursive: boolean;
+  sort: AssetSort;
+}
+
+export async function refreshCatalogScope(
+  queryClient: QueryClient,
+  scope: CatalogScope,
+): Promise<void> {
+  const directoriesKey = catalogKeys.directories(
+    scope.libraryId,
+    scope.directoryId,
+  );
+  const assetsKey = catalogKeys.assets(
+    scope.libraryId,
+    scope.directoryId,
+    scope.recursive,
+    scope.kinds,
+    scope.sort,
+    scope.order,
+  );
+
+  keepOnlyFirstPage<DirectoryPage>(queryClient, directoriesKey);
+  keepOnlyFirstPage<AssetPage>(queryClient, assetsKey);
+
+  const keys = [
+    directoriesKey,
+    assetsKey,
+    ...(scope.directoryId
+      ? [catalogKeys.directory(scope.directoryId)]
+      : []),
+  ];
+  await Promise.all(
+    keys.map((queryKey) =>
+      queryClient.refetchQueries({ exact: true, queryKey, type: "active" }),
+    ),
+  );
+}
 
 export function useDirectoriesQuery({
   enabled = true,
@@ -126,4 +175,20 @@ export function useDirectoryQuery(directoryId: string | undefined) {
     enabled: Boolean(directoryId),
     staleTime: 15_000,
   });
+}
+
+function keepOnlyFirstPage<Page>(
+  queryClient: QueryClient,
+  queryKey: readonly unknown[],
+): void {
+  queryClient.setQueryData<InfiniteData<Page, unknown>>(
+    queryKey,
+    (current) =>
+      current && current.pages.length > 1
+        ? {
+            pageParams: current.pageParams.slice(0, 1),
+            pages: current.pages.slice(0, 1),
+          }
+        : current,
+  );
 }

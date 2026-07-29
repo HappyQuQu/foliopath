@@ -9,42 +9,43 @@ import (
 )
 
 const (
-	authenticationRateWindow = time.Minute
-	maxAuthenticationBuckets = 4096
+	requestRateWindow = time.Minute
+	maxRequestBuckets = 4096
 )
 
-type authenticationRatePolicy struct {
+// requestRatePolicy keeps endpoint limits in one transport-level owner.
+type requestRatePolicy struct {
 	operation string
 	limit     int
 }
 
-type authenticationRateBucket struct {
+type requestRateBucket struct {
 	start time.Time
 	used  int
 }
 
-type authenticationRateLimiter struct {
+type requestRateLimiter struct {
 	mu      sync.Mutex
 	now     func() time.Time
-	buckets map[string]authenticationRateBucket
+	buckets map[string]requestRateBucket
 }
 
-func newAuthenticationRateLimiter(now func() time.Time) *authenticationRateLimiter {
+func newRequestRateLimiter(now func() time.Time) *requestRateLimiter {
 	if now == nil {
 		now = time.Now
 	}
-	return &authenticationRateLimiter{
+	return &requestRateLimiter{
 		now:     now,
-		buckets: make(map[string]authenticationRateBucket),
+		buckets: make(map[string]requestRateBucket),
 	}
 }
 
-func limitAuthenticationRequests(
+func limitRequests(
 	next http.Handler,
-	limiter *authenticationRateLimiter,
+	limiter *requestRateLimiter,
 ) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		policy, ok := authenticationRatePolicyFor(request.Method, request.URL.Path)
+		policy, ok := requestRatePolicyFor(request.Method, request.URL.Path)
 		if !ok {
 			next.ServeHTTP(writer, request)
 			return
@@ -60,7 +61,7 @@ func limitAuthenticationRequests(
 				request,
 				http.StatusTooManyRequests,
 				"rate_limited",
-				"Too many authentication requests were received.",
+				"Too many requests were received.",
 			)
 			return
 		}
@@ -68,44 +69,46 @@ func limitAuthenticationRequests(
 	})
 }
 
-func authenticationRatePolicyFor(method, path string) (authenticationRatePolicy, bool) {
+func requestRatePolicyFor(method, path string) (requestRatePolicy, bool) {
 	switch {
 	case method == http.MethodPost && path == "/api/v1/auth/setup":
-		return authenticationRatePolicy{operation: "setup", limit: 10}, true
+		return requestRatePolicy{operation: "setup", limit: 10}, true
 	case method == http.MethodPost && path == "/api/v1/auth/login":
-		return authenticationRatePolicy{operation: "login", limit: 10}, true
+		return requestRatePolicy{operation: "login", limit: 10}, true
 	case method == http.MethodGet && path == "/api/v1/auth/status":
-		return authenticationRatePolicy{operation: "status", limit: 120}, true
+		return requestRatePolicy{operation: "status", limit: 120}, true
 	case method == http.MethodGet && path == "/api/v1/auth/session":
-		return authenticationRatePolicy{operation: "session", limit: 120}, true
+		return requestRatePolicy{operation: "session", limit: 120}, true
 	case method == http.MethodPost && path == "/api/v1/auth/logout":
-		return authenticationRatePolicy{operation: "logout", limit: 60}, true
+		return requestRatePolicy{operation: "logout", limit: 60}, true
+	case method == http.MethodGet && path == "/api/v1/catalog/state":
+		return requestRatePolicy{operation: "catalog_state", limit: 120}, true
 	default:
-		return authenticationRatePolicy{}, false
+		return requestRatePolicy{}, false
 	}
 }
 
-func (limiter *authenticationRateLimiter) allow(key string, limit int) (string, bool) {
+func (limiter *requestRateLimiter) allow(key string, limit int) (string, bool) {
 	limiter.mu.Lock()
 	defer limiter.mu.Unlock()
 
 	now := limiter.now().UTC()
 	bucket, exists := limiter.buckets[key]
-	if exists && now.Sub(bucket.start) >= authenticationRateWindow {
+	if exists && now.Sub(bucket.start) >= requestRateWindow {
 		delete(limiter.buckets, key)
 		exists = false
 	}
 	if !exists {
-		if len(limiter.buckets) >= maxAuthenticationBuckets {
+		if len(limiter.buckets) >= maxRequestBuckets {
 			limiter.deleteExpired(now)
 		}
-		if len(limiter.buckets) >= maxAuthenticationBuckets {
+		if len(limiter.buckets) >= maxRequestBuckets {
 			return "1", false
 		}
-		bucket = authenticationRateBucket{start: now}
+		bucket = requestRateBucket{start: now}
 	}
 	if bucket.used >= limit {
-		remaining := authenticationRateWindow - now.Sub(bucket.start)
+		remaining := requestRateWindow - now.Sub(bucket.start)
 		seconds := int(math.Ceil(remaining.Seconds()))
 		if seconds < 1 {
 			seconds = 1
@@ -117,9 +120,9 @@ func (limiter *authenticationRateLimiter) allow(key string, limit int) (string, 
 	return "", true
 }
 
-func (limiter *authenticationRateLimiter) deleteExpired(now time.Time) {
+func (limiter *requestRateLimiter) deleteExpired(now time.Time) {
 	for key, bucket := range limiter.buckets {
-		if now.Sub(bucket.start) >= authenticationRateWindow {
+		if now.Sub(bucket.start) >= requestRateWindow {
 			delete(limiter.buckets, key)
 		}
 	}

@@ -41,6 +41,20 @@ func seedRuntimeLibrary(
 	if err != nil {
 		t.Fatal(err)
 	}
+	values, err := store.GetSettings(context.Background())
+	if err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
+	values.AutomaticDiscoveryEnabled = false
+	if _, err := store.UpdateSettings(
+		context.Background(),
+		values.Revision,
+		values,
+	); err != nil {
+		_ = store.Close()
+		t.Fatal(err)
+	}
 	root, err := files.OpenRoot(mediaRoot)
 	if err != nil {
 		_ = store.Close()
@@ -398,6 +412,45 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 		cancel()
 		t.Fatalf("creation scan result = %#v", current)
 	}
+	unauthorizedCatalogState := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/catalog/state", "", "", "",
+	)
+	if unauthorizedCatalogState.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthorized catalog state = %#v", unauthorizedCatalogState)
+	}
+	catalogState := runtimeAuthenticationRequest(
+		t, client, address, http.MethodGet,
+		"/api/v1/catalog/state", "", setup.Cookie, "",
+	)
+	if catalogState.StatusCode != http.StatusOK ||
+		catalogState.ETag == "" ||
+		!strings.Contains(catalogState.Body, `"contentRevision":`) {
+		t.Fatalf("catalog state = %#v", catalogState)
+	}
+	conditionalStateRequest, err := http.NewRequest(
+		http.MethodGet,
+		"http://"+address+"/api/v1/catalog/state",
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conditionalStateRequest.AddCookie(
+		&http.Cookie{Name: "foliopath_session", Value: setup.Cookie},
+	)
+	conditionalStateRequest.Header.Set("If-None-Match", catalogState.ETag)
+	conditionalStateResponse, err := client.Do(conditionalStateRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conditionalStateResponse.Body.Close()
+	if conditionalStateResponse.StatusCode != http.StatusNotModified {
+		t.Fatalf(
+			"conditional catalog state status = %d",
+			conditionalStateResponse.StatusCode,
+		)
+	}
 	unauthorizedAssets := runtimeAuthenticationRequest(
 		t, client, address, http.MethodGet,
 		"/api/v1/libraries/lib_1/assets?limit=20", "", "", "",
@@ -528,7 +581,7 @@ func TestComposedCreationScanIndexesEmptyDirectoriesAndCounts(t *testing.T) {
 	}
 	history := runtimeAuthenticationRequest(
 		t, client, address, http.MethodGet,
-		"/api/v1/libraries/lib_1/scans?limit=1", "", setup.Cookie, "",
+		"/api/v1/libraries/lib_1/scans?limit=20", "", setup.Cookie, "",
 	)
 	if history.StatusCode != http.StatusOK ||
 		!strings.Contains(history.Body, `"id":"scan_1"`) ||
@@ -1167,14 +1220,28 @@ func TestComposedLibraryRemovalPreservesOriginalMediaByteForByte(t *testing.T) {
 			"",
 		)
 		if currentLibrary.StatusCode == http.StatusOK &&
-			strings.Contains(currentLibrary.Body, `"status":"ready"`) {
+			strings.Contains(currentLibrary.Body, `"status":"ready"`) &&
+			(strings.Contains(
+				currentLibrary.Body,
+				`"automaticDiscoveryStatus":"active"`,
+			) || strings.Contains(
+				currentLibrary.Body,
+				`"automaticDiscoveryStatus":"unsupported"`,
+			)) {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	if currentLibrary.StatusCode != http.StatusOK ||
 		currentLibrary.ETag == "" ||
-		!strings.Contains(currentLibrary.Body, `"status":"ready"`) {
+		!strings.Contains(currentLibrary.Body, `"status":"ready"`) ||
+		(!strings.Contains(
+			currentLibrary.Body,
+			`"automaticDiscoveryStatus":"active"`,
+		) && !strings.Contains(
+			currentLibrary.Body,
+			`"automaticDiscoveryStatus":"unsupported"`,
+		)) {
 		t.Fatalf("creation scan did not complete before removal: %#v", currentLibrary)
 	}
 

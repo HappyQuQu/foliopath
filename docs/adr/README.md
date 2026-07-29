@@ -27,3 +27,5 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0007：单一共享前端设计系统](0007-shared-frontend-system.md)
 - [ADR-0008：统一应用组合根并分离纯路径策略](0008-composition-root-and-path-policy.md)
 - [ADR-0009：Linux `openat2` 与单一媒体根挂载](0009-linux-openat2-single-media-root.md)
+- [ADR-0010：经认证的局域网 HTTP 与可选外部 TLS](0010-authenticated-lan-http.md)
+- [ADR-0011：Linux 文件事件只触发锚定的定向校准](0011-linux-inotify-hints-and-anchored-reconciliation.md)

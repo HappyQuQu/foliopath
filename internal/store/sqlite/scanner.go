@@ -1098,3 +1098,88 @@ func normalizeErrorCode(code string) string {
 		return "internal_error"
 	}
 }
+
+// updateReconcileCountsTx is part of the scanner adapter's canonical
+// directory-count policy. A targeted reconciliation recalculates the changed
+// directory and propagates only its recursive delta to ancestors.
+func updateReconcileCountsTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	libraryID int64,
+	directoryID int64,
+	parentID sql.NullInt64,
+	oldRecursive int64,
+) error {
+	var direct, children int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT
+		    (SELECT count(*) FROM assets
+		     WHERE library_id = ? AND directory_id = ?),
+		    (SELECT COALESCE(sum(recursive_asset_count), 0)
+		     FROM directories
+		     WHERE library_id = ? AND parent_id = ?)
+	`, libraryID, directoryID, libraryID, directoryID).Scan(
+		&direct,
+		&children,
+	); err != nil {
+		return fmt.Errorf("calculate reconciled directory counts: %w", err)
+	}
+	recursive := direct + children
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE directories
+		SET direct_asset_count = ?, recursive_asset_count = ?
+		WHERE id = ? AND library_id = ?
+	`, direct, recursive, directoryID, libraryID); err != nil {
+		return fmt.Errorf("update reconciled directory counts: %w", err)
+	}
+	delta := recursive - oldRecursive
+	if delta == 0 || !parentID.Valid {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, `
+		WITH RECURSIVE ancestors(id) AS (
+		    SELECT ?
+		    UNION ALL
+		    SELECT directory.parent_id
+		    FROM directories AS directory
+		    JOIN ancestors ON directory.id = ancestors.id
+		    WHERE directory.library_id = ?
+		      AND directory.parent_id IS NOT NULL
+		)
+		UPDATE directories
+		SET recursive_asset_count = recursive_asset_count + ?
+		WHERE library_id = ? AND id IN (SELECT id FROM ancestors)
+	`, parentID.Int64, libraryID, delta, libraryID); err != nil {
+		return fmt.Errorf("propagate reconciled directory count delta: %w", err)
+	}
+	return nil
+}
+
+func readReconcileCountTargetTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	libraryID int64,
+	relativeDirectory string,
+) (int64, sql.NullInt64, int64, error) {
+	var (
+		directoryID int64
+		parentID    sql.NullInt64
+		recursive   int64
+	)
+	if err := tx.QueryRowContext(ctx, `
+		SELECT id, parent_id, recursive_asset_count
+		FROM directories
+		WHERE library_id = ? AND relative_path = ?
+	`, libraryID, relativeDirectory).Scan(
+		&directoryID,
+		&parentID,
+		&recursive,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, sql.NullInt64{}, 0, scanner.ErrInvalidEntry
+		}
+		return 0, sql.NullInt64{}, 0,
+			fmt.Errorf("read reconciliation directory: %w", err)
+	}
+	return directoryID, parentID, recursive, nil
+}

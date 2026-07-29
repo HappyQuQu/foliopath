@@ -1,7 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../../components/ui";
@@ -342,37 +348,41 @@ it("switches between all media, pictures, and videos through URL-bound queries",
 
   renderBrowse();
 
-  const typeFilter = await screen.findByRole("group", { name: "媒体类型" });
-  const all = within(typeFilter).getByRole("button", { name: "全部" });
-  const images = within(typeFilter).getByRole("button", { name: "图片" });
-  const videos = within(typeFilter).getByRole("button", { name: "视频" });
+  await user.click(await screen.findByRole("button", { name: "搜索筛选" }));
+  let typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
+  expect(within(typeFilter).getByRole("radio", { name: "全部" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
 
-  expect(all).toHaveAttribute("aria-pressed", "true");
-
+  const images = within(typeFilter).getByRole("radio", { name: "图片" });
   await user.click(images);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel?kind=image",
   );
-  expect(images).toHaveAttribute("aria-pressed", "true");
   expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
     expect.objectContaining({ kinds: ["image", "animated"] }),
   );
 
+  await user.click(screen.getByRole("button", { name: "搜索筛选" }));
+  typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
+  const videos = within(typeFilter).getByRole("radio", { name: "视频" });
   await user.click(videos);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel?kind=video",
   );
-  expect(videos).toHaveAttribute("aria-pressed", "true");
   expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
     expect.objectContaining({ kinds: ["video"] }),
   );
 
   const callsAfterVideo = vi.mocked(listAssets).mock.calls.length;
+  await user.click(screen.getByRole("button", { name: "搜索筛选" }));
+  typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
+  const all = within(typeFilter).getByRole("radio", { name: "全部" });
   await user.click(all);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel",
   );
-  expect(all).toHaveAttribute("aria-pressed", "true");
   expect(listAssets).toHaveBeenCalledTimes(callsAfterVideo);
 });
 
@@ -424,6 +434,90 @@ it("recovers a first-page media error through the shared retry action", async ()
   await user.click(screen.getByRole("button", { name: "重新尝试" }));
   expect(await screen.findByText("当前目录没有媒体")).toBeVisible();
   expect(listAssets).toHaveBeenCalledTimes(2);
+});
+
+it("refreshes the current directory from the toolbar", async () => {
+  const user = userEvent.setup();
+
+  renderBrowse();
+
+  expect(await screen.findByText("photo.jpg")).toBeVisible();
+  const assetsCalls = vi.mocked(listAssets).mock.calls.length;
+  const directoryCalls = vi.mocked(getDirectory).mock.calls.length;
+  const libraryCalls = vi.mocked(getLibrary).mock.calls.length;
+
+  await user.click(
+    screen.getByRole("button", { name: "刷新当前目录" }),
+  );
+
+  await waitFor(() => {
+    expect(listAssets).toHaveBeenCalledTimes(assetsCalls + 1);
+    expect(getDirectory).toHaveBeenCalledTimes(directoryCalls + 1);
+    expect(getLibrary).toHaveBeenCalledTimes(libraryCalls + 1);
+  });
+});
+
+it("refetches a cached directory when directory navigation returns to it", async () => {
+  const user = userEvent.setup();
+  vi.mocked(getDirectory).mockImplementation(async (directoryId) =>
+    directoryId === "dir_japan"
+      ? {
+          breadcrumbs: [
+            { id: "dir_root", name: "家庭影像", relativePath: "" },
+            { id: "dir_travel", name: "旅行", relativePath: "旅行" },
+            {
+              id: "dir_japan",
+              name: "日本",
+              relativePath: "旅行/日本",
+            },
+          ],
+          directAssetCount: 1,
+          hasChildren: false,
+          id: "dir_japan",
+          libraryId: "lib_family",
+          name: "日本",
+          parentId: "dir_travel",
+          recursiveAssetCount: 4,
+          relativePath: "旅行/日本",
+        }
+      : {
+          breadcrumbs: [
+            { id: "dir_root", name: "家庭影像", relativePath: "" },
+            { id: "dir_travel", name: "旅行", relativePath: "旅行" },
+          ],
+          directAssetCount: 2,
+          hasChildren: true,
+          id: "dir_travel",
+          libraryId: "lib_family",
+          name: "旅行",
+          parentId: "dir_root",
+          recursiveAssetCount: 8,
+          relativePath: "旅行",
+        },
+  );
+
+  renderRouteBoundBrowse();
+
+  await screen.findByRole("heading", { name: "旅行", level: 1 });
+  const initialTravelCalls = vi
+    .mocked(listAssets)
+    .mock.calls.filter(([input]) => input.directoryId === "dir_travel").length;
+
+  await user.click(screen.getByRole("link", { name: /^日本4 项$/ }));
+  await screen.findByRole("heading", { name: "日本", level: 1 });
+  await user.click(
+    within(screen.getByRole("navigation", { name: "目录位置" })).getByRole(
+      "link",
+      { name: "旅行" },
+    ),
+  );
+
+  await waitFor(() => {
+    const travelCalls = vi
+      .mocked(listAssets)
+      .mock.calls.filter(([input]) => input.directoryId === "dir_travel").length;
+    expect(travelCalls).toBeGreaterThan(initialTravelCalls);
+  });
 });
 
 it("refreshes an expired cursor before retrying the next media page", async () => {
@@ -557,6 +651,48 @@ function renderRootBrowse() {
         </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>,
+  );
+}
+
+function renderRouteBoundBrowse() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  });
+  return render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={["/libraries/lib_family/browse/dir_travel"]}
+          >
+            <Routes>
+              <Route
+                element={<RouteBoundBrowse />}
+                path="/libraries/:libraryId/browse/:directoryId?"
+              />
+            </Routes>
+            <LocationProbe />
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+}
+
+function RouteBoundBrowse() {
+  const { directoryId, libraryId = "" } = useParams<{
+    directoryId?: string;
+    libraryId: string;
+  }>();
+  return (
+    <BrowsePage
+      directoryId={directoryId}
+      libraryId={libraryId}
+      session={session}
+    />
   );
 }
 

@@ -106,9 +106,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		routeFallback{mux: mux},
 		dependencies.Authentication,
 	)
-	return limitAuthenticationRequests(
+	return limitRequests(
 		protected,
-		newAuthenticationRateLimiter(nil),
+		newRequestRateLimiter(nil),
 	), nil
 }
 

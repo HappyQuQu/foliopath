@@ -26,6 +26,7 @@
 | R-016 | 缺少 CI、生成漂移检查和可复现 fixture 导致回归 | 高 | 高 | 开发者本地通过而干净环境失败；生成文件与源不一致 | 真实 PR CI 已覆盖双架构 Go/race、生成/兼容、mount、govips/FFmpeg、runtime/recovery 与 SBOM/license；媒体库 Backend Gate、S2-102～106 worker、目录、媒体收敛、故障恢复和容量均有分层证据，容量主档另由 Linux amd64/arm64 受限资源 job 强制；每个后续生产切片继续增加集成/E2E 和已许可 fixture | 阻止合并和发布，先恢复最小验证基线 | QA 负责人 | 缓解中 |
 | R-017 | 发布镜像的原生依赖闭包含未处置的 Critical/High 漏洞 | 高 | 严重 | 最终 SBOM/扫描出现 Critical/High；漏洞数据库变化 | [S5-007A](gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已固定 Syft/Trivy digest、保存完整报告并拒绝已有修复版本的发现；最小 libvips/FFmpeg、内建健康检查、无 shell distroless final stage 与固定源码 Expat 2.8.2 将发现从 15 Critical / 136 High 降至 1 / 8。剩余发现全部保留为 RC 阻断；发布前升级/移除受影响依赖或对具体 CVE 完成限时正式接受，并在最终双架构 digest 上执行全阻断扫描 | 跟踪 GLib/blkid/mount 修复；无法证明安全时停止发布 | 安全负责人 | 开放 |
 | R-018 | 视频故事板 backfill、重复 seek 或 hover 生命周期造成 CPU、I/O、缓存、请求或前端资源失控 | 中 | 高 | grid/poster 等待变长；浏览 P95 上升；队列/缓存持续增长；快速掠过产生请求风暴；虚拟卡片回收后 timer/动画仍活动 | [VSP-S2 Backend Evidence Ready](gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)已以双架构生产 FFmpeg、单并发/低优先级、128 项 admission、真实 cache repair 和 Linux 100k/10k 档关闭后端 Gate；[VSP-S3 Consumer/UI Ready](gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)又以 300ms intent、按需 decode、单活动动画、生命周期回收、六种浏览器/输入 profile 和 100-video 三引擎容量关闭前端 Gate；[VSP-301](gates/POST-MVP-1/vsp-301-product-vertical.md)已贯通生产镜像真实全链，剩余风险由 [VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md) 原生候选复验与 VSP-S4 最终签署阻断 | 依次降低 worker/尺寸/质量、改为有界按需 admission；仍不满足时禁用 storyboard 并保留现有 poster | 媒体处理与前端性能负责人 | 缓解中 |
+| R-019 | 文件事件丢失、乱序、overflow、网络盘不转发、watch 资源不足或删除误判导致内容延迟或索引损失 | 高 | 严重 | `IN_Q_OVERFLOW`/`ENOSPC`、watch 被移除、事件后目录不一致、挂载掉线时出现批量 delete、dirty 队列持续满或页面长期不更新 | [FTR-SCN-001](features/automatic-library-discovery.md)要求事件只作不可信提示；新增/修改/删除均经 `internal/files` 安全定向校准确认，掉盘/权限/overflow 保留可靠索引并合并安排完整扫描；每目录而非每文件 watch，队列/并发/revision 轮询有界；实现前必须通过 WCH-S0 ADR 与 Linux 100k/10k burst/恢复证据 | 先扩大合并并降低定向并发，再按库进入 degraded；仍不可靠时全局禁用自动发现，保留创建/启动/手动/定时完整扫描 | 扫描与运维负责人 | 开放 |
 
 Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
 source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
@@ -61,6 +62,9 @@ R-018 属于 `Post-MVP/1` 的
 [FTR-VID-001](features/video-storyboard-preview.md)，不改变当前 MVP RC 判断；它在未来版本
 中阻断 `VSP-S4`。后端容量、前端生命周期与 VSP-301 产品纵向证据已完成；在 VSP-302
 原生双架构候选复验和最终 Gate 签署前不得作为稳定能力发布。
+R-019 属于已冻结 `Post-MVP/2` 的
+[FTR-SCN-001](features/automatic-library-discovery.md)，不改变当前 MVP RC 判断；在 watcher
+ADR、增量任务/删除资格合同、Linux overflow/掉盘/强杀/容量证据和 `WCH-S4` 签署前保持开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

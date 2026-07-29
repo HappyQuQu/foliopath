@@ -48,17 +48,21 @@ type renameLibraryRequest struct {
 }
 
 type libraryResponse struct {
-	ID                   string  `json:"id"`
-	Name                 string  `json:"name"`
-	RootPath             string  `json:"rootPath"`
-	DisplayPath          string  `json:"displayPath"`
-	Status               string  `json:"status"`
-	LastSuccessfulScanAt *string `json:"lastSuccessfulScanAt"`
-	LatestScanID         *string `json:"latestScanId"`
-	AssetCount           int64   `json:"assetCount"`
-	DirectoryCount       int64   `json:"directoryCount"`
-	CreatedAt            string  `json:"createdAt"`
-	UpdatedAt            string  `json:"updatedAt"`
+	ID                          string  `json:"id"`
+	Name                        string  `json:"name"`
+	RootPath                    string  `json:"rootPath"`
+	DisplayPath                 string  `json:"displayPath"`
+	Status                      string  `json:"status"`
+	LastSuccessfulScanAt        *string `json:"lastSuccessfulScanAt"`
+	LatestScanID                *string `json:"latestScanId"`
+	AssetCount                  int64   `json:"assetCount"`
+	DirectoryCount              int64   `json:"directoryCount"`
+	AutomaticDiscoveryStatus    string  `json:"automaticDiscoveryStatus"`
+	AutomaticDiscoveryErrorCode *string `json:"automaticDiscoveryErrorCode"`
+	LastAutomaticDiscoveryAt    *string `json:"lastAutomaticDiscoveryAt"`
+	ContentRevision             int64   `json:"contentRevision"`
+	CreatedAt                   string  `json:"createdAt"`
+	UpdatedAt                   string  `json:"updatedAt"`
 }
 
 type scanResponse struct {
@@ -363,22 +367,31 @@ func libraryWire(item library.Details) libraryResponse {
 		value := scanID(*item.LatestScanID)
 		latestScan = &value
 	}
+	var automaticError *string
+	if item.AutomaticDiscoveryErrorCode != "" {
+		value := item.AutomaticDiscoveryErrorCode
+		automaticError = &value
+	}
 	displayPath := "/library"
 	if item.RootRelativePath != "" {
 		displayPath += "/" + item.RootRelativePath
 	}
 	return libraryResponse{
-		ID:                   libraryID(item.ID),
-		Name:                 item.Name,
-		RootPath:             item.RootRelativePath,
-		DisplayPath:          displayPath,
-		Status:               string(item.Status),
-		LastSuccessfulScanAt: lastSuccess,
-		LatestScanID:         latestScan,
-		AssetCount:           item.AssetCount,
-		DirectoryCount:       item.DirectoryCount,
-		CreatedAt:            timestamp(item.CreatedAtMS),
-		UpdatedAt:            timestamp(item.UpdatedAtMS),
+		ID:                          libraryID(item.ID),
+		Name:                        item.Name,
+		RootPath:                    item.RootRelativePath,
+		DisplayPath:                 displayPath,
+		Status:                      string(item.Status),
+		LastSuccessfulScanAt:        lastSuccess,
+		LatestScanID:                latestScan,
+		AssetCount:                  item.AssetCount,
+		DirectoryCount:              item.DirectoryCount,
+		AutomaticDiscoveryStatus:    string(item.AutomaticDiscoveryStatus),
+		AutomaticDiscoveryErrorCode: automaticError,
+		LastAutomaticDiscoveryAt:    optionalTimestamp(item.LastAutomaticDiscoveryAtMS),
+		ContentRevision:             item.ContentRevision,
+		CreatedAt:                   timestamp(item.CreatedAtMS),
+		UpdatedAt:                   timestamp(item.UpdatedAtMS),
 	}
 }
 

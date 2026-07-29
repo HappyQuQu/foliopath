@@ -52,6 +52,12 @@ WHERE id = (
       AND cancel_requested_at_ms IS NULL
       AND available_at_ms <= sqlc.arg(now_ms)
       AND attempt_count < 3
+      AND NOT EXISTS (
+          SELECT 1
+          FROM catalog_reconcile_jobs
+          WHERE catalog_reconcile_jobs.library_id = scan_runs.library_id
+            AND catalog_reconcile_jobs.status = 'running'
+      )
     ORDER BY available_at_ms, created_at_ms, id
     LIMIT 1
 )
@@ -153,6 +159,7 @@ WHERE singleton_key = 1;
 -- name: UpdateSettings :one
 UPDATE settings
 SET scheduled_scan_interval_hours = sqlc.narg(scheduled_scan_interval_hours),
+    automatic_discovery_enabled = sqlc.arg(automatic_discovery_enabled),
     thumbnail_cache_quota_bytes = sqlc.arg(thumbnail_cache_quota_bytes),
     language = sqlc.arg(language),
     revision = revision + 1,

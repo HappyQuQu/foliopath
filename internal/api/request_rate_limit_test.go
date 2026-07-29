@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -11,9 +12,9 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/auth"
 )
 
-func TestAuthenticationRateLimiterEnforcesAndResetsFixedWindow(t *testing.T) {
+func TestRequestRateLimiterEnforcesAndResetsFixedWindow(t *testing.T) {
 	now := time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC)
-	limiter := newAuthenticationRateLimiter(func() time.Time { return now })
+	limiter := newRequestRateLimiter(func() time.Time { return now })
 	for requestNumber := 1; requestNumber <= 10; requestNumber++ {
 		if retry, allowed := limiter.allow("peer\x00login", 10); !allowed || retry != "" {
 			t.Fatalf("request %d = (%q, %t), want allowed", requestNumber, retry, allowed)
@@ -28,8 +29,8 @@ func TestAuthenticationRateLimiterEnforcesAndResetsFixedWindow(t *testing.T) {
 	}
 }
 
-func TestAuthenticationRateLimiterIsConcurrencySafe(t *testing.T) {
-	limiter := newAuthenticationRateLimiter(func() time.Time {
+func TestRequestRateLimiterIsConcurrencySafe(t *testing.T) {
+	limiter := newRequestRateLimiter(func() time.Time {
 		return time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC)
 	})
 	var allowed atomic.Int64
@@ -91,6 +92,55 @@ func TestLoginRateLimitStopsBeforePasswordVerification(t *testing.T) {
 	}
 	if got := loginCalls.Load(); got != 10 {
 		t.Fatalf("login calls = %d, want 10", got)
+	}
+}
+
+func TestCatalogStateReadRateLimitStopsBeforeService(t *testing.T) {
+	now := time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
+	var calls atomic.Int64
+	mux := http.NewServeMux()
+	registerCatalogRoutes(mux, catalogServiceStub{
+		contentRevision: func(context.Context) (int64, error) {
+			calls.Add(1)
+			return 9, nil
+		},
+	})
+	handler := limitRequests(
+		mux,
+		newRequestRateLimiter(func() time.Time { return now }),
+	)
+	for requestNumber := 1; requestNumber <= 121; requestNumber++ {
+		request := httptest.NewRequest(
+			http.MethodGet,
+			"/api/v1/catalog/state",
+			nil,
+		)
+		request.RemoteAddr = "192.0.2.44:4321"
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if requestNumber <= 120 {
+			if response.Code != http.StatusOK {
+				t.Fatalf(
+					"catalog state request %d status = %d",
+					requestNumber,
+					response.Code,
+				)
+			}
+			continue
+		}
+		if response.Code != http.StatusTooManyRequests ||
+			response.Header().Get("Retry-After") != "60" {
+			t.Fatalf(
+				"limited catalog state = %d headers=%v body=%s",
+				response.Code,
+				response.Header(),
+				response.Body,
+			)
+		}
+		assertSafeErrorResponse(t, response, "rate_limited")
+	}
+	if calls.Load() != 120 {
+		t.Fatalf("catalog state service calls = %d, want 120", calls.Load())
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 )
 
 type CatalogService interface {
+	ContentRevision(context.Context) (int64, error)
 	ListDirectories(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
 	GetDirectory(context.Context, int64) (catalog.DirectoryDetail, error)
 	ListAssets(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
@@ -92,7 +93,30 @@ type assetPageResponse struct {
 	NextCursor *string         `json:"nextCursor"`
 }
 
+type catalogStateResponse struct {
+	ContentRevision int64 `json:"contentRevision"`
+}
+
 func registerCatalogRoutes(mux *http.ServeMux, service CatalogService) {
+	mux.HandleFunc("GET /api/v1/catalog/state", func(
+		writer http.ResponseWriter,
+		request *http.Request,
+	) {
+		revision, err := service.ContentRevision(request.Context())
+		if err != nil {
+			writeInternalError(writer, request)
+			return
+		}
+		etag := `"catalog-r` + strconv.FormatInt(revision, 10) + `"`
+		writer.Header().Set("ETag", etag)
+		writer.Header().Set("Cache-Control", "no-store")
+		if request.Header.Get("If-None-Match") == etag {
+			writer.WriteHeader(http.StatusNotModified)
+			return
+		}
+		writeJSON(writer, http.StatusOK, catalogStateResponse{ContentRevision: revision})
+	})
+
 	mux.HandleFunc("GET /api/v1/libraries/{libraryId}/directories", func(
 		writer http.ResponseWriter,
 		request *http.Request,

@@ -29,7 +29,11 @@ SELECT
         LIMIT 1
     ),
     (SELECT COUNT(*) FROM assets WHERE library_id = l.id),
-    (SELECT COUNT(*) FROM directories WHERE library_id = l.id)
+    (SELECT COUNT(*) FROM directories WHERE library_id = l.id),
+    l.automatic_discovery_status,
+    l.automatic_discovery_error_code,
+    l.last_automatic_discovery_at_ms,
+    l.content_revision
 FROM libraries l`
 
 type queryRower interface {
@@ -292,11 +296,16 @@ func scanLibraryDetails(row rowValues) (library.Details, error) {
 		name, root, rawStatus                          string
 		lastSuccess, latestScan                        sql.NullInt64
 		assetCount, directoryCount                     int64
+		automaticStatus                                string
+		automaticError                                 sql.NullString
+		lastAutomatic                                  sql.NullInt64
+		contentRevision                                int64
 	)
 	if err := row.Scan(
 		&id, &name, &root, &rawStatus, &generation, &revision,
 		&createdAt, &updatedAt, &lastSuccess, &latestScan,
-		&assetCount, &directoryCount,
+		&assetCount, &directoryCount, &automaticStatus, &automaticError,
+		&lastAutomatic, &contentRevision,
 	); err != nil {
 		return library.Details{}, err
 	}
@@ -317,6 +326,22 @@ func scanLibraryDetails(row rowValues) (library.Details, error) {
 	if latestScan.Valid {
 		details.LatestScanID = &latestScan.Int64
 	}
+	discoveryStatus, err := library.ValidateAutomaticDiscoveryState(
+		automaticStatus,
+		automaticError.String,
+	)
+	if err != nil || contentRevision < 1 {
+		return library.Details{}, errors.New("invalid automatic discovery state")
+	}
+	details.AutomaticDiscoveryStatus = discoveryStatus
+	if automaticError.Valid {
+		details.AutomaticDiscoveryErrorCode = automaticError.String
+	}
+	if lastAutomatic.Valid {
+		value := lastAutomatic.Int64
+		details.LastAutomaticDiscoveryAtMS = &value
+	}
+	details.ContentRevision = contentRevision
 	return details, nil
 }
 

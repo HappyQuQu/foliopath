@@ -1,4 +1,8 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import {
+  type InfiniteData,
+  type QueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 
 import {
   searchAssets,
@@ -29,6 +33,29 @@ export const searchKeys = {
       state.order,
     ] as const,
 };
+
+export async function refreshSearchResults(
+  queryClient: QueryClient,
+  libraryId: string | undefined,
+  state: SearchUrlState,
+): Promise<void> {
+  const queryKey = searchKeys.results(libraryId, state);
+  queryClient.setQueryData<InfiniteData<AssetPage, unknown>>(
+    queryKey,
+    (current) =>
+      current && current.pages.length > 1
+        ? {
+            pageParams: current.pageParams.slice(0, 1),
+            pages: current.pages.slice(0, 1),
+          }
+        : current,
+  );
+  await queryClient.refetchQueries({
+    exact: true,
+    queryKey,
+    type: "active",
+  });
+}
 
 export function useSearchResultsQuery({
   libraryId,

@@ -45,6 +45,19 @@ FolioPath 读取用户提供的目录和媒体文件，并通过 Web 服务展�
 映射为有限原因码。游标使用随机进程密钥的 AES-GCM，不包含明文父路径或最后目录名；错误
 响应不包含绝对根、errno 或底层路径。
 
+### 自动发现事件边界
+
+Linux watcher 的名称、cookie、顺序和事件类型全部是不可信 hint。adapter 只能产出媒体库
+ID、规范相对目录/名称和稳定事件类别；它不能返回给 API 的绝对路径，也不能直接修改索引。
+每次定向校准与新 watch 注册仍必须经 `internal/pathpolicy` 和 `internal/files` 的
+`openat2(RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS | RESOLVE_NO_XDEV)` 锚定边界重新确认。
+
+`delete`、`move-out`、`unmount`、overflow 或 watch invalidation 本身没有删除资格。只有库根
+身份未变且父目录完整、安全枚举成功后，scanner 才能删除明确缺失的直接子项；否则保留旧
+索引并进入 degraded/offline。持久任务、日志和 API 错误不得包含宿主路径、容器绝对路径、
+原始 errno 或内核消息。`GET /api/v1/catalog/state` 需要现有管理员 session，只泄露一个
+单调通知 revision，并使用 `no-store`。
+
 `S2-105` 把相同失败关闭边界接入生产扫描：媒体库根离线、根 symlink、root identity
 变化、后代 mount crossing、部分目录权限失败和一般 I/O 只映射为 OpenAPI
 `ScanFailureCode` 中的稳定码。除完整成功扫描外均不得运行 stale cleanup；公开状态和

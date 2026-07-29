@@ -235,6 +235,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the lightweight catalog content revision
+         * @description Returns a monotonic notification revision for authenticated clients.
+         *     It advances after a reliable full generation is published and after
+         *     each committed automatic-discovery reconciliation batch. It is not a
+         *     browse/search cursor revision and does not authorize filesystem
+         *     access. A matching If-None-Match returns 304 without a body.
+         */
+        get: operations["getCatalogState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/directories/{directoryId}": {
         parameters: {
             query?: never;
@@ -730,6 +754,10 @@ export interface components {
             /** @description True only before the one-time administrator setup commits. */
             setupRequired: boolean;
         };
+        /** @enum {string|null} */
+        AutomaticDiscoveryErrorCode: "watch_unavailable" | "watch_resource_limit" | "watch_overflow" | "source_unavailable" | "internal_error" | null;
+        /** @enum {string} */
+        AutomaticDiscoveryStatus: "active" | "degraded" | "unsupported" | "disabled";
         /**
          * @description One indexed location in a root-to-current breadcrumb chain. The root
          *     uses the media-library display name and an empty relative path.
@@ -738,6 +766,10 @@ export interface components {
             id: components["schemas"]["ResourceID"];
             name: string;
             relativePath: components["schemas"]["LibraryRelativePath"];
+        };
+        CatalogState: {
+            /** Format: int64 */
+            contentRevision: number;
         };
         CreateLibraryRequest: {
             /** @description Instance-unique name after server normalization. */
@@ -829,6 +861,14 @@ export interface components {
              * @description Snapshot from the last reliable index state.
              */
             assetCount: number;
+            automaticDiscoveryErrorCode: components["schemas"]["AutomaticDiscoveryErrorCode"];
+            automaticDiscoveryStatus: components["schemas"]["AutomaticDiscoveryStatus"];
+            /**
+             * Format: int64
+             * @description Monotonic notification revision for this library. It is not used
+             *     as a keyset cursor generation.
+             */
+            contentRevision: number;
             createdAt: components["schemas"]["Timestamp"];
             /**
              * Format: int64
@@ -842,6 +882,7 @@ export interface components {
              */
             readonly displayPath: string;
             id: components["schemas"]["ResourceID"];
+            lastAutomaticDiscoveryAt: components["schemas"]["NullableTimestamp"];
             lastSuccessfulScanAt: components["schemas"]["NullableTimestamp"];
             latestScanId: components["schemas"]["NullableResourceID"];
             name: string;
@@ -1042,6 +1083,13 @@ export interface components {
             expiresAt: components["schemas"]["Timestamp"];
         };
         Settings: {
+            /**
+             * @description Enables the automatic-discovery fast path on supported Linux
+             *     filesystems. Full creation/startup/manual/scheduled scans remain
+             *     available when disabled.
+             * @default true
+             */
+            automaticDiscoveryEnabled: boolean;
             language: components["schemas"]["LanguagePreference"];
             /**
              * Format: int32
@@ -1058,6 +1106,8 @@ export interface components {
             updatedAt: components["schemas"]["Timestamp"];
         };
         SettingsUpdate: {
+            /** @description Enable or disable the automatic-discovery fast path. */
+            automaticDiscoveryEnabled?: boolean;
             language?: components["schemas"]["LanguagePreference"];
             /**
              * Format: int32
@@ -1884,6 +1934,45 @@ export interface operations {
                     "application/json": components["schemas"]["AuthStatus"];
                 };
             };
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getCatalogState: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Representation validator from an earlier response. */
+                "If-None-Match"?: components["parameters"]["IfNoneMatchHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current catalog content revision. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogState"];
+                };
+            };
+            /** @description Catalog content has not changed for the supplied validator. */
+            304: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

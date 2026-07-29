@@ -344,7 +344,7 @@ paths:
       tags: [Settings]
       operationId: getSettings
       summary: Get administrator-configurable application settings
-      x-requirements: [FR-DEP-003, FR-SCN-007, FR-MED-008, FR-UI-006]
+      x-requirements: [FR-DEP-003, FR-SCN-007, FR-SCN-013, FR-MED-008, FR-UI-006]
       x-error-codes:
         '401': [authentication_required, session_expired]
         '429': [rate_limited]
@@ -377,7 +377,7 @@ paths:
       security:
         - cookieAuth: []
           csrfToken: []
-      x-requirements: [FR-DEP-003, FR-SCN-007, FR-MED-008, FR-UI-006]
+      x-requirements: [FR-DEP-003, FR-SCN-007, FR-SCN-013, FR-MED-008, FR-UI-006]
       x-error-codes:
         '400': [invalid_request]
         '401': [authentication_required, session_expired]
@@ -467,13 +467,61 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/catalog/state:
+    get:
+      tags: [Catalog]
+      operationId: getCatalogState
+      summary: Get the lightweight catalog content revision
+      description: |
+        Returns a monotonic notification revision for authenticated clients.
+        It advances after a reliable full generation is published and after
+        each committed automatic-discovery reconciliation batch. It is not a
+        browse/search cursor revision and does not authorize filesystem
+        access. A matching If-None-Match returns 304 without a body.
+      x-requirements: [FR-SCN-014, NFR-PERF-003, NFR-PRIV-001]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IfNoneMatchHeader'
+      responses:
+        '200':
+          description: Current catalog content revision.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogState'
+        '304':
+          description: Catalog content has not changed for the supplied validator.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/libraries:
     get:
       tags: [Libraries]
       operationId: listLibraries
       summary: List configured media libraries
       description: Libraries are naturally sorted by their unique display name and stable ID.
-      x-requirements: [FR-LIB-001, FR-LIB-006, FR-LIB-008]
+      x-requirements: [FR-LIB-001, FR-LIB-006, FR-LIB-008, FR-SCN-013, FR-SCN-014]
       x-error-codes:
         '400': [invalid_request, invalid_cursor]
         '401': [authentication_required, session_expired]
@@ -579,7 +627,7 @@ paths:
       tags: [Libraries]
       operationId: getLibrary
       summary: Get a media library and its latest scan summary
-      x-requirements: [FR-LIB-001, FR-LIB-005, FR-LIB-006, FR-SCN-003]
+      x-requirements: [FR-LIB-001, FR-LIB-005, FR-LIB-006, FR-SCN-003, FR-SCN-013, FR-SCN-014]
       x-error-codes:
         '401': [authentication_required, session_expired]
         '404': [library_not_found]
@@ -2362,6 +2410,7 @@ components:
       additionalProperties: false
       required:
         - scheduledScanIntervalHours
+        - automaticDiscoveryEnabled
         - thumbnailCacheQuotaBytes
         - language
         - updatedAt
@@ -2374,6 +2423,13 @@ components:
           nullable: true
           default: 24
           description: Full-scan interval in hours. Null disables scheduled scans.
+        automaticDiscoveryEnabled:
+          type: boolean
+          default: true
+          description: |
+            Enables the automatic-discovery fast path on supported Linux
+            filesystems. Full creation/startup/manual/scheduled scans remain
+            available when disabled.
         thumbnailCacheQuotaBytes:
           type: integer
           format: int64
@@ -2397,6 +2453,9 @@ components:
           maximum: 8760
           nullable: true
           description: Full-scan interval in hours. Null disables scheduled scans.
+        automaticDiscoveryEnabled:
+          type: boolean
+          description: Enable or disable the automatic-discovery fast path.
         thumbnailCacheQuotaBytes:
           type: integer
           format: int64
@@ -2492,6 +2551,20 @@ components:
       type: string
       enum: [pending, scanning, ready, offline, error]
 
+    AutomaticDiscoveryStatus:
+      type: string
+      enum: [active, degraded, unsupported, disabled]
+
+    AutomaticDiscoveryErrorCode:
+      type: string
+      nullable: true
+      enum:
+        - watch_unavailable
+        - watch_resource_limit
+        - watch_overflow
+        - source_unavailable
+        - internal_error
+
     Library:
       type: object
       additionalProperties: false
@@ -2505,6 +2578,10 @@ components:
         - latestScanId
         - assetCount
         - directoryCount
+        - automaticDiscoveryStatus
+        - automaticDiscoveryErrorCode
+        - lastAutomaticDiscoveryAt
+        - contentRevision
         - createdAt
         - updatedAt
       properties:
@@ -2542,10 +2619,33 @@ components:
           format: int64
           minimum: 0
           description: Snapshot including empty indexed directories.
+        automaticDiscoveryStatus:
+          $ref: '#/components/schemas/AutomaticDiscoveryStatus'
+        automaticDiscoveryErrorCode:
+          $ref: '#/components/schemas/AutomaticDiscoveryErrorCode'
+        lastAutomaticDiscoveryAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        contentRevision:
+          type: integer
+          format: int64
+          minimum: 1
+          description: |
+            Monotonic notification revision for this library. It is not used
+            as a keyset cursor generation.
         createdAt:
           $ref: '#/components/schemas/Timestamp'
         updatedAt:
           $ref: '#/components/schemas/Timestamp'
+
+    CatalogState:
+      type: object
+      additionalProperties: false
+      required: [contentRevision]
+      properties:
+        contentRevision:
+          type: integer
+          format: int64
+          minimum: 1
 
     CreateLibraryRequest:
       type: object

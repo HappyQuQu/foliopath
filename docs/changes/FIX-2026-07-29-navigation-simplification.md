@@ -1,5 +1,8 @@
 # FIX-2026-07-29 应用导航精简
 
+> 状态：已由 [FIX-2026-07-29 redesign 应用壳恢复](FIX-2026-07-29-redesign-shell-restoration.md)
+> 取代。保留本文件作为历史决策记录，不再代表当前生产界面。
+
 - 类型：已批准 MVP slice 内的例行 UI 修复
 - 关联范围：`FR-BRW-001～009`、`FR-UI-001～007`
 - 目标版本与阶段：MVP / Stage 3–4 Integrated Done 后的界面修复

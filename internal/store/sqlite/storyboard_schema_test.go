@@ -135,7 +135,7 @@ func TestStoryboardMigrationDowngradeIsSafeOrFailsClosed(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := provider.Down(context.Background()); err != nil {
+		if _, err := provider.DownTo(context.Background(), 10); err != nil {
 			t.Fatalf("downgrade empty storyboard schema: %v", err)
 		}
 		if _, ok := tableColumns(t, store, "media_jobs")["priority"]; ok {
@@ -164,7 +164,7 @@ func TestStoryboardMigrationDowngradeIsSafeOrFailsClosed(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := provider.Down(context.Background()); err == nil {
+		if _, err := provider.DownTo(context.Background(), 10); err == nil {
 			t.Fatal("downgrade with storyboard state unexpectedly succeeded")
 		}
 		var jobs int

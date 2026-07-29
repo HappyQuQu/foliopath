@@ -385,6 +385,32 @@ failed 和限流分别沿用结构化 `202/409/422/429` 语义。
 client 已从权威源重新生成。
 首版 ready `frameCount` 只允许 4 或 10：2～5 秒视频为 4，5 秒及以上为 10。
 
+### Post-MVP 媒体库自动发现契约
+
+[FTR-SCN-001](features/automatic-library-discovery.md)在 `WCH-S1 Contract Ready` 冻结以下
+wire 行为：
+
+- `Settings.automaticDiscoveryEnabled` 是必需布尔值，默认 `true`；PATCH 中为可选字段，
+  继续受 Settings 强 ETag/`If-Match` 原子更新保护。关闭它只停止 watcher/定向校准，
+  不关闭创建、启动、手动或定时完整扫描。
+- `Library` 必须返回 `automaticDiscoveryStatus`、可空的稳定
+  `automaticDiscoveryErrorCode`、可空 `lastAutomaticDiscoveryAt` 和正整数
+  `contentRevision`。状态只有 `active | degraded | unsupported | disabled`；错误只有
+  `watch_unavailable | watch_resource_limit | watch_overflow | source_unavailable |
+  internal_error`，不暴露 errno、绝对路径或内核文本。
+- 新增认证的 `GET /api/v1/catalog/state`。它只返回单调 `contentRevision`，带强 ETag 和
+  `Cache-Control: no-store`；匹配 `If-None-Match` 返回无 body 的 `304`。
+- 全局和每库 content revision 是刷新通知，不是可靠 generation 或搜索 cursor revision。
+  Revision 2 UI 不轮询该值；目录导航或显式刷新必须重新取得第一页并创建新 cursor 链，
+  不能拼接旧链。
+- endpoint 使用现有 session、读取限流、请求 ID 和脱敏 `401/429/500` 错误语义；不增加
+  WebSocket、匿名读取或路径输入。
+
+本次对响应 schema 添加必需字段，属于面向 `POST-MVP-2` 客户端的版本化扩展，而非对已冻结
+MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 UI 必须作为同一目标版本
+交付；若要让旧独立客户端跨版本工作，必须另行定义兼容窗口或发布 `/api/v2`，不得把这些
+字段偷偷改成语义不完整的可选值。
+
 ## 游标规则
 
 - 游标是不透明、带版本且可校验的编码，至少包含当前排序值、稳定 ID 和查询语义指纹。

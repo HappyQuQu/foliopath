@@ -49,4 +49,5 @@ type Setting struct {
 	Language                   string
 	Revision                   int64
 	UpdatedAtMs                int64
+	AutomaticDiscoveryEnabled  int64
 }

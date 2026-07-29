@@ -73,6 +73,12 @@ WHERE id = (
       AND cancel_requested_at_ms IS NULL
       AND available_at_ms <= ?1
       AND attempt_count < 3
+      AND NOT EXISTS (
+          SELECT 1
+          FROM catalog_reconcile_jobs
+          WHERE catalog_reconcile_jobs.library_id = scan_runs.library_id
+            AND catalog_reconcile_jobs.status = 'running'
+      )
     ORDER BY available_at_ms, created_at_ms, id
     LIMIT 1
 )
@@ -210,7 +216,7 @@ func (q *Queries) GetScanContractRun(ctx context.Context, id int64) (ScanRun, er
 }
 
 const getSettings = `-- name: GetSettings :one
-SELECT singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms
+SELECT singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled
 FROM settings
 WHERE singleton_key = 1
 `
@@ -225,6 +231,7 @@ func (q *Queries) GetSettings(ctx context.Context) (Setting, error) {
 		&i.Language,
 		&i.Revision,
 		&i.UpdatedAtMs,
+		&i.AutomaticDiscoveryEnabled,
 	)
 	return i, err
 }
@@ -623,17 +630,19 @@ func (q *Queries) UpdateRunningScanPhase(ctx context.Context, arg UpdateRunningS
 const updateSettings = `-- name: UpdateSettings :one
 UPDATE settings
 SET scheduled_scan_interval_hours = ?1,
-    thumbnail_cache_quota_bytes = ?2,
-    language = ?3,
+    automatic_discovery_enabled = ?2,
+    thumbnail_cache_quota_bytes = ?3,
+    language = ?4,
     revision = revision + 1,
-    updated_at_ms = ?4
+    updated_at_ms = ?5
 WHERE singleton_key = 1
-  AND revision = ?5
-RETURNING singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms
+  AND revision = ?6
+RETURNING singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled
 `
 
 type UpdateSettingsParams struct {
 	ScheduledScanIntervalHours sql.NullInt64
+	AutomaticDiscoveryEnabled  int64
 	ThumbnailCacheQuotaBytes   int64
 	Language                   string
 	UpdatedAtMs                int64
@@ -643,6 +652,7 @@ type UpdateSettingsParams struct {
 func (q *Queries) UpdateSettings(ctx context.Context, arg UpdateSettingsParams) (Setting, error) {
 	row := q.db.QueryRowContext(ctx, updateSettings,
 		arg.ScheduledScanIntervalHours,
+		arg.AutomaticDiscoveryEnabled,
 		arg.ThumbnailCacheQuotaBytes,
 		arg.Language,
 		arg.UpdatedAtMs,
@@ -656,6 +666,7 @@ func (q *Queries) UpdateSettings(ctx context.Context, arg UpdateSettingsParams) 
 		&i.Language,
 		&i.Revision,
 		&i.UpdatedAtMs,
+		&i.AutomaticDiscoveryEnabled,
 	)
 	return i, err
 }

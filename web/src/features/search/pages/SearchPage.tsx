@@ -1,4 +1,9 @@
-import { FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
+import {
+  ArrowClockwise,
+  FunnelSimple,
+  MagnifyingGlass,
+} from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useEffect,
   useMemo,
@@ -49,7 +54,10 @@ import {
   readViewerReturnState,
 } from "../../../lib/navigation/viewer";
 import { useLibraryQuery } from "../../libraries";
-import { useSearchResultsQuery } from "../queries";
+import {
+  refreshSearchResults,
+  useSearchResultsQuery,
+} from "../queries";
 import {
   parseSearchUrlState,
   serializeSearchUrlState,
@@ -74,12 +82,14 @@ export function SearchPage({
   const { locale, t } = useLocale();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = useMemo(
     () => parseSearchUrlState(searchParams, libraryId),
     [libraryId, searchParams],
   );
   const [draft, setDraft] = useState(state.q);
+  const [refreshPending, setRefreshPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const layout = useState<MediaLayoutPreference>(
     readMediaLayoutPreference,
@@ -193,6 +203,7 @@ export function SearchPage({
       active="search"
       browseHref={libraryId ? paths.browse(libraryId) : paths.root}
       identity={session.administrator.displayName}
+      librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={`${libraryId ? paths.librarySearch(libraryId) : paths.search}?${canonicalSearch}`}
@@ -227,6 +238,23 @@ export function SearchPage({
             onChange={updateState}
             state={state}
           />
+          <Button
+            className={styles.refresh}
+            disabled={!state.q}
+            loading={refreshPending}
+            onClick={async () => {
+              setRefreshPending(true);
+              try {
+                await refreshSearchResults(queryClient, libraryId, state);
+              } finally {
+                setRefreshPending(false);
+              }
+            }}
+            variant="quiet"
+          >
+            <ArrowClockwise aria-hidden="true" size={17} />
+            {t("search.refresh")}
+          </Button>
         </div>
 
         <div

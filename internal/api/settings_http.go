@@ -15,6 +15,7 @@ import (
 
 type settingsResponse struct {
 	ScheduledScanIntervalHours *int64 `json:"scheduledScanIntervalHours"`
+	AutomaticDiscoveryEnabled  bool   `json:"automaticDiscoveryEnabled"`
 	ThumbnailCacheQuotaBytes   int64  `json:"thumbnailCacheQuotaBytes"`
 	Language                   string `json:"language"`
 	UpdatedAt                  string `json:"updatedAt"`
@@ -85,6 +86,12 @@ func decodeSettingsUpdate(writer http.ResponseWriter, request *http.Request) (ap
 				return appsettings.Update{}, errInvalidSettingsRequest
 			}
 			update.ThumbnailCacheQuotaBytes = &value
+		case "automaticDiscoveryEnabled":
+			var value bool
+			if json.Unmarshal(raw, &value) != nil {
+				return appsettings.Update{}, errInvalidSettingsRequest
+			}
+			update.AutomaticDiscoveryEnabled = &value
 		case "language":
 			var value string
 			if json.Unmarshal(raw, &value) != nil {
@@ -119,6 +126,7 @@ func settingsETag(revision int64) string {
 func settingsWire(values appsettings.Values) settingsResponse {
 	return settingsResponse{
 		ScheduledScanIntervalHours: values.ScheduledScanIntervalHours,
+		AutomaticDiscoveryEnabled:  values.AutomaticDiscoveryEnabled,
 		ThumbnailCacheQuotaBytes:   values.ThumbnailCacheQuotaBytes,
 		Language:                   values.Language,
 		UpdatedAt:                  timestamp(values.UpdatedAtMS),

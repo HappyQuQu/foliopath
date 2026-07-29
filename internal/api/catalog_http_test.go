@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,11 +15,74 @@ import (
 )
 
 type catalogServiceStub struct {
-	list         func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
-	get          func(context.Context, int64) (catalog.DirectoryDetail, error)
-	listAssets   func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
-	searchAssets func(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
-	getAsset     func(context.Context, int64) (catalog.Asset, error)
+	contentRevision func(context.Context) (int64, error)
+	list            func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)
+	get             func(context.Context, int64) (catalog.DirectoryDetail, error)
+	listAssets      func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
+	searchAssets    func(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
+	getAsset        func(context.Context, int64) (catalog.Asset, error)
+}
+
+func (stub catalogServiceStub) ContentRevision(ctx context.Context) (int64, error) {
+	if stub.contentRevision == nil {
+		return 1, nil
+	}
+	return stub.contentRevision(ctx)
+}
+
+func TestCatalogStateSupportsConditionalReads(t *testing.T) {
+	service := catalogServiceStub{
+		contentRevision: func(context.Context) (int64, error) { return 7, nil },
+	}
+	mux := http.NewServeMux()
+	registerCatalogRoutes(mux, service)
+
+	first := httptest.NewRecorder()
+	mux.ServeHTTP(first, httptest.NewRequest(
+		http.MethodGet, "/api/v1/catalog/state", nil,
+	))
+	if first.Code != http.StatusOK ||
+		first.Header().Get("ETag") != `"catalog-r7"` ||
+		first.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("catalog state response = %d %v %s", first.Code, first.Header(), first.Body)
+	}
+	var state catalogStateResponse
+	if err := json.NewDecoder(first.Body).Decode(&state); err != nil {
+		t.Fatal(err)
+	}
+	if state.ContentRevision != 7 {
+		t.Fatalf("content revision = %d, want 7", state.ContentRevision)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/catalog/state", nil)
+	request.Header.Set("If-None-Match", `"catalog-r7"`)
+	notModified := httptest.NewRecorder()
+	mux.ServeHTTP(notModified, request)
+	if notModified.Code != http.StatusNotModified || notModified.Body.Len() != 0 {
+		t.Fatalf("conditional catalog state = %d %q", notModified.Code, notModified.Body)
+	}
+}
+
+func TestCatalogStateFailureIsStableAndSafe(t *testing.T) {
+	service := catalogServiceStub{
+		contentRevision: func(context.Context) (int64, error) {
+			return 0, errors.New("sqlite detail must not escape")
+		},
+	}
+	mux := http.NewServeMux()
+	registerCatalogRoutes(mux, service)
+
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(
+		http.MethodGet, "/api/v1/catalog/state", nil,
+	))
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("catalog state failure = %d %s", response.Code, response.Body)
+	}
+	assertSafeErrorResponse(t, response, "internal_error")
+	if strings.Contains(response.Body.String(), "sqlite") {
+		t.Fatalf("catalog state leaked internal detail: %s", response.Body)
+	}
 }
 
 func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {

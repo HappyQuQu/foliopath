@@ -162,6 +162,36 @@ func (service *mediaRootService) Walk(
 	return service.walker.Walk(ctx, relative, visit)
 }
 
+func (service *mediaRootService) ReadDirectory(
+	ctx context.Context,
+	relativeRoot string,
+	relativeDirectory string,
+	visit func(scanner.WalkEntry) error,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.walker == nil {
+		return scanner.ErrLibraryOffline
+	}
+	return service.walker.ReadDirectory(
+		ctx,
+		relativeRoot,
+		relativeDirectory,
+		visit,
+	)
+}
+
+func (service *mediaRootService) newLibraryWatcher(
+	options files.WatcherOptions,
+) (files.LibraryWatcher, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.root == nil {
+		return nil, scanner.ErrLibraryOffline
+	}
+	return files.NewLibraryWatcher(service.root, options)
+}
+
 func (service *mediaRootService) VerifyRoot(
 	ctx context.Context,
 	relative string,

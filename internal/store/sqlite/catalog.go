@@ -26,6 +26,20 @@ func (s *Store) ResolveGlobalCatalogRevision(ctx context.Context) (int64, error)
 	return revision, nil
 }
 
+func (s *Store) ResolveCatalogContentRevision(ctx context.Context) (int64, error) {
+	var revision int64
+	if err := s.db.QueryRowContext(ctx, `
+        SELECT content_revision
+        FROM catalog_search_state
+        WHERE singleton_key = 1`).Scan(&revision); err != nil {
+		return 0, fmt.Errorf("resolve catalog content revision: %w", err)
+	}
+	if revision < 1 {
+		return 0, errors.New("catalog content revision is invalid")
+	}
+	return revision, nil
+}
+
 func (s *Store) ResolveScope(
 	ctx context.Context,
 	libraryID, selectedDirectoryID int64,

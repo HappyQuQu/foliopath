@@ -172,7 +172,9 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
   → 前端 → S3 Consumer/UI Ready → S4 Integrated Slice Done` 交付；S2、S3 与 VSP-301
   真实产品纵向链已完成，当前由 VSP-302 原生双架构候选复验阻断，随后才允许签署
   VSP-303 文档收敛和 VSP-304 Integrated Done。它不插入正在加固的 MVP Release Candidate。
-- 文件系统 watcher（只作增量提示，完整扫描仍是正确性基线）。
+- [FTR-SCN-001 媒体库自动发现](features/automatic-library-discovery.md)（`POST-MVP-2`
+  revision 1 已冻结）：文件系统 watcher 只触发安全、定向的增量校准，完整扫描仍是正确性
+  基线；WCH-S0 当前仅允许 time-boxed Linux spike 与 ADR 评审。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
 - 收藏、评分、历史、时间线、地图与重复检测。
 - 分享链接、多用户和细粒度授权。

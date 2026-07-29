@@ -1,10 +1,11 @@
 import {
   CaretDown,
-  HouseLine,
+  FolderOpen,
+  GearSix,
+  ImageSquare,
   List,
   MagnifyingGlass,
   SignOut,
-  SlidersHorizontal,
   UserCircle,
   X,
 } from "@phosphor-icons/react";
@@ -12,19 +13,12 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
+import { NavLink } from "react-router-dom";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
-import {
-  readSidebarWidthPreference,
-  writeSidebarWidthPreference,
-} from "../../../lib/storage/preferences";
-import { BrandMark } from "../../ui/BrandMark/BrandMark";
 import { IconButton } from "../../ui/Button/IconButton";
-import { IconLink } from "../../ui/Button/IconLink";
-import { PanelResizer } from "../../ui/PanelResizer/PanelResizer";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./AppShell.module.css";
@@ -36,10 +30,12 @@ export function AppShell({
   browseHref,
   children,
   identity,
+  librariesHref,
   logoutPending = false,
   onLogout,
   searchHref,
   settingsHref,
+  showIdentityLabel = false,
   sidebarContent,
   topbarContent,
   title,
@@ -48,10 +44,12 @@ export function AppShell({
   browseHref?: string;
   children: ReactNode;
   identity: string;
+  librariesHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
   searchHref?: string;
   settingsHref: string;
+  showIdentityLabel?: boolean;
   sidebarContent?: ReactNode;
   topbarContent?: ReactNode;
   title: string;
@@ -60,10 +58,6 @@ export function AppShell({
   const toast = useToast();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidthPreference);
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === "undefined" ? 1280 : window.innerWidth,
-  );
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -110,125 +104,111 @@ export function AppShell({
     };
   }, [accountOpen]);
 
-  const sidebarMinWidth = 224;
-  const sidebarMaxWidth = Math.max(
-    272,
-    Math.min(420, Math.floor(viewportWidth * 0.36)),
-  );
-
-  useEffect(() => {
-    const updateViewportWidth = () => setViewportWidth(window.innerWidth);
-    window.addEventListener("resize", updateViewportWidth);
-    return () => window.removeEventListener("resize", updateViewportWidth);
-  }, []);
-
-  useEffect(() => {
-    setSidebarWidth((currentWidth) =>
-      Math.min(sidebarMaxWidth, Math.max(sidebarMinWidth, currentWidth)),
-    );
-  }, [sidebarMaxWidth]);
-
-  function updateSidebarWidth(nextWidth: number) {
-    setSidebarWidth(nextWidth);
-    writeSidebarWidthPreference(nextWidth);
-  }
-
   function closeNavigation() {
     setNavigationOpen(false);
     menuButtonRef.current?.focus();
   }
 
   return (
-    <div
-      className={`${styles.shell} ${sidebarContent ? "" : styles.shellWithoutSidebar}`}
-      style={
-        {
-          "--app-sidebar-width": `${sidebarWidth}px`,
-        } as CSSProperties
-      }
-    >
+    <div className={styles.shell}>
       <a className={styles.skipLink} href="#main">
         {t("common.skipToMain")}
       </a>
-      {sidebarContent && (
-        <>
-          <button
-            aria-label={t("shell.closeNavigation")}
-            className={`${styles.scrim} ${navigationOpen ? styles.scrimOpen : ""}`}
+      <button
+        aria-label={t("shell.closeNavigation")}
+        className={`${styles.scrim} ${navigationOpen ? styles.scrimOpen : ""}`}
+        onClick={closeNavigation}
+        tabIndex={navigationOpen ? 0 : -1}
+        type="button"
+      />
+      <aside
+        aria-label={t("shell.primaryNavigation")}
+        className={`${styles.sidebar} ${navigationOpen ? styles.sidebarOpen : ""}`}
+        id="primary-navigation"
+      >
+        <div className={styles.brandRow}>
+          <strong className={styles.brand}>FolioPath</strong>
+          <IconButton
+            ref={closeButtonRef}
+            className={styles.closeButton}
+            label={t("shell.closeNavigation")}
             onClick={closeNavigation}
-            tabIndex={navigationOpen ? 0 : -1}
-            type="button"
-          />
-          <aside
-            aria-label={t("shell.directorySidebar")}
-            className={`${styles.sidebar} ${navigationOpen ? styles.sidebarOpen : ""}`}
-            id="directory-sidebar"
           >
-            <PanelResizer
-              ariaLabel={t("shell.resizeSidebar")}
-              className={styles.sidebarResizer}
-              growDirection="right"
-              max={sidebarMaxWidth}
-              min={sidebarMinWidth}
-              onChange={updateSidebarWidth}
-              value={sidebarWidth}
-            />
-            <div className={styles.brandRow}>
-              <div className={styles.brand}>
-                <BrandMark size="small" />
-                <strong>FolioPath</strong>
-              </div>
-              <IconButton
-                ref={closeButtonRef}
-                className={styles.closeButton}
-                label={t("shell.closeNavigation")}
-                onClick={closeNavigation}
-              >
-                <X aria-hidden="true" size={20} />
-              </IconButton>
-            </div>
-            {sidebarContent}
-          </aside>
-        </>
-      )}
+            <X aria-hidden="true" size={20} />
+          </IconButton>
+        </div>
+        {sidebarContent}
+        <nav
+          aria-label={t("shell.primaryNavigation")}
+          className={`${styles.navigation} ${sidebarContent ? styles.navigationBottom : ""}`}
+        >
+          {active !== "browse" && browseHref ? (
+            <NavLink
+              onClick={() => setNavigationOpen(false)}
+              to={browseHref}
+            >
+              <ImageSquare aria-hidden="true" size={20} />
+              {t("shell.browse")}
+            </NavLink>
+          ) : active !== "browse" ? (
+            <span aria-disabled="true" className={styles.disabledLink}>
+              <ImageSquare aria-hidden="true" size={20} />
+              {t("shell.browse")}
+            </span>
+          ) : null}
+          {active !== "search" && searchHref ? (
+            <NavLink
+              onClick={() => setNavigationOpen(false)}
+              to={searchHref}
+            >
+              <MagnifyingGlass aria-hidden="true" size={20} />
+              {t("shell.search")}
+            </NavLink>
+          ) : active !== "search" ? (
+            <span aria-disabled="true" className={styles.disabledLink}>
+              <MagnifyingGlass aria-hidden="true" size={20} />
+              {t("shell.search")}
+            </span>
+          ) : null}
+          {active !== "libraries" && !sidebarContent && librariesHref && (
+            <NavLink
+              onClick={() => setNavigationOpen(false)}
+              to={librariesHref}
+            >
+              <FolderOpen aria-hidden="true" size={20} />
+              {t("shell.libraries")}
+            </NavLink>
+          )}
+          {active !== "settings" && (
+            <NavLink
+              onClick={() => setNavigationOpen(false)}
+              to={settingsHref}
+            >
+              <GearSix aria-hidden="true" size={20} />
+              {t("shell.settings")}
+            </NavLink>
+          )}
+        </nav>
+        {!sidebarContent && <p className={styles.safety}>{t("common.readOnlyFooter")}</p>}
+      </aside>
       <div className={styles.content}>
         <header className={styles.topbar}>
-          {sidebarContent && (
-            <IconButton
-              ref={menuButtonRef}
-              className={styles.menuButton}
-              label={t("shell.openNavigation")}
-              onClick={() => setNavigationOpen(true)}
-              aria-controls="directory-sidebar"
-              aria-expanded={navigationOpen}
-            >
-              <List aria-hidden="true" size={21} />
-            </IconButton>
-          )}
+          <IconButton
+            ref={menuButtonRef}
+            className={styles.menuButton}
+            label={t("shell.openNavigation")}
+            onClick={() => setNavigationOpen(true)}
+            aria-controls="primary-navigation"
+            aria-expanded={navigationOpen}
+          >
+            <List aria-hidden="true" size={21} />
+          </IconButton>
           {topbarContent ? (
             <div className={styles.topbarContent}>{topbarContent}</div>
           ) : (
             <strong>{title}</strong>
           )}
           <div className={styles.identity}>
-            {active !== "browse" && browseHref && (
-              <IconLink label={t("shell.browse")} to={browseHref}>
-                <HouseLine aria-hidden="true" size={20} />
-              </IconLink>
-            )}
-            {active !== "search" && !topbarContent && searchHref && (
-              <IconLink
-                label={t("shell.search")}
-                to={searchHref}
-              >
-                <MagnifyingGlass aria-hidden="true" size={20} />
-              </IconLink>
-            )}
-            {active !== "settings" && (
-              <IconLink label={t("shell.settings")} to={settingsHref}>
-                <SlidersHorizontal aria-hidden="true" size={20} />
-              </IconLink>
-            )}
             <ThemeToggle />
             <div className={styles.account} ref={accountRef}>
               <button
@@ -241,7 +221,9 @@ export function AppShell({
                 type="button"
               >
                 <UserCircle aria-hidden="true" size={21} />
-                <span className={styles.accountName}>{identity}</span>
+                {showIdentityLabel && (
+                  <span className={styles.accountName}>{identity}</span>
+                )}
                 <CaretDown aria-hidden="true" size={14} />
               </button>
               {accountOpen && (

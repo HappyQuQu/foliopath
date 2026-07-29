@@ -11,9 +11,13 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/scanner"
+	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
 // These acceptance probes require CAP_SYS_ADMIN in an isolated Linux
@@ -70,6 +74,150 @@ func TestFS01RejectsSelfBindMount(t *testing.T) {
 	verifyErr := root.VerifyAt("mounted", captured)
 	if !errors.Is(verifyErr, files.ErrOffline) || !errors.Is(verifyErr, files.ErrRootChanged) {
 		t.Fatalf("Root.VerifyAt(self-bind) error = %v, want ErrOffline and ErrRootChanged", verifyErr)
+	}
+}
+
+type mountBoundaryWaker struct{}
+
+func (mountBoundaryWaker) Wake() {}
+
+func TestAutomaticDiscoveryPreservesIndexAcrossNestedMountAndUnmount(t *testing.T) {
+	ctx := context.Background()
+	base := t.TempDir()
+	allowedPath := filepath.Join(base, "library")
+	mountTarget := filepath.Join(allowedPath, "mounted")
+	sourcePath := filepath.Join(base, "outside")
+	prepareMountFixture(t, allowedPath, mountTarget, sourcePath)
+	if err := os.WriteFile(
+		filepath.Join(mountTarget, "indexed.jpg"),
+		[]byte("indexed"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	root, err := files.OpenRoot(allowedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	walker, err := files.NewScanWalker(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err := sqlitestore.Open(
+		ctx,
+		filepath.Join(base, "foliopath.db"),
+		sqlitestore.Options{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	libraries, err := library.NewService(store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item, err := libraries.Create(ctx, "Mount boundary", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fullScanner, err := scanner.NewService(store, scanner.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fullScanner.RunFullScan(ctx, scanner.FullScanRequest{
+		LibraryID: item.ID,
+		Trigger:   scanner.TriggerCreation,
+		Walker:    walker,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	catalogService, err := catalog.NewService(store, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertOnlyCatalogPath(t, catalogService, item.ID, "mounted/indexed.jpg")
+
+	if os.Geteuid() != 0 {
+		t.Fatal("mount boundary recovery requires root plus CAP_SYS_ADMIN")
+	}
+	command := exec.Command("mount", "--bind", sourcePath, mountTarget)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("bind mount: %v: %s", err, output)
+	}
+	mounted := true
+	t.Cleanup(func() {
+		if !mounted {
+			return
+		}
+		command := exec.Command("umount", mountTarget)
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Errorf("unmount %q: %v: %s", mountTarget, err, output)
+		}
+	})
+
+	if _, err := store.EnqueueReconcile(
+		ctx,
+		item.ID,
+		"mounted",
+		time.Millisecond,
+		time.Millisecond,
+	); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(5 * time.Millisecond)
+	job, found, err := store.ClaimNextReconcile(ctx, time.Minute)
+	if err != nil || !found {
+		t.Fatalf("claim mounted reconcile found=%t err=%v", found, err)
+	}
+	processor, err := scanner.NewReconcileProcessor(
+		store,
+		walker,
+		mountBoundaryWaker{},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := processor.Process(ctx, job); err == nil {
+		t.Fatal("nested mount reconcile unexpectedly succeeded")
+	}
+	assertOnlyCatalogPath(t, catalogService, item.ID, "mounted/indexed.jpg")
+
+	command = exec.Command("umount", mountTarget)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("unmount recovery fixture: %v: %s", err, output)
+	}
+	mounted = false
+	time.Sleep(1100 * time.Millisecond)
+	retry, found, err := store.ClaimNextReconcile(ctx, time.Minute)
+	if err != nil || !found || retry.ID != job.ID || retry.AttemptCount != 2 {
+		t.Fatalf("post-unmount retry = %#v found=%t err=%v", retry, found, err)
+	}
+	if err := processor.Process(ctx, retry); err != nil {
+		t.Fatalf("post-unmount reconcile: %v", err)
+	}
+	assertOnlyCatalogPath(t, catalogService, item.ID, "mounted/indexed.jpg")
+}
+
+func assertOnlyCatalogPath(
+	t *testing.T,
+	service *catalog.Service,
+	libraryID int64,
+	want string,
+) {
+	t.Helper()
+	page, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID:    libraryID,
+		Recursive:    true,
+		RecursiveSet: true,
+		Limit:        10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].RelativePath != want {
+		t.Fatalf("catalog assets = %#v, want only %q", page.Items, want)
 	}
 }
 

@@ -33,6 +33,9 @@ type databaseStore interface {
 	scanner.Repository
 	scanner.QueryRepository
 	scanner.ScheduleRepository
+	scanner.ReconcileRepository
+	scanner.ReconcileExecutionRepository
+	scanner.AutomaticDiscoveryStateRepository
 	appsettings.Repository
 	thumbnail.Repository
 	thumbnail.StoryboardRepository
@@ -41,8 +44,70 @@ type databaseStore interface {
 	thumbnail.DeliveryRepository
 	media.ContentRepository
 	scanQueueStore
+	reconcileQueueStore
 	mediaQueueStore
 	Close() error
+}
+
+func (service *databaseService) EnqueueReconcile(
+	ctx context.Context,
+	libraryID int64,
+	relativeDirectory string,
+	debounce time.Duration,
+	maximumDebounce time.Duration,
+) (scanner.ReconcileJob, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ReconcileJob{}, scanner.ErrDatabaseUnavailable
+	}
+	return service.store.EnqueueReconcile(
+		ctx,
+		libraryID,
+		relativeDirectory,
+		debounce,
+		maximumDebounce,
+	)
+}
+
+func (service *databaseService) CommitDirectoryReconcile(
+	ctx context.Context,
+	job scanner.ReconcileJob,
+	entries []scanner.CatalogEntry,
+) (scanner.ReconcileCommitResult, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ReconcileCommitResult{}, scanner.ErrDatabaseUnavailable
+	}
+	return service.store.CommitDirectoryReconcile(ctx, job, entries)
+}
+
+func (service *databaseService) FailDirectoryReconcile(
+	ctx context.Context,
+	job scanner.ReconcileJob,
+	errorCode string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ErrDatabaseUnavailable
+	}
+	return service.store.FailDirectoryReconcile(ctx, job, errorCode)
+}
+
+func (service *databaseService) SetAutomaticDiscoveryState(
+	ctx context.Context,
+	libraryID int64,
+	status string,
+	errorCode string,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ErrDatabaseUnavailable
+	}
+	return service.store.SetAutomaticDiscoveryState(ctx, libraryID, status, errorCode)
 }
 
 func (service *databaseService) GetContentAsset(
@@ -78,6 +143,17 @@ func (service *databaseService) ResolveGlobalCatalogRevision(
 		return 0, catalog.ErrRepositoryNotReady
 	}
 	return service.store.ResolveGlobalCatalogRevision(ctx)
+}
+
+func (service *databaseService) ResolveCatalogContentRevision(
+	ctx context.Context,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, catalog.ErrRepositoryNotReady
+	}
+	return service.store.ResolveCatalogContentRevision(ctx)
 }
 
 func (service *databaseService) ListDirectoryPage(

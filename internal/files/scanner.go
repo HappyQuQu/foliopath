@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"path"
 	"strings"
 	"sync"
 
+	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
@@ -108,6 +111,79 @@ func (walker *ScanWalker) Walk(
 		return visitErr
 	}
 	return scannerWalkError(err)
+}
+
+func (walker *ScanWalker) ReadDirectory(
+	ctx context.Context,
+	relativeRoot string,
+	relativeDirectory string,
+	visit func(scanner.WalkEntry) error,
+) error {
+	if ctx == nil || visit == nil {
+		return scanner.ErrInvalidEntry
+	}
+	walker.mu.Lock()
+	_, captured := walker.captured[relativeRoot]
+	walker.mu.Unlock()
+	if !captured {
+		return scanner.ErrInvalidRootIdentity
+	}
+	normalizedDirectory, err := pathpolicy.Normalize(relativeDirectory)
+	if err != nil || normalizedDirectory != relativeDirectory {
+		return scanner.ErrInvalidEntry
+	}
+	allowedRelative := relativeRoot
+	if relativeDirectory != "" {
+		allowedRelative = path.Join(relativeRoot, relativeDirectory)
+	}
+	directory, err := walker.root.OpenDir(allowedRelative)
+	if err != nil {
+		return scannerWalkError(err)
+	}
+	defer directory.Close()
+
+	seen := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		entries, readErr := directory.Read(directoryEnumerationBatchSize)
+		for _, raw := range entries {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			seen++
+			if seen > scanner.MaxReconcileEntries {
+				return scanner.ErrBatchTooLarge
+			}
+			libraryRelative := raw.Name()
+			if relativeDirectory != "" {
+				libraryRelative = path.Join(relativeDirectory, raw.Name())
+			}
+			info, statErr := directory.root.Lstat(raw.Name())
+			if statErr != nil {
+				return scannerWalkError(statErr)
+			}
+			skipped := info.Mode()&fs.ModeSymlink != 0 ||
+				!walker.root.identity.sameFilesystem(info) ||
+				(!info.IsDir() && !info.Mode().IsRegular())
+			if err := visit(scanner.WalkEntry{
+				RelativePath: libraryRelative,
+				IsDirectory:  info.IsDir(),
+				SizeBytes:    info.Size(),
+				MTimeNS:      info.ModTime().UnixNano(),
+				Skipped:      skipped,
+			}); err != nil {
+				return err
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			return nil
+		}
+		if readErr != nil {
+			return scannerWalkError(readErr)
+		}
+	}
 }
 
 func (walker *ScanWalker) VerifyRoot(
