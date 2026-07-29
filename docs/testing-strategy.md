@@ -60,7 +60,8 @@ harness；生产 handler/auth 与发布 volume/unmount 分别由后续 Backend/R
 - 真实文件 SQLite、Goose migration、WAL/外键/busy timeout、SQLite 安全版本门槛、integrity/foreign-key/checkpoint；
 - 认证 version 1 → 2 migration、并发单管理员约束、密码 verifier 字段、会话/CSRF 摘要、
   正的绝对期限、禁止明文令牌列和 session 级联；
-- Unicode NFKC/full case folding 管理员身份规范化、Argon2id 严格参数和正确/错误密码验证、
+- Unicode NFKC/full case folding 管理员身份规范化、8～128 Unicode 字符 setup 密码边界、
+  前后端字符计数一致、Argon2id 严格参数和正确/错误密码验证、
   setup 状态机、进程内并发门、SQLite 原子二次初始化拒绝，以及 composition root 重启持久化；
 - 初始化与初始会话同事务回滚、统一登录失败与虚拟 verifier、高熵 Cookie/CSRF 摘要、
   7 天绝对过期、auth version/禁用失败关闭、last-seen、退出撤销、清理、Cookie 属性，以及

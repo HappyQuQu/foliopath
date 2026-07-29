@@ -419,7 +419,7 @@ const zhCN = {
   "validation.displayName": "请输入显示名称。",
   "validation.displayNameLength": "显示名称不能超过 128 个字符。",
   "validation.password": "请输入密码。",
-  "validation.passwordLength": "密码至少需要 12 个字符。",
+  "validation.passwordLength": "密码至少需要 8 个字符。",
   "validation.username": "请输入用户名。",
   "validation.usernameLength": "用户名不能超过 64 个字符。",
 } as const;
@@ -836,7 +836,7 @@ const en: Record<MessageKey, string> = {
   "validation.displayName": "Enter a display name.",
   "validation.displayNameLength": "The display name must be 128 characters or fewer.",
   "validation.password": "Enter a password.",
-  "validation.passwordLength": "The password must contain at least 12 characters.",
+  "validation.passwordLength": "The password must contain at least 8 characters.",
   "validation.username": "Enter a username.",
   "validation.usernameLength": "The username must be 64 characters or fewer.",
 };

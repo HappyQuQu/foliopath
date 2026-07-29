@@ -420,6 +420,25 @@ func TestAuthenticationSchemasUseOneDeterministicUsernameRule(t *testing.T) {
 	}
 }
 
+func TestAdministratorSetupPasswordLengthMatchesAcceptedPolicy(t *testing.T) {
+	t.Parallel()
+
+	setup := schemaBlock(t, "SetupRequest")
+	for _, required := range []string{
+		"format: password",
+		"minLength: 8",
+		"maxLength: 128",
+		"writeOnly: true",
+	} {
+		if !strings.Contains(setup, required) {
+			t.Errorf("setup password contract is missing %q", required)
+		}
+	}
+	if strings.Contains(setup, "minLength: 12") {
+		t.Error("setup password contract retains the superseded 12-character minimum")
+	}
+}
+
 func TestAuthenticationMigrationMatchesThePublicContract(t *testing.T) {
 	t.Parallel()
 

@@ -127,6 +127,34 @@ describe("authentication routes", () => {
     expect(screen.getByText("家庭管理员")).toBeVisible();
   });
 
+  it("accepts eight Unicode password characters and rejects seven", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAuthenticationStatus).mockResolvedValue({ setupRequired: true });
+    vi.mocked(setupAdministrator).mockResolvedValue(session);
+
+    renderRoutes("/");
+
+    await screen.findByRole("heading", { name: "创建管理员账户" });
+    await user.type(screen.getByLabelText("显示名称 *"), "家庭管理员");
+    await user.type(screen.getByLabelText("用户名 *"), "admin");
+    await user.type(screen.getByLabelText("密码 *"), "密码测试甲乙丙");
+    await user.type(screen.getByLabelText("确认密码 *"), "密码测试甲乙丙");
+    await user.click(screen.getByRole("button", { name: "创建账户" }));
+
+    expect(screen.getByText("密码至少需要 8 个字符。")).toBeVisible();
+    expect(setupAdministrator).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("密码 *"), "丁");
+    await user.type(screen.getByLabelText("确认密码 *"), "丁");
+    await user.click(screen.getByRole("button", { name: "创建账户" }));
+
+    expect(setupAdministrator).toHaveBeenCalledWith({
+      displayName: "家庭管理员",
+      password: "密码测试甲乙丙丁",
+      username: "admin",
+    });
+  });
+
   it("returns an expired protected session to login with a safe notice", async () => {
     vi.mocked(getAuthenticationStatus).mockResolvedValue({ setupRequired: false });
     vi.mocked(getSession).mockRejectedValue(

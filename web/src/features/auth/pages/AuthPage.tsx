@@ -19,6 +19,8 @@ import styles from "./AuthPage.module.css";
 
 export type AuthPageMode = "login" | "setup";
 
+const minimumSetupPasswordCharacters = 8;
+
 interface FieldErrors {
   confirmPassword?: string;
   displayName?: string;
@@ -120,7 +122,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
           error={fieldErrors.password}
           label={t("auth.password")}
           maxLength={128}
-          minLength={setup ? 12 : 1}
+          minLength={setup ? minimumSetupPasswordCharacters : 1}
           name="password"
           required
           type="password"
@@ -131,7 +133,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
             error={fieldErrors.confirmPassword}
             label={t("auth.confirmPassword")}
             maxLength={128}
-            minLength={12}
+            minLength={minimumSetupPasswordCharacters}
             name="confirmPassword"
             required
             type="password"
@@ -167,7 +169,9 @@ function validate({
   if (setup) {
     if (!displayName) errors.displayName = t("validation.displayName");
     if (displayName.length > 128) errors.displayName = t("validation.displayNameLength");
-    if (password.length < 12) errors.password = t("validation.passwordLength");
+    if (Array.from(password).length < minimumSetupPasswordCharacters) {
+      errors.password = t("validation.passwordLength");
+    }
     if (password !== confirmPassword) errors.confirmPassword = t("validation.confirmPassword");
   }
 

@@ -76,6 +76,11 @@ session 具有绝对过期、撤销和 `auth_version`。认证 JSON 不允许缓
 [Go `x/crypto/argon2` 的 Argon2id 指引](https://pkg.go.dev/golang.org/x/crypto/argon2)。
 用户名使用 NFKC 和 Unicode full case folding 形成唯一比较键；创建前进程内串行，最终由
 SQLite 写事务与 singleton 约束原子关闭再次初始化。日志和错误不包含密码或 verifier。
+首次管理员密码接受 8～128 个 Unicode 字符并拒绝控制字符；不强制大小写、数字或特殊
+字符组合。服务端 `internal/auth` 是该规则的最终 owner，前端长度提示只用于即时反馈。
+该可用性调整记录于
+[FIX-2026-07-29](changes/FIX-2026-07-29-admin-password-minimum.md)，不改变 Argon2id、
+登录限流、错误脱敏或会话边界。
 
 `S1-103` 已实现服务端会话：
 

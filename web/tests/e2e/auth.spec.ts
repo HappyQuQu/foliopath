@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 const administrator = {
   displayName: "浏览器验收管理员",
   username: "browser-admin",
-  password: "browser-admin-password-2026",
+  password: "admin-88",
 };
 
 const longPathSegments = [

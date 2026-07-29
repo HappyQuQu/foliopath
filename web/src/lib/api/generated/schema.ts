@@ -1072,7 +1072,7 @@ export interface components {
             displayName: string;
             /**
              * Format: password
-             * @description Password accepted only over the same-origin setup request and never logged or returned.
+             * @description Password accepted only over the same-origin setup request and never logged or returned. It contains 8–128 Unicode characters, rejects control characters, and has no uppercase, digit, or symbol composition requirement.
              */
             password: string;
             username: components["schemas"]["Username"];

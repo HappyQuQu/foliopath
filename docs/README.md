@@ -35,6 +35,8 @@
   LAN 访问与外部 TLS/反向代理职责边界。
 - [CR-2026-003 统一品牌标识](changes/CR-2026-003-brand-identity.md)：极简目录树标识、
   `BrandMark` 唯一所有权与生产入口的确认记录。
+- [FIX-2026-07-29 管理员密码最低长度](changes/FIX-2026-07-29-admin-password-minimum.md)：
+  首次 setup 调整为 8～128 个 Unicode 字符，保留 Argon2id、限流和会话安全边界。
 - [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)：已确认的
   `Post-MVP/1` feature 规格；包含产品、交互、采样、架构、已冻结 API/data 合同、风险和验收。
 - [FTR-VID-001 开发任务清单](features/video-storyboard-preview-task-list.md)：严格按

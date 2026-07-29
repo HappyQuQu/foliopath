@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	minPasswordRunes = 12
+	minPasswordRunes = 8
 	maxPasswordRunes = 128
 	maxUsernameRunes = 64
 	maxDisplayRunes  = 128

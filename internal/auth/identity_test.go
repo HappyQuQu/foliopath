@@ -66,7 +66,7 @@ func TestIdentityValidationRejectsUnsafeOrOutOfContractValues(t *testing.T) {
 	}
 
 	for _, value := range []string{
-		"too-short",
+		"short7",
 		"valid length\nbut control",
 		string([]byte{0xff}),
 		strings.Repeat("p", maxPasswordRunes+1),
@@ -79,7 +79,9 @@ func TestIdentityValidationRejectsUnsafeOrOutOfContractValues(t *testing.T) {
 	if got, err := NormalizeDisplayName("  管理员  "); err != nil || got != "管理员" {
 		t.Fatalf("NormalizeDisplayName() = %q, %v; want trimmed Unicode name", got, err)
 	}
-	if err := ValidatePassword("correct horse battery staple"); err != nil {
-		t.Fatalf("ValidatePassword() error = %v for valid passphrase", err)
+	for _, value := range []string{"12345678", "密码测试甲乙丙丁"} {
+		if err := ValidatePassword(value); err != nil {
+			t.Fatalf("ValidatePassword(%q) error = %v for valid password", value, err)
+		}
 	}
 }
