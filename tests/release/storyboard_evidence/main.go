@@ -9,12 +9,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var (
 	commitPattern = regexp.MustCompile(`^[0-9a-f]{40,64}$`)
 	digestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 	hashPattern   = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	runIDPattern  = regexp.MustCompile(`^[1-9][0-9]*$`)
 )
 
 type fixtureEvidence struct {
@@ -295,12 +297,17 @@ func validateEvidence(
 		return fmt.Errorf("unexpected smokeSuite %q", evidence.SmokeSuite)
 	case evidence.Result != "passed":
 		return fmt.Errorf("result = %q, want passed", evidence.Result)
-	case evidence.WorkflowRunID == "":
-		return errors.New("workflowRunId is required")
+	case !runIDPattern.MatchString(evidence.WorkflowRunID):
+		return fmt.Errorf("invalid workflowRunId %q", evidence.WorkflowRunID)
 	case evidence.WorkflowRunAttempt < 1:
 		return fmt.Errorf("workflowRunAttempt = %d, want positive", evidence.WorkflowRunAttempt)
-	case evidence.CreatedAt == "":
-		return errors.New("createdAt is required")
+	case !isRFC3339(evidence.CreatedAt):
+		return fmt.Errorf("invalid createdAt %q", evidence.CreatedAt)
 	}
 	return nil
+}
+
+func isRFC3339(value string) bool {
+	_, err := time.Parse(time.RFC3339, value)
+	return err == nil
 }

@@ -20,6 +20,8 @@
 - `Verify paired storyboard evidence` 下载同一 workflow run 的两个 artifact，并执行
   `make verify-storyboard-evidence`，拒绝架构、commit、run、FFmpeg、fixture、布局或
   解码像素不一致，也拒绝同一 run 的不同 run attempt 被误配；
+- run ID 必须是 GitHub 数字 ID，生成时间必须是 RFC3339；非空但不可追溯的占位值不能
+  进入成对签署；
 - 校验成功后原子生成并上传
   `storyboard-paired-evidence-<commit>/storyboard-paired-evidence.json`，聚合两个候选
   image digest、实际架构、run/attempt、FFmpeg、fixture/layout/pixel hash、资源限制及

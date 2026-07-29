@@ -344,7 +344,8 @@ Chromium/Firefox/WebKit，并以 100-video 三引擎档验证活动数、FPS 与
 已经建立原生 amd64/arm64 candidate jobs、结构化 artifact 与
 `make verify-storyboard-evidence` 成对校验；它会拒绝 source commit、实际架构、FFmpeg、
 workflow run/attempt、fixture、5×2/10 帧布局、decoded pixel hash、cache repair 或资源
-限制漂移。成功后 workflow 还上传聚合 image digest 和全部检查结果的 paired summary；
+限制漂移，并要求数字 run ID 与 RFC3339 生成时间。成功后 workflow 还上传聚合 image
+digest 和全部检查结果的 paired summary；
 Gate 必须等同一提交的原生 workflow 实际成功后才能签署。
 
 `docs/releases/POST-MVP-1-readiness.json` 进一步汇总 VSP Gate、`VSP-AC-001～008` 和

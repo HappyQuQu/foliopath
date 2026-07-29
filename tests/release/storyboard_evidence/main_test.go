@@ -90,6 +90,39 @@ func TestValidateEvidenceRejectsIncompleteCacheRepair(t *testing.T) {
 	}
 }
 
+func TestValidateEvidenceRejectsInvalidRunIdentity(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*storyboardEvidence)
+		want   string
+	}{
+		{
+			name: "non-numeric run ID",
+			mutate: func(evidence *storyboardEvidence) {
+				evidence.WorkflowRunID = "local"
+			},
+			want: "workflowRunId",
+		},
+		{
+			name: "invalid creation timestamp",
+			mutate: func(evidence *storyboardEvidence) {
+				evidence.CreatedAt = "today"
+			},
+			want: "createdAt",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			evidence := validEvidence("amd64")
+			test.mutate(&evidence)
+			err := validateEvidence(evidence, "amd64", testCommit)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("validateEvidence() error = %v, want %s failure", err, test.want)
+			}
+		})
+	}
+}
+
 func validEvidence(architecture string) storyboardEvidence {
 	return storyboardEvidence{
 		SchemaVersion:  1,
