@@ -1,7 +1,7 @@
-import { ImageSquare } from "@phosphor-icons/react";
 import { useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { BrandMark } from "../../../components/ui/BrandMark/BrandMark";
 import { Button } from "../../../components/ui/Button/Button";
 import { FormField } from "../../../components/ui/FormField/FormField";
 import { InlineStatus } from "../../../components/ui/InlineStatus/InlineStatus";
@@ -79,7 +79,7 @@ export function AuthPage({ mode }: { mode: AuthPageMode }) {
   return (
     <section className={styles.card} aria-labelledby="auth-title">
       <div className={styles.mark}>
-        <ImageSquare aria-hidden="true" size={30} weight="duotone" />
+        <BrandMark size="large" />
       </div>
       <p className={styles.eyebrow}>{setup ? t("auth.firstUse") : t("auth.login")}</p>
       <h1 id="auth-title">{setup ? t("auth.setupTitle") : t("auth.loginTitle")}</h1>

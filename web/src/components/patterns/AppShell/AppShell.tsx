@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { BrandMark } from "../../ui/BrandMark/BrandMark";
 import { IconButton } from "../../ui/Button/IconButton";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import styles from "./AppShell.module.css";
@@ -84,7 +85,10 @@ export function AppShell({
         id="primary-navigation"
       >
         <div className={styles.brandRow}>
-          <strong className={styles.brand}>FolioPath</strong>
+          <div className={styles.brand}>
+            <BrandMark size="small" />
+            <strong>FolioPath</strong>
+          </div>
           <IconButton
             ref={closeButtonRef}
             className={styles.closeButton}

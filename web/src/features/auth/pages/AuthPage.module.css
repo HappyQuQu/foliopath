@@ -14,10 +14,8 @@
   display: grid;
   place-items: center;
   margin-bottom: var(--space-7);
-  color: var(--color-accent);
   border: 0;
-  border-radius: var(--radius-2);
-  background: var(--color-accent-soft);
+  background: transparent;
 }
 
 .eyebrow {

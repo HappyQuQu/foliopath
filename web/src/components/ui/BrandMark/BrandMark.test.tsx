@@ -1,12 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { BrandMark } from "./BrandMark";
 
 it("renders the canonical decorative brand asset", () => {
-  render(<BrandMark size="large" />);
+  const { container } = render(<BrandMark size="large" />);
 
-  const mark = screen.getByRole("presentation");
+  const mark = container.querySelector("img");
   expect(mark).toHaveAttribute("src", "/foliopath-mark.svg");
   expect(mark).toHaveAttribute("alt", "");
+  expect(mark).toHaveAttribute("aria-hidden", "true");
 });

@@ -1,6 +1,10 @@
 # FolioPath
 
 <p align="center">
+  <img src="web/public/foliopath-mark.svg" alt="FolioPath 标志" width="96">
+</p>
+
+<p align="center">
   <strong>以文件夹为核心的自托管图片与视频浏览器</strong>
 </p>
 

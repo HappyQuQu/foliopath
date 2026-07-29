@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { BrandMark } from "../../ui/BrandMark/BrandMark";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import styles from "./PublicLayout.module.css";
 
@@ -13,7 +14,10 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         {t("common.skipToMain")}
       </a>
       <header className={styles.brand}>
-        <strong>FolioPath</strong>
+        <div className={styles.brandIdentity}>
+          <BrandMark size="small" />
+          <strong>FolioPath</strong>
+        </div>
         <ThemeToggle />
       </header>
       <main className={styles.main} id="main" tabIndex={-1}>
