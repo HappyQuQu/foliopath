@@ -5,12 +5,21 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 smoke_root=$(mktemp -d "${TMPDIR:-/tmp}/foliopath-storyboard-vertical.XXXXXX")
 image=${FOLIOPATH_RELEASE_IMAGE:-"foliopath:storyboard-vertical-$$"}
 build_image=${FOLIOPATH_RELEASE_BUILD_IMAGE:-1}
+build_platform=${FOLIOPATH_STORYBOARD_BUILD_PLATFORM:-}
 skip_browser=${FOLIOPATH_STORYBOARD_SKIP_BROWSER:-0}
 container="foliopath-storyboard-vertical-$$"
 data_root="${smoke_root}/data"
 media_root="${smoke_root}/library"
 cookie_jar="${smoke_root}/cookies"
 headers="${smoke_root}/headers"
+
+docker_run() {
+	if [ -n "${build_platform}" ]; then
+		docker run --platform "${build_platform}" "$@"
+	else
+		docker run "$@"
+	fi
+}
 
 cleanup() {
 	docker rm --force "${container}" >/dev/null 2>&1 || true
@@ -43,10 +52,18 @@ case "${build_image}" in
 	docker image inspect "${image}" >/dev/null
 	;;
 1)
-	docker build \
-		--tag "${image}" \
-		--build-arg VERSION=storyboard-vertical \
-		"${repo_root}"
+	if [ -n "${build_platform}" ]; then
+		docker build \
+			--platform "${build_platform}" \
+			--tag "${image}" \
+			--build-arg VERSION=storyboard-vertical \
+			"${repo_root}"
+	else
+		docker build \
+			--tag "${image}" \
+			--build-arg VERSION=storyboard-vertical \
+			"${repo_root}"
+	fi
 	;;
 *)
 	echo "FOLIOPATH_RELEASE_BUILD_IMAGE must be 0 or 1" >&2
@@ -60,11 +77,11 @@ test "${image_os}" = "linux"
 if [ -n "${FOLIOPATH_STORYBOARD_EXPECTED_ARCH:-}" ]; then
 	test "${image_arch}" = "${FOLIOPATH_STORYBOARD_EXPECTED_ARCH}"
 fi
-ffmpeg_version=$(docker run --rm \
+ffmpeg_version=$(docker_run --rm \
 	--entrypoint /opt/ffmpeg/bin/ffmpeg \
 	"${image}" -hide_banner -version | sed -n '1p')
 
-docker run --detach \
+docker_run --detach \
 	--name "${container}" \
 	--cpus 4 \
 	--memory 4g \

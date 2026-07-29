@@ -38,12 +38,26 @@
 
 这证明证据生成器、约束和 arm64 候选路径可运行，但不关闭原生双架构 Gate。
 
+## 远端与模拟执行状态
+
+提交 `0dddc5abf64544cd2ef444838da2a81895629b8e` 已触发 GitHub Actions run
+`30439565333`。workflow 被正常解析并创建 24 个 jobs，包括
+`Storyboard candidate (amd64)`、`Storyboard candidate (arm64)` 和成对校验 job；
+但所有可运行 jobs 都在分配 runner 前失败，`runner_id=0`、steps 为空。GitHub check
+annotation 明确说明账户付款失败或支出上限需要调整。因此这是基础设施/计费阻断，不是
+测试失败，也不能计为任何平台运行证据。
+
+同日额外用 Docker Desktop 在 arm64 主机交叉构建 `linux/amd64` 生产候选。镜像架构和
+FFmpeg 入口可解析，但应用在 `media-root` 安全边界初始化时失败关闭，未生成 evidence。
+这种 amd64 用户态＋arm64 LinuxKit 内核的组合不满足原生平台合同，不能为了让模拟环境
+通过而放宽 `openat2`/mount 边界。
+
 ## 完成条件
 
 - 两个原生 runner 来自同一 source commit 和 workflow run；
 - 两个 artifact 均为 `result=passed`；
 - 成对校验器成功，且 FFmpeg 版本、fixture SHA-256、布局与 decoded pixel SHA-256 一致；
 - 同源码 browser job 成功；
-- 相同提交的容量 job 未突破冻结预算。
+- 相同提交的 Go/migration 与容量 jobs 未突破升级、恢复和冻结资源预算。
 
 完成后才可勾选 `VSP-302` 并进入 `VSP-303` 文档收敛。

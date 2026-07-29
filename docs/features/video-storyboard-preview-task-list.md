@@ -257,7 +257,8 @@ flowchart TD
   - 平台：原生 linux/amd64、linux/arm64；目标 Chromium/Firefox/WebKit 和物理输入模式。
   - 证明：同 fixture 布局一致、FFmpeg/runtime 依赖无变化、缓存/恢复/升级可重复。
   - 当前：原生 runner、结构化 artifact 和成对校验器已经实现，本机 arm64 预检通过；
-    必须等待同一提交的原生双架构 workflow 实际成功后才能勾选。
+    提交 `0dddc5a` 的远端 run 在分配 runner 前受账户计费/支出上限阻断，amd64 模拟候选
+    又在 media-root 边界失败关闭。必须取得原生双架构实际成功结果后才能勾选。
   - 证据：[VSP-302 目标平台与资源复验](../gates/POST-MVP-1/vsp-302-target-platform.md)。
 
 - [ ] `VSP-303` 完成发布文档和追踪收敛。
