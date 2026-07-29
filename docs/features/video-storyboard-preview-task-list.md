@@ -267,6 +267,10 @@ flowchart TD
   - 更新：README、版本 manifest、PRD、用户流程、UI、OpenAPI/API 说明、数据模型、安全、
     部署、测试、风险、traceability、task lists、release notes。
   - 将所有“计划”描述替换为真实证据或明确残余限制，不能把未跑检查写成通过。
+  - 当前：收敛矩阵、发布说明草案和已实现文档复核已准备；VSP-302 尚未完成，所以本任务
+    保持未勾选，最终 commit/digest/原生证据链接也保留待填。
+  - 证据：[VSP-303 发布文档与追踪收敛](../gates/POST-MVP-1/vsp-303-documentation-convergence.md)、
+    [POST-MVP-1 发布说明草案](../releases/POST-MVP-1-release-notes.md)。
 
 - [ ] `VSP-304` 记录 `VSP-S4 Integrated Slice Done` Gate。
   - Owner：产品、架构、capability、安全/数据、可访问性、发布负责人。

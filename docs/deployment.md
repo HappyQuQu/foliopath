@@ -281,6 +281,12 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 扩展名匹配不区分大小写。MVP 不转码，也不生成兼容播放副本；支持视频容器不等于支持其中
 任意 codec。SVG、HEIC/HEIF、AVIF 与 RAW 不进入 MVP 索引/缩略图契约。
 
+`POST-MVP-1` 的视频故事板候选复用同一 FFmpeg runtime，为成功探测且至少 2 秒的视频生成
+4 或 10 帧 WebP sprite。它不新增端口、环境变量、volume、服务或媒体写权限，仍只写入
+`/app/data` 的可重建缓存。当前生产镜像纵向链已通过 VSP-301，但原生 linux/amd64 与
+linux/arm64 同提交候选证据仍由
+[VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md)阻断，因此不能把该能力描述为稳定发布。
+
 ## 当前候选已知限制
 
 - 没有公开稳定镜像或稳定 tag；根 Dockerfile/Compose 只供当前 Stage 5 候选验证。

@@ -40,6 +40,7 @@ FS-01 路径边界、FS-02 SQLite/generation、FS-03 原生双架构媒体链路
 | [FS-03 媒体矩阵](spikes/fs-03-media-matrix.md) | **Passed（Stage 0 范围）；完整范围 Conditional** | FFmpeg 合成矩阵和原生双架构 govips/libvips 元数据、方向、alpha、动画首帧、有界缩略图与截断拒绝 | 任务超时/隔离、更多敌意输入、浏览器直放及最终镜像由后续 Gate 强制 |
 | [FS-04 容量基线](spikes/fs-04-capacity-baseline.md) | **Passed（扫描与搜索后端范围）；完整范围 Conditional** | Linux/arm64、2 CPU/4 GiB、10 万媒体/1 万目录混合宽度/32 层深度；另有 1,000 层 finalize、Linux RSS、三档趋势；S4-003 已补扫描并发搜索、FTS/短词/全局/keyset、取消与 rebuild 强制预算 | 代表性磁盘/最终镜像、生产媒体队列、HTTP/前端并发继续按 [S0-106](gates/MVP-2026-07-23/s0-106-capacity-gate-order.md)由后续 Gate 强制 |
 | [FS-05 镜像与恢复](spikes/fs-05-runtime-recovery.md) | **Passed（Stage 0 范围）** | 原生双架构同 Dockerfile；非 root/只读、health、退出、离线恢复、重复 migration 和满盘/损坏失败关闭 | 正式应用、在线备份、真实版本升级、NAS 断连和最终 manifest 由后续 Gate 强制 |
+| [VSP-002 视频故事板](spikes/vsp-002-video-storyboard.md) | **Passed（算法与实现可行性）；最终候选 Conditional** | 2 秒～2 小时均匀采样、fast seek/sprite、资源边界；VSP-S2/S3 与 VSP-301 已补生产后端、前端和真实产品纵向证据 | [VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md)仍需同一提交的原生 amd64/arm64 成对候选证据；QEMU/跨架构模拟不能替代 |
 
 Spike 应提交可复现命令、fixture 说明、执行环境、未执行项和结论。若硬件、数据集或构建选项不同，不得横向比较为同一 benchmark。FS-04 的 Docker Desktop/tmpfs 数据只描述当前扫描/索引子范围，不能泛化为代表性 NAS、完整产品吞吐或发布预算。
 

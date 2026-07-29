@@ -170,8 +170,9 @@ poster，触摸、键盘焦点与 reduced-motion 不自动播放。
 
 该 feature 明确属于 [`POST-MVP-1`](releases/POST-MVP-1-scope.md)，不属于本文件上方
 冻结的 MVP 范围，也不修改 `MVP-2026-07-23` scope manifest。生产实现必须依次通过
-`VSP-S0～S4`；当前 S1 已 Go，只批准 `VSP-106～113` 后端实现与证据。完整影响与
-决定见 [CR-2026-004](changes/CR-2026-004-video-storyboard-preview.md)。
+`VSP-S0～S4`；当前 S2 Backend Evidence、S3 Consumer/UI 与 VSP-301 真实产品纵向链已完成，
+VSP-302 正等待同一提交的原生 linux/amd64、linux/arm64 候选证据，VSP-303/304 尚未签署。
+完整影响与决定见 [CR-2026-004](changes/CR-2026-004-video-storyboard-preview.md)。
 
 ## 非功能需求
 

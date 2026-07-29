@@ -169,8 +169,9 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
 - [`POST-MVP-1`](releases/POST-MVP-1-scope.md)已冻结 feature：
   [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它严格按
   `VSP-S0 Architecture Ready → S1 Contract Ready → 后端 → S2 Backend Evidence Ready
-  → 前端 → S3 Consumer/UI Ready → S4 Integrated Slice Done` 交付；S0 已 Go，当前允许
-  `VSP-106～113` 后端实现与证据，不插入正在加固的 MVP Release Candidate。
+  → 前端 → S3 Consumer/UI Ready → S4 Integrated Slice Done` 交付；S2、S3 与 VSP-301
+  真实产品纵向链已完成，当前由 VSP-302 原生双架构候选复验阻断，随后才允许签署
+  VSP-303 文档收敛和 VSP-304 Integrated Done。它不插入正在加固的 MVP Release Candidate。
 - 文件系统 watcher（只作增量提示，完整扫描仍是正确性基线）。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
 - 收藏、评分、历史、时间线、地图与重复检测。

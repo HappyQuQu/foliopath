@@ -52,6 +52,10 @@
   生产镜像真实登录、扫描、浏览/搜索 hover、预览焦点恢复与 cache repair 贯通。
 - [VSP-302 目标平台与资源复验](gates/POST-MVP-1/vsp-302-target-platform.md)：
   原生 amd64/arm64 结构化证据与成对校验入口已建立，等待同一提交的远端矩阵签署。
+- [VSP-303 发布文档与追踪收敛](gates/POST-MVP-1/vsp-303-documentation-convergence.md)：
+  文档矩阵和签署条件已准备；依赖 VSP-302，当前不能关闭。
+- [POST-MVP-1 发布说明草案](releases/POST-MVP-1-release-notes.md)：
+  记录候选行为、升级/部署影响、已完成证据和发布前阻断；尚未发布。
 - [CR-2026-004 视频故事板悬停预览](changes/CR-2026-004-video-storyboard-preview.md)：
   后续版本归属、范围影响和 Conditional Go 决定。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。

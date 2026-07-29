@@ -70,6 +70,7 @@ FolioPath 的基本理念是：
 | 搜索与过滤 | 按文件名、路径、媒体类型和日期搜索；支持库、目录和全局范围 |
 | 图片查看 | 适应窗口、缩放/平移、1:1、前后切换、全屏和基本文件信息 |
 | 视频查看 | 原文件 HTTP Range 播放、poster、浏览器不兼容编码的明确降级状态 |
+| 视频故事板（Post-MVP/1 候选） | 桌面精细指针悬停播放最多 10 帧均匀采样 sprite；触摸、键盘与 reduced-motion 回退 poster，尚未通过 Integrated Done |
 | 扫描 | 创建时、启动时和默认每 24 小时完整校准；支持手动扫描与合作式取消 |
 | 可靠性 | 失败、取消、离线或部分不可读扫描保留最后可靠索引 |
 | 缩略图缓存 | 默认 10 GiB、可配置配额、LRU 水位回收和安全磁盘余量 |
@@ -95,9 +96,10 @@ FolioPath 的基本理念是：
 
 视频故事板悬停预览已完成后端与 Consumer/UI Ready Gate：支持视频会在 poster 后以低优先级
 生成 4 或 10 帧 WebP sprite；桌面精细指针停留 300ms 后按 500ms/帧预览，触摸、键盘焦点
-和 reduced-motion 保持 poster。该能力仍在真实纵向集成与双架构候选复验阶段，不属于当前
-MVP 候选，也未获准作为稳定功能发布。当前生产镜像纵向链已贯通，剩余阻断是同一最终
-源码状态的原生 linux/amd64 与 linux/arm64 候选复验及 Integrated Done Gate。
+和 reduced-motion 保持 poster。该能力仍在目标双架构候选复验阶段，不属于当前 MVP 候选，
+也未获准作为稳定功能发布。VSP-301 生产镜像纵向链已贯通；VSP-302 的同一
+源码状态原生 linux/amd64 与 linux/arm64 候选复验仍受远端 runner 计费状态阻断，
+VSP-303 文档收敛与 VSP-304 Integrated Done 因此前置条件保持 Pending。
 
 ## 产品界面
 
