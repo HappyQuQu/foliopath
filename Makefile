@@ -4,7 +4,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready verify-release-image-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -26,6 +26,15 @@ release-readiness-check:
 release-ready:
 	FOLIOPATH_REQUIRE_RELEASE_GO=1 $(GO) test -count=1 \
 		-run '^TestReleaseReadinessManifestFailsClosed$$' \
+		./tests/architecture/...
+
+storyboard-readiness-check:
+	$(GO) test -run '^TestStoryboardReadinessManifestFailsClosed$$' \
+		./tests/architecture/...
+
+storyboard-ready:
+	FOLIOPATH_REQUIRE_STORYBOARD_GO=1 $(GO) test -count=1 \
+		-run '^TestStoryboardReadinessManifestFailsClosed$$' \
 		./tests/architecture/...
 
 verify-release-image-evidence:

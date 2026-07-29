@@ -9,6 +9,11 @@
 FTR-VID-001 写入稳定发布。只有每项证据为通过、前置 Gate 均完成且无未处置严重风险，
 结论才能改为 Go。
 
+机器可读状态由
+[`POST-MVP-1-readiness.json`](../../releases/POST-MVP-1-readiness.json)唯一汇总；
+`make storyboard-readiness-check` 验证它与 Gate、任务清单、验收证据和 R-018 一致，
+`make storyboard-ready` 在任何未完成项存在时必须失败关闭。
+
 ## 前置 Gate
 
 | Gate | 状态 | 证据 |

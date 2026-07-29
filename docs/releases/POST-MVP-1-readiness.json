@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "release": "POST-MVP-1",
+  "feature": "FTR-VID-001",
+  "assessedAt": "2026-07-29",
+  "decision": "no-go",
+  "prerequisiteGates": [
+    {
+      "id": "VSP-S0",
+      "taskId": "VSP-003",
+      "status": "passed",
+      "owner": "architecture",
+      "evidence": "docs/gates/POST-MVP-1/vsp-s0-architecture-ready.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "VSP-S1",
+      "taskId": "VSP-105",
+      "status": "passed",
+      "owner": "capability",
+      "evidence": "docs/gates/POST-MVP-1/vsp-s1-contract-ready.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "VSP-S2",
+      "taskId": "VSP-113",
+      "status": "passed",
+      "owner": "backend",
+      "evidence": "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "VSP-S3",
+      "taskId": "VSP-208",
+      "status": "passed",
+      "owner": "frontend",
+      "evidence": "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "VSP-301",
+      "taskId": "VSP-301",
+      "status": "passed",
+      "owner": "qa",
+      "evidence": "docs/gates/POST-MVP-1/vsp-301-product-vertical.md",
+      "blockingConditions": []
+    },
+    {
+      "id": "VSP-302",
+      "taskId": "VSP-302",
+      "status": "blocked",
+      "owner": "release",
+      "evidence": "docs/gates/POST-MVP-1/vsp-302-target-platform.md",
+      "blockingConditions": [
+        "Same-commit native linux/amd64 and linux/arm64 storyboard candidate artifacts have not both passed.",
+        "The paired evidence validator has not received two successful native artifacts."
+      ]
+    },
+    {
+      "id": "VSP-303",
+      "taskId": "VSP-303",
+      "status": "blocked",
+      "owner": "release",
+      "evidence": "docs/gates/POST-MVP-1/vsp-303-documentation-convergence.md",
+      "blockingConditions": [
+        "VSP-302 is still Pending.",
+        "Release notes do not yet contain a signed source commit and immutable image digest."
+      ]
+    },
+    {
+      "id": "VSP-304",
+      "taskId": "VSP-304",
+      "status": "blocked",
+      "owner": "product",
+      "evidence": "docs/gates/POST-MVP-1/vsp-s4-integrated-slice-done.md",
+      "blockingConditions": [
+        "VSP-302 and VSP-303 are not complete.",
+        "VSP-AC-008 and final cross-owner sign-off remain incomplete."
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    {
+      "id": "VSP-AC-001",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-002",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-003",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-004",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s1-contract-ready.md",
+        "docs/gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-005",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-006",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-007",
+      "status": "passed",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md",
+        "docs/gates/POST-MVP-1/vsp-301-product-vertical.md"
+      ]
+    },
+    {
+      "id": "VSP-AC-008",
+      "status": "blocked",
+      "evidence": [
+        "docs/gates/POST-MVP-1/vsp-302-target-platform.md"
+      ]
+    }
+  ],
+  "releaseBlockingRisks": [
+    {
+      "id": "R-018",
+      "status": "mitigating",
+      "owner": "media-and-frontend-performance",
+      "closureCondition": "Pass VSP-302 native paired candidate evidence and complete VSP-S4 sign-off.",
+      "dispositionEvidence": ""
+    }
+  ]
+}

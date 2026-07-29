@@ -280,7 +280,8 @@ flowchart TD
   - 当前：验收聚合与签署清单已准备；`VSP-AC-001～007` 有子 Gate 自动证据，
     `VSP-AC-008` 仍由 VSP-302 原生双架构结果阻断，VSP-303 也尚未签署。
   - 证据：[VSP-S4 Integrated Slice Done](../gates/POST-MVP-1/vsp-s4-integrated-slice-done.md)
-    当前为 No-Go / Pending。
+    当前为 No-Go / Pending；[机器 readiness 快照](../releases/POST-MVP-1-readiness.json)
+    与 `make storyboard-readiness-check` 防止 Gate、验收、风险和任务状态互相漂移。
 
 ## 建议验证命令
 

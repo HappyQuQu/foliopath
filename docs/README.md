@@ -56,6 +56,8 @@
   文档矩阵和签署条件已准备；依赖 VSP-302，当前不能关闭。
 - [VSP-S4 Integrated Slice Done](gates/POST-MVP-1/vsp-s4-integrated-slice-done.md)：
   `VSP-AC-001～008` 聚合骨架已准备；AC-008 与前置 Gate 未完成，当前 No-Go。
+- [POST-MVP-1 readiness 快照](releases/POST-MVP-1-readiness.json)：
+  Gate、验收、R-018 与任务状态的失败关闭机器事实；`make storyboard-ready` 当前必须失败。
 - [POST-MVP-1 发布说明草案](releases/POST-MVP-1-release-notes.md)：
   记录候选行为、升级/部署影响、已完成证据和发布前阻断；尚未发布。
 - [CR-2026-004 视频故事板悬停预览](changes/CR-2026-004-video-storyboard-preview.md)：
