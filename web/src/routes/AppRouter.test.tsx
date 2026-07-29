@@ -47,6 +47,16 @@ vi.mock("../lib/api/libraries", async (importOriginal) => {
   };
 });
 
+vi.mock("../features/browse", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../features/browse")>();
+  return {
+    ...actual,
+    BrowsePage: ({ libraryId }: { libraryId: string }) => (
+      <h1>浏览媒体库 {libraryId}</h1>
+    ),
+  };
+});
+
 const session: AuthenticatedSession = {
   administrator: {
     displayName: "家庭管理员",
@@ -93,7 +103,12 @@ describe("authentication routes", () => {
   it("completes first-administrator setup through the real route flow", async () => {
     const user = userEvent.setup();
     vi.mocked(getAuthenticationStatus).mockResolvedValue({ setupRequired: true });
-    vi.mocked(setupAdministrator).mockResolvedValue(session);
+    vi.mocked(setupAdministrator).mockImplementation(async () => {
+      vi.mocked(getAuthenticationStatus).mockResolvedValue({
+        setupRequired: false,
+      });
+      return session;
+    });
 
     renderRoutes("/");
 
@@ -127,6 +142,36 @@ describe("authentication routes", () => {
 
     expect(await screen.findByRole("heading", { name: "登录 FolioPath" })).toBeVisible();
     expect(screen.getByText("为了保护您的媒体库，会话已过期。请重新登录。")).toBeVisible();
+  });
+
+  it("opens the default browse view when an authenticated library exists", async () => {
+    vi.mocked(getAuthenticationStatus).mockResolvedValue({
+      setupRequired: false,
+    });
+    vi.mocked(getSession).mockResolvedValue(session);
+    vi.mocked(listLibraries).mockResolvedValue({
+      items: [
+        {
+          assetCount: 12,
+          directoryCount: 3,
+          displayPath: "家庭照片",
+          id: "01JTESTLIBRARY0000000000000",
+          lastSuccessfulScanAt: "2026-07-29T00:00:00Z",
+          latestScanId: "01JTESTSCAN000000000000000",
+          name: "家庭照片",
+          status: "ready",
+        },
+      ],
+      nextCursor: null,
+    });
+
+    renderRoutes("/");
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "浏览媒体库 01JTESTLIBRARY0000000000000",
+      }),
+    ).toBeVisible();
   });
 
   it("does not reveal whether invalid credentials matched an account", async () => {

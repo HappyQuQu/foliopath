@@ -12,23 +12,29 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
 type Options struct {
-	FFprobePath string
-	FFmpegPath  string
-	Timeout     time.Duration
+	FFprobePath        string
+	FFmpegPath         string
+	Timeout            time.Duration
+	StoryboardTimeout  time.Duration
+	StoryboardTempRoot string
 }
 
 type Processor struct {
-	ffprobe string
-	ffmpeg  string
-	timeout time.Duration
+	ffprobe            string
+	ffmpeg             string
+	timeout            time.Duration
+	storyboardTimeout  time.Duration
+	storyboardTempRoot string
 }
 
 func New(options Options) (*Processor, error) {
@@ -44,10 +50,19 @@ func New(options Options) (*Processor, error) {
 	if options.Timeout < 100*time.Millisecond || options.Timeout > time.Minute {
 		return nil, errors.New("invalid FFmpeg processing timeout")
 	}
+	if options.StoryboardTimeout == 0 {
+		options.StoryboardTimeout = media.DefaultStoryboardTimeout
+	}
+	if options.StoryboardTimeout < 100*time.Millisecond ||
+		options.StoryboardTimeout > media.DefaultStoryboardTimeout {
+		return nil, errors.New("invalid FFmpeg storyboard timeout")
+	}
 	return &Processor{
-		ffprobe: options.FFprobePath,
-		ffmpeg:  options.FFmpegPath,
-		timeout: options.Timeout,
+		ffprobe:            options.FFprobePath,
+		ffmpeg:             options.FFmpegPath,
+		timeout:            options.Timeout,
+		storyboardTimeout:  options.StoryboardTimeout,
+		storyboardTempRoot: options.StoryboardTempRoot,
 	}, nil
 }
 
@@ -121,6 +136,184 @@ func (processor *Processor) Process(
 	return result, nil
 }
 
+func (processor *Processor) Storyboard(
+	ctx context.Context,
+	source io.ReadSeeker,
+	format media.Format,
+	request media.StoryboardRequest,
+) (media.StoryboardResult, error) {
+	if format != media.FormatMP4 &&
+		format != media.FormatMOV &&
+		format != media.FormatMKV {
+		return media.StoryboardResult{}, media.ErrUnsupportedMedia
+	}
+	if media.ValidateStoryboardRequest(request) != nil ||
+		processor.storyboardTempRoot == "" {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	file, ok := source.(*os.File)
+	if !ok {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	if err := media.ValidateSourceSize(format, info.Size()); err != nil {
+		return media.StoryboardResult{}, err
+	}
+	if err := os.MkdirAll(processor.storyboardTempRoot, 0o700); err != nil {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	tempDirectory, err := os.MkdirTemp(
+		processor.storyboardTempRoot,
+		"storyboard-*",
+	)
+	if err != nil {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	defer os.RemoveAll(tempDirectory)
+
+	runCtx, cancel := context.WithTimeout(ctx, processor.storyboardTimeout)
+	defer cancel()
+	framePaths := make([]string, 0, len(request.TimestampsMS))
+	totalFrameBytes := 0
+	for index, timestampMS := range request.TimestampsMS {
+		frame, err := processor.storyboardFrame(
+			runCtx,
+			file,
+			timestampMS,
+			request.CellWidth,
+			request.CellHeight,
+		)
+		if err != nil {
+			return media.StoryboardResult{}, err
+		}
+		totalFrameBytes += len(frame)
+		if totalFrameBytes > media.StoryboardMaxTempBytes {
+			return media.StoryboardResult{}, media.ErrProcessingFailed
+		}
+		framePath := filepath.Join(
+			tempDirectory,
+			fmt.Sprintf("frame-%02d.png", index),
+		)
+		if err := os.WriteFile(framePath, frame, 0o600); err != nil {
+			return media.StoryboardResult{}, media.ErrProcessingFailed
+		}
+		framePaths = append(framePaths, framePath)
+	}
+	sprite, err := processor.composeStoryboard(runCtx, framePaths, request)
+	if err != nil {
+		return media.StoryboardResult{}, err
+	}
+	result := media.StoryboardResult{
+		Bytes:      sprite,
+		FrameCount: len(request.TimestampsMS),
+		Columns:    request.Columns,
+		Rows:       request.Rows,
+		CellWidth:  request.CellWidth,
+		CellHeight: request.CellHeight,
+	}
+	if media.ValidateStoryboardResult(request, result) != nil {
+		return media.StoryboardResult{}, media.ErrProcessingFailed
+	}
+	return result, nil
+}
+
+func (processor *Processor) storyboardFrame(
+	ctx context.Context,
+	source *os.File,
+	timestampMS int64,
+	width, height int,
+) ([]byte, error) {
+	output, err := processor.runWithLimit(
+		ctx,
+		processor.ffmpeg,
+		source,
+		media.StoryboardMaxFrameBytes,
+		"-nostdin",
+		"-v", "error",
+		"-threads", "1",
+		"-filter_threads", "1",
+		"-ss", strconv.FormatFloat(float64(timestampMS)/1000, 'f', 3, 64),
+		"-i", inheritedFilePath(),
+		"-frames:v", "1",
+		"-vf", fmt.Sprintf(
+			"scale=%d:%d:flags=lanczos,setsar=1",
+			width,
+			height,
+		),
+		"-an",
+		"-f", "image2pipe",
+		"-vcodec", "png",
+		"pipe:1",
+	)
+	if err != nil {
+		return nil, classifyCommandError(ctx, err)
+	}
+	pngSignature := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
+	if len(output) < len(pngSignature) ||
+		!bytes.Equal(output[:len(pngSignature)], pngSignature) {
+		return nil, media.ErrProcessingFailed
+	}
+	return output, nil
+}
+
+func (processor *Processor) composeStoryboard(
+	ctx context.Context,
+	framePaths []string,
+	request media.StoryboardRequest,
+) ([]byte, error) {
+	args := []string{
+		"-nostdin",
+		"-v", "error",
+		"-threads", "1",
+		"-filter_threads", "1",
+	}
+	inputs := make([]string, 0, len(framePaths))
+	positions := make([]string, 0, len(framePaths))
+	for index, framePath := range framePaths {
+		args = append(args, "-i", framePath)
+		inputs = append(inputs, fmt.Sprintf("[%d:v]", index))
+		positions = append(
+			positions,
+			fmt.Sprintf(
+				"%d_%d",
+				(index%request.Columns)*request.CellWidth,
+				(index/request.Columns)*request.CellHeight,
+			),
+		)
+	}
+	filter := strings.Join(inputs, "") +
+		fmt.Sprintf(
+			"xstack=inputs=%d:layout=%s:fill=black[v]",
+			len(framePaths),
+			strings.Join(positions, "|"),
+		)
+	args = append(
+		args,
+		"-filter_complex", filter,
+		"-map", "[v]",
+		"-frames:v", "1",
+		"-an",
+		"-f", "image2pipe",
+		"-vcodec", "libwebp",
+		"-q:v", "75",
+		"pipe:1",
+	)
+	output, err := processor.runCommand(
+		ctx,
+		processor.ffmpeg,
+		nil,
+		media.StoryboardMaxOutputBytes,
+		args...,
+	)
+	if err != nil {
+		return nil, classifyCommandError(ctx, err)
+	}
+	return output, nil
+}
+
 func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDocument, error) {
 	output, err := processor.run(ctx, processor.ffprobe, source,
 		"-v", "error",
@@ -173,14 +366,46 @@ func (processor *Processor) run(
 	source *os.File,
 	args ...string,
 ) ([]byte, error) {
+	return processor.runWithLimit(
+		ctx,
+		binary,
+		source,
+		media.MaxToolOutputBytes,
+		args...,
+	)
+}
+
+func (processor *Processor) runWithLimit(
+	ctx context.Context,
+	binary string,
+	source *os.File,
+	maximum int,
+	args ...string,
+) ([]byte, error) {
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return nil, media.ErrProcessingFailed
 	}
+	return processor.runCommand(
+		ctx,
+		binary,
+		[]*os.File{source},
+		maximum,
+		args...,
+	)
+}
+
+func (processor *Processor) runCommand(
+	ctx context.Context,
+	binary string,
+	extraFiles []*os.File,
+	maximum int,
+	args ...string,
+) ([]byte, error) {
 	command := exec.CommandContext(ctx, binary, args...)
 	configureCommandCancellation(command)
-	command.ExtraFiles = []*os.File{source}
+	command.ExtraFiles = extraFiles
 	var stdout cappedBuffer
-	stdout.maximum = media.MaxToolOutputBytes
+	stdout.maximum = maximum
 	var stderr cappedBuffer
 	stderr.maximum = 64 << 10
 	command.Stdout = &stdout

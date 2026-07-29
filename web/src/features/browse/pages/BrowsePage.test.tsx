@@ -6,6 +6,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
+import { ApiError } from "../../../lib/api/errors";
 import {
   getDirectory,
   listAssets,
@@ -194,6 +195,27 @@ it("restores a deep directory, exposes breadcrumbs, and lazily expands its tree 
   expect(await within(tree).findByRole("link", { name: "日本" })).toBeVisible();
 });
 
+it("opens the library menu and restores focus when it closes with Escape", async () => {
+  const user = userEvent.setup();
+
+  renderBrowse();
+
+  const trigger = await screen.findByRole("button", {
+    name: "媒体库：家庭影像",
+  });
+  await user.click(trigger);
+
+  const menu = screen.getByRole("listbox", { name: "媒体库" });
+  expect(menu).toBeVisible();
+  expect(
+    within(menu).getByRole("option", { name: /家庭影像/ }),
+  ).toHaveAttribute("aria-selected", "true");
+
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("listbox", { name: "媒体库" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
 it("restores recursive scope, changes its default sort, and closes recursion from a source link", async () => {
   const user = userEvent.setup();
 
@@ -240,6 +262,96 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
       sort: "name",
     }),
   );
+});
+
+it("separates all media from the library root in directory navigation", async () => {
+  const user = userEvent.setup();
+
+  renderRootBrowse();
+
+  const tree = await screen.findByRole("navigation", {
+    name: "媒体库目录",
+  });
+  const allMedia = within(tree).getByRole("link", { name: "全部媒体" });
+  const libraryRoot = await within(tree).findByRole("link", {
+    name: "家庭影像",
+  });
+
+  expect(allMedia).toHaveAttribute(
+    "href",
+    "/libraries/lib_family/browse?recursive=1&view=all",
+  );
+  expect(allMedia).not.toHaveAttribute("aria-current");
+  expect(libraryRoot).toHaveAttribute("aria-current", "page");
+
+  await user.click(allMedia);
+
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse?recursive=1&view=all",
+  );
+  expect(allMedia).toHaveAttribute("aria-current", "page");
+  expect(libraryRoot).not.toHaveAttribute("aria-current");
+});
+
+it("keeps the library root current when recursion is enabled there", async () => {
+  const user = userEvent.setup();
+
+  renderRootBrowse();
+
+  const tree = await screen.findByRole("navigation", {
+    name: "媒体库目录",
+  });
+  const allMedia = within(tree).getByRole("link", { name: "全部媒体" });
+  const libraryRoot = await within(tree).findByRole("link", {
+    name: "家庭影像",
+  });
+
+  await user.click(screen.getByRole("button", { name: "包含子目录" }));
+
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse?recursive=1",
+  );
+  expect(libraryRoot).toHaveAttribute("aria-current", "page");
+  expect(allMedia).not.toHaveAttribute("aria-current");
+});
+
+it("switches between all media, pictures, and videos through URL-bound queries", async () => {
+  const user = userEvent.setup();
+
+  renderBrowse();
+
+  const typeFilter = await screen.findByRole("group", { name: "媒体类型" });
+  const all = within(typeFilter).getByRole("button", { name: "全部" });
+  const images = within(typeFilter).getByRole("button", { name: "图片" });
+  const videos = within(typeFilter).getByRole("button", { name: "视频" });
+
+  expect(all).toHaveAttribute("aria-pressed", "true");
+
+  await user.click(images);
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel?kind=image",
+  );
+  expect(images).toHaveAttribute("aria-pressed", "true");
+  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+    expect.objectContaining({ kinds: ["image", "animated"] }),
+  );
+
+  await user.click(videos);
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel?kind=video",
+  );
+  expect(videos).toHaveAttribute("aria-pressed", "true");
+  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+    expect.objectContaining({ kinds: ["video"] }),
+  );
+
+  const callsAfterVideo = vi.mocked(listAssets).mock.calls.length;
+  await user.click(all);
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel",
+  );
+  expect(all).toHaveAttribute("aria-pressed", "true");
+  expect(listAssets).toHaveBeenCalledTimes(callsAfterVideo);
 });
 
 it("uses a stable gallery skeleton while the first media page is loading", async () => {
@@ -292,6 +404,86 @@ it("recovers a first-page media error through the shared retry action", async ()
   expect(listAssets).toHaveBeenCalledTimes(2);
 });
 
+it("refreshes an expired cursor before retrying the next media page", async () => {
+  const user = userEvent.setup();
+  let firstPageCalls = 0;
+  vi.mocked(listAssets).mockImplementation(async ({ cursor }) => {
+    if (!cursor) {
+      firstPageCalls += 1;
+      return {
+        items: [
+          {
+            directoryId: "dir_travel",
+            durationMs: null,
+            height: 800,
+            id: "ast_photo",
+            kind: "image",
+            libraryId: "lib_family",
+            libraryName: "家庭影像",
+            mimeType: "image/jpeg",
+            modifiedAt: "2026-07-27T00:00:00Z",
+            name: "photo.jpg",
+            playbackStatus: "not_applicable",
+            probeStatus: "ready",
+            relativePath: "旅行/photo.jpg",
+            sizeBytes: 512,
+            sourceAvailability: "available",
+            thumbnail: { errorCode: null, status: "ready", url: "/photo.webp" },
+            width: 1200,
+          },
+        ],
+        nextCursor: firstPageCalls === 1 ? "expired-cursor" : "fresh-cursor",
+      };
+    }
+    if (cursor === "expired-cursor") {
+      throw new ApiError({
+        code: "invalid_cursor",
+        message: "The pagination cursor is invalid.",
+        requestId: "req_cursor",
+        status: 400,
+      });
+    }
+    return {
+      items: [
+        {
+          directoryId: "dir_travel",
+          durationMs: null,
+          height: 900,
+          id: "ast_second",
+          kind: "image",
+          libraryId: "lib_family",
+          libraryName: "家庭影像",
+          mimeType: "image/jpeg",
+          modifiedAt: "2026-07-26T00:00:00Z",
+          name: "second.jpg",
+          playbackStatus: "not_applicable",
+          probeStatus: "ready",
+          relativePath: "旅行/second.jpg",
+          sizeBytes: 768,
+          sourceAvailability: "available",
+          thumbnail: { errorCode: null, status: "ready", url: "/second.webp" },
+          width: 1200,
+        },
+      ],
+      nextCursor: null,
+    };
+  });
+
+  renderBrowse();
+
+  expect(await screen.findByText("photo.jpg")).toBeVisible();
+  expect(
+    await screen.findByText("更多媒体未能载入，已显示的项目仍然保留。"),
+  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "重试载入更多" }));
+
+  expect(await screen.findByText("second.jpg")).toBeVisible();
+  expect(listAssets).toHaveBeenCalledTimes(4);
+  expect(vi.mocked(listAssets).mock.calls[3]?.[0]).toEqual(
+    expect.objectContaining({ cursor: "fresh-cursor" }),
+  );
+});
+
 function renderBrowse(search = "") {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -313,6 +505,29 @@ function renderBrowse(search = "") {
               libraryId="lib_family"
               session={session}
             />
+            <LocationProbe />
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+}
+
+function renderRootBrowse() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  });
+  return render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={["/libraries/lib_family/browse"]}
+          >
+            <BrowsePage libraryId="lib_family" session={session} />
             <LocationProbe />
           </MemoryRouter>
         </ToastProvider>

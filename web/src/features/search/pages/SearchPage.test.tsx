@@ -115,6 +115,14 @@ it("restores a library search and exposes the source library and directory", asy
   expect(
     screen.getByRole("link", { name: "家庭影像 · 旅行/日本" }),
   ).toHaveAttribute("href", "/libraries/lib_family/browse/dir_japan");
+  expect(screen.getByRole("link", { name: "返回浏览" })).toHaveAttribute(
+    "href",
+    "/libraries/lib_family/browse",
+  );
+  expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute(
+    "href",
+    "/settings/general?libraryId=lib_family",
+  );
   expect(searchLibraryAssets).toHaveBeenCalledWith(
     expect.objectContaining({
       libraryId: "lib_family",

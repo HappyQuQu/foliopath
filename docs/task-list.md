@@ -12,6 +12,12 @@
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
 交接点和共同发布任务。
 
+后续版本已经确认一个尚未开工的独立切片：
+[FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它不进入当前
+MVP/RC，执行见[专用任务清单](features/video-storyboard-preview-task-list.md)，必须先后端
+达到 `VSP-S2 Backend Evidence Ready`，再开始生产前端接入。`POST-MVP-1` scope 已冻结，
+`VSP-S1 Contract Ready` 已 Go，当前正在执行 `VSP-106～113` 后端实现与证据。
+
 | 阶段 | 用普通话解释 | 状态 | 完成后能看到什么 |
 | --- | --- | --- | --- |
 | 0. 开工准备 | 定需求、定架构、验证 Docker/SQLite/媒体处理是否可行 | ✅ 已完成 | 确认方案能做，风险有人负责 |

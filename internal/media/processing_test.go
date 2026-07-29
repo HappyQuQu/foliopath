@@ -90,3 +90,41 @@ func TestMediaResourcePolicyRejectsOversizedSourcesAndDimensions(t *testing.T) {
 		}
 	}
 }
+
+func TestStoryboardRequestAndResultValidation(t *testing.T) {
+	request := StoryboardRequest{
+		TimestampsMS: []int64{100, 200, 300, 400},
+		Columns:      4,
+		Rows:         1,
+		CellWidth:    320,
+		CellHeight:   180,
+	}
+	if err := ValidateStoryboardRequest(request); err != nil {
+		t.Fatalf("valid request: %v", err)
+	}
+	result := StoryboardResult{
+		Bytes:      []byte("RIFF\x04\x00\x00\x00WEBP"),
+		FrameCount: 4,
+		Columns:    4,
+		Rows:       1,
+		CellWidth:  320,
+		CellHeight: 180,
+	}
+	if err := ValidateStoryboardResult(request, result); err != nil {
+		t.Fatalf("valid result: %v", err)
+	}
+
+	invalidRequest := request
+	invalidRequest.TimestampsMS = []int64{100, 200, 200, 400}
+	if !errors.Is(ValidateStoryboardRequest(invalidRequest), ErrInvalidResult) {
+		t.Fatal("duplicate storyboard timestamp unexpectedly accepted")
+	}
+	invalidResult := result
+	invalidResult.Bytes = []byte("not a webp")
+	if !errors.Is(
+		ValidateStoryboardResult(request, invalidResult),
+		ErrInvalidResult,
+	) {
+		t.Fatal("non-WebP storyboard unexpectedly accepted")
+	}
+}

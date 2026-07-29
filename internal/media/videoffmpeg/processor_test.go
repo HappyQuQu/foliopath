@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,6 +208,113 @@ dd if=/dev/zero bs=1048576 count=9 2>/dev/null
 	}
 }
 
+func TestStoryboardUsesBoundedFastSeeksAndCleansTemporaryFrames(t *testing.T) {
+	directory := t.TempDir()
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	tempRoot := filepath.Join(directory, "storyboard-temp")
+	calls := filepath.Join(directory, "calls")
+	writeExecutable(t, ffmpeg, `#!/bin/sh
+printf '%s\n' "$*" >> "`+calls+`"
+case "$*" in
+  *"xstack="*) printf 'RIFF\004\000\000\000WEBP' ;;
+  *"-ss "*"/dev/fd/3"*|*"-ss "*"/proc/self/fd/3"*)
+    printf '\211PNG\r\n\032\nframe'
+    ;;
+  *) exit 2 ;;
+esac
+`)
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFmpegPath: ffmpeg, StoryboardTempRoot: tempRoot,
+		StoryboardTimeout: 5 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := media.StoryboardRequest{
+		TimestampsMS: []int64{1000, 2000, 3000, 4000},
+		Columns:      4,
+		Rows:         1,
+		CellWidth:    320,
+		CellHeight:   180,
+	}
+	result, err := processor.Storyboard(
+		context.Background(),
+		source,
+		media.FormatMP4,
+		request,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := media.ValidateStoryboardResult(request, result); err != nil {
+		t.Fatal(err)
+	}
+	callBytes, err := os.ReadFile(calls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(splitNonemptyLines(string(callBytes))); got != 5 {
+		t.Fatalf("FFmpeg calls = %d, want four seeks plus one compose", got)
+	}
+	entries, err := os.ReadDir(tempRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("temporary storyboard entries remain: %v", entries)
+	}
+}
+
+func TestStoryboardIsAllOrNothing(t *testing.T) {
+	directory := t.TempDir()
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	writeExecutable(t, ffmpeg, `#!/bin/sh
+case "$*" in
+  *"-ss 2.000"*) exit 1 ;;
+  *"xstack="*) printf 'RIFF\004\000\000\000WEBP' ;;
+  *) printf '\211PNG\r\n\032\nframe' ;;
+esac
+`)
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFmpegPath:         ffmpeg,
+		StoryboardTempRoot: filepath.Join(directory, "temp"),
+		StoryboardTimeout:  time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = processor.Storyboard(
+		context.Background(),
+		source,
+		media.FormatMP4,
+		media.StoryboardRequest{
+			TimestampsMS: []int64{1000, 2000, 3000, 4000},
+			Columns:      4, Rows: 1, CellWidth: 320, CellHeight: 180,
+		},
+	)
+	if err == nil {
+		t.Fatal("failed planned frame unexpectedly produced a storyboard")
+	}
+}
+
 func TestDurationAndPlaybackClassification(t *testing.T) {
 	if value, err := durationMilliseconds("", "1.2345"); err != nil || value != 1235 {
 		t.Fatalf("duration = %d, %v", value, err)
@@ -220,6 +328,16 @@ func TestDurationAndPlaybackClassification(t *testing.T) {
 	if got := playbackStatus(media.FormatMKV, "ffv1"); got != media.PlaybackUnsupportedCodec {
 		t.Fatalf("FFV1 playback = %q", got)
 	}
+}
+
+func splitNonemptyLines(value string) []string {
+	var result []string
+	for _, line := range strings.Split(value, "\n") {
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+	return result
 }
 
 func writeExecutable(t *testing.T, filename, contents string) {

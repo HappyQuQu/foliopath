@@ -78,6 +78,7 @@ export function assetContentUrl(assetId: string): string {
 export async function listAssets({
   cursor,
   directoryId,
+  kinds,
   libraryId,
   limit = 50,
   order,
@@ -86,6 +87,7 @@ export async function listAssets({
 }: {
   cursor?: string;
   directoryId?: string;
+  kinds?: AssetKind[];
   libraryId: string;
   limit?: number;
   order: SortOrder;
@@ -104,6 +106,7 @@ export async function listAssets({
             sort,
             ...(cursor ? { cursor } : {}),
             ...(directoryId ? { directoryId } : {}),
+            ...(kinds?.length ? { kind: kinds } : {}),
             ...(recursive ? { recursive: true } : {}),
           },
         },

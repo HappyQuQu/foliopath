@@ -217,7 +217,8 @@ volume 或运行期 unmount。
 3. 在当前目录、当前媒体库和全部媒体库之间搜索/过滤/排序 → 翻页或滚动 → 打开查看器 → 返回后恢复位置与焦点。
 4. 媒体库离线 → 保留索引提示 → 挂载恢复并重新扫描。
 5. 删除媒体库 → 明确非破坏性确认 → 配置消失且 fixture 原文件仍存在。
-6. 桌面固定侧栏、移动目录抽屉、网格/瀑布流切换与键盘关键路径；检查中英界面、reduced motion 与高对比模式。
+6. 统一 BrandMark、桌面固定侧栏、移动目录抽屉、网格/瀑布流切换与键盘关键路径；
+   检查品牌矢量标识、favicon、中英界面、浅色/深色、reduced motion 与高对比模式。
 
 当前 `make test-web-e2e` 已固定 Stage 1～4 的一次性真实后端 Chromium/Pixel 5 成功链。测试镜像以
 `libvips` build tag 和 Debian libvips runtime 构建，使用只读合成 JPEG 验证扫描后的
@@ -254,6 +255,7 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 | 可访问性回退 | 组件 | — | 键盘/自动审计 | 严重项阻断 |
 | 迁移/备份不可恢复 | 迁移测试 | 数据快照 | 恢复演练 | 是 |
 | 大库性能失控 | 算法基准 | 合成规模测试 | 浏览器性能 | 超过已确认预算时阻断 |
+| storyboard 抽帧/backfill/hover 资源失控 | 采样与状态机 | FFmpeg/SQLite/jobs | 三浏览器虚拟 hover | `Post-MVP/1` 阻断 |
 
 更完整的产品与工程风险见[风险登记](risk-register.md)。
 
@@ -266,6 +268,8 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 - 横竖方向、透明度、Unicode/emoji/组合字符、大小写近似和超长文件名。
 - 深目录、空目录、隐藏目录、系统垃圾目录和权限受限子树。
 - 浏览器兼容与不兼容的视频编码样例；容器可索引与编码可直放必须分别断言。
+- `FTR-VID-001` 使用 2s、4s、10s、10min、2h 的横/竖屏、VFR、长 GOP、片头黑屏、
+  损坏和不可 seek 视频；manifest 固定期望帧数、时间窗口、layout 和允许降级。
 - SVG、HEIC/HEIF、AVIF 与 RAW 的非契约样例，验证不会被误报为 MVP 支持。
 
 符号链接、权限、断连和磁盘已满应在测试运行时动态构造，避免提交平台相关链接。Windows 文件系统不属于容器运行目标，但跨平台开发工具应明确哪些测试只在 Linux 运行。
@@ -318,6 +322,18 @@ stale cleanup 级联删除另一媒体库或当前代次条目。
 - 服务扫描期间 API 延迟与取消响应，证明后台任务不会饿死交互请求。
 
 建立小/中/目标上限三档合成数据集，其中目标档固定为上述规模，并在[可行性研究](feasibility-study.md)的 spike 后把实测结果与延迟预算写回本文。
+
+### Post-MVP 视频故事板验证计划
+
+[FTR-VID-001](features/video-storyboard-preview.md)在 `VSP-S0/S1` 先通过 spike 固定预算，
+再进入后端。后端证据必须覆盖采样纯函数、真实 FFmpeg、只追加 migration 升级、job
+优先级/公平/重启、source fingerprint CAS、原子发布、ENOSPC、cache missing、认证 HTTP、
+原件 hash/mtime 不变和目标容量 backfill。
+
+`VSP-S2 Backend Evidence Ready` 后，前端证据覆盖生成 client、300ms hover intent、
+4～10 帧布局、decode failure、同页单活动动画、虚拟回收、页面隐藏、touch/键盘/
+reduced-motion、grid/masonry、axe、浅/深主题和 Chromium/Firefox/WebKit。真实纵向 E2E
+必须从扫描/poster/storyboard ready 贯通浏览和搜索，不能用静态 mock 替代后端状态。
 
 ## 安全验证
 

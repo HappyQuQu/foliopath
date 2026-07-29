@@ -57,7 +57,15 @@ const blockedReasonMessage: Record<LibraryPathBlockedReason, MessageKey> = {
   unavailable: "newLibrary.blockedUnavailable",
 };
 
-export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
+export function NewLibraryPage({
+  logoutPending,
+  onLogout,
+  session,
+}: {
+  logoutPending?: boolean;
+  onLogout?: () => Promise<void>;
+  session: AuthenticatedSession;
+}) {
   const { t } = useLocale();
   const toast = useToast();
   const navigate = useNavigate();
@@ -132,8 +140,10 @@ export function NewLibraryPage({ session }: { session: AuthenticatedSession }) {
   return (
     <AppShell
       active="libraries"
+      browseHref={paths.root}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
       searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("newLibrary.title")}

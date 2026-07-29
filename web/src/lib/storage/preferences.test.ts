@@ -2,7 +2,11 @@ import { expect, it } from "vitest";
 
 import {
   readMediaLayoutPreference,
+  readPreviewWidthPreference,
+  readSidebarWidthPreference,
   writeMediaLayoutPreference,
+  writePreviewWidthPreference,
+  writeSidebarWidthPreference,
 } from "./preferences";
 
 it("defaults an absent or invalid media layout preference to grid", () => {
@@ -31,4 +35,12 @@ it("remembers the selected media layout without replacing other preferences", ()
       mediaLayout: "masonry",
       theme: "dark",
     });
+});
+
+it("reads and writes remembered panel widths", () => {
+  writeSidebarWidthPreference(320);
+  writePreviewWidthPreference(520);
+
+  expect(readSidebarWidthPreference()).toBe(320);
+  expect(readPreviewWidthPreference()).toBe(520);
 });

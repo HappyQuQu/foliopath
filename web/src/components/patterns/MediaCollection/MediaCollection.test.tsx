@@ -197,7 +197,7 @@ it("preserves an original aspect ratio in masonry and exposes placeholder status
 
 it("preserves loaded items and exposes a retry when the next page fails", () => {
   const retry = vi.fn();
-  render(
+  const view = render(
     <MediaCollection
       hasNextPage
       isFetchingNextPage={false}
@@ -225,6 +225,31 @@ it("preserves loaded items and exposes a retry when the next page fails", () => 
   expect(screen.getByText("More media could not be loaded.")).toBeVisible();
   screen.getByRole("button", { name: "Retry loading more" }).click();
   expect(retry).toHaveBeenCalledOnce();
+
+  view.rerender(
+    <MediaCollection
+      hasNextPage
+      isFetchingNextPage
+      items={[
+        {
+          height: 800,
+          id: "ready",
+          kind: "image",
+          modifiedLabel: "Today",
+          name: "ready.jpg",
+          thumbnailStatus: "ready",
+          thumbnailUrl: "/ready.webp",
+          width: 1200,
+        },
+      ]}
+      labels={labels}
+      layout="grid"
+      onLoadMore={vi.fn()}
+      onRetryLoadMore={retry}
+      paginationError
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Loading more" })).toBeDisabled();
 });
 
 it("activates a media preview without hiding the source-directory link", () => {

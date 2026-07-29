@@ -12,6 +12,13 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 每个实施 PR 必须链接其当前 Gate。`Go` 要求适用检查实际执行并通过；检查缺失或未执行时只能记录
 `Conditional Go` 或 `No-Go`，并明确获准的有限下一步。
 
+后续切片 [FTR-VID-001](../features/video-storyboard-preview.md)使用 `POST-MVP-1` 目录记录
+`VSP-S0 Architecture Ready`、`VSP-S1 Contract Ready`、`VSP-S2 Backend Evidence Ready`、
+`VSP-S3 Consumer/UI Ready` 和 `VSP-S4 Integrated Slice Done`。当前
+[VSP-S0 Architecture Ready](POST-MVP-1/vsp-s0-architecture-ready.md)与
+[VSP-S1 Contract Ready](POST-MVP-1/vsp-s1-contract-ready.md)已 Go，授权
+`VSP-106～113` 后端实现与证据；S2～S4 尚无通过证据。
+
 当前记录：
 
 - [MVP-2026-07-23 / 阶段 0 当前判断](MVP-2026-07-23/stage-0-current.md)

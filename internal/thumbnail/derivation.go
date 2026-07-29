@@ -13,8 +13,10 @@ import (
 type Variant string
 
 const (
-	VariantGrid          Variant = "grid"
-	GridTransformVersion         = 1
+	VariantGrid                Variant = "grid"
+	VariantStoryboard          Variant = "storyboard"
+	GridTransformVersion               = 1
+	StoryboardTransformVersion         = 1
 )
 
 var ErrInvalidDerivation = errors.New("invalid thumbnail derivation")
@@ -41,11 +43,35 @@ func GridDerivation(
 	return value, nil
 }
 
+func StoryboardDerivation(
+	libraryID, assetID int64,
+	fingerprint media.SourceFingerprint,
+) (Derivation, error) {
+	value := Derivation{
+		LibraryID: libraryID, AssetID: assetID, Variant: VariantStoryboard,
+		SourceFingerprint: fingerprint, TransformVersion: StoryboardTransformVersion,
+	}
+	if err := value.Validate(); err != nil {
+		return Derivation{}, err
+	}
+	return value, nil
+}
+
 func (value Derivation) Validate() error {
 	if value.LibraryID <= 0 || value.AssetID <= 0 ||
-		value.Variant != VariantGrid ||
-		value.TransformVersion != GridTransformVersion ||
 		!value.SourceFingerprint.Valid() {
+		return ErrInvalidDerivation
+	}
+	switch value.Variant {
+	case VariantGrid:
+		if value.TransformVersion != GridTransformVersion {
+			return ErrInvalidDerivation
+		}
+	case VariantStoryboard:
+		if value.TransformVersion != StoryboardTransformVersion {
+			return ErrInvalidDerivation
+		}
+	default:
 		return ErrInvalidDerivation
 	}
 	return nil

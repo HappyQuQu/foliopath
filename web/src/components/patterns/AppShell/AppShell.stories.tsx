@@ -20,7 +20,7 @@ const meta = {
   args: {
     active: "libraries",
     identity: "家庭管理员",
-    librariesHref: "/settings/libraries",
+    searchHref: "/search",
     settingsHref: "/settings/general",
     title: "媒体库",
     children: <div style={{ padding: "2rem" }}>页面内容</div>,

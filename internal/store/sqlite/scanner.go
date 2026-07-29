@@ -494,6 +494,14 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 		); err != nil {
 			return false, fmt.Errorf("invalidate stale thumbnail: %w", err)
 		}
+		if _, err := tx.ExecContext(ctx, `
+        DELETE FROM media_jobs
+        WHERE asset_id = ? AND variant = 'storyboard'
+          AND source_fingerprint <> ?`,
+			assetID, sourceFingerprint.String(),
+		); err != nil {
+			return false, fmt.Errorf("invalidate stale storyboard job: %w", err)
+		}
 	}
 	if !mediaJobCurrent {
 		if _, err := tx.ExecContext(ctx, `

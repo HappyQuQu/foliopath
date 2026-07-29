@@ -25,6 +25,7 @@
 | R-015 | 可选虚拟瀑布流破坏键盘顺序、焦点或大列表稳定性 | 中 | 中 | DOM 顺序与视觉顺序不一致、焦点丢失、滚动跳动 | 默认使用规则网格；[Stage 3 Integrated Done](gates/MVP-2026-07-23/s3-browse-integrated-done.md) 已验证 grid/masonry 记忆、DOM 顺序、固定占位、虚拟容量和返回焦点，S5-005 已通过三引擎 100k DOM/FPS/RSS，S5-006A 又执行查看器键盘/焦点矩阵；最终物理辅助功能签署仍待 S5-006B | 保留默认网格并临时禁用未达标的瀑布流 | 前端负责人 | 缓解中 |
 | R-016 | 缺少 CI、生成漂移检查和可复现 fixture 导致回归 | 高 | 高 | 开发者本地通过而干净环境失败；生成文件与源不一致 | 真实 PR CI 已覆盖双架构 Go/race、生成/兼容、mount、govips/FFmpeg、runtime/recovery 与 SBOM/license；媒体库 Backend Gate、S2-102～106 worker、目录、媒体收敛、故障恢复和容量均有分层证据，容量主档另由 Linux amd64/arm64 受限资源 job 强制；每个后续生产切片继续增加集成/E2E 和已许可 fixture | 阻止合并和发布，先恢复最小验证基线 | QA 负责人 | 缓解中 |
 | R-017 | 发布镜像的原生依赖闭包含未处置的 Critical/High 漏洞 | 高 | 严重 | 最终 SBOM/扫描出现 Critical/High；漏洞数据库变化 | [S5-007A](gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已固定 Syft/Trivy digest、保存完整报告并拒绝已有修复版本的发现；最小 libvips/FFmpeg、内建健康检查、无 shell distroless final stage 与固定源码 Expat 2.8.2 将发现从 15 Critical / 136 High 降至 1 / 8。剩余发现全部保留为 RC 阻断；发布前升级/移除受影响依赖或对具体 CVE 完成限时正式接受，并在最终双架构 digest 上执行全阻断扫描 | 跟踪 GLib/blkid/mount 修复；无法证明安全时停止发布 | 安全负责人 | 开放 |
+| R-018 | 视频故事板 backfill、重复 seek 或 hover 生命周期造成 CPU、I/O、缓存、请求或前端资源失控 | 中 | 高 | grid/poster 等待变长；浏览 P95 上升；队列/缓存持续增长；快速掠过产生请求风暴；虚拟卡片回收后 timer/动画仍活动 | [FTR-VID-001](features/video-storyboard-preview.md)限定低优先级、有界 admission/worker/timeout/output、统一 LRU、300ms intent、按需下载、同页单活动动画和回收清理；`VSP-S0/S1` 先以长视频和目标容量 spike 固定预算，`VSP-S2/S3` 分别阻断后端和前端 | 依次降低 worker/尺寸/质量、改为有界按需 admission；仍不满足时禁用 storyboard 并保留现有 poster | 媒体处理与前端性能负责人 | 开放 |
 
 Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
 source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
@@ -56,6 +57,9 @@ R-002～R-016 的逐项 Stage 0 Owner、Fallback 和最迟阻断 Gate 见
 R-017 是 Stage 5 候选扫描新增风险，其 owner、fallback 与 Release Candidate 阻断证据
 由 [S5-007 候选镜像供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
 维护。
+R-018 属于 `Post-MVP/1` 的
+[FTR-VID-001](features/video-storyboard-preview.md)，不改变当前 MVP RC 判断；它在未来版本
+中阻断 `VSP-S0～S4`，在容量和生命周期证据完成前不得进入生产实现或发布。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

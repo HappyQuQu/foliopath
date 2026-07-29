@@ -41,7 +41,15 @@ const scanStatusMessage: Record<ScanStatus, MessageKey> = {
   interrupted: "scan.statusInterrupted",
 };
 
-export function ScanStatusPage({ session }: { session: AuthenticatedSession }) {
+export function ScanStatusPage({
+  logoutPending,
+  onLogout,
+  session,
+}: {
+  logoutPending?: boolean;
+  onLogout?: () => Promise<void>;
+  session: AuthenticatedSession;
+}) {
   const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,8 +64,10 @@ export function ScanStatusPage({ session }: { session: AuthenticatedSession }) {
   return (
     <AppShell
       active="libraries"
+      browseHref={paths.root}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
       searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("scan.pageTitle")}

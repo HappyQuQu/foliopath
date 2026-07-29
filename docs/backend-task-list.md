@@ -248,3 +248,19 @@ Stage 2 已通过 Architecture Ready。执行顺序是先共同固定媒体库�
 2. 运行适用的架构、契约、单元、race、集成和容器测试。
 3. 在对应 `Backend Ready` Gate 记录成功/失败/离线语义与前端可依赖的接口版本。
 4. 不在后端任务中顺带创建页面、组件、前端 mock 行为或第二套 wire 类型。
+
+## Post-MVP/1：视频故事板后端
+
+已确认的 [FTR-VID-001](features/video-storyboard-preview.md)不进入当前 MVP。完整后端任务
+和依赖见[专用任务清单](features/video-storyboard-preview-task-list.md#phase-2后端实现)。
+
+执行顺序固定为：
+
+```text
+VSP-001～003 Architecture Ready/spike
+→ VSP-101～105 Contract Ready
+→ VSP-106～112 后端实现、集成与容量
+→ VSP-113 Backend Evidence Ready
+```
+
+`VSP-113` 为 Go 前，前端不得连接真实 storyboard。当前所有 VSP 后端任务均未开始。

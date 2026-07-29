@@ -23,5 +23,7 @@ export const paths = {
   },
   mediaPattern: "/libraries/:libraryId/media/:assetId",
   generalSettings: "/settings/general",
+  generalSettingsForLibrary: (libraryId: string) =>
+    `/settings/general?${new URLSearchParams({ libraryId }).toString()}`,
   unavailable: "/system/unavailable",
 } as const;

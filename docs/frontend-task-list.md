@@ -81,6 +81,8 @@
 - [x] `S1-202` 建立唯一 token、主题、排版、焦点和 reduced-motion 基础。
   - 覆盖浅色、深色、跟随系统、持久化覆盖和首屏无闪烁。
 - [x] `S1-203` 建立唯一 Button、Input、Dialog、Toast、FormField 等共享原语及组件工作台。
+  - 2026-07-29 品牌确认后新增唯一 `BrandMark` 与 SVG 资产；登录、公共页头、应用侧栏
+    和 favicon 已接入，组件工作台与测试覆盖语义尺寸和装饰性可访问性。
 - [x] `S1-204` 依据已通过的 `S1-106` 实现首次管理员设置、登录、会话失效、退出和安全返回 UI，
   只通过领域 API adapter。
   - 已使用真实后端验证“首次创建管理员 → 退出 → 再次登录 → 通用设置”；错误映射、
@@ -263,3 +265,17 @@
 3. 复用唯一 token、共享组件、Query key、URL codec 和错误映射所有者。
 4. 不修改生成类型，不直接 `fetch`，不在 feature 内复制按钮、弹窗、列表或状态模式。
 5. 在 PR 中列出已对照的原型界面编号、主题/语言/断点矩阵、契约 Gate 和视觉回归证据。
+
+## Post-MVP/1：视频故事板前端
+
+已确认的 [FTR-VID-001](features/video-storyboard-preview.md)必须等待
+`VSP-113 Backend Evidence Ready`。获准后按
+[专用任务清单](features/video-storyboard-preview-task-list.md#phase-3前端实现)执行
+`VSP-201～208`：
+
+- 生成 client 与唯一 availability adapter；
+- 共享 `MediaCollection` 的 hover intent 和 sprite 状态机；
+- touch/键盘/reduced-motion、虚拟化生命周期和中英文；
+- Storybook、axe、视觉、三浏览器与前端容量证据。
+
+不得在 browse/search 页面分别创建 hover controller，也不得用 mock 提前固定 wire 行为。

@@ -9,6 +9,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
@@ -38,6 +39,16 @@ func (queue mediaJobQueue) RecoverExpired(
 ) (jobs.RecoverySummary, error) {
 	if _, err := queue.database.ReconcileMediaJobTransform(
 		ctx, thumbnail.GridTransformVersion, 256,
+	); err != nil {
+		return jobs.RecoverySummary{}, err
+	}
+	if _, err := queue.database.ReconcileStoryboardJobTransform(
+		ctx, thumbnail.StoryboardTransformVersion, 128,
+	); err != nil {
+		return jobs.RecoverySummary{}, err
+	}
+	if _, err := queue.database.AdmitStoryboardJobs(
+		ctx, sqlitestore.MaxStoryboardAdmissionBatch,
 	); err != nil {
 		return jobs.RecoverySummary{}, err
 	}

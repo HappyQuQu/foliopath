@@ -24,6 +24,11 @@ type Asset struct {
 	SizeBytes         int64
 	ModifiedAtNS      int64
 	SourceFingerprint media.SourceFingerprint
+	Width             int
+	Height            int
+	DurationMS        *int64
+	ProbeStatus       media.ProbeStatus
+	GridReady         bool
 }
 
 type Ready struct {
@@ -41,8 +46,33 @@ type Failure struct {
 	Code              media.ProcessingErrorCode
 }
 
-type Repository interface {
+type StoryboardReady struct {
+	AssetID           int64
+	SourceFingerprint media.SourceFingerprint
+	Result            media.StoryboardResult
+	CacheRelativePath string
+	ByteSize          int64
+	CreatedAtMS       int64
+}
+
+type StoryboardFailure struct {
+	AssetID           int64
+	SourceFingerprint media.SourceFingerprint
+	Code              media.ProcessingErrorCode
+}
+
+type AssetRepository interface {
 	GetAssetForDerivation(context.Context, int64) (Asset, error)
+}
+
+type Repository interface {
+	AssetRepository
 	CommitReady(context.Context, Ready) error
 	CommitFailure(context.Context, Failure) error
+}
+
+type StoryboardRepository interface {
+	AssetRepository
+	CommitStoryboardReady(context.Context, StoryboardReady) error
+	CommitStoryboardFailure(context.Context, StoryboardFailure) error
 }

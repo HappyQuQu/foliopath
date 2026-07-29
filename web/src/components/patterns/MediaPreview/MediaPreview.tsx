@@ -5,14 +5,9 @@ import {
   PushPin,
   X,
 } from "@phosphor-icons/react";
-import {
-  useEffect,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent,
-} from "react";
+import { useEffect, useState } from "react";
 
-import { Button, IconButton } from "../../ui";
+import { Button, IconButton, PanelResizer } from "../../ui";
 import {
   MediaAvailabilityState,
   type MediaAvailabilityPresentation,
@@ -47,8 +42,6 @@ export interface MediaPreviewLabels {
   unpin: string;
   videoFailed: string;
 }
-
-const widthStep = 24;
 
 export function MediaPreview({
   canGoNext,
@@ -85,7 +78,6 @@ export function MediaPreview({
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [resizing, setResizing] = useState(false);
 
   useEffect(() => {
     setLoadAttempt(0);
@@ -101,47 +93,6 @@ export function MediaPreview({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
-
-  function resize(nextWidth: number) {
-    onWidthChange(Math.min(maxWidth, Math.max(minWidth, nextWidth)));
-  }
-
-  function startResize(event: PointerEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = width;
-    setResizing(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-
-    const handleMove = (moveEvent: globalThis.PointerEvent) => {
-      resize(startWidth + startX - moveEvent.clientX);
-    };
-    const handleEnd = () => {
-      setResizing(false);
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleEnd);
-      window.removeEventListener("pointercancel", handleEnd);
-    };
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleEnd);
-    window.addEventListener("pointercancel", handleEnd);
-  }
-
-  function resizeWithKeyboard(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      resize(width + widthStep);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      resize(width - widthStep);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      resize(minWidth);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      resize(maxWidth);
-    }
-  }
 
   const failedLabel =
     item.kind === "video" ? labels.videoFailed : labels.imageFailed;
@@ -164,23 +115,17 @@ export function MediaPreview({
     <aside
       aria-label={`${labels.preview}: ${item.name}`}
       className={styles.preview}
-      data-resizing={resizing || undefined}
       style={{ width }}
     >
-      <div
-        aria-label={labels.resize}
-        aria-orientation="vertical"
-        aria-valuemax={maxWidth}
-        aria-valuemin={minWidth}
-        aria-valuenow={Math.round(width)}
+      <PanelResizer
+        ariaLabel={labels.resize}
         className={styles.resizer}
-        onKeyDown={resizeWithKeyboard}
-        onPointerDown={startResize}
-        role="separator"
-        tabIndex={0}
-      >
-        <span />
-      </div>
+        growDirection="left"
+        max={maxWidth}
+        min={minWidth}
+        onChange={onWidthChange}
+        value={width}
+      />
       <header className={styles.header}>
         <strong>{labels.preview}</strong>
         <div className={styles.actions}>

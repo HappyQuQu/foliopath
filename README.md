@@ -1,7 +1,7 @@
 # FolioPath
 
 <p align="center">
-  <img src="web/public/foliopath-mark.svg" alt="FolioPath 标志" width="96">
+  <img src="web/public/foliopath-mark-tree.svg" alt="FolioPath 标志" width="96">
 </p>
 
 <p align="center">

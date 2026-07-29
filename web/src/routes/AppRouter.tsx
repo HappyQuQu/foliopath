@@ -21,6 +21,7 @@ import {
   LibrariesPage,
   NewLibraryPage,
   ScanStatusPage,
+  useLibrariesQuery,
 } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
 import { GeneralSettingsPage } from "../features/settings";
@@ -30,6 +31,7 @@ import {
   messageForReadiness,
   useSystemReadinessQuery,
 } from "../features/system/queries";
+import type { AuthenticatedSession } from "../lib/api/auth";
 import { ApiError, isAuthenticationError } from "../lib/api/errors";
 import { useLocale } from "../lib/i18n/LocaleProvider";
 import { paths } from "./paths";
@@ -110,10 +112,37 @@ function RootRoute() {
   if (statusQuery.isError) return <RouteError error={statusQuery.error} retry={statusQuery.refetch} />;
   if (statusQuery.data.setupRequired) return <Navigate replace to={paths.setup} />;
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <Navigate replace to={paths.libraries} />;
+  if (sessionQuery.isSuccess) return <DefaultAuthenticatedRoute />;
   if (isAuthenticationError(sessionQuery.error)) return <Navigate replace to={paths.login} />;
 
   return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function DefaultAuthenticatedRoute() {
+  const librariesQuery = useLibrariesQuery();
+
+  if (librariesQuery.isPending) return <RouteLoading />;
+  if (librariesQuery.isError) {
+    return (
+      <RouteError
+        error={librariesQuery.error}
+        retry={librariesQuery.refetch}
+      />
+    );
+  }
+
+  const libraries = librariesQuery.data.pages.flatMap((page) => page.items);
+  const library =
+    libraries.find((item) => item.status === "ready") ??
+    libraries.find((item) => item.assetCount > 0) ??
+    libraries[0];
+
+  return (
+    <Navigate
+      replace
+      to={library ? paths.browse(library.id) : paths.libraries}
+    />
+  );
 }
 
 function PublicAuthRoute({ mode }: { mode: "login" | "setup" }) {
@@ -146,19 +175,14 @@ function PublicAuthRoute({ mode }: { mode: "login" | "setup" }) {
 }
 
 function ProtectedAccountRoute() {
-  const navigate = useNavigate();
   const sessionQuery = useSessionQuery();
-  const logoutMutation = useLogoutMutation();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) {
     return (
       <GeneralSettingsPage
-        logoutPending={logoutMutation.isPending}
-        onLogout={async () => {
-          await logoutMutation.mutateAsync(sessionQuery.data.csrfToken);
-          navigate(paths.login, { replace: true });
-        }}
+        {...logout}
         session={sessionQuery.data}
       />
     );
@@ -172,9 +196,12 @@ function ProtectedAccountRoute() {
 
 function ProtectedLibrariesRoute() {
   const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <LibrariesPage session={sessionQuery.data} />;
+  if (sessionQuery.isSuccess) {
+    return <LibrariesPage {...logout} session={sessionQuery.data} />;
+  }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }
@@ -188,12 +215,14 @@ function ProtectedBrowseRoute() {
     libraryId: string;
   }>();
   const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (!libraryId) return <Navigate replace to={paths.libraries} />;
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) {
     return (
       <BrowsePage
+        {...logout}
         libraryId={libraryId}
         session={sessionQuery.data}
         {...(directoryId ? { directoryId } : {})}
@@ -210,11 +239,13 @@ function ProtectedBrowseRoute() {
 function ProtectedSearchRoute() {
   const { libraryId } = useParams<{ libraryId?: string }>();
   const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) {
     return (
       <SearchPage
+        {...logout}
         session={sessionQuery.data}
         {...(libraryId ? { libraryId } : {})}
       />
@@ -250,9 +281,12 @@ function ProtectedMediaRoute() {
 
 function ProtectedNewLibraryRoute() {
   const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <NewLibraryPage session={sessionQuery.data} />;
+  if (sessionQuery.isSuccess) {
+    return <NewLibraryPage {...logout} session={sessionQuery.data} />;
+  }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }
@@ -262,14 +296,31 @@ function ProtectedNewLibraryRoute() {
 
 function ProtectedScanStatusRoute() {
   const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
 
   if (sessionQuery.isPending) return <RouteLoading />;
-  if (sessionQuery.isSuccess) return <ScanStatusPage session={sessionQuery.data} />;
+  if (sessionQuery.isSuccess) {
+    return <ScanStatusPage {...logout} session={sessionQuery.data} />;
+  }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }
 
   return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function useRouteLogout(session: AuthenticatedSession | undefined) {
+  const navigate = useNavigate();
+  const mutation = useLogoutMutation();
+
+  return {
+    logoutPending: mutation.isPending,
+    onLogout: async () => {
+      if (!session) return;
+      await mutation.mutateAsync(session.csrfToken);
+      navigate(paths.login, { replace: true });
+    },
+  };
 }
 
 function RouteLoading() {

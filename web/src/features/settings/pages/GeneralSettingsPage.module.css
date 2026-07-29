@@ -66,7 +66,7 @@
 
 .checkRow {
   display: flex;
-  align-items: start;
+  align-items: center;
   gap: var(--space-3);
   cursor: pointer;
 }
@@ -74,7 +74,8 @@
 .checkRow input {
   width: 1.125rem;
   height: 1.125rem;
-  margin-top: 0.15rem;
+  flex: none;
+  margin: 0;
   accent-color: var(--color-accent);
 }
 

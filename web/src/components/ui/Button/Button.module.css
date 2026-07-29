@@ -20,6 +20,20 @@
     transform var(--motion-fast) var(--ease-standard);
 }
 
+.button > span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  line-height: inherit;
+}
+
+.button svg {
+  display: block;
+  flex: none;
+}
+
 .button:hover:not(:disabled) {
   border-color: var(--color-border-strong);
   background: var(--color-surface-hover);

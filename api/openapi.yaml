@@ -1284,14 +1284,17 @@ paths:
       operationId: getAssetThumbnail
       summary: Get a generated thumbnail or its bounded pending state
       description: |
-        A ready transform is returned as WebP. If work is queued or running,
+        A ready `grid` poster or `storyboard` sprite is returned as WebP. The
+        storyboard variant applies only to successfully probed videos of at
+        least two seconds and is published only when every planned frame and
+        the final sprite succeed. If work is queued or running,
         the endpoint returns a structured `202` response and `Retry-After`; the
         frontend uses its canonical local placeholder and retries with backoff.
         A failed transform returns a stable safe error and never raw tool output.
         If a database-ready cache file is missing or has the wrong size, the
         server atomically returns the transform to the durable queue and responds
         with the same bounded pending state; it never regenerates media inline.
-      x-requirements: [FR-MED-001, FR-MED-002, FR-MED-008, NFR-PERF-001]
+      x-requirements: [FR-MED-001, FR-MED-002, FR-MED-008, FR-MED-009, FR-MED-010, FR-MED-011, NFR-PERF-001]
       x-error-codes:
         '400': [invalid_request]
         '401': [authentication_required, session_expired]
@@ -1661,10 +1664,13 @@ components:
       name: variant
       in: query
       required: false
-      description: Bounded, server-defined transform variant.
+      description: |
+        Bounded, server-defined transform variant. `grid` is the static image
+        thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame
+        video sprite and returns `unsupported_media` when it does not apply.
       schema:
         type: string
-        enum: [grid]
+        enum: [grid, storyboard]
         default: grid
     IdempotencyKeyHeader:
       name: Idempotency-Key
@@ -2953,6 +2959,75 @@ components:
             - media_processing_timeout
           description: Safe stable code when status is failed or unavailable.
 
+    StoryboardReference:
+      type: object
+      additionalProperties: false
+      description: |
+        Derived video storyboard state. `ready` requires a URL and every layout
+        field. `pending`, `failed`, `unavailable`, and `not_applicable` require
+        all URL/layout fields to be null. Non-video assets and videos shorter
+        than two seconds use `not_applicable`. A storyboard failure never
+        changes the grid poster, probe, playback, or source-availability state.
+      required:
+        - status
+        - url
+        - errorCode
+        - frameCount
+        - columns
+        - rows
+        - cellWidth
+        - cellHeight
+      properties:
+        status:
+          type: string
+          enum: [pending, ready, failed, unavailable, not_applicable]
+        url:
+          type: string
+          nullable: true
+          pattern: '^/api/v1/assets/[A-Za-z][A-Za-z0-9_-]+/thumbnail\\?variant=storyboard$'
+          description: Same-origin relative URL, present only when status is ready.
+        errorCode:
+          type: string
+          nullable: true
+          enum:
+            - source_offline
+            - source_missing
+            - unsupported_media
+            - invalid_media
+            - thumbnail_failed
+            - media_processing_timeout
+          description: Safe stable code when status is failed or unavailable.
+        frameCount:
+          type: integer
+          format: int32
+          minimum: 4
+          maximum: 10
+          nullable: true
+        columns:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
+          nullable: true
+        rows:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2
+          nullable: true
+        cellWidth:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 320
+          nullable: true
+        cellHeight:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 320
+          nullable: true
+
     Asset:
       type: object
       additionalProperties: false
@@ -2978,6 +3053,7 @@ components:
         - playbackStatus
         - sourceAvailability
         - thumbnail
+        - storyboard
       properties:
         id:
           $ref: '#/components/schemas/ResourceID'
@@ -3037,6 +3113,8 @@ components:
           $ref: '#/components/schemas/SourceAvailability'
         thumbnail:
           $ref: '#/components/schemas/ThumbnailReference'
+        storyboard:
+          $ref: '#/components/schemas/StoryboardReference'
 
     AssetPage:
       type: object
@@ -3063,7 +3141,7 @@ components:
           $ref: '#/components/schemas/ResourceID'
         variant:
           type: string
-          enum: [grid]
+          enum: [grid, storyboard]
         status:
           type: string
           enum: [queued, running]

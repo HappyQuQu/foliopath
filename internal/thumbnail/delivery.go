@@ -26,6 +26,7 @@ const (
 
 type DeliveryState struct {
 	AssetID           int64
+	Variant           Variant
 	SourceFingerprint media.SourceFingerprint
 	Status            DeliveryStatus
 	ErrorCode         media.ProcessingErrorCode
@@ -34,8 +35,8 @@ type DeliveryState struct {
 }
 
 type DeliveryRepository interface {
-	GetThumbnailDelivery(context.Context, int64) (DeliveryState, error)
-	TouchThumbnail(context.Context, int64, media.SourceFingerprint, string) error
+	GetThumbnailDelivery(context.Context, int64, Variant) (DeliveryState, error)
+	TouchThumbnail(context.Context, int64, Variant, media.SourceFingerprint, string) error
 	RequeueMissingThumbnail(context.Context, DeliveryState) error
 }
 
@@ -78,14 +79,19 @@ func NewDeliveryService(
 	return &DeliveryService{repository: repository, cache: cache, waker: waker}, nil
 }
 
-func (service *DeliveryService) Get(ctx context.Context, assetID int64) (Delivery, error) {
+func (service *DeliveryService) Get(
+	ctx context.Context,
+	assetID int64,
+	variant Variant,
+) (Delivery, error) {
 	if err := ctx.Err(); err != nil {
 		return Delivery{}, err
 	}
-	if assetID <= 0 {
+	if assetID <= 0 ||
+		(variant != VariantGrid && variant != VariantStoryboard) {
 		return Delivery{}, ErrAssetNotFound
 	}
-	state, err := service.repository.GetThumbnailDelivery(ctx, assetID)
+	state, err := service.repository.GetThumbnailDelivery(ctx, assetID, variant)
 	if err != nil {
 		return Delivery{}, err
 	}
@@ -128,7 +134,8 @@ func (service *DeliveryService) Get(ctx context.Context, assetID int64) (Deliver
 		return Delivery{Status: DeliveryQueued, RetryAfterMS: ThumbnailRetryAfterMS}, nil
 	}
 	if err := service.repository.TouchThumbnail(
-		ctx, state.AssetID, state.SourceFingerprint, state.CacheRelativePath,
+		ctx, state.AssetID, state.Variant,
+		state.SourceFingerprint, state.CacheRelativePath,
 	); err != nil {
 		_ = content.Reader.Close()
 		return Delivery{}, err

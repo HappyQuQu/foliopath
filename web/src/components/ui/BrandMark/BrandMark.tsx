@@ -10,11 +10,11 @@ export function BrandMark({
   size?: BrandMarkSize;
 }) {
   return (
-    <img
-      alt=""
+    <span
       aria-hidden="true"
       className={`${styles.mark} ${styles[size]} ${className ?? ""}`.trim()}
-      src="/foliopath-mark.svg"
-    />
+    >
+      <img alt="" className={styles.art} src="/foliopath-mark-tree.svg" />
+    </span>
   );
 }

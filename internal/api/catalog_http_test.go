@@ -99,6 +99,33 @@ func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {
 	}
 }
 
+func TestStoryboardReferenceWireReadyAndNotApplicable(t *testing.T) {
+	duration := int64(10_000)
+	frameCount, columns, rows := int64(10), int64(5), int64(2)
+	cellWidth, cellHeight := int64(320), int64(180)
+	ready := storyboardReferenceWire(catalog.Asset{
+		ID: 9, Kind: catalog.KindVideo, DurationMS: &duration,
+		Availability: catalog.SourceAvailable, StoryboardStatus: "ready",
+		StoryboardFrameCount: &frameCount, StoryboardColumns: &columns,
+		StoryboardRows: &rows, StoryboardCellWidth: &cellWidth,
+		StoryboardCellHeight: &cellHeight,
+	})
+	if ready.Status != "ready" || ready.URL == nil ||
+		*ready.URL != "/api/v1/assets/ast_9/thumbnail?variant=storyboard" ||
+		ready.FrameCount == nil || *ready.FrameCount != 10 ||
+		ready.ErrorCode != nil {
+		t.Fatalf("ready storyboard = %#v", ready)
+	}
+	notApplicable := storyboardReferenceWire(catalog.Asset{
+		ID: 10, Kind: catalog.KindImage, Availability: catalog.SourceAvailable,
+	})
+	if notApplicable.Status != "not_applicable" ||
+		notApplicable.URL != nil ||
+		notApplicable.FrameCount != nil {
+		t.Fatalf("not-applicable storyboard = %#v", notApplicable)
+	}
+}
+
 func TestCatalogSearchRoutesParseScopesAndUTCDateInterval(t *testing.T) {
 	searchCalls := 0
 	libraryCalls := 0

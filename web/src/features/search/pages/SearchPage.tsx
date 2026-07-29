@@ -37,6 +37,7 @@ import {
   mediaAvailabilityPresentation,
   mediaPosterUrl,
 } from "../../../lib/media/availability";
+import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
   readMediaLayoutPreference,
   type MediaLayoutPreference,
@@ -60,9 +61,13 @@ import styles from "./SearchPage.module.css";
 
 export function SearchPage({
   libraryId,
+  logoutPending,
+  onLogout,
   session,
 }: {
   libraryId?: string;
+  logoutPending?: boolean;
+  onLogout?: () => Promise<void>;
   session: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
@@ -175,7 +180,6 @@ export function SearchPage({
   }
 
   const currentLibrary = libraryQuery.data?.library;
-  const browseHref = libraryId ? paths.browse(libraryId) : undefined;
   const hasFilters =
     state.kind !== "all" ||
     state.date !== "any" ||
@@ -186,11 +190,16 @@ export function SearchPage({
   return (
     <AppShell
       active="search"
-      {...(browseHref ? { browseHref } : {})}
+      browseHref={libraryId ? paths.browse(libraryId) : paths.root}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
       searchHref={`${libraryId ? paths.librarySearch(libraryId) : paths.search}?${canonicalSearch}`}
-      settingsHref={paths.generalSettings}
+      settingsHref={
+        libraryId
+          ? paths.generalSettingsForLibrary(libraryId)
+          : paths.generalSettings
+      }
       title={t("search.title")}
     >
       <section className={styles.page} aria-labelledby="search-heading">
@@ -302,7 +311,11 @@ export function SearchPage({
               <MediaCollection
                 ref={preview.collectionRef}
                 hasNextPage={resultsQuery.hasNextPage}
-                isFetchingNextPage={resultsQuery.isFetchingNextPage}
+                isFetchingNextPage={
+                  resultsQuery.isFetchingNextPage ||
+                  (resultsQuery.isFetchNextPageError &&
+                    resultsQuery.isRefetching)
+                }
                 items={mediaItems}
                 labels={{
                   activatePreview: preview.pinned
@@ -325,7 +338,13 @@ export function SearchPage({
                   preview.activate(assetId, activation)
                 }
                 onLoadMore={() => void resultsQuery.fetchNextPage()}
-                onRetryLoadMore={() => void resultsQuery.fetchNextPage()}
+                onRetryLoadMore={() =>
+                  void retryInfiniteNextPage({
+                    error: resultsQuery.error,
+                    loadNextPage: resultsQuery.fetchNextPage,
+                    refresh: resultsQuery.refetch,
+                  })
+                }
                 paginationError={resultsQuery.isFetchNextPageError}
                 {...(previewAsset
                   ? { previewItemId: previewAsset.id }

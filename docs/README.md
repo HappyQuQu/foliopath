@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | 了解项目 | [项目 README](../README.md) | [产品需求](product-requirements.md)、[可行性研究](feasibility-study.md)、[路线图](roadmap.md) |
 | 确认产品范围 | [MVP scope manifest](releases/MVP-2026-07-23-scope.md) | [需求确认清单](requirements-checklist.md)、[产品需求](product-requirements.md)、[用户流程](user-flows.md) |
-| 设计界面 | [界面设计规范](ui-design.md) | [前端架构](architecture/frontend.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
+| 设计界面 | [界面设计规范](ui-design.md) | [品牌标识规范](branding.md)、[前端架构](architecture/frontend.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
 | 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
@@ -28,10 +28,24 @@
 - [需求确认清单](requirements-checklist.md)：全部 14 项 A 方案的确认记录与未采用备选。
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
+- [品牌标识规范](branding.md)：标识概念、唯一资产、尺寸、主题、可访问性和生产接入规则。
 - [Apple 风格静态 UI 原型](../prototypes/apple-redesign/index.html)：登录、欢迎、浏览、搜索、查看器与设置页面的浅色/深色和响应式视觉验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。
 - [CR-2026-002 经认证的局域网 HTTP](changes/CR-2026-002-authenticated-lan-http.md)：直接
   LAN 访问与外部 TLS/反向代理职责边界。
+- [CR-2026-003 统一品牌标识](changes/CR-2026-003-brand-identity.md)：极简目录树标识、
+  `BrandMark` 唯一所有权与生产入口的确认记录。
+- [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)：已确认的
+  `Post-MVP/1` feature 规格；包含产品、交互、采样、架构、已冻结 API/data 合同、风险和验收。
+- [FTR-VID-001 开发任务清单](features/video-storyboard-preview-task-list.md)：严格按
+  Architecture/Contract → 后端 → Backend Ready → 前端 → Integrated Done 排列的执行清单。
+- [VSP-002 视频故事板 spike](spikes/vsp-002-video-storyboard.md)：2 秒～2 小时合成视频的
+  fast seek、顺序解码、sprite、资源与运行时能力证据。
+- [POST-MVP-1 scope revision 1](releases/POST-MVP-1-scope.md)与
+  [VSP-S0 Architecture Ready](gates/POST-MVP-1/vsp-s0-architecture-ready.md)：
+  feature 冻结范围和允许进入 Contract Ready 的 Gate。
+- [CR-2026-004 视频故事板悬停预览](changes/CR-2026-004-video-storyboard-preview.md)：
+  后续版本归属、范围影响和 Conditional Go 决定。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。
 - [开发任务清单](task-list.md)：总进度、前后端交接点和共同发布任务。
 - [后端开发清单](backend-task-list.md)：Go、API、SQLite、认证、扫描与媒体服务任务。

@@ -124,7 +124,9 @@ func TestThumbnailDeliveryStateTouchOfflineAndMissingCacheRepair(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	state, err := store.GetThumbnailDelivery(context.Background(), assetID)
+	state, err := store.GetThumbnailDelivery(
+		context.Background(), assetID, thumbnail.VariantGrid,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +135,8 @@ func TestThumbnailDeliveryStateTouchOfflineAndMissingCacheRepair(t *testing.T) {
 		t.Fatalf("ready delivery state = %#v", state)
 	}
 	if err := store.TouchThumbnail(
-		context.Background(), assetID, asset.SourceFingerprint, cachePath,
+		context.Background(), assetID, thumbnail.VariantGrid,
+		asset.SourceFingerprint, cachePath,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +167,9 @@ func TestThumbnailDeliveryStateTouchOfflineAndMissingCacheRepair(t *testing.T) {
 	if probeStatus != "pending" || jobStatus != "queued" || attempts != 0 {
 		t.Fatalf("repair state = %q, %q, %d", probeStatus, jobStatus, attempts)
 	}
-	state, err = store.GetThumbnailDelivery(context.Background(), assetID)
+	state, err = store.GetThumbnailDelivery(
+		context.Background(), assetID, thumbnail.VariantGrid,
+	)
 	if err != nil || state.Status != thumbnail.DeliveryQueued {
 		t.Fatalf("repaired delivery state = %#v, %v", state, err)
 	}
@@ -175,9 +180,89 @@ func TestThumbnailDeliveryStateTouchOfflineAndMissingCacheRepair(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	state, err = store.GetThumbnailDelivery(context.Background(), assetID)
+	state, err = store.GetThumbnailDelivery(
+		context.Background(), assetID, thumbnail.VariantGrid,
+	)
 	if err != nil || state.Status != thumbnail.DeliveryOffline ||
 		state.ErrorCode != media.ProcessingErrorCode("source_offline") {
 		t.Fatalf("offline delivery state = %#v, %v", state, err)
+	}
+}
+
+func TestStoryboardReadyDeliveryAndMissingCacheRepairPreserveVideoMetadata(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedStoryboardAsset(t, store.db)
+	ctx := context.Background()
+	if _, err := store.db.ExecContext(ctx, `
+		INSERT INTO media_jobs(
+			library_id, asset_id, variant, priority, transform_version,
+			source_fingerprint, status, available_at_ms, created_at_ms,
+			finished_at_ms
+		) VALUES (
+			1, 1, 'storyboard', 100, 1, 'v1:42:100', 'succeeded', 0, 0, 1
+		)
+	`); err != nil {
+		t.Fatal(err)
+	}
+	result := media.StoryboardResult{
+		Bytes:      []byte("RIFF\x04\x00\x00\x00WEBP"),
+		FrameCount: 10,
+		Columns:    5,
+		Rows:       2,
+		CellWidth:  320,
+		CellHeight: 180,
+	}
+	if err := store.CommitStoryboardReady(ctx, thumbnail.StoryboardReady{
+		AssetID: 1, SourceFingerprint: media.SourceFingerprint("v1:42:100"),
+		Result: result, CacheRelativePath: "libraries/lib_1/aa/story.webp",
+		ByteSize: int64(len(result.Bytes)), CreatedAtMS: 100,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	state, err := store.GetThumbnailDelivery(
+		ctx,
+		1,
+		thumbnail.VariantStoryboard,
+	)
+	if err != nil || state.Status != thumbnail.DeliveryReady ||
+		state.Variant != thumbnail.VariantStoryboard {
+		t.Fatalf("storyboard delivery = %#v, %v", state, err)
+	}
+	if err := store.RequeueMissingThumbnail(ctx, state); err != nil {
+		t.Fatal(err)
+	}
+	var probe, playback, jobStatus string
+	var width, height, duration, attempts int64
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT a.probe_status, a.playback_status, a.width, a.height,
+		       a.duration_ms, j.status, j.attempt_count
+		FROM assets AS a
+		JOIN media_jobs AS j
+		  ON j.asset_id = a.id AND j.variant = 'storyboard'
+		WHERE a.id = 1
+	`).Scan(
+		&probe,
+		&playback,
+		&width,
+		&height,
+		&duration,
+		&jobStatus,
+		&attempts,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if probe != "ready" || playback != "playable" ||
+		width != 1920 || height != 1080 || duration != 10_000 ||
+		jobStatus != "queued" || attempts != 0 {
+		t.Fatalf(
+			"repaired storyboard state = %q %q %dx%d/%d job %q/%d",
+			probe,
+			playback,
+			width,
+			height,
+			duration,
+			jobStatus,
+			attempts,
+		)
 	}
 }

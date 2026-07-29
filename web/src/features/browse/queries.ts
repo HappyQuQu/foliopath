@@ -5,6 +5,7 @@ import {
   listAssets,
   listDirectories,
   type AssetPage,
+  type AssetKind,
   type AssetSort,
   type SortOrder,
 } from "../../lib/api/catalog";
@@ -34,6 +35,7 @@ export const catalogKeys = {
     libraryId: string,
     directoryId: string | undefined,
     recursive: boolean,
+    kinds: AssetKind[] | undefined,
     sort: AssetSort,
     order: SortOrder,
   ) =>
@@ -43,6 +45,7 @@ export const catalogKeys = {
       libraryId,
       directoryId ?? "root",
       recursive,
+      kinds?.join(",") ?? "all",
       sort,
       order,
     ] as const,
@@ -74,12 +77,14 @@ export function useDirectoriesQuery({
 
 export function useAssetsQuery({
   directoryId,
+  kinds,
   libraryId,
   order,
   recursive,
   sort,
 }: {
   directoryId?: string | undefined;
+  kinds?: AssetKind[] | undefined;
   libraryId: string;
   order: SortOrder;
   recursive: boolean;
@@ -90,12 +95,14 @@ export function useAssetsQuery({
       libraryId,
       directoryId,
       recursive,
+      kinds,
       sort,
       order,
     ),
     queryFn: ({ pageParam }) =>
       listAssets({
         libraryId,
+        ...(kinds ? { kinds } : {}),
         order,
         recursive,
         sort,

@@ -11,6 +11,7 @@ import (
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 type CatalogService interface {
@@ -54,24 +55,36 @@ type thumbnailReferenceResponse struct {
 	ErrorCode *string `json:"errorCode"`
 }
 
+type storyboardReferenceResponse struct {
+	Status     string  `json:"status"`
+	URL        *string `json:"url"`
+	ErrorCode  *string `json:"errorCode"`
+	FrameCount *int64  `json:"frameCount"`
+	Columns    *int64  `json:"columns"`
+	Rows       *int64  `json:"rows"`
+	CellWidth  *int64  `json:"cellWidth"`
+	CellHeight *int64  `json:"cellHeight"`
+}
+
 type assetResponse struct {
-	ID                 string                     `json:"id"`
-	LibraryID          string                     `json:"libraryId"`
-	LibraryName        string                     `json:"libraryName"`
-	DirectoryID        string                     `json:"directoryId"`
-	Name               string                     `json:"name"`
-	RelativePath       string                     `json:"relativePath"`
-	Kind               catalog.AssetKind          `json:"kind"`
-	MIMEType           string                     `json:"mimeType"`
-	SizeBytes          int64                      `json:"sizeBytes"`
-	Width              *int64                     `json:"width"`
-	Height             *int64                     `json:"height"`
-	DurationMS         *int64                     `json:"durationMs"`
-	ModifiedAt         string                     `json:"modifiedAt"`
-	ProbeStatus        media.ProbeStatus          `json:"probeStatus"`
-	PlaybackStatus     media.PlaybackStatus       `json:"playbackStatus"`
-	SourceAvailability catalog.SourceAvailability `json:"sourceAvailability"`
-	Thumbnail          thumbnailReferenceResponse `json:"thumbnail"`
+	ID                 string                      `json:"id"`
+	LibraryID          string                      `json:"libraryId"`
+	LibraryName        string                      `json:"libraryName"`
+	DirectoryID        string                      `json:"directoryId"`
+	Name               string                      `json:"name"`
+	RelativePath       string                      `json:"relativePath"`
+	Kind               catalog.AssetKind           `json:"kind"`
+	MIMEType           string                      `json:"mimeType"`
+	SizeBytes          int64                       `json:"sizeBytes"`
+	Width              *int64                      `json:"width"`
+	Height             *int64                      `json:"height"`
+	DurationMS         *int64                      `json:"durationMs"`
+	ModifiedAt         string                      `json:"modifiedAt"`
+	ProbeStatus        media.ProbeStatus           `json:"probeStatus"`
+	PlaybackStatus     media.PlaybackStatus        `json:"playbackStatus"`
+	SourceAvailability catalog.SourceAvailability  `json:"sourceAvailability"`
+	Thumbnail          thumbnailReferenceResponse  `json:"thumbnail"`
+	Storyboard         storyboardReferenceResponse `json:"storyboard"`
 }
 
 type assetPageResponse struct {
@@ -385,6 +398,7 @@ func assetWire(item catalog.Asset) assetResponse {
 		ProbeStatus: item.ProbeStatus, PlaybackStatus: item.PlaybackStatus,
 		SourceAvailability: item.Availability,
 		Thumbnail:          thumbnailReferenceWire(item),
+		Storyboard:         storyboardReferenceWire(item),
 	}
 }
 
@@ -409,6 +423,60 @@ func thumbnailReferenceWire(item catalog.Asset) thumbnailReferenceResponse {
 	default:
 		return thumbnailReferenceResponse{Status: "pending"}
 	}
+}
+
+func storyboardReferenceWire(item catalog.Asset) storyboardReferenceResponse {
+	response := storyboardReferenceResponse{Status: "pending"}
+	if item.Kind != catalog.KindVideo {
+		response.Status = "not_applicable"
+		return response
+	}
+	if item.Availability == catalog.SourceOffline {
+		code := "source_offline"
+		response.Status = "unavailable"
+		response.ErrorCode = &code
+		return response
+	}
+	if item.DurationMS == nil {
+		if (item.ProbeStatus == media.ProbeFailed ||
+			item.ProbeStatus == media.ProbeUnsupported) &&
+			item.ProbeErrorCode != nil {
+			code := publicThumbnailErrorCode(*item.ProbeErrorCode)
+			response.Status = "failed"
+			response.ErrorCode = &code
+		}
+		return response
+	}
+	if *item.DurationMS < thumbnail.StoryboardMinimumDurationMS {
+		response.Status = "not_applicable"
+		return response
+	}
+	switch item.StoryboardStatus {
+	case "ready":
+		if item.StoryboardFrameCount == nil ||
+			item.StoryboardColumns == nil ||
+			item.StoryboardRows == nil ||
+			item.StoryboardCellWidth == nil ||
+			item.StoryboardCellHeight == nil {
+			return response
+		}
+		url := "/api/v1/assets/" + assetIDString(item.ID) +
+			"/thumbnail?variant=storyboard"
+		response.Status = "ready"
+		response.URL = &url
+		response.FrameCount = item.StoryboardFrameCount
+		response.Columns = item.StoryboardColumns
+		response.Rows = item.StoryboardRows
+		response.CellWidth = item.StoryboardCellWidth
+		response.CellHeight = item.StoryboardCellHeight
+	case "failed":
+		response.Status = "failed"
+		if item.StoryboardErrorCode != nil {
+			code := publicThumbnailErrorCode(*item.StoryboardErrorCode)
+			response.ErrorCode = &code
+		}
+	}
+	return response
 }
 
 func publicThumbnailErrorCode(code media.ProcessingErrorCode) string {

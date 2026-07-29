@@ -173,6 +173,7 @@ describe("catalog adapter", () => {
 
     const page = await listAssets({
       directoryId: "dir_travel",
+      kinds: ["video"],
       libraryId: "lib_family",
       order: "desc",
       recursive: true,
@@ -190,6 +191,7 @@ describe("catalog adapter", () => {
           path: { libraryId: "lib_family" },
           query: {
             directoryId: "dir_travel",
+            kind: ["video"],
             limit: 50,
             order: "desc",
             recursive: true,

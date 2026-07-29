@@ -109,7 +109,10 @@ export interface paths {
         };
         /**
          * Get a generated thumbnail or its bounded pending state
-         * @description A ready transform is returned as WebP. If work is queued or running,
+         * @description A ready `grid` poster or `storyboard` sprite is returned as WebP. The
+         *     storyboard variant applies only to successfully probed videos of at
+         *     least two seconds and is published only when every planned frame and
+         *     the final sprite succeed. If work is queued or running,
          *     the endpoint returns a structured `202` response and `Retry-After`; the
          *     frontend uses its canonical local placeholder and retries with backoff.
          *     A failed transform returns a stable safe error and never raw tool output.
@@ -703,6 +706,7 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             sourceAvailability: components["schemas"]["SourceAvailability"];
+            storyboard: components["schemas"]["StoryboardReference"];
             thumbnail: components["schemas"]["ThumbnailReference"];
             /** Format: int32 */
             width: number | null;
@@ -1075,6 +1079,34 @@ export interface components {
         };
         /** @enum {string} */
         SourceAvailability: "available" | "offline" | "missing" | "unreadable";
+        /**
+         * @description Derived video storyboard state. `ready` requires a URL and every layout
+         *     field. `pending`, `failed`, `unavailable`, and `not_applicable` require
+         *     all URL/layout fields to be null. Non-video assets and videos shorter
+         *     than two seconds use `not_applicable`. A storyboard failure never
+         *     changes the grid poster, probe, playback, or source-availability state.
+         */
+        StoryboardReference: {
+            /** Format: int32 */
+            cellHeight: number | null;
+            /** Format: int32 */
+            cellWidth: number | null;
+            /** Format: int32 */
+            columns: number | null;
+            /**
+             * @description Safe stable code when status is failed or unavailable.
+             * @enum {string|null}
+             */
+            errorCode: "source_offline" | "source_missing" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | null;
+            /** Format: int32 */
+            frameCount: number | null;
+            /** Format: int32 */
+            rows: number | null;
+            /** @enum {string} */
+            status: "pending" | "ready" | "failed" | "unavailable" | "not_applicable";
+            /** @description Same-origin relative URL, present only when status is ready. */
+            url: string | null;
+        };
         SupportedMedia: {
             imageMimeTypes: ("image/jpeg" | "image/png" | "image/webp" | "image/gif")[];
             videoMimeTypes: ("video/mp4" | "video/quicktime" | "video/x-matroska")[];
@@ -1104,7 +1136,7 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "running";
             /** @enum {string} */
-            variant: "grid";
+            variant: "grid" | "storyboard";
         };
         ThumbnailReference: {
             /**
@@ -1413,8 +1445,12 @@ export interface components {
          *     recursive browse and every search use `modifiedAt`.
          */
         SortParameter: "name" | "modifiedAt";
-        /** @description Bounded, server-defined transform variant. */
-        ThumbnailVariantParameter: "grid";
+        /**
+         * @description Bounded, server-defined transform variant. `grid` is the static image
+         *     thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame
+         *     video sprite and returns `unsupported_media` when it does not apply.
+         */
+        ThumbnailVariantParameter: "grid" | "storyboard";
     };
     requestBodies: never;
     headers: {
@@ -1635,7 +1671,11 @@ export interface operations {
     getAssetThumbnail: {
         parameters: {
             query?: {
-                /** @description Bounded, server-defined transform variant. */
+                /**
+                 * @description Bounded, server-defined transform variant. `grid` is the static image
+                 *     thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame
+                 *     video sprite and returns `unsupported_media` when it does not apply.
+                 */
                 variant?: components["parameters"]["ThumbnailVariantParameter"];
             };
             header?: {

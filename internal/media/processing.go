@@ -9,15 +9,25 @@ import (
 )
 
 const (
-	GridThumbnailWidth  = 512
-	GridThumbnailHeight = 512
-	GridWebPQuality     = 82
-	MaxToolOutputBytes  = 8 << 20
-	MaxImageSourceBytes = 256 << 20
-	MaxVideoSourceBytes = int64(4) << 30
-	MaxDecodedPixels    = 100_000_000
-	MaxMediaDimension   = 32_768
-	DefaultProbeTimeout = 15 * time.Second
+	GridThumbnailWidth         = 512
+	GridThumbnailHeight        = 512
+	GridWebPQuality            = 82
+	MaxToolOutputBytes         = 8 << 20
+	MaxImageSourceBytes        = 256 << 20
+	MaxVideoSourceBytes        = int64(4) << 30
+	MaxDecodedPixels           = 100_000_000
+	MaxMediaDimension          = 32_768
+	DefaultProbeTimeout        = 15 * time.Second
+	StoryboardMinFrames        = 4
+	StoryboardMaxFrames        = 10
+	StoryboardMaxColumns       = 5
+	StoryboardMaxRows          = 2
+	StoryboardMaxCellDimension = 320
+	StoryboardMaxPixels        = 1_024_000
+	StoryboardMaxFrameBytes    = 1 << 20
+	StoryboardMaxTempBytes     = 10 << 20
+	StoryboardMaxOutputBytes   = 8 << 20
+	DefaultStoryboardTimeout   = 45 * time.Second
 )
 
 type ProbeStatus string
@@ -75,6 +85,75 @@ type ProcessingResult struct {
 
 type Processor interface {
 	Process(context.Context, io.ReadSeeker, Format) (ProcessingResult, error)
+}
+
+type StoryboardRequest struct {
+	TimestampsMS []int64
+	Columns      int
+	Rows         int
+	CellWidth    int
+	CellHeight   int
+}
+
+type StoryboardResult struct {
+	Bytes      []byte
+	FrameCount int
+	Columns    int
+	Rows       int
+	CellWidth  int
+	CellHeight int
+}
+
+type StoryboardProcessor interface {
+	Storyboard(
+		context.Context,
+		io.ReadSeeker,
+		Format,
+		StoryboardRequest,
+	) (StoryboardResult, error)
+}
+
+func ValidateStoryboardRequest(request StoryboardRequest) error {
+	frameCount := len(request.TimestampsMS)
+	if (frameCount != StoryboardMinFrames && frameCount != StoryboardMaxFrames) ||
+		request.Columns != min(frameCount, StoryboardMaxColumns) ||
+		request.Rows != (frameCount+request.Columns-1)/request.Columns ||
+		request.Rows < 1 || request.Rows > StoryboardMaxRows ||
+		request.CellWidth < 1 ||
+		request.CellWidth > StoryboardMaxCellDimension ||
+		request.CellHeight < 1 ||
+		request.CellHeight > StoryboardMaxCellDimension ||
+		request.Columns*request.CellWidth*request.Rows*request.CellHeight >
+			StoryboardMaxPixels {
+		return ErrInvalidResult
+	}
+	var previous int64
+	for _, timestamp := range request.TimestampsMS {
+		if timestamp <= previous {
+			return ErrInvalidResult
+		}
+		previous = timestamp
+	}
+	return nil
+}
+
+func ValidateStoryboardResult(
+	request StoryboardRequest,
+	result StoryboardResult,
+) error {
+	if ValidateStoryboardRequest(request) != nil ||
+		result.FrameCount != len(request.TimestampsMS) ||
+		result.Columns != request.Columns ||
+		result.Rows != request.Rows ||
+		result.CellWidth != request.CellWidth ||
+		result.CellHeight != request.CellHeight ||
+		len(result.Bytes) < 12 ||
+		len(result.Bytes) > StoryboardMaxOutputBytes ||
+		string(result.Bytes[:4]) != "RIFF" ||
+		string(result.Bytes[8:12]) != "WEBP" {
+		return ErrInvalidResult
+	}
+	return nil
 }
 
 func ValidateProcessingResult(kind Kind, result ProcessingResult) error {

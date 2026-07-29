@@ -35,6 +35,7 @@ type databaseStore interface {
 	scanner.ScheduleRepository
 	appsettings.Repository
 	thumbnail.Repository
+	thumbnail.StoryboardRepository
 	thumbnail.CacheRepository
 	thumbnail.JobCompletionRepository
 	thumbnail.DeliveryRepository
@@ -167,18 +168,20 @@ func (service *databaseService) CommitFailure(
 func (service *databaseService) GetThumbnailDelivery(
 	ctx context.Context,
 	assetID int64,
+	variant thumbnail.Variant,
 ) (thumbnail.DeliveryState, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 	if service.store == nil {
 		return thumbnail.DeliveryState{}, thumbnail.ErrRepositoryNotReady
 	}
-	return service.store.GetThumbnailDelivery(ctx, assetID)
+	return service.store.GetThumbnailDelivery(ctx, assetID, variant)
 }
 
 func (service *databaseService) TouchThumbnail(
 	ctx context.Context,
 	assetID int64,
+	variant thumbnail.Variant,
 	fingerprint media.SourceFingerprint,
 	cachePath string,
 ) error {
@@ -187,7 +190,13 @@ func (service *databaseService) TouchThumbnail(
 	if service.store == nil {
 		return thumbnail.ErrRepositoryNotReady
 	}
-	return service.store.TouchThumbnail(ctx, assetID, fingerprint, cachePath)
+	return service.store.TouchThumbnail(
+		ctx,
+		assetID,
+		variant,
+		fingerprint,
+		cachePath,
+	)
 }
 
 func (service *databaseService) RequeueMissingThumbnail(
@@ -289,12 +298,38 @@ type scanQueueStore interface {
 
 type mediaQueueStore interface {
 	ReconcileMediaJobTransform(context.Context, int, int) (int64, error)
+	ReconcileStoryboardJobTransform(context.Context, int, int) (int64, error)
+	AdmitStoryboardJobs(context.Context, int) (int64, error)
 	RecoverExpiredMediaJobs(context.Context) (jobs.RecoverySummary, error)
 	ClaimNextMediaJob(
 		context.Context,
 		time.Duration,
 	) (thumbnail.Job, bool, error)
 	RefreshMediaJobLease(context.Context, thumbnail.Job, time.Duration) error
+}
+
+func (service *databaseService) CommitStoryboardReady(
+	ctx context.Context,
+	ready thumbnail.StoryboardReady,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CommitStoryboardReady(ctx, ready)
+}
+
+func (service *databaseService) CommitStoryboardFailure(
+	ctx context.Context,
+	failure thumbnail.StoryboardFailure,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CommitStoryboardFailure(ctx, failure)
 }
 
 func (service *databaseService) ReconcileMediaJobTransform(
@@ -308,6 +343,35 @@ func (service *databaseService) ReconcileMediaJobTransform(
 		return 0, thumbnail.ErrRepositoryNotReady
 	}
 	return service.store.ReconcileMediaJobTransform(ctx, transformVersion, limit)
+}
+
+func (service *databaseService) ReconcileStoryboardJobTransform(
+	ctx context.Context,
+	transformVersion int,
+	limit int,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ReconcileStoryboardJobTransform(
+		ctx,
+		transformVersion,
+		limit,
+	)
+}
+
+func (service *databaseService) AdmitStoryboardJobs(
+	ctx context.Context,
+	limit int,
+) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.AdmitStoryboardJobs(ctx, limit)
 }
 
 func (service *databaseService) RecoverExpiredMediaJobs(

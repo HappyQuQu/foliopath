@@ -146,28 +146,35 @@ type DirectoryDetail struct {
 }
 
 type Asset struct {
-	ID                 int64
-	LibraryID          int64
-	LibraryName        string
-	DirectoryID        int64
-	RelativePath       string
-	Name               string
-	NaturalNameKey     []byte
-	Kind               AssetKind
-	MediaFormat        string
-	MIMEType           string
-	SizeBytes          int64
-	ModifiedAtNS       int64
-	SourceFingerprint  string
-	Availability       SourceAvailability
-	Width              *int64
-	Height             *int64
-	DurationMS         *int64
-	ProbeStatus        media.ProbeStatus
-	ProbeErrorCode     *media.ProcessingErrorCode
-	PlaybackStatus     media.PlaybackStatus
-	ThumbnailStatus    string
-	ThumbnailErrorCode *media.ProcessingErrorCode
+	ID                   int64
+	LibraryID            int64
+	LibraryName          string
+	DirectoryID          int64
+	RelativePath         string
+	Name                 string
+	NaturalNameKey       []byte
+	Kind                 AssetKind
+	MediaFormat          string
+	MIMEType             string
+	SizeBytes            int64
+	ModifiedAtNS         int64
+	SourceFingerprint    string
+	Availability         SourceAvailability
+	Width                *int64
+	Height               *int64
+	DurationMS           *int64
+	ProbeStatus          media.ProbeStatus
+	ProbeErrorCode       *media.ProcessingErrorCode
+	PlaybackStatus       media.PlaybackStatus
+	ThumbnailStatus      string
+	ThumbnailErrorCode   *media.ProcessingErrorCode
+	StoryboardStatus     string
+	StoryboardErrorCode  *media.ProcessingErrorCode
+	StoryboardFrameCount *int64
+	StoryboardColumns    *int64
+	StoryboardRows       *int64
+	StoryboardCellWidth  *int64
+	StoryboardCellHeight *int64
 }
 
 type DirectoryPosition struct {

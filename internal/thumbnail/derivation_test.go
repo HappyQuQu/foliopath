@@ -31,3 +31,42 @@ func TestGridDerivationIsFingerprintAndVersionBoundWithoutPathMaterial(t *testin
 		t.Fatalf("cache paths = %q, %q", firstPath, secondPath)
 	}
 }
+
+func TestStoryboardDerivationHasIndependentVariantAndVersionIdentity(t *testing.T) {
+	fingerprint := media.SourceFingerprint("v1:42:100")
+	grid, err := GridDerivation(7, 9, fingerprint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storyboard, err := StoryboardDerivation(7, 9, fingerprint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gridPath, err := grid.CacheRelativePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	storyboardPath, err := storyboard.CacheRelativePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gridPath == storyboardPath || storyboard.Variant != VariantStoryboard {
+		t.Fatalf("grid path = %q, storyboard = %#v at %q", gridPath, storyboard, storyboardPath)
+	}
+}
+
+func TestDerivationRejectsVariantVersionMismatch(t *testing.T) {
+	value := Derivation{
+		LibraryID:         1,
+		AssetID:           2,
+		Variant:           VariantStoryboard,
+		SourceFingerprint: media.SourceFingerprint("v1:42:100"),
+		TransformVersion:  GridTransformVersion + 1,
+	}
+	if GridTransformVersion+1 == StoryboardTransformVersion {
+		value.TransformVersion++
+	}
+	if err := value.Validate(); err == nil {
+		t.Fatal("variant/version mismatch unexpectedly accepted")
+	}
+}

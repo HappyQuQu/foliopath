@@ -166,6 +166,11 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
 
 以下方向需要独立需求和必要 ADR，不提前把复杂度放入 MVP：
 
+- [`POST-MVP-1`](releases/POST-MVP-1-scope.md)已冻结 feature：
+  [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它严格按
+  `VSP-S0 Architecture Ready → S1 Contract Ready → 后端 → S2 Backend Evidence Ready
+  → 前端 → S3 Consumer/UI Ready → S4 Integrated Slice Done` 交付；S0 已 Go，当前允许
+  `VSP-106～113` 后端实现与证据，不插入正在加固的 MVP Release Candidate。
 - 文件系统 watcher（只作增量提示，完整扫描仍是正确性基线）。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
 - 收藏、评分、历史、时间线、地图与重复检测。

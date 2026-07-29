@@ -196,7 +196,13 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct image runtime: %w", err)
 	}
-	videoProcessor, err := videoffmpeg.New(videoffmpeg.Options{})
+	videoProcessor, err := videoffmpeg.New(videoffmpeg.Options{
+		StoryboardTempRoot: filepath.Join(
+			configuration.dataRoot,
+			"tmp",
+			"storyboard",
+		),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("construct video processor: %w", err)
 	}
@@ -212,6 +218,17 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct thumbnail service: %w", err)
 	}
+	storyboardService, err := thumbnail.NewStoryboardService(
+		database,
+		directorySource,
+		cachePublisher,
+		cacheManager,
+		videoProcessor,
+		thumbnail.ServiceOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct storyboard service: %w", err)
+	}
 	thumbnailDelivery, err := thumbnail.NewDeliveryService(
 		database, cachePublisher, mediaSignal,
 	)
@@ -219,7 +236,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct thumbnail delivery service: %w", err)
 	}
 	mediaProcessor, err := thumbnail.NewClaimedProcessor(
-		thumbnailService, database,
+		thumbnailService, storyboardService, database,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("construct claimed media processor: %w", err)

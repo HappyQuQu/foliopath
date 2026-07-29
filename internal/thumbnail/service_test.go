@@ -13,10 +13,12 @@ import (
 )
 
 type repositoryStub struct {
-	asset     Asset
-	ready     *Ready
-	failure   *Failure
-	commitErr error
+	asset             Asset
+	ready             *Ready
+	failure           *Failure
+	storyboardReady   *StoryboardReady
+	storyboardFailure *StoryboardFailure
+	commitErr         error
 }
 
 func (stub *repositoryStub) GetAssetForDerivation(context.Context, int64) (Asset, error) {
@@ -30,6 +32,22 @@ func (stub *repositoryStub) CommitReady(_ context.Context, ready Ready) error {
 
 func (stub *repositoryStub) CommitFailure(_ context.Context, failure Failure) error {
 	stub.failure = &failure
+	return stub.commitErr
+}
+
+func (stub *repositoryStub) CommitStoryboardReady(
+	_ context.Context,
+	ready StoryboardReady,
+) error {
+	stub.storyboardReady = &ready
+	return stub.commitErr
+}
+
+func (stub *repositoryStub) CommitStoryboardFailure(
+	_ context.Context,
+	failure StoryboardFailure,
+) error {
+	stub.storyboardFailure = &failure
 	return stub.commitErr
 }
 
@@ -47,6 +65,24 @@ type processorStub struct {
 	err    error
 	calls  int
 	run    func(context.Context) (media.ProcessingResult, error)
+}
+
+type storyboardProcessorStub struct {
+	result  media.StoryboardResult
+	request media.StoryboardRequest
+	err     error
+	calls   int
+}
+
+func (stub *storyboardProcessorStub) Storyboard(
+	_ context.Context,
+	_ io.ReadSeeker,
+	_ media.Format,
+	request media.StoryboardRequest,
+) (media.StoryboardResult, error) {
+	stub.calls++
+	stub.request = request
+	return stub.result, stub.err
 }
 
 func (stub *processorStub) Process(
@@ -158,6 +194,127 @@ func TestServicePublishesThenCommitsFingerprintBoundResult(t *testing.T) {
 		repository.failure != nil {
 		t.Fatalf("calls/result = image %d video %d publisher %d ready %#v failure %#v",
 			image.calls, video.calls, publisher.calls, repository.ready, repository.failure)
+	}
+}
+
+func TestStoryboardServicePublishesAllFramesAndCommitsLayout(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, err := media.NewSourceFingerprint(6, mtime.UnixNano())
+	if err != nil {
+		t.Fatal(err)
+	}
+	duration := int64(10_000)
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, LibraryRoot: "family",
+		RelativePath: "clip.mp4", Kind: media.KindVideo,
+		Format: media.FormatMP4, SourceFingerprint: fingerprint,
+		Width: 1920, Height: 1080, DurationMS: &duration,
+		ProbeStatus: media.ProbeReady, GridReady: true,
+	}}
+	source := sourceStub{file: sourceFileStub{
+		Reader: bytes.NewReader([]byte("source")),
+		info:   fileInfoStub{size: 6, mtime: mtime},
+	}}
+	result := media.StoryboardResult{
+		Bytes:      []byte("RIFF\x04\x00\x00\x00WEBP"),
+		FrameCount: 10,
+		Columns:    5,
+		Rows:       2,
+		CellWidth:  320,
+		CellHeight: 180,
+	}
+	processor := &storyboardProcessorStub{result: result}
+	derivation, err := StoryboardDerivation(7, 9, fingerprint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cachePath, err := derivation.CacheRelativePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	publisher := &publisherStub{
+		published: Published{CacheRelativePath: cachePath},
+	}
+	capacity := &capacityStub{}
+	service, err := NewStoryboardService(
+		repository,
+		source,
+		publisher,
+		capacity,
+		processor,
+		ServiceOptions{Now: func() time.Time { return time.UnixMilli(1000) }},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(context.Background(), 9); err != nil {
+		t.Fatal(err)
+	}
+	if processor.calls != 1 ||
+		len(processor.request.TimestampsMS) != 10 ||
+		publisher.calls != 1 ||
+		capacity.reserved != int64(len(result.Bytes)) ||
+		repository.storyboardReady == nil ||
+		repository.storyboardReady.CreatedAtMS != 1000 ||
+		repository.storyboardFailure != nil {
+		t.Fatalf(
+			"storyboard calls/result = processor %d publisher %d ready %#v failure %#v",
+			processor.calls,
+			publisher.calls,
+			repository.storyboardReady,
+			repository.storyboardFailure,
+		)
+	}
+}
+
+func TestStoryboardServiceRejectsIneligibleAndPersistsProcessingFailure(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	duration := int64(10_000)
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, Kind: media.KindVideo, Format: media.FormatMP4,
+		SourceFingerprint: fingerprint, Width: 1920, Height: 1080,
+		DurationMS: &duration, ProbeStatus: media.ProbeReady,
+	}}
+	processor := &storyboardProcessorStub{err: media.ErrInvalidMedia}
+	service, err := NewStoryboardService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader([]byte("source")),
+			info:   fileInfoStub{size: 6, mtime: mtime},
+		}},
+		&publisherStub{},
+		&capacityStub{},
+		processor,
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(
+		context.Background(),
+		9,
+	); !errors.Is(err, ErrStoryboardNotEligible) {
+		t.Fatalf("ineligible error = %v", err)
+	}
+	if processor.calls != 0 || repository.storyboardFailure != nil {
+		t.Fatalf(
+			"ineligible processing = %d/%#v",
+			processor.calls,
+			repository.storyboardFailure,
+		)
+	}
+
+	repository.asset.GridReady = true
+	if err := service.Process(
+		context.Background(),
+		9,
+	); !errors.Is(err, media.ErrInvalidMedia) {
+		t.Fatalf("processing error = %v", err)
+	}
+	if repository.storyboardFailure == nil ||
+		repository.storyboardFailure.Code != media.ErrorInvalidMedia {
+		t.Fatalf("storyboard failure = %#v", repository.storyboardFailure)
 	}
 }
 

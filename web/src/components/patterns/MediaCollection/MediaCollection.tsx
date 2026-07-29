@@ -293,8 +293,13 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
         <div className={styles.paginationError}>
           <InlineStatus tone="danger">{labels.loadMoreFailed}</InlineStatus>
           {onRetryLoadMore && (
-            <Button onClick={onRetryLoadMore} size="small" variant="secondary">
-              {labels.retryLoadMore}
+            <Button
+              loading={isFetchingNextPage}
+              onClick={onRetryLoadMore}
+              size="small"
+              variant="secondary"
+            >
+              {isFetchingNextPage ? labels.loadingMore : labels.retryLoadMore}
             </Button>
           )}
         </div>

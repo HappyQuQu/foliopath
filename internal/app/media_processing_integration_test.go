@@ -67,7 +67,22 @@ func TestMediaWorkerLifecycleClaimsAndCompletesDurableJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	processor, err := thumbnail.NewClaimedProcessor(service, database)
+	storyboardService, err := thumbnail.NewStoryboardService(
+		database,
+		source,
+		publisher,
+		cacheManager,
+		processingStub{},
+		thumbnail.ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	processor, err := thumbnail.NewClaimedProcessor(
+		service,
+		storyboardService,
+		database,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,6 +151,15 @@ func (stub processingStub) Process(
 	media.Format,
 ) (media.ProcessingResult, error) {
 	return stub.result, nil
+}
+
+func (stub processingStub) Storyboard(
+	context.Context,
+	io.ReadSeeker,
+	media.Format,
+	media.StoryboardRequest,
+) (media.StoryboardResult, error) {
+	return media.StoryboardResult{}, media.ErrProcessingFailed
 }
 
 func TestMediaDerivationCompositionPreservesOriginalAndPublishesBeforeReady(t *testing.T) {

@@ -9,5 +9,11 @@
 - [MVP-2026-07-23 当前 RC readiness 快照](MVP-2026-07-23-rc-readiness.json)：
   聚合 Stage 5 前置 Gate 与发布阻断风险；不改变冻结 scope。
 
+已确认但尚未冻结为版本 manifest 的后续能力：
+
+- [`POST-MVP-1` scope revision 1](POST-MVP-1-scope.md)：冻结
+  [FTR-VID-001 视频故事板悬停预览](../features/video-storyboard-preview.md)；
+  `VSP-S0 Architecture Ready` 已 Go，`VSP-S1 Contract Ready` 尚未完成。
+
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。

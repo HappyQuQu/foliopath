@@ -82,7 +82,7 @@ lib/api ────────► lib/api/generated
 
 ### 三种组件所有权
 
-1. **UI 原语**由 `components/` 唯一拥有，例如 Button、IconButton、Field、
+1. **UI 原语**由 `components/` 唯一拥有，例如 BrandMark、Button、IconButton、Field、
    Dialog、Sheet、Menu、Tooltip、Banner、Toast、Spinner、Skeleton 和焦点管理。
 2. **通用交互模式**由 `components/` 中明确命名的模式模块唯一拥有，例如确认
    流程、异步内容状态、分页集合壳、虚拟列表壳和响应式面板。它们不包含业务
@@ -115,6 +115,8 @@ lib/api ────────► lib/api/generated
   adapter；不得在组件中散落格式化实现。
 - 项目选择图标来源后只使用一个规范图标集合；无文字 IconButton 必须由组件
   API 强制要求可访问名称。
+- 品牌图形只由 `components/ui/BrandMark` 和统一目录树 SVG 拥有；应用壳、
+  公共布局和 feature 只消费该组件，不复制 path、重新着色或用通用图片图标替代。
 
 在选择原生控件或第三方无样式原语库时，只能确定一套基础方案。引入第二套
 Dialog、Menu、Popover 或 Toast 基础库属于架构变化，必须先评审其体积、
@@ -261,7 +263,7 @@ Story 使用契约 fixture，不访问真实 `/library` 或线上服务。Storyb
 视觉回归只覆盖稳定且高价值的 Storybook 场景和应用壳，不对随机媒体内容或所有
 动态帧做脆弱全页截图：
 
-- Button、Field、Dialog/Sheet、Banner、Toast、集合状态和媒体卡片；
+- BrandMark、Button、Field、Dialog/Sheet、Banner、Toast、集合状态和媒体卡片；
 - 浅/深主题，中文/英文，移动/桌面关键断点；
 - 加载、空、错误、离线和焦点可见状态。
 

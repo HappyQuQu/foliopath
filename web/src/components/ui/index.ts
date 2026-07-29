@@ -7,6 +7,7 @@ export {
 export { BrandMark, type BrandMarkSize } from "./BrandMark/BrandMark";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button/Button";
 export { IconButton, type IconButtonProps } from "./Button/IconButton";
+export { IconLink, type IconLinkProps } from "./Button/IconLink";
 export { Dialog, DialogCloseButton, type DialogProps } from "./Dialog/Dialog";
 export { FormField, type FormFieldProps } from "./FormField/FormField";
 export { Input, type InputProps } from "./FormField/Input";
@@ -16,6 +17,7 @@ export {
   type InlineStatusTone,
 } from "./InlineStatus/InlineStatus";
 export { LocaleSelect } from "./LocaleSelect/LocaleSelect";
+export { PanelResizer } from "./PanelResizer/PanelResizer";
 export { SearchInput, type SearchInputProps } from "./SearchInput/SearchInput";
 export { ThemeToggle } from "./ThemeToggle/ThemeToggle";
 export {

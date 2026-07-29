@@ -8,43 +8,14 @@
   height: calc(100dvh - var(--size-header) * 2);
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
   border-left: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
   box-shadow: none;
 }
 
-.preview[data-resizing] {
-  user-select: none;
-}
-
 .resizer {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  bottom: 0;
-  left: -0.3125rem;
-  width: 0.625rem;
-  cursor: col-resize;
-  touch-action: none;
-}
-
-.resizer span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0.1875rem;
-  height: 3rem;
-  border-radius: var(--radius-round);
-  background: var(--color-border-strong);
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity var(--motion-fast) var(--ease-standard);
-}
-
-.resizer:hover span,
-.resizer:focus-visible span,
-.preview[data-resizing] .resizer span {
-  opacity: 1;
+  height: 100%;
 }
 
 .header {
@@ -72,6 +43,7 @@
   padding-inline: var(--space-3);
   border-radius: var(--radius-round);
   font-size: var(--font-size-1);
+  white-space: nowrap;
 }
 
 .pinButton[data-pinned] {
@@ -104,9 +76,9 @@
 }
 
 .navigation {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-top: var(--border-width) solid var(--color-border);
@@ -114,19 +86,26 @@
 }
 
 .navGroup {
-  display: flex;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(4.75rem, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
+}
+
+.navGroup button,
+.openViewer {
+  white-space: nowrap;
 }
 
 .navGroup > span {
   color: var(--color-text-muted);
   text-align: center;
   font-size: var(--font-size-2);
+  white-space: nowrap;
 }
 
 .openViewer {
-  margin-left: auto;
   color: var(--color-accent);
 }
 
@@ -140,6 +119,7 @@
 .details {
   min-height: 0;
   display: grid;
+  align-content: start;
   flex: 1;
   gap: var(--space-3);
   max-height: none;
@@ -224,6 +204,17 @@
   white-space: nowrap;
   text-align: right;
   font-size: var(--font-size-2);
+}
+
+@container (max-width: 30rem) {
+  .navigation {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .openViewer {
+    width: 100%;
+  }
 }
 
 @media (max-width: 64rem) {

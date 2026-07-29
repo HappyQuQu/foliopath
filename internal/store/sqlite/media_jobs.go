@@ -12,12 +12,97 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
+const MaxStoryboardAdmissionBatch = 128
+
+func (s *Store) AdmitStoryboardJobs(
+	ctx context.Context,
+	limit int,
+) (int64, error) {
+	if limit < 1 || limit > MaxStoryboardAdmissionBatch {
+		return 0, thumbnail.ErrInvalidJob
+	}
+	var admitted int64
+	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+            INSERT OR IGNORE INTO media_jobs(
+                library_id, asset_id, variant, priority, transform_version,
+                source_fingerprint, status, available_at_ms, attempt_count,
+                created_at_ms
+            )
+            SELECT
+                asset.library_id, asset.id, 'storyboard', 100, ?,
+                asset.source_fingerprint, 'queued', ?, 0, ?
+            FROM assets AS asset
+            JOIN thumbnails AS grid
+              ON grid.asset_id = asset.id
+             AND grid.variant = 'grid'
+             AND grid.status = 'ready'
+             AND grid.source_fingerprint = asset.source_fingerprint
+            WHERE asset.kind = 'video'
+              AND asset.probe_status = 'ready'
+              AND asset.duration_ms >= ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM media_jobs AS existing
+                  WHERE existing.asset_id = asset.id
+                    AND existing.variant = 'storyboard'
+              )
+            ORDER BY asset.id
+            LIMIT ?`,
+			thumbnail.StoryboardTransformVersion,
+			s.nowMS(),
+			s.nowMS(),
+			thumbnail.StoryboardMinimumDurationMS,
+			limit,
+		)
+		if err != nil {
+			return fmt.Errorf("admit storyboard jobs: %w", err)
+		}
+		admitted, err = result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect storyboard admission: %w", err)
+		}
+		return nil
+	})
+	return admitted, err
+}
+
 func (s *Store) ReconcileMediaJobTransform(
 	ctx context.Context,
 	transformVersion int,
 	limit int,
 ) (int64, error) {
+	return s.reconcileMediaJobTransform(
+		ctx,
+		thumbnail.VariantGrid,
+		transformVersion,
+		limit,
+	)
+}
+
+func (s *Store) ReconcileStoryboardJobTransform(
+	ctx context.Context,
+	transformVersion int,
+	limit int,
+) (int64, error) {
+	return s.reconcileMediaJobTransform(
+		ctx,
+		thumbnail.VariantStoryboard,
+		transformVersion,
+		limit,
+	)
+}
+
+func (s *Store) reconcileMediaJobTransform(
+	ctx context.Context,
+	variant thumbnail.Variant,
+	transformVersion int,
+	limit int,
+) (int64, error) {
 	if transformVersion <= 0 || limit < 1 || limit > 256 {
+		return 0, thumbnail.ErrInvalidJob
+	}
+	if variant != thumbnail.VariantGrid &&
+		variant != thumbnail.VariantStoryboard {
 		return 0, thumbnail.ErrInvalidJob
 	}
 	var changed int64
@@ -30,42 +115,53 @@ func (s *Store) ReconcileMediaJobTransform(
             SELECT thumbnail.library_id, thumbnail.cache_rel_path,
                    thumbnail.byte_size, ?
             FROM thumbnails AS thumbnail
-            JOIN media_jobs AS job ON job.asset_id = thumbnail.asset_id
-            WHERE job.transform_version <> ?
+            JOIN media_jobs AS job
+              ON job.asset_id = thumbnail.asset_id
+             AND job.variant = thumbnail.variant
+            WHERE job.variant = ?
+              AND job.transform_version <> ?
               AND thumbnail.status = 'ready'
               AND job.id IN (
                   SELECT id FROM media_jobs
-                  WHERE transform_version <> ?
+                  WHERE variant = ? AND transform_version <> ?
                   ORDER BY id LIMIT ?
               )`,
-			now, transformVersion, transformVersion, limit,
+			now,
+			string(variant),
+			transformVersion,
+			string(variant),
+			transformVersion,
+			limit,
 		); err != nil {
 			return fmt.Errorf("schedule old transform cache cleanup: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `
             DELETE FROM thumbnails
-            WHERE asset_id IN (
+            WHERE variant = ?
+              AND asset_id IN (
                 SELECT asset_id FROM media_jobs
-                WHERE transform_version <> ?
+                WHERE variant = ? AND transform_version <> ?
                 ORDER BY id LIMIT ?
             )`,
-			transformVersion, limit,
+			string(variant), string(variant), transformVersion, limit,
 		); err != nil {
 			return fmt.Errorf("invalidate old thumbnail transform: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `
-            UPDATE assets
-            SET width = NULL, height = NULL, duration_ms = NULL,
-                probe_status = 'pending', probe_error_code = NULL,
-                playback_status = 'unknown'
-            WHERE id IN (
-                SELECT asset_id FROM media_jobs
-                WHERE transform_version <> ?
-                ORDER BY id LIMIT ?
-            )`,
-			transformVersion, limit,
-		); err != nil {
-			return fmt.Errorf("reset old media transform metadata: %w", err)
+		if variant == thumbnail.VariantGrid {
+			if _, err := tx.ExecContext(ctx, `
+                UPDATE assets
+                SET width = NULL, height = NULL, duration_ms = NULL,
+                    probe_status = 'pending', probe_error_code = NULL,
+                    playback_status = 'unknown'
+                WHERE id IN (
+                    SELECT asset_id FROM media_jobs
+                    WHERE variant = ? AND transform_version <> ?
+                    ORDER BY id LIMIT ?
+                )`,
+				string(variant), transformVersion, limit,
+			); err != nil {
+				return fmt.Errorf("reset old media transform metadata: %w", err)
+			}
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE media_jobs
@@ -76,10 +172,15 @@ func (s *Store) ReconcileMediaJobTransform(
                 created_at_ms = ?, finished_at_ms = NULL
             WHERE id IN (
                 SELECT id FROM media_jobs
-                WHERE transform_version <> ?
+                WHERE variant = ? AND transform_version <> ?
                 ORDER BY id LIMIT ?
             )`,
-			transformVersion, now, now, transformVersion, limit,
+			transformVersion,
+			now,
+			now,
+			string(variant),
+			transformVersion,
+			limit,
 		)
 		if err != nil {
 			return fmt.Errorf("requeue old media transform: %w", err)
@@ -105,19 +206,44 @@ func (s *Store) ClaimNextMediaJob(
 	var found bool
 	err = s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		now := s.nowMS()
-		var fingerprint string
+		var fingerprint, variant string
 		err := tx.QueryRowContext(ctx, `
-            WITH per_library AS (
-                SELECT library_id, MIN(id) AS job_id
+            WITH eligible_priority AS (
+                SELECT MIN(priority) AS priority
                 FROM media_jobs
                 WHERE status = 'queued' AND available_at_ms <= ?
-                GROUP BY library_id
+                  AND (
+                      priority = 0
+                      OR NOT EXISTS (
+                          SELECT 1 FROM media_jobs AS active_storyboard
+                          WHERE active_storyboard.status = 'running'
+                            AND active_storyboard.priority = 100
+                      )
+                  )
+            ),
+            per_library AS (
+                SELECT jobs.library_id, jobs.priority, MIN(jobs.id) AS job_id
+                FROM media_jobs AS jobs
+                JOIN eligible_priority
+                  ON eligible_priority.priority = jobs.priority
+                WHERE jobs.status = 'queued' AND jobs.available_at_ms <= ?
+                  AND (
+                      jobs.priority = 0
+                      OR NOT EXISTS (
+                          SELECT 1 FROM media_jobs AS active_storyboard
+                          WHERE active_storyboard.status = 'running'
+                            AND active_storyboard.priority = 100
+                      )
+                  )
+                GROUP BY jobs.library_id, jobs.priority
             ),
             candidate AS (
                 SELECT per_library.job_id
-                FROM per_library
+                FROM media_jobs
+                JOIN per_library ON per_library.job_id = media_jobs.id
                 LEFT JOIN media_job_library_state AS fairness
                     ON fairness.library_id = per_library.library_id
+                   AND fairness.priority = per_library.priority
                 ORDER BY COALESCE(fairness.last_claim_sequence, 0),
                          per_library.job_id
                 LIMIT 1
@@ -132,12 +258,12 @@ func (s *Store) ClaimNextMediaJob(
                 finished_at_ms = NULL
             WHERE id = (SELECT job_id FROM candidate)
               AND status = 'queued'
-            RETURNING id, library_id, asset_id, transform_version,
+            RETURNING id, library_id, asset_id, variant, transform_version,
                       source_fingerprint, attempt_count`,
-			now, now, now, now+leaseMS,
+			now, now, now, now, now+leaseMS,
 		).Scan(
 			&claimed.ID, &claimed.LibraryID, &claimed.AssetID,
-			&claimed.TransformVersion,
+			&variant, &claimed.TransformVersion,
 			&fingerprint, &claimed.Attempt,
 		)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -146,9 +272,12 @@ func (s *Store) ClaimNextMediaJob(
 		if err != nil {
 			return fmt.Errorf("claim media job: %w", err)
 		}
+		claimed.Variant = thumbnail.Variant(variant)
 		claimed.SourceFingerprint = media.SourceFingerprint(fingerprint)
 		if !claimed.SourceFingerprint.Valid() ||
 			claimed.ID <= 0 || claimed.LibraryID <= 0 || claimed.AssetID <= 0 ||
+			(claimed.Variant != thumbnail.VariantGrid &&
+				claimed.Variant != thumbnail.VariantStoryboard) ||
 			claimed.TransformVersion <= 0 ||
 			claimed.Attempt < 1 || claimed.Attempt > thumbnail.MaxJobAttempts {
 			return errors.New("claimed media job is invalid")
@@ -163,11 +292,15 @@ func (s *Store) ClaimNextMediaJob(
 			return fmt.Errorf("allocate media fairness sequence: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `
-            INSERT INTO media_job_library_state(library_id, last_claim_sequence)
-            VALUES (?, ?)
-            ON CONFLICT(library_id) DO UPDATE SET
+            INSERT INTO media_job_library_state(
+                library_id, priority, last_claim_sequence
+            )
+            SELECT library_id, priority, ?
+            FROM media_jobs
+            WHERE id = ?
+            ON CONFLICT(library_id, priority) DO UPDATE SET
                 last_claim_sequence = excluded.last_claim_sequence`,
-			claimed.LibraryID, claimSequence,
+			claimSequence, claimed.ID,
 		); err != nil {
 			return fmt.Errorf("advance media job fairness: %w", err)
 		}
@@ -216,9 +349,9 @@ func (s *Store) RecoverExpiredMediaJobs(
 		now := s.nowMS()
 		for recovered := 0; recovered < thumbnail.MediaWorkerCount; recovered++ {
 			var job thumbnail.Job
-			var fingerprint string
+			var fingerprint, variant string
 			err := tx.QueryRowContext(ctx, `
-                SELECT id, library_id, asset_id, transform_version,
+                SELECT id, library_id, asset_id, variant, transform_version,
                        source_fingerprint, attempt_count
                 FROM media_jobs
                 WHERE status = 'running' AND lease_expires_at_ms <= ?
@@ -227,7 +360,7 @@ func (s *Store) RecoverExpiredMediaJobs(
 				now,
 			).Scan(
 				&job.ID, &job.LibraryID, &job.AssetID,
-				&job.TransformVersion,
+				&variant, &job.TransformVersion,
 				&fingerprint, &job.Attempt,
 			)
 			if errors.Is(err, sql.ErrNoRows) {
@@ -236,6 +369,7 @@ func (s *Store) RecoverExpiredMediaJobs(
 			if err != nil {
 				return fmt.Errorf("find expired media job: %w", err)
 			}
+			job.Variant = thumbnail.Variant(variant)
 			job.SourceFingerprint = media.SourceFingerprint(fingerprint)
 			if job.Attempt < thumbnail.MaxJobAttempts {
 				if _, err := tx.ExecContext(ctx, `
@@ -282,6 +416,8 @@ func (s *Store) FinishMediaJob(
 	result thumbnail.JobResult,
 ) error {
 	if job.ID <= 0 || job.AssetID <= 0 || job.TransformVersion <= 0 ||
+		(job.Variant != thumbnail.VariantGrid &&
+			job.Variant != thumbnail.VariantStoryboard) ||
 		!job.SourceFingerprint.Valid() ||
 		job.Attempt < 1 || job.Attempt > thumbnail.MaxJobAttempts {
 		return thumbnail.ErrInvalidJob
@@ -380,6 +516,34 @@ func failMediaJobTx(
 	processingCode := media.ErrorProcessingFailed
 	if code == thumbnail.JobErrorTimeout {
 		processingCode = media.ErrorProcessingTimed
+	}
+	if job.Variant == thumbnail.VariantStoryboard {
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO thumbnails(
+                library_id, asset_id, variant, source_fingerprint,
+                transform_version, status, error_code
+            )
+            SELECT library_id, id, 'storyboard', source_fingerprint,
+                   ?, 'failed', ?
+            FROM assets
+            WHERE id = ? AND source_fingerprint = ?
+            ON CONFLICT(asset_id, variant) DO UPDATE SET
+                source_fingerprint = excluded.source_fingerprint,
+                transform_version = excluded.transform_version,
+                cache_rel_path = NULL, status = 'failed',
+                error_code = excluded.error_code,
+                width = NULL, height = NULL, byte_size = NULL,
+                created_at_ms = NULL, last_accessed_at_ms = NULL,
+                frame_count = NULL, sprite_columns = NULL, sprite_rows = NULL,
+                cell_width = NULL, cell_height = NULL`,
+			job.TransformVersion,
+			string(processingCode),
+			job.AssetID,
+			job.SourceFingerprint.String(),
+		); err != nil {
+			return fmt.Errorf("mark exhausted storyboard failed: %w", err)
+		}
+		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `
         UPDATE assets

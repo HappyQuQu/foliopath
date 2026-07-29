@@ -301,10 +301,18 @@ func (s *Store) ListAssetPage(
                a.size_bytes, a.mtime_ns, a.source_fingerprint,
                a.width, a.height, a.duration_ms, a.probe_status,
                a.probe_error_code, a.playback_status,
-               t.status, t.error_code, l.status
+               t.status, t.error_code,
+               storyboard.status, storyboard.error_code,
+               storyboard.frame_count, storyboard.sprite_columns,
+               storyboard.sprite_rows, storyboard.cell_width,
+               storyboard.cell_height,
+               l.status
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
-        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'`)
+        LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
+        LEFT JOIN thumbnails storyboard
+          ON storyboard.asset_id = a.id
+         AND storyboard.variant = 'storyboard'`)
 	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" {
 		builder.WriteString(`
         JOIN asset_search ON asset_search.rowid = a.id
@@ -375,7 +383,10 @@ func (s *Store) ListAssetPage(
 		var item catalog.Asset
 		var kind, probeStatus, playbackStatus, libraryStatus string
 		var width, height, durationMS sql.NullInt64
+		var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
+		var storyboardCellWidth, storyboardCellHeight sql.NullInt64
 		var probeError, thumbnailStatus, thumbnailError sql.NullString
+		var storyboardStatus, storyboardError sql.NullString
 		if err := rows.Scan(
 			&item.ID, &item.LibraryID, &item.LibraryName,
 			&item.DirectoryID, &item.RelativePath,
@@ -383,7 +394,11 @@ func (s *Store) ListAssetPage(
 			&item.MIMEType, &item.SizeBytes, &item.ModifiedAtNS,
 			&item.SourceFingerprint, &width, &height, &durationMS,
 			&probeStatus, &probeError, &playbackStatus,
-			&thumbnailStatus, &thumbnailError, &libraryStatus,
+			&thumbnailStatus, &thumbnailError,
+			&storyboardStatus, &storyboardError,
+			&storyboardFrameCount, &storyboardColumns, &storyboardRows,
+			&storyboardCellWidth, &storyboardCellHeight,
+			&libraryStatus,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog asset: %w", err)
 		}
@@ -416,6 +431,16 @@ func (s *Store) ListAssetPage(
 			value := media.ProcessingErrorCode(thumbnailError.String)
 			item.ThumbnailErrorCode = &value
 		}
+		applyStoryboardCatalogState(
+			&item,
+			storyboardStatus,
+			storyboardError,
+			storyboardFrameCount,
+			storyboardColumns,
+			storyboardRows,
+			storyboardCellWidth,
+			storyboardCellHeight,
+		)
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -447,17 +472,28 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 	var item catalog.Asset
 	var kind, probeStatus, playbackStatus, libraryStatus string
 	var width, height, durationMS sql.NullInt64
+	var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
+	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
 	var probeError, thumbnailStatus, thumbnailError sql.NullString
+	var storyboardStatus, storyboardError sql.NullString
 	err := s.db.QueryRowContext(ctx, `
         SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
                a.natural_name_key, a.kind, a.media_format, a.mime_type,
                a.size_bytes, a.mtime_ns, a.source_fingerprint,
                a.width, a.height, a.duration_ms, a.probe_status,
                a.probe_error_code, a.playback_status,
-               t.status, t.error_code, l.status
+               t.status, t.error_code,
+               storyboard.status, storyboard.error_code,
+               storyboard.frame_count, storyboard.sprite_columns,
+               storyboard.sprite_rows, storyboard.cell_width,
+               storyboard.cell_height,
+               l.status
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
+        LEFT JOIN thumbnails storyboard
+          ON storyboard.asset_id = a.id
+         AND storyboard.variant = 'storyboard'
         WHERE a.id = ?`,
 		assetID,
 	).Scan(
@@ -466,7 +502,11 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 		&item.NaturalNameKey, &kind, &item.MediaFormat, &item.MIMEType,
 		&item.SizeBytes, &item.ModifiedAtNS, &item.SourceFingerprint,
 		&width, &height, &durationMS, &probeStatus, &probeError,
-		&playbackStatus, &thumbnailStatus, &thumbnailError, &libraryStatus,
+		&playbackStatus, &thumbnailStatus, &thumbnailError,
+		&storyboardStatus, &storyboardError,
+		&storyboardFrameCount, &storyboardColumns, &storyboardRows,
+		&storyboardCellWidth, &storyboardCellHeight,
+		&libraryStatus,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return catalog.Asset{}, catalog.ErrAssetNotFound
@@ -502,7 +542,47 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 		value := media.ProcessingErrorCode(thumbnailError.String)
 		item.ThumbnailErrorCode = &value
 	}
+	applyStoryboardCatalogState(
+		&item,
+		storyboardStatus,
+		storyboardError,
+		storyboardFrameCount,
+		storyboardColumns,
+		storyboardRows,
+		storyboardCellWidth,
+		storyboardCellHeight,
+	)
 	return item, nil
+}
+
+func applyStoryboardCatalogState(
+	item *catalog.Asset,
+	status, errorCode sql.NullString,
+	frameCount, columns, rows, cellWidth, cellHeight sql.NullInt64,
+) {
+	item.StoryboardStatus = "pending"
+	if status.Valid {
+		item.StoryboardStatus = status.String
+	}
+	if errorCode.Valid {
+		value := media.ProcessingErrorCode(errorCode.String)
+		item.StoryboardErrorCode = &value
+	}
+	if frameCount.Valid {
+		item.StoryboardFrameCount = &frameCount.Int64
+	}
+	if columns.Valid {
+		item.StoryboardColumns = &columns.Int64
+	}
+	if rows.Valid {
+		item.StoryboardRows = &rows.Int64
+	}
+	if cellWidth.Valid {
+		item.StoryboardCellWidth = &cellWidth.Int64
+	}
+	if cellHeight.Valid {
+		item.StoryboardCellHeight = &cellHeight.Int64
+	}
 }
 
 func appendAssetKeyset(

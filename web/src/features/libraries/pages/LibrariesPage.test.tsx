@@ -47,13 +47,16 @@ beforeEach(() => {
   });
 });
 
-it("enables global and per-library browse navigation after indexing", async () => {
+it("uses the library action as the only browse navigation after indexing", async () => {
   const user = userEvent.setup();
   renderLibraries();
 
-  const browseLinks = await screen.findAllByRole("link", { name: "浏览" });
-  expect(browseLinks).toHaveLength(1);
-  expect(browseLinks[0]).toHaveAttribute("href", "/libraries/lib_1/browse");
+  expect(await screen.findByRole("button", { name: "浏览" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "浏览" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "返回浏览" })).toHaveAttribute(
+    "href",
+    "/",
+  );
 
   await user.click(screen.getByRole("button", { name: "浏览" }));
   expect(screen.getByTestId("location")).toHaveTextContent(

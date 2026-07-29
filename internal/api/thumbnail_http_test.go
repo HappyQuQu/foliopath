@@ -15,12 +15,17 @@ import (
 type thumbnailServiceStub struct {
 	delivery thumbnail.Delivery
 	err      error
+	seen     *thumbnail.Variant
 }
 
 func (stub thumbnailServiceStub) Get(
-	context.Context,
-	int64,
+	_ context.Context,
+	_ int64,
+	variant thumbnail.Variant,
 ) (thumbnail.Delivery, error) {
+	if stub.seen != nil {
+		*stub.seen = variant
+	}
 	return stub.delivery, stub.err
 }
 
@@ -118,5 +123,32 @@ func TestThumbnailHTTPMapsPendingFailedOfflineAndInvalidQuery(t *testing.T) {
 				assertSafeErrorResponse(t, response, test.wantCode)
 			}
 		})
+	}
+}
+
+func TestThumbnailHTTPPassesStoryboardVariantToService(t *testing.T) {
+	var seen thumbnail.Variant
+	mux := http.NewServeMux()
+	registerThumbnailRoute(mux, thumbnailServiceStub{
+		delivery: thumbnail.Delivery{
+			Status: thumbnail.DeliveryQueued, RetryAfterMS: 1000,
+		},
+		seen: &seen,
+	})
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/assets/ast_7/thumbnail?variant=storyboard",
+		nil,
+	))
+	if response.Code != http.StatusAccepted ||
+		seen != thumbnail.VariantStoryboard ||
+		!bytes.Contains(response.Body.Bytes(), []byte(`"variant":"storyboard"`)) {
+		t.Fatalf(
+			"storyboard response = %d %q, variant %q",
+			response.Code,
+			response.Body,
+			seen,
+		)
 	}
 }

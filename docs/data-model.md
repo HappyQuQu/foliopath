@@ -95,6 +95,28 @@ migration 8 已实现该表和 ready/failed 状态约束；durable media job、L
 跨库公平领取游标；它不是任务事实来源。`cache_deletions` 保存 fingerprint 失效后必须
 幂等清理的相对缓存路径，绝不保存或删除原媒体路径。
 
+### Post-MVP `storyboard` 派生计划
+
+[FTR-VID-001](features/video-storyboard-preview.md)计划让 `thumbnails` 和 `media_jobs`
+支持 `variant=storyboard`。migration 8 与 9 当前都有 `CHECK (variant = 'grid')`，因此
+必须新增只向前 migration 重建受约束表，不得修改历史 migration。
+
+计划数据语义：
+
+- 保留 `(asset_id, variant)` 唯一身份、source fingerprint 和 transform version；
+- storyboard ready 状态保存实际
+  `frame_count/columns/rows/cell_width/cell_height`，grid 行不伪造这些值；
+- grid/poster claim 优先于 storyboard，同时维持现有跨库公平、lease、有限重试和取消；
+- 历史视频使用有界分批 admission，不在一个长事务或内存批次中创建全部任务；
+- storyboard 独立参与 LRU，淘汰它不影响 grid poster；
+- 文件发布、源变化 CAS、cache missing、library removal 和重启恢复继续沿用现有派生一致性。
+
+精确 schema、CHECK、claim tuple 与索引已由
+[`VSP-S1 Contract Ready`](gates/POST-MVP-1/vsp-s1-contract-ready.md)冻结，并由只向前
+`migrations/00011_video_storyboards.sql` 实现。fresh schema、migration 10 upgrade、旧 running
+lease 保留、安全 downgrade/fail-closed 与 `integrity_check` 已有自动测试；目标容量档仍属于
+`VSP-S2` 证据。
+
 ### `scan_runs`
 
 - `id`、`library_id`、`generation`。

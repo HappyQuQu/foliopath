@@ -4,6 +4,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
@@ -42,6 +43,8 @@ export function GeneralSettingsPage({
   session: AuthenticatedSession;
 }) {
   const { t } = useLocale();
+  const [searchParams] = useSearchParams();
+  const libraryId = searchParams.get("libraryId")?.trim() || undefined;
   const toast = useToast();
   const settingsQuery = useSettingsQuery();
   const { refetch: refreshSettings } = settingsQuery;
@@ -108,10 +111,16 @@ export function GeneralSettingsPage({
   return (
     <AppShell
       active="settings"
+      browseHref={libraryId ? paths.browse(libraryId) : paths.root}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
-      searchHref={paths.search}
-      settingsHref={paths.generalSettings}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
+      searchHref={libraryId ? paths.librarySearch(libraryId) : paths.search}
+      settingsHref={
+        libraryId
+          ? paths.generalSettingsForLibrary(libraryId)
+          : paths.generalSettings
+      }
       title={t("account.title")}
     >
       <div className={styles.main}>

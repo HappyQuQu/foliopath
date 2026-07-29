@@ -186,6 +186,12 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 
 共享 limiter 是进程级资源，不按 feature 私自复制。若多个步骤同时需要资源，先完成短数据库领取并释放事务，再申请较昂贵的文件/媒体资源；禁止持有 DB transaction 等待 worker slot，避免锁顺序反转和资源饥饿。
 
+`Post-MVP/1` 的 [FTR-VID-001](../features/video-storyboard-preview.md)沿用上述所有权：
+`internal/thumbnail` 拥有 storyboard variant、采样计划、派生键、发布和 LRU；
+`internal/media` adapter 只实现有界 seek/解码；`internal/jobs` 唯一拥有 grid 高于
+storyboard 的 claim 优先级和跨库公平；共享 `MediaCollection` 唯一拥有 hover 生命周期。
+这项计划不授权建立第二个媒体队列、独立 worker 服务或 feature-local MediaCard。
+
 ## 明确禁止项
 
 - 任何移动、重命名、编辑、覆盖或删除原始媒体的代码路径。

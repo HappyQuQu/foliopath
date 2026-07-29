@@ -14,7 +14,7 @@ import (
 )
 
 type ThumbnailService interface {
-	Get(context.Context, int64) (thumbnail.Delivery, error)
+	Get(context.Context, int64, thumbnail.Variant) (thumbnail.Delivery, error)
 }
 
 type thumbnailPendingResponse struct {
@@ -34,14 +34,15 @@ func registerThumbnailRoute(mux *http.ServeMux, service ThumbnailService) {
 			writeThumbnailError(writer, request, thumbnail.ErrAssetNotFound)
 			return
 		}
-		if err := validateThumbnailQuery(request.URL.RawQuery); err != nil {
+		variant, err := parseThumbnailVariant(request.URL.RawQuery)
+		if err != nil {
 			writePublicError(
 				writer, request, http.StatusBadRequest,
 				codeInvalidRequest, "The request is invalid.",
 			)
 			return
 		}
-		delivery, err := service.Get(request.Context(), assetID)
+		delivery, err := service.Get(request.Context(), assetID, variant)
 		if err != nil {
 			writeThumbnailError(writer, request, err)
 			return
@@ -51,7 +52,7 @@ func registerThumbnailRoute(mux *http.ServeMux, service ThumbnailService) {
 			seconds := (delivery.RetryAfterMS + 999) / 1000
 			writer.Header().Set("Retry-After", strconv.Itoa(seconds))
 			writeJSON(writer, http.StatusAccepted, thumbnailPendingResponse{
-				AssetID: assetIDString(assetID), Variant: "grid",
+				AssetID: assetIDString(assetID), Variant: string(variant),
 				Status: delivery.Status, RetryAfterMS: delivery.RetryAfterMS,
 			})
 		case thumbnail.DeliveryOffline:
@@ -70,17 +71,23 @@ func registerThumbnailRoute(mux *http.ServeMux, service ThumbnailService) {
 	})
 }
 
-func validateThumbnailQuery(raw string) error {
+func parseThumbnailVariant(raw string) (thumbnail.Variant, error) {
 	values, err := url.ParseQuery(raw)
 	if err != nil {
-		return err
+		return "", err
 	}
+	variant := thumbnail.VariantGrid
 	for key, entries := range values {
-		if key != "variant" || len(entries) != 1 || entries[0] != "grid" {
-			return errors.New("invalid thumbnail query")
+		if key != "variant" || len(entries) != 1 {
+			return "", errors.New("invalid thumbnail query")
 		}
+		variant = thumbnail.Variant(entries[0])
 	}
-	return nil
+	if variant != thumbnail.VariantGrid &&
+		variant != thumbnail.VariantStoryboard {
+		return "", errors.New("invalid thumbnail query")
+	}
+	return variant, nil
 }
 
 func writeReadyThumbnail(
@@ -150,6 +157,16 @@ func writeThumbnailStateError(
 func writeThumbnailError(writer http.ResponseWriter, request *http.Request, err error) {
 	if errors.Is(err, thumbnail.ErrAssetNotFound) {
 		writePublicError(writer, request, http.StatusNotFound, "asset_not_found", "The media item was not found.")
+		return
+	}
+	if errors.Is(err, thumbnail.ErrStoryboardNotEligible) {
+		writePublicError(
+			writer,
+			request,
+			http.StatusNotFound,
+			string(media.ErrorUnsupportedMedia),
+			"The thumbnail variant does not apply to this media item.",
+		)
 		return
 	}
 	writeInternalError(writer, request)

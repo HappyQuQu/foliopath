@@ -7,6 +7,8 @@ export type MediaLayoutPreference = "grid" | "masonry";
 interface Preferences {
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
+  previewWidth?: number;
+  sidebarWidth?: number;
   theme?: ThemePreference;
 }
 
@@ -57,4 +59,32 @@ export function writeMediaLayoutPreference(
   mediaLayout: MediaLayoutPreference,
 ): void {
   writePreferences({ ...readPreferences(), mediaLayout });
+}
+
+function readWidthPreference(
+  value: number | undefined,
+  fallback: number,
+): number {
+  return typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 160 &&
+    value <= 800
+    ? value
+    : fallback;
+}
+
+export function readSidebarWidthPreference(): number {
+  return readWidthPreference(readPreferences().sidebarWidth, 272);
+}
+
+export function writeSidebarWidthPreference(sidebarWidth: number): void {
+  writePreferences({ ...readPreferences(), sidebarWidth });
+}
+
+export function readPreviewWidthPreference(): number {
+  return readWidthPreference(readPreferences().previewWidth, 406);
+}
+
+export function writePreviewWidthPreference(previewWidth: number): void {
+  writePreferences({ ...readPreferences(), previewWidth });
 }

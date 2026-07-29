@@ -30,6 +30,7 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 	}
 	processor, err := New(Options{
 		FFmpegPath: ffmpeg, FFprobePath: ffprobe, Timeout: 10 * time.Second,
+		StoryboardTempRoot: filepath.Join(t.TempDir(), "storyboard"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +83,47 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ten-frame storyboard", func(t *testing.T) {
+		filename := filepath.Join(t.TempDir(), "storyboard.mp4")
+		command := exec.Command(
+			ffmpeg,
+			"-v", "error",
+			"-f", "lavfi",
+			"-i", "testsrc=size=96x64:rate=4",
+			"-t", "10",
+			"-pix_fmt", "yuv420p",
+			"-c:v", "libx264",
+			filename,
+		)
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("generate storyboard fixture: %v: %s", err, output)
+		}
+		source, err := os.Open(filename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer source.Close()
+		request := media.StoryboardRequest{
+			TimestampsMS: []int64{
+				909, 1818, 2727, 3636, 4545,
+				5454, 6363, 7272, 8181, 9090,
+			},
+			Columns: 5, Rows: 2, CellWidth: 96, CellHeight: 64,
+		}
+		result, err := processor.Storyboard(
+			context.Background(),
+			source,
+			media.FormatMP4,
+			request,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := media.ValidateStoryboardResult(request, result); err != nil {
+			t.Fatalf("storyboard result = %#v: %v", result, err)
+		}
+	})
 
 	corrupt := filepath.Join(t.TempDir(), "corrupt.mp4")
 	if err := os.WriteFile(corrupt, []byte("not a video"), 0o600); err != nil {

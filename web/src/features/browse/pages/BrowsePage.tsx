@@ -1,11 +1,11 @@
 import {
   CaretDown,
   CaretRight,
+  Check,
   CheckSquare,
   CircleNotch,
   Columns,
   Folder,
-  Funnel,
   GridFour,
   House,
   ImageSquare,
@@ -62,6 +62,7 @@ import {
   mediaAvailabilityPresentation,
   mediaPosterUrl,
 } from "../../../lib/media/availability";
+import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
   readMediaLayoutPreference,
   writeMediaLayoutPreference,
@@ -84,6 +85,7 @@ import {
 import {
   browseUrl,
   defaultBrowseUrlState,
+  kindsForBrowse,
   parseBrowseUrlState,
   serializeBrowseUrlState,
   type BrowseUrlState,
@@ -93,10 +95,14 @@ import styles from "./BrowsePage.module.css";
 export function BrowsePage({
   directoryId,
   libraryId,
+  logoutPending,
+  onLogout,
   session,
 }: {
   directoryId?: string | undefined;
   libraryId: string;
+  logoutPending?: boolean;
+  onLogout?: () => Promise<void>;
   session: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
@@ -117,6 +123,7 @@ export function BrowsePage({
   const childrenQuery = useDirectoriesQuery({ libraryId, parentId: directoryId });
   const assetsQuery = useAssetsQuery({
     directoryId,
+    kinds: kindsForBrowse(browseState.kind),
     libraryId,
     order: browseState.order,
     recursive: browseState.recursive,
@@ -215,7 +222,6 @@ export function BrowsePage({
     directoryQuery.data?.name ?? currentLibrary?.name ?? t("browse.libraryFallback");
   const currentMediaCount =
     directoryQuery.data?.directAssetCount ?? currentLibrary?.assetCount ?? 0;
-  const browseHref = browseUrl(libraryId, directoryId, browseState);
   const canonicalSearch = serializeBrowseUrlState(browseState);
 
   useEffect(() => {
@@ -251,9 +257,9 @@ export function BrowsePage({
   return (
     <AppShell
       active="browse"
-      browseHref={browseHref}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
       searchHref={
         directoryId
           ? `${paths.librarySearch(libraryId)}?${new URLSearchParams({
@@ -262,8 +268,7 @@ export function BrowsePage({
             }).toString()}`
           : paths.librarySearch(libraryId)
       }
-      settingsHref={paths.generalSettings}
-      showIdentityLabel={false}
+      settingsHref={paths.generalSettingsForLibrary(libraryId)}
       sidebarContent={
         <DirectoryNavigation
           currentLibraryName={currentLibrary?.name}
@@ -315,7 +320,7 @@ export function BrowsePage({
             />
           </form>
           <IconButton
-            label={t("search.filters")}
+            label={t("shell.search")}
             onClick={() =>
               navigate(
                 `${paths.librarySearch(libraryId)}?${new URLSearchParams({
@@ -325,7 +330,7 @@ export function BrowsePage({
               )
             }
           >
-            <Funnel aria-hidden="true" size={19} />
+            <MagnifyingGlass aria-hidden="true" size={19} />
           </IconButton>
         </>
       }
@@ -481,19 +486,26 @@ export function BrowsePage({
                   {assetsQuery.isSuccess &&
                     assets.length === 0 &&
                     currentLibrary?.status !== "offline" && (
-                    <EmptyMedia
-                      browseState={browseState}
-                      directory={directoryQuery.data}
-                      onEnableRecursive={() =>
-                        updateBrowseState(defaultBrowseUrlState(true))
-                      }
-                    />
-                  )}
+                      <EmptyMedia
+                        browseState={browseState}
+                        directory={directoryQuery.data}
+                        onEnableRecursive={() =>
+                          updateBrowseState({
+                            ...defaultBrowseUrlState(true),
+                            kind: browseState.kind,
+                          })
+                        }
+                      />
+                    )}
                   {assets.length > 0 && (
                     <MediaCollection
                       ref={preview.collectionRef}
                       hasNextPage={assetsQuery.hasNextPage}
-                      isFetchingNextPage={assetsQuery.isFetchingNextPage}
+                      isFetchingNextPage={
+                        assetsQuery.isFetchingNextPage ||
+                        (assetsQuery.isFetchNextPageError &&
+                          assetsQuery.isRefetching)
+                      }
                       items={mediaItems}
                       labels={{
                         activatePreview: preview.pinned
@@ -516,7 +528,13 @@ export function BrowsePage({
                         preview.activate(assetId, activation)
                       }
                       onLoadMore={loadMoreAssets}
-                      onRetryLoadMore={() => void loadMoreAssets()}
+                      onRetryLoadMore={() =>
+                        void retryInfiniteNextPage({
+                          error: assetsQuery.error,
+                          loadNextPage: assetsQuery.fetchNextPage,
+                          refresh: assetsQuery.refetch,
+                        })
+                      }
                       paginationError={assetsQuery.isFetchNextPageError}
                       {...(previewAsset
                         ? { previewItemId: previewAsset.id }
@@ -607,42 +625,78 @@ function BrowseToolbar({
 }) {
   const { t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
-  const defaults = defaultBrowseUrlState(browseState.recursive);
+  const defaults = {
+    ...defaultBrowseUrlState(browseState.recursive),
+    ...(browseState.allMedia ? { allMedia: true as const } : {}),
+    kind: browseState.kind,
+  };
   const customSort =
     browseState.sort !== defaults.sort || browseState.order !== defaults.order;
 
   return (
     <div className={styles.toolbar} role="region" aria-label={t("browse.tools")}>
-      <Button
-        aria-pressed={browseState.recursive}
-        className={styles.recursiveToggle}
-        onClick={() =>
-          onChange(defaultBrowseUrlState(!browseState.recursive))
-        }
-        variant="secondary"
+      <div className={styles.viewControls}>
+        <Button
+          aria-pressed={browseState.recursive}
+          className={styles.recursiveToggle}
+          onClick={() =>
+            onChange({
+              ...defaultBrowseUrlState(!browseState.recursive),
+              kind: browseState.kind,
+            })
+          }
+          variant="quiet"
+        >
+          {browseState.recursive ? (
+            <CheckSquare aria-hidden="true" size={18} weight="fill" />
+          ) : (
+            <Square aria-hidden="true" size={18} />
+          )}
+          {t("browse.includeSubdirectories")}
+        </Button>
+        <span aria-hidden="true" className={styles.toolbarDivider} />
+        <div
+          className={styles.layoutControls}
+          role="group"
+          aria-label={t("browse.layout")}
+        >
+          <IconButton
+            label={t("browse.layoutGrid")}
+            onClick={() => onLayoutChange("grid")}
+            pressed={mediaLayout === "grid"}
+          >
+            <GridFour aria-hidden="true" size={18} />
+          </IconButton>
+          <IconButton
+            label={t("browse.layoutMasonry")}
+            onClick={() => onLayoutChange("masonry")}
+            pressed={mediaLayout === "masonry"}
+          >
+            <Columns aria-hidden="true" size={18} />
+          </IconButton>
+        </div>
+      </div>
+      <div
+        className={styles.kindControls}
+        role="group"
+        aria-label={t("browse.mediaType")}
       >
-        {browseState.recursive ? (
-          <CheckSquare aria-hidden="true" size={18} weight="fill" />
-        ) : (
-          <Square aria-hidden="true" size={18} />
-        )}
-        {t("browse.includeSubdirectories")}
-      </Button>
-      <div className={styles.layoutControls} role="group" aria-label={t("browse.layout")}>
-        <IconButton
-          label={t("browse.layoutGrid")}
-          onClick={() => onLayoutChange("grid")}
-          pressed={mediaLayout === "grid"}
-        >
-          <GridFour aria-hidden="true" size={18} />
-        </IconButton>
-        <IconButton
-          label={t("browse.layoutMasonry")}
-          onClick={() => onLayoutChange("masonry")}
-          pressed={mediaLayout === "masonry"}
-        >
-          <Columns aria-hidden="true" size={18} />
-        </IconButton>
+        {(["all", "image", "video"] as const).map((kind) => (
+          <Button
+            aria-pressed={browseState.kind === kind}
+            className={styles.kindButton}
+            key={kind}
+            onClick={() => onChange({ ...browseState, kind })}
+            size="small"
+            variant="quiet"
+          >
+            {kind === "all"
+              ? t("browse.kindAll")
+              : kind === "image"
+                ? t("browse.kindImage")
+                : t("browse.kindVideo")}
+          </Button>
+        ))}
       </div>
       <label className={styles.sortControl}>
         <span>{t("browse.sort")}</span>
@@ -658,8 +712,12 @@ function BrowseToolbar({
         >
           <option value="name:asc">{t("browse.sortNameAscending")}</option>
           <option value="name:desc">{t("browse.sortNameDescending")}</option>
-          <option value="modifiedAt:desc">{t("browse.sortModifiedDescending")}</option>
-          <option value="modifiedAt:asc">{t("browse.sortModifiedAscending")}</option>
+          <option value="modifiedAt:desc">
+            {t("browse.sortModifiedDescending")}
+          </option>
+          <option value="modifiedAt:asc">
+            {t("browse.sortModifiedAscending")}
+          </option>
         </select>
       </label>
       {customSort && (
@@ -688,6 +746,7 @@ function EmptyMedia({
   const { t } = useLocale();
   const hasDescendantMedia =
     !browseState.recursive &&
+    browseState.kind === "all" &&
     directory !== undefined &&
     directory.recursiveAssetCount > directory.directAssetCount;
 
@@ -793,57 +852,220 @@ function DirectoryNavigation({
   selectedPathIds: Set<string>;
 }) {
   const { t } = useLocale();
+  const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
+  const libraryPickerRef = useRef<HTMLDivElement>(null);
+  const libraryTriggerRef = useRef<HTMLButtonElement>(null);
+  const libraryOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const currentLibrary = libraries.find((library) => library.id === libraryId);
-  const statusLabel =
-    currentLibrary?.status === "ready"
+  const allMediaSelected = !selectedDirectoryId && browseState.allMedia === true;
+  const libraryRootSelected = !selectedDirectoryId && !allMediaSelected;
+
+  function statusLabel(library: LibrarySummary | undefined) {
+    return library?.status === "ready"
       ? t("libraries.statusReady")
-      : currentLibrary?.status === "scanning"
+      : library?.status === "scanning"
         ? t("libraries.statusScanning")
-        : currentLibrary?.status === "offline"
+        : library?.status === "offline"
           ? t("libraries.statusOffline")
-          : currentLibrary?.status === "error"
+          : library?.status === "error"
             ? t("libraries.statusError")
             : t("libraries.statusPending");
+  }
+
+  function focusLibraryOption(index: number) {
+    const options = libraryOptionRefs.current.filter(
+      (option): option is HTMLButtonElement => option !== null,
+    );
+    if (!options.length) return;
+    options[Math.min(options.length - 1, Math.max(0, index))]?.focus();
+  }
+
+  function openLibraryMenu(direction: "first" | "selected" | "last") {
+    setLibraryMenuOpen(true);
+    requestAnimationFrame(() => {
+      const selectedIndex = Math.max(
+        0,
+        libraries.findIndex((library) => library.id === libraryId),
+      );
+      focusLibraryOption(
+        direction === "first"
+          ? 0
+          : direction === "last"
+            ? libraries.length - 1
+            : selectedIndex,
+      );
+    });
+  }
+
+  useEffect(() => {
+    if (!libraryMenuOpen) return;
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (
+        event.target instanceof Node &&
+        !libraryPickerRef.current?.contains(event.target)
+      ) {
+        setLibraryMenuOpen(false);
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setLibraryMenuOpen(false);
+      libraryTriggerRef.current?.focus();
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [libraryMenuOpen]);
+
+  const currentLibraryLabel =
+    currentLibrary?.name ?? currentLibraryName ?? t("browse.libraryFallback");
+  const currentStatusLabel = statusLabel(currentLibrary);
+
   return (
     <div className={styles.directoryNavigation}>
-      <label className={styles.libraryPicker}>
-        <span>{t("browse.library")}</span>
-        <select
-          aria-label={t("browse.library")}
-          onChange={(event) => onLibraryChange(event.target.value)}
-          value={libraryId}
+      <div
+        className={styles.libraryPicker}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setLibraryMenuOpen(false);
+          }
+        }}
+        ref={libraryPickerRef}
+      >
+        <span className={styles.libraryLabel}>{t("browse.library")}</span>
+        <button
+          aria-controls="library-picker-options"
+          aria-expanded={libraryMenuOpen}
+          aria-haspopup="listbox"
+          aria-label={`${t("browse.library")}：${currentLibraryLabel}`}
+          className={styles.libraryTrigger}
+          onClick={() => {
+            if (libraryMenuOpen) {
+              setLibraryMenuOpen(false);
+            } else {
+              openLibraryMenu("selected");
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              openLibraryMenu("first");
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              openLibraryMenu("last");
+            }
+          }}
+          ref={libraryTriggerRef}
+          type="button"
         >
-          {!libraries.some((library) => library.id === libraryId) && (
-            <option value={libraryId}>
-              {currentLibraryName ?? t("browse.libraryFallback")}
-            </option>
-          )}
-          {libraries.map((library) => (
-            <option key={library.id} value={library.id}>
-              {library.name}
-            </option>
-          ))}
-        </select>
-        <span className={styles.libraryStatus}>
-          <span
-            className={styles.libraryStatusDot}
-            data-status={currentLibrary?.status}
+          <span className={styles.libraryTriggerCopy}>
+            <strong>{currentLibraryLabel}</strong>
+            <span className={styles.libraryStatus}>
+              <span
+                className={styles.libraryStatusDot}
+                data-status={currentLibrary?.status}
+              />
+              {currentStatusLabel}
+              {currentLibrary
+                ? ` · ${t("browse.mediaCount").replace(
+                    "{count}",
+                    String(currentLibrary.assetCount),
+                  )}`
+                : ""}
+            </span>
+          </span>
+          <CaretDown
+            aria-hidden="true"
+            className={styles.libraryChevron}
+            data-open={libraryMenuOpen || undefined}
+            size={18}
+            weight="bold"
           />
-          {statusLabel}
-          {currentLibrary
-            ? ` · ${t("browse.mediaCount").replace(
-                "{count}",
-                String(currentLibrary.assetCount),
-              )}`
-            : ""}
-        </span>
-      </label>
+        </button>
+        {libraryMenuOpen && (
+          <div
+            aria-label={t("browse.library")}
+            className={styles.libraryMenu}
+            id="library-picker-options"
+            onKeyDown={(event) => {
+              const options = libraryOptionRefs.current.filter(
+                (option): option is HTMLButtonElement => option !== null,
+              );
+              if (!options.length) return;
+              const currentIndex = options.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                focusLibraryOption((currentIndex + 1) % options.length);
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                focusLibraryOption(
+                  (currentIndex - 1 + options.length) % options.length,
+                );
+              } else if (event.key === "Home") {
+                event.preventDefault();
+                focusLibraryOption(0);
+              } else if (event.key === "End") {
+                event.preventDefault();
+                focusLibraryOption(options.length - 1);
+              }
+            }}
+            role="listbox"
+          >
+            {libraries.map((library, index) => {
+              const selected = library.id === libraryId;
+              return (
+                <button
+                  aria-selected={selected}
+                  className={styles.libraryOption}
+                  key={library.id}
+                  onClick={() => {
+                    setLibraryMenuOpen(false);
+                    if (!selected) onLibraryChange(library.id);
+                  }}
+                  ref={(element) => {
+                    libraryOptionRefs.current[index] = element;
+                  }}
+                  role="option"
+                  type="button"
+                >
+                  <span className={styles.libraryOptionCopy}>
+                    <strong>{library.name}</strong>
+                    <span className={styles.libraryStatus}>
+                      <span
+                        className={styles.libraryStatusDot}
+                        data-status={library.status}
+                      />
+                      {statusLabel(library)}
+                      {` · ${t("browse.mediaCount").replace(
+                        "{count}",
+                        String(library.assetCount),
+                      )}`}
+                    </span>
+                  </span>
+                  {selected && (
+                    <Check aria-hidden="true" size={19} weight="bold" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
       <p className={styles.treeLabel}>{t("browse.directory")}</p>
       <nav aria-label={t("browse.directoryNavigation")} className={styles.tree}>
         <Link
-          aria-current={selectedDirectoryId ? undefined : "page"}
-          className={`${styles.treeLink} ${!selectedDirectoryId ? styles.treeLinkCurrent : ""}`}
-          to={browseUrl(libraryId, undefined, browseState)}
+          aria-current={allMediaSelected ? "page" : undefined}
+          className={`${styles.treeLink} ${styles.treeAllMedia} ${allMediaSelected ? styles.treeLinkCurrent : ""}`}
+          to={browseUrl(libraryId, undefined, {
+            ...defaultBrowseUrlState(true),
+            allMedia: true,
+          })}
         >
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
@@ -853,9 +1075,9 @@ function DirectoryNavigation({
             <CaretDown aria-hidden="true" size={15} />
           </span>
           <Link
-            aria-current={selectedDirectoryId ? undefined : "page"}
-            className={`${styles.treeLink} ${!selectedDirectoryId ? styles.treeLinkCurrent : ""}`}
-            to={browseUrl(libraryId, undefined, browseState)}
+            aria-current={libraryRootSelected ? "page" : undefined}
+            className={`${styles.treeLink} ${libraryRootSelected ? styles.treeLinkCurrent : ""}`}
+            to={browseUrl(libraryId, undefined, defaultBrowseUrlState())}
           >
             <Folder aria-hidden="true" size={17} />
             <span>{currentLibraryName ?? t("browse.libraryFallback")}</span>

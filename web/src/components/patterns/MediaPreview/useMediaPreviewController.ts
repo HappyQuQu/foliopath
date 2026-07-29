@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import {
+  readPreviewWidthPreference,
+  writePreviewWidthPreference,
+} from "../../../lib/storage/preferences";
 import type { MediaCollectionHandle } from "../MediaCollection/MediaCollection";
 
 interface PreviewCandidate {
@@ -16,7 +20,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
   const [previewItem, setPreviewItem] = useState<T>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
   const [pinned, setPinned] = useState(false);
-  const [width, setWidth] = useState(406);
+  const [width, setWidthState] = useState(readPreviewWidthPreference);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === "undefined" ? 1280 : window.innerWidth,
   );
@@ -42,7 +46,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
   }, []);
 
   useEffect(() => {
-    setWidth((currentWidth) => Math.min(currentWidth, maxWidth));
+    setWidthState((currentWidth) => Math.min(currentWidth, maxWidth));
   }, [maxWidth]);
 
   useEffect(() => {
@@ -92,6 +96,11 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
         collectionRef.current?.restoreItem(restoreItemId);
       });
     });
+  }
+
+  function setWidth(nextWidth: number) {
+    setWidthState(nextWidth);
+    writePreviewWidthPreference(nextWidth);
   }
 
   return {

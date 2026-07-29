@@ -9,10 +9,15 @@
   border-radius: var(--radius-1);
   background: transparent;
   cursor: pointer;
+  text-decoration: none;
   transition:
     color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard);
+}
+
+.button svg {
+  display: block;
 }
 
 .button:hover:not(:disabled) {
@@ -21,7 +26,8 @@
   background: var(--color-surface-hover);
 }
 
-.button[aria-pressed="true"] {
+.button[aria-pressed="true"],
+.button[aria-current="page"] {
   color: var(--color-accent);
   border-color: var(--color-accent);
   background: var(--color-accent-soft);

@@ -22,6 +22,7 @@ type Job struct {
 	ID                int64
 	LibraryID         int64
 	AssetID           int64
+	Variant           Variant
 	TransformVersion  int
 	SourceFingerprint media.SourceFingerprint
 	Attempt           int
@@ -59,26 +60,37 @@ type JobCompletionRepository interface {
 
 type ClaimedProcessor struct {
 	service    *Service
+	storyboard *StoryboardService
 	repository JobCompletionRepository
 }
 
 func NewClaimedProcessor(
 	service *Service,
+	storyboard *StoryboardService,
 	repository JobCompletionRepository,
 ) (*ClaimedProcessor, error) {
-	if service == nil || repository == nil {
+	if service == nil || storyboard == nil || repository == nil {
 		return nil, errors.New("claimed thumbnail processor dependencies are required")
 	}
-	return &ClaimedProcessor{service: service, repository: repository}, nil
+	return &ClaimedProcessor{
+		service: service, storyboard: storyboard, repository: repository,
+	}, nil
 }
 
 func (processor *ClaimedProcessor) Process(ctx context.Context, job Job) error {
-	if job.TransformVersion != GridTransformVersion {
+	var err error
+	switch {
+	case job.Variant == VariantGrid &&
+		job.TransformVersion == GridTransformVersion:
+		err = processor.service.Process(ctx, job.AssetID)
+	case job.Variant == VariantStoryboard &&
+		job.TransformVersion == StoryboardTransformVersion:
+		err = processor.storyboard.Process(ctx, job.AssetID)
+	default:
 		return processor.repository.FinishMediaJob(
 			ctx, job, JobResult{Outcome: JobStale},
 		)
 	}
-	err := processor.service.Process(ctx, job.AssetID)
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -94,6 +106,8 @@ func classifyJobResult(err error) JobResult {
 	case err == nil:
 		return JobResult{Outcome: JobSucceeded}
 	case errors.Is(err, ErrSourceChanged):
+		return JobResult{Outcome: JobStale}
+	case errors.Is(err, ErrStoryboardNotEligible):
 		return JobResult{Outcome: JobStale}
 	case errors.Is(err, media.ErrInvalidMedia):
 		return JobResult{Outcome: JobPermanent, Code: JobErrorInvalidMedia}

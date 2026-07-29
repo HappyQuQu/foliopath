@@ -1,0 +1,63 @@
+.resizer {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  width: 0.75rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.left {
+  left: -0.375rem;
+}
+
+.right {
+  right: -0.375rem;
+}
+
+.resizer::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--border-width);
+  content: "";
+  background: transparent;
+  transform: translateX(-50%);
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.1875rem;
+  height: 3rem;
+  border-radius: var(--radius-round);
+  background: var(--color-border-strong);
+  opacity: 0.42;
+  transform: translate(-50%, -50%);
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.resizer:hover::before,
+.resizer:focus-visible::before,
+.resizer[data-resizing]::before {
+  background: var(--color-accent-soft);
+}
+
+.resizer:hover .handle,
+.resizer:focus-visible .handle,
+.resizer[data-resizing] .handle {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 0.1875rem var(--color-accent-soft);
+  opacity: 1;
+}
+
+.resizer:focus-visible {
+  outline: none;
+}

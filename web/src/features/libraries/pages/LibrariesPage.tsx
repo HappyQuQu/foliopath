@@ -50,7 +50,15 @@ const statusMessage: Record<LibraryStatus, MessageKey> = {
   error: "libraries.statusError",
 };
 
-export function LibrariesPage({ session }: { session: AuthenticatedSession }) {
+export function LibrariesPage({
+  logoutPending,
+  onLogout,
+  session,
+}: {
+  logoutPending?: boolean;
+  onLogout?: () => Promise<void>;
+  session: AuthenticatedSession;
+}) {
   const { t } = useLocale();
   const query = useLibrariesQuery();
   const {
@@ -61,22 +69,13 @@ export function LibrariesPage({ session }: { session: AuthenticatedSession }) {
     () => query.data?.pages.flatMap((page) => page.items) ?? [],
     [query.data],
   );
-  const browseLibrary = useMemo(
-    () =>
-      libraries.find((library) => library.status === "ready") ??
-      libraries.find((library) => library.assetCount > 0) ??
-      libraries[0],
-    [libraries],
-  );
-
   return (
     <AppShell
       active="libraries"
-      {...(browseLibrary
-        ? { browseHref: paths.browse(browseLibrary.id) }
-        : {})}
+      browseHref={paths.root}
       identity={session.administrator.displayName}
-      librariesHref={paths.libraries}
+      logoutPending={logoutPending}
+      onLogout={onLogout}
       searchHref={paths.search}
       settingsHref={paths.generalSettings}
       title={t("libraries.title")}

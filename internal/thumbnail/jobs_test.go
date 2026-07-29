@@ -82,14 +82,25 @@ func TestClaimedProcessorDoesNotCommitCancellationAsTerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	processor, err := NewClaimedProcessor(service, repository)
+	storyboard, err := NewStoryboardService(
+		&repositoryStub{},
+		sourceStub{},
+		&publisherStub{},
+		&capacityStub{},
+		&storyboardProcessorStub{},
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	processor, err := NewClaimedProcessor(service, storyboard, repository)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := processor.Process(ctx, Job{
-		AssetID: 1, TransformVersion: GridTransformVersion,
+		AssetID: 1, Variant: VariantGrid, TransformVersion: GridTransformVersion,
 	}); !errors.Is(
 		err, context.Canceled,
 	) {

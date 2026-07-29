@@ -20,6 +20,7 @@ type deliveryRepositoryStub struct {
 func (stub *deliveryRepositoryStub) GetThumbnailDelivery(
 	context.Context,
 	int64,
+	Variant,
 ) (DeliveryState, error) {
 	return stub.state, stub.repositoryErr
 }
@@ -27,6 +28,7 @@ func (stub *deliveryRepositoryStub) GetThumbnailDelivery(
 func (stub *deliveryRepositoryStub) TouchThumbnail(
 	context.Context,
 	int64,
+	Variant,
 	media.SourceFingerprint,
 	string,
 ) error {
@@ -82,7 +84,7 @@ func TestDeliveryServiceReturnsReadyContentAndTouchesLRU(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := service.Get(context.Background(), 7)
+	got, err := service.Get(context.Background(), 7, VariantGrid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +113,7 @@ func TestDeliveryServiceRepairsMissingCacheWithoutSynchronousProcessing(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := service.Get(context.Background(), 7)
+	got, err := service.Get(context.Background(), 7, VariantGrid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +146,7 @@ func TestDeliveryServicePreservesSafePendingFailedAndOfflineStates(t *testing.T)
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := service.Get(context.Background(), 7)
+			got, err := service.Get(context.Background(), 7, VariantGrid)
 			if err != nil {
 				t.Fatal(err)
 			}
