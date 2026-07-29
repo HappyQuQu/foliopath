@@ -47,6 +47,8 @@
   [发布文档与追踪收敛](../gates/POST-MVP-1/vsp-303-documentation-convergence.md)
   复核并签署本草案；
 - VSP-304：聚合 `VSP-AC-001～008`，记录 `VSP-S4 Integrated Slice Done`。
+  当前 [Gate 聚合](../gates/POST-MVP-1/vsp-s4-integrated-slice-done.md)已准备，但保持
+  No-Go / Pending。
 
 当前 GitHub runner 在执行测试前受账户计费/支出上限阻断；本机跨架构模拟不能替代原生
 平台结果。版本号、source commit、镜像 digest、升级来源和最终验证链接将在上述 Gate

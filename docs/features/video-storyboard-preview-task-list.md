@@ -277,6 +277,10 @@ flowchart TD
   - 依赖：`VSP-301～303`。
   - 验收：`VSP-AC-001～008` 全部有链接证据；无未处置严重风险。
   - 完成：只有此 Gate 为 Go，feature 才能计入目标版本和发布说明。
+  - 当前：验收聚合与签署清单已准备；`VSP-AC-001～007` 有子 Gate 自动证据，
+    `VSP-AC-008` 仍由 VSP-302 原生双架构结果阻断，VSP-303 也尚未签署。
+  - 证据：[VSP-S4 Integrated Slice Done](../gates/POST-MVP-1/vsp-s4-integrated-slice-done.md)
+    当前为 No-Go / Pending。
 
 ## 建议验证命令
 
