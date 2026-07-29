@@ -10,7 +10,7 @@
 }
 
 .header {
-  padding-top: var(--space-10);
+  padding-top: var(--space-8);
   padding-bottom: var(--space-4);
 }
 
@@ -29,6 +29,7 @@
   margin: 0;
   font-size: clamp(var(--font-size-5), 4vw, var(--font-size-7));
   line-height: var(--line-height-tight);
+  letter-spacing: -0.04em;
 }
 
 .command {
@@ -37,7 +38,8 @@
   padding-top: var(--space-5);
   padding-bottom: var(--space-5);
   border-block: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-glass);
+  backdrop-filter: saturate(180%) blur(1.25rem);
 }
 
 .filters {
@@ -65,7 +67,7 @@
   padding: 0 var(--space-8) 0 var(--space-3);
   color: var(--color-text);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-1);
   background: var(--color-surface);
   font: inherit;
   font-size: var(--font-size-2);

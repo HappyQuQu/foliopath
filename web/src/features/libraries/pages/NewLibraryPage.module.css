@@ -1,5 +1,5 @@
 .page {
-  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  width: min(var(--size-settings-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
   margin: var(--space-10) auto 6.25rem;
 }
 
@@ -23,7 +23,7 @@
 .heading h1 {
   margin: 0;
   font-size: clamp(1.75rem, 4vw, 2.375rem);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
 }
 
 .heading p:last-child {
@@ -93,6 +93,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-1);
 }
 
 .card h2 {

@@ -1,5 +1,5 @@
 .main {
-  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  width: min(var(--size-settings-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
   margin-inline: auto;
   padding: clamp(var(--space-8), 6vw, 4rem) var(--space-6);
 }
@@ -20,7 +20,7 @@
 .heading h1 {
   margin: 0;
   font-size: var(--font-size-6);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
 .heading span,
@@ -37,11 +37,13 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-1);
 }
 
 .panel h2 {
   margin: 0 0 var(--space-5);
   font-size: var(--font-size-4);
+  letter-spacing: -0.02em;
 }
 
 .row {

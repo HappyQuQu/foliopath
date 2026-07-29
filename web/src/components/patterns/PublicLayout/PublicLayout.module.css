@@ -3,7 +3,7 @@
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  padding: var(--space-6) clamp(var(--space-5), 4vw, 3.5rem);
+  padding: var(--space-5) clamp(var(--space-5), 4vw, 3.5rem);
   background: var(--color-canvas);
 }
 
@@ -31,8 +31,8 @@
 }
 
 .brand strong {
-  font-size: var(--font-size-5);
-  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
 }
 
 .main {

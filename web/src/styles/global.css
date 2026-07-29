@@ -11,6 +11,7 @@ html {
   min-width: 20rem;
   min-height: 100%;
   background: var(--color-canvas);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -22,7 +23,9 @@ body {
   font-family: var(--font-sans);
   font-size: var(--font-size-3);
   line-height: var(--line-height-normal);
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -41,8 +44,13 @@ textarea {
 }
 
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: var(--focus-width) solid var(--color-focus);
+  outline: 3px solid var(--color-focus);
   outline-offset: var(--focus-width);
+}
+
+::selection {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 [hidden] {

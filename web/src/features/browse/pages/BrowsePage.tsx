@@ -2,12 +2,14 @@ import {
   CaretDown,
   CaretRight,
   CheckSquare,
+  CircleNotch,
   Columns,
-  Copy,
   Folder,
+  Funnel,
   GridFour,
   House,
   ImageSquare,
+  MagnifyingGlass,
   Square,
 } from "@phosphor-icons/react";
 import {
@@ -16,6 +18,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FormEvent,
 } from "react";
 import {
   Link,
@@ -45,7 +48,6 @@ import {
   InlineStatus,
   LoadingState,
   OfflineState,
-  useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
@@ -73,6 +75,7 @@ import {
   useLibrariesQuery,
   useLibraryQuery,
 } from "../../libraries";
+import type { LibrarySummary } from "../../../lib/api/libraries";
 import {
   useAssetsQuery,
   useDirectoriesQuery,
@@ -103,7 +106,7 @@ export function BrowsePage({
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
-  const toast = useToast();
+  const [topbarQuery, setTopbarQuery] = useState("");
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
     [searchParams],
@@ -245,15 +248,6 @@ export function BrowsePage({
     writeMediaLayoutPreference(nextLayout);
   }
 
-  async function copyDirectLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.show({ message: t("browse.linkCopied"), tone: "success" });
-    } catch {
-      toast.show({ message: t("browse.linkCopyFailed"), tone: "danger" });
-    }
-  }
-
   return (
     <AppShell
       active="browse"
@@ -269,6 +263,7 @@ export function BrowsePage({
           : paths.librarySearch(libraryId)
       }
       settingsHref={paths.generalSettings}
+      showIdentityLabel={false}
       sidebarContent={
         <DirectoryNavigation
           currentLibraryName={currentLibrary?.name}
@@ -288,6 +283,52 @@ export function BrowsePage({
           selectedPathIds={selectedPathIds}
         />
       }
+      topbarContent={
+        <>
+          <Breadcrumbs
+            browseState={browseState}
+            breadcrumbs={breadcrumbs}
+            libraryId={libraryId}
+            rootName={currentLibrary?.name ?? currentName}
+          />
+          <form
+            className={styles.topbarSearch}
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              const q = topbarQuery.trim();
+              if (!q) return;
+              navigate(
+                `${paths.librarySearch(libraryId)}?${new URLSearchParams({
+                  q,
+                  scope: "library",
+                }).toString()}`,
+              );
+            }}
+          >
+            <MagnifyingGlass aria-hidden="true" size={16} />
+            <input
+              aria-label={t("search.inputLabel")}
+              onChange={(event) => setTopbarQuery(event.currentTarget.value)}
+              placeholder={t("search.placeholder")}
+              type="search"
+              value={topbarQuery}
+            />
+          </form>
+          <IconButton
+            label={t("search.filters")}
+            onClick={() =>
+              navigate(
+                `${paths.librarySearch(libraryId)}?${new URLSearchParams({
+                  scope: directoryId ? "directory" : "library",
+                  ...(directoryId ? { directoryId } : {}),
+                }).toString()}`,
+              )
+            }
+          >
+            <Funnel aria-hidden="true" size={19} />
+          </IconButton>
+        </>
+      }
       title={t("browse.title")}
     >
       <section className={styles.page} aria-labelledby="browse-heading">
@@ -298,18 +339,18 @@ export function BrowsePage({
             </InlineStatus>
           </div>
         )}
-        <header className={styles.header}>
-          <Breadcrumbs
-            browseState={browseState}
-            breadcrumbs={breadcrumbs}
-            libraryId={libraryId}
-            rootName={currentLibrary?.name ?? currentName}
-          />
-          <IconButton label={t("browse.copyLink")} onClick={() => void copyDirectLink()}>
-            <Copy aria-hidden="true" size={19} />
-          </IconButton>
-        </header>
-
+        {currentLibrary?.status === "scanning" && (
+          <div className={styles.scanBanner}>
+            <CircleNotch aria-hidden="true" className={styles.scanIcon} size={18} />
+            <span>{t("libraries.statusScanning")}</span>
+            <span className={styles.scanStats}>
+              {t("browse.mediaCount").replace(
+                "{count}",
+                String(currentLibrary.assetCount),
+              )}
+            </span>
+          </div>
+        )}
         <BrowseToolbar
           browseState={browseState}
           mediaLayout={mediaLayout}
@@ -697,13 +738,18 @@ function Breadcrumbs({
 }) {
   const { t } = useLocale();
   const items =
-    breadcrumbs.length > 0
-      ? breadcrumbs
-      : [{ id: "root", name: rootName, relativePath: "" }];
+    breadcrumbs.length > 1
+      ? breadcrumbs.slice(1)
+      : breadcrumbs.length > 0
+        ? breadcrumbs
+        : [{ id: "root", name: rootName, relativePath: "" }];
 
   return (
     <nav aria-label={t("browse.breadcrumbs")} className={styles.breadcrumbs}>
       <House aria-hidden="true" size={17} />
+      {breadcrumbs.length > 1 && (
+        <span className={styles.screenReaderOnly}>{rootName}</span>
+      )}
       {items.map((item, index) => {
         const current = index === items.length - 1;
         return (
@@ -715,7 +761,7 @@ function Breadcrumbs({
               <Link
                 to={browseUrl(
                   libraryId,
-                  index === 0 ? undefined : item.id,
+                  item.relativePath ? item.id : undefined,
                   browseState,
                 )}
               >
@@ -740,13 +786,24 @@ function DirectoryNavigation({
 }: {
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
-  libraries: { id: string; name: string; status: string }[];
+  libraries: LibrarySummary[];
   libraryId: string;
   onLibraryChange: (libraryId: string) => void;
   selectedDirectoryId?: string | undefined;
   selectedPathIds: Set<string>;
 }) {
   const { t } = useLocale();
+  const currentLibrary = libraries.find((library) => library.id === libraryId);
+  const statusLabel =
+    currentLibrary?.status === "ready"
+      ? t("libraries.statusReady")
+      : currentLibrary?.status === "scanning"
+        ? t("libraries.statusScanning")
+        : currentLibrary?.status === "offline"
+          ? t("libraries.statusOffline")
+          : currentLibrary?.status === "error"
+            ? t("libraries.statusError")
+            : t("libraries.statusPending");
   return (
     <div className={styles.directoryNavigation}>
       <label className={styles.libraryPicker}>
@@ -767,6 +824,19 @@ function DirectoryNavigation({
             </option>
           ))}
         </select>
+        <span className={styles.libraryStatus}>
+          <span
+            className={styles.libraryStatusDot}
+            data-status={currentLibrary?.status}
+          />
+          {statusLabel}
+          {currentLibrary
+            ? ` · ${t("browse.mediaCount").replace(
+                "{count}",
+                String(currentLibrary.assetCount),
+              )}`
+            : ""}
+        </span>
       </label>
       <p className={styles.treeLabel}>{t("browse.directory")}</p>
       <nav aria-label={t("browse.directoryNavigation")} className={styles.tree}>
@@ -778,9 +848,22 @@ function DirectoryNavigation({
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
         </Link>
+        <div className={styles.treeRow} style={{ "--tree-depth": 0 } as CSSProperties}>
+          <span className={styles.treeToggleStatic}>
+            <CaretDown aria-hidden="true" size={15} />
+          </span>
+          <Link
+            aria-current={selectedDirectoryId ? undefined : "page"}
+            className={`${styles.treeLink} ${!selectedDirectoryId ? styles.treeLinkCurrent : ""}`}
+            to={browseUrl(libraryId, undefined, browseState)}
+          >
+            <Folder aria-hidden="true" size={17} />
+            <span>{currentLibraryName ?? t("browse.libraryFallback")}</span>
+          </Link>
+        </div>
         <DirectoryChildren
           browseState={browseState}
-          depth={0}
+          depth={1}
           libraryId={libraryId}
           selectedDirectoryId={selectedDirectoryId}
           selectedPathIds={selectedPathIds}

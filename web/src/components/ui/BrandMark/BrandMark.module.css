@@ -1,0 +1,18 @@
+.mark {
+  width: var(--brand-mark-size);
+  height: var(--brand-mark-size);
+  display: block;
+  flex: 0 0 auto;
+}
+
+.small {
+  --brand-mark-size: var(--size-brand-mark-sm);
+}
+
+.medium {
+  --brand-mark-size: var(--size-brand-mark-md);
+}
+
+.large {
+  --brand-mark-size: var(--size-brand-mark-lg);
+}

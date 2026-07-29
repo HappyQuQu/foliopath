@@ -4,7 +4,7 @@
 
 - 当前阶段：Stage 5 发布加固准备
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
-  位于 [`prototypes/foliopath-static-ui`](../prototypes/foliopath-static-ui/README.md)，不放入
+  位于 [`prototypes/apple-redesign`](../prototypes/apple-redesign/index.html)，不放入
   生产 `web/src` import graph
 - 当前生产任务：Stage 1 的 `S1-201～207` 已完成并记录
   [认证 Integrated Done Gate](gates/MVP-2026-07-23/s1-auth-integrated-done.md)；
@@ -35,7 +35,7 @@
 
 ## 已确认的界面与交互基线
 
-生产实现必须逐项对照[原型界面清单](../prototypes/foliopath-static-ui/screen-inventory.md)，而不是
+生产实现必须逐项对照 [Apple 风格原型入口](../prototypes/apple-redesign/index.html)，而不是
 只实现主浏览页：
 
 | 组 | 必须交付的界面 / 状态 | 生产阶段 |

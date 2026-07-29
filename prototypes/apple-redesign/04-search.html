@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>搜索"京都" — FolioPath</title>
+  <meta name="description" content="FolioPath 搜索结果">
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <a href="#search-results" class="skip-link">跳到主要内容</a>
+
+  <div class="app-shell" style="grid-template-columns: 1fr;">
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <a href="03-browse.html" class="icon-btn" aria-label="返回浏览">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <span style="font: var(--text-title-3); letter-spacing: var(--tracking-tight);">FolioPath</span>
+        <div style="flex: 1;"></div>
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <span style="font: var(--text-footnote); color: var(--text-secondary);">管理员</span>
+      </header>
+
+      <!-- Search Area -->
+      <main>
+        <div class="search-header">
+          <div class="search-input-large">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" value="京都" placeholder="搜索文件名或路径…" aria-label="搜索" autofocus>
+            <button class="icon-btn" aria-label="清除" style="width: 28px; height: 28px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="search-filters">
+            <span style="font: var(--text-footnote); color: var(--text-secondary); margin-right: 4px;">范围</span>
+            <button class="filter-chip active">当前媒体库</button>
+            <button class="filter-chip">当前目录</button>
+            <button class="filter-chip">全部媒体库</button>
+
+            <span style="font: var(--text-footnote); color: var(--text-secondary); margin-left: 12px; margin-right: 4px;">类型</span>
+            <button class="filter-chip active">全部</button>
+            <button class="filter-chip">图片</button>
+            <button class="filter-chip">视频</button>
+            <button class="filter-chip">动画图片</button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="browse-content" id="search-results">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
+            <h1 style="font: var(--text-title-2); letter-spacing: var(--tracking-tight);">搜索结果</h1>
+            <span style="font: var(--text-footnote); color: var(--text-tertiary);">已加载 48 项</span>
+          </div>
+
+          <div class="media-grid">
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-1"></div>
+              <div class="meta">
+                <div class="name">京都-清水寺-日落.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 清水寺</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-3"></div>
+              <span class="badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+              <span class="duration">0:32</span>
+              <div class="meta">
+                <div class="name">京都-鸟居-漫步.mp4</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 伏见稻荷</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-5"></div>
+              <div class="meta">
+                <div class="name">京都-金阁寺-倒影.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 金阁寺</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-7"></div>
+              <div class="meta">
+                <div class="name">京都-竹林小径.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 岚山</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-9"></div>
+              <div class="meta">
+                <div class="name">京都-祇园-舞妓.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 祇园</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-11"></div>
+              <span class="badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+              <span class="duration">1:05</span>
+              <div class="meta">
+                <div class="name">京都-枯山水-延时.mp4</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 其他</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-2"></div>
+              <div class="meta">
+                <div class="name">京都-二条城-庭院.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 二条城</div>
+              </div>
+            </div>
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-8"></div>
+              <div class="meta">
+                <div class="name">京都-岚山-渡月桥.jpg</div>
+                <div class="date" style="color: var(--text-tertiary); font-size: 11px;">旅行 / 日本 / 京都 / 岚山</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

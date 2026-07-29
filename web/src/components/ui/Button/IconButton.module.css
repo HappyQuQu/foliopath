@@ -5,9 +5,9 @@
   place-items: center;
   padding: var(--space-0);
   color: var(--color-text-muted);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-2);
-  background: var(--color-surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-1);
+  background: transparent;
   cursor: pointer;
   transition:
     color var(--motion-fast) var(--ease-standard),
@@ -17,8 +17,8 @@
 
 .button:hover:not(:disabled) {
   color: var(--color-text);
-  border-color: var(--color-border-strong);
-  background: var(--color-surface-subtle);
+  border-color: transparent;
+  background: var(--color-surface-hover);
 }
 
 .button[aria-pressed="true"] {

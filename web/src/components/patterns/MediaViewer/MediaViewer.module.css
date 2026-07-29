@@ -10,7 +10,7 @@
   --color-accent-soft: var(--color-viewer-accent-soft);
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: 3.875rem minmax(0, 1fr) 2.875rem;
+  grid-template-rows: var(--size-header) minmax(0, 1fr) 2.875rem;
   color: var(--color-text);
   background: var(--color-canvas);
   overflow: hidden;
@@ -24,7 +24,8 @@
   align-items: center;
   padding: 0 var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-viewer-glass);
+  backdrop-filter: saturate(180%) blur(1.25rem);
 }
 
 .header > strong {
@@ -101,6 +102,7 @@
   width: 2.875rem;
   height: 3.5rem;
   color: var(--color-text);
+  border-radius: var(--radius-round);
   background: var(--color-viewer-control);
   transform: translateY(-50%);
 }
@@ -124,7 +126,7 @@
   padding: var(--space-5);
   color: var(--color-text);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-3);
   background: var(--color-viewer-panel);
   box-shadow: var(--shadow-2);
 }

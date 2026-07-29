@@ -28,7 +28,7 @@
 - [需求确认清单](requirements-checklist.md)：全部 14 项 A 方案的确认记录与未采用备选。
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
-- [静态 UI 原型](../prototypes/foliopath-static-ui/README.md)：15 个可点击界面/状态、浅色/深色与响应式设计验收基线；不进入生产 import graph。
+- [Apple 风格静态 UI 原型](../prototypes/apple-redesign/index.html)：登录、欢迎、浏览、搜索、查看器与设置页面的浅色/深色和响应式视觉验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。
 - [CR-2026-002 经认证的局域网 HTTP](changes/CR-2026-002-authenticated-lan-http.md)：直接
   LAN 访问与外部 TLS/反向代理职责边界。

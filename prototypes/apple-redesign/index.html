@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FolioPath — Apple 风格重设计原型目录</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+  <style>
+    .index-wrapper {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: var(--space-10) var(--space-6);
+    }
+    .index-wrapper h1 {
+      font: var(--text-large-title);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--space-2);
+    }
+    .index-wrapper .subtitle {
+      font: var(--text-callout);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-8);
+      line-height: 1.6;
+    }
+    .page-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .page-list a {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-5);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform var(--duration-fast) var(--ease-default),
+                  box-shadow var(--duration-fast) var(--ease-default);
+    }
+    .page-list a:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .page-list .num {
+      width: 36px; height: 36px;
+      display: grid;
+      place-items: center;
+      font: var(--text-headline);
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+    }
+    .page-list .info strong {
+      display: block;
+      font: var(--text-headline);
+      margin-bottom: 2px;
+    }
+    .page-list .info span {
+      font: var(--text-footnote);
+      color: var(--text-secondary);
+    }
+    .page-list .arrow {
+      margin-left: auto;
+      color: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="index-wrapper">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <div>
+        <p style="font: var(--text-caption-2); text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: var(--space-2);">设计原型</p>
+        <h1>FolioPath</h1>
+      </div>
+      <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题" style="width: 44px; height: 44px; background: var(--fill); border-radius: 50%;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+    <p class="subtitle">
+      Apple Design Language 风格的前端重设计原型。每个页面均支持浅色/深色主题切换。点击任意页面开始浏览。
+    </p>
+
+    <ul class="page-list">
+      <li>
+        <a href="01-auth.html">
+          <span class="num">01</span>
+          <div class="info">
+            <strong>登录</strong>
+            <span>管理员登录页，居中卡片设计</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="02-welcome.html">
+          <span class="num">02</span>
+          <div class="info">
+            <strong>欢迎</strong>
+            <span>无媒体库时的引导页，含 Docker 说明</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="03-browse.html">
+          <span class="num">03</span>
+          <div class="info">
+            <strong>浏览 ★</strong>
+            <span>核心页面：毛玻璃侧栏 + 目录树 + 网格 + 预览面板</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="04-search.html">
+          <span class="num">04</span>
+          <div class="info">
+            <strong>搜索</strong>
+            <span>大搜索框 + 筛选 chips + 结果网格</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="05-viewer.html">
+          <span class="num">05</span>
+          <div class="info">
+            <strong>查看器</strong>
+            <span>全屏深色查看器，含信息面板 (按 i 切换)</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="06-settings-libraries.html">
+          <span class="num">06</span>
+          <div class="info">
+            <strong>媒体库设置</strong>
+            <span>媒体库列表 + 状态 + 移除确认对话框</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="07-settings-general.html">
+          <span class="num">07</span>
+          <div class="info">
+            <strong>通用设置</strong>
+            <span>外观、语言、扫描周期、缓存配额、账户</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+    </ul>
+
+    <p style="margin-top: var(--space-8); font: var(--text-caption-1); color: var(--text-tertiary); text-align: center;">
+      本原型仅用于视觉设计评审，不包含真实功能逻辑。
+    </p>
+  </div>
+</body>
+</html>

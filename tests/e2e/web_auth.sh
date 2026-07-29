@@ -33,10 +33,10 @@ mkdir -p "${data_root}" "${media_root}"
 mkdir -p \
 	"${media_root}/${long_path_one}/${long_path_two}/visible-child"
 cp \
-	"${repo_root}/prototypes/foliopath-static-ui/public/media/kyoto-pagoda.jpg" \
-	"${media_root}/${long_path_one}/${long_path_two}/direct-photo.jpg"
+	"${repo_root}/web/qa/stage2-library-source-1440.png" \
+	"${media_root}/${long_path_one}/${long_path_two}/direct-photo.png"
 cp \
-	"${repo_root}/prototypes/foliopath-static-ui/public/media/golden-pavilion.jpg" \
+	"${repo_root}/web/qa/auth-source-1440.jpg" \
 	"${media_root}/${long_path_one}/${long_path_two}/visible-child/nested-photo.jpg"
 ln -s "visible-child" \
 	"${media_root}/${long_path_one}/${long_path_two}/linked-child"

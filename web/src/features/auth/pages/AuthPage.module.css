@@ -1,9 +1,9 @@
 .card {
   width: min(var(--size-auth-card), 100%);
   justify-self: center;
-  padding: clamp(var(--space-8), 5vw, var(--space-12));
+  padding: clamp(var(--space-8), 5vw, var(--space-10));
   border: var(--border-width) solid var(--color-border);
-  border-radius: calc(var(--radius-3) + var(--radius-1));
+  border-radius: var(--radius-3);
   background: var(--color-surface);
   box-shadow: var(--shadow-2);
 }
@@ -15,8 +15,8 @@
   place-items: center;
   margin-bottom: var(--space-7);
   color: var(--color-accent);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: calc(var(--radius-3) + var(--radius-1));
+  border: 0;
+  border-radius: var(--radius-2);
   background: var(--color-accent-soft);
 }
 
@@ -25,7 +25,7 @@
   color: var(--color-accent);
   font-size: var(--font-size-1);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -33,7 +33,7 @@
   margin: var(--space-0);
   font-size: clamp(var(--font-size-5), 4vw, var(--font-size-7));
   line-height: var(--line-height-tight);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
 }
 
 .intro {

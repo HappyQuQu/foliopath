@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FolioPath — 登录</title>
+  <meta name="description" content="FolioPath 自托管媒体浏览器 — 管理员登录">
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <a href="#auth-title" class="skip-link">跳到主要内容</a>
+
+  <div class="auth-wrapper">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </div>
+
+      <p class="auth-eyebrow">FolioPath</p>
+      <h1 id="auth-title">欢迎回来</h1>
+      <p class="intro">登录到您的 FolioPath 实例，开始浏览媒体库。</p>
+
+      <form class="auth-form" novalidate>
+        <div class="form-field">
+          <label for="username">用户名</label>
+          <input id="username" class="form-input" type="text" name="username" autocomplete="username" autocapitalize="none" required placeholder="请输入用户名">
+        </div>
+
+        <div class="form-field">
+          <label for="password">密码</label>
+          <input id="password" class="form-input" type="password" name="password" autocomplete="current-password" required placeholder="请输入密码">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg">登录</button>
+      </form>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="01-auth-setup.html" class="btn btn-ghost btn-sm" style="font-size: 13px;">首次使用？创建管理员 →</a>
+      </div>
+    </section>
+  </div>
+
+  <!-- Theme toggle floating -->
+  <button class="icon-btn" onclick="toggleTheme()" style="position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; background: var(--surface); border-radius: 50%; box-shadow: var(--shadow-md);" aria-label="切换主题">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+    </svg>
+  </button>
+</body>
+</html>

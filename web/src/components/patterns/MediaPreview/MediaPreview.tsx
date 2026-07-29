@@ -3,7 +3,6 @@ import {
   CaretLeft,
   CaretRight,
   PushPin,
-  PushPinSlash,
   X,
 } from "@phosphor-icons/react";
 import {
@@ -183,22 +182,20 @@ export function MediaPreview({
         <span />
       </div>
       <header className={styles.header}>
-        <div>
-          <span>{labels.preview}</span>
-          <strong title={item.name}>{item.name}</strong>
-        </div>
+        <strong>{labels.preview}</strong>
         <div className={styles.actions}>
-          <IconButton
-            label={pinned ? labels.unpin : labels.pin}
+          <Button
+            aria-label={pinned ? labels.unpin : labels.pin}
+            aria-pressed={pinned}
+            className={styles.pinButton}
+            data-pinned={pinned || undefined}
             onClick={() => onPinnedChange(!pinned)}
-            pressed={pinned}
+            size="small"
+            variant="secondary"
           >
-            {pinned ? (
-              <PushPinSlash aria-hidden="true" size={19} weight="fill" />
-            ) : (
-              <PushPin aria-hidden="true" size={19} />
-            )}
-          </IconButton>
+            <PushPin aria-hidden="true" size={15} weight={pinned ? "fill" : "regular"} />
+            {labels.pin}
+          </Button>
           <IconButton label={labels.close} onClick={onClose}>
             <X aria-hidden="true" size={19} />
           </IconButton>
@@ -229,35 +226,44 @@ export function MediaPreview({
         )}
       </div>
 
-      <nav className={styles.navigation} aria-label={labels.preview}>
-        <IconButton
-          disabled={!canGoPrevious}
-          label={labels.previous}
-          onClick={onPrevious}
+      <div className={styles.navigation}>
+        <nav className={styles.navGroup} aria-label={labels.preview}>
+          <Button
+            disabled={!canGoPrevious}
+            onClick={onPrevious}
+            size="small"
+            variant="secondary"
+          >
+            <CaretLeft aria-hidden="true" size={15} />
+            {labels.previous}
+          </Button>
+          <span aria-live="polite">{labels.position}</span>
+          <Button
+            disabled={!canGoNext}
+            onClick={onNext}
+            size="small"
+            variant="secondary"
+          >
+            {labels.next}
+            <CaretRight aria-hidden="true" size={15} />
+          </Button>
+        </nav>
+        <Button
+          className={styles.openViewer}
+          onClick={onOpenViewer}
+          size="small"
+          variant="quiet"
         >
-          <CaretLeft aria-hidden="true" size={19} />
-        </IconButton>
-        <span aria-live="polite">{labels.position}</span>
-        <IconButton
-          disabled={!canGoNext}
-          label={labels.next}
-          onClick={onNext}
-        >
-          <CaretRight aria-hidden="true" size={19} />
-        </IconButton>
-      </nav>
-
-      <Button
-        className={styles.openViewer}
-        onClick={onOpenViewer}
-        size="small"
-        variant="secondary"
-      >
-        <ArrowsOut aria-hidden="true" size={18} />
-        {labels.openViewer}
-      </Button>
+          <ArrowsOut aria-hidden="true" size={16} />
+          {labels.openViewer}
+        </Button>
+      </div>
 
       <dl className={styles.details}>
+        <div className={styles.fileIdentity}>
+          <strong title={item.name}>{item.name}</strong>
+          <span>{item.kind === "video" ? "VIDEO" : item.kind === "animated" ? "GIF" : "JPG"}</span>
+        </div>
         {item.details.map((detail) => (
           <div key={detail.label}>
             <dt>{detail.label}</dt>

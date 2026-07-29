@@ -24,7 +24,8 @@
 
 .header h2 {
   margin: var(--space-0);
-  font-size: var(--font-size-5);
+  font-size: var(--font-size-4);
+  letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
 }
 

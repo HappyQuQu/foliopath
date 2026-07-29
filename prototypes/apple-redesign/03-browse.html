@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>京都 — 家庭影像 — FolioPath</title>
+  <meta name="description" content="FolioPath 媒体浏览器 — 浏览京都照片和视频">
+  <link rel="stylesheet" href="styles.css?v=20260729-2">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <a href="#browse-heading" class="skip-link">跳到主要内容</a>
+
+  <div class="app-shell">
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <a href="03-browse.html" class="sidebar-logo">FolioPath</a>
+        <button class="icon-btn sidebar-close" onclick="closeSidebar()" aria-label="关闭侧栏">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Library Picker -->
+      <div class="library-picker">
+        <span class="library-picker-label">媒体库</span>
+        <select class="library-picker-select" aria-label="媒体库">
+          <option selected>家庭影像</option>
+          <option>旅行摄影</option>
+          <option>工作素材</option>
+        </select>
+        <div class="library-picker-status">
+          <span class="dot scanning"></span>
+          <span>正在扫描 · 已发现 12,480 项</span>
+        </div>
+      </div>
+
+      <!-- Directory Tree -->
+      <span class="tree-label">目录</span>
+      <nav class="directory-tree" aria-label="目录导航">
+        <!-- All Media -->
+        <div class="tree-item">
+          <span class="tree-spacer"></span>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>全部媒体</span>
+          </a>
+        </div>
+
+        <!-- 家庭影像 -->
+        <div class="tree-item">
+          <button class="tree-toggle open" aria-label="收起 家庭影像">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>家庭影像</span>
+          </a>
+        </div>
+
+        <!-- 按年份 -->
+        <div class="tree-item" style="--depth: 1;">
+          <button class="tree-toggle" aria-label="展开 按年份">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>按年份</span>
+          </a>
+        </div>
+
+        <!-- 旅行 -->
+        <div class="tree-item" style="--depth: 1;">
+          <button class="tree-toggle open" aria-label="收起 旅行">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>旅行</span>
+          </a>
+        </div>
+
+        <!-- 日本 -->
+        <div class="tree-item" style="--depth: 2;">
+          <button class="tree-toggle open" aria-label="收起 日本">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>日本</span>
+          </a>
+        </div>
+
+        <!-- 东京 -->
+        <div class="tree-item" style="--depth: 3;">
+          <span class="tree-spacer"></span>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>东京</span>
+            <span class="count">186</span>
+          </a>
+        </div>
+
+        <!-- 京都 (active) -->
+        <div class="tree-item" style="--depth: 3;">
+          <button class="tree-toggle open" aria-label="收起 京都">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>京都</span>
+            <span class="count">312</span>
+          </a>
+        </div>
+
+        <!-- 大阪 -->
+        <div class="tree-item" style="--depth: 3;">
+          <span class="tree-spacer"></span>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>大阪</span>
+            <span class="count">124</span>
+          </a>
+        </div>
+
+        <!-- 北海道 -->
+        <div class="tree-item" style="--depth: 3;">
+          <span class="tree-spacer"></span>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>北海道</span>
+            <span class="count">98</span>
+          </a>
+        </div>
+
+        <!-- 欧洲 -->
+        <div class="tree-item" style="--depth: 1;">
+          <button class="tree-toggle" aria-label="展开 欧洲">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>欧洲</span>
+          </a>
+        </div>
+
+        <!-- 美洲 -->
+        <div class="tree-item" style="--depth: 1;">
+          <button class="tree-toggle" aria-label="展开 美洲">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>美洲</span>
+          </a>
+        </div>
+
+        <!-- 国内 -->
+        <div class="tree-item" style="--depth: 1;">
+          <button class="tree-toggle" aria-label="展开 国内">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>国内</span>
+          </a>
+        </div>
+
+        <!-- 生活 -->
+        <div class="tree-item">
+          <button class="tree-toggle" aria-label="展开 生活">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span>生活</span>
+          </a>
+        </div>
+
+        <!-- 活动 -->
+        <div class="tree-item">
+          <button class="tree-toggle" aria-label="展开 活动">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
+          </button>
+          <a href="#" class="tree-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012-2z"/></svg>
+            <span>活动</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- Bottom Nav -->
+      <nav class="sidebar-nav" aria-label="应用导航">
+        <a href="04-search.html">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          搜索
+        </a>
+        <a href="06-settings-libraries.html">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          设置
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Scrim for mobile -->
+    <div class="scrim" id="scrim" onclick="closeSidebar()"></div>
+
+    <!-- ========== MAIN ========== -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="icon-btn menu-button" onclick="openSidebar()" aria-label="打开目录">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumbs" aria-label="面包屑导航">
+          <a href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+          </a>
+          <span class="separator">›</span>
+          <a href="#">旅行</a>
+          <span class="separator">›</span>
+          <a href="#" class="truncated">日本</a>
+          <span class="separator truncated">›</span>
+          <span class="current">京都</span>
+        </nav>
+
+        <!-- Search -->
+        <div class="topbar-search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" placeholder="搜索当前文件夹" aria-label="搜索">
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+          <button class="icon-btn" aria-label="筛选">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Toolbar -->
+      <div class="toolbar" role="region" aria-label="浏览工具">
+        <button class="toggle-btn" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+          包含子目录
+        </button>
+
+        <div class="segmented-control" role="group" aria-label="布局">
+          <button class="active" aria-label="网格">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button aria-label="瀑布流">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="7"/><rect x="14" y="4" width="6" height="5"/><rect x="4" y="13" width="6" height="7"/><rect x="14" y="11" width="6" height="9"/></svg>
+          </button>
+        </div>
+
+        <label class="sort-select">
+          <span>排序</span>
+          <select>
+            <option>拍摄日期（从新到旧）</option>
+            <option>拍摄日期（从旧到新）</option>
+            <option>文件名 A→Z</option>
+            <option>文件名 Z→A</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Content Area -->
+      <main id="browse-heading" class="workspace has-preview">
+        <div class="browse-content">
+          <!-- Scan Banner -->
+          <div class="scan-banner">
+            <svg class="scan-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            <span>正在扫描媒体库"家庭影像"。您可以浏览已索引的内容。</span>
+            <span class="scan-stats">已发现 12,480 项 · 跳过 38 项</span>
+            <button class="close-banner" aria-label="关闭">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <!-- Folder Grid -->
+          <h2 class="section-title">子目录</h2>
+          <p class="section-subtitle">8 个子目录 · 312 项媒体</p>
+
+          <div class="folder-grid">
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">清水寺</span>
+              <span class="folder-count">312 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">伏见稻荷大社</span>
+              <span class="folder-count">268 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">金阁寺</span>
+              <span class="folder-count">189 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">岚山</span>
+              <span class="folder-count">245 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">祇园</span>
+              <span class="folder-count">176 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">二条城</span>
+              <span class="folder-count">132 项</span>
+            </a>
+            <a href="#" class="folder-card">
+              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span class="folder-name">其他</span>
+              <span class="folder-count">98 项</span>
+            </a>
+          </div>
+
+          <!-- Media Grid -->
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
+            <h2 class="section-title" style="margin-bottom: 0;">媒体</h2>
+            <span style="font: var(--text-footnote); color: var(--text-tertiary);">已加载 312 项</span>
+          </div>
+
+          <div class="media-grid">
+            <!-- Card 1 - Selected -->
+            <div class="media-card selected" tabindex="0">
+              <div class="check">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="thumb-placeholder grad-1"></div>
+              <div class="meta">
+                <div class="name">2026-07-21 19-12-43.jpg</div>
+                <div class="date">2026-07-21 19:12</div>
+              </div>
+            </div>
+
+            <!-- Card 2 - Video -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-2"></div>
+              <span class="badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+              <span class="duration">0:18</span>
+              <div class="meta">
+                <div class="name">2026-07-21 16-45-10.mp4</div>
+                <div class="date">2026-07-21 16:45</div>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-3"></div>
+              <div class="meta">
+                <div class="name">2026-07-20 10-22-31.jpg</div>
+                <div class="date">2026-07-20 10:22</div>
+              </div>
+            </div>
+
+            <!-- Card 4 - Video -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-4"></div>
+              <span class="badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+              <span class="duration">0:27</span>
+              <div class="meta">
+                <div class="name">2026-07-19 09-11-05.mp4</div>
+                <div class="date">2026-07-19 09:11</div>
+              </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-5"></div>
+              <div class="meta">
+                <div class="name">2026-07-18 18-33-27.jpg</div>
+                <div class="date">2026-07-18 18:33</div>
+              </div>
+            </div>
+
+            <!-- Card 6 - Video -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-6"></div>
+              <span class="badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+              <span class="duration">0:15</span>
+              <div class="meta">
+                <div class="name">2026-07-18 09-02-14.mp4</div>
+                <div class="date">2026-07-18 09:02</div>
+              </div>
+            </div>
+
+            <!-- Card 7 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-7"></div>
+              <div class="meta">
+                <div class="name">2026-07-17 19-47-56.jpg</div>
+                <div class="date">2026-07-17 19:47</div>
+              </div>
+            </div>
+
+            <!-- Card 8 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-8"></div>
+              <div class="meta">
+                <div class="name">2026-07-17 11-08-32.jpg</div>
+                <div class="date">2026-07-17 11:08</div>
+              </div>
+            </div>
+
+            <!-- Card 9 - Video -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-9"></div>
+              <span class="badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+              <span class="duration">0:22</span>
+              <div class="meta">
+                <div class="name">2026-07-16 20-15-09.mp4</div>
+                <div class="date">2026-07-16 20:15</div>
+              </div>
+            </div>
+
+            <!-- Card 10 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-10"></div>
+              <div class="meta">
+                <div class="name">2026-07-16 08-40-21.jpg</div>
+                <div class="date">2026-07-16 08:40</div>
+              </div>
+            </div>
+
+            <!-- Card 11 -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-11"></div>
+              <div class="meta">
+                <div class="name">2026-07-15 17-30-11.jpg</div>
+                <div class="date">2026-07-15 17:30</div>
+              </div>
+            </div>
+
+            <!-- Card 12 - Video -->
+            <div class="media-card" tabindex="0">
+              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="thumb-placeholder grad-12"></div>
+              <span class="badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+              <span class="duration">0:19</span>
+              <div class="meta">
+                <div class="name">2026-07-15 12-05-33.mp4</div>
+                <div class="date">2026-07-15 12:05</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== PREVIEW PANEL ========== -->
+        <aside class="preview-panel" aria-label="媒体预览">
+          <div class="preview-header">
+            <h3>预览</h3>
+            <div class="preview-header-actions">
+              <button class="toggle-btn active btn-sm" style="font-size: 11px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+                固定预览
+              </button>
+              <button class="icon-btn" aria-label="关闭预览">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="preview-media">
+            <div class="thumb-placeholder grad-1" style="width: 100%; height: 300px; aspect-ratio: auto;"></div>
+          </div>
+
+          <div class="preview-controls">
+            <div class="nav-group">
+              <button class="btn btn-secondary btn-sm">‹ 上一项</button>
+              <span class="position">1 / 312</span>
+              <button class="btn btn-secondary btn-sm">下一项 ›</button>
+            </div>
+            <a href="05-viewer.html" class="btn btn-ghost btn-sm" style="gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              打开查看器
+            </a>
+          </div>
+
+          <div class="preview-info">
+            <div class="file-name">2026-07-21 19-12-43.jpg</div>
+            <span class="file-type">图像 · JPG</span>
+
+            <table class="info-table">
+              <tr><td>拍摄日期</td><td>2026-07-21 19:12:43</td></tr>
+              <tr><td>文件位置</td><td>旅行 / 日本 / 京都 / 清水寺</td></tr>
+              <tr><td>分辨率</td><td>6000 × 3376 (20.3MP)</td></tr>
+              <tr><td>文件大小</td><td>8.4 MB</td></tr>
+              <tr><td>时长</td><td>—</td></tr>
+            </table>
+
+            <div class="preview-pin-hint">
+              <strong style="color: var(--accent);">已固定预览</strong><br>
+              预览将保持当前媒体不变。点击其他缩略图不会更换播放内容。
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('open');
+      document.getElementById('scrim').classList.add('open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('scrim').classList.remove('open');
+    }
+  </script>
+</body>
+</html>

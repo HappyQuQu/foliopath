@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>媒体库设置 — FolioPath</title>
+  <meta name="description" content="FolioPath 媒体库列表和管理">
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <a href="#settings-main" class="skip-link">跳到主要内容</a>
+
+  <div class="app-shell" style="grid-template-columns: 1fr;">
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <a href="03-browse.html" class="icon-btn" aria-label="返回浏览">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <span style="font: var(--text-title-3); letter-spacing: var(--tracking-tight);">FolioPath</span>
+        <div style="flex: 1;"></div>
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <span style="font: var(--text-footnote); color: var(--text-secondary);">管理员</span>
+      </header>
+
+      <!-- Settings Content -->
+      <main id="settings-main" class="settings-page">
+        <header class="settings-heading">
+          <p class="eyebrow">设置</p>
+          <h1>媒体库管理</h1>
+          <p class="desc">管理您的媒体库。原始文件始终保持只读，FolioPath 不会移动、修改或删除它们。</p>
+        </header>
+
+        <!-- Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5);">
+          <a href="07-settings-general.html" class="btn btn-ghost btn-sm">← 通用设置</a>
+          <button class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新建媒体库
+          </button>
+        </div>
+
+        <!-- Library List -->
+        <div class="library-list">
+          <!-- Library 1: Ready -->
+          <div class="library-card">
+            <div class="library-card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            </div>
+            <div class="library-card-info">
+              <h3>家庭影像</h3>
+              <p>
+                <span style="font-family: var(--font-mono); font-size: 12px; background: var(--fill); padding: 2px 6px; border-radius: 4px;">/library/家庭影像</span>
+                <br>
+                <span style="font: var(--text-caption-1); color: var(--text-tertiary);">最近扫描: 2026-07-29 08:00 · 12,480 项</span>
+              </p>
+              <span class="library-status ready">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+                就绪
+              </span>
+            </div>
+            <div class="library-card-actions">
+              <button class="btn btn-secondary btn-sm">重新扫描</button>
+              <button class="btn btn-secondary btn-sm">编辑名称</button>
+              <button class="btn btn-danger btn-sm">移除</button>
+            </div>
+          </div>
+
+          <!-- Library 2: Scanning -->
+          <div class="library-card">
+            <div class="library-card-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            </div>
+            <div class="library-card-info">
+              <h3>旅行摄影</h3>
+              <p>
+                <span style="font-family: var(--font-mono); font-size: 12px; background: var(--fill); padding: 2px 6px; border-radius: 4px;">/library/旅行</span>
+                <br>
+                <span style="font: var(--text-caption-1); color: var(--text-tertiary);">扫描中: 已发现 5,320 项 · 跳过 12 项</span>
+              </p>
+              <span class="library-status scanning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s linear infinite;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                正在扫描
+              </span>
+            </div>
+            <div class="library-card-actions">
+              <button class="btn btn-secondary btn-sm">查看进度</button>
+              <button class="btn btn-secondary btn-sm">取消扫描</button>
+              <button class="btn btn-danger btn-sm">移除</button>
+            </div>
+          </div>
+
+          <!-- Library 3: Offline -->
+          <div class="library-card">
+            <div class="library-card-icon" style="color: var(--danger); background: var(--danger-soft);">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            </div>
+            <div class="library-card-info">
+              <h3>工作素材</h3>
+              <p>
+                <span style="font-family: var(--font-mono); font-size: 12px; background: var(--fill); padding: 2px 6px; border-radius: 4px;">/library/工作</span>
+                <br>
+                <span style="font: var(--text-caption-1); color: var(--text-tertiary);">上次可靠索引: 2026-07-28 14:30 · 已保留 3,210 项</span>
+              </p>
+              <span class="library-status offline">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+                离线
+              </span>
+            </div>
+            <div class="library-card-actions">
+              <button class="btn btn-secondary btn-sm">重试连接</button>
+              <button class="btn btn-secondary btn-sm">编辑名称</button>
+              <button class="btn btn-danger btn-sm">移除</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Removal Confirmation Dialog (demo) -->
+        <div style="margin-top: var(--space-8);">
+          <h2 style="font: var(--text-headline); margin-bottom: var(--space-4); color: var(--text-secondary);">移除确认对话框示例</h2>
+          <div class="dialog" style="max-width: 480px;">
+            <h2>从 FolioPath 移除"工作素材"</h2>
+            <p>此操作将移除以下内容：</p>
+            <ul style="margin: 0 0 var(--space-5); padding-left: var(--space-5); font: var(--text-subhead); color: var(--text-secondary); line-height: 1.8;">
+              <li>媒体库配置</li>
+              <li>索引数据和扫描任务</li>
+              <li>缩略图和封面缓存</li>
+            </ul>
+            <div class="inline-status info" style="margin-bottom: var(--space-5);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>原始目录 <code style="font-family: var(--font-mono); background: var(--fill); padding: 1px 4px; border-radius: 3px; font-size: 12px;">/library/工作</code> 及其中的文件不会被删除、移动或修改。</span>
+            </div>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary">取消</button>
+              <button class="btn btn-danger">确认移除</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

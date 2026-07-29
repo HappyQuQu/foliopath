@@ -24,7 +24,9 @@ export function AppShell({
   librariesHref,
   searchHref,
   settingsHref,
+  showIdentityLabel = true,
   sidebarContent,
+  topbarContent,
   title,
 }: {
   active: AppSection;
@@ -34,7 +36,9 @@ export function AppShell({
   librariesHref: string;
   searchHref?: string;
   settingsHref: string;
+  showIdentityLabel?: boolean;
   sidebarContent?: ReactNode;
+  topbarContent?: ReactNode;
   title: string;
 }) {
   const { t } = useLocale();
@@ -158,9 +162,13 @@ export function AppShell({
           >
             <List aria-hidden="true" size={21} />
           </IconButton>
-          <strong>{title}</strong>
+          {topbarContent ? (
+            <div className={styles.topbarContent}>{topbarContent}</div>
+          ) : (
+            <strong>{title}</strong>
+          )}
           <div className={styles.identity}>
-            <span>{identity}</span>
+            {showIdentityLabel && <span>{identity}</span>}
             <ThemeToggle />
           </div>
         </header>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通用设置 — FolioPath</title>
+  <meta name="description" content="FolioPath 通用设置 — 主题、语言、扫描与缓存">
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <a href="#settings-main" class="skip-link">跳到主要内容</a>
+
+  <div class="app-shell" style="grid-template-columns: 1fr;">
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <a href="03-browse.html" class="icon-btn" aria-label="返回浏览">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <span style="font: var(--text-title-3); letter-spacing: var(--tracking-tight);">FolioPath</span>
+        <div style="flex: 1;"></div>
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <span style="font: var(--text-footnote); color: var(--text-secondary);">管理员</span>
+      </header>
+
+      <!-- Settings Content -->
+      <main id="settings-main" class="settings-page">
+        <header class="settings-heading">
+          <p class="eyebrow">设置</p>
+          <h1>通用设置</h1>
+          <p class="desc">管理应用外观、语言偏好和系统参数。</p>
+        </header>
+
+        <div style="margin-bottom: var(--space-5);">
+          <a href="06-settings-libraries.html" class="btn btn-ghost btn-sm">← 媒体库管理</a>
+        </div>
+
+        <!-- Appearance & Language -->
+        <section class="settings-panel" aria-labelledby="appearance-title">
+          <h2 id="appearance-title" class="settings-panel-header">外观与语言</h2>
+
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>主题</strong>
+              <span>选择浅色、深色或跟随系统偏好。</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换主题">
+              <span class="knob">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>语言</strong>
+              <span>界面显示语言，默认跟随浏览器。</span>
+            </div>
+            <select class="library-picker-select" style="width: 160px;">
+              <option selected>简体中文</option>
+              <option>English</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Scan & Cache -->
+        <section class="settings-panel" aria-labelledby="scan-cache-title">
+          <h2 id="scan-cache-title" class="settings-panel-header">扫描与缓存</h2>
+
+          <div class="settings-row">
+            <div class="settings-row-info" style="display: flex; align-items: flex-start; gap: var(--space-3);">
+              <input type="checkbox" checked id="schedule-check" style="width: 18px; height: 18px; accent-color: var(--accent); margin-top: 2px; flex-shrink: 0;">
+              <label for="schedule-check" style="cursor: pointer;">
+                <strong style="display: block; font: var(--text-subhead); font-weight: 600;">定时完整扫描</strong>
+                <span style="font: var(--text-footnote); color: var(--text-secondary);">按照设定间隔自动执行完整扫描，保持索引与文件系统同步。</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: var(--space-4);">
+            <div class="form-field">
+              <label for="interval">扫描间隔（小时）</label>
+              <input id="interval" class="form-input" type="number" value="24" min="1" max="8760" step="1">
+              <span class="description">扫描间隔必须在 1 到 8760 小时之间。默认每 24 小时执行一次。</span>
+            </div>
+
+            <div class="form-field">
+              <label for="cache">缩略图缓存配额（GiB）</label>
+              <input id="cache" class="form-input" type="number" value="10" min="0.01" step="0.1">
+              <span class="description">达到配额后将自动清理最久未使用的缩略图。缩略图可随时重新生成。</span>
+            </div>
+
+            <div class="inline-status info">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>系统会自动为 SQLite 数据库和临时文件保留安全的磁盘余量。</span>
+            </div>
+          </div>
+
+          <div class="settings-panel-footer">
+            <button class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              保存设置
+            </button>
+          </div>
+        </section>
+
+        <!-- Account -->
+        <section class="settings-panel" aria-labelledby="account-title">
+          <h2 id="account-title" class="settings-panel-header">账户</h2>
+
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>管理员</strong>
+              <span>用户名: admin</span>
+            </div>
+            <button class="btn btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              退出登录
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

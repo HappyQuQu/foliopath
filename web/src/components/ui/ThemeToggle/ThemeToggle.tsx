@@ -18,9 +18,9 @@ export function ThemeToggle() {
       onClick={() => setPreference(light ? "dark" : "light")}
     >
       {light ? (
-        <Moon aria-hidden="true" size={20} />
-      ) : (
         <Sun aria-hidden="true" size={20} />
+      ) : (
+        <Moon aria-hidden="true" size={20} />
       )}
     </IconButton>
   );

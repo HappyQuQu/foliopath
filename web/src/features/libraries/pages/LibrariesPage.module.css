@@ -23,19 +23,20 @@
   margin: var(--space-12) auto;
   padding: clamp(var(--space-8), 6vw, 4.375rem);
   text-align: center;
-  border: var(--border-width) dashed var(--color-border-strong);
-  border-radius: calc(var(--radius-3) + var(--space-1) / 2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-1);
 }
 
 .welcomeIcon {
-  width: 6rem;
-  height: 6rem;
+  width: 5.5rem;
+  height: 5.5rem;
   display: grid;
   place-items: center;
   margin-bottom: var(--space-6);
   color: var(--color-accent);
-  border-radius: 1.375rem;
+  border-radius: var(--radius-3);
   background: var(--color-accent-soft);
 }
 
@@ -94,7 +95,7 @@
 }
 
 .page {
-  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  width: min(var(--size-settings-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
   margin: var(--space-10) auto 6.25rem;
 }
 
@@ -109,7 +110,7 @@
 .heading h1 {
   margin: 0;
   font-size: clamp(1.75rem, 4vw, 2.375rem);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
 }
 
 .heading > div > p:last-child {
@@ -129,8 +130,16 @@
   gap: var(--space-4);
   padding: var(--space-5);
   border: var(--border-width) solid var(--color-border);
-  border-radius: calc(var(--radius-3) - 1px);
+  border-radius: var(--radius-2);
   background: var(--color-surface);
+  transition:
+    box-shadow var(--motion-normal) var(--ease-standard),
+    transform var(--motion-normal) var(--ease-standard);
+}
+
+.library:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-0.0625rem);
 }
 
 .libraryIcon {
@@ -139,7 +148,7 @@
   display: grid;
   place-items: center;
   color: var(--color-accent);
-  border-radius: calc(var(--radius-3) - 1px);
+  border-radius: var(--radius-2);
   background: var(--color-accent-soft);
 }
 
@@ -169,7 +178,7 @@
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   color: var(--color-accent);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-round);
   background: var(--color-accent-soft);
   font-size: var(--font-size-1);
 }

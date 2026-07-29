@@ -4,6 +4,7 @@ export {
   LoadingState,
   OfflineState,
 } from "./AsyncState/AsyncState";
+export { BrandMark, type BrandMarkSize } from "./BrandMark/BrandMark";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button/Button";
 export { IconButton, type IconButtonProps } from "./Button/IconButton";
 export { Dialog, DialogCloseButton, type DialogProps } from "./Dialog/Dialog";
