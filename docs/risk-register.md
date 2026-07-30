@@ -22,9 +22,9 @@
 | R-012 | Unicode、大小写和文件系统差异造成重复路径或搜索错误 | 中 | 高 | macOS/Linux 结果不同、唯一约束冲突、不可定位文件 | S2-007 已确认媒体库显示名 NFC、唯一键 NFKC + Unicode full case folding、locale-neutral numeric sort key 与组件级根比较；[S4-002](gates/MVP-2026-07-23/s4-search-keyset.md)已用组合字符、sharp-s、全角、中文、保留变音符号、短词和 `%/_` fixture 固定语义，[S4-003](gates/MVP-2026-07-23/s4-search-backend-ready.md)又在 macOS/Linux 100k 档验证同一派生键、FTS 和 fallback 路径。真实多种文件系统仍留给 Release Gate | 保留规范显示名并拒绝歧义库，搜索实现不满足 profile 时停止 Backend Gate；必要时缩小受支持文件系统范围 | 后端负责人 | 缓解中 |
 | R-013 | 多媒体库共享任务队列时出现饥饿或请求被后台工作拖慢 | 中 | 高 | 一个大库占满 worker；API 延迟随扫描显著上升 | S2/S3 已固定公平/资源边界；[S5-005](gates/MVP-2026-07-23/s5-release-capacity-candidate.md) 关闭 session touch、unchanged 派生和 cache 淘汰写放大，原生 100k 扫描并发浏览 P95 降至 6.116 ms，94,234 个后台任务调度期间重扫 140.190 s，全部 100,000 个媒体任务最终成功，三引擎 FPS/RSS 通过 | 暂停/限速后台任务，改为手动扫描模式 | 技术负责人 | 已关闭 |
 | R-014 | 依赖许可证、FFmpeg 构建选项或 codec 分发义务不清 | 中 | 高 | SBOM 出现不兼容/未知许可证；无法提供对应源码或 notice | [供应链审查](supply-chain-review.md) 的 Stage 0 基线确认 Debian FFmpeg 启用 GPL、libx264/libx265；[S5-007D](gates/MVP-2026-07-23/s5-minimal-ffmpeg-runtime.md) 已以关闭 GPL/x264/网络的最小 LGPL 2.1+ 构建替换它并保留许可证。最终双平台 digest 仍须附 SBOM/provenance、notices、漏洞结果和合规签署 | 替换依赖、关闭相关 codec 或停止分发受影响镜像 | 合规负责人 | 缓解中 |
-| R-015 | 可选虚拟瀑布流破坏键盘顺序、焦点或大列表稳定性 | 中 | 中 | DOM 顺序与视觉顺序不一致、焦点丢失、滚动跳动 | 默认使用规则网格；[Stage 3 Integrated Done](gates/MVP-2026-07-23/s3-browse-integrated-done.md) 已验证 grid/masonry 记忆、DOM 顺序、固定占位、虚拟容量和返回焦点，S5-005 已通过三引擎 100k DOM/FPS/RSS，S5-006A 又执行查看器键盘/焦点矩阵；最终物理辅助功能签署仍待 S5-006B | 保留默认网格并临时禁用未达标的瀑布流 | 前端负责人 | 缓解中 |
+| R-015 | 可选虚拟瀑布流破坏键盘顺序、焦点或大列表稳定性 | 中 | 中 | DOM 顺序与视觉顺序不一致、焦点丢失、滚动跳动 | 默认使用规则网格；[Stage 3 Integrated Done](gates/MVP-2026-07-23/s3-browse-integrated-done.md) 已验证 grid/masonry 记忆、DOM 顺序、固定占位、虚拟容量和返回焦点，S5-005 已通过三引擎 100k DOM/FPS/RSS，S5-006A 又执行查看器键盘/焦点矩阵；五个桌面自动化项目已通过 200% 等效重排的焦点、控件、溢出与 axe 护栏，[S5-006B Chrome](evidence/s5-006b/README.md)在真实 Chrome 151 原生 200%、[Firefox 物理证据](evidence/s5-006c/README.md)在 Firefox 153.0.1 原生 200%/400% 下验证扫描、浏览、预览、Viewer 与快捷键；读屏、物理触控、移动设备和 Safari 缩放签署仍待完成 | 保留默认网格并临时禁用未达标的瀑布流 | 前端负责人 | 缓解中 |
 | R-016 | 缺少 CI、生成漂移检查和可复现 fixture 导致回归 | 高 | 高 | 开发者本地通过而干净环境失败；生成文件与源不一致 | 真实 PR CI 已覆盖双架构 Go/race、生成/兼容、mount、govips/FFmpeg、runtime/recovery 与 SBOM/license；媒体库 Backend Gate、S2-102～106 worker、目录、媒体收敛、故障恢复和容量均有分层证据，容量主档另由 Linux amd64/arm64 受限资源 job 强制；每个后续生产切片继续增加集成/E2E 和已许可 fixture | 阻止合并和发布，先恢复最小验证基线 | QA 负责人 | 缓解中 |
-| R-017 | 发布镜像的原生依赖闭包含未处置的 Critical/High 漏洞 | 高 | 严重 | 最终 SBOM/扫描出现 Critical/High；漏洞数据库变化 | [S5-007A](gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已固定 Syft/Trivy digest、保存完整报告并拒绝已有修复版本的发现；最小 libvips/FFmpeg、内建健康检查、无 shell distroless final stage 与固定源码 Expat 2.8.2 将发现从 15 Critical / 136 High 降至 1 / 8。剩余发现全部保留为 RC 阻断；发布前升级/移除受影响依赖或对具体 CVE 完成限时正式接受，并在最终双架构 digest 上执行全阻断扫描 | 跟踪 GLib/blkid/mount 修复；无法证明安全时停止发布 | 安全负责人 | 开放 |
+| R-017 | 发布镜像的原生依赖闭包含未处置的 Critical/High 漏洞 | 高 | 严重 | 最终 SBOM/扫描出现 Critical/High；漏洞数据库变化 | [S5-007A/G](gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已固定 Syft/Trivy digest和完整报告；最小 libvips/FFmpeg、内建健康检查、无 shell distroless、固定源码 Expat 与修复来源 GLib 2.88.3 将本机 arm64 候选从 15 Critical / 136 High 降至 `0 / 0`，并移除 GLib 的 libmount/blkid 间接闭包。干净候选提交 `5c3b3c7` 的原生 arm64 已以相同结果生成 smoke、SPDX、notices、provenance 和不可变 digest 证据；原生 amd64 配对复扫及安全/合规签署仍缺失 | 若任一最终 digest 重新出现发现，升级/移除依赖或停止发布 | 安全负责人 | 缓解中 |
 | R-018 | 视频故事板 backfill、重复 seek 或 hover 生命周期造成 CPU、I/O、缓存、请求或前端资源失控 | 中 | 高 | grid/poster 等待变长；浏览 P95 上升；队列/缓存持续增长；快速掠过产生请求风暴；虚拟卡片回收后 timer/动画仍活动 | [VSP-S2 Backend Evidence Ready](gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)已以双架构生产 FFmpeg、单并发/低优先级、128 项 admission、真实 cache repair 和 Linux 100k/10k 档关闭后端 Gate；[VSP-S3 Consumer/UI Ready](gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)又以 300ms intent、按需 decode、单活动动画、生命周期回收、六种浏览器/输入 profile 和 100-video 三引擎容量关闭前端 Gate；[VSP-301](gates/POST-MVP-1/vsp-301-product-vertical.md)已贯通生产镜像真实全链，剩余风险由 [VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md) 原生候选复验与 VSP-S4 最终签署阻断 | 依次降低 worker/尺寸/质量、改为有界按需 admission；仍不满足时禁用 storyboard 并保留现有 poster | 媒体处理与前端性能负责人 | 缓解中 |
 | R-019 | 文件事件丢失、乱序、overflow、网络盘不转发、watch 资源不足或删除误判导致内容延迟或索引损失 | 高 | 严重 | `IN_Q_OVERFLOW`/`ENOSPC`、watch 被移除、事件后目录不一致、挂载掉线时出现批量 delete、dirty 队列持续满或页面长期不更新 | [FTR-SCN-001](features/automatic-library-discovery.md)要求事件只作不可信提示；新增/修改/删除均经 `internal/files` 安全定向校准确认，掉盘/权限/overflow 保留可靠索引并合并安排完整扫描；每目录而非每文件 watch，队列/并发/revision 轮询有界；实现前必须通过 WCH-S0 ADR 与 Linux 100k/10k burst/恢复证据 | 先扩大合并并降低定向并发，再按库进入 degraded；仍不可靠时全局禁用自动发现，保留创建/启动/手动/定时完整扫描 | 扫描与运维负责人 | 开放 |
 | R-020 | 任务中心全量重建造成无界 admission、队列饥饿、磁盘耗尽，或先清缓存导致可用预览丢失 | 中 | 高 | rebuild 一次登记全部资产；日常 poster/grid 或浏览延迟持续恶化；取消后队列继续增长；ENOSPC 后旧 ready 不可用 | [FTR-OPS-001](features/task-center.md)要求 parent run、asset keyset 小批 admission、最低后台优先级、active coalesce、磁盘安全余量、停止 admission 的协作取消和新文件成功后才替换旧缓存；OPS-003 必须在 100k/10k 档冻结上限 | 只保留 missing backfill，禁用 all rebuild；必要时完全隐藏批量入口并继续现有按需 self-heal | 媒体处理与性能负责人 | 开放 |
@@ -45,7 +45,7 @@ PR native job，Stage 5 仍阻断正式只读 volume、运行期 unmount、浏�
 - R-011 备份/恢复和迁移。
 - R-008 中实际承诺发布的架构。
 - R-014 许可证与分发义务。
-- R-017 候选镜像未处置的 Critical/High 漏洞。
+- R-017 最终原生双架构镜像尚未从干净提交完成全阻断复扫与安全签署。
 
 R-005、R-008、R-009、R-011 与 R-013 已由 Stage 5 容量、双架构和恢复证据关闭；
 R-002～004、R-006～007、R-010、R-012、R-014～016 仍处于缓解中。但其余项目对应的
@@ -75,8 +75,9 @@ R-021 属于当前 MVP revision 4 的
 账户/目录/cache 后端、机器 reference manifest、四档状态矩阵、三浏览器/可访问性与 100k
 有界 DOM 关闭对应子风险；UIF-401/402/403 又完成逐页同状态比较、Linux-owned 基线和真实
 容器纵向链，并验证 cache cleanup 与媒体路径/SHA-256 不变；UIF-404 已通过三引擎、axe、
-键盘、触摸、forced-colors 与 reduced-motion 自动化适用复验，并把真实读屏、缩放、OS
-高对比和物理触摸明确留给 S5-006B；UIF-405 又在最新共享集合上通过三引擎 100k
+键盘、触摸、forced-colors 与 reduced-motion 自动化适用复验；后续 S5-006B 已取得
+Firefox 原生 200%/400% 缩放证据，真实读屏、OS 高对比、物理触摸/移动设备和 Safari
+缩放仍未完成；UIF-405 又在最新共享集合上通过三引擎 100k
 滚动/DOM/FPS/RSS，并以 10k/100k 完整扫描期浏览/搜索并发和跨库 worker 顺序复验后端
 容量边界；UIF-406 的 fmt、architecture、generation、lint、unit、integration 与生产容器
 E2E 七项完整验证全部通过；UIF-407 又把 PRD、UI、流程、API/data/security/testing、
@@ -89,7 +90,8 @@ R-021 当前 feature 风险关闭；未来改动继续由 reference manifest 和
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到
 [`MVP-2026-07-23-rc-readiness.json`](releases/MVP-2026-07-23-rc-readiness.json)。
-当前五项发布风险为“缓解中”、R-008/R-011 为“已关闭”、R-017 为“开放”，没有“已接受”项，因此
+当前六项发布风险为“缓解中”、R-008/R-011 为“已关闭”，没有“开放”或“已接受”项，但
+缓解中风险仍未达到发布关闭条件，因此
 Release Candidate 明确为 No-Go。
 
 同日对当前已提交 HEAD 的 GitHub Actions run `30314930003` 复核发现，全部 job 因账户

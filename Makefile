@@ -4,7 +4,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -42,6 +42,13 @@ verify-release-image-evidence:
 	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
 	$(GO) run ./tests/release/evidence \
 		-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"
+
+verify-supply-chain-evidence:
+	@test -n "$(EVIDENCE_DIR)" || (echo "EVIDENCE_DIR is required" >&2; exit 2)
+	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
+	$(GO) run ./tests/release/supplychain_evidence \
+		-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)" \
+		-output "$(SUMMARY_FILE)"
 
 verify-storyboard-evidence:
 	@test -n "$(EVIDENCE_DIR)" || (echo "EVIDENCE_DIR is required" >&2; exit 2)

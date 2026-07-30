@@ -136,7 +136,8 @@ migration 13 增加 account revision；没有修改已发布 migration。
 
 ### 当前目录关键字
 
-- 资产查询复用现有 `directoryId + recursive + q + kind + sort + order`；
+- 资产查询复用现有 `directoryId + recursive + q + kind + sort + order`；勾选“包含子目录”
+  后，当前目录关键字必须查询该目录及全部后代媒体，媒体库根目录也保持相同语义；
 - 目录列表新增规范化 `q`，与 `libraryId + parentId + sort + cursor` 绑定；
 - 目录匹配只查询可靠索引，不在请求时遍历文件系统；
 - 离线媒体库继续查询最后可靠目录索引；

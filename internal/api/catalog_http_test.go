@@ -228,10 +228,20 @@ func TestCatalogSearchRoutesParseScopesAndUTCDateInterval(t *testing.T) {
 			request catalog.AssetRequest,
 		) (catalog.AssetPage, error) {
 			libraryCalls++
-			if !request.DirectorySet || request.DirectoryID != 12 ||
-				!request.RecursiveSet || !request.Recursive ||
-				request.SearchQuery == nil || *request.SearchQuery != "photo" {
-				t.Fatalf("directory search request = %#v", request)
+			switch libraryCalls {
+			case 1:
+				if !request.DirectorySet || request.DirectoryID != 12 ||
+					!request.RecursiveSet || !request.Recursive ||
+					request.SearchQuery == nil || *request.SearchQuery != "photo" {
+					t.Fatalf("directory search request = %#v", request)
+				}
+			case 2:
+				if request.DirectorySet || !request.RecursiveSet || request.Recursive ||
+					request.SearchQuery == nil || *request.SearchQuery != "photo" {
+					t.Fatalf("root direct search request = %#v", request)
+				}
+			default:
+				t.Fatalf("unexpected library search request = %#v", request)
 			}
 			return catalog.AssetPage{}, nil
 		},
@@ -262,11 +272,20 @@ func TestCatalogSearchRoutesParseScopesAndUTCDateInterval(t *testing.T) {
 		t.Fatalf("directory search status = %d; body = %s", directory.Code, directory.Body)
 	}
 
+	rootDirect := httptest.NewRecorder()
+	mux.ServeHTTP(rootDirect, httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/libraries/lib_7/assets?q=photo&recursive=false",
+		nil,
+	))
+	if rootDirect.Code != http.StatusOK {
+		t.Fatalf("root direct search status = %d; body = %s", rootDirect.Code, rootDirect.Body)
+	}
+
 	for _, target := range []string{
 		"/api/v1/assets",
 		"/api/v1/assets?q=photo&recursive=false",
 		"/api/v1/assets?q=photo&modifiedFrom=2026-01-01T01%3A00%3A00%2B01%3A00",
-		"/api/v1/libraries/lib_7/assets?q=photo&recursive=false",
 	} {
 		response := httptest.NewRecorder()
 		mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, target, nil))
@@ -274,7 +293,7 @@ func TestCatalogSearchRoutesParseScopesAndUTCDateInterval(t *testing.T) {
 			t.Fatalf("%s status = %d; body = %s", target, response.Code, response.Body)
 		}
 	}
-	if searchCalls != 1 || libraryCalls != 1 {
+	if searchCalls != 1 || libraryCalls != 2 {
 		t.Fatalf("search calls = %d, library calls = %d", searchCalls, libraryCalls)
 	}
 }

@@ -6,8 +6,8 @@
 
 `S5-009A` 已完成首次统一 RC 审计和失败关闭入口，但 `S5-009` 尚未完成。Stage 5 的八个
 前置 Gate 中 `S5-002`、`S5-003`、`S5-004`、`S5-005` 与 `S5-008` 通过，另外三个仍有可验证的硬阻断；
-八项发布阻断风险中五项处于缓解中、`R-008/R-011` 已关闭、`R-017` 仍开放，没有任何一项
-有时限地正式接受。
+八项发布阻断风险中六项处于缓解中、`R-008/R-011` 已关闭，没有开放或正式接受项；缓解中
+风险仍未达到发布关闭条件。
 
 ## 范围与所有权
 
@@ -31,8 +31,8 @@
 | S5-003 发布 HTTP 安全 | Passed | 已完成；最终 Compose 仍由 S5-001/002 复核 |
 | S5-004 恢复/升级 | Passed | 原生 amd64/arm64 均以不同前一候选 image ID 通过向前升级及旧镜像＋升级前备份配对回滚 |
 | S5-005 产品容量 | Passed | 原生 amd64 通过真实媒体和 100k/10k 目标档、100k 全量派生、cache 低水位及持续健康；本机三引擎 FPS/RSS 通过并冻结预算 |
-| S5-006 质量矩阵 | Blocked | Safari 26.5.2 真机及 Chrome 150 normal/forced-colors 通过；真实 Firefox、读屏/缩放/触摸/移动物理设备签署仍缺失 |
-| S5-007 供应链 | Blocked | 双架构 SPDX/notices 和 fail-closed provenance 入口已建立；仍须处置/逐项接受 1 Critical、8 High，并生成最终 clean-commit statement、完成安全/合规签署 |
+| S5-006 质量矩阵 | Blocked | Safari 26.5.2、Chrome normal/forced-colors、Firefox 153.0.1、五桌面项目 200% 等效重排、Chrome 原生 200% 及 Firefox 原生 200%/400% 纵向链通过；物理读屏/触摸/移动设备、Safari 缩放和最终视觉签署仍缺失 |
+| S5-007 供应链 | Blocked | 干净候选提交 `5c3b3c7` 的原生 arm64 已绑定完整 smoke、不可变 digest、SPDX/notices、provenance 和 `all` 策略 `0 Critical / 0 High`；仍缺同提交原生 amd64、paired summary 与安全/合规签署 |
 | S5-008 发布文档 | Passed | 已完成并由 `make release-docs-check` 防漂移 |
 
 任一 Blocked 项都足以保持 No-Go，不允许以总通过率、候选本机结果或“CI 已接线”替代证据。
@@ -51,12 +51,13 @@ ZFS 媒体发现并关闭 FFprobe 参数缺陷；证据见
 ## 发布阻断风险
 
 风险登记明确要求 `R-002`、`R-003`、`R-006`、`R-008`、`R-010`、`R-011`、`R-014`、
-`R-017` 在首个镜像发布前处置。当前快照为：
+`R-017` 在首个镜像发布前处置。2026-07-30 的最新快照为：
 
 - `R-002/003/006/010/014`：`mitigating`，均有 owner 与下一条关闭条件；
 - `R-008`：`closed`，原生双架构完整候选矩阵及运行闭包已审阅；
 - `R-011`：`closed`，原生双架构升级与配对回滚证据已归档；
-- `R-017`：`open`，1 Critical / 8 High 尚未消除或逐项正式接受；
+- `R-017`：`mitigating`，干净候选提交的原生 arm64 已为 `0 Critical / 0 High` 并
+  生成绑定证据；原生 amd64 配对复扫与最终签署尚未完成；
 - `closed`：2；
 - `accepted`：0。
 
@@ -86,6 +87,31 @@ FAIL: release candidate is No-Go; unresolved gates and risks remain
 ```
 
 第二个失败是本 Gate 的预期安全结果，不是未处理的测试故障。
+
+## 2026-07-30 供应链续审
+
+原生 linux/arm64 已从干净提交 `5c3b3c7` 重建并通过完整 release smoke、SPDX、
+notices、SLSA provenance 与 Trivy `all` 零发现验证，镜像 digest 为
+`sha256:8a88d26b6579afea21e4d3d85a1df7b5d45b5f851466c4afd6067d025516457d`。
+GitHub Actions
+[run 30551526321](https://github.com/HappyQuQu/foliopath/actions/runs/30551526321)
+的原生 amd64/arm64 job 在执行任何 step 前因账户付款失败或 spending limit 被拒绝，
+因此 paired job 跳过。该运行不改变 Gate 结论：它既不是产品失败，也没有提供原生
+amd64 通过证据；`S5-007` 与 Release Candidate 继续 No-Go。
+
+## 2026-07-30 浏览器质量续审
+
+新增的 200% 等效重排护栏已在 Chromium、Firefox、WebKit、品牌 Chrome Stable 与
+forced-colors 通过，覆盖媒体卡焦点入口、查看器主焦点、缩放/信息/关闭控件、页面横向
+溢出和 axe serious/critical。Google Chrome 151 随后在物理 Mac 以原生 `200%` 页面
+缩放完成真实候选的扫描、浏览、预览、Viewer、快捷键和媒体缩放纵向链，并确认只读挂载
+及媒体 SHA-256 不变，证据见
+[`docs/evidence/s5-006b`](../../evidence/s5-006b/README.md)。Mozilla 官方 Firefox
+153.0.1 后续通过官方 SHA-256、DMG、签名和 Apple 公证校验，并以临时隔离 profile 完成
+首次设置、建库/扫描、当前目录过滤、图片预览/Viewer、MP4 实际播放及原生
+`200%`/`400%` 纵向链，证据见
+[`docs/evidence/s5-006c`](../../evidence/s5-006c/README.md)。物理读屏、触摸、移动设备、
+Safari 真实缩放和最终跨设备视觉签署仍缺失，`S5-006` 状态保持 Blocked。
 
 ## 允许的下一步
 

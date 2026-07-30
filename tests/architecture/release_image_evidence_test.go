@@ -54,3 +54,51 @@ func TestNativeReleaseImageEvidenceRemainsBoundToTheWorkflowRun(t *testing.T) {
 		`-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"`,
 	})
 }
+
+func TestNativeSupplyChainEvidenceFailsClosedAndRequiresBothArchitectures(t *testing.T) {
+	root := repositoryRoot(t)
+	read := func(relative string) string {
+		t.Helper()
+		content, err := os.ReadFile(filepath.Join(root, relative))
+		if err != nil {
+			t.Fatalf("read %s: %v", relative, err)
+		}
+		return string(content)
+	}
+
+	workflow := read(".github/workflows/ci.yml")
+	generator := read("scripts/generate-supply-chain-evidence.sh")
+	makefile := read("Makefile")
+
+	requireFragments(t, ".github/workflows/ci.yml", workflow, []string{
+		"name: Candidate supply chain (${{ matrix.arch }})",
+		"runner: ubuntu-24.04",
+		"runner: ubuntu-24.04-arm",
+		"FOLIOPATH_VULNERABILITY_POLICY: all",
+		"FOLIOPATH_SUPPLY_CHAIN_EXPECTED_ARCH: ${{ matrix.arch }}",
+		"FOLIOPATH_SUPPLY_CHAIN_RUN_ID: ${{ github.run_id }}",
+		"name: supply-chain-${{ github.sha }}-${{ matrix.arch }}",
+		"needs: supply-chain",
+		"pattern: supply-chain-${{ github.sha }}-*",
+		"make verify-supply-chain-evidence",
+	})
+	requireFragments(t, "scripts/generate-supply-chain-evidence.sh", generator, []string{
+		`.total == 0`,
+		`.critical == 0`,
+		`.high == 0`,
+		`.name == "foliopath-glib"`,
+		`.name == "libblkid1"`,
+		`.name == "libglib2.0-0t64"`,
+		`.name == "libmount1"`,
+		`.name == "libselinux1"`,
+		`policy: "all"`,
+		`sourceCommit: $source_commit`,
+		`workflowRunId: $run_id`,
+		`result: "passed"`,
+	})
+	requireFragments(t, "Makefile", makefile, []string{
+		"verify-supply-chain-evidence:",
+		`$(GO) run ./tests/release/supplychain_evidence`,
+		`-dir "$(EVIDENCE_DIR)" -commit "$(RELEASE_SHA)"`,
+	})
+}

@@ -132,6 +132,7 @@ func TestAuthorizedSystemStatusMatchesContract(t *testing.T) {
 				"video/mp4",
 				"video/quicktime",
 				"video/x-matroska",
+				"video/x-msvideo",
 			},
 			VideoTranscoding: false,
 		},

@@ -132,7 +132,7 @@ VSP-303 文档收敛与 VSP-304 Integrated Done 因此前置条件保持 Pending
 | --- | --- | --- | --- |
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 查看原始内容 |
 | 动图 | `.gif` | 索引、元数据、静态缩略图 | 使用原文件播放动画 |
-| 视频 | `.mp4`、`.mov`、`.mkv` | ffprobe 元数据、FFmpeg poster、HTTP Range | 播放浏览器原生支持的编码 |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi` | ffprobe 元数据、FFmpeg poster、HTTP Range | 播放浏览器原生支持的编码 |
 
 扩展名匹配不区分大小写。FolioPath 的视频支持指容器格式与服务端处理契约，不表示浏览器能
 解码容器内的任意视频/音频 codec。视频不会转码；不兼容内容会显示可理解的降级状态。
@@ -448,7 +448,7 @@ make test-e2e
 
 ## 项目状态与路线图
 
-截至 2026-07-28：
+截至 2026-07-30：
 
 - [x] Stage 0：需求、架构、关键安全/容量/媒体可行性与基础 Gate
 - [x] Stage 1：运行骨架、SQLite migration、健康检查、单管理员认证与应用壳
@@ -457,8 +457,10 @@ make test-e2e
 - [x] Stage 4：搜索、过滤、完整图片查看器、视频 Range 与降级状态
 - [x] Stage 5 候选：容器、Compose、双架构运行、恢复、升级/回滚和容量验证
 - [ ] 完成最终不可变镜像 digest 与干净提交 provenance
-- [ ] 完成真实 Firefox、读屏、缩放、触摸与移动物理设备签署
-- [ ] 清理或正式限时接受当前供应链扫描中的 `1 Critical / 8 High` 发现
+- [x] 完成真实 Firefox 核心纵向链与原生 200%/400% 缩放证据
+- [ ] 完成物理读屏、触摸与移动设备、Safari 缩放及最终跨设备视觉签署
+- [ ] 从最终干净提交完成原生双架构供应链复扫（本机 arm64 修复候选当前为
+  `0 Critical / 0 High`），并完成 provenance 与安全/合规签署
 - [ ] 通过最终 Release Candidate Gate 并发布首个稳定版本
 
 权威机器可读判断位于

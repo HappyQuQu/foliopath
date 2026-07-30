@@ -537,6 +537,8 @@ function SearchFilters({
           </option>
           <option value="name:asc">{t("browse.sortNameAscending")}</option>
           <option value="name:desc">{t("browse.sortNameDescending")}</option>
+          <option value="size:desc">{t("browse.sortSizeDescending")}</option>
+          <option value="size:asc">{t("browse.sortSizeAscending")}</option>
         </select>
       </label>
     </fieldset>

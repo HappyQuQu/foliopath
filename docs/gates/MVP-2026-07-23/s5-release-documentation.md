@@ -71,5 +71,6 @@ Stage 1～4 已完成、Stage 5 候选加固进行中。部署文档不再把已
 - 原生 amd64/arm64 候选结果与最终镜像签署；
 - 首个稳定版之后新增 migration 时，对真实前一稳定 digest 复跑升级和配对回滚；
 - 代表性 NAS、浏览器/物理设备容量与兼容签署；
-- 1 Critical / 8 High 供应链发现及最终风险决定/provenance；
+- 本机 arm64 修复候选虽为 `0 Critical / 0 High`，最终原生双架构复扫、风险决定与
+  provenance 仍未完成；
 - S5-009 Release Candidate 与 S5-010 稳定 MVP Gate。

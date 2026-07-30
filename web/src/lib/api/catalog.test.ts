@@ -65,6 +65,7 @@ describe("catalog adapter", () => {
   it("requests a bounded direct-child page through the generated client", async () => {
     vi.mocked(apiClient.GET).mockResolvedValue({
       data: {
+        counts: { all: 8, images: 6, videos: 2 },
         items: [
           {
             directAssetCount: 2,
@@ -140,6 +141,7 @@ describe("catalog adapter", () => {
   it("binds recursive scope and explicit sorting to a bounded asset page", async () => {
     vi.mocked(apiClient.GET).mockResolvedValue({
       data: {
+        counts: { all: 8, images: 6, videos: 2 },
         items: [
           {
             directoryId: "dir_japan",
@@ -184,6 +186,7 @@ describe("catalog adapter", () => {
       id: "ast_clip",
       relativePath: "旅行/日本/clip.mp4",
     });
+    expect(page.counts).toEqual({ all: 8, images: 6, videos: 2 });
     expect(apiClient.GET).toHaveBeenCalledWith(
       "/api/v1/libraries/{libraryId}/assets",
       {
@@ -195,6 +198,67 @@ describe("catalog adapter", () => {
             limit: 50,
             order: "desc",
             recursive: true,
+            sort: "modifiedAt",
+          },
+        },
+      },
+    );
+
+  });
+
+  it("keeps a filtered library root bound to its explicit recursive mode", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: {
+        counts: { all: 0, images: 0, videos: 0 },
+        items: [],
+        nextCursor: null,
+      },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await listAssets({
+      libraryId: "lib_family",
+      order: "desc",
+      q: "日本",
+      recursive: true,
+      sort: "modifiedAt",
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      "/api/v1/libraries/{libraryId}/assets",
+      {
+        params: {
+          path: { libraryId: "lib_family" },
+          query: {
+            limit: 50,
+            order: "desc",
+            q: "日本",
+            recursive: true,
+            sort: "modifiedAt",
+          },
+        },
+      },
+    );
+
+    await listAssets({
+      libraryId: "lib_family",
+      order: "desc",
+      q: "日本",
+      recursive: false,
+      sort: "modifiedAt",
+    });
+
+    expect(apiClient.GET).toHaveBeenLastCalledWith(
+      "/api/v1/libraries/{libraryId}/assets",
+      {
+        params: {
+          path: { libraryId: "lib_family" },
+          query: {
+            limit: 50,
+            order: "desc",
+            q: "日本",
+            recursive: false,
             sort: "modifiedAt",
           },
         },

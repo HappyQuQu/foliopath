@@ -55,21 +55,92 @@ RUN mkdir -p /src/expat \
     && dpkg-deb --build --root-owner-group \
        /pkg /foliopath-expat_2.8.2-1.deb
 
+FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS glib
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+       build-essential libffi-dev libpcre2-dev meson ninja-build \
+       patch pkg-config python3 zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+ADD --checksum=sha256:ab24d24e698dfa1e408b7bcdb508f4aafc906185a8b8ce72fdf79bbbdc9b383b \
+    https://download.gnome.org/sources/glib/2.88/glib-2.88.3.tar.xz \
+    /tmp/glib.tar.xz
+ADD --checksum=sha256:27d9d53dd539175b034f3670d0b1d1fefbe0311cf63a928895d1809e23ddfbbf \
+    https://gitlab.gnome.org/GNOME/glib/-/commit/656ad4582cb1d7a7fa8bafe3ce8aec6aa3c17da0.patch \
+    /tmp/glib-cve-2026-58016-assertions.patch
+ADD --checksum=sha256:e16c1df025f22c106456bb8c5a45213ed37942e7f22bc40622b9f9ab54dd80b2 \
+    https://gitlab.gnome.org/GNOME/glib/-/commit/c9da977c178fbfc0e4caf99f9fdf5dc433d6fcc2.patch \
+    /tmp/glib-cve-2026-58016-fix.patch
+COPY tests/release/glib_cve_2026_58016.c /tmp/glib-cve-2026-58016.c
+RUN mkdir -p /src/glib \
+    && tar --extract --file /tmp/glib.tar.xz \
+       --directory /src/glib --strip-components=1 \
+    && patch --directory=/src/glib --strip=1 \
+       </tmp/glib-cve-2026-58016-assertions.patch \
+    && sed '/^diff --git a\/gio\/tests\/gdbus-introspection.c b\/gio\/tests\/gdbus-introspection.c$/,$d' \
+       /tmp/glib-cve-2026-58016-fix.patch \
+       >/tmp/glib-cve-2026-58016-runtime.patch \
+    && patch --directory=/src/glib --strip=1 \
+       </tmp/glib-cve-2026-58016-runtime.patch \
+    && meson setup /build/glib /src/glib \
+       --buildtype=release \
+       --prefix=/opt/glib \
+       --libdir=lib \
+       -Ddocumentation=false \
+       -Ddtrace=disabled \
+       -Dglib_debug=disabled \
+       -Dinstalled_tests=false \
+       -Dintrospection=disabled \
+       -Dlibelf=disabled \
+       -Dlibmount=disabled \
+       -Dman-pages=disabled \
+       -Dnls=disabled \
+       -Dselinux=disabled \
+       -Dsysprof=disabled \
+       -Dsystemtap=disabled \
+       -Dtests=false \
+    && meson compile -C /build/glib \
+    && meson install -C /build/glib \
+    && PKG_CONFIG_PATH=/opt/glib/lib/pkgconfig \
+       cc -o /tmp/glib-cve-2026-58016 \
+       /tmp/glib-cve-2026-58016.c \
+       $(PKG_CONFIG_PATH=/opt/glib/lib/pkgconfig \
+         pkg-config --cflags --libs gio-2.0 gmodule-2.0) \
+    && LD_LIBRARY_PATH=/opt/glib/lib /tmp/glib-cve-2026-58016 \
+    && install -D -m 0644 /src/glib/COPYING \
+       /opt/glib/share/licenses/glib/COPYING \
+    && install -d /pkg/DEBIAN /pkg/opt \
+    && cp -a /opt/glib /pkg/opt/glib \
+    && architecture=$(dpkg --print-architecture) \
+    && printf '%s\n' \
+       'Package: foliopath-glib' \
+       'Version: 2.88.3-1' \
+       "Architecture: ${architecture}" \
+       'Maintainer: FolioPath release tooling' \
+       'Homepage: https://gitlab.gnome.org/GNOME/glib' \
+       'Depends: libc6, libatomic1, libffi8, libpcre2-8-0, zlib1g' \
+       'Description: FolioPath fixed-source minimal GLib runtime' \
+       ' GLib 2.88.3 with the upstream CVE-2026-58016 fix and without libmount or SELinux integration.' \
+       >/pkg/DEBIAN/control \
+    && dpkg-deb --build --root-owner-group \
+       /pkg /foliopath-glib_2.88.3-1.deb
+
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS vips
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       build-essential libexpat1-dev libexif-dev libglib2.0-dev \
-       libjpeg62-turbo-dev libpng-dev libwebp-dev meson ninja-build \
-       pkg-config \
+       build-essential libexpat1-dev libexif-dev \
+       libffi-dev libjpeg62-turbo-dev libpcre2-dev libpng-dev \
+       libwebp-dev meson ninja-build pkg-config \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=expat /opt/expat /opt/expat
+COPY --from=glib /opt/glib /opt/glib
 ADD --checksum=sha256:d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724 \
     https://github.com/libvips/libvips/releases/download/v8.16.1/vips-8.16.1.tar.xz \
     /tmp/vips.tar.xz
 RUN mkdir -p /src/vips \
     && tar --extract --file /tmp/vips.tar.xz \
        --directory /src/vips --strip-components=1 \
-    && PKG_CONFIG_PATH=/opt/expat/lib/pkgconfig \
+    && PKG_CONFIG_PATH=/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+       LD_LIBRARY_PATH=/opt/glib/lib \
        meson setup /src/vips/build /src/vips \
        --buildtype=release \
        --prefix=/opt/vips \
@@ -103,7 +174,7 @@ RUN mkdir -p /src/vips \
        "Architecture: ${architecture}" \
        'Maintainer: FolioPath release tooling' \
        'Homepage: https://github.com/libvips/libvips' \
-       'Depends: libc6, libatomic1, foliopath-expat, libexif12, libffi8, libglib2.0-0t64, libjpeg62-turbo, libpng16-16t64, libwebp7, libwebpdemux2, libwebpmux3, zlib1g' \
+       'Depends: libc6, libatomic1, foliopath-expat, foliopath-glib, libexif12, libffi8, libjpeg62-turbo, libpng16-16t64, libwebp7, libwebpdemux2, libwebpmux3, zlib1g' \
        'Description: FolioPath minimal libvips runtime' \
        ' Fixed-source libvips build limited to the MVP image format contract.' \
        >/pkg/DEBIAN/control \
@@ -134,7 +205,7 @@ RUN mkdir -p /src/ffmpeg \
        --enable-libwebp \
        --enable-zlib \
        --enable-protocol=file,pipe \
-       --enable-demuxer=mov,matroska,image2 \
+       --enable-demuxer=mov,matroska,avi,image2 \
        --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png,gif,ffv1,vp8,vp9,av1,prores,mpeg1video,mpeg2video,theora,vc1 \
        --enable-parser=h264,hevc,mpeg4video,mpegvideo,vp8,vp9,av1 \
        --enable-filter=scale,setsar,xstack \
@@ -172,11 +243,12 @@ ARG VERSION=stage5-candidate
 WORKDIR /src
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       libexpat1-dev libexif-dev libglib2.0-dev libjpeg62-turbo-dev \
-       libpng-dev libwebp-dev pkg-config \
+       libexpat1-dev libexif-dev libjpeg62-turbo-dev \
+       libffi-dev libpcre2-dev libpng-dev libwebp-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=vips /opt/vips /opt/vips
 COPY --from=expat /opt/expat /opt/expat
+COPY --from=glib /opt/glib /opt/glib
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
@@ -186,8 +258,9 @@ COPY migrations ./migrations
 COPY --from=web /src/internal/webassets/dist ./internal/webassets/dist
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/expat/lib/pkgconfig \
-    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/expat/lib" \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/glib/lib \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
     CGO_ENABLED=1 go build -tags=libvips -trimpath \
       -ldflags="-s -w -X main.version=${VERSION}" \
       -o /out/foliopath ./cmd/foliopath
@@ -195,17 +268,20 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS runtime-assemble
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       libexpat1 libexif12 libglib2.0-0t64 \
+       libatomic1 libexpat1 libexif12 libffi8 \
        libjpeg62-turbo libpng16-16t64 libwebp7 libwebpdemux2 \
-       libwebpmux3 \
+       libwebpmux3 libpcre2-8-0 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=vips /foliopath-libvips_8.16.1-1.deb /tmp/foliopath-libvips.deb
 COPY --from=ffmpeg /foliopath-ffmpeg_7.1.5-2.deb /tmp/foliopath-ffmpeg.deb
 COPY --from=expat /foliopath-expat_2.8.2-1.deb /tmp/foliopath-expat.deb
+COPY --from=glib /foliopath-glib_2.88.3-1.deb /tmp/foliopath-glib.deb
 RUN dpkg --auto-deconfigure --install \
        /tmp/foliopath-expat.deb \
+       /tmp/foliopath-glib.deb \
        /tmp/foliopath-libvips.deb /tmp/foliopath-ffmpeg.deb \
     && rm /tmp/foliopath-expat.deb \
+       /tmp/foliopath-glib.deb \
        /tmp/foliopath-libvips.deb /tmp/foliopath-ffmpeg.deb
 COPY --from=build --chown=65532:65532 /out/foliopath /app/foliopath
 RUN set -eu; \
@@ -213,15 +289,11 @@ RUN set -eu; \
       /rootfs/usr/local/bin /rootfs/var/lib/dpkg/status.d; \
     for package in \
       libatomic1 \
-      libblkid1 \
       libexif12 \
       libffi8 \
-      libglib2.0-0t64 \
       libjpeg62-turbo \
-      libmount1 \
       libpcre2-8-0 \
       libpng16-16t64 \
-      libselinux1 \
       libsharpyuv0 \
       libwebp7 \
       libwebpdemux2 \
@@ -238,11 +310,14 @@ RUN set -eu; \
     cp -a /app/foliopath /rootfs/app/foliopath; \
     cp -a /opt/expat /rootfs/opt/expat; \
     cp -a /opt/ffmpeg /rootfs/opt/ffmpeg; \
+    cp -a /opt/glib /rootfs/opt/glib; \
     cp -a /opt/vips /rootfs/opt/vips; \
     dpkg-query --status foliopath-ffmpeg \
       >/rootfs/var/lib/dpkg/status.d/foliopath-ffmpeg; \
     dpkg-query --status foliopath-expat \
       >/rootfs/var/lib/dpkg/status.d/foliopath-expat; \
+    dpkg-query --status foliopath-glib \
+      >/rootfs/var/lib/dpkg/status.d/foliopath-glib; \
     dpkg-query --status foliopath-libvips \
       >/rootfs/var/lib/dpkg/status.d/foliopath-libvips; \
     ln -s /opt/ffmpeg/bin/ffmpeg /rootfs/usr/local/bin/ffmpeg; \
@@ -258,7 +333,7 @@ LABEL org.opencontainers.image.title="FolioPath" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.description="Stage 5 release candidate; not a stable release"
 COPY --from=runtime-assemble /rootfs/ /
-ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/expat/lib
+ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib
 USER 65532:65532
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \

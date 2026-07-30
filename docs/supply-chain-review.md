@@ -66,6 +66,8 @@ demuxer、`setsar` 与 `xstack`，并显式链接 PNG 编解码所需的 zlib；
 包的 `status.d` 元数据。候选流程还会生成绑定不可变镜像 digest、干净 Git commit、
 Dockerfile digest、目标架构和构建调用的 in-toto/SLSA provenance；生成器对 dirty
 worktree fail closed，因此最终 provenance 要等已接受的 Stage 5 改动提交并从该干净
-commit 重建后才能签发。发现由
-15 Critical / 136 High 降为 1 Critical / 8 High。剩余发现尚未处置，因此不改变
-本文 Stage 0 Passed 的历史范围，也不构成 Release Candidate 通过。
+commit 重建后才能签发。`S5-007G` 又以官方 GLib 2.88.3、固定上游补丁和关闭
+libmount/SELinux 的最小闭包，将本机 arm64 候选从
+15 Critical / 136 High 最终降为 `0 Critical / 0 High`。最终干净提交的原生双架构
+复扫和安全/合规签署仍未完成，因此不改变本文 Stage 0 Passed 的历史范围，也不构成
+Release Candidate 通过。

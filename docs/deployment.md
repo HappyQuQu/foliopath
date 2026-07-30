@@ -8,12 +8,13 @@ linux/arm64 本地验证只读容器根、丢弃 capabilities、只读媒体、�
 和 SIGTERM。可信代理边界已通过 `S5-003`；[CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md)
 进一步允许经认证的 LAN HTTP，根 `compose.yaml` 已通过同架构
 smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也已通过。
-原生 amd64/arm64 候选运行、真实升级/回滚与目标容量已经通过；真实 Firefox、物理
-辅助功能、最终不可变 digest、供应链处置和 Release Candidate Gate 尚未完成，当前候选
-仍不可作为稳定版部署。
+原生 amd64/arm64 候选运行、真实升级/回滚与目标容量已经通过；真实 Firefox 核心链及
+原生 200%/400% 缩放已通过，物理读屏/触控/移动设备、Safari 缩放、最终不可变 digest、
+供应链处置和 Release Candidate Gate 尚未完成，当前候选仍不可作为稳定版部署。
 候选运行层已更新到固定 digest 的 Debian 13 distroless，Go 构建层固定为 1.26.5；
 这不是安全签署。当前 [S5-007 供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
-仍被 1 Critical / 8 High 阻断。
+的本机 arm64 修复候选为 `0 Critical / 0 High`，但仍被最终干净提交的原生双架构复扫、
+provenance 和安全/合规签署阻断。
 
 ## 部署目标
 
@@ -277,7 +278,7 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 | --- | --- | --- | --- |
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 原内容查看 |
 | 动图 | `.gif` | 索引、元数据、静态缩略图 | 原内容动画 |
-| 视频 | `.mp4`、`.mov`、`.mkv` | 索引、ffprobe 元数据、FFmpeg poster、原文件 Range | 仅当前浏览器原生兼容 codec 可直接播放 |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi` | 索引、ffprobe 元数据、FFmpeg poster、原文件 Range | 仅当前浏览器原生兼容 codec 可直接播放 |
 
 扩展名匹配不区分大小写。MVP 不转码，也不生成兼容播放副本；支持视频容器不等于支持其中
 任意 codec。SVG、HEIC/HEIF、AVIF 与 RAW 不进入 MVP 索引/缩略图契约。
@@ -303,7 +304,8 @@ linux/arm64 同提交候选证据仍由
   预算也已通过，`S5-005` 已关闭。
 - Chromium、Firefox、WebKit 自动化候选矩阵已建立，但 WebKit 不等同于 Safari 真机；
   最终浏览器版本、读屏和物理设备仍待 `S5-006B`。
-- 当前供应链扫描仍有 1 Critical / 8 High，未处置或正式接受前是发布阻断。
+- 当前本机 arm64 修复候选扫描为 `0 Critical / 0 High`；最终原生双架构 digest 的
+  `all` 策略复扫、provenance 与安全/合规签署仍是发布阻断。
 - 当前没有 Prometheus/metrics endpoint、内建日志轮转或宿主磁盘余量采集；这些由部署平台监控。
 - MVP 只有一个管理员，不支持匿名 LAN、多用户角色、分享链接、上传或原媒体整理。
 - 正确性依赖启动、手动和计划完整扫描，不依赖 filesystem watcher；默认计划间隔为 24 小时。

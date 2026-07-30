@@ -73,6 +73,10 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
+.footerEnd {
+  justify-content: flex-end;
+}
+
 .caption {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
@@ -111,8 +115,8 @@
   gap: var(--space-5);
 }
 
-.usageHeader span,
-.row span {
+.usageHeader > div > span,
+.row > div > span {
   display: block;
   margin-top: var(--space-1);
   color: var(--color-text-muted);

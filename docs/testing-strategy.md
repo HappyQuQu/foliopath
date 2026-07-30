@@ -306,6 +306,20 @@ Chromium 结果为 `6 passed / 3 applicable skips`。步骤和只读证据见
 
 `UIF-404` 复验 Chromium/Firefox/WebKit、axe、键盘、Pixel 5 touch、Chrome forced-colors
 与 reduced-motion，并明确真实读屏、缩放、OS 高对比和物理设备仍归 S5-006B；
+`S5-006B` 后续增加 200% 浏览器缩放的确定性等效重排护栏：固定 `1280×800` 桌面在
+200% 下的有效 `640×400` CSS 视口，分别验证 Chromium、Firefox、WebKit、品牌
+Chrome Stable 与 forced-colors 的媒体卡焦点入口、查看器主焦点、缩放/信息/关闭控件、
+无页面横向溢出及 axe serious/critical 为零。该自动化只防止产品重排回归，不替代真实
+品牌 Firefox、物理浏览器缩放、读屏、触摸或移动设备签署。随后
+[`S5-006B Chrome 200% 物理浏览器证据`](evidence/s5-006b/README.md)在 Google Chrome
+151 / macOS 26.6 的原生 `200%` 页面缩放下完成扫描、浏览、预览、Viewer、`I` 信息、
+1:1、媒体放大/缩小与 `Escape` 返回，并复核只读挂载和媒体 SHA-256；它只关闭 Chrome
+桌面缩放子项。随后
+[`S5-006B Firefox 真实浏览器证据`](evidence/s5-006c/README.md)以 Mozilla 官方 Firefox
+153.0.1 的临时隔离 profile 完成相同真实候选的首次设置、只读扫描、`?q=jpg`、图片
+预览/Viewer、MP4 实际播放，并在原生 `200%`/`400%` 下复验扫描状态、响应式浏览、
+当前目录过滤、预览、Viewer 与快捷键；Firefox DMG 来源、SHA-256、代码签名和 Apple 公证均已验证。两份物理浏览器
+证据仍不替代读屏、物理触控、移动设备、Safari 缩放或最终跨设备视觉签署；
 `UIF-405` 在最新共享集合上复验三引擎 100k 滚动/DOM/FPS/RSS，以及 10k 目录/100k 文件
 扫描期 2,353 次浏览和搜索并发；`UIF-406` 又原样运行 fmt、architecture、generation、
 lint、unit、integration 和生产容器 E2E 七项完整仓库验证。证据分别见
@@ -348,7 +362,7 @@ browse index，再执行 capability-derived Unicode 搜索键上的 literal `ins
 
 `tests/fixtures` 只保存小型、合成或许可明确的数据，并带一份 manifest 描述预期：
 
-- JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV 中的最小有效样例。
+- JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV、AVI 中的最小有效样例。
 - 扩展名与魔数不一致、截断、畸形、超大像素声明、长动画元数据。
 - 横竖方向、透明度、Unicode/emoji/组合字符、大小写近似和超长文件名。
 - 深目录、空目录、隐藏目录、系统垃圾目录和权限受限子树。
@@ -444,8 +458,10 @@ R-018。`make storyboard-readiness-check` 不只检查证据路径存在，还�
 - HTTP：认证绕过、CSRF、开放重定向、可信代理头、限流、错误信息与安全响应头。
 - 媒体：像素炸弹、损坏容器、探测超时、命令参数注入和主动内容同源执行。
 - 依赖：Go/npm 系统依赖漏洞扫描、镜像 SBOM、第三方许可证检查和固定构建来源。
-  `S5-007A` 已对候选建立固定 digest Syft/Trivy 与 CI artifact；持续 CI 拒绝已有修复的
-  High/Critical，Release Candidate 必须以全阻断策略处置或逐项正式接受全部发现。
+  `S5-007A/G` 已对候选建立固定 digest Syft/Trivy 与 CI artifact；供应链 job 在原生
+  amd64/arm64 分别执行 `all` 策略，并由 `make verify-supply-chain-evidence` 拒绝缺失
+  架构、不同 commit/run/attempt、非零 High/Critical、SPDX 漂移、错误 GLib 版本或
+  被移除包重新进入闭包。只有成对 summary 通过才构成 S5-007B 自动化证据。
 - 日志：令牌、Cookie、宿主机路径、SQL 和原始 stderr 不得出现在正常或故障日志中。
 
 认证范围已经确认；上述单管理员安全测试是稳定版发布阻断项，不能用“以后补”作为公网发布依据。
@@ -537,7 +553,7 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
-只读发布 volume/运行期 unmount、最终 Firefox/Safari/物理设备发布签署、代表性客户端性能、
+只读发布 volume/运行期 unmount、最终 Safari/物理辅助功能与移动设备发布签署、代表性客户端性能、
 双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI

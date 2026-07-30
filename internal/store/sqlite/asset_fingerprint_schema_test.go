@@ -103,7 +103,7 @@ func TestAssetFingerprintMigrationBackfillsVersionFiveCatalog(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 13 {
-		t.Fatalf("migration version = %d, want 13", version)
+	if version != 15 {
+		t.Fatalf("migration version = %d, want 15", version)
 	}
 }

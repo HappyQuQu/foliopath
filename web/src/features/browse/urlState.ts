@@ -31,7 +31,7 @@ export function parseBrowseUrlState(search: URLSearchParams): BrowseUrlState {
     kindValue === "image" || kindValue === "video" ? kindValue : "all";
   const sortValue = search.get("sort");
   const sort: AssetSort =
-    sortValue === "name" || sortValue === "modifiedAt"
+    sortValue === "name" || sortValue === "modifiedAt" || sortValue === "size"
       ? sortValue
       : defaults.sort;
   const orderValue = search.get("order");

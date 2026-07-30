@@ -182,6 +182,18 @@ func (service *databaseService) ListAssetPage(
 	return service.store.ListAssetPage(ctx, params)
 }
 
+func (service *databaseService) CountAssets(
+	ctx context.Context,
+	query catalog.AssetQuery,
+) (catalog.AssetCounts, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return catalog.AssetCounts{}, catalog.ErrRepositoryNotReady
+	}
+	return service.store.CountAssets(ctx, query)
+}
+
 func (service *databaseService) GetAsset(
 	ctx context.Context,
 	assetID int64,

@@ -29,7 +29,7 @@ export interface DirectoryPage {
 }
 
 export type AssetKind = "image" | "animated" | "video";
-export type AssetSort = "name" | "modifiedAt";
+export type AssetSort = "name" | "modifiedAt" | "size";
 export type SortOrder = "asc" | "desc";
 export type StoryboardReference = components["schemas"]["StoryboardReference"];
 
@@ -60,8 +60,15 @@ export interface Asset {
 }
 
 export interface AssetPage {
+  counts?: AssetCounts;
   items: Asset[];
   nextCursor: string | null;
+}
+
+export interface AssetCounts {
+  all: number;
+  images: number;
+  videos: number;
 }
 
 export interface SearchAssetsInput {
@@ -114,7 +121,11 @@ export async function listAssets({
             ...(directoryId ? { directoryId } : {}),
             ...(kinds?.length ? { kind: kinds } : {}),
             ...(q ? { q } : {}),
-            ...(recursive ? { recursive: true } : {}),
+            ...(q && !directoryId
+              ? { recursive }
+              : recursive
+                ? { recursive: true }
+                : {}),
           },
         },
       },
@@ -294,10 +305,12 @@ function mapDirectory(data: {
 }
 
 function mapAssetPage(data: {
+  counts?: AssetCounts;
   items: Asset[];
   nextCursor: string | null;
 }): AssetPage {
   return {
+    ...(data.counts ? { counts: { ...data.counts } } : {}),
     items: data.items.map(mapAsset),
     nextCursor: data.nextCursor,
   };

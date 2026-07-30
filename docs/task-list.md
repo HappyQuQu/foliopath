@@ -5,8 +5,11 @@
 一句话：**Stage 0～4 已 Integrated Done，Stage 5 发布加固正在进行；候选镜像、
 安全 Compose 和原生双架构验收面已经建立；本机 arm64 与指定原生 amd64 服务器
 已分别通过候选运行和升级/配对回滚，按操作者决定本轮不等待计费阻断的 amd64 CI。
-全量媒体吞吐与缓存水位已完成；真实 Firefox/读屏/移动设备、供应链和 RC Gate
-仍未完成。候选供应链扫描仍有 1 Critical / 8 High，是明确 No-Go。**
+全量媒体吞吐与缓存水位、Chrome 151 原生 200% 和 Firefox 153.0.1 原生 200%/400%
+缩放已完成；
+真实读屏/触控/移动设备、供应链和 RC Gate
+仍未完成。修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`，但最终干净
+提交的原生双架构复扫、provenance 和安全/合规签署仍是明确 No-Go。**
 
 目前还没有可供用户使用的 FolioPath。开发工作现拆成独立的
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
@@ -90,7 +93,8 @@ Compose、媒体/代理 smoke 与原生双架构 CI；`S5-002A/S5-005C` 又在�
 容量自动化并通过本机 100k/10k 档；指定原生 amd64 服务器又完成 100k 全量媒体吞吐、
 cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭。`S5-007A` 已建立候选
 供应链自动化；按操作者决定，本轮 amd64 以指定原生服务器证据替代计费阻断的 CI。
-真实 Firefox/物理辅助功能签署、最终镜像 provenance 与漏洞处置尚未通过。
+真实 Firefox 核心链及原生 200%/400% 已通过；物理读屏/触控/移动设备、Safari 缩放、
+最终镜像 provenance 与漏洞处置尚未通过。
 
 执行约束：
 
@@ -259,8 +263,19 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
   - [x] `S5-006A` 建立 Chromium 日常纵向链、Firefox/WebKit 稳定状态矩阵和固定
     Linux Chromium 视觉基线；本机三引擎功能与独立 Linux 视觉复跑通过，证据见
     [浏览器质量候选 Gate](gates/MVP-2026-07-23/s5-browser-quality-candidate.md)。
-  - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome 150 normal/forced-colors 及三引擎
-    100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成读屏、缩放、触摸和视觉签署。
+  - [ ] `S5-006B` Safari 26.5.2、Chrome normal/forced-colors、Firefox 153.0.1、
+    Chrome 原生 200%、Firefox 原生 200%/400% 缩放及三引擎 100k 性能已通过；仍须在代表性物理设备完成
+    读屏、触摸、移动布局/解码、Safari 缩放和最终视觉签署。
+    - [x] Chromium、Firefox、WebKit、品牌 Chrome Stable 与 forced-colors 已通过
+      `1280×800 @ 200%` 的 `640×400` 等效重排护栏，覆盖焦点、查看器控件、横向溢出和
+      axe；该自动化不替代物理缩放、读屏或触摸签署。
+    - [x] Google Chrome `151.0.7922.71` 在物理 Mac / macOS 26.6 以原生 `200%`
+      页面缩放完成扫描、浏览、预览、Viewer、快捷键与缩放控件纵向链；只读挂载和媒体
+      SHA-256 未变，证据见 [`docs/evidence/s5-006b`](evidence/s5-006b/README.md)。
+    - [x] Mozilla 官方 Firefox `153.0.1` 的 DMG 已通过官方 SHA-256、DMG、签名和 Apple
+      公证校验；隔离 profile 完成首次设置、建库/扫描、`?q=jpg`、图片预览/Viewer、
+      MP4 实际播放及原生 `200%`/`400%` 纵向链，证据见
+      [`docs/evidence/s5-006c`](evidence/s5-006c/README.md)。
 - [ ] `[后端]` `S5-007` 生成最终 SBOM，完成依赖漏洞、许可证和 FFmpeg 构建配置审查。
   - [x] `S5-007A` 建立候选 source/npm/image SPDX、固定 digest 漏洞扫描、CI artifact、
     修复可用时阻断策略，并升级 Go 1.26.5、`x/image` v0.44.0 与 Debian 13 候选基础；
@@ -281,8 +296,22 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
     Debian runtime，保留可扫描的包状态与许可证元数据；无 shell 生产镜像通过完整
     release smoke 和快速容量复验，发现进一步降至 1 Critical / 14 High，证据见
     [无 shell 最小运行时切片](gates/MVP-2026-07-23/s5-distroless-runtime.md)。
-  - [ ] `S5-007B` 处置或逐项正式接受候选扫描的 1 条 Critical / 8 条 High，
-    在最终双架构 digest 上执行全阻断策略，并完成 notices、provenance 与许可证签署。
+  - [x] `S5-007G` 以固定来源 GLib 2.88.3、上游 `CVE-2026-58016` 补丁和独立回归程序
+    替换 Debian GLib，并关闭 libmount/SELinux 间接闭包；本机 arm64 完整 smoke、SPDX、
+    notices 与 Trivy `all` 策略达到 `0 Critical / 0 High`，证据见
+    [修复来源 GLib 运行时切片](gates/MVP-2026-07-23/s5-patched-glib-runtime.md)。
+  - [ ] `S5-007B` 从最终干净提交在原生 linux/amd64 与 linux/arm64 重建，确认两个
+    digest 的全阻断扫描仍为零，并完成 notices、provenance 与许可证签署。
+    - [x] CI 已建立原生双架构 `all` 策略 artifact 和
+      `make verify-supply-chain-evidence` 成对合同，拒绝跨 commit/run、非零发现、
+      SPDX 漂移、错误 GLib 版本或已移除包回退。
+    - [x] 干净候选提交 `5c3b3c7` 的原生 linux/arm64 已完成完整 release smoke、
+      SPDX、notices、SLSA provenance 与 `all` 策略零发现证据，并绑定不可变 image
+      digest；这是单架构半边证据，不关闭 `S5-007B`。
+    - [ ] GitHub Actions run `30551526321` 因账户付款失败或 spending limit 在 runner
+      分配前拒绝两个原生 job；恢复额度或提供已授权原生 amd64 runner 后重跑。
+    - [ ] 同一干净提交的两个原生 job 与 paired summary 实际通过，并完成人工
+      安全/合规签署。
 - [x] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
   - 完成证据：[发布文档 Gate](gates/MVP-2026-07-23/s5-release-documentation.md)。
     `make release-docs-check` 固定 candidate 警告、Compose 安全默认、格式、备份/回滚和限制披露。

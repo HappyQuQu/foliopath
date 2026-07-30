@@ -36,8 +36,10 @@ release documentation 和 readiness 聚合，均通过各自当前合同。`make
 仍按设计非零，因为：
 
 1. `S5-001` 最终不可变 image digest 与 clean-commit provenance 未签署；
-2. `S5-006B` 真实 Firefox、读屏/缩放/物理触摸与移动设备签署未完成；
-3. `S5-007` 仍有 1 Critical / 8 High 供应链发现及最终合规签署阻断。
+2. `S5-006B` 后续已取得真实 Firefox 核心链及原生 200%/400% 缩放证据；读屏、物理
+   触摸/移动设备、Safari 缩放和最终视觉签署仍未完成；
+3. `S5-007` 的本机 arm64 修复候选虽为 `0 Critical / 0 High`，最终原生双架构复扫、
+   provenance 及合规签署仍阻断。
 
 这些是独立发布阻断，不回退本 feature 的 Integrated Slice Done，也不能被本 Gate 绕过。
 R-021 的当前实现漂移风险已由四档逐页证据关闭到持续监测；未来基线改变仍必须解释来源并

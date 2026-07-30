@@ -77,8 +77,9 @@ fingerprint 改变时失效 thumbnail/cache、只在匹配任务不存在时写�
   digest 仍归 `S5-001/S5-007`。
 - 全量媒体任务吞吐、cache 水位/淘汰和持续稳定性已在同一代表性服务器完成并关闭
   `S5-005`；证据见[汇总容量 Gate](s5-release-capacity-candidate.md)。
-- Chromium/Firefox/WebKit 的 100k 长列表自动化 FPS/RSS 与实体 Chrome 150 已通过；
-  真实 Firefox、移动设备、解码内存和查看器切换仍归 `S5-006B` 签署。
+- Chromium/Firefox/WebKit 的 100k 长列表自动化 FPS/RSS、实体 Chrome 150 及后续
+  Firefox 153.0.1 核心链/原生 200%/400% 已通过；移动设备、代表性移动解码内存和
+  查看器切换仍归 `S5-006B` 签署。
 
 因此 `S5-005D` 与汇总 `S5-005` 均已完成；`S5-009` 与 Release Candidate 仍须满足
 其他独立前置 Gate。

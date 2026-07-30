@@ -143,6 +143,43 @@ it("opens the global account menu and supports direct logout", async () => {
   expect(onLogout).toHaveBeenCalledOnce();
 });
 
+it("switches theme directly beside the global account menu", async () => {
+  const user = userEvent.setup();
+
+  render(
+    <ThemeProvider>
+      <ToastProvider>
+        <MemoryRouter>
+          <AppShell
+            active="browse"
+            homeHref="/"
+            identity="管理员"
+            searchHref="/search"
+            settingsHref="/settings/general"
+            title="浏览"
+          >
+            <h1>内容</h1>
+          </AppShell>
+        </MemoryRouter>
+      </ToastProvider>
+    </ThemeProvider>,
+  );
+
+  const toggle = screen.getByRole("button", { name: "切换到深色主题" });
+  const account = screen.getByRole("button", { name: "管理员的账户菜单" });
+
+  expect(toggle.compareDocumentPosition(account)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+
+  await user.click(toggle);
+
+  expect(
+    screen.getByRole("button", { name: "切换到浅色主题" }),
+  ).toBeVisible();
+  expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+});
+
 it("uses the fixed redesign sidebar without a resize control", () => {
   render(
     <ThemeProvider>

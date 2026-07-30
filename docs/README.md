@@ -4,8 +4,9 @@
 确认 `RQ-001`～`RQ-014` 全部采用 A。Stage 0～4 已通过各自 Gate，单管理员认证、媒体库、
 可靠扫描、浏览/缩略图、搜索、非模态预览与完整查看器均已接入真实产品纵向链。Stage 5
 候选镜像、Compose、可信代理、恢复/失败关闭、原生双架构运行/升级和完整容量 Gate 已通过；
-真实 Firefox/物理辅助功能、供应链处置、最终不可变 digest 与 Release Candidate Gate
-仍未完成，当前候选不是稳定发布。`FTR-UIF-001` 已完成 UIF-401～408 并通过
+真实 Firefox 核心链及原生 200%/400% 缩放已通过；物理读屏/触控/移动设备、
+Safari 缩放、供应链处置、最终不可变 digest 与 Release Candidate Gate 仍未完成，
+当前候选不是稳定发布。`FTR-UIF-001` 已完成 UIF-401～408 并通过
 `UIF-S4 Integrated Slice Done`，当前证据聚合见
 [UIF 集成状态](releases/MVP-2026-07-23-uif-integration-status.md)。
 

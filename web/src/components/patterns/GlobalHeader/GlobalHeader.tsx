@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { BrandMark } from "../../ui/BrandMark/BrandMark";
+import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
 
@@ -98,54 +99,61 @@ export function GlobalHeader({
         <button type="submit">{t("search.submit")}</button>
       </form>
 
-      <div className={styles.account} ref={accountRef}>
-        <button
-          aria-expanded={accountOpen}
-          aria-haspopup="menu"
-          aria-label={t("account.menu").replace("{name}", identity)}
-          className={styles.trigger}
-          onClick={() => setAccountOpen((open) => !open)}
-          ref={triggerRef}
-          type="button"
-        >
-          <span aria-hidden="true" className={styles.avatar}>
-            {identity.trim().slice(0, 1) || "管"}
-          </span>
-          <span className={styles.identity}>{identity}</span>
-          <CaretDown aria-hidden="true" size={14} />
-        </button>
-        {accountOpen && (
-          <div className={styles.menu} role="menu">
-            <div className={styles.menuHeader}>
-              <strong>{identity}</strong>
-              <span>{t("account.administrator")}</span>
+      <div className={styles.headerActions}>
+        <ThemeToggle />
+        <div className={styles.account} ref={accountRef}>
+          <button
+            aria-expanded={accountOpen}
+            aria-haspopup="menu"
+            aria-label={t("account.menu").replace("{name}", identity)}
+            className={styles.trigger}
+            onClick={() => setAccountOpen((open) => !open)}
+            ref={triggerRef}
+            type="button"
+          >
+            <span aria-hidden="true" className={styles.avatar}>
+              {identity.trim().slice(0, 1) || "管"}
+            </span>
+            <span className={styles.identity}>{identity}</span>
+            <CaretDown aria-hidden="true" size={14} />
+          </button>
+          {accountOpen && (
+            <div className={styles.menu} role="menu">
+              <div className={styles.menuHeader}>
+                <strong>{identity}</strong>
+                <span>{t("account.administrator")}</span>
+              </div>
+              <Link
+                onClick={() => setAccountOpen(false)}
+                role="menuitem"
+                to={settingsHref}
+              >
+                <GearSix aria-hidden="true" size={18} />
+                {t("shell.settings")}
+              </Link>
+              <button
+                className={styles.logout}
+                disabled={!onLogout || logoutPending}
+                onClick={() => {
+                  if (!onLogout) return;
+                  void onLogout()
+                    .then(() => setAccountOpen(false))
+                    .catch(() =>
+                      toast.show({
+                        message: t("account.logoutFailed"),
+                        tone: "danger",
+                      }),
+                    );
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <SignOut aria-hidden="true" size={18} />
+                {t("account.logout")}
+              </button>
             </div>
-            <Link onClick={() => setAccountOpen(false)} role="menuitem" to={settingsHref}>
-              <GearSix aria-hidden="true" size={18} />
-              {t("shell.settings")}
-            </Link>
-            <button
-              className={styles.logout}
-              disabled={!onLogout || logoutPending}
-              onClick={() => {
-                if (!onLogout) return;
-                void onLogout()
-                  .then(() => setAccountOpen(false))
-                  .catch(() =>
-                    toast.show({
-                      message: t("account.logoutFailed"),
-                      tone: "danger",
-                    }),
-                  );
-              }}
-              role="menuitem"
-              type="button"
-            >
-              <SignOut aria-hidden="true" size={18} />
-              {t("account.logout")}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );

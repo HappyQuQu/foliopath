@@ -22,6 +22,12 @@
 - [`POST-MVP-1` scope revision 1](POST-MVP-1-scope.md)：冻结
   [FTR-VID-001 视频故事板悬停预览](../features/video-storyboard-preview.md)；
   VSP-S2、VSP-S3 与 VSP-301 已完成，VSP-302 原生双架构候选复验 Pending。
+- [`POST-MVP-1` scope revision 2](POST-MVP-1-scope-r2.md)：继承 revision 1，并通过
+  [CR-2026-010](../changes/CR-2026-010-avi-and-size-sort.md)追加 AVI 与文件大小排序，
+  替代 revision 1 作为当前范围。
+- [`POST-MVP-1` scope revision 3](POST-MVP-1-scope-r3.md)：继承 revision 2，并通过
+  [CR-2026-011](../changes/CR-2026-011-directory-media-counts.md)追加选中目录媒体类型数量，
+  替代 revision 2 作为当前范围。
 - [`POST-MVP-1` 发布说明草案](POST-MVP-1-release-notes.md)：只记录候选行为和证据，
   在 VSP-302～304 完成前不得改写为已发布。
 - [`POST-MVP-1` readiness 快照](POST-MVP-1-readiness.json)：机器校验 VSP Gate、

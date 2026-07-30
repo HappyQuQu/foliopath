@@ -77,6 +77,9 @@ func TestMediaResourcePolicyRejectsOversizedSourcesAndDimensions(t *testing.T) {
 	if err := ValidateSourceSize(FormatMKV, MaxVideoSourceBytes); err != nil {
 		t.Fatalf("maximum video size rejected: %v", err)
 	}
+	if err := ValidateSourceSize(FormatAVI, MaxVideoSourceBytes); err != nil {
+		t.Fatalf("maximum AVI size rejected: %v", err)
+	}
 	for _, dimensions := range [][2]int{
 		{0, 1},
 		{MaxMediaDimension + 1, 1},

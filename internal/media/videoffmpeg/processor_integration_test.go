@@ -46,6 +46,7 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 		{"mov h264", media.FormatMOV, ".mov", "libx264", media.PlaybackPlayable},
 		{"mkv h264", media.FormatMKV, ".mkv", "libx264", media.PlaybackUnknown},
 		{"mkv ffv1", media.FormatMKV, ".mkv", "ffv1", media.PlaybackUnsupportedCodec},
+		{"avi mpeg4", media.FormatAVI, ".avi", "mpeg4", media.PlaybackUnsupportedCodec},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			filename := filepath.Join(t.TempDir(), "fixture"+test.extension)

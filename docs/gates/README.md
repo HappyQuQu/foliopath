@@ -89,5 +89,6 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 - [S5-007D：最小 FFmpeg 运行时切片](MVP-2026-07-23/s5-minimal-ffmpeg-runtime.md)
 - [S5-007E：内建健康检查运行时切片](MVP-2026-07-23/s5-built-in-healthcheck-runtime.md)
 - [S5-007F：无 shell 最小运行时切片](MVP-2026-07-23/s5-distroless-runtime.md)
+- [S5-007G：修复来源 GLib 运行时切片](MVP-2026-07-23/s5-patched-glib-runtime.md)
 - [S5-008：发布文档](MVP-2026-07-23/s5-release-documentation.md)
 - [S5-009A：Release Candidate 当前 No-Go 判断](MVP-2026-07-23/s5-release-candidate-current.md)

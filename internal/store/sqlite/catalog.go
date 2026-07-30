@@ -272,7 +272,9 @@ func (s *Store) ListAssetPage(
 	params catalog.AssetListParams,
 ) ([]catalog.Asset, error) {
 	if params.Limit < 1 || params.Limit > catalog.MaxPageSize+1 ||
-		(params.Query.Sort != catalog.SortName && params.Query.Sort != catalog.SortModifiedAt) ||
+		(params.Query.Sort != catalog.SortName &&
+			params.Query.Sort != catalog.SortModifiedAt &&
+			params.Query.Sort != catalog.SortSize) ||
 		(params.Query.Order != catalog.OrderAsc && params.Query.Order != catalog.OrderDesc) {
 		return nil, catalog.ErrInvalidQuery
 	}
@@ -471,6 +473,79 @@ func (s *Store) ListAssetPage(
 	return items, nil
 }
 
+func (s *Store) CountAssets(
+	ctx context.Context,
+	query catalog.AssetQuery,
+) (catalog.AssetCounts, error) {
+	var builder strings.Builder
+	args := make([]any, 0, 16)
+	if query.ScopeKind == catalog.ScopeDirectory &&
+		query.Recursive && query.Scope.CanonicalDirectoryID != 0 {
+		builder.WriteString(`
+        WITH RECURSIVE subtree(id) AS (
+            SELECT ?
+            UNION
+            SELECT d.id FROM directories d
+            JOIN subtree parent ON d.parent_id = parent.id
+            WHERE d.library_id = ?
+        )`)
+		args = append(args, query.Scope.DirectoryID, query.Scope.LibraryID)
+	}
+	builder.WriteString(`
+        SELECT COUNT(*),
+               COALESCE(SUM(CASE WHEN a.kind IN ('image', 'animated') THEN 1 ELSE 0 END), 0),
+               COALESCE(SUM(CASE WHEN a.kind = 'video' THEN 1 ELSE 0 END), 0)
+        FROM assets a`)
+	if anchor := ftsAnchor(query.SearchTerms); anchor != "" {
+		builder.WriteString(`
+        JOIN asset_search ON asset_search.rowid = a.id
+        WHERE asset_search MATCH ?`)
+		args = append(args, anchor)
+	} else {
+		builder.WriteString(` WHERE 1 = 1`)
+	}
+	switch query.ScopeKind {
+	case catalog.ScopeGlobal:
+	case catalog.ScopeLibrary:
+		builder.WriteString(` AND a.library_id = ?`)
+		args = append(args, query.Scope.LibraryID)
+	case catalog.ScopeDirectory:
+		builder.WriteString(` AND a.library_id = ?`)
+		args = append(args, query.Scope.LibraryID)
+		if !query.Recursive {
+			builder.WriteString(` AND a.directory_id = ?`)
+			args = append(args, query.Scope.DirectoryID)
+		} else if query.Scope.CanonicalDirectoryID != 0 {
+			builder.WriteString(` AND a.directory_id IN (SELECT id FROM subtree)`)
+		}
+	default:
+		return catalog.AssetCounts{}, catalog.ErrInvalidQuery
+	}
+	for _, term := range query.SearchTerms {
+		builder.WriteString(`
+          AND (
+            instr(a.search_name_key, ?) > 0
+            OR instr(a.search_path_key, ?) > 0
+          )`)
+		args = append(args, term, term)
+	}
+	if query.ModifiedFromNS != nil {
+		builder.WriteString(` AND a.mtime_ns >= ?`)
+		args = append(args, *query.ModifiedFromNS)
+	}
+	if query.ModifiedBeforeNS != nil {
+		builder.WriteString(` AND a.mtime_ns < ?`)
+		args = append(args, *query.ModifiedBeforeNS)
+	}
+	var counts catalog.AssetCounts
+	if err := s.db.QueryRowContext(ctx, builder.String(), args...).Scan(
+		&counts.All, &counts.Images, &counts.Videos,
+	); err != nil {
+		return catalog.AssetCounts{}, fmt.Errorf("count catalog assets: %w", err)
+	}
+	return counts, nil
+}
+
 func ftsAnchor(terms []string) string {
 	longest := ""
 	for _, term := range terms {
@@ -626,6 +701,15 @@ func appendAssetKeyset(
 		*args = append(*args, after.ModifiedAtNS, after.ModifiedAtNS, after.ID)
 		return
 	}
+	if query.Sort == catalog.SortSize {
+		builder.WriteString(`
+          AND (
+            a.size_bytes ` + operator + ` ?
+            OR (a.size_bytes = ? AND a.id ` + operator + ` ?)
+          )`)
+		*args = append(*args, after.SizeBytes, after.SizeBytes, after.ID)
+		return
+	}
 	if query.ScopeKind == catalog.ScopeGlobal {
 		builder.WriteString(`
           AND (
@@ -678,6 +762,10 @@ func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	}
 	if query.Sort == catalog.SortModifiedAt {
 		builder.WriteString(` ORDER BY a.mtime_ns` + direction + `, a.id` + direction)
+		return
+	}
+	if query.Sort == catalog.SortSize {
+		builder.WriteString(` ORDER BY a.size_bytes` + direction + `, a.id` + direction)
 		return
 	}
 	if query.ScopeKind == catalog.ScopeGlobal {

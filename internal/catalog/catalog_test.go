@@ -86,6 +86,24 @@ func (stub *repositoryStub) ListAssetPage(
 	return append([]Asset(nil), stub.assets...), nil
 }
 
+func (stub *repositoryStub) CountAssets(
+	ctx context.Context,
+	_ AssetQuery,
+) (AssetCounts, error) {
+	if err := ctx.Err(); err != nil {
+		return AssetCounts{}, err
+	}
+	counts := AssetCounts{All: int64(len(stub.assets))}
+	for _, item := range stub.assets {
+		if item.Kind == KindVideo {
+			counts.Videos++
+		} else {
+			counts.Images++
+		}
+	}
+	return counts, nil
+}
+
 func (stub *repositoryStub) GetAsset(ctx context.Context, _ int64) (Asset, error) {
 	if err := ctx.Err(); err != nil {
 		return Asset{}, err
@@ -350,9 +368,15 @@ func TestAssetRecursiveDefaultAndLibrarySearchScope(t *testing.T) {
 	}
 
 	if _, err := service.ListAssets(context.Background(), AssetRequest{
-		LibraryID: 2, RecursiveSet: true, SearchQuery: &search,
-	}); !errors.Is(err, ErrInvalidQuery) {
-		t.Fatalf("whole-library recursive error = %v", err)
+		LibraryID: 2, Recursive: true, RecursiveSet: true, SearchQuery: &search,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rootRecursiveQuery := repository.assetCalls[3].Query
+	if rootRecursiveQuery.ScopeKind != ScopeDirectory ||
+		rootRecursiveQuery.Scope.CanonicalDirectoryID != 0 ||
+		!rootRecursiveQuery.Recursive {
+		t.Fatalf("implicit root recursive search query = %#v", rootRecursiveQuery)
 	}
 }
 
@@ -363,7 +387,7 @@ func TestCatalogRejectsInvalidAndCancelledRequests(t *testing.T) {
 	service := newTestService(t, repository)
 	for _, request := range []AssetRequest{
 		{LibraryID: 1, Limit: MaxPageSize + 1},
-		{LibraryID: 1, Sort: "size"},
+		{LibraryID: 1, Sort: "unknown"},
 		{LibraryID: 1, Order: "sideways"},
 		{LibraryID: 1, Kinds: []AssetKind{"raw"}},
 		{LibraryID: 1, Cursor: strings.Repeat("a", MaxCursorBytes+1)},

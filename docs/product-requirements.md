@@ -147,6 +147,12 @@ MVP 不包含（稳定 ID 由 [scope manifest](releases/MVP-2026-07-23-scope.md)
 | FR-MED-007 | 查看器显示文件名、相对路径、类型、尺寸或时长和修改时间；MVP 不提供完整 EXIF 面板、显式下载按钮或移动端滑动切换。 |
 | FR-MED-008 | 缩略图缓存默认配额为 10 GiB，可在 UI 修改；达到水位后按最近最少使用清理可重建缓存，并保留安全磁盘余量。 |
 
+Post-MVP/1 通过 [CR-2026-010](changes/CR-2026-010-avi-and-size-sort.md)追加
+`FR-MED-012`（AVI）与 `FR-BRW-011`（文件大小排序），不改写上述 MVP 基线。
+Post-MVP/1 revision 3 通过
+[CR-2026-011](changes/CR-2026-011-directory-media-counts.md)追加 `FR-BRW-012`
+（选中目录媒体类型数量）。
+
 ### 界面与可访问性
 
 | ID | 需求 |
