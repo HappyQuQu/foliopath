@@ -13,7 +13,8 @@
 - owner：发布负责人拥有可重复构建与镜像证据；安全负责人拥有最终双架构复扫；
   合规负责人拥有许可证与源码提供义务签署
 - 合同：根 `Dockerfile`、`tests/release/glib_cve_2026_58016.c`、
-  `scripts/collect-release-notices.sh`
+  `scripts/collect-release-notices.sh`、`scripts/generate-supply-chain-evidence.sh`、
+  `tests/release/supplychain_evidence`
 - 架构影响：不改变单容器、持久化、信任或模块边界；只收窄既有原生运行闭包
 
 ## 实现
@@ -46,6 +47,12 @@
 
 上述 image ID 来自 dirty worktree 的实现验证，只能证明切片可行，不能作为最终发布
 provenance 或不可变发布 digest。
+
+CI 已增加原生 amd64/arm64 供应链矩阵和失败关闭的成对证据合同。每个平台 artifact
+绑定 source commit、实际架构、image digest、SPDX/扫描/notices SHA-256、`all` 策略零
+发现、GLib 版本、被移除包计数及 workflow run/attempt；聚合 job 拒绝缺失、跨 run 拼接
+或两架构 source/npm SPDX 不一致。接线完成不等于 runner 已成功，实际结果仍由下述 Gate
+持有。
 
 ## 剩余 Gate
 

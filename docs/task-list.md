@@ -288,6 +288,11 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
     [修复来源 GLib 运行时切片](gates/MVP-2026-07-23/s5-patched-glib-runtime.md)。
   - [ ] `S5-007B` 从最终干净提交在原生 linux/amd64 与 linux/arm64 重建，确认两个
     digest 的全阻断扫描仍为零，并完成 notices、provenance 与许可证签署。
+    - [x] CI 已建立原生双架构 `all` 策略 artifact 和
+      `make verify-supply-chain-evidence` 成对合同，拒绝跨 commit/run、非零发现、
+      SPDX 漂移、错误 GLib 版本或已移除包回退。
+    - [ ] 同一干净提交的两个原生 job 与 paired summary 实际通过，并完成人工
+      安全/合规签署。
 - [x] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
   - 完成证据：[发布文档 Gate](gates/MVP-2026-07-23/s5-release-documentation.md)。
     `make release-docs-check` 固定 candidate 警告、Compose 安全默认、格式、备份/回滚和限制披露。

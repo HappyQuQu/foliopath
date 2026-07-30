@@ -444,8 +444,10 @@ R-018。`make storyboard-readiness-check` 不只检查证据路径存在，还�
 - HTTP：认证绕过、CSRF、开放重定向、可信代理头、限流、错误信息与安全响应头。
 - 媒体：像素炸弹、损坏容器、探测超时、命令参数注入和主动内容同源执行。
 - 依赖：Go/npm 系统依赖漏洞扫描、镜像 SBOM、第三方许可证检查和固定构建来源。
-  `S5-007A` 已对候选建立固定 digest Syft/Trivy 与 CI artifact；持续 CI 拒绝已有修复的
-  High/Critical，Release Candidate 必须以全阻断策略处置或逐项正式接受全部发现。
+  `S5-007A/G` 已对候选建立固定 digest Syft/Trivy 与 CI artifact；供应链 job 在原生
+  amd64/arm64 分别执行 `all` 策略，并由 `make verify-supply-chain-evidence` 拒绝缺失
+  架构、不同 commit/run/attempt、非零 High/Critical、SPDX 漂移、错误 GLib 版本或
+  被移除包重新进入闭包。只有成对 summary 通过才构成 S5-007B 自动化证据。
 - 日志：令牌、Cookie、宿主机路径、SQL 和原始 stderr 不得出现在正常或故障日志中。
 
 认证范围已经确认；上述单管理员安全测试是稳定版发布阻断项，不能用“以后补”作为公网发布依据。

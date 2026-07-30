@@ -86,10 +86,12 @@ linux/amd64 上配对重建，也没有最终安全/合规签署，因此 `S5-00
   脚本对 dirty tree 失败关闭，并已接入双架构候选 artifact；当前工作树尚未形成最终
   commit，因此这里只完成 provenance 入口，不伪造最终 statement。
 
-CI 的持续检查策略是 `fixed`：任何已有上游修复版本的 High/Critical 发现立即失败，
-同时完整报告所有未修复发现。Release Candidate 的最终策略是 `all`；只有所有发现已
-消除，或按 `S5-009` 对具体 CVE、包、可达性、版本和期限逐项正式接受，才可通过。
-`report` 只允许本地调查，不是合并或发布策略。
+CI 供应链矩阵现在对原生 amd64/arm64 均使用 `all`：任何 High/Critical 发现立即失败。
+每个平台生成绑定 commit、架构、image digest、SPDX/扫描/notices 摘要和 workflow
+run/attempt 的 JSON；聚合 job 使用 `make verify-supply-chain-evidence` 拒绝缺失架构、
+跨 run 拼接、非零发现、GLib 版本或被移除包回退。只有所有发现已消除，或按 `S5-009`
+对具体 CVE、包、可达性、版本和期限逐项正式接受并同步修改策略，才可通过。`fixed` 与
+`report` 只允许本地调查，不是当前合并或发布策略。
 
 ## 当前阻断
 
