@@ -15,6 +15,12 @@ describe("InlineStatus", () => {
     expect(screen.getByRole("status")).toHaveTextContent("原始媒体保持只读");
   });
 
+  it("announces persistent success feedback without an urgent alert", () => {
+    render(<InlineStatus tone="success">扫描已完成</InlineStatus>);
+    expect(screen.getByRole("status")).toHaveTextContent("扫描已完成");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("provides a named dismiss action", async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();

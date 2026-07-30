@@ -1,8 +1,31 @@
 import { render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { expect, it, vi } from "vitest";
 
 import { Button } from "../Button/Button";
-import { EmptyState, OfflineState } from "./AsyncState";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  OfflineState,
+} from "./AsyncState";
+
+it("announces loading progress without an urgent alert", () => {
+  render(<LoadingState label="正在载入媒体" />);
+
+  expect(screen.getByRole("status")).toHaveTextContent("正在载入媒体");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("announces a blocking error and exposes its recovery action", async () => {
+  const user = userEvent.setup();
+  const onRetry = vi.fn();
+  render(<ErrorState message="连接暂时不可用" onRetry={onRetry} />);
+
+  expect(screen.getByRole("alert")).toHaveTextContent("连接暂时不可用");
+  await user.click(screen.getByRole("button", { name: "重新尝试" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
 
 it("renders an empty-state recovery action without an urgent announcement", () => {
   render(

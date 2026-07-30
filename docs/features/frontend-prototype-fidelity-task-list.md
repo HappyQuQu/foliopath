@@ -179,7 +179,14 @@ flowchart TD
   - 最新视觉真相：`prototypes/apple-redesign/05-viewer.html`；实现与同视口组合证据见
     [`docs/evidence/uif-315`](../evidence/uif-315/)，设计 QA 结论见仓库根目录
     [`design-qa.md`](../../design-qa.md)。
-- [ ] `UIF-316` 完成所有 loading/empty/offline/error/conflict/cancel/pending/success 状态。
+- [x] `UIF-316` 完成所有 loading/empty/offline/error/conflict/cancel/pending/success 状态。
+  - 页面级 loading/empty/offline/error 继续由唯一 `AsyncState` owner 表达；conflict、
+    cancel、pending、success 分别复用 `FormField`/`InlineStatus`、扫描状态机、
+    `Button loading`/任务状态和 `Toast`/success status，不新增业务 mock。
+  - `UI/StateMatrix/Complete` 固定八类状态的工作台合同；语义测试覆盖紧急/非紧急播报、
+    重试、取消保留、重复提交阻断与成功反馈。视觉证据见
+    [`docs/evidence/uif-316`](../evidence/uif-316/)，设计 QA 见仓库根目录
+    [`design-qa.md`](../../design-qa.md)。
 
 - [ ] `UIF-317` 完成中英文、浅色/深色、390/768/1265/1440 响应式和键盘/触摸矩阵。
 - [ ] `UIF-318` 签署 `UIF-S3 Consumer/UI Ready`。

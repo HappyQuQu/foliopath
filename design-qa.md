@@ -1,90 +1,106 @@
-# UIF-315 Design QA
+# UIF-316 Design QA
 
 ## Comparison target
 
-- Source visual truth: `prototypes/apple-redesign/05-viewer.html`
-- Source desktop capture:
-  `docs/evidence/uif-315/source-viewer-desktop-final.png`
-- Source mobile capture: `docs/evidence/uif-315/source-viewer-mobile.png`
-- Final desktop implementation:
-  `docs/evidence/uif-315/implementation-viewer-desktop-v3.png`
-- Final mobile implementation:
-  `docs/evidence/uif-315/implementation-viewer-mobile-final.png`
-- Desktop combined comparison:
-  `docs/evidence/uif-315/comparison-viewer-desktop-final.png`
-- Mobile combined comparison:
-  `docs/evidence/uif-315/comparison-viewer-mobile-final.png`
-- Focused information-panel evidence:
-  `docs/evidence/uif-315/implementation-viewer-info-open-desktop-v3.png` and
-  `docs/evidence/uif-315/implementation-viewer-info-open-mobile-final.png`
+- Latest prototype behavior and operational-state source:
+  `prototypes/apple-redesign/11-task-detail.html`
+- Prototype capture:
+  `prototypes/apple-redesign/qa/operations-task-detail-final.png`
+- Existing canonical component visual sources:
+  `docs/evidence/uif-316/source-async-offline.png` and
+  `docs/evidence/uif-316/source-inline-warning.png`
+- Desktop implementation:
+  `docs/evidence/uif-316/implementation-state-matrix-1440.png`
+- Mobile implementation:
+  `docs/evidence/uif-316/implementation-state-matrix-390.png`
+- Combined comparison evidence:
+  `docs/evidence/uif-316/comparison-state-matrix-1440.png` and
+  `docs/evidence/uif-316/comparison-state-matrix-390.png`
+
+The prototype defines the restrained operational hierarchy and the product
+documents define failure/recovery behavior. The component workbench sources are
+the exact visual target for shared offline and persistent-status treatments;
+the matrix intentionally documents components rather than cloning the complete
+task-detail page.
 
 ## Normalization
 
-- Desktop source and implementation used a `1440 × 900` CSS viewport,
-  `devicePixelRatio: 1`, and produced `1440 × 900` captures.
-- Mobile source and implementation used a `390 × 844` CSS viewport,
-  `devicePixelRatio: 1`, and produced `390 × 844` captures.
-- Combined artifacts place equal-size captures side by side without rescaling.
-- State: image viewer, fitted media, information panel initially closed. The
-  focused-region captures additionally show the settled information-open state.
+- Desktop implementation used a `1440 × 1000` CSS viewport and
+  `devicePixelRatio: 1`, producing a `1440 × 1000` capture.
+- The mobile browser override requested `390 × 844`; the in-app browser exposed
+  a `375px` content viewport after its scrollbar reservation. The full-page
+  capture is `375 × 1372`, and measured body width equals viewport width, so no
+  horizontal overflow is hidden.
+- Both canonical source captures are `720 × 520` at density 1. The desktop
+  comparison stacks those two sources and scales only the full source and
+  implementation boards to a common height. The mobile comparison scales and
+  pads the same source board beside the unscaled mobile implementation.
+- State: Simplified Chinese, light theme, eight-state workbench matrix. The
+  matrix has no server state of its own; every production consumer continues
+  to use its real query, mutation, scan, cache, thumbnail, or viewer state.
 
 ## Findings
 
 - No actionable P0, P1, or P2 differences remain.
-- Fonts and typography: filename size, weight, truncation, toolbar density, and
-  information hierarchy match the prototype at both tested widths.
-- Spacing and layout rhythm: desktop media occupies the prototype's centered
-  `75vw × 75vh` frame; the toolbar, navigation positions, and 340px desktop
-  information panel align. Mobile keeps the toolbar on one row and uses a
-  bottom information panel without horizontal overflow.
-- Colors and tokens: the near-black viewer chrome and blue-violet raster asset
-  match the source direction. The implementation uses the canonical viewer
-  tokens rather than feature-local theme values.
-- Image quality and asset fidelity: the Storybook state uses the committed
-  `viewer-blue-violet.png` raster. The mobile implementation intentionally
-  preserves the media's intrinsic aspect ratio instead of stretching the
-  prototype placeholder to `75vw × 75vh`; this is required for a real media
-  viewer and is not an actionable fidelity defect.
-- Copy and content: filename, Chinese control names, indexed detail labels,
-  information summary, and close affordances are complete. The implementation
-  retains the approved zoom controls that the static visual does not exercise.
-- Accessibility and interaction: DOM order remains close → filename → actions;
-  the viewer root receives route focus, close is the first Tab stop, pressed
-  state is exposed, information has a labelled complementary landmark, and
-  desktop/mobile close controls remain visible.
+- Fonts and typography: state headings, strong titles, supporting copy and
+  control labels use the existing FolioPath hierarchy and retain readable
+  wrapping at mobile width.
+- Spacing and layout rhythm: desktop uses a balanced two-column workbench;
+  mobile collapses to one column. Empty/offline/error regions retain their
+  canonical height and internal rhythm; compact conflict/cancel/success notices
+  do not inflate into page-level states.
+- Colors and visual tokens: offline/warning, danger/conflict, accent/pending
+  and success all use central semantic tokens. Icons accompany every semantic
+  color, so meaning does not depend on color alone.
+- Image quality and asset fidelity: these state surfaces use the approved
+  Phosphor icon library and do not require raster product imagery. No prototype
+  logo, illustration, or media asset was replaced or approximated.
+- Copy and content: every named UIF-316 state is explicit. Offline and cancel
+  copy says the reliable index is preserved; conflict says to refresh instead
+  of overwriting; error says the current interface and originals are unchanged;
+  pending blocks duplicate submission; success confirms the reliable result.
+- Accessibility and interaction: blocking error and conflict use
+  `role="alert"`; loading, offline, cancel and persistent success use
+  `role="status"`. Pending is a disabled loading button. Recovery controls
+  remain semantic buttons, and the mobile board has no horizontal overflow.
+
+## Focused comparison
+
+- The source offline component and the matrix offline cell use the same border,
+  warning surface, icon, title hierarchy and button treatment; only the
+  approved recovery copy differs by context.
+- The source warning notice establishes the compact persistent-status geometry.
+  Conflict, cancel and success preserve that geometry while switching only the
+  canonical semantic token and icon.
+- A separate crop was unnecessary because the combined artifacts render these
+  controls at readable size and the DOM/semantic checks cover the nonvisual
+  distinctions.
 
 ## Comparison history
 
-1. Initial desktop comparison
-   (`comparison-viewer-desktop-v1.png`) found P2 drift: a textured, over-saturated
-   placeholder asset; a visible initial focus ring; centered filename; persistent
-   pressed styling on fit; and overly visible circular navigation backgrounds.
-   The asset was regenerated as a smooth raster, route focus moved to the viewer
-   root, filename alignment and local pressed styling were corrected, and
-   navigation backgrounds were quieted.
-2. The first mobile implementation wrapped the action group onto a second row
-   (P2) and reduced useful media space. The 390px layout now uses compact
-   single-row controls while preserving every viewer action.
-3. The final same-size desktop and mobile combined comparisons were reviewed
-   after those fixes. No actionable P0/P1/P2 issue remained.
+1. The first combined desktop and mobile comparison found no P0/P1/P2 visual
+   mismatch. No visual fix was made after that pass.
+2. The mobile capture was repeated after the initial reload observation
+   occurred before Storybook had rendered. The settled capture contains all
+   eight states, reports two alerts and four status regions, and has no
+   horizontal overflow. This was an evidence-capture correction, not a design
+   change.
 
 ## Browser verification
 
-- Primary interactions tested: open/close indexed information, desktop
-  slide-in panel, mobile bottom panel, responsive toolbar, and initial route
-  focus. Component tests cover fit, 1:1, zoom, wheel zoom, keyboard navigation,
-  Escape, `i`, fullscreen API, video controls, unavailable media, and retry
-  chrome.
-- Console errors checked on the rendered Storybook implementation: none.
-- The non-modal preview remains the single shared implementation and controller
-  previously captured in `docs/evidence/uif-312`; UIF-315 did not fork or copy
-  that controller.
+- Rendered Storybook route:
+  `http://127.0.0.1:6006/iframe.html?id=ui-statematrix--complete&viewMode=story`
+- Primary checks: all eight named sections rendered; alert/status semantics;
+  pending control disabled; responsive one-column collapse; full-page mobile
+  scroll; no page-level horizontal overflow.
+- Console errors and warnings checked on the settled mobile implementation:
+  none.
+- Component tests cover loading/offline announcements, blocking error retry,
+  empty recovery action, danger/success semantics and dismiss behavior.
 
 ## Follow-up polish
 
-- P3: real media naturally differs in aspect ratio from the prototype's
-  rectangular placeholder; the viewer correctly uses `object-fit: contain`.
-- P3: zoom-in/zoom-out controls add two icons beyond the static prototype but
-  are retained because the accepted viewer contract requires explicit zoom.
+- The exact `390px` content-width capture, dark theme and English locale belong
+  to the already-planned UIF-317 four-width/theme/locale matrix.
 
 final result: passed

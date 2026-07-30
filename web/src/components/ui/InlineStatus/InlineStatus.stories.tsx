@@ -35,3 +35,10 @@ export const Warning: Story = {
     tone: "warning",
   },
 };
+
+export const Success: Story = {
+  args: {
+    children: "扫描已完成，可靠索引已经更新。",
+    tone: "success",
+  },
+};

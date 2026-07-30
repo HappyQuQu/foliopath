@@ -1,11 +1,11 @@
-import { Info, WarningCircle, X } from "@phosphor-icons/react";
+import { CheckCircle, Info, WarningCircle, X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { IconButton } from "../Button/IconButton";
 import styles from "./InlineStatus.module.css";
 
-export type InlineStatusTone = "info" | "warning" | "danger";
+export type InlineStatusTone = "info" | "success" | "warning" | "danger";
 
 export interface InlineStatusProps {
   children: ReactNode;
@@ -21,7 +21,12 @@ export function InlineStatus({
   tone = "info",
 }: InlineStatusProps) {
   const { t } = useLocale();
-  const Icon = tone === "danger" || tone === "warning" ? WarningCircle : Info;
+  const Icon =
+    tone === "success"
+      ? CheckCircle
+      : tone === "danger" || tone === "warning"
+        ? WarningCircle
+        : Info;
 
   return (
     <div

@@ -360,6 +360,24 @@ pending thumbnail 的 2.5 秒自动刷新只在最多 4 个已载入 cursor 页�
 下一页请求失败时，集合尾部错误会阻止虚拟末端继续自动预取；已加载卡片和滚动位置保持，
 直到用户显式选择局部重试。首屏错误仍使用页面级恢复，不与分页错误混用。
 
+UIF-316 将状态展示收敛到以下唯一 owner；页面只能组合真实 query、mutation 或领域状态，
+不得为了“做全界面”创建第二套 mock 状态机：
+
+| 状态 | 唯一展示 owner | 真实消费位置与恢复语义 |
+| --- | --- | --- |
+| loading | `AsyncState.LoadingState`、结构稳定的 `MediaCollectionSkeleton` | 管理页/详情页首屏 query；Browse/Search 媒体集合短时首屏载入 |
+| empty | `AsyncState.EmptyState` | 无媒体库、空目录、Search 无结果；空态必须携带当前范围，并提供创建、包含子目录、清除筛选或编辑查询之一 |
+| offline | `AsyncState.OfflineState`、持续 `InlineStatus` | Browse/Search/媒体库与扫描；保留可靠索引和缓存，提供重新连接或重试，不伪装为空 |
+| error | `AsyncState.ErrorState`、集合尾部局部错误 | 首屏失败显示明确重试；下一页失败保留已加载集合、焦点与滚动位置 |
+| conflict | `FormField` 字段错误或 `InlineStatus` danger | 媒体库重名、根目录重叠、ETag/precondition 冲突；刷新最新状态后重试，不覆盖其他窗口的更新 |
+| cancel | 扫描领域状态 + `InlineStatus` | queued/running 可协作取消；cancelled 保留上一次可靠索引与已安全提交的新增项 |
+| pending | `Button loading`、扫描/缓存任务状态、缩略图占位 | 禁止重复提交；轮询必须有界，terminal 状态停止；不提供没有后端合同的假重试 |
+| success | `Toast`（瞬时确认）或 `InlineStatus success`（持续结果） | 保存/创建/清理等 mutation 用 Toast；扫描详情继续由真实 succeeded 状态、完成进度和成功图标表达，避免重复横幅 |
+
+组件工作台 `UI/StateMatrix/Complete` 固定展示上述八类语义，用于主题、语言、断点和
+无障碍回归；它只是共享组件合同证据，不持有任何业务状态。danger 使用 `role="alert"`，
+其余非阻断状态使用 `role="status"`；状态不可只靠颜色区分。
+
 S3-105 将媒体卡片与唯一共享 `MediaPreview` 接通。未固定状态下，卡片的覆盖按钮保持
 文件名可访问名称并以 `aria-pressed` 标记当前预览；递归结果的来源链接继续位于其上层，
 不会被卡片预览操作吞掉。桌面预览在媒体区右侧停靠，宽度默认 406px、限制在

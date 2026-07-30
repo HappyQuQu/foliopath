@@ -35,6 +35,15 @@
   color: var(--color-warning);
 }
 
+.success {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.success > svg {
+  color: var(--color-success);
+}
+
 .close {
   width: var(--size-control-sm);
   height: var(--size-control-sm);
