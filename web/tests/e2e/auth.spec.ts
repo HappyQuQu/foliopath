@@ -18,6 +18,7 @@ const longLibraryName = "Family archive ".padEnd(128, "A");
 test("administrator, library-management, and browsing vertical slice", async ({
   page,
 }) => {
+  test.setTimeout(240_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -203,7 +204,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   ).toBeVisible();
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
-  ).toContainText("direct-photo.jpg");
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Fit to window" }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -213,19 +214,16 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.getByRole("button", { name: "Show basic information" }).click();
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
+  ).toContainText("direct-photo.jpg");
+  await page.getByRole("button", { name: "Show basic information" }).click();
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page).toHaveURL(`/libraries/${createdLibraryId}/browse`);
   await expect(directPreviewTrigger).toBeFocused();
   await directPreviewTrigger.click();
   await expect(preview).toBeVisible();
-  await page.getByRole("button", { name: "Switch to dark theme" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await waitForVisualState(page);
-  await expectNoSeriousAxeViolations(page);
-  await page.getByRole("button", { name: "Switch to light theme" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await waitForVisualState(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await preview.getByRole("button", { name: "Close preview" }).click();
   await expect(preview).toHaveCount(0);
@@ -508,7 +506,16 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     page.getByRole("img", { name: "direct-photo.jpg" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+  await expect(
+    page.getByRole("main", { name: "direct-photo.jpg" }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("i");
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toBeVisible();
   await page.keyboard.press("i");
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
@@ -559,25 +566,33 @@ test("administrator, library-management, and browsing vertical slice", async ({
   ).toBeVisible();
   await expectNoPageOverflow(page);
 
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page
+    .getByRole("button", {
+      name: `Account menu for ${administrator.displayName}`,
+    })
+    .click();
+  await page.getByRole("menuitem", { name: "Settings" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/settings/general\\?libraryId=${createdLibraryId}$`),
   );
-  await expect(page.getByRole("heading", { name: "General settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Account" }).getByText(administrator.displayName),
+    page.getByRole("button", {
+      name: `Account menu for ${administrator.displayName}`,
+    }),
   ).toBeVisible();
 
   await page.setViewportSize({ width: 1024, height: 900 });
   await expectNoPageOverflow(page);
-  await page.getByRole("button", { name: "Switch to dark theme" }).first().click();
+  await page.getByLabel("Theme").selectOption("dark");
+  await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.getByRole("button", { name: "Switch to light theme" }).first()).toBeVisible();
   await waitForVisualState(page);
   await expectNoSeriousAxeViolations(page);
 
-  await page.getByLabel("Scan interval (hours) *").fill("48");
-  await page.getByLabel("Thumbnail cache limit (GiB) *").fill("2");
+  await page.getByRole("link", { name: "Scanning and cache" }).click();
+  await page.getByLabel("Scan interval (hours)").fill("48");
+  await page.getByLabel("Thumbnail cache limit (GiB)").fill("2");
   let settingsRequests = 0;
   await page.route("**/api/v1/settings", async (route) => {
     if (route.request().method() === "PATCH") {
@@ -593,12 +608,19 @@ test("administrator, library-management, and browsing vertical slice", async ({
   expect(settingsRequests).toBe(1);
   await page.unroute("**/api/v1/settings");
 
+  await page.getByRole("link", { name: "General" }).click();
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
-  await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
-  await page.getByRole("button", { name: "退出登录" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "通用" })).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: `${administrator.displayName}的账户菜单`,
+    })
+    .click();
+  await page.getByRole("menuitem", { name: "退出登录" }).click();
   await expect(page).toHaveURL(/\/login$/);
 
-  await page.setViewportSize({ width: 768, height: 900 });
+  await page.setViewportSize({ width: 768, height: 1024 });
   await page.goto("/settings/general");
   await expect(page).toHaveURL(/\/login\?reason=session_expired$/);
   await expect(
@@ -614,23 +636,18 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.goto("/settings/general");
   await expect(page).toHaveURL(/\/settings\/general$/);
 
-  for (const viewport of [
-    { width: 1024, height: 900 },
-    { width: 1440, height: 1024 },
-  ]) {
-    await page.setViewportSize(viewport);
-    await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
-    await expectNoPageOverflow(page);
-  }
+  await expectPrototypeFidelityMatrix(page);
 
   await page.getByRole("combobox", { name: "语言" }).selectOption("en");
-  await expect(page.getByRole("heading", { name: "General settings" })).toBeVisible();
+  await page.getByRole("button", { name: "保存更改" }).click();
+  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
 
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
-  await expect(page.getByRole("heading", { name: "通用设置" })).toBeVisible();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "通用" })).toBeVisible();
 
   await page.goto("/settings/libraries");
   await page.getByRole("button", { name: "移除" }).click();
@@ -796,6 +813,78 @@ async function waitForVisualState(page: Page) {
       }),
     );
   });
+}
+
+async function expectPrototypeFidelityMatrix(page: Page) {
+  const viewports = [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1265, height: 800 },
+    { width: 1440, height: 900 },
+  ];
+  const preferences = [
+    { locale: "zh-CN", theme: "light", heading: "通用" },
+    { locale: "zh-CN", theme: "dark", heading: "通用" },
+    { locale: "en", theme: "light", heading: "General" },
+    { locale: "en", theme: "dark", heading: "General" },
+  ] as const;
+
+  for (const preference of preferences) {
+    await page.evaluate(({ locale, theme }) => {
+      const key = "foliopath.preferences.v1";
+      const current = JSON.parse(window.localStorage.getItem(key) ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({ ...current, locale, theme }),
+      );
+    }, preference);
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-theme",
+      preference.theme,
+    );
+    await expect(page.locator("html")).toHaveAttribute(
+      "lang",
+      preference.locale,
+    );
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await expect(
+        page.getByRole("heading", { name: preference.heading }),
+      ).toBeVisible();
+      await expectNoPageOverflow(page);
+    }
+    await expectNoSeriousAxeViolations(page);
+  }
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--motion-normal")
+          .trim(),
+      ),
+    )
+    .toBe("1ms");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  await page.evaluate(() => {
+    const key = "foliopath.preferences.v1";
+    const current = JSON.parse(window.localStorage.getItem(key) ?? "{}") as Record<
+      string,
+      unknown
+    >;
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ ...current, locale: "zh-CN", theme: "dark" }),
+    );
+  });
+  await page.reload();
 }
 
 async function expectNoSeriousAxeViolations(page: Page) {

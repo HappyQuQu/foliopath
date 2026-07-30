@@ -1,5 +1,5 @@
 import { Broom, FloppyDisk } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
@@ -50,6 +50,8 @@ export function StorageSettingsPage({
     librariesQuery;
   const updateSettings = useUpdateSettingsMutation();
   const cleanup = useStartCacheCleanupMutation();
+  const savePendingRef = useRef(false);
+  const cleanupPendingRef = useRef(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setInterval] = useState("24");
   const [quota, setQuota] = useState("10");
@@ -76,11 +78,12 @@ export function StorageSettingsPage({
 
   function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!settingsQuery.data) return;
+    if (!settingsQuery.data || savePendingRef.current) return;
     const parsedInterval = Number(interval);
     const parsedQuota = Number(quota);
     if (!Number.isInteger(parsedInterval) || parsedInterval < 1 || parsedInterval > 8760) return;
     if (!Number.isFinite(parsedQuota) || parsedQuota < 1 || parsedQuota > 1024) return;
+    savePendingRef.current = true;
     void updateSettings
       .mutateAsync({
         csrfToken: session.csrfToken,
@@ -93,10 +96,15 @@ export function StorageSettingsPage({
       )
       .catch(() =>
         toast.show({ message: t("settings.saveFailed"), tone: "danger" }),
-      );
+      )
+      .finally(() => {
+        savePendingRef.current = false;
+      });
   }
 
   function runCleanup() {
+    if (cleanupPendingRef.current) return;
+    cleanupPendingRef.current = true;
     void cleanup
       .mutateAsync({
         csrfToken: session.csrfToken,
@@ -108,7 +116,10 @@ export function StorageSettingsPage({
       })
       .catch(() =>
         toast.show({ message: t("settings.saveFailed"), tone: "danger" }),
-      );
+      )
+      .finally(() => {
+        cleanupPendingRef.current = false;
+      });
   }
 
   return (

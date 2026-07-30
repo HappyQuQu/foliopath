@@ -20,7 +20,7 @@ test("offline viewer keeps the approved dark desktop composition", async ({
   await expect(
     page.getByRole("heading", { name: "Library is offline" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+  await expect(page.getByRole("main", { name: "offline.png" })).toBeFocused();
   await expect(page).toHaveScreenshot("offline-viewer-dark.png", {
     animations: "disabled",
     caret: "hide",

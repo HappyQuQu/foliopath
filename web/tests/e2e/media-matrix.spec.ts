@@ -38,7 +38,7 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
     `/libraries/${libraryId}/media/image_ready?from=%2Fsearch%3Fq%3Dmatrix`,
   );
   await expect(page.getByRole("img", { name: "ready.png" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+  await expect(page.getByRole("main", { name: "ready.png" })).toBeFocused();
   await expectNoPageOverflow(page);
 
   // Directly injected React Router history state is not retained by Firefox
@@ -61,16 +61,19 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
       );
     });
     await page.reload();
-    await expect(page.getByRole("button", { name: "Close" })).toBeFocused();
+    await expect(page.getByRole("main", { name: "ready.png" })).toBeFocused();
   }
-  await page.keyboard.press("i");
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
   ).toHaveCount(0);
-  await page.keyboard.press("I");
+  await page.keyboard.press("i");
   await expect(
     page.getByRole("complementary", { name: "Basic information" }),
   ).toBeVisible();
+  await page.keyboard.press("I");
+  await expect(
+    page.getByRole("complementary", { name: "Basic information" }),
+  ).toHaveCount(0);
   if (chromiumBased) {
     await page.keyboard.press("ArrowRight");
     await expect(page).toHaveURL(
@@ -85,7 +88,9 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
   // all supported engines exercise the product-owned fallback states below.
   if (chromiumBased) {
     await page.goto(`/libraries/${libraryId}/media/video_range`);
-    const video = page.getByLabel("range-video.mp4");
+    const video = page
+      .getByRole("main", { name: "range-video.mp4" })
+      .locator("video");
     await expect(video).toHaveAttribute("controls", "");
     await expect(video).toHaveAttribute(
       "poster",
@@ -106,7 +111,9 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
       name: "This browser cannot play the video",
     }),
   ).toBeVisible();
-  await expect(page.getByLabel("video-codec.mkv")).toHaveCount(0);
+  await expect(
+    page.locator('video[aria-label="video-codec.mkv"]'),
+  ).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
 
   await page.goto(`/libraries/${libraryId}/media/offline`);

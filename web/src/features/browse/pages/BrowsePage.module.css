@@ -14,8 +14,9 @@
   min-height: var(--size-context-bar);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
-  padding: 0 var(--space-6);
+  padding: var(--space-2) var(--space-6);
   border-bottom: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
 }

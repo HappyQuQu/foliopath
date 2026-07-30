@@ -378,6 +378,15 @@ UIF-316 将状态展示收敛到以下唯一 owner；页面只能组合真实 qu
 无障碍回归；它只是共享组件合同证据，不持有任何业务状态。danger 使用 `role="alert"`，
 其余非阻断状态使用 `role="status"`；状态不可只靠颜色区分。
 
+UIF-317 将组件工作台接入真实 `LocaleProvider` 与中央主题 globals，状态文案不再由
+story 写死。发布前矩阵固定为 `zh-CN/en × light/dark × 390×844/768×1024/
+1265×800/1440×900`：四档均检查页面级横向溢出，四组语言/主题组合均检查 `lang`、
+resolved theme 和 serious/critical axe；reduced-motion 必须把中央 motion token 收敛到
+`1ms`，不能由各 feature 自行发明开关。键盘矩阵覆盖提交、对话框、抽屉、预览和 Viewer
+的焦点进入/返回与快捷键；触摸矩阵覆盖移动 Viewer、恢复操作、目录抽屉和无 hover
+依赖的媒体卡。视觉、输入与自动化证据统一保存在
+[`docs/evidence/uif-317`](evidence/uif-317/README.md)。
+
 S3-105 将媒体卡片与唯一共享 `MediaPreview` 接通。未固定状态下，卡片的覆盖按钮保持
 文件名可访问名称并以 `aria-pressed` 标记当前预览；递归结果的来源链接继续位于其上层，
 不会被卡片预览操作吞掉。桌面预览在媒体区右侧停靠，宽度默认 406px、限制在

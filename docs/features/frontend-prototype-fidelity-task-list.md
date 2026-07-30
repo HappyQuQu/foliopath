@@ -188,7 +188,16 @@ flowchart TD
     [`docs/evidence/uif-316`](../evidence/uif-316/)，设计 QA 见仓库根目录
     [`design-qa.md`](../../design-qa.md)。
 
-- [ ] `UIF-317` 完成中英文、浅色/深色、390/768/1265/1440 响应式和键盘/触摸矩阵。
+- [x] `UIF-317` 完成中英文、浅色/深色、390/768/1265/1440 响应式和键盘/触摸矩阵。
+  - Storybook 全局 locale/theme 现在接入真实 `LocaleProvider` 与中央主题 token；
+    `UI/StateMatrix/Complete` 使用生产文案，不再写死中文。
+  - 真实 General settings E2E 固定执行 `2 locale × 2 theme × 4 viewport` 笛卡尔矩阵，
+    并检查 `lang`、resolved theme、页面溢出、axe 与 reduced-motion token；既有纵向
+    E2E/媒体矩阵继续覆盖键盘焦点返回、移动触摸、三引擎、forced-colors 和无 hover
+    降级。
+  - 16 张确定性截图、同状态组合比较和输入矩阵说明见
+    [`docs/evidence/uif-317`](../evidence/uif-317/README.md)，最终设计 QA 见仓库根目录
+    [`design-qa.md`](../../design-qa.md)。
 - [ ] `UIF-318` 签署 `UIF-S3 Consumer/UI Ready`。
 
 ## Phase 4：Integrated Slice Done

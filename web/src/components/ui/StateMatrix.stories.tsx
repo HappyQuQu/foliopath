@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
+import { useLocale } from "../../lib/i18n/LocaleProvider";
 import {
   EmptyState,
   ErrorState,
@@ -22,55 +23,59 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Complete: Story = {
-  render: () => (
+  render: () => <StateMatrix />,
+};
+
+function StateMatrix() {
+  const { locale, t } = useLocale();
+  const query = locale === "zh-CN" ? "京都" : "Kyoto";
+
+  return (
     <div className={styles.matrix}>
       <StateCell title="Loading">
-        <LoadingState label="正在载入媒体…" />
+        <LoadingState label={t("search.loading")} />
       </StateCell>
       <StateCell title="Empty">
         <EmptyState
-          action={<Button>清除筛选</Button>}
-          description="没有符合当前关键字和筛选条件的媒体。"
+          action={<Button>{t("search.clearFilters")}</Button>}
+          description={t("search.emptyDescription").replace("{query}", query)}
           icon={MagnifyingGlass}
-          title="没有搜索结果"
+          title={t("search.emptyTitle")}
         />
       </StateCell>
       <StateCell title="Offline">
         <OfflineState
-          action={<Button>重试连接</Button>}
-          description="可靠索引与缓存仍然保留；恢复媒体源后可以重新扫描。"
-          title="媒体库当前离线"
+          action={<Button>{t("common.retry")}</Button>}
+          description={t("search.offlineDescription")}
+          title={t("search.offlineTitle")}
         />
       </StateCell>
       <StateCell title="Error">
-        <ErrorState
-          message="FolioPath 暂时无法响应。当前界面与原始媒体均未改变。"
-          onRetry={() => undefined}
-        />
+        <ErrorState message={t("search.failed")} onRetry={() => undefined} />
       </StateCell>
       <StateCell title="Conflict">
         <InlineStatus tone="danger">
-          此媒体库已在其他窗口中更新。刷新后再试。
+          {t("settings.changedElsewhere")}
         </InlineStatus>
       </StateCell>
       <StateCell title="Cancel">
         <InlineStatus>
-          扫描已取消；上一次可靠索引与已安全提交的新增内容仍然保留。
+          {t("scan.descriptionCancelled")} {t("scan.indexPreserved")}
         </InlineStatus>
       </StateCell>
       <StateCell title="Pending">
         <Button loading variant="primary">
-          正在保存
+          {t("common.loading")}
         </Button>
       </StateCell>
       <StateCell title="Success">
         <InlineStatus tone="success">
-          扫描已完成，可靠索引已经更新。
+          {t("scan.descriptionSucceeded")}
         </InlineStatus>
       </StateCell>
     </div>
-  ),
-};
+  );
+}
 
 function StateCell({
   children,
