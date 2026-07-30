@@ -69,8 +69,8 @@ remain.
 
 ## Comparison target
 
-- Source visual truth:
-  `/var/folders/21/hjbt152d0vs3n8td7233xd8r0000gn/T/codex-clipboard-027946c1-3642-4c28-b47a-cc70ac97b21f.png`
+- Source visual truth: the accepted management-navigation reference preserved in
+  `qa/management-navigation-source-comparison.png`.
 - Source pixels: `271 × 446`.
 - Implementation routes:
   - `http://127.0.0.1:4173/06-settings-libraries.html`

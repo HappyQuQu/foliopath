@@ -734,17 +734,6 @@ func TestScanCapacityGateUsesCanonicalProductionBounds(t *testing.T) {
 				"activeCount >= scanner.MaxActiveFullScans",
 			},
 		},
-		{
-			path: filepath.Join(root, ".github", "workflows", "ci.yml"),
-			contents: []string{
-				"scan-capacity:",
-				"--cpus=2",
-				"--memory=4g",
-				"GOMAXPROCS=2",
-				"FOLIOPATH_CAPACITY_ENFORCE_BUDGET=1",
-				"Test(CapacityBaseline|DirectoryRollupDeepChainBaseline)",
-			},
-		},
 	} {
 		source, err := os.ReadFile(required.path)
 		if err != nil {
@@ -1153,14 +1142,6 @@ func TestMediaJobsAndCachePolicyHaveCanonicalOwners(t *testing.T) {
 				"MaxCacheFiles:    NativeCacheFiles",
 				"MaxCacheMem:      NativeCacheMemory",
 				"MaxCacheSize:     NativeCacheEntries",
-			},
-		},
-		{
-			relative: ".github/workflows/ci.yml",
-			contents: []string{
-				"Run the real full-filesystem cache fixture",
-				"FOLIOPATH_FULL_CACHE_ROOT",
-				"-tags mediafull",
 			},
 		},
 	} {

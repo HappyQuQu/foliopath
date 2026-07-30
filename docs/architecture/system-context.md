@@ -26,7 +26,7 @@ migration 成功后才进入 ready，失败时进程不提供业务服务。系�
 认证 HTTP 与 `users`/`sessions` 数据契约已达到 S1-101 Contract Ready，但当前还没有业务
 路由或认证 service。React 产品应用、
 完整媒体工具链与正式发布容器仍未形成产品。生成 TypeScript
-契约/client 与 CI 工作流已建立，首次原生 amd64/arm64 PR CI 已通过。准确状态以
+契约/client 与本地验证入口已建立；历史原生 amd64/arm64 结果保留，当前不运行自动 CI。准确状态以
 [开发就绪评审](../development-readiness.md)和[可行性研究](../feasibility-study.md)为准。
 
 发生冲突时，先按[交付与架构治理](delivery-governance.md)暂停受影响工作：已确认产品基线决定范围，

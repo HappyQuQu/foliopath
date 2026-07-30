@@ -4,7 +4,7 @@
 
 本文规定 FolioPath 如何把已确认产品范围转换为架构输入、实施切片和版本门禁。它是当前交付
 治理规范；`api/openapi.yaml` 已成为 HTTP 结构权威，TypeScript 生成类型、唯一 Web API
-client、摘要锁、语义兼容检查和 CI 工作流已建立；首次原生 amd64/arm64 PR CI 已通过。
+client、摘要锁、语义兼容检查和统一本地验证入口已建立；当前不运行自动 PR/main CI。
 容器和发布流程仍未实现，不能由本规范的目标描述推断为已完成。
 
 本文补充而不替代：
@@ -253,9 +253,9 @@ docs/gates/<target-version>/<stage-or-slice>-<gate>.md
 
 性能、平台或非核心体验的降级只有在产品和架构负责人共同记录影响、目标版本与复审条件后才可接受。豁免不得永久泛化到未来版本。
 
-## 计划中的自动化约束
+## 可执行约束
 
-阶段 1 建立 CI 后，应逐步把以下规则变为 architecture fitness functions：
+下列规则应逐步变为可由本地统一入口执行的 architecture fitness functions：
 
 - 禁止的包依赖和未经 ADR 新增的部署单元/外部服务；
 - OpenAPI 与生成代码漂移；

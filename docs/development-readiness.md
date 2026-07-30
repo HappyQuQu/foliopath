@@ -38,7 +38,7 @@ Range、取消、Linux path boundary 和离线/变化源矩阵，允许前端接
 当前仓库已有 `go.mod`/`.go-version`、Go 路径/媒体库/scanner/SQLite 实验代码、首个嵌入式
 Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成、唯一 Web API client
 边界、OpenAPI 摘要锁与语义兼容检查、契约/HTTP 边界/容量 harness、固定 Node/npm 工具链和
-双架构 CI 工作流。`cmd/foliopath` 的最小进程入口、版本命令和退出码已经建立；
+统一本地验证入口。自动测试 CI 已关闭；`cmd/foliopath` 的最小进程入口、版本命令和退出码已经建立；
 `internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
 有界停机；启动配置已固定 `/library`、`/app/data`、单监听地址和认证前回环限制。正式应用已
 接入 SQLite WAL、嵌入 migration、空数据目录准备、重复启动和迁移失败关闭，并由真实
@@ -51,7 +51,7 @@ Backend Ready Gate；安全目录选择、媒体库生命周期、manual scan ad
 handler 也已接入真实 composition root 并通过媒体库 Backend Ready Gate。生产扫描 worker
 已消费 creation/startup/scheduled scan，扫描观察、取消和设置 HTTP 已接线并通过 Backend Ready；
 Stage 1～4 认证产品 UI 与 Chromium E2E、Stage 5 可信代理边界、生产候选 Dockerfile、
-安全 Compose 和原生双架构候选 CI 入口已经建立；当前仍没有可发布镜像，但本机原生
+安全 Compose 和 Docker Hub 双架构发布入口已经建立；当前仍没有可发布镜像，但本机原生
 arm64 与操作者指定的原生 amd64 服务器候选矩阵已经审阅通过；S5-006A 已建立
 Firefox/WebKit 稳定状态与 Linux 视觉回归，真实 Firefox 核心链及原生 200%/400%
 缩放也已通过；其余物理辅助功能/真机与 RC Gate 尚未完成；S5-009A 的统一 RC 审计当前
@@ -59,7 +59,7 @@ Firefox/WebKit 稳定状态与 Linux 视觉回归，真实 Firefox 核心链及�
 HTTP 运行边界已有服务端 request ID、统一安全 404/500、JSON 日志、panic 隔离、在途请求排空、
 liveness/readiness 和受保护系统状态；数据库及 migration 成功后 readiness 才进入 ready，
 系统状态已使用真实会话保护。隔离 FS-05 Dockerfile 只用于 Stage 0 probe。
-原生 amd64/arm64 PR CI、runtime/recovery 与 SBOM/license jobs 已通过。
+历史原生 amd64/arm64、runtime/recovery 与 SBOM/license 结果作为原提交证据保留。
 认证、媒体库管理和可靠扫描是已通过各自 Gate 的正式后端能力；静态原型仍不是可用产品。
 不得把媒体库 Gate 扩张为扫描、浏览、
 缩略图、前端集成或发布完成。
@@ -90,16 +90,16 @@ ADR 流程。
 
 已落地的实验基线：
 
-- Go 版本已写入 `go.mod`，`.go-version` 为 1.26.5；CI 直接读取该文件。Stage 5
-  候选镜像和原生 CI 容器也固定到 Go 1.26.5 trixie digest。
+- Go 版本已写入 `go.mod`，`.go-version` 为 1.26.5；本地工具和候选镜像读取该文件。
+  Stage 5 候选镜像固定到 Go 1.26.5 trixie digest。
 - SQLite 使用 `modernc.org/sqlite`，迁移使用 Goose；初始迁移通过 `go:embed` 运行。
 - sqlc 固定为 `v1.31.1`；配置、媒体库 SQL 源和提交的生成包归属
   `internal/store/sqlite`，`make generate-check` 在临时目录重生成并比较。
 - `Makefile` 当前提供 `fmt`、`fmt-check`、`arch-check`、`release-docs-check`、
   `release-readiness-check`、失败关闭的 `release-ready`、`contract-check`、`generate`、
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
-  `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；CI 已
-  复用这些入口。
+  `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；
+  合并与发布前在本地运行适用入口。
 - `.node-version`、`packageManager` 和 lockfile 固定 Node 22.22.2/npm 10.9.7；strict
   TypeScript、生成文件漂移检查与 high-severity npm audit 已在本地通过。
 
@@ -117,7 +117,7 @@ ADR 流程。
 [FS-03](spikes/fs-03-media-matrix.md)、[FS-04](spikes/fs-04-capacity-baseline.md) 与
 [FS-05](spikes/fs-05-runtime-recovery.md)。
 权威 OpenAPI、生成 TypeScript client 基础与真实 HTTP test harness 是契约/测试证据，不是
-生产 API 实现；真实 PR 基线兼容检查和原生双架构 CI 已通过，前端产品、浏览器和发布容器
+生产 API 实现；历史真实 PR 基线兼容检查和原生双架构结果已保留，前端产品、浏览器和发布容器
 检查仍未执行，不能用已有测试代替“完整测试”。
 
 ## 开发启动实施顺序
@@ -126,9 +126,9 @@ ADR 流程。
 2. **运行可行性 spike**：Stage 0 所需 FS-01～05 范围已经完成；完整产品/发布缺口已写入
    后续 Gate，见[可行性研究](feasibility-study.md)。
 3. **Stage 1 先建立后端运行骨架**：创建 Go 入口与 `internal/app`、配置、生命周期、健康检查、
-   认证基础边界、统一构建命令和基础 CI；不预建空业务包。
+   认证基础边界和统一构建命令；不预建空业务包。
 4. **契约先行**：首个 SQLite migration、`api/openapi.yaml`、TypeScript 类型/client、
-   sqlc 查询/生成包、摘要锁、兼容性和确定性漂移检查已建立；相关 PR 仍须让 CI 实际执行
+   sqlc 查询/生成包、摘要锁、兼容性和确定性漂移检查已建立；相关改动须在本地实际执行
    同一生成入口，再实现首个业务 handler。
 5. **建立前端基础而非业务替身**：只为已批准 S0/S1 切片按时间盒创建最小 React/Vite 应用壳、路由、token、共享原语和组件工作台；原型不进入生产 import graph，业务 feature 等待对应后端契约与集成证据。
 6. **完成安全纵向切片**：只实现“列出允许目录 → 创建媒体库 → 安全扫描 → 索引一页媒体 → 返回缩略图状态”；先通过 Backend Ready，再实现对应 UI，全程使用合成 fixture。

@@ -8,8 +8,9 @@ scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目
 composition root、SQLite 生命周期、health、认证及媒体库/扫描/浏览/缩略图/搜索/原内容
 HTTP handler 已可启动和测试；React 认证、媒体库/扫描、浏览/预览及搜索/完整查看器切片
 均已有真实浏览器 E2E，发布镜像和最终浏览器/真机矩阵仍待 Stage 5。仓库已有固定 Node/npm、
-确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit、唯一 client 边界和双架构 CI
-工作流；原生 amd64/arm64 PR CI、FS-05 runtime/recovery 和 SBOM/license job 已通过。
+确定性 OpenAPI TypeScript 生成、strict typecheck、依赖 audit 和唯一 client 边界。
+仓库不再为 PR 或 `main` push 运行自动 CI；验证由开发者在本地执行，过去的双架构、
+FS-05 runtime/recovery 和 SBOM/license 结果只作为历史证据保留。
 只有实际执行成功的目标才能声称可用。
 
 当前证据分别见 [FS-01 路径边界](spikes/fs-01-path-boundary.md)、
@@ -466,9 +467,10 @@ R-018。`make storyboard-readiness-check` 不只检查证据路径存在，还�
 
 认证范围已经确认；上述单管理员安全测试是稳定版发布阻断项，不能用“以后补”作为公网发布依据。
 
-## CI 与合并门槛
+## 本地验证与合并门槛
 
-目标验证入口由 `Makefile` 或等价任务统一，名称与根 `AGENTS.md` 对齐：
+为节省 GitHub Actions 配额，PR 与 `main` push 不运行自动测试。提交或合并前由开发者在
+本地运行统一入口，名称与根 `AGENTS.md` 对齐：
 
 ```sh
 make fmt
@@ -490,13 +492,12 @@ lease/recovery、schedule 与资源上限契约；这不是完整领域实现一
 故障和容量证据仍须在 Backend Gate 补齐。运行时不依赖 Ruby、Node 或网络。权威 OpenAPI 还通过了
 Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 4xx 响应的规则 warning，
 没有结构错误。`generate-check` 同时验证固定版本 sqlc 和 OpenAPI TypeScript 生成无漂移，
-`web-check`、摘要锁和语义兼容入口已在本地通过；CI 已定义同一生成入口、PR 基线比较与原生
-amd64/arm64 jobs。`test-e2e` 已使用测试专用容器启动真实 `cmd/foliopath`，覆盖非 root、
-固定 volumes、health、默认 401、重复 migration、SIGTERM 和媒体只读 sentinel，并接入原生
-amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E2E 已可执行；浏览、
+`web-check`、摘要锁和语义兼容入口已在本地通过。`test-e2e` 已使用测试专用容器启动真实
+`cmd/foliopath`，覆盖非 root、固定 volumes、health、默认 401、重复 migration、SIGTERM
+和媒体只读 sentinel。前端组件/token、认证与媒体库/扫描浏览器产品 E2E 已可执行；浏览、
 搜索、预览和查看器继续按对应前端 Stage 补齐。
 
-计划中的每次合并至少要求：
+每次本地验证至少要求：
 
 - 格式、架构依赖、静态检查、生成一致性和单元测试通过。
 - 受影响的集成/组件测试通过；数据库、路径或扫描改动运行完整相关矩阵。
@@ -507,6 +508,9 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 发布候选额外要求：
 
 - 全量集成、E2E、双架构容器和恢复演练通过。
+- Docker Hub 发布只允许由 `main` push、`vMAJOR.MINOR.PATCH` tag 或显式手动运行触发；
+  PR 不得读取发布凭据或推送镜像。发布的 OCI index 必须同时包含 `linux/amd64`
+  与 `linux/arm64`。
 - `make test-release-image` 必须在原生 linux/amd64 与 linux/arm64 runner 对同一提交
   成功；它覆盖真实 SPA、MVP 媒体 probe/poster、损坏输入、Compose 安全约束、代理
   失败关闭、HSTS、健康检查、SIGTERM、离线恢复、强杀恢复、数据盘满和损坏数据库。

@@ -90,7 +90,8 @@ them.
   transaction ownership, job consistency, or shared frontend architecture.
 - Add architecture fitness checks as the relevant source tree appears.
   `make arch-check` is the repository-level entry point; a rule described only in
-  prose is not considered fully enforced until its planned check is present in CI.
+  prose is not considered fully enforced until its planned executable check exists
+  and is included in the documented local verification surface.
 
 ## Filesystem safety
 

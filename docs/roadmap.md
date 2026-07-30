@@ -35,7 +35,8 @@ digest 漏洞扫描和许可证证据；`S5-007C/D/E/F/G` 已用最小 libvips�
   容量按 S0-106 转入后续 Gate。[FS-05](spikes/fs-05-runtime-recovery.md) 双架构运行、
   恢复和失败关闭范围通过。
 - Go 运行骨架、认证和全部冻结 MVP capability 已接入真实 composition root；权威
-  OpenAPI、TypeScript/sqlc 生成、摘要锁、语义兼容检查和双架构 CI 工作流已经建立。
+  OpenAPI、TypeScript/sqlc 生成、摘要锁、语义兼容检查和统一本地验证入口已经建立；
+  自动测试 CI 已关闭。
   根 `Dockerfile` 当前是 Stage 5 candidate，不是稳定发布镜像；只有 `S5-001～010`
   全部通过后才能更新这一结论。
 

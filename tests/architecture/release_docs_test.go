@@ -26,12 +26,12 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	formats := read("internal/media/formats.go")
 
 	requireFragments(t, "README.md", readme, []string{
-		"不要把当前 candidate",
-		"docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .",
+		"evanqu/foliopath:latest",
+		"docker compose up -d",
+		"docker run --detach",
 		"## Supported Media",
 		"视频不会转码",
 		"SVG、HEIC/HEIF、AVIF 和 RAW",
-		"0 Critical / 0 High",
 	})
 	requireFragments(t, "docs/deployment.md", deployment, []string{
 		"# FolioPath 候选部署与运维",
@@ -55,7 +55,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"- ALL",
 	})
 	requireFragments(t, ".env.example", environment, []string{
-		"FOLIOPATH_IMAGE=ghcr.io/HappyQuQu/foliopath:VERSION",
+		"FOLIOPATH_IMAGE=evanqu/foliopath:latest",
 		"FOLIOPATH_LIBRARY_PATH=/mnt/photos",
 		"FOLIOPATH_DATA_PATH=./foliopath-data",
 		"FOLIOPATH_BIND_ADDRESS=0.0.0.0",

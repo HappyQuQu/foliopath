@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestStoryboardEvidenceRemainsPairedAcrossNativeArchitectures(t *testing.T) {
+func TestStoryboardEvidenceCanBeVerifiedLocally(t *testing.T) {
 	root := repositoryRoot(t)
 	read := func(relative string) string {
 		t.Helper()
@@ -17,25 +17,9 @@ func TestStoryboardEvidenceRemainsPairedAcrossNativeArchitectures(t *testing.T) 
 		return string(content)
 	}
 
-	workflow := read(".github/workflows/ci.yml")
 	smoke := read("tests/release/storyboard_vertical_smoke.sh")
 	makefile := read("Makefile")
 
-	requireFragments(t, ".github/workflows/ci.yml", workflow, []string{
-		"name: Storyboard candidate (${{ matrix.arch }})",
-		"runner: ubuntu-24.04",
-		"runner: ubuntu-24.04-arm",
-		"FOLIOPATH_STORYBOARD_EXPECTED_ARCH: ${{ matrix.arch }}",
-		"FOLIOPATH_STORYBOARD_SOURCE_COMMIT: ${{ github.sha }}",
-		"name: storyboard-evidence-${{ github.sha }}-${{ matrix.arch }}",
-		"name: Verify paired storyboard evidence",
-		"actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53",
-		"merge-multiple: true",
-		"make verify-storyboard-evidence",
-		`SUMMARY_FILE="${RUNNER_TEMP}/storyboard-paired-evidence.json"`,
-		"name: Upload verified paired storyboard summary",
-		"name: storyboard-paired-evidence-${{ github.sha }}",
-	})
 	requireFragments(t, "tests/release/storyboard_vertical_smoke.sh", smoke, []string{
 		`test "${image_arch}" = "${FOLIOPATH_STORYBOARD_EXPECTED_ARCH}"`,
 		`decodedPixelSHA256: $storyboard_pixel_sha256`,

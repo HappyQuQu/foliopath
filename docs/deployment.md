@@ -24,6 +24,42 @@ provenance 和安全/合规签署阻断。
 - 媒体原件始终只读；数据库、设置、任务状态和缓存全部位于 `/app/data`。
 - 目标发布 `linux/amd64` 与 `linux/arm64` 镜像，并用不可变版本标签升级。
 
+## Docker Hub 自动发布
+
+独立 workflow [`.github/workflows/dockerhub.yml`](../.github/workflows/dockerhub.yml)
+负责构建并发布一个同时包含 `linux/amd64` 与 `linux/arm64` 的 Docker Hub image index。
+自动测试 CI 已关闭，测试与候选证据由发布者在本地完成。推送到 `main`、推送
+`vMAJOR.MINOR.PATCH` 标签或手动运行时，才会触发此 Docker 发布 workflow；PR 不触发。
+
+在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
+
+| 类型 | 名称 | 示例 / 用途 |
+| --- | --- | --- |
+| Secret | `DOCKERHUB_USERNAME` | Docker Hub 用户名或组织机器人账号 |
+| Secret | `DOCKERHUB_TOKEN` | 具备目标仓库推送所需最小权限的 Docker Hub access token |
+| Secret（可选） | `DOCKERHUB_DESCRIPTION_TOKEN` | 同步根 README 到 Docker Hub Overview |
+
+触发与标签规则：
+
+- 推送到 `main` 时自动构建并推送 `latest` 与 `sha-*` 标签。
+- 推送 `vMAJOR.MINOR.PATCH` Git tag 时自动推送版本标签、`major.minor`、`sha-*`
+  和 `latest`。
+- 从 Actions 手动运行时必须指定标签，默认是 `edge`，不会更新 `latest`。
+- 单个 GitHub-hosted runner 通过 Buildx/QEMU 构建并推送 amd64 与 arm64 manifest。
+- 构建附带 SBOM 和 provenance；配置可选 description token 时同步根 README。
+
+发布完成后验证：
+
+```sh
+docker buildx imagetools inspect evanqu/foliopath:VERSION
+docker pull --platform linux/amd64 evanqu/foliopath:VERSION
+docker pull --platform linux/arm64 evanqu/foliopath:VERSION
+```
+
+输出必须同时列出 `linux/amd64` 和 `linux/arm64`。部署仍应使用明确版本或 digest，而不是
+依赖可变的 `latest`。自动发布入口不改变当前 Release Candidate No-Go 判断；只有适用 Gate
+全部关闭后才能创建稳定 GitHub Release。
+
 ## 候选 Compose
 
 权威候选配置是仓库根 [`compose.yaml`](../compose.yaml)，参数清单见
@@ -35,7 +71,8 @@ provenance 和安全/合规签署阻断。
 - `FOLIOPATH_BIND_ADDRESS`：宿主端口绑定地址，默认 `0.0.0.0` 供受信局域网访问；
 - `FOLIOPATH_PORT`：宿主端口，默认 `8080`。
 
-仓库尚未发布可拉取的稳定镜像。只做当前源码候选验证时，可以先运行：
+官方多架构镜像发布在 `evanqu/foliopath`。README 快速开始使用 `latest`；需要可控升级时，
+请在 `.env` 中改为明确版本或 digest。需要验证当前源码时，也可以本地构建：
 
 ```sh
 docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
@@ -46,8 +83,8 @@ docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
 `/tmp` tmpfs 启动。镜像内 healthcheck 已由候选 smoke 验证。
 
-本地 tag 只标识当前源码验证，不是不可变发布引用。发布前仍必须把示例替换为正式版本或
-digest，并完成原生双架构与其余 Release Gate；当前文件存在不表示已有稳定镜像可供拉取。
+本地 tag 只标识当前源码验证，不是不可变发布引用。长期部署建议使用 Docker Hub 上的明确
+版本或 digest。
 
 ### 为什么只需要两个 volume
 
@@ -291,7 +328,7 @@ linux/arm64 同提交候选证据仍由
 
 ## 当前候选已知限制
 
-- 没有公开稳定镜像或稳定 tag；根 Dockerfile/Compose 只供当前 Stage 5 候选验证。
+- 官方镜像位于 `evanqu/foliopath`；生产部署建议固定明确版本或 digest。
 - 发布平台目标是 Linux amd64/arm64。非 Linux adapter 只用于开发；本轮候选已由本机
   原生 arm64 与操作者指定的原生 amd64 服务器完成运行矩阵，最终不可变 digest 尚未签署。
 - `/library` 只能有一个顶层媒体挂载，后代不能是 mount point；目录 symlink 不跟随。

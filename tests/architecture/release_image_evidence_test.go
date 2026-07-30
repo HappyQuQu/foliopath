@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNativeReleaseImageEvidenceRemainsBoundToTheWorkflowRun(t *testing.T) {
+func TestNativeReleaseImageEvidenceCanBeVerifiedLocally(t *testing.T) {
 	root := repositoryRoot(t)
 	read := func(relative string) string {
 		t.Helper()
@@ -17,21 +17,10 @@ func TestNativeReleaseImageEvidenceRemainsBoundToTheWorkflowRun(t *testing.T) {
 		return string(content)
 	}
 
-	workflow := read(".github/workflows/ci.yml")
 	smoke := read("tests/release/image_smoke.sh")
 	provenance := read("scripts/generate-provenance.sh")
 	makefile := read("Makefile")
 
-	requireFragments(t, ".github/workflows/ci.yml", workflow, []string{
-		"FOLIOPATH_RELEASE_EVIDENCE: ${{ runner.temp }}/release-image-${{ matrix.arch }}.json",
-		"FOLIOPATH_RELEASE_EXPECTED_ARCH: ${{ matrix.arch }}",
-		"FOLIOPATH_RELEASE_COMMIT: ${{ github.sha }}",
-		"FOLIOPATH_RELEASE_RUN_ID: ${{ github.run_id }}",
-		"FOLIOPATH_RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}",
-		"FOLIOPATH_RELEASE_PROVENANCE: ${{ runner.temp }}/release-provenance-${{ matrix.arch }}.json",
-		"name: release-image-${{ github.sha }}-${{ matrix.arch }}",
-		"if-no-files-found: error",
-	})
 	requireFragments(t, "tests/release/image_smoke.sh", smoke, []string{
 		`test "${image_arch}" = "${FOLIOPATH_RELEASE_EXPECTED_ARCH}"`,
 		`sourceCommit: $source_commit`,
@@ -55,7 +44,7 @@ func TestNativeReleaseImageEvidenceRemainsBoundToTheWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestNativeSupplyChainEvidenceFailsClosedAndRequiresBothArchitectures(t *testing.T) {
+func TestNativeSupplyChainEvidenceCanBeVerifiedLocally(t *testing.T) {
 	root := repositoryRoot(t)
 	read := func(relative string) string {
 		t.Helper()
@@ -66,22 +55,9 @@ func TestNativeSupplyChainEvidenceFailsClosedAndRequiresBothArchitectures(t *tes
 		return string(content)
 	}
 
-	workflow := read(".github/workflows/ci.yml")
 	generator := read("scripts/generate-supply-chain-evidence.sh")
 	makefile := read("Makefile")
 
-	requireFragments(t, ".github/workflows/ci.yml", workflow, []string{
-		"name: Candidate supply chain (${{ matrix.arch }})",
-		"runner: ubuntu-24.04",
-		"runner: ubuntu-24.04-arm",
-		"FOLIOPATH_VULNERABILITY_POLICY: all",
-		"FOLIOPATH_SUPPLY_CHAIN_EXPECTED_ARCH: ${{ matrix.arch }}",
-		"FOLIOPATH_SUPPLY_CHAIN_RUN_ID: ${{ github.run_id }}",
-		"name: supply-chain-${{ github.sha }}-${{ matrix.arch }}",
-		"needs: supply-chain",
-		"pattern: supply-chain-${{ github.sha }}-*",
-		"make verify-supply-chain-evidence",
-	})
 	requireFragments(t, "scripts/generate-supply-chain-evidence.sh", generator, []string{
 		`.total == 0`,
 		`.critical == 0`,

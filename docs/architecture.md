@@ -9,7 +9,8 @@
 文档中的 **Target**、仓库实际存在的 **Current** 与 spike 的局部验证必须分开理解。当前已有部分
 Go 能力、SQLite/generation、Darwin 与原生 Linux amd64/arm64 `openat2` 路径边界证据，
 `api/openapi.yaml` 已成为 HTTP 结构权威，TypeScript 类型和唯一 Web API client 可确定性
-生成，摘要锁、语义兼容检查与双架构 CI 工作流也已建立；首次原生 amd64/arm64 CI 已通过。运行进程、
+生成，摘要锁、语义兼容检查与统一本地验证入口也已建立；历史原生 amd64/arm64 验证结果
+作为平台证据保留，当前不运行自动 CI。运行进程、
 生产 handler、认证、React 产品应用、完整媒体 adapter、容器与发布链路仍未实现。
 
 ## 架构驱动因素
