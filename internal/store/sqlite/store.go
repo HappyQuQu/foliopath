@@ -109,6 +109,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.backfillCatalogSearchKeys(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.backfillDirectorySearchKeys(ctx); err != nil {
+		return closeOnError(err)
+	}
 	if err := store.ensureCatalogSearchIndex(ctx); err != nil {
 		return closeOnError(err)
 	}
@@ -276,6 +279,59 @@ func (s *Store) backfillCatalogSearchKeys(ctx context.Context) error {
 					item.id,
 				); err != nil {
 					return fmt.Errorf("backfill catalog search key: %w", err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *Store) backfillDirectorySearchKeys(ctx context.Context) error {
+	for {
+		rows, err := s.db.QueryContext(ctx, `
+            SELECT id, name
+            FROM directories
+            WHERE search_name_key = '' AND name <> ''
+            ORDER BY id
+            LIMIT ?`,
+			s.maxBatchSize,
+		)
+		if err != nil {
+			return fmt.Errorf("find missing directory search keys: %w", err)
+		}
+		type missingKey struct {
+			id   int64
+			name string
+		}
+		missing := make([]missingKey, 0, s.maxBatchSize)
+		for rows.Next() {
+			var item missingKey
+			if err := rows.Scan(&item.id, &item.name); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("read missing directory search key: %w", err)
+			}
+			missing = append(missing, item)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close missing directory search keys: %w", err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate missing directory search keys: %w", err)
+		}
+		if len(missing) == 0 {
+			return nil
+		}
+		if err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+			for _, item := range missing {
+				if _, err := tx.ExecContext(
+					ctx,
+					`UPDATE directories SET search_name_key = ? WHERE id = ?`,
+					catalog.SearchTextKey(item.name),
+					item.id,
+				); err != nil {
+					return fmt.Errorf("backfill directory search key: %w", err)
 				}
 			}
 			return nil

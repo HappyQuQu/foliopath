@@ -71,9 +71,9 @@ R-020 属于 `Post-MVP/3` scope proposed 的
 [FTR-OPS-001](features/task-center.md)，不改变当前 MVP RC 判断；它阻断 `OPS-S0/S2/S4`，
 在 100k admission、优先级、取消、盘满、重启和旧 ready 保留证据完成前保持开放。
 R-021 属于当前 MVP revision 4 的
-[FTR-UIF-001](features/frontend-prototype-fidelity.md)，阻断 `UIF-S1～S4` 和受影响的 Stage 5
-RC 重验；在账户/目录/缓存真实合同、四档视觉比较、三浏览器/可访问性和 100k/10k 证据完成前
-保持开放。
+[FTR-UIF-001](features/frontend-prototype-fidelity.md)；UIF-S1 已用真实合同、兼容检查和
+10k 目录 spike 关闭合同子风险，R-021 继续阻断 `UIF-S2～S4` 和受影响的 Stage 5 RC 重验；
+在账户/目录/缓存后端、四档视觉比较、三浏览器/可访问性和完整 100k/10k 证据完成前保持开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

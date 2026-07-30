@@ -35,6 +35,10 @@
   规格、后端合同缺口、owner、失败矩阵、`UIF-AC-001～012` 与 `UIF-S0～S4` Gate。
 - [FTR-UIF-001 开发任务清单](features/frontend-prototype-fidelity-task-list.md)：从
   Contract Ready、账户/目录/缓存后端到共享壳、逐页还原、视觉 QA 和 RC 重验的完整任务。
+- [UIF-S1 Contract Ready](gates/MVP-2026-07-23/uif-s1-contract-ready.md)：已冻结账户、
+  目录 `q`、缓存摘要/单例清理合同、migration 13 方向、兼容性和 10k 查询证据。
+- [UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)：
+  账户事务、目录过滤、100k 有界缓存清理、恢复、安全和生产 composition 已通过。
 - [品牌标识规范](branding.md)：标识概念、唯一资产、尺寸、主题、可访问性和生产接入规则。
 - [Apple 风格静态 UI 原型](../prototypes/apple-redesign/index.html)：登录、欢迎、浏览、搜索、查看器与设置页面的浅色/深色和响应式视觉验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。

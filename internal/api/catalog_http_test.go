@@ -14,6 +14,19 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
 
+func TestParseDirectoryListQueryAcceptsCurrentDirectoryFilter(t *testing.T) {
+	request, err := parseDirectoryListQuery("parentId=dir_7&q=%EF%BC%A1lbum&limit=25")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if request.ParentDirectoryID != 7 ||
+		request.SearchQuery == nil ||
+		*request.SearchQuery != "Ａlbum" ||
+		request.Limit != 25 {
+		t.Fatalf("directory query = %#v", request)
+	}
+}
+
 type catalogServiceStub struct {
 	contentRevision func(context.Context) (int64, error)
 	list            func(context.Context, catalog.DirectoryRequest) (catalog.DirectoryPage, error)

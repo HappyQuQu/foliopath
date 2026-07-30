@@ -332,6 +332,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:      readiness.snapshot,
 		Authentication: authentication,
+		Account:        authentication,
+		Cache:          cacheManager,
 		SystemStatus:   systemStatusProvider(input.Version, readiness, authentication),
 		LibraryPaths:   libraryPaths,
 		Libraries:      libraries,

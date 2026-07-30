@@ -126,6 +126,14 @@ func (s *Store) ListDirectoryPage(
         FROM directories
         WHERE library_id = ? AND parent_id = ?`
 	args := []any{params.Scope.LibraryID, params.Scope.DirectoryID}
+	for _, term := range params.SearchTerms {
+		if term == "" {
+			return nil, catalog.ErrInvalidQuery
+		}
+		query += `
+          AND instr(search_name_key, ?) > 0`
+		args = append(args, term)
+	}
 	if params.After != nil {
 		if params.After.ID <= 0 || params.After.Name == "" || len(params.After.NaturalNameKey) == 0 {
 			return nil, catalog.ErrInvalidCursor

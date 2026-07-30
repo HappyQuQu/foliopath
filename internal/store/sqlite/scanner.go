@@ -356,16 +356,18 @@ func upsertDirectory(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry
 	if _, err := tx.ExecContext(ctx, `
         INSERT INTO directories(
             library_id, parent_id, relative_path, name, natural_name_key,
-            mtime_ns, last_seen_generation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            search_name_key, mtime_ns, last_seen_generation
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(library_id, relative_path) DO UPDATE SET
             parent_id = excluded.parent_id,
             name = excluded.name,
             natural_name_key = excluded.natural_name_key,
+            search_name_key = excluded.search_name_key,
             mtime_ns = excluded.mtime_ns,
             last_seen_generation = excluded.last_seen_generation`,
 		run.LibraryID, parentID, entry.RelativePath, entry.Name,
-		catalog.NaturalNameKey(entry.Name), entry.MTimeNS, run.Generation); err != nil {
+		catalog.NaturalNameKey(entry.Name), catalog.SearchTextKey(entry.Name),
+		entry.MTimeNS, run.Generation); err != nil {
 		return false, fmt.Errorf("upsert directory %q: %w", entry.RelativePath, err)
 	}
 	return newlySeen, nil

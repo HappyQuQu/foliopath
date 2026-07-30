@@ -43,9 +43,10 @@ type Capacity interface {
 }
 
 type CacheManager struct {
-	repository CacheRepository
-	storage    CacheStorage
-	gate       chan struct{}
+	repository  CacheRepository
+	storage     CacheStorage
+	gate        chan struct{}
+	cleanupWake chan struct{}
 }
 
 func NewCacheManager(
@@ -56,9 +57,10 @@ func NewCacheManager(
 		return nil, errors.New("cache manager dependencies are required")
 	}
 	manager := &CacheManager{
-		repository: repository,
-		storage:    storage,
-		gate:       make(chan struct{}, 1),
+		repository:  repository,
+		storage:     storage,
+		gate:        make(chan struct{}, 1),
+		cleanupWake: make(chan struct{}, 1),
 	}
 	manager.gate <- struct{}{}
 	return manager, nil
@@ -102,6 +104,10 @@ func (manager *CacheManager) Run(
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
+		if err := manager.processCleanup(ctx); err != nil && ctx.Err() == nil {
+			// A terminal failure is persisted and remains retryable. Keep the
+			// long-running capacity manager alive for future requests.
+		}
 		if err := manager.Reconcile(ctx); err != nil &&
 			!errors.Is(err, ErrCacheCapacity) &&
 			ctx.Err() == nil {
@@ -111,8 +117,18 @@ func (manager *CacheManager) Run(
 		case <-ctx.Done():
 			return nil
 		case <-notifications:
+		case <-manager.cleanupWake:
 		case <-ticker.C:
 		}
+	}
+}
+
+func (manager *CacheManager) reserveGate(ctx context.Context) (Reservation, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-manager.gate:
+		return &cacheReservation{release: func() { manager.gate <- struct{}{} }}, nil
 	}
 }
 

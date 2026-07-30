@@ -221,6 +221,13 @@ func TestDirectoryCursorBindsNormalizedRootAndGeneration(t *testing.T) {
 		t.Fatalf("generation change error = %v", err)
 	}
 	repository.scope.Generation = 3
+	filter := "album"
+	_, err = service.ListDirectories(context.Background(), DirectoryRequest{
+		LibraryID: 7, Cursor: first.NextCursor, Limit: 1, SearchQuery: &filter,
+	})
+	if !errors.Is(err, ErrInvalidCursor) {
+		t.Fatalf("filter change error = %v", err)
+	}
 	tamperAt := len(first.NextCursor) / 2
 	replacement := byte('A')
 	if first.NextCursor[tamperAt] == replacement {

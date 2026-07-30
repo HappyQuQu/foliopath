@@ -81,6 +81,18 @@ func requestRatePolicyFor(method, path string) (requestRatePolicy, bool) {
 		return requestRatePolicy{operation: "session", limit: 120}, true
 	case method == http.MethodPost && path == "/api/v1/auth/logout":
 		return requestRatePolicy{operation: "logout", limit: 60}, true
+	case method == http.MethodGet && path == "/api/v1/account":
+		return requestRatePolicy{operation: "account_read", limit: 120}, true
+	case method == http.MethodPatch && path == "/api/v1/account":
+		return requestRatePolicy{operation: "account_update", limit: 30}, true
+	case method == http.MethodPost && path == "/api/v1/account/password":
+		return requestRatePolicy{operation: "account_password", limit: 10}, true
+	case method == http.MethodGet && path == "/api/v1/cache":
+		return requestRatePolicy{operation: "cache_read", limit: 120}, true
+	case method == http.MethodGet && path == "/api/v1/cache/cleanup":
+		return requestRatePolicy{operation: "cache_cleanup_read", limit: 120}, true
+	case method == http.MethodPost && path == "/api/v1/cache/cleanup":
+		return requestRatePolicy{operation: "cache_cleanup_start", limit: 10}, true
 	case method == http.MethodGet && path == "/api/v1/catalog/state":
 		return requestRatePolicy{operation: "catalog_state", limit: 120}, true
 	default:

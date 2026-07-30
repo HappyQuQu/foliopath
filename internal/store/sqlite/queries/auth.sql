@@ -55,6 +55,67 @@ FROM users
 WHERE username_key = sqlc.arg(username_key)
   AND singleton_key = 1;
 
+-- name: GetAccountByID :one
+SELECT
+    id,
+    username,
+    display_name,
+    revision,
+    updated_at_ms
+FROM users
+WHERE id = sqlc.arg(id)
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL;
+
+-- name: UpdateAccountDisplayName :one
+UPDATE users
+SET display_name = sqlc.arg(display_name),
+    revision = revision + 1,
+    updated_at_ms = sqlc.arg(updated_at_ms)
+WHERE id = sqlc.arg(id)
+  AND revision = sqlc.arg(expected_revision)
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL
+RETURNING
+    id,
+    username,
+    display_name,
+    revision,
+    updated_at_ms;
+
+-- name: UpdateAdministratorPassword :one
+UPDATE users
+SET password_hash = sqlc.arg(password_hash),
+    password_scheme = sqlc.arg(password_scheme),
+    password_parameters = sqlc.arg(password_parameters),
+    auth_version = auth_version + 1,
+    revision = revision + 1,
+    updated_at_ms = sqlc.arg(changed_at_ms),
+    password_changed_at_ms = sqlc.arg(changed_at_ms)
+WHERE id = sqlc.arg(id)
+  AND revision = sqlc.arg(expected_revision)
+  AND auth_version = sqlc.arg(expected_auth_version)
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL
+RETURNING auth_version, revision;
+
+-- name: AdvanceCurrentSessionVersion :execrows
+UPDATE sessions
+SET auth_version = sqlc.arg(new_auth_version),
+    last_seen_at_ms = sqlc.arg(changed_at_ms)
+WHERE id = sqlc.arg(id)
+  AND token_hash = sqlc.arg(token_hash)
+  AND auth_version = sqlc.arg(expected_auth_version)
+  AND revoked_at_ms IS NULL
+  AND expires_at_ms > sqlc.arg(changed_at_ms);
+
+-- name: RevokeOtherAdministratorSessions :execrows
+UPDATE sessions
+SET revoked_at_ms = sqlc.arg(changed_at_ms)
+WHERE user_id = sqlc.arg(user_id)
+  AND id <> sqlc.arg(current_session_id)
+  AND revoked_at_ms IS NULL;
+
 -- name: InsertSession :one
 INSERT INTO sessions (
     user_id,

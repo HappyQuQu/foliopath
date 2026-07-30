@@ -6,9 +6,11 @@
 - 当前阶段：Stage 4 搜索与媒体内容后端已全部 Backend Ready
 - 已完成：`S1-001`～`S1-008` 运行骨架；`S1-101`～`S1-106` 认证 Backend Ready；
   `S2-001`～`S2-007` 媒体库 Backend Ready；`S2-101～107` 可靠扫描 Backend Ready
-- 当前任务：优先执行 [FTR-UIF-001](features/frontend-prototype-fidelity.md) 的
-  `UIF-101～109` Contract Ready；S1 Go 后实现账户维护、目录 q 和最小缓存摘要/清理，
-  专用任务见[开发清单](features/frontend-prototype-fidelity-task-list.md)
+- 当前任务：[FTR-UIF-001](features/frontend-prototype-fidelity.md) 的
+  `UIF-101～215` 已通过
+  [Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)；
+  账户维护、目录 q 和最小缓存摘要/清理可交给生产前端接入，专用任务见
+  [开发清单](features/frontend-prototype-fidelity-task-list.md)
 - 后续候选：`POST-MVP-3` [FTR-OPS-001 后台任务中心](features/task-center.md)已完成
   规格与任务拆分，但 `OPS-S0/S1` 尚未通过；专用
   [开发清单](features/task-center-task-list.md)当前不授权修改生产 OpenAPI、migration 或代码

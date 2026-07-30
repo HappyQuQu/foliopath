@@ -193,9 +193,10 @@ type AssetPosition struct {
 }
 
 type DirectoryListParams struct {
-	Scope Scope
-	After *DirectoryPosition
-	Limit int
+	Scope       Scope
+	SearchTerms []string
+	After       *DirectoryPosition
+	Limit       int
 }
 
 type AssetQuery struct {
@@ -297,6 +298,7 @@ func rootParentPath(relative string) string {
 type DirectoryRequest struct {
 	LibraryID         int64
 	ParentDirectoryID int64
+	SearchQuery       *string
 	Cursor            string
 	Limit             int
 }
@@ -383,7 +385,14 @@ func (service *Service) ListDirectories(
 	if err != nil {
 		return DirectoryPage{}, err
 	}
-	fingerprint := directoryFingerprint(scope)
+	var searchTerms []string
+	if request.SearchQuery != nil {
+		searchTerms, err = NormalizeSearchTerms(*request.SearchQuery)
+		if err != nil {
+			return DirectoryPage{}, err
+		}
+	}
+	fingerprint := directoryFingerprint(scope, searchTerms)
 	var after *DirectoryPosition
 	if request.Cursor != "" {
 		position, decodeErr := service.decodeDirectoryCursor(request.Cursor, scope.Generation, fingerprint)
@@ -393,9 +402,10 @@ func (service *Service) ListDirectories(
 		after = &position
 	}
 	items, err := service.repository.ListDirectoryPage(ctx, DirectoryListParams{
-		Scope: scope,
-		After: after,
-		Limit: limit + 1,
+		Scope:       scope,
+		SearchTerms: searchTerms,
+		After:       after,
+		Limit:       limit + 1,
 	})
 	if err != nil {
 		return DirectoryPage{}, err
@@ -767,9 +777,10 @@ type queryFingerprint struct {
 	Order            SortOrder      `json:"a,omitempty"`
 }
 
-func directoryFingerprint(scope Scope) [sha256.Size]byte {
+func directoryFingerprint(scope Scope, terms []string) [sha256.Size]byte {
 	return hashFingerprint(queryFingerprint{
 		Version: queryVersion, OrderVersion: directoryOrderV1,
+		SearchProfile: searchProfileV1, Terms: terms,
 		LibraryID: scope.LibraryID, DirectoryID: scope.CanonicalDirectoryID,
 		Generation: scope.Generation,
 	})

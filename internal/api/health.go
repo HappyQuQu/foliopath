@@ -41,6 +41,8 @@ type SupportedMedia struct {
 type RouteDependencies struct {
 	Readiness      func() Readiness
 	Authentication AuthenticationService
+	Account        AccountService
+	Cache          CacheService
 	SystemStatus   func(context.Context) (SystemStatus, error)
 	LibraryPaths   LibraryPathService
 	Libraries      LibraryLifecycleService
@@ -71,6 +73,12 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		handleReadiness(writer, request, dependencies.Readiness())
 	})
 	registerAuthenticationRoutes(mux, dependencies.Authentication)
+	if dependencies.Account != nil {
+		registerAccountRoutes(mux, dependencies.Account)
+	}
+	if dependencies.Cache != nil {
+		registerCacheRoutes(mux, dependencies.Cache)
+	}
 	registerLibraryPathRoutes(mux, dependencies.LibraryPaths)
 	if dependencies.Libraries != nil {
 		registerLibraryRoutes(mux, dependencies.Libraries)

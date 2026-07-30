@@ -361,7 +361,7 @@ func parseDirectoryListQuery(raw string) (catalog.DirectoryRequest, error) {
 		return catalog.DirectoryRequest{}, catalog.ErrInvalidQuery
 	}
 	for key, entries := range values {
-		if (key != "parentId" && key != "cursor" && key != "limit") ||
+		if (key != "parentId" && key != "q" && key != "cursor" && key != "limit") ||
 			len(entries) != 1 {
 			return catalog.DirectoryRequest{}, catalog.ErrInvalidQuery
 		}
@@ -372,6 +372,9 @@ func parseDirectoryListQuery(raw string) (catalog.DirectoryRequest, error) {
 		if err != nil {
 			return catalog.DirectoryRequest{}, catalog.ErrInvalidQuery
 		}
+	}
+	if value, ok := values["q"]; ok {
+		request.SearchQuery = &value[0]
 	}
 	if value, ok := values["cursor"]; ok {
 		if value[0] == "" {

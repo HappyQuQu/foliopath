@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Authoritative HTTP contract for the FolioPath MVP-2026-07-23 scope,
-    revision 1.
+    revision 4.
 
     All business endpoints use an authenticated same-origin browser session.
     State-changing authenticated operations additionally require the
@@ -21,8 +21,8 @@ info:
 x-foliopath-contract:
   status: authoritative
   targetVersion: MVP-2026-07-23
-  scopeRevision: 1
-  baselineEvent: BASELINE-2026-07-23
+  scopeRevision: 4
+  baselineEvent: CR-2026-009
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -44,10 +44,14 @@ tags:
     description: Unauthenticated process and dependency readiness without sensitive details.
   - name: Authentication
     description: First-run administrator setup and revocable browser sessions.
+  - name: Account
+    description: The authenticated single administrator's profile and password.
   - name: System
     description: Authenticated runtime capability and initialization state.
   - name: Settings
     description: Schema-bound administrator settings with optimistic concurrency.
+  - name: Cache
+    description: Safe thumbnail-cache usage and singleton derived-cache cleanup.
   - name: Library paths
     description: Restricted browsing of selectable directories below the allowed media root.
   - name: Libraries
@@ -313,6 +317,162 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/account:
+    get:
+      tags: [Account]
+      operationId: getAccount
+      summary: Get the current administrator account
+      description: |
+        Returns the only administrator's safe profile. The strong ETag binds
+        the account revision and is required by profile and password updates.
+        Username is immutable after first-run setup.
+      x-requirements: [FR-AUTH-005, FR-UI-009, NFR-SEC-002, NFR-PRIV-001]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Current administrator profile.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [Account]
+      operationId: updateAccount
+      summary: Update the administrator display name
+      description: |
+        Updates only the display name in one short transaction. The username
+        and authentication identity are immutable. A no-op request succeeds
+        without changing the revision. A concurrent account change makes the
+        supplied ETag fail closed.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTH-005, FR-UI-009, NFR-SEC-002, NFR-PRIV-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '412': [precondition_failed]
+        '422': [validation_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+      responses:
+        '200':
+          description: Updated administrator profile.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/account/password:
+    post:
+      tags: [Account]
+      operationId: changeAccountPassword
+      summary: Change the administrator password
+      description: |
+        Verifies the current password and validates the new password before
+        changing durable state. On success one transaction stores the new
+        verifier, advances account and authentication revisions, preserves
+        this authenticated session at the new authentication revision, and
+        revokes every other session. Any failure leaves the verifier and all
+        sessions unchanged. The confirmation password is a client-only check
+        and is never sent.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTH-005, FR-AUTH-004, NFR-SEC-002, NFR-PRIV-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired, invalid_credentials]
+        '403': [csrf_invalid]
+        '412': [precondition_failed]
+        '422': [validation_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '204':
+          description: Password changed; current session preserved and all other sessions revoked.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/status:
     get:
       tags: [System]
@@ -419,6 +579,158 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '428':
           $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/cache:
+    get:
+      tags: [Cache]
+      operationId: getCacheSummary
+      summary: Get safe derived-cache usage and pressure
+      description: |
+        Returns aggregate thumbnail and poster cache state only. It never
+        returns cache filenames, cache paths, asset paths, database paths, or
+        original-media paths. `availableBytes` describes the writable
+        application-data filesystem without identifying it.
+      x-requirements: [FR-MED-008, FR-UI-009, NFR-OPS-001, NFR-PRIV-001]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Current cache summary and singleton cleanup state.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/cache/cleanup:
+    get:
+      tags: [Cache]
+      operationId: getCacheCleanup
+      summary: Get the singleton cache-cleanup state
+      description: |
+        Returns `idle` before any request and the latest durable singleton
+        cleanup thereafter. It is an operational status resource, not a task
+        history or per-asset queue.
+      x-requirements: [FR-MED-008, FR-UI-009, NFR-OPS-001, NFR-PRIV-001]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Current or latest singleton cleanup state.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheCleanup'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Cache]
+      operationId: startCacheCleanup
+      summary: Remove all reconstructible thumbnails and posters
+      description: |
+        Starts a bounded durable cleanup that removes derived cache files only;
+        it never changes settings, the reliable catalog, or original media.
+        The worker deletes each cache file before removing its ready database
+        state, works in bounded LRU batches, and preserves the configured safe
+        free-space margin for SQLite and temporary writes.
+
+        At most one singleton cleanup is queued or running. A different
+        idempotency key while active coalesces onto the same cleanup and
+        returns `200`; replaying a completed key returns its recorded
+        representation. Restart resumes queued/running work, and failure
+        remains retryable by a later request. This operation does not enqueue
+        replacement thumbnails, provide cancellation, create history, or
+        expose per-asset tasks.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-MED-008, FR-UI-009, NFR-SAFE-001, NFR-OPS-001]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '409': [idempotency_conflict]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          description: Existing active cleanup or completed idempotency replay.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+            Location:
+              description: Fixed relative URL `/api/v1/cache/cleanup`.
+              schema:
+                type: string
+                enum: [/api/v1/cache/cleanup]
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheCleanup'
+        '202':
+          description: New singleton cleanup accepted.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+            Location:
+              description: Fixed relative URL `/api/v1/cache/cleanup`.
+              schema:
+                type: string
+                enum: [/api/v1/cache/cleanup]
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheCleanup'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1057,15 +1369,24 @@ paths:
         library is indistinguishable from a missing directory and returns
         `directory_not_found`.
 
+        Optional `q` filters every direct child in the reliable index, not just
+        the current page. The server trims outer Unicode whitespace, applies
+        Unicode NFKC plus full case folding, splits on Unicode whitespace,
+        removes duplicate terms, and requires every term to occur as a literal
+        substring of the normalized direct-child name. Diacritics are
+        preserved; one- and two-character terms are valid; punctuation and
+        FTS syntax have no operator meaning.
+
         Results use `(naturalNameKey ASC, name ASC, id ASC)` keyset order.
-        Cursors bind the library, normalized parent, ordering version, and
-        reliable catalog generation. Advancing the reliable generation makes
+        Cursors bind the library, normalized parent, normalized query terms,
+        search profile, ordering version, and reliable catalog generation.
+        Changing or clearing `q`, or advancing the reliable generation, makes
         an old cursor fail with `invalid_cursor`. An offline library still
         returns its preserved index with `200`; pending/scanning/offline state
         is read from the Library resource, so an empty page alone is never
         proof that the filesystem is empty. The request never traverses the
         filesystem.
-      x-requirements: [FR-BRW-001, FR-BRW-005, FR-BRW-008, FR-BRW-009]
+      x-requirements: [FR-BRW-001, FR-BRW-005, FR-BRW-008, FR-BRW-009, FR-BRW-010]
       x-error-codes:
         '400': [invalid_request, invalid_cursor]
         '401': [authentication_required, session_expired]
@@ -1075,6 +1396,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/LibraryIDParameter'
         - $ref: '#/components/parameters/ParentDirectoryIDParameter'
+        - $ref: '#/components/parameters/DirectorySearchQueryParameter'
         - $ref: '#/components/parameters/CursorParameter'
         - $ref: '#/components/parameters/LimitParameter'
       responses:
@@ -1641,6 +1963,21 @@ components:
         Plain-text filename/path search. Omit it to browse without search.
         Present values are trimmed, must remain non-empty, and follow the
         versioned literal-substring search profile; FTS operators are not exposed.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    DirectorySearchQueryParameter:
+      name: q
+      in: query
+      required: false
+      description: |
+        Plain-text direct-child directory-name filter. Present values are
+        trimmed, must remain non-empty, and follow the versioned Unicode NFKC,
+        full-case-folded literal-substring profile. All normalized
+        whitespace-separated terms must match the same direct-child name.
+        Diacritics are preserved, short terms are valid, and punctuation or
+        FTS syntax has no operator meaning.
       schema:
         type: string
         minLength: 1
@@ -2260,10 +2597,7 @@ components:
         username:
           $ref: '#/components/schemas/Username'
         displayName:
-          type: string
-          minLength: 1
-          maxLength: 128
-          description: Safe display text; never used for authentication decisions.
+          $ref: '#/components/schemas/DisplayName'
         password:
           type: string
           format: password
@@ -2299,9 +2633,64 @@ components:
         username:
           $ref: '#/components/schemas/Username'
         displayName:
+          $ref: '#/components/schemas/DisplayName'
+
+    Account:
+      type: object
+      additionalProperties: false
+      required: [id, username, displayName, revision, updatedAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        username:
+          $ref: '#/components/schemas/Username'
+        displayName:
+          $ref: '#/components/schemas/DisplayName'
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Monotonic account representation revision used by the strong ETag.
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    AccountUpdate:
+      type: object
+      additionalProperties: false
+      required: [displayName]
+      properties:
+        displayName:
+          $ref: '#/components/schemas/DisplayName'
+
+    PasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
           type: string
+          format: password
           minLength: 1
           maxLength: 128
+          writeOnly: true
+          description: Verified using the same constant-time credential path as login.
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          writeOnly: true
+          description: |
+            Contains 8–128 Unicode characters, rejects control characters, and
+            has no uppercase, digit, or symbol composition requirement.
+
+    DisplayName:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: |
+        NFC display text after trimming outer Unicode whitespace. Control
+        characters are rejected. It is never used for authentication.
 
     Session:
       type: object
@@ -2462,6 +2851,108 @@ components:
           minimum: 1
         language:
           $ref: '#/components/schemas/LanguagePreference'
+
+    CacheSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - usageBytes
+        - quotaBytes
+        - highWatermarkBytes
+        - lowWatermarkBytes
+        - availableBytes
+        - safeFreeSpaceBytes
+        - pressure
+        - cleanup
+      properties:
+        usageBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Total bytes represented by ready reconstructible thumbnail and poster state.
+        quotaBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        highWatermarkBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Quota pressure begins above this server-derived value.
+        lowWatermarkBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Automatic eviction under quota pressure targets this value.
+        availableBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Safe aggregate free bytes on application-data storage; no path is disclosed.
+        safeFreeSpaceBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Reserved safety margin for SQLite and temporary writes.
+        pressure:
+          $ref: '#/components/schemas/CachePressure'
+        cleanup:
+          $ref: '#/components/schemas/CacheCleanup'
+
+    CachePressure:
+      type: string
+      enum: [normal, quota, storage, quota_and_storage]
+
+    CacheCleanup:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - requestedAt
+        - startedAt
+        - finishedAt
+        - initialUsageBytes
+        - remainingUsageBytes
+        - reclaimedBytes
+        - deletedEntries
+        - errorCode
+      properties:
+        status:
+          $ref: '#/components/schemas/CacheCleanupStatus'
+        requestedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        startedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        finishedAt:
+          $ref: '#/components/schemas/NullableTimestamp'
+        initialUsageBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        remainingUsageBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        reclaimedBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        deletedEntries:
+          type: integer
+          format: int64
+          minimum: 0
+        errorCode:
+          $ref: '#/components/schemas/CacheCleanupErrorCode'
+
+    CacheCleanupStatus:
+      type: string
+      enum: [idle, queued, running, succeeded, failed]
+
+    CacheCleanupErrorCode:
+      type: string
+      nullable: true
+      description: Sanitized terminal reason. It never contains a path or raw storage error.
+      enum: [cache_unavailable, storage_unavailable, internal_error]
 
     LanguagePreference:
       type: string

@@ -223,6 +223,136 @@ func (store *Store) RevokeSession(
 	return affected == 1, nil
 }
 
+func (store *Store) GetAccount(ctx context.Context, userID int64) (auth.Account, error) {
+	record, err := store.queries.GetAccountByID(ctx, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return auth.Account{}, auth.ErrAdministratorNotFound
+	}
+	if err != nil {
+		return auth.Account{}, fmt.Errorf("get administrator account: %w", err)
+	}
+	return accountFromGet(record), nil
+}
+
+func (store *Store) UpdateAccount(
+	ctx context.Context,
+	params auth.UpdateAccountParams,
+) (auth.Account, error) {
+	var account auth.Account
+	err := store.withWriteTx(ctx, func(tx *sql.Tx) error {
+		queries := dbgen.New(tx)
+		current, err := queries.GetAccountByID(ctx, params.UserID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return auth.ErrAdministratorNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("read account before profile update: %w", err)
+		}
+		if current.Revision != params.ExpectedRevision {
+			return auth.ErrPreconditionFailed
+		}
+		if current.DisplayName == params.DisplayName {
+			account = accountFromGet(current)
+			return nil
+		}
+		updated, err := queries.UpdateAccountDisplayName(
+			ctx,
+			dbgen.UpdateAccountDisplayNameParams{
+				DisplayName:      params.DisplayName,
+				UpdatedAtMs:      params.UpdatedAtMS,
+				ID:               params.UserID,
+				ExpectedRevision: params.ExpectedRevision,
+			},
+		)
+		if errors.Is(err, sql.ErrNoRows) {
+			return auth.ErrPreconditionFailed
+		}
+		if err != nil {
+			return fmt.Errorf("update administrator profile: %w", err)
+		}
+		account = auth.Account{
+			ID:          updated.ID,
+			Username:    updated.Username,
+			DisplayName: updated.DisplayName,
+			Revision:    updated.Revision,
+			UpdatedAtMS: updated.UpdatedAtMs,
+		}
+		return nil
+	})
+	return account, err
+}
+
+func (store *Store) ChangePassword(
+	ctx context.Context,
+	params auth.ChangePasswordParams,
+) (auth.Account, error) {
+	var account auth.Account
+	err := store.withWriteTx(ctx, func(tx *sql.Tx) error {
+		queries := dbgen.New(tx)
+		updated, err := queries.UpdateAdministratorPassword(
+			ctx,
+			dbgen.UpdateAdministratorPasswordParams{
+				PasswordHash:        params.PasswordVerifier.EncodedHash,
+				PasswordScheme:      params.PasswordVerifier.Scheme,
+				PasswordParameters:  params.PasswordVerifier.Parameters,
+				ChangedAtMs:         params.ChangedAtMS,
+				ID:                  params.UserID,
+				ExpectedRevision:    params.ExpectedRevision,
+				ExpectedAuthVersion: params.ExpectedAuthVersion,
+			},
+		)
+		if errors.Is(err, sql.ErrNoRows) {
+			return auth.ErrPreconditionFailed
+		}
+		if err != nil {
+			return fmt.Errorf("update administrator password: %w", err)
+		}
+		advanced, err := queries.AdvanceCurrentSessionVersion(
+			ctx,
+			dbgen.AdvanceCurrentSessionVersionParams{
+				NewAuthVersion:      updated.AuthVersion,
+				ChangedAtMs:         params.ChangedAtMS,
+				ID:                  params.CurrentSessionID,
+				TokenHash:           params.CurrentTokenHash[:],
+				ExpectedAuthVersion: params.ExpectedAuthVersion,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("advance current session version: %w", err)
+		}
+		if advanced != 1 {
+			return auth.ErrSessionExpired
+		}
+		if _, err := queries.RevokeOtherAdministratorSessions(
+			ctx,
+			dbgen.RevokeOtherAdministratorSessionsParams{
+				ChangedAtMs:      sql.NullInt64{Int64: params.ChangedAtMS, Valid: true},
+				UserID:           params.UserID,
+				CurrentSessionID: params.CurrentSessionID,
+			},
+		); err != nil {
+			return fmt.Errorf("revoke other administrator sessions: %w", err)
+		}
+		current, err := queries.GetAccountByID(ctx, params.UserID)
+		if err != nil {
+			return fmt.Errorf("read changed administrator account: %w", err)
+		}
+		account = accountFromGet(current)
+		return nil
+	})
+	return account, err
+}
+
+func accountFromGet(record dbgen.GetAccountByIDRow) auth.Account {
+	return auth.Account{
+		ID:          record.ID,
+		Username:    record.Username,
+		DisplayName: record.DisplayName,
+		Revision:    record.Revision,
+		UpdatedAtMS: record.UpdatedAtMs,
+	}
+}
+
 func administratorFromInsert(record dbgen.InsertAdministratorRow) auth.Administrator {
 	return auth.Administrator{
 		ID:          record.ID,

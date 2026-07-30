@@ -117,7 +117,7 @@ func TestAuthenticationRepositoryPersistsAdministratorAtomically(t *testing.T) {
 
 func TestAuthenticationRepositoryManagesSessionLifecycle(t *testing.T) {
 	now := time.UnixMilli(1700000000000)
-	store, _ := openTestStoreWithOptions(t, Options{})
+	store, _ := openTestStoreWithOptions(t, Options{Now: func() time.Time { return now }})
 	ctx := context.Background()
 	administrator, _, err := store.CreateAdministratorWithSession(
 		ctx,
@@ -241,6 +241,93 @@ func TestAuthenticationRepositoryManagesSessionLifecycle(t *testing.T) {
 	}
 	if obsoleteCount != 0 {
 		t.Fatal("obsolete expired session was not cleaned up")
+	}
+}
+
+func TestAccountRepositoryUpdatesProfileAndChangesPasswordAtomically(t *testing.T) {
+	now := time.UnixMilli(1_700_000_000_000)
+	store, _ := openTestStoreWithOptions(t, Options{Now: func() time.Time { return now }})
+	ctx := context.Background()
+	administrator, current, err := store.CreateAdministratorWithSession(
+		ctx,
+		testAdministratorParams(),
+		testSessionParams(0, 0x11, now, now.Add(auth.SessionLifetime)),
+	)
+	if err != nil {
+		t.Fatalf("create administrator: %v", err)
+	}
+	otherParams := testSessionParams(
+		administrator.ID,
+		0x33,
+		now,
+		now.Add(auth.SessionLifetime),
+	)
+	other, err := store.CreateSession(ctx, otherParams, now.Add(-time.Hour).UnixMilli())
+	if err != nil {
+		t.Fatalf("create other session: %v", err)
+	}
+
+	account, err := store.GetAccount(ctx, administrator.ID)
+	if err != nil || account.Revision != 1 {
+		t.Fatalf("GetAccount() = %#v, %v", account, err)
+	}
+	noOp, err := store.UpdateAccount(ctx, auth.UpdateAccountParams{
+		UserID:           administrator.ID,
+		DisplayName:      account.DisplayName,
+		ExpectedRevision: 1,
+		UpdatedAtMS:      now.Add(time.Minute).UnixMilli(),
+	})
+	if err != nil || noOp.Revision != 1 {
+		t.Fatalf("no-op UpdateAccount() = %#v, %v", noOp, err)
+	}
+	updated, err := store.UpdateAccount(ctx, auth.UpdateAccountParams{
+		UserID:           administrator.ID,
+		DisplayName:      "Updated Admin",
+		ExpectedRevision: 1,
+		UpdatedAtMS:      now.Add(time.Minute).UnixMilli(),
+	})
+	if err != nil || updated.Revision != 2 || updated.DisplayName != "Updated Admin" {
+		t.Fatalf("UpdateAccount() = %#v, %v", updated, err)
+	}
+	if _, err := store.UpdateAccount(ctx, auth.UpdateAccountParams{
+		UserID:           administrator.ID,
+		DisplayName:      "Stale",
+		ExpectedRevision: 1,
+		UpdatedAtMS:      now.Add(2 * time.Minute).UnixMilli(),
+	}); !errors.Is(err, auth.ErrPreconditionFailed) {
+		t.Fatalf("stale UpdateAccount() error = %v", err)
+	}
+
+	changedAt := now.Add(3 * time.Minute).UnixMilli()
+	changed, err := store.ChangePassword(ctx, auth.ChangePasswordParams{
+		UserID:              administrator.ID,
+		CurrentSessionID:    current.ID,
+		CurrentTokenHash:    [32]byte{0x11},
+		ExpectedRevision:    2,
+		ExpectedAuthVersion: 1,
+		PasswordVerifier: auth.PasswordVerifier{
+			EncodedHash: "$argon2id$replacement",
+			Scheme:      "argon2id",
+			Parameters:  "v=19,m=65536,t=3,p=4",
+		},
+		ChangedAtMS: changedAt,
+	})
+	if err != nil || changed.Revision != 3 {
+		t.Fatalf("ChangePassword() = %#v, %v", changed, err)
+	}
+	currentRecord, err := store.FindSession(ctx, [32]byte{0x11})
+	if err != nil ||
+		currentRecord.AuthVersion != 2 ||
+		currentRecord.UserAuthVersion != 2 ||
+		currentRecord.RevokedAtMS != nil {
+		t.Fatalf("preserved current session = %#v, %v", currentRecord, err)
+	}
+	otherRecord, err := store.FindSession(ctx, otherParams.TokenHash)
+	if err != nil ||
+		otherRecord.ID != other.ID ||
+		otherRecord.RevokedAtMS == nil ||
+		*otherRecord.RevokedAtMS != changedAt {
+		t.Fatalf("revoked other session = %#v, %v", otherRecord, err)
 	}
 }
 

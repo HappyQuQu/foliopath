@@ -2,17 +2,21 @@ package thumbnail
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"slices"
+	"strconv"
 	"testing"
 )
 
 type cacheRepositoryStub struct {
-	quota   int64
-	usage   int64
-	entries []CacheEntry
-	pending []PendingCacheDeletion
-	batches [][]CacheEntry
+	quota              int64
+	usage              int64
+	entries            []CacheEntry
+	pending            []PendingCacheDeletion
+	batches            [][]CacheEntry
+	cleanup            Cleanup
+	lastCleanupKeyHash [sha256.Size]byte
 }
 
 func (stub *cacheRepositoryStub) CacheQuota(context.Context) (int64, error) {
@@ -62,6 +66,63 @@ func (stub *cacheRepositoryStub) CompleteCacheDeletion(
 	}
 	stub.pending = stub.pending[1:]
 	return nil
+}
+
+func (stub *cacheRepositoryStub) GetCacheCleanup(context.Context) (Cleanup, error) {
+	return stub.cleanup, nil
+}
+
+func (stub *cacheRepositoryStub) RequestCacheCleanup(
+	_ context.Context,
+	keyHash [sha256.Size]byte,
+	requestedAtMS int64,
+) (CleanupRequestResult, error) {
+	if stub.cleanup.Status == CleanupQueued || stub.cleanup.Status == CleanupRunning {
+		return CleanupRequestResult{Cleanup: stub.cleanup}, nil
+	}
+	stub.cleanup = Cleanup{
+		Revision: 2, Status: CleanupQueued, IdempotencyKeyHash: keyHash,
+		RequestedAtMS: &requestedAtMS,
+	}
+	stub.lastCleanupKeyHash = keyHash
+	return CleanupRequestResult{Cleanup: stub.cleanup, Created: true}, nil
+}
+
+func (stub *cacheRepositoryStub) ClaimCacheCleanup(
+	_ context.Context,
+	usageBytes, startedAtMS int64,
+) (Cleanup, bool, error) {
+	if stub.cleanup.Status != CleanupQueued && stub.cleanup.Status != CleanupRunning {
+		return stub.cleanup, false, nil
+	}
+	stub.cleanup.Status = CleanupRunning
+	stub.cleanup.StartedAtMS = &startedAtMS
+	stub.cleanup.InitialUsageBytes = usageBytes
+	stub.cleanup.RemainingUsageBytes = usageBytes
+	return stub.cleanup, true, nil
+}
+
+func (stub *cacheRepositoryStub) UpdateCacheCleanupProgress(
+	_ context.Context,
+	progress CleanupProgress,
+) error {
+	stub.cleanup.RemainingUsageBytes = progress.RemainingUsageBytes
+	stub.cleanup.ReclaimedBytes = progress.ReclaimedBytes
+	stub.cleanup.DeletedEntries = progress.DeletedEntries
+	return nil
+}
+
+func (stub *cacheRepositoryStub) FinishCacheCleanup(
+	_ context.Context,
+	status CleanupStatus,
+	errorCode *string,
+	finishedAtMS int64,
+) (Cleanup, error) {
+	stub.cleanup.Status = status
+	stub.cleanup.ErrorCode = errorCode
+	stub.cleanup.FinishedAtMS = &finishedAtMS
+	stub.cleanup.Revision++
+	return stub.cleanup, nil
 }
 
 type cacheStorageStub struct {
@@ -232,5 +293,101 @@ func TestCacheManagerReconcilesRemovedPrefixWhenEvictionFails(t *testing.T) {
 			"removed prefix did not reconcile: usage %d entries %v",
 			repository.usage, repository.entries,
 		)
+	}
+}
+
+func TestCacheManagerCleanupDeletesOnlyReadyDerivedEntries(t *testing.T) {
+	repository := &cacheRepositoryStub{
+		quota: 1000,
+		usage: 300,
+		entries: []CacheEntry{
+			{AssetID: 1, CacheRelativePath: "one.webp", ByteSize: 100},
+			{AssetID: 2, CacheRelativePath: "two.webp", ByteSize: 200},
+		},
+		cleanup: Cleanup{Revision: 1, Status: CleanupIdle},
+	}
+	storage := &cacheStorageStub{
+		available: CacheSafeFreeBytes,
+		sizes:     map[string]int64{"one.webp": 100, "two.webp": 200},
+	}
+	manager, _ := NewCacheManager(repository, storage)
+	result, err := manager.StartCleanup(context.Background(), "cleanup-key-1")
+	if err != nil || !result.Created {
+		t.Fatalf("StartCleanup() = %#v, %v", result, err)
+	}
+	if repository.lastCleanupKeyHash != sha256.Sum256([]byte("cleanup-key-1")) {
+		t.Fatal("idempotency key digest was not retained")
+	}
+	if err := manager.processCleanup(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if repository.cleanup.Status != CleanupSucceeded ||
+		repository.cleanup.RemainingUsageBytes != 0 ||
+		repository.cleanup.ReclaimedBytes != 300 ||
+		repository.cleanup.DeletedEntries != 2 ||
+		repository.usage != 0 ||
+		!slices.Equal(storage.removed, []string{"one.webp", "two.webp"}) {
+		t.Fatalf("cleanup = %#v, usage = %d, removed = %v",
+			repository.cleanup, repository.usage, storage.removed)
+	}
+}
+
+func TestCacheManagerCleanupPersistsSanitizedFailureAndRemainsRetryable(t *testing.T) {
+	repository := &cacheRepositoryStub{
+		quota: 1000, usage: 100,
+		entries: []CacheEntry{
+			{AssetID: 1, CacheRelativePath: "denied.webp", ByteSize: 100},
+		},
+		cleanup: Cleanup{Revision: 1, Status: CleanupQueued},
+	}
+	storage := &cacheStorageStub{
+		available: CacheSafeFreeBytes,
+		sizes:     map[string]int64{"denied.webp": 100},
+		removeErr: errors.New("permission denied at /secret/cache/path"),
+	}
+	manager, _ := NewCacheManager(repository, storage)
+	if err := manager.processCleanup(context.Background()); err == nil {
+		t.Fatal("cleanup filesystem failure unexpectedly succeeded")
+	}
+	if repository.cleanup.Status != CleanupFailed ||
+		repository.cleanup.ErrorCode == nil ||
+		*repository.cleanup.ErrorCode != "internal_error" ||
+		repository.usage != 100 ||
+		len(repository.entries) != 1 {
+		t.Fatalf("failed cleanup = %#v, usage = %d, entries = %v",
+			repository.cleanup, repository.usage, repository.entries)
+	}
+}
+
+func TestCacheManagerCleanupUsesBoundedBatchesAtHundredThousandEntries(t *testing.T) {
+	const itemCount = 100_000
+	entries := make([]CacheEntry, itemCount)
+	sizes := make(map[string]int64, itemCount)
+	for index := range entries {
+		name := strconv.Itoa(index) + ".webp"
+		entries[index] = CacheEntry{
+			AssetID: int64(index + 1), CacheRelativePath: name, ByteSize: 1,
+		}
+		sizes[name] = 1
+	}
+	repository := &cacheRepositoryStub{
+		quota: itemCount, usage: itemCount, entries: entries,
+		cleanup: Cleanup{Revision: 1, Status: CleanupQueued},
+	}
+	manager, _ := NewCacheManager(repository, &cacheStorageStub{
+		available: CacheSafeFreeBytes,
+		sizes:     sizes,
+	})
+	if err := manager.processCleanup(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if repository.cleanup.DeletedEntries != itemCount ||
+		repository.cleanup.Status != CleanupSucceeded {
+		t.Fatalf("100k cleanup = %#v", repository.cleanup)
+	}
+	for index, batch := range repository.batches {
+		if len(batch) < 1 || len(batch) > cacheEvictionBatch {
+			t.Fatalf("batch %d size = %d", index, len(batch))
+		}
 	}
 }

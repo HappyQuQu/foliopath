@@ -25,6 +25,7 @@ const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
 	auth.Repository
+	auth.AccountRepository
 	catalog.Repository
 	library.Repository
 	library.LifecycleRepository
@@ -40,6 +41,7 @@ type databaseStore interface {
 	thumbnail.Repository
 	thumbnail.StoryboardRepository
 	thumbnail.CacheRepository
+	thumbnail.CleanupRepository
 	thumbnail.JobCompletionRepository
 	thumbnail.DeliveryRepository
 	media.ContentRepository
@@ -634,6 +636,104 @@ func (service *databaseService) RevokeSession(
 		return false, auth.ErrRepositoryNotReady
 	}
 	return service.store.RevokeSession(ctx, params)
+}
+
+func (service *databaseService) GetAccount(
+	ctx context.Context,
+	userID int64,
+) (auth.Account, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.Account{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.GetAccount(ctx, userID)
+}
+
+func (service *databaseService) UpdateAccount(
+	ctx context.Context,
+	params auth.UpdateAccountParams,
+) (auth.Account, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.Account{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.UpdateAccount(ctx, params)
+}
+
+func (service *databaseService) ChangePassword(
+	ctx context.Context,
+	params auth.ChangePasswordParams,
+) (auth.Account, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return auth.Account{}, auth.ErrRepositoryNotReady
+	}
+	return service.store.ChangePassword(ctx, params)
+}
+
+func (service *databaseService) GetCacheCleanup(
+	ctx context.Context,
+) (thumbnail.Cleanup, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.Cleanup{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.GetCacheCleanup(ctx)
+}
+
+func (service *databaseService) RequestCacheCleanup(
+	ctx context.Context,
+	keyHash [32]byte,
+	requestedAtMS int64,
+) (thumbnail.CleanupRequestResult, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.CleanupRequestResult{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.RequestCacheCleanup(ctx, keyHash, requestedAtMS)
+}
+
+func (service *databaseService) ClaimCacheCleanup(
+	ctx context.Context,
+	usageBytes, startedAtMS int64,
+) (thumbnail.Cleanup, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.Cleanup{}, false, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ClaimCacheCleanup(ctx, usageBytes, startedAtMS)
+}
+
+func (service *databaseService) UpdateCacheCleanupProgress(
+	ctx context.Context,
+	progress thumbnail.CleanupProgress,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.UpdateCacheCleanupProgress(ctx, progress)
+}
+
+func (service *databaseService) FinishCacheCleanup(
+	ctx context.Context,
+	status thumbnail.CleanupStatus,
+	errorCode *string,
+	finishedAtMS int64,
+) (thumbnail.Cleanup, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.Cleanup{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.FinishCacheCleanup(ctx, status, errorCode, finishedAtMS)
 }
 
 func (service *databaseService) CreateLibrary(

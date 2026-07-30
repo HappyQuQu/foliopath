@@ -4,6 +4,61 @@
  */
 
 export interface paths {
+    "/api/v1/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current administrator account
+         * @description Returns the only administrator's safe profile. The strong ETag binds
+         *     the account revision and is required by profile and password updates.
+         *     Username is immutable after first-run setup.
+         */
+        get: operations["getAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the administrator display name
+         * @description Updates only the display name in one short transaction. The username
+         *     and authentication identity are immutable. A no-op request succeeds
+         *     without changing the revision. A concurrent account change makes the
+         *     supplied ETag fail closed.
+         */
+        patch: operations["updateAccount"];
+        trace?: never;
+    };
+    "/api/v1/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the administrator password
+         * @description Verifies the current password and validates the new password before
+         *     changing durable state. On success one transaction stores the new
+         *     verifier, advances account and authentication revisions, preserves
+         *     this authenticated session at the new authentication revision, and
+         *     revokes every other session. Any failure leaves the verifier and all
+         *     sessions unchanged. The confirmation password is a client-only check
+         *     and is never sent.
+         */
+        post: operations["changeAccountPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets": {
         parameters: {
             query?: never;
@@ -235,6 +290,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cache": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get safe derived-cache usage and pressure
+         * @description Returns aggregate thumbnail and poster cache state only. It never
+         *     returns cache filenames, cache paths, asset paths, database paths, or
+         *     original-media paths. `availableBytes` describes the writable
+         *     application-data filesystem without identifying it.
+         */
+        get: operations["getCacheSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cache/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the singleton cache-cleanup state
+         * @description Returns `idle` before any request and the latest durable singleton
+         *     cleanup thereafter. It is an operational status resource, not a task
+         *     history or per-asset queue.
+         */
+        get: operations["getCacheCleanup"];
+        put?: never;
+        /**
+         * Remove all reconstructible thumbnails and posters
+         * @description Starts a bounded durable cleanup that removes derived cache files only;
+         *     it never changes settings, the reliable catalog, or original media.
+         *     The worker deletes each cache file before removing its ready database
+         *     state, works in bounded LRU batches, and preserves the configured safe
+         *     free-space margin for SQLite and temporary writes.
+         *
+         *     At most one singleton cleanup is queued or running. A different
+         *     idempotency key while active coalesces onto the same cleanup and
+         *     returns `200`; replaying a completed key returns its recorded
+         *     representation. Restart resumes queued/running work, and failure
+         *     remains retryable by a later request. This operation does not enqueue
+         *     replacement thumbnails, provide cancellation, create history, or
+         *     expose per-asset tasks.
+         */
+        post: operations["startCacheCleanup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/state": {
         parameters: {
             query?: never;
@@ -447,9 +563,18 @@ export interface paths {
          *     library is indistinguishable from a missing directory and returns
          *     `directory_not_found`.
          *
+         *     Optional `q` filters every direct child in the reliable index, not just
+         *     the current page. The server trims outer Unicode whitespace, applies
+         *     Unicode NFKC plus full case folding, splits on Unicode whitespace,
+         *     removes duplicate terms, and requires every term to occur as a literal
+         *     substring of the normalized direct-child name. Diacritics are
+         *     preserved; one- and two-character terms are valid; punctuation and
+         *     FTS syntax have no operator meaning.
+         *
          *     Results use `(naturalNameKey ASC, name ASC, id ASC)` keyset order.
-         *     Cursors bind the library, normalized parent, ordering version, and
-         *     reliable catalog generation. Advancing the reliable generation makes
+         *     Cursors bind the library, normalized parent, normalized query terms,
+         *     search profile, ordering version, and reliable catalog generation.
+         *     Changing or clearing `q`, or advancing the reliable generation, makes
          *     an old cursor fail with `invalid_cursor`. An offline library still
          *     returns its preserved index with `200`; pending/scanning/offline state
          *     is read from the Library resource, so an empty page alone is never
@@ -684,8 +809,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Account: {
+            displayName: components["schemas"]["DisplayName"];
+            id: components["schemas"]["ResourceID"];
+            /**
+             * Format: int64
+             * @description Monotonic account representation revision used by the strong ETag.
+             */
+            revision: number;
+            updatedAt: components["schemas"]["Timestamp"];
+            username: components["schemas"]["Username"];
+        };
+        AccountUpdate: {
+            displayName: components["schemas"]["DisplayName"];
+        };
         Administrator: {
-            displayName: string;
+            displayName: components["schemas"]["DisplayName"];
             id: components["schemas"]["ResourceID"];
             username: components["schemas"]["Username"];
         };
@@ -767,6 +906,61 @@ export interface components {
             name: string;
             relativePath: components["schemas"]["LibraryRelativePath"];
         };
+        CacheCleanup: {
+            /** Format: int64 */
+            deletedEntries: number;
+            errorCode: components["schemas"]["CacheCleanupErrorCode"];
+            finishedAt: components["schemas"]["NullableTimestamp"];
+            /** Format: int64 */
+            initialUsageBytes: number;
+            /** Format: int64 */
+            reclaimedBytes: number;
+            /** Format: int64 */
+            remainingUsageBytes: number;
+            requestedAt: components["schemas"]["NullableTimestamp"];
+            startedAt: components["schemas"]["NullableTimestamp"];
+            status: components["schemas"]["CacheCleanupStatus"];
+        };
+        /**
+         * @description Sanitized terminal reason. It never contains a path or raw storage error.
+         * @enum {string|null}
+         */
+        CacheCleanupErrorCode: "cache_unavailable" | "storage_unavailable" | "internal_error" | null;
+        /** @enum {string} */
+        CacheCleanupStatus: "idle" | "queued" | "running" | "succeeded" | "failed";
+        /** @enum {string} */
+        CachePressure: "normal" | "quota" | "storage" | "quota_and_storage";
+        CacheSummary: {
+            /**
+             * Format: int64
+             * @description Safe aggregate free bytes on application-data storage; no path is disclosed.
+             */
+            availableBytes: number;
+            cleanup: components["schemas"]["CacheCleanup"];
+            /**
+             * Format: int64
+             * @description Quota pressure begins above this server-derived value.
+             */
+            highWatermarkBytes: number;
+            /**
+             * Format: int64
+             * @description Automatic eviction under quota pressure targets this value.
+             */
+            lowWatermarkBytes: number;
+            pressure: components["schemas"]["CachePressure"];
+            /** Format: int64 */
+            quotaBytes: number;
+            /**
+             * Format: int64
+             * @description Reserved safety margin for SQLite and temporary writes.
+             */
+            safeFreeSpaceBytes: number;
+            /**
+             * Format: int64
+             * @description Total bytes represented by ready reconstructible thumbnail and poster state.
+             */
+            usageBytes: number;
+        };
         CatalogState: {
             /** Format: int64 */
             contentRevision: number;
@@ -831,6 +1025,11 @@ export interface components {
             items: components["schemas"]["Directory"][];
             nextCursor: components["schemas"]["NullableCursor"];
         };
+        /**
+         * @description NFC display text after trimming outer Unicode whitespace. Control
+         *     characters are rejected. It is never used for authentication.
+         */
+        DisplayName: string;
         /**
          * @description Stable sanitized public error. It carries no arbitrary details object
          *     and is never a host or container path, SQL, stack trace, raw subprocess
@@ -991,6 +1190,19 @@ export interface components {
          * @description UTC RFC 3339 timestamp, or null when the event has not occurred.
          */
         NullableTimestamp: string | null;
+        PasswordChangeRequest: {
+            /**
+             * Format: password
+             * @description Verified using the same constant-time credential path as login.
+             */
+            currentPassword: string;
+            /**
+             * Format: password
+             * @description Contains 8–128 Unicode characters, rejects control characters, and
+             *     has no uppercase, digit, or symbol composition requirement.
+             */
+            newPassword: string;
+        };
         /** @enum {string} */
         PlaybackStatus: "playable" | "unsupported_codec" | "not_applicable" | "unknown";
         /** @enum {string} */
@@ -1118,8 +1330,7 @@ export interface components {
             thumbnailCacheQuotaBytes?: number;
         };
         SetupRequest: {
-            /** @description Safe display text; never used for authentication decisions. */
-            displayName: string;
+            displayName: components["schemas"]["DisplayName"];
             /**
              * Format: password
              * @description Password accepted only over the same-origin setup request and never logged or returned. It contains 8–128 Unicode characters, rejects control characters, and has no uppercase, digit, or symbol composition requirement.
@@ -1420,6 +1631,15 @@ export interface components {
         /** @description Opaque indexed-directory ID. It contains no path information. */
         DirectoryIDParameter: components["schemas"]["ResourceID"];
         /**
+         * @description Plain-text direct-child directory-name filter. Present values are
+         *     trimmed, must remain non-empty, and follow the versioned Unicode NFKC,
+         *     full-case-folded literal-substring profile. All normalized
+         *     whitespace-separated terms must match the same direct-child name.
+         *     Diacritics are preserved, short terms are valid, and punctuation or
+         *     FTS syntax has no operator meaning.
+         */
+        DirectorySearchQueryParameter: string;
+        /**
          * @description Client-generated opaque key retained for at least 24 hours. Use a new
          *     key for a different logical action. Reuse with a different request body
          *     fails with `idempotency_conflict`. The server stores only a fixed-size
@@ -1551,6 +1771,106 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current administrator profile. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateAccount: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated administrator profile. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    changeAccountPassword: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Password changed; current session preserved and all other sessions revoked. */
+            204: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     searchAssets: {
         parameters: {
             query: {
@@ -1938,6 +2258,112 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getCacheSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current cache summary and singleton cleanup state. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CacheSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getCacheCleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current or latest singleton cleanup state. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CacheCleanup"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    startCacheCleanup: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Existing active cleanup or completed idempotency replay. */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    /** @description Fixed relative URL `/api/v1/cache/cleanup`. */
+                    Location?: "/api/v1/cache/cleanup";
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CacheCleanup"];
+                };
+            };
+            /** @description New singleton cleanup accepted. */
+            202: {
+                headers: {
+                    "Cache-Control": components["headers"]["NoStore"];
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    /** @description Fixed relative URL `/api/v1/cache/cleanup`. */
+                    Location?: "/api/v1/cache/cleanup";
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CacheCleanup"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getCatalogState: {
         parameters: {
             query?: never;
@@ -2289,6 +2715,15 @@ export interface operations {
                 limit?: components["parameters"]["LimitParameter"];
                 /** @description Opaque parent directory ID. Omit it for the media-library root. */
                 parentId?: components["parameters"]["ParentDirectoryIDParameter"];
+                /**
+                 * @description Plain-text direct-child directory-name filter. Present values are
+                 *     trimmed, must remain non-empty, and follow the versioned Unicode NFKC,
+                 *     full-case-folded literal-substring profile. All normalized
+                 *     whitespace-separated terms must match the same direct-child name.
+                 *     Diacritics are preserved, short terms are valid, and punctuation or
+                 *     FTS syntax has no operator meaning.
+                 */
+                q?: components["parameters"]["DirectorySearchQueryParameter"];
             };
             header?: never;
             path: {

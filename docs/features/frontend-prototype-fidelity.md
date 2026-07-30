@@ -4,7 +4,7 @@
 
 - 状态：Confirmed
 - 目标版本：`MVP-2026-07-23` / scope revision 4
-- 当前阶段：`UIF-S0 Architecture Ready` 已完成；仅授权进入 Contract Ready
+- 当前阶段：`UIF-S2 Backend Evidence Ready` 已完成；授权真实前端接入
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
 - Capability Owner：`internal/auth`、`internal/catalog`、`internal/thumbnail` 与 `web`
@@ -13,6 +13,8 @@
 - 详细实施方案：[生产前端与原型一致性改造方案](../frontend-prototype-fidelity-plan.md)
 - 开发清单：[FTR-UIF-001 开发任务清单](frontend-prototype-fidelity-task-list.md)
 - Architecture Gate：[UIF-S0 Architecture Ready](../gates/MVP-2026-07-23/uif-s0-architecture-ready.md)
+- Contract Gate：[UIF-S1 Contract Ready](../gates/MVP-2026-07-23/uif-s1-contract-ready.md)
+- Backend Gate：[UIF-S2 Backend Evidence Ready](../gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
 - 风险：[R-021](../risk-register.md)，并复用 R-010、R-012、R-015、R-016
 
 ## 用户问题与结果
@@ -143,8 +145,9 @@ S1 必须接受：
 - 失败或重启不能删除配置、索引或原始媒体；
 - 本 feature 不提供 missing/all rebuild，也不建立任务中心公共历史。
 
-精确路径、DTO、ETag、错误码和同步/异步表示必须在 `UIF-S1 Contract Ready` 冻结后写入
-`api/openapi.yaml`，本文件不覆盖权威合同。
+精确路径、DTO、ETag、错误码和异步表示已由
+[UIF-S1 Contract Ready](../gates/MVP-2026-07-23/uif-s1-contract-ready.md)写入
+`api/openapi.yaml`；本文件不覆盖权威合同。
 
 ## 模块与唯一所有权
 
@@ -241,8 +244,7 @@ UIF-S0 Architecture Ready
   → Stage 5 RC Gate rerun
 ```
 
-- S0 已 Go，只授权合同、fixture 和测试设计；
-- S1 前不得实现新 auth/directory/cache handler；
+- S0、S1 已 Go，授权后端实现、fixture、测试和共享视觉基础；
 - S2 前不得在生产页面接入账户修改、全量目录过滤或缓存清理；
 - 不依赖新后端的 token/壳/Storybook 工作可在 S1/S2 同期进行，但不能宣称 feature 完成；
 - S4 前不得称“与原型一致”或“可发布”；

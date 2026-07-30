@@ -13,9 +13,10 @@
 交接点和共同发布任务。
 
 当前首要切片是 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)，
-已进入 MVP revision 4，S0 Architecture Ready 为 Go，S1 Contract Ready 尚未开始。完整执行
-见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)；账户、目录 q 和缓存清理
-必须先到 Backend Evidence Ready，前端再接真实业务。
+已进入 MVP revision 4，S0 Architecture Ready、S1 Contract Ready 与
+[S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)均为 Go。
+完整执行见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)。当前开始
+`UIF-301～319` 共享视觉基础、真实页面接入与验证。
 
 后续版本已经确认一个尚未开工的独立切片：
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它不进入当前

@@ -51,8 +51,107 @@ func TestAuthenticationMigrationUpgradesThePreviousSchema(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatalf("read migration version: %v", err)
 	}
-	if version != 12 {
-		t.Fatalf("migration version = %d, want 12", version)
+	if version != 13 {
+		t.Fatalf("migration version = %d, want 13", version)
+	}
+}
+
+func TestFrontendFidelityMigrationAddsDurableContractState(t *testing.T) {
+	store, _ := openTestStore(t)
+
+	userColumns := tableColumns(t, store, "users")
+	if _, ok := userColumns["revision"]; !ok {
+		t.Fatal("users.revision column is missing")
+	}
+	directoryColumns := tableColumns(t, store, "directories")
+	if _, ok := directoryColumns["search_name_key"]; !ok {
+		t.Fatal("directories.search_name_key column is missing")
+	}
+	cleanupColumns := tableColumns(t, store, "cache_cleanup_state")
+	for _, name := range []string{
+		"singleton_key",
+		"revision",
+		"status",
+		"idempotency_key_hash",
+		"requested_at_ms",
+		"started_at_ms",
+		"finished_at_ms",
+		"initial_usage_bytes",
+		"remaining_usage_bytes",
+		"reclaimed_bytes",
+		"deleted_entries",
+		"error_code",
+	} {
+		if _, ok := cleanupColumns[name]; !ok {
+			t.Errorf("cache_cleanup_state.%s column is missing", name)
+		}
+	}
+	var (
+		revision int64
+		status   string
+	)
+	if err := store.db.QueryRow(
+		`SELECT revision, status FROM cache_cleanup_state WHERE singleton_key = 1`,
+	).Scan(&revision, &status); err != nil {
+		t.Fatalf("read initial cache cleanup state: %v", err)
+	}
+	if revision != 1 || status != "idle" {
+		t.Fatalf("initial cleanup state = revision %d, status %q", revision, status)
+	}
+}
+
+func TestFrontendFidelityMigrationUpgradesVersionTwelveWithoutLosingIdempotency(t *testing.T) {
+	ctx := context.Background()
+	filename := filepath.Join(t.TempDir(), "version-twelve.db")
+	db, err := sql.Open("sqlite", buildDSN(filename, time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider, err := goose.NewProvider(goose.DialectSQLite3, db, migrations.FS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := provider.UpTo(ctx, 12); err != nil {
+		t.Fatal(err)
+	}
+	keyHash := bytes.Repeat([]byte{0x11}, 32)
+	requestHash := bytes.Repeat([]byte{0x22}, 32)
+	if _, err := db.ExecContext(ctx, `
+        INSERT INTO idempotency_records(
+            operation, key_hash, request_hash, result_kind, result_id,
+            created_at_ms, expires_at_ms
+        ) VALUES ('create_library', ?, ?, 'library', 1, 1000, 86401000)`,
+		keyHash, requestHash,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err := Open(ctx, filename, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	var count int
+	if err := store.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(*) FROM idempotency_records
+         WHERE operation = 'create_library' AND key_hash = ?`,
+		keyHash,
+	).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("preserved idempotency rows = %d, want 1", count)
+	}
+	var integrity string
+	if err := store.db.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&integrity); err != nil {
+		t.Fatal(err)
+	}
+	if integrity != "ok" {
+		t.Fatalf("integrity_check = %q", integrity)
 	}
 }
 

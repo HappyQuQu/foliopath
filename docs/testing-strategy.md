@@ -275,6 +275,11 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 [FTR-UIF-001 开发清单](features/frontend-prototype-fidelity-task-list.md)。`UIF-S4` 通过后仍需
 重跑受影响 Stage 5 Gate，不能仅凭截图宣布可发布。
 
+`UIF-S1` 已增加可重复的
+[10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped
+browse index，再执行 capability-derived Unicode 搜索键上的 literal `instr`；常规测试以
+100ms P95 为跨环境护栏，S2 目标容量仍需复验扫描并发、RSS 与 SQLite busy。
+
 ### 容器与发布测试
 
 - 最终镜像以非 root 用户运行，媒体目录 `:ro`，数据目录可写。

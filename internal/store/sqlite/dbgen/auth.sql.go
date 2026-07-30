@@ -8,6 +8,39 @@ import (
 	"database/sql"
 )
 
+const advanceCurrentSessionVersion = `-- name: AdvanceCurrentSessionVersion :execrows
+UPDATE sessions
+SET auth_version = ?1,
+    last_seen_at_ms = ?2
+WHERE id = ?3
+  AND token_hash = ?4
+  AND auth_version = ?5
+  AND revoked_at_ms IS NULL
+  AND expires_at_ms > ?2
+`
+
+type AdvanceCurrentSessionVersionParams struct {
+	NewAuthVersion      int64
+	ChangedAtMs         int64
+	ID                  int64
+	TokenHash           []byte
+	ExpectedAuthVersion int64
+}
+
+func (q *Queries) AdvanceCurrentSessionVersion(ctx context.Context, arg AdvanceCurrentSessionVersionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, advanceCurrentSessionVersion,
+		arg.NewAuthVersion,
+		arg.ChangedAtMs,
+		arg.ID,
+		arg.TokenHash,
+		arg.ExpectedAuthVersion,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteObsoleteSessions = `-- name: DeleteObsoleteSessions :execrows
 DELETE FROM sessions
 WHERE expires_at_ms <= ?1
@@ -129,6 +162,40 @@ func (q *Queries) FindSession(ctx context.Context, tokenHash []byte) (FindSessio
 		&i.UserCreatedAtMs,
 		&i.UserUpdatedAtMs,
 		&i.UserDisabledAtMs,
+	)
+	return i, err
+}
+
+const getAccountByID = `-- name: GetAccountByID :one
+SELECT
+    id,
+    username,
+    display_name,
+    revision,
+    updated_at_ms
+FROM users
+WHERE id = ?1
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL
+`
+
+type GetAccountByIDRow struct {
+	ID          int64
+	Username    string
+	DisplayName string
+	Revision    int64
+	UpdatedAtMs int64
+}
+
+func (q *Queries) GetAccountByID(ctx context.Context, id int64) (GetAccountByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getAccountByID, id)
+	var i GetAccountByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Revision,
+		&i.UpdatedAtMs,
 	)
 	return i, err
 }
@@ -288,6 +355,28 @@ func (q *Queries) IsAdministratorInitialized(ctx context.Context) (bool, error) 
 	return exists, err
 }
 
+const revokeOtherAdministratorSessions = `-- name: RevokeOtherAdministratorSessions :execrows
+UPDATE sessions
+SET revoked_at_ms = ?1
+WHERE user_id = ?2
+  AND id <> ?3
+  AND revoked_at_ms IS NULL
+`
+
+type RevokeOtherAdministratorSessionsParams struct {
+	ChangedAtMs      sql.NullInt64
+	UserID           int64
+	CurrentSessionID int64
+}
+
+func (q *Queries) RevokeOtherAdministratorSessions(ctx context.Context, arg RevokeOtherAdministratorSessionsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, revokeOtherAdministratorSessions, arg.ChangedAtMs, arg.UserID, arg.CurrentSessionID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const revokeSession = `-- name: RevokeSession :execrows
 UPDATE sessions
 SET revoked_at_ms = ?1
@@ -345,4 +434,101 @@ func (q *Queries) TouchSession(ctx context.Context, arg TouchSessionParams) (int
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateAccountDisplayName = `-- name: UpdateAccountDisplayName :one
+UPDATE users
+SET display_name = ?1,
+    revision = revision + 1,
+    updated_at_ms = ?2
+WHERE id = ?3
+  AND revision = ?4
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL
+RETURNING
+    id,
+    username,
+    display_name,
+    revision,
+    updated_at_ms
+`
+
+type UpdateAccountDisplayNameParams struct {
+	DisplayName      string
+	UpdatedAtMs      int64
+	ID               int64
+	ExpectedRevision int64
+}
+
+type UpdateAccountDisplayNameRow struct {
+	ID          int64
+	Username    string
+	DisplayName string
+	Revision    int64
+	UpdatedAtMs int64
+}
+
+func (q *Queries) UpdateAccountDisplayName(ctx context.Context, arg UpdateAccountDisplayNameParams) (UpdateAccountDisplayNameRow, error) {
+	row := q.db.QueryRowContext(ctx, updateAccountDisplayName,
+		arg.DisplayName,
+		arg.UpdatedAtMs,
+		arg.ID,
+		arg.ExpectedRevision,
+	)
+	var i UpdateAccountDisplayNameRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Revision,
+		&i.UpdatedAtMs,
+	)
+	return i, err
+}
+
+const updateAdministratorPassword = `-- name: UpdateAdministratorPassword :one
+UPDATE users
+SET password_hash = ?1,
+    password_scheme = ?2,
+    password_parameters = ?3,
+    auth_version = auth_version + 1,
+    revision = revision + 1,
+    updated_at_ms = ?4,
+    password_changed_at_ms = ?4
+WHERE id = ?5
+  AND revision = ?6
+  AND auth_version = ?7
+  AND singleton_key = 1
+  AND disabled_at_ms IS NULL
+RETURNING auth_version, revision
+`
+
+type UpdateAdministratorPasswordParams struct {
+	PasswordHash        string
+	PasswordScheme      string
+	PasswordParameters  string
+	ChangedAtMs         int64
+	ID                  int64
+	ExpectedRevision    int64
+	ExpectedAuthVersion int64
+}
+
+type UpdateAdministratorPasswordRow struct {
+	AuthVersion int64
+	Revision    int64
+}
+
+func (q *Queries) UpdateAdministratorPassword(ctx context.Context, arg UpdateAdministratorPasswordParams) (UpdateAdministratorPasswordRow, error) {
+	row := q.db.QueryRowContext(ctx, updateAdministratorPassword,
+		arg.PasswordHash,
+		arg.PasswordScheme,
+		arg.PasswordParameters,
+		arg.ChangedAtMs,
+		arg.ID,
+		arg.ExpectedRevision,
+		arg.ExpectedAuthVersion,
+	)
+	var i UpdateAdministratorPasswordRow
+	err := row.Scan(&i.AuthVersion, &i.Revision)
+	return i, err
 }

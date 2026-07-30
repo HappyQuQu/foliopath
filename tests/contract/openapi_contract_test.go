@@ -72,8 +72,8 @@ func TestOpenAPIDeclaresRepositoryLicenseAndFrozenBaseline(t *testing.T) {
 		"name: AGPL-3.0-or-later",
 		"status: authoritative",
 		"targetVersion: MVP-2026-07-23",
-		"scopeRevision: 1",
-		"baselineEvent: BASELINE-2026-07-23",
+		"scopeRevision: 4",
+		"baselineEvent: CR-2026-009",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("OpenAPI metadata is missing %q", required)
@@ -110,9 +110,15 @@ func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 		"POST /api/v1/auth/login",
 		"GET /api/v1/auth/session",
 		"POST /api/v1/auth/logout",
+		"GET /api/v1/account",
+		"PATCH /api/v1/account",
+		"POST /api/v1/account/password",
 		"GET /api/v1/status",
 		"GET /api/v1/settings",
 		"PATCH /api/v1/settings",
+		"GET /api/v1/cache",
+		"GET /api/v1/cache/cleanup",
+		"POST /api/v1/cache/cleanup",
 		"GET /api/v1/catalog/state",
 		"GET /api/v1/library-paths",
 		"GET /api/v1/libraries",
@@ -217,7 +223,10 @@ func TestAuthenticationAndCSRFBoundaries(t *testing.T) {
 	}
 	protectedWrites := map[string]bool{
 		"POST /api/v1/auth/logout":                 true,
+		"PATCH /api/v1/account":                    true,
+		"POST /api/v1/account/password":            true,
 		"PATCH /api/v1/settings":                   true,
+		"POST /api/v1/cache/cleanup":               true,
 		"POST /api/v1/libraries":                   true,
 		"PATCH /api/v1/libraries/{libraryId}":      true,
 		"DELETE /api/v1/libraries/{libraryId}":     true,
@@ -440,6 +449,125 @@ func TestAdministratorSetupPasswordLengthMatchesAcceptedPolicy(t *testing.T) {
 	}
 }
 
+func TestAccountContractFreezesConcurrencyAndPasswordSessionSemantics(t *testing.T) {
+	t.Parallel()
+
+	operations := map[string][]string{
+		"GET /api/v1/account": {
+			"#/components/schemas/Account",
+			"strong ETag",
+			"Username is immutable",
+			"#/components/headers/NoStore",
+		},
+		"PATCH /api/v1/account": {
+			"#/components/parameters/IfMatchHeader",
+			"#/components/schemas/AccountUpdate",
+			"'412': [precondition_failed]",
+			"'422': [validation_failed]",
+			"'428': [precondition_required]",
+			"A no-op request succeeds without changing the revision",
+		},
+		"POST /api/v1/account/password": {
+			"#/components/parameters/IfMatchHeader",
+			"#/components/schemas/PasswordChangeRequest",
+			"'401': [authentication_required, session_expired, invalid_credentials]",
+			"'422': [validation_failed]",
+			"preserves this authenticated session",
+			"revokes every other session",
+			"Any failure leaves the verifier and all sessions unchanged",
+			"confirmation password is a client-only check",
+		},
+	}
+	for key, required := range operations {
+		block := strings.Join(strings.Fields(operationByKey(t, key).block), " ")
+		for _, content := range required {
+			if !strings.Contains(block, content) {
+				t.Errorf("%s is missing account invariant %q", key, content)
+			}
+		}
+	}
+
+	for _, schemaName := range []string{"Account", "AccountUpdate", "PasswordChangeRequest"} {
+		if !strings.Contains(schemaBlock(t, schemaName), "additionalProperties: false") {
+			t.Errorf("%s permits undeclared credential/profile fields", schemaName)
+		}
+	}
+	password := schemaBlock(t, "PasswordChangeRequest")
+	for _, required := range []string{
+		"required: [currentPassword, newPassword]",
+		"format: password",
+		"minLength: 8",
+		"maxLength: 128",
+		"writeOnly: true",
+	} {
+		if !strings.Contains(password, required) {
+			t.Errorf("PasswordChangeRequest is missing %q", required)
+		}
+	}
+	if strings.Contains(password, "\n        confirmPassword:") {
+		t.Error("PasswordChangeRequest sends client-only confirmation password")
+	}
+}
+
+func TestCacheContractExposesOnlyAggregateStateAndSingletonCleanup(t *testing.T) {
+	t.Parallel()
+
+	summary := strings.Join(
+		strings.Fields(operationByKey(t, "GET /api/v1/cache").block),
+		" ",
+	)
+	for _, required := range []string{
+		"#/components/schemas/CacheSummary",
+		"aggregate thumbnail and poster cache state only",
+		"never returns cache filenames",
+		"`availableBytes`",
+		"#/components/headers/NoStore",
+	} {
+		if !strings.Contains(summary, required) {
+			t.Errorf("cache summary is missing %q", required)
+		}
+	}
+
+	start := strings.Join(
+		strings.Fields(operationByKey(t, "POST /api/v1/cache/cleanup").block),
+		" ",
+	)
+	for _, required := range []string{
+		"#/components/parameters/IdempotencyKeyHeader",
+		"'409': [idempotency_conflict]",
+		"at most one singleton cleanup",
+		"bounded LRU batches",
+		"Restart resumes queued/running work",
+		"does not enqueue replacement thumbnails",
+		"provide cancellation",
+		"create history",
+		"expose per-asset tasks",
+		"Idempotency-Replayed:",
+		"enum: [/api/v1/cache/cleanup]",
+	} {
+		if !strings.Contains(strings.ToLower(start), strings.ToLower(required)) {
+			t.Errorf("cache cleanup is missing %q", required)
+		}
+	}
+
+	for _, schemaName := range []string{
+		"CacheSummary",
+		"CacheCleanup",
+		"CacheCleanupStatus",
+		"CacheCleanupErrorCode",
+	} {
+		if schemaBlock(t, schemaName) == "" {
+			t.Errorf("%s schema is missing", schemaName)
+		}
+	}
+	cleanup := schemaBlock(t, "CacheCleanup")
+	for _, forbidden := range []string{"cachePath:", "assetPath:", "originalPath:", "filename:"} {
+		if strings.Contains(cleanup, forbidden) {
+			t.Errorf("CacheCleanup exposes forbidden field %q", forbidden)
+		}
+	}
+}
+
 func TestAuthenticationMigrationMatchesThePublicContract(t *testing.T) {
 	t.Parallel()
 
@@ -635,6 +763,12 @@ func TestBrowseContractDefinesRootScopeBreadcrumbsAndReliableIndexSemantics(t *t
 			"'400': [invalid_request, invalid_cursor]",
 			"'404': [library_not_found, directory_not_found]",
 			"indexed root-directory ID is equivalent",
+			"#/components/parameters/DirectorySearchQueryParameter",
+			"filters every direct child in the reliable index",
+			"Unicode NFKC plus full case folding",
+			"one- and two-character terms are valid",
+			"normalized query terms",
+			"Changing or clearing `q`",
 			"`(naturalNameKey ASC, name ASC, id ASC)`",
 			"reliable catalog generation",
 			"offline library still",
@@ -693,6 +827,30 @@ func TestBrowseContractDefinesRootScopeBreadcrumbsAndReliableIndexSemantics(t *t
 			if !strings.Contains(block, content) {
 				t.Errorf("%s schema is missing browse invariant %q", schema, content)
 			}
+		}
+	}
+}
+
+func TestDirectoryFilterUsesBoundedPlainTextQueryContract(t *testing.T) {
+	t.Parallel()
+
+	block := strings.Join(
+		strings.Fields(componentBlock(t, "parameters", "DirectorySearchQueryParameter")),
+		" ",
+	)
+	for _, required := range []string{
+		"name: q",
+		"required: false",
+		"direct-child directory-name filter",
+		"Unicode NFKC",
+		"full-case-folded literal-substring",
+		"All normalized whitespace-separated terms",
+		"Diacritics are preserved",
+		"short terms are valid",
+		"maxLength: 256",
+	} {
+		if !strings.Contains(block, required) {
+			t.Errorf("DirectorySearchQueryParameter is missing %q", required)
 		}
 	}
 }

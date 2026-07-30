@@ -151,8 +151,8 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)。该 feature
 属于当前 MVP revision 4，按
 `UIF-S0 → S1 Contract → S2 Backend Evidence → S3 Consumer/UI → S4 Integrated`
-交付；S4 后重跑受影响的浏览器、容量、安全与 RC Gate。它不改变单容器架构，也不把任务中心、
-系统维护或 AI 带入 MVP。
+交付；S0/S1 已 Go，当前执行 S2 后端实现与证据。S4 后重跑受影响的浏览器、容量、安全与
+RC Gate。它不改变单容器架构，也不把任务中心、系统维护或 AI 带入 MVP。
 
 范围：
 

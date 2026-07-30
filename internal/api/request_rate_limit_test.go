@@ -144,6 +144,26 @@ func TestCatalogStateReadRateLimitStopsBeforeService(t *testing.T) {
 	}
 }
 
+func TestFrontendFidelityOperationsHaveExplicitRatePolicies(t *testing.T) {
+	for _, operation := range []struct {
+		method string
+		path   string
+		limit  int
+	}{
+		{http.MethodGet, "/api/v1/account", 120},
+		{http.MethodPatch, "/api/v1/account", 30},
+		{http.MethodPost, "/api/v1/account/password", 10},
+		{http.MethodGet, "/api/v1/cache", 120},
+		{http.MethodGet, "/api/v1/cache/cleanup", 120},
+		{http.MethodPost, "/api/v1/cache/cleanup", 10},
+	} {
+		policy, ok := requestRatePolicyFor(operation.method, operation.path)
+		if !ok || policy.limit != operation.limit {
+			t.Errorf("%s %s policy = %#v, %t", operation.method, operation.path, policy, ok)
+		}
+	}
+}
+
 func TestRemoteAddressParsingRequiresHostAndPort(t *testing.T) {
 	if got, ok := splitRemoteAddress("192.0.2.10:4321"); !ok || got != "192.0.2.10" {
 		t.Fatalf("splitRemoteAddress() = (%q, %t)", got, ok)

@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"testing"
 	"time"
@@ -54,6 +55,64 @@ func TestCacheMaintenanceWritesQueueBehindExistingTransaction(t *testing.T) {
 			)
 		})
 	})
+}
+
+func TestCacheCleanupStateCoalescesAndResumesDurably(t *testing.T) {
+	store, filename := openTestStore(t)
+	ctx := context.Background()
+
+	initial, err := store.GetCacheCleanup(ctx)
+	if err != nil || initial.Status != thumbnail.CleanupIdle || initial.Revision != 1 {
+		t.Fatalf("initial cleanup = %#v, %v", initial, err)
+	}
+	firstKey := sha256.Sum256([]byte("first-key"))
+	secondKey := sha256.Sum256([]byte("second-key"))
+	thirdKey := sha256.Sum256([]byte("third-key"))
+	first, err := store.RequestCacheCleanup(ctx, firstKey, 1000)
+	if err != nil || !first.Created || first.Cleanup.Status != thumbnail.CleanupQueued {
+		t.Fatalf("first request = %#v, %v", first, err)
+	}
+	coalesced, err := store.RequestCacheCleanup(ctx, secondKey, 1001)
+	if err != nil || coalesced.Created ||
+		coalesced.Cleanup.Revision != first.Cleanup.Revision {
+		t.Fatalf("coalesced request = %#v, %v", coalesced, err)
+	}
+	replayed, err := store.RequestCacheCleanup(ctx, firstKey, 1002)
+	if err != nil || !replayed.Replayed {
+		t.Fatalf("active replay = %#v, %v", replayed, err)
+	}
+	running, claimed, err := store.ClaimCacheCleanup(ctx, 500, 1100)
+	if err != nil || !claimed || running.Status != thumbnail.CleanupRunning ||
+		running.InitialUsageBytes != 500 {
+		t.Fatalf("claimed cleanup = %#v, %t, %v", running, claimed, err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(ctx, filename, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+	resumed, claimed, err := reopened.ClaimCacheCleanup(ctx, 400, 1200)
+	if err != nil || !claimed || resumed.Status != thumbnail.CleanupRunning ||
+		resumed.StartedAtMS == nil || *resumed.StartedAtMS != 1100 {
+		t.Fatalf("resumed cleanup = %#v, %t, %v", resumed, claimed, err)
+	}
+	finished, err := reopened.FinishCacheCleanup(
+		ctx, thumbnail.CleanupSucceeded, nil, 1300,
+	)
+	if err != nil || finished.Status != thumbnail.CleanupSucceeded {
+		t.Fatalf("finished cleanup = %#v, %v", finished, err)
+	}
+	completedReplay, err := reopened.RequestCacheCleanup(ctx, firstKey, 1400)
+	if err != nil || !completedReplay.Replayed || completedReplay.Created {
+		t.Fatalf("completed replay = %#v, %v", completedReplay, err)
+	}
+	next, err := reopened.RequestCacheCleanup(ctx, thirdKey, 1500)
+	if err != nil || !next.Created || next.Cleanup.Status != thumbnail.CleanupQueued {
+		t.Fatalf("next cleanup = %#v, %v", next, err)
+	}
 }
 
 func assertCacheWriteQueuesBehindGate(

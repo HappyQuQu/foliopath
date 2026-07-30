@@ -419,21 +419,27 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
 - 游标格式错误返回稳定的 `invalid_cursor`，不能回退到第一页造成重复列表。
 - 索引在翻页期间变化时允许最终一致，但不能因为只按非唯一字段排序而永久漏项或死循环。
 
-## FTR-UIF-001 Contract Ready 输入
+## FTR-UIF-001 Contract Ready
 
-[FTR-UIF-001](features/frontend-prototype-fidelity.md)已经通过 Architecture Ready，但尚未通过
-Contract Ready。`UIF-101～109` 必须先在 `api/openapi.yaml` 冻结下列 wire 行为，之后才能
-实现 handler 或让生产页面接入：
+[FTR-UIF-001](features/frontend-prototype-fidelity.md)的 `UIF-S1` 已冻结下列 wire；精确结构以
+`api/openapi.yaml` 为权威：
 
-1. 管理员资料更新与密码修改：强并发前置条件、当前密码验证、当前会话保留、其他会话原子
-   撤销，以及 validation/authentication/CSRF/rate-limit 的稳定错误。
-2. 直接子目录列表的规范化 `q`：绑定 `libraryId + parentId + q + sort + limit + cursor`，
-   query 改变后旧 cursor 必须返回 `invalid_cursor`；资产侧复用现有目录 `q` 合同。
-3. 可重建缓存摘要与最小安全清理：只暴露用量、配额、水位和安全状态；写操作需要认证、
-   CSRF 与幂等语义，不接受任意路径，也不包含补齐缺失缓存或全部重建。
+1. `GET/PATCH /api/v1/account` 读取和修改显示名称。Account 使用独立单调 revision 和强
+   ETag；PATCH 要求 `If-Match` 与 CSRF，用户名不可修改，无变化提交不推进 revision。
+2. `POST /api/v1/account/password` 接受当前密码和新密码，确认密码只在浏览器校验。成功的
+   单事务更新 verifier、account/auth revision，保留当前 session 并撤销其他 session；任一
+   失败保持 verifier 和全部 session 不变。
+3. `GET /api/v1/libraries/{libraryId}/directories?q=...` 对可靠索引中的全部直接子目录执行
+   profile v1 的 Unicode NFKC/full-fold literal-substring AND；query/profile/generation
+   进入 cursor 指纹，改变 query 后旧 cursor 返回 `invalid_cursor`。
+4. `GET /api/v1/cache` 只返回用量、配额、90%/80% 水位、安全余量、可用空间、压力和单例
+   cleanup 状态，不暴露路径或文件列表。
+5. `GET/POST /api/v1/cache/cleanup` 使用固定单例的 durable async 状态；POST 要求 CSRF 和
+   `Idempotency-Key`，active 请求合并，重启恢复，清空全部可重建 thumbnail/poster，但不
+   补齐、重建、取消、保留历史或暴露逐资产任务。
 
-精确 endpoint、DTO、状态码、ETag/If-Match、Idempotency-Key 和同步/异步表示在
-`UIF-S1` 评审决定；本节不是 OpenAPI 的替代品。
+账户与 cache 响应使用 `no-store`；新增 wire 没有扩大已有全局 ErrorCode enum，字段校验复用
+`validation_failed`，并已通过对变更前权威 OpenAPI 的 `oasdiff --fail-on WARN`。
 
 ## 安全与隐私
 

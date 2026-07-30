@@ -5,7 +5,7 @@
 - Feature：[FTR-UIF-001](frontend-prototype-fidelity.md)
 - Change Record：[CR-2026-009](../changes/CR-2026-009-frontend-prototype-fidelity.md)
 - Scope：[MVP revision 4](../releases/MVP-2026-07-23-scope-r4.md)
-- 当前状态：S0 Go；S1 Contract Ready Pending
+- 当前状态：S1 Contract Ready Go；S2 Backend Evidence Pending
 - 强制顺序：S0 → S1 Contract → 后端 → S2 Backend Evidence → 前端 → S3 → S4
 
 只有实现、自动证据和文档同步都完成的任务才能勾选。原型完成、页面能打开、build 成功或截图
@@ -54,78 +54,78 @@ flowchart TD
 
 ## Phase 1：Contract Ready
 
-- [ ] `UIF-101` 冻结管理员资料更新 use case。
+- [x] `UIF-101` 冻结管理员资料更新 use case。
   - 正常：修改显示名称，返回新 session 表示和强 ETag/revision。
   - 边界：空值、Unicode 规范化、长度、无变化、并发更新。
   - 错误：validation、precondition、authentication、CSRF、rate limit、internal。
 
-- [ ] `UIF-102` 冻结密码修改 use case。
+- [x] `UIF-102` 冻结密码修改 use case。
   - 输入：当前密码、新密码；确认密码只由前端校验但服务端独立验证新密码。
   - 成功：当前 session 保持，其他 sessions 原子撤销。
   - 失败：当前 verifier 和所有 session 不变。
   - 安全：统一凭据错误、Argon2id、限流、no-store、日志脱敏。
 
-- [ ] `UIF-103` 冻结目录关键字查询合同。
+- [x] `UIF-103` 冻结目录关键字查询合同。
   - 为 direct-child directory list 增加 `q`。
   - 绑定 library、parent、query、sort、limit 和 cursor。
   - 明确 Unicode、literal substring、大小写、空 query、offline 和 stale generation。
 
-- [ ] `UIF-104` 完成目录搜索查询计划 spike。
+- [x] `UIF-104` 完成目录搜索查询计划 spike。
   - Fixture：10k 目录、深层目录、中英文、组合字符、数字自然排序。
   - 比较：现有索引查询与只追加目录搜索索引。
   - 记录 P50/P95、扫描行数、内存、cursor 稳定和并发扫描影响。
 
-- [ ] `UIF-105` 冻结缓存摘要合同。
+- [x] `UIF-105` 冻结缓存摘要合同。
   - 字段：usage、quota、waterline/pressure、安全余量状态、最近清理的安全摘要。
   - 不返回实际 cache path、文件列表或原始媒体路径。
 
-- [ ] `UIF-106` 冻结最小缓存清理 operation。
+- [x] `UIF-106` 冻结最小缓存清理 operation。
   - 认证、CSRF、Idempotency-Key、active coalesce、状态读取和稳定错误。
   - 只调用现有 LRU/cache owner；不包含 missing/all rebuild。
   - 决定同步或 durable async 表示，并记录重启/取消边界。
 
-- [ ] `UIF-107` 更新权威 OpenAPI 与生成 client 源。
+- [x] `UIF-107` 更新权威 OpenAPI 与生成 client 源。
   - 增加 account、directory q、cache summary/cleanup。
   - 补 `x-requirements`、逐状态错误、ETag/If-Match/Location/幂等语义。
   - 运行 lint、兼容比较、generate-check 和契约 fixture。
 
-- [ ] `UIF-108` 固定数据与 migration 决定。
+- [x] `UIF-108` 固定数据与 migration 决定。
   - 优先复用 users/session/auth_version 与现有 cache 状态。
   - 若目录索引或 cleanup run 需要持久化，只追加 migration。
   - 覆盖 fresh、upgrade、rollback/failure 和 integrity_check。
 
-- [ ] `UIF-109` 签署 `UIF-S1 Contract Ready`。
+- [x] `UIF-109` 签署 `UIF-S1 Contract Ready`。
   - Owner：产品、架构、auth/catalog/thumbnail、API、安全、数据、QA。
   - Go 后才授权 `UIF-201～211`。
 
 ## Phase 2：后端实现与 Backend Evidence
 
-- [ ] `UIF-201` 实现 auth 管理员资料更新 service。
-- [ ] `UIF-202` 实现当前密码验证、密码更新和其他 session 原子撤销。
-- [ ] `UIF-203` 实现 auth SQLite adapter 与适用只追加 migration。
-- [ ] `UIF-204` 实现账户 HTTP handler、CSRF、ETag/错误映射和限流。
-- [ ] `UIF-205` 实现 catalog direct-directory `q` 领域参数与 cursor payload。
-- [ ] `UIF-206` 实现 SQLite 目录关键字 keyset 查询和适用索引。
-- [ ] `UIF-207` 实现目录 HTTP 参数、错误映射和生成契约测试。
-- [ ] `UIF-208` 实现 thumbnail/cache summary service。
-- [ ] `UIF-209` 实现最小缓存清理、active coalesce、磁盘余量和重启恢复。
-- [ ] `UIF-210` 实现 cache SQLite/文件 adapter；所有删除只限可重建缓存。
-- [ ] `UIF-211` 实现 cache HTTP handler 与幂等/状态合同。
+- [x] `UIF-201` 实现 auth 管理员资料更新 service。
+- [x] `UIF-202` 实现当前密码验证、密码更新和其他 session 原子撤销。
+- [x] `UIF-203` 实现 auth SQLite adapter 与适用只追加 migration。
+- [x] `UIF-204` 实现账户 HTTP handler、CSRF、ETag/错误映射和限流。
+- [x] `UIF-205` 实现 catalog direct-directory `q` 领域参数与 cursor payload。
+- [x] `UIF-206` 实现 SQLite 目录关键字 keyset 查询和适用索引。
+- [x] `UIF-207` 实现目录 HTTP 参数、错误映射和生成契约测试。
+- [x] `UIF-208` 实现 thumbnail/cache summary service。
+- [x] `UIF-209` 实现最小缓存清理、active coalesce、磁盘余量和重启恢复。
+- [x] `UIF-210` 实现 cache SQLite/文件 adapter；所有删除只限可重建缓存。
+- [x] `UIF-211` 实现 cache HTTP handler 与幂等/状态合同。
 
-- [ ] `UIF-212` 完成后端正常、边界、失败和并发矩阵。
+- [x] `UIF-212` 完成后端正常、边界、失败和并发矩阵。
   - 账户：错误当前密码、Unicode、并发、hash 失败、事务失败、session race。
   - 目录：空/长 query、Unicode、cursor mismatch、offline、scan publish 并发。
   - 缓存：空缓存、活动清理、盘满、权限、重启、重复请求。
 
-- [ ] `UIF-213` 完成安全与隐私证据。
+- [x] `UIF-213` 完成安全与隐私证据。
   - 密码/secret/log 脱敏、CSRF、rate limit、request body、no-store。
   - 不接受路径；原媒体 sentinel 逐字节不变。
 
-- [ ] `UIF-214` 完成容量与恢复证据。
+- [x] `UIF-214` 完成容量与恢复证据。
   - 100k 媒体/10k 目录、四核/4 GiB。
   - 目录过滤 P95、cache cleanup 写放大、浏览并发、RSS、SQLite busy、重启恢复。
 
-- [ ] `UIF-215` 签署 `UIF-S2 Backend Evidence Ready`。
+- [x] `UIF-215` 签署 `UIF-S2 Backend Evidence Ready`。
   - Go 后将评审后 OpenAPI、生成 client、fixture 和运行服务交给前端。
 
 ## Phase 3：Consumer/UI Ready

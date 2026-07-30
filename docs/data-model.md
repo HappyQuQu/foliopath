@@ -243,19 +243,25 @@ asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的
 并再次校验。取消会终止恢复，rebuild 或复核失败则应用启动失败关闭，但不得删除 `assets`
 权威索引。
 
-### FTR-UIF-001 数据影响（Contract Pending）
+### FTR-UIF-001 数据决定
 
-[FTR-UIF-001](features/frontend-prototype-fidelity.md)优先复用现有 `users`、`sessions`、
-`directories`、`thumbnails` 与 `settings`：
+`UIF-S1` 决定后续使用只追加 `00013` migration，不修改 migration 1～12：
 
-- 显示名称、password verifier 与 session/auth revision 如能满足原子改密语义，不新增账户表；
-- 目录关键字必须查询可靠 `directories` 索引；`UIF-104` 证明现有索引不足时，只追加目录
-  搜索键/索引或派生搜索结构，不在请求时遍历文件系统；
-- 缓存摘要从 thumbnail/cache owner 的权威状态聚合；只有 durable async cleanup 确实需要
-  重启恢复时才追加 cleanup run 状态，不引入通用任务中心表义。
+- `users` 追加 `revision INTEGER NOT NULL DEFAULT 1 CHECK (revision > 0)`。资料更新只推进
+  account revision；改密在同一事务推进 account revision 与既有 `auth_version`，并把当前
+  session 提升到新 auth version、撤销其他 session。
+- `directories` 追加 `search_name_key TEXT NOT NULL DEFAULT ''`。catalog owner 按 search
+  profile v1 派生和有界回填；scanner upsert 同时写入。查询仍先使用
+  `directories_browse_children` 限定 parent，再用 `instr` 精确匹配，不新增 directory FTS。
+- 追加单行 `cache_cleanup_state`，保存 revision、`idle/queued/running/succeeded/failed`、
+  时间、初始/剩余/释放字节、删除项数和安全 error code。它只表示当前/最近一次清理，不是
+  通用任务表或历史。
+- 复用既有 `idempotency_records` 保存 cleanup operation 的固定摘要与响应；不保存明文 key、
+  请求秘密、路径或文件列表。
 
-任何 schema 决定都在 `UIF-S1` 固定，并覆盖 fresh、逐版本 upgrade、失败回滚和
-`integrity_check`。已发布 migration 不得修改。
+`UIF-104` 的 10k 直接子目录末尾命中实测 P95 为 1.981167ms，查询计划使用 parent-scoped
+browse index；详见 [UIF-001 spike](spikes/uif-001-directory-filter.md)。S2 仍需覆盖 fresh、
+12→13 upgrade、失败回滚、backfill 取消/重启、`integrity_check` 和四核/4 GiB 并发复验。
 
 ## 扫描一致性
 

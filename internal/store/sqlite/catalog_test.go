@@ -154,6 +154,32 @@ func TestCatalogDirectoryPageUsesNaturalKeysetAndNormalizesRoot(t *testing.T) {
 	}
 }
 
+func TestCatalogDirectoryPageFiltersDirectChildrenByNormalizedTerms(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	service := catalogServiceForStore(t, store)
+
+	query := "  ＡＬＢＵＭ　２ "
+	page, err := service.ListDirectories(context.Background(), catalog.DirectoryRequest{
+		LibraryID:   libraryID,
+		SearchQuery: &query,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].Name != "Album 2" {
+		t.Fatalf("filtered directory page = %#v", page)
+	}
+
+	empty := " \t "
+	if _, err := service.ListDirectories(context.Background(), catalog.DirectoryRequest{
+		LibraryID:   libraryID,
+		SearchQuery: &empty,
+	}); !errors.Is(err, catalog.ErrInvalidQuery) {
+		t.Fatalf("empty directory filter error = %v", err)
+	}
+}
+
 func TestCatalogDirectoryDetailUsesIndexedLineageAndLibraryRootName(t *testing.T) {
 	store, _ := openTestStore(t)
 	libraryID := seedBrowseCatalog(t, store)

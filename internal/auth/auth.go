@@ -22,6 +22,7 @@ var (
 	ErrAdministratorNotFound  = errors.New("administrator does not exist")
 	ErrAuthenticationRequired = errors.New("administrator authentication is required")
 	ErrSessionExpired         = errors.New("administrator session has expired")
+	ErrPreconditionFailed     = errors.New("account revision precondition failed")
 )
 
 type SetupState string
@@ -43,6 +44,31 @@ type PasswordVerifier struct {
 	EncodedHash string
 	Scheme      string
 	Parameters  string
+}
+
+type Account struct {
+	ID          int64
+	Username    string
+	DisplayName string
+	Revision    int64
+	UpdatedAtMS int64
+}
+
+type UpdateAccountParams struct {
+	UserID           int64
+	DisplayName      string
+	ExpectedRevision int64
+	UpdatedAtMS      int64
+}
+
+type ChangePasswordParams struct {
+	UserID              int64
+	CurrentSessionID    int64
+	CurrentTokenHash    [sessionDigestBytes]byte
+	ExpectedRevision    int64
+	ExpectedAuthVersion int64
+	PasswordVerifier    PasswordVerifier
+	ChangedAtMS         int64
 }
 
 type InitializeParams struct {
@@ -72,17 +98,25 @@ type Repository interface {
 	RevokeSession(context.Context, RevokeSessionParams) (bool, error)
 }
 
+type AccountRepository interface {
+	GetAccount(context.Context, int64) (Account, error)
+	UpdateAccount(context.Context, UpdateAccountParams) (Account, error)
+	ChangePassword(context.Context, ChangePasswordParams) (Account, error)
+}
+
 type PasswordManager interface {
 	Hash(context.Context, string) (PasswordVerifier, error)
 	Verify(context.Context, string, PasswordVerifier) (bool, error)
 }
 
 type Service struct {
-	repository Repository
-	passwords  PasswordManager
-	random     io.Reader
-	now        func() time.Time
-	setupGate  chan struct{}
+	repository  Repository
+	accounts    AccountRepository
+	passwords   PasswordManager
+	random      io.Reader
+	now         func() time.Time
+	setupGate   chan struct{}
+	accountGate chan struct{}
 }
 
 type ServiceOptions struct {
@@ -107,13 +141,16 @@ func NewService(
 	if options.Now == nil {
 		options.Now = time.Now
 	}
-	return &Service{
-		repository: repository,
-		passwords:  passwords,
-		random:     options.Random,
-		now:        options.Now,
-		setupGate:  make(chan struct{}, 1),
-	}, nil
+	service := &Service{
+		repository:  repository,
+		passwords:   passwords,
+		random:      options.Random,
+		now:         options.Now,
+		setupGate:   make(chan struct{}, 1),
+		accountGate: make(chan struct{}, 1),
+	}
+	service.accounts, _ = repository.(AccountRepository)
+	return service, nil
 }
 
 func (service *Service) SetupState(ctx context.Context) (SetupState, error) {
