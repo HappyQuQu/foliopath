@@ -4,9 +4,10 @@
 
 当前首要切片 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)已通过
 [UIF-S0 Architecture Ready](gates/MVP-2026-07-23/uif-s0-architecture-ready.md)与
-[UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)，授权
-`UIF-301～319` 共享视觉基础、真实页面接入与验证。账户维护、直接子目录 `q`
-和缓存清理已经 Backend Ready，必须通过生成 client 接入；完整执行顺序见
+[UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)、
+[UIF-S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)，授权
+`UIF-401～408` 逐页比较、真实纵向集成和发布前复验。账户维护、直接子目录 `q`
+和缓存清理已通过生成 client 接入；完整执行顺序见
 [专用任务清单](features/frontend-prototype-fidelity-task-list.md)。
 
 项目已通过 **Stage 0 开发就绪 Gate**，并完成 Stage 1 的 Go 运行骨架与单管理员认证后端。
@@ -73,7 +74,7 @@ ADR 流程。
 
 | 领域 | 开始实现前所需产物 | 当前判断 |
 | --- | --- | --- |
-| `FTR-UIF-001` | revision 4、feature/CR、owner、API/data/security 影响、视觉真相、验收与 Gate | S0/S1 Go；后端实现和共享视觉基础可开工。账户/目录/缓存生产 UI 接入等待 S2 |
+| `FTR-UIF-001` | revision 4、feature/CR、owner、API/data/security 影响、视觉真相、验收与 Gate | S0/S1/S2/S3 Go；生产消费者和 UI 矩阵通过，进入 S4 逐页集成与发布前复验 |
 | 需求冻结 | MVP 范围、用户流程、验收标准、格式矩阵、日期语义、目标规模、认证/网络边界和明确非目标 | 已就绪；RQ-001～RQ-014 全部确认 A |
 | 架构 | 运行拓扑、包边界、路径模型、扫描一致性和数据模型 | 基线已形成；启动配置、应用组合、HTTP listener/中间件、健康状态、数据库/migration 与生命周期已有单元测试 |
 | API | `/api/v1` 资源、统一错误、游标、Range 与扫描任务语义；`api/openapi.yaml` 为唯一结构契约 | 权威契约、完整 Go 解析/结构/引用/pattern/语义测试、确定性 TypeScript 类型、唯一 client、摘要锁和真实 PR 基线语义比较已通过；冻结 MVP 的认证、媒体库/扫描、浏览/搜索、设置、资产详情/缩略图/原内容 handler 已接入真实 composition |

@@ -132,23 +132,40 @@ flowchart TD
 
 ### 可在 S1/S2 同期推进的共享视觉基础
 
-- [ ] `UIF-301` 建立逐页 reference manifest 和确定性截图 fixture。
-- [ ] `UIF-302` 映射字体、字号、间距、颜色、圆角、阴影、层级和动效到唯一 token。
+- [x] `UIF-301` 建立逐页 reference manifest 和确定性截图 fixture。
+  - `web/qa/visual-reference-manifest.json` 固定 12 个生产页面、原型 HTML、生产路由、
+    适用状态和 Storybook/component/E2E fixture；四档视口、双语言和双主题由同一 manifest
+    声明。
+  - `npm run check:visual-references` 校验完整页面集合、稳定顺序、文件存在性、fixture 类型和
+    精确矩阵，并已进入 `npm run check`。
+- [x] `UIF-302` 映射字体、字号、间距、颜色、圆角、阴影、层级和动效到唯一 token。
+  - 字体、字号、行高、间距、尺寸、圆角、阴影、层级与 motion 由
+    `web/src/styles/tokens.css` 唯一提供；light/dark/contrast/forced-colors 由
+    `web/src/styles/themes.css` 唯一提供。
 - [x] `UIF-303` 实现唯一 `GlobalHeader`、全局搜索和管理员菜单。
   - 生产 `AppShell` 已统一接入正式 Logo、全局搜索、管理入口和退出；移动端只隐藏字标，
     保留品牌图形。
-- [ ] `UIF-304` 实现唯一 `BrowseShell` 与移动目录抽屉。
+- [x] `UIF-304` 实现唯一 `BrowseShell` 与移动目录抽屉。
+  - 生产命名为 canonical `AppShell`：Browse 注入唯一目录侧栏与 context bar；移动抽屉拥有
+    scrim、Escape、关闭按钮和焦点返回，不另建 feature-local shell。
 - [x] `UIF-305` 实现唯一 `ManagementShell` 与移动横向分类条。
   - 桌面使用 216～280px 自适应侧栏；390 档使用可换行分类条，无页面级横向滚动。
-- [ ] `UIF-306` 更新 Storybook 与共享组件行为、axe、键盘和视觉基线。
+- [x] `UIF-306` 更新 Storybook 与共享组件行为、axe、键盘和视觉基线。
+  - Auth、AppShell、Browse、General settings、媒体集合/预览/Viewer 和共享原语均进入
+    Storybook；组件测试、状态矩阵、axe 与 Linux-owned Viewer 基线共用 production owner。
 
 ### 必须等待 S2 的真实页面接入
 
-- [ ] `UIF-307` 还原认证与欢迎页。
+- [x] `UIF-307` 还原认证与欢迎页。
+  - setup/login 复用唯一 `AuthPage` 与正式 BrandMark；首次成功初始化进入媒体库空态，
+    继续使用真实 session、CSRF 和创建媒体库流程，不保留第二套静态欢迎状态机。
 - [x] `UIF-308` 拆分并还原通用设置页。
   - 主题、跟随浏览器语言、默认布局、默认固定预览、脏状态、恢复和保存均可操作；
     共享 `Switch` 已进入组件工作台并有行为测试。
-- [ ] `UIF-309` 还原媒体库、新建媒体库和扫描详情页。
+- [x] `UIF-309` 还原媒体库、新建媒体库和扫描详情页。
+  - `/settings/libraries`、`/settings/libraries/new` 与
+    `/settings/libraries/:libraryId/status` 为独立生产路由；创建、目录选择、状态轮询、
+    取消、重试、重命名和安全移除继续消费 generated-client adapter。
 - [x] `UIF-310` 实现扫描与缓存独立页并接真实 cache 合同。
   - 独立路由读取真实 settings/cache summary，保存扫描计划与配额，并通过 CSRF 和
     Idempotency-Key 启动有界缓存清理；活动清理轮询唯一 query owner。
@@ -198,7 +215,9 @@ flowchart TD
   - 16 张确定性截图、同状态组合比较和输入矩阵说明见
     [`docs/evidence/uif-317`](../evidence/uif-317/README.md)，最终设计 QA 见仓库根目录
     [`design-qa.md`](../../design-qa.md)。
-- [ ] `UIF-318` 签署 `UIF-S3 Consumer/UI Ready`。
+- [x] `UIF-318` 签署 `UIF-S3 Consumer/UI Ready`。
+  - Gate：[UIF-S3 Consumer/UI Ready](../gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)。
+    仅授权进入 `UIF-401～408` Integrated Slice；不代表逐页视觉比较、完整纵向链或发布完成。
 
 ## Phase 4：Integrated Slice Done
 

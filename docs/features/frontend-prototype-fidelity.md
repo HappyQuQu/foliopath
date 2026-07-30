@@ -4,7 +4,7 @@
 
 - 状态：Confirmed
 - 目标版本：`MVP-2026-07-23` / scope revision 4
-- 当前阶段：`UIF-S2 Backend Evidence Ready` 已完成；授权真实前端接入
+- 当前阶段：`UIF-S3 Consumer/UI Ready` 已完成；授权进入逐页集成与发布前复验
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
 - Capability Owner：`internal/auth`、`internal/catalog`、`internal/thumbnail` 与 `web`
@@ -15,6 +15,7 @@
 - Architecture Gate：[UIF-S0 Architecture Ready](../gates/MVP-2026-07-23/uif-s0-architecture-ready.md)
 - Contract Gate：[UIF-S1 Contract Ready](../gates/MVP-2026-07-23/uif-s1-contract-ready.md)
 - Backend Gate：[UIF-S2 Backend Evidence Ready](../gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
+- Consumer/UI Gate：[UIF-S3 Consumer/UI Ready](../gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)
 - 风险：[R-021](../risk-register.md)，并复用 R-010、R-012、R-015、R-016
 
 ## 用户问题与结果
@@ -244,8 +245,8 @@ UIF-S0 Architecture Ready
   → Stage 5 RC Gate rerun
 ```
 
-- S0、S1 已 Go，授权后端实现、fixture、测试和共享视觉基础；
-- S2 前不得在生产页面接入账户修改、全量目录过滤或缓存清理；
-- 不依赖新后端的 token/壳/Storybook 工作可在 S1/S2 同期进行，但不能宣称 feature 完成；
+- S0、S1、S2 与 S3 已 Go；生产消费者、共享壳、状态与输入矩阵允许进入 Integrated Slice；
+- 账户修改、全量目录过滤与缓存清理已通过生成 client 接入真实 Backend Ready owner；
+- reference manifest、token、壳和 Storybook 已有机器检查；不得由 Phase 4 再建立平行实现；
 - S4 前不得称“与原型一致”或“可发布”；
 - S4 后仍需重跑受影响的 Stage 5 浏览器、容量、安全和 RC Gate。

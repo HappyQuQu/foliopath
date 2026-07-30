@@ -275,6 +275,13 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 [FTR-UIF-001 开发清单](features/frontend-prototype-fidelity-task-list.md)。`UIF-S4` 通过后仍需
 重跑受影响 Stage 5 Gate，不能仅凭截图宣布可发布。
 
+[UIF-S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)已固定
+`web/qa/visual-reference-manifest.json`：12 个生产页面必须映射到原型、生产路由、状态与
+确定性 Storybook/component/E2E fixture；`npm run check:visual-references` 已进入前端总检查。
+S3 同时通过双语双主题四档、键盘/触摸、axe、forced-colors/reduced-motion、六种浏览器/
+输入 profile 与三引擎 100k 虚拟化预算。逐页三图 comparison 和扩大 Linux 基线仍由 S4
+阻断，S3 不能替代。
+
 `UIF-S1` 已增加可重复的
 [10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped
 browse index，再执行 capability-derived Unicode 搜索键上的 literal `instr`；常规测试以

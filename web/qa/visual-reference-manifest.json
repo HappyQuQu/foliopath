@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "sourceOfTruth": "prototypes/apple-redesign",
+  "viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 768, "height": 1024 },
+    { "width": 1265, "height": 800 },
+    { "width": 1440, "height": 900 }
+  ],
+  "locales": ["zh-CN", "en"],
+  "themes": ["light", "dark"],
+  "entries": [
+    {
+      "id": "account",
+      "source": "prototypes/apple-redesign/09-settings-account.html",
+      "productionRoute": "/settings/account",
+      "fixtures": ["web/tests/e2e/auth.spec.ts"],
+      "states": ["profile", "password", "pending", "error", "success"]
+    },
+    {
+      "id": "auth-login",
+      "source": "prototypes/apple-redesign/01-auth.html",
+      "productionRoute": "/login",
+      "fixtures": [
+        "web/src/features/auth/pages/AuthPage.stories.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["default", "pending", "error", "session-expired"]
+    },
+    {
+      "id": "auth-setup",
+      "source": "prototypes/apple-redesign/01-auth.html",
+      "productionRoute": "/setup/admin",
+      "fixtures": [
+        "web/src/features/auth/pages/AuthPage.stories.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["default", "validation", "pending", "error"]
+    },
+    {
+      "id": "browse",
+      "source": "prototypes/apple-redesign/03-browse.html",
+      "productionRoute": "/libraries/:libraryId/browse/:directoryId?",
+      "fixtures": [
+        "web/src/features/browse/pages/BrowsePage.stories.tsx",
+        "web/src/features/browse/pages/BrowsePage.test.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["default", "filtered", "recursive", "offline", "error", "preview"]
+    },
+    {
+      "id": "general",
+      "source": "prototypes/apple-redesign/07-settings-general.html",
+      "productionRoute": "/settings/general",
+      "fixtures": [
+        "web/src/features/settings/pages/GeneralSettingsPage.stories.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["default", "dirty", "saved"]
+    },
+    {
+      "id": "libraries",
+      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "productionRoute": "/settings/libraries",
+      "fixtures": [
+        "web/src/features/libraries/pages/LibrariesPage.test.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["empty", "ready", "scanning", "offline", "remove-confirmation"]
+    },
+    {
+      "id": "library-new",
+      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "productionRoute": "/settings/libraries/new",
+      "fixtures": ["web/tests/e2e/auth.spec.ts"],
+      "states": ["name", "directory-picker", "validation", "pending"]
+    },
+    {
+      "id": "library-status",
+      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "productionRoute": "/settings/libraries/:libraryId/status",
+      "fixtures": ["web/tests/e2e/auth.spec.ts"],
+      "states": ["queued", "running", "cancelled", "failed", "offline", "completed"]
+    },
+    {
+      "id": "search",
+      "source": "prototypes/apple-redesign/04-search.html",
+      "productionRoute": "/search",
+      "fixtures": [
+        "web/src/features/search/pages/SearchPage.test.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["no-query", "results", "empty", "offline", "error", "preview"]
+    },
+    {
+      "id": "storage",
+      "source": "prototypes/apple-redesign/08-settings-storage.html",
+      "productionRoute": "/settings/storage",
+      "fixtures": ["web/tests/e2e/auth.spec.ts"],
+      "states": ["loading", "ready", "cleanup-pending", "error", "success"]
+    },
+    {
+      "id": "viewer",
+      "source": "prototypes/apple-redesign/05-viewer.html",
+      "productionRoute": "/libraries/:libraryId/media/:assetId",
+      "fixtures": [
+        "web/src/components/patterns/MediaViewer/MediaViewer.stories.tsx",
+        "web/src/features/media/pages/MediaViewerPage.test.tsx",
+        "web/tests/e2e/media-matrix.spec.ts",
+        "web/tests/e2e/visual-regression.spec.ts"
+      ],
+      "states": ["image", "video", "offline", "changed", "missing", "info-open"]
+    },
+    {
+      "id": "welcome",
+      "source": "prototypes/apple-redesign/02-welcome.html",
+      "productionRoute": "/settings/libraries",
+      "fixtures": [
+        "web/src/features/libraries/pages/LibrariesPage.test.tsx",
+        "web/tests/e2e/auth.spec.ts"
+      ],
+      "states": ["first-run-empty"]
+    }
+  ]
+}

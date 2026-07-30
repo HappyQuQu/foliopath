@@ -22,9 +22,10 @@
     "generate:api": "node scripts/generate-api.mjs",
     "generate:check": "node scripts/generate-api.mjs --check",
     "check:architecture": "node scripts/check-architecture.mjs",
+    "check:visual-references": "node scripts/check-visual-references.mjs",
     "lint:openapi": "redocly lint ../api/openapi.yaml",
     "check:types": "tsc --noEmit && tsc --noEmit -p tsconfig.tooling.json",
-    "check": "npm run audit:high && npm run generate:check && npm run check:architecture && npm run check:types && npm run test && npm run build:storybook"
+    "check": "npm run audit:high && npm run generate:check && npm run check:architecture && npm run check:visual-references && npm run check:types && npm run test && npm run build:storybook"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",

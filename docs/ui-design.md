@@ -387,6 +387,12 @@ resolved theme 和 serious/critical axe；reduced-motion 必须把中央 motion 
 依赖的媒体卡。视觉、输入与自动化证据统一保存在
 [`docs/evidence/uif-317`](evidence/uif-317/README.md)。
 
+逐页视觉来源不得再依赖口头记忆。`web/qa/visual-reference-manifest.json` 是生产页面到
+Apple redesign HTML、生产路由、适用状态和确定性 fixture 的唯一机器映射；它明确覆盖
+setup/login、首次空态、Browse、Search、Viewer、管理四页、新建媒体库与扫描详情。
+`npm run check:visual-references` 必须在前端总检查中失败关闭缺页、丢失 source/fixture 或
+矩阵漂移。维护和任务中心原型不属于 `FTR-UIF-001`，不得被该 manifest 静默纳入 MVP。
+
 S3-105 将媒体卡片与唯一共享 `MediaPreview` 接通。未固定状态下，卡片的覆盖按钮保持
 文件名可访问名称并以 `aria-pressed` 标记当前预览；递归结果的来源链接继续位于其上层，
 不会被卡片预览操作吞掉。桌面预览在媒体区右侧停靠，宽度默认 406px、限制在
