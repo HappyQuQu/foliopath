@@ -7,9 +7,9 @@ macOS 26.6）上，以浏览器原生页面缩放 `200%` 完成候选镜像的�
 媒体网格、预览和完整查看器纵向链。Chrome 工具栏的可访问性树明确报告
 `缩放比例：200%`；本次不是修改 viewport 或 CSS 的等效模拟。
 
-这份证据只关闭 Chrome 桌面真实缩放子项。它不代表真实品牌 Firefox、VoiceOver 或其他
-读屏、物理触控、移动设备、Safari 200% 缩放或最终视觉签署通过，因此 `S5-006B` 仍为
-Blocked。
+这份证据只关闭 Chrome 桌面真实缩放子项；单独阅读时不能代表 Firefox、VoiceOver 或其他
+读屏、物理触控、移动设备、Safari 缩放或最终视觉签署通过。后续 Firefox 结果在本文件
+末尾链接；其余条件仍使 `S5-006B` 保持 Blocked。
 
 ## 候选与隔离边界
 
@@ -63,12 +63,14 @@ ee5e7bbda84c660eabddf53ac9ff5bcaaff88dae8f7ffee9010f9418a0227061  clip.mp4
 - [`chrome-200-viewer.jpg`](chrome-200-viewer.jpg)：完整查看器及全部主控件。
 - [`chrome-200-viewer-info.jpg`](chrome-200-viewer-info.jpg)：`I` 快捷键打开的基本信息面板。
 
-## 未覆盖与关闭条件
+## 后续状态与剩余关闭条件
 
-- 取得可校验的真实品牌 Firefox，重复核心纵向链；
+真实品牌 Firefox 核心纵向链及 Firefox 原生 200%/400% 缩放已经由后续
+[`S5-006C Firefox 物理证据`](../s5-006c/README.md)完成。
+
 - 在代表性桌面环境完成 VoiceOver/读屏操作签署；
 - 在代表性触控与移动物理设备完成输入、布局、解码和视觉签署；
-- 审阅 Safari/Firefox 的真实缩放表现和最终有意视觉差异。
+- 审阅 Safari 的真实缩放表现和最终跨设备有意视觉差异。
 
 在上述条件完成前，不得将本目录的 Chrome 子证据解释为 `S5-006`、`S5-009` 或 Release
 Candidate 已完成。

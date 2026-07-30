@@ -258,8 +258,9 @@ flowchart TD
   - axe serious/critical、键盘与焦点、Pixel 5 touch、Chrome forced-colors、
     storyboard reduced-motion 和三引擎降级状态均已通过，证据见
     [`docs/evidence/uif-404`](../evidence/uif-404/README.md)。
-  - 自动化不冒充物理辅助功能签署：真实 Firefox、读屏、200%/400% 缩放、物理
-    OS 高对比和代表性触摸/移动设备继续由 `S5-006B` 阻断。
+  - 自动化不冒充物理辅助功能签署；后续 S5-006B 已取得 Firefox 153.0.1 真实核心链和
+    原生 200%/400% 缩放证据。读屏、物理 OS 高对比、代表性触摸/移动设备、Safari
+    缩放及最终视觉签署继续阻断。
 
 - [x] `UIF-405` 完成 100k/10k 前端容量、滚动、DOM、FPS/RSS 和后端并发复验。
   - 三引擎 100k 媒体连续滚动均保持 60 个 mounted item，FPS ≥58、帧间隔 P95

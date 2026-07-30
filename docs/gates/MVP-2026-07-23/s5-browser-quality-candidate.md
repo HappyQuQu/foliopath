@@ -13,9 +13,10 @@ Safari 26.5.2 已在本机物理 Mac 上通过真实候选的登录、建库、�
 matrix；日常 Chrome profile 的 1Password 注入仍会中断 UI 控制，但不影响产品自动化
 结果。2026-07-30 又把 200% 缩放的等效重排护栏加入全部桌面项目并在本机通过；随后
 Google Chrome 151 在物理 Mac 上以原生 `200%` 页面缩放通过扫描、浏览、预览和完整
-查看器纵向链。按操作者决定，本轮不等待计费阻断的 amd64 CI；真实品牌 Firefox、
-物理读屏、触摸和移动设备，以及 Safari/Firefox 的真实缩放与最终视觉签署仍由
-`S5-006B` 阻断。
+查看器纵向链。Mozilla 官方 Firefox 153.0.1 随后也在物理 Mac 上通过完整核心纵向链、
+真实 MP4 播放和原生 `200%`/`400%` 缩放。按操作者决定，本轮不等待计费阻断的 amd64 CI；
+物理读屏、触摸和移动设备，以及 Safari 真实缩放与最终跨设备视觉签署仍由 `S5-006B`
+阻断。
 
 ## 范围与所有权
 
@@ -87,9 +88,10 @@ CI 在 Ubuntu 24.04 安装 lockfile 对应的 Chromium、Firefox 和 WebKit，�
 | `make test-web-chrome-stable` | 品牌 Chrome Stable 与 forced-colors 的等效重排用例均通过；完整命令 6 passed / 2 applicable skips |
 | 断言范围 | 媒体卡焦点入口、查看器主焦点、缩放/信息/关闭控件、无横向溢出、axe serious/critical 为零 |
 
-同日尝试从 Mozilla 官方 Firefox 153.0.1 发布目录取得品牌版 Firefox；当前网络连接反复
-断开，三次续传只到约 6%，没有形成可校验应用，因此不产生真实 Firefox 通过或失败证据。
-Playwright Firefox 结果继续只记作引擎自动化，不冒充品牌版物理浏览器。
+同日早期从 Mozilla 官方 Firefox 153.0.1 发布目录取得品牌版 Firefox 时连接反复断开，
+前三次续传没有形成可校验应用，因此当时没有产生通过或失败证据。后续使用服务器支持的
+Range 分段取得完整 DMG，并在运行前通过 Mozilla SHA-256、DMG、代码签名和 Apple 公证
+校验；真实浏览器结果见下节，不再以 Playwright Firefox 冒充品牌版证据。
 
 ## 2026-07-30 Chrome 真实 200% 缩放证据
 
@@ -108,15 +110,37 @@ Playwright Firefox 结果继续只记作引擎自动化，不冒充品牌版物�
 未变。截图、候选 digest、步骤和明确未覆盖范围见
 [`docs/evidence/s5-006b`](../../evidence/s5-006b/README.md)。
 
+## 2026-07-30 Firefox 真实浏览器与 200%/400% 缩放证据
+
+Mozilla 官方 Firefox `153.0.1` 从只读 DMG 和临时隔离 profile 运行。DMG 的
+`154,614,065` bytes 与 Mozilla
+`e5a7f8f34b16ac5d8d429a1438468f023ad7bf9099fa928db537f45e32159f78`
+SHA-256 完全匹配，`hdiutil verify`、严格代码签名和 Apple `Notarized Developer ID`
+评估均通过。首次运行经操作者确认条款，诊断/交互数据和自动崩溃报告均关闭。
+
+同一干净候选完成：
+
+- 首次设置、`/library/travel` 只读建库和 2 目录/2 媒体/2 已处理/0 问题扫描；
+- 目录树、媒体类型、布局/排序和当前目录 `?q=jpg` 从 2 项收敛到 1 项；
+- 图片预览、Viewer、`I`、1:1、100%→125%→100% 和 `Escape`；
+- MP4 在预览与 Viewer 中实际从 `0:00 / 0:01` 播放到 `0:01 / 0:01`；
+- Firefox 原生 `200%` 与 `400%` 下的扫描状态、浏览响应式导航、当前目录过滤、预览、
+  Viewer、信息面板和返回。
+
+Firefox 可访问性树分别明确报告 `button 200%, Reset zoom level` 和
+`button 400%, Reset zoom level`。`/library` 保持 `RW=false`，测试后 JPEG/MP4
+SHA-256 与仓库 fixture 一致。完整来源、步骤、截图和未覆盖范围见
+[`docs/evidence/s5-006c`](../../evidence/s5-006c/README.md)。
+
 ## 剩余阻断
 
 `S5-006B` 和 Release Candidate 仍要求：
 
-1. Chrome 150 stable matrix 与 Safari 26.5.2 真机结果已经建立；仍须在最终承诺的真实
-   Firefox 版本重复核心纵向链；
+1. Chrome stable matrix、Safari 26.5.2 真机和 Firefox 153.0.1 核心纵向链已经建立；
 2. Chrome 150 forced-colors、三引擎长列表滚动和五个桌面项目的 200% 等效重排已通过；
-   Chrome 151 的物理 Mac 原生 200% 缩放纵向链也已通过；仍须完成真实读屏、触摸、
-   移动设备、媒体解码及 Safari/Firefox 真实缩放签署；
+   Chrome 151 的物理 Mac 原生 200% 及 Firefox 153.0.1 的原生 200%/400% 缩放纵向链
+   也已通过；仍须完成真实读屏、触摸、移动设备、代表性移动媒体解码及 Safari 真实缩放
+   签署；
 3. 将最终视觉差异作为有意设计变更评审，不以无条件更新 snapshot 消除失败。
 
 在这些条件完成前，不得把 `S5-006`、`S5-009` 或 Release Candidate 标为完成。

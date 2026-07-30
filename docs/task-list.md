@@ -5,8 +5,9 @@
 一句话：**Stage 0～4 已 Integrated Done，Stage 5 发布加固正在进行；候选镜像、
 安全 Compose 和原生双架构验收面已经建立；本机 arm64 与指定原生 amd64 服务器
 已分别通过候选运行和升级/配对回滚，按操作者决定本轮不等待计费阻断的 amd64 CI。
-全量媒体吞吐与缓存水位以及 Chrome 151 物理 200% 缩放已完成；真实
-Firefox/读屏/触控/移动设备、供应链和 RC Gate
+全量媒体吞吐与缓存水位、Chrome 151 原生 200% 和 Firefox 153.0.1 原生 200%/400%
+缩放已完成；
+真实读屏/触控/移动设备、供应链和 RC Gate
 仍未完成。修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`，但最终干净
 提交的原生双架构复扫、provenance 和安全/合规签署仍是明确 No-Go。**
 
@@ -92,7 +93,8 @@ Compose、媒体/代理 smoke 与原生双架构 CI；`S5-002A/S5-005C` 又在�
 容量自动化并通过本机 100k/10k 档；指定原生 amd64 服务器又完成 100k 全量媒体吞吐、
 cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭。`S5-007A` 已建立候选
 供应链自动化；按操作者决定，本轮 amd64 以指定原生服务器证据替代计费阻断的 CI。
-真实 Firefox/物理辅助功能签署、最终镜像 provenance 与漏洞处置尚未通过。
+真实 Firefox 核心链及原生 200%/400% 已通过；物理读屏/触控/移动设备、Safari 缩放、
+最终镜像 provenance 与漏洞处置尚未通过。
 
 执行约束：
 
@@ -261,17 +263,19 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
   - [x] `S5-006A` 建立 Chromium 日常纵向链、Firefox/WebKit 稳定状态矩阵和固定
     Linux Chromium 视觉基线；本机三引擎功能与独立 Linux 视觉复跑通过，证据见
     [浏览器质量候选 Gate](gates/MVP-2026-07-23/s5-browser-quality-candidate.md)。
-  - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome normal/forced-colors、Chrome 151
-    物理 200% 缩放及三引擎 100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成
-    读屏、触摸、移动布局/解码、Safari/Firefox 缩放和视觉签署。
+  - [ ] `S5-006B` Safari 26.5.2、Chrome normal/forced-colors、Firefox 153.0.1、
+    Chrome 原生 200%、Firefox 原生 200%/400% 缩放及三引擎 100k 性能已通过；仍须在代表性物理设备完成
+    读屏、触摸、移动布局/解码、Safari 缩放和最终视觉签署。
     - [x] Chromium、Firefox、WebKit、品牌 Chrome Stable 与 forced-colors 已通过
       `1280×800 @ 200%` 的 `640×400` 等效重排护栏，覆盖焦点、查看器控件、横向溢出和
       axe；该自动化不替代物理缩放、读屏或触摸签署。
     - [x] Google Chrome `151.0.7922.71` 在物理 Mac / macOS 26.6 以原生 `200%`
       页面缩放完成扫描、浏览、预览、Viewer、快捷键与缩放控件纵向链；只读挂载和媒体
       SHA-256 未变，证据见 [`docs/evidence/s5-006b`](evidence/s5-006b/README.md)。
-    - [ ] Mozilla 官方 Firefox 153.0.1 下载在当前网络多次断流且未形成可校验应用；
-      取得真实品牌 Firefox 后重复核心纵向链。
+    - [x] Mozilla 官方 Firefox `153.0.1` 的 DMG 已通过官方 SHA-256、DMG、签名和 Apple
+      公证校验；隔离 profile 完成首次设置、建库/扫描、`?q=jpg`、图片预览/Viewer、
+      MP4 实际播放及原生 `200%`/`400%` 纵向链，证据见
+      [`docs/evidence/s5-006c`](evidence/s5-006c/README.md)。
 - [ ] `[后端]` `S5-007` 生成最终 SBOM，完成依赖漏洞、许可证和 FFmpeg 构建配置审查。
   - [x] `S5-007A` 建立候选 source/npm/image SPDX、固定 digest 漏洞扫描、CI artifact、
     修复可用时阻断策略，并升级 Go 1.26.5、`x/image` v0.44.0 与 Debian 13 候选基础；

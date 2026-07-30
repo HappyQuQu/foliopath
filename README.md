@@ -448,7 +448,7 @@ make test-e2e
 
 ## 项目状态与路线图
 
-截至 2026-07-28：
+截至 2026-07-30：
 
 - [x] Stage 0：需求、架构、关键安全/容量/媒体可行性与基础 Gate
 - [x] Stage 1：运行骨架、SQLite migration、健康检查、单管理员认证与应用壳
@@ -457,7 +457,8 @@ make test-e2e
 - [x] Stage 4：搜索、过滤、完整图片查看器、视频 Range 与降级状态
 - [x] Stage 5 候选：容器、Compose、双架构运行、恢复、升级/回滚和容量验证
 - [ ] 完成最终不可变镜像 digest 与干净提交 provenance
-- [ ] 完成真实 Firefox、读屏、缩放、触摸与移动物理设备签署
+- [x] 完成真实 Firefox 核心纵向链与原生 200%/400% 缩放证据
+- [ ] 完成物理读屏、触摸与移动设备、Safari 缩放及最终跨设备视觉签署
 - [ ] 从最终干净提交完成原生双架构供应链复扫（本机 arm64 修复候选当前为
   `0 Critical / 0 High`），并完成 provenance 与安全/合规签署
 - [ ] 通过最终 Release Candidate Gate 并发布首个稳定版本

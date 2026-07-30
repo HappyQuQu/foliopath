@@ -314,7 +314,12 @@ Chrome Stable 与 forced-colors 的媒体卡焦点入口、查看器主焦点、
 [`S5-006B Chrome 200% 物理浏览器证据`](evidence/s5-006b/README.md)在 Google Chrome
 151 / macOS 26.6 的原生 `200%` 页面缩放下完成扫描、浏览、预览、Viewer、`I` 信息、
 1:1、媒体放大/缩小与 `Escape` 返回，并复核只读挂载和媒体 SHA-256；它只关闭 Chrome
-桌面缩放子项，不替代真实 Firefox、读屏、触控、移动设备或 Safari/Firefox 缩放签署；
+桌面缩放子项。随后
+[`S5-006B Firefox 真实浏览器证据`](evidence/s5-006c/README.md)以 Mozilla 官方 Firefox
+153.0.1 的临时隔离 profile 完成相同真实候选的首次设置、只读扫描、`?q=jpg`、图片
+预览/Viewer、MP4 实际播放，并在原生 `200%`/`400%` 下复验扫描状态、响应式浏览、
+当前目录过滤、预览、Viewer 与快捷键；Firefox DMG 来源、SHA-256、代码签名和 Apple 公证均已验证。两份物理浏览器
+证据仍不替代读屏、物理触控、移动设备、Safari 缩放或最终跨设备视觉签署；
 `UIF-405` 在最新共享集合上复验三引擎 100k 滚动/DOM/FPS/RSS，以及 10k 目录/100k 文件
 扫描期 2,353 次浏览和搜索并发；`UIF-406` 又原样运行 fmt、architecture、generation、
 lint、unit、integration 和生产容器 E2E 七项完整仓库验证。证据分别见
@@ -548,7 +553,7 @@ amd64/arm64 CI。前端组件/token、认证与媒体库/扫描浏览器产品 E
 
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
-只读发布 volume/运行期 unmount、最终 Firefox/Safari/物理设备发布签署、代表性客户端性能、
+只读发布 volume/运行期 unmount、最终 Safari/物理辅助功能与移动设备发布签署、代表性客户端性能、
 双架构发布镜像和恢复演练仍不可执行或尚不存在；搜索功能正确性、
 旧库回填、认证 HTTP、真实 composition、100k 容量、扫描并发、取消和 rebuild 已由
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI

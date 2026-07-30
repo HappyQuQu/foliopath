@@ -31,7 +31,7 @@
 | S5-003 发布 HTTP 安全 | Passed | 已完成；最终 Compose 仍由 S5-001/002 复核 |
 | S5-004 恢复/升级 | Passed | 原生 amd64/arm64 均以不同前一候选 image ID 通过向前升级及旧镜像＋升级前备份配对回滚 |
 | S5-005 产品容量 | Passed | 原生 amd64 通过真实媒体和 100k/10k 目标档、100k 全量派生、cache 低水位及持续健康；本机三引擎 FPS/RSS 通过并冻结预算 |
-| S5-006 质量矩阵 | Blocked | Safari 26.5.2 真机、Chrome normal/forced-colors、五桌面项目 200% 等效重排及 Chrome 151 物理 Mac 原生 200% 纵向链通过；真实品牌 Firefox、物理读屏/触摸/移动设备、Safari/Firefox 缩放和最终视觉签署仍缺失 |
+| S5-006 质量矩阵 | Blocked | Safari 26.5.2、Chrome normal/forced-colors、Firefox 153.0.1、五桌面项目 200% 等效重排、Chrome 原生 200% 及 Firefox 原生 200%/400% 纵向链通过；物理读屏/触摸/移动设备、Safari 缩放和最终视觉签署仍缺失 |
 | S5-007 供应链 | Blocked | 干净候选提交 `5c3b3c7` 的原生 arm64 已绑定完整 smoke、不可变 digest、SPDX/notices、provenance 和 `all` 策略 `0 Critical / 0 High`；仍缺同提交原生 amd64、paired summary 与安全/合规签署 |
 | S5-008 发布文档 | Passed | 已完成并由 `make release-docs-check` 防漂移 |
 
@@ -107,9 +107,11 @@ forced-colors 通过，覆盖媒体卡焦点入口、查看器主焦点、缩放
 缩放完成真实候选的扫描、浏览、预览、Viewer、快捷键和媒体缩放纵向链，并确认只读挂载
 及媒体 SHA-256 不变，证据见
 [`docs/evidence/s5-006b`](../../evidence/s5-006b/README.md)。Mozilla 官方 Firefox
-153.0.1 下载在当前网络反复断流，没有形成可校验的品牌版应用，因此真实 Firefox 纵向链
-仍未执行；物理读屏、触摸、移动设备、Safari/Firefox 真实缩放和最终视觉签署也仍缺失。
-`S5-006` 状态保持 Blocked。
+153.0.1 后续通过官方 SHA-256、DMG、签名和 Apple 公证校验，并以临时隔离 profile 完成
+首次设置、建库/扫描、当前目录过滤、图片预览/Viewer、MP4 实际播放及原生
+`200%`/`400%` 纵向链，证据见
+[`docs/evidence/s5-006c`](../../evidence/s5-006c/README.md)。物理读屏、触摸、移动设备、
+Safari 真实缩放和最终跨设备视觉签署仍缺失，`S5-006` 状态保持 Blocked。
 
 ## 允许的下一步
 
