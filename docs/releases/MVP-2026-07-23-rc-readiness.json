@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "release": "MVP-2026-07-23",
-  "assessedAt": "2026-07-28",
+  "assessedAt": "2026-07-30",
   "decision": "no-go",
   "prerequisiteGates": [
     {
@@ -57,8 +57,9 @@
       "owner": "security",
       "evidence": "docs/gates/MVP-2026-07-23/s5-supply-chain-candidate.md",
       "blockingConditions": [
-        "The patched-source GLib linux/arm64 candidate scans at zero Critical and zero High, but the same implementation has not been rebuilt and rescanned from the final clean commit on native linux/amd64 and linux/arm64.",
-        "Deterministic SPDX, notices, and a fail-closed in-toto/SLSA provenance generator exist, but the final digest statements, paired all-findings enforcement, and LGPL distribution sign-off are missing."
+        "Native linux/arm64 clean-candidate evidence for commit 5c3b3c7 binds the release smoke, immutable image digest, deterministic SPDX, notices, in-toto/SLSA provenance, and an all-policy scan with zero Critical and zero High findings; equivalent native linux/amd64 evidence and the same-run paired summary are missing.",
+        "GitHub Actions run 30551526321 was rejected before runner allocation because of an account payment failure or spending limit, so it provides neither passing nor failing architecture evidence.",
+        "Final paired digest statements plus security and LGPL distribution sign-off are still missing."
       ]
     },
     {

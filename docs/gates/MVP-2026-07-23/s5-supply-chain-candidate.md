@@ -7,9 +7,10 @@
 候选镜像现在可重复生成 source、npm、image 三份 SPDX 2.3 SBOM，并使用固定 digest 的
 Trivy 扫描全部 High/Critical 漏洞。2026-07-30 的 `S5-007G` 本机 linux/arm64 候选已用
 固定来源 GLib 2.88.3、上游 `CVE-2026-58016` 补丁和更小 GIO 闭包，把扫描结果从
-`1 Critical / 8 High` 降为 `0 Critical / 0 High`。该结果尚未在合并后的干净提交和原生
-linux/amd64 上配对重建，也没有最终安全/合规签署，因此 `S5-007` 仍是 Release Candidate
-阻断项。
+`1 Critical / 8 High` 降为 `0 Critical / 0 High`。同一实现已在干净候选提交
+`5c3b3c73a1ce32a3777097fb687c707ba914ad41` 上完成原生 linux/arm64 重建、完整 smoke、
+SPDX、notices、provenance 与 `all` 复扫；原生 linux/amd64 配对运行和最终安全/合规
+签署仍缺失，因此 `S5-007` 仍是 Release Candidate 阻断项。
 
 ## 范围与所有权
 
@@ -83,8 +84,9 @@ linux/amd64 上配对重建，也没有最终安全/合规签署，因此 `S5-00
   `SHA256SUMS`。这建立了可重复证据，不替代合规负责人的 LGPL 签署。
 - `scripts/generate-provenance.sh` 生成 in-toto Statement v1 / SLSA provenance v1，
   绑定镜像 digest、架构、干净 Git commit、Dockerfile SHA-256、builder 与 invocation。
-  脚本对 dirty tree 失败关闭，并已接入双架构候选 artifact；当前工作树尚未形成最终
-  commit，因此这里只完成 provenance 入口，不伪造最终 statement。
+  脚本对 dirty tree 失败关闭，并已接入双架构候选 artifact；提交 `5c3b3c7` 的原生
+  linux/arm64 已生成真实 statement，但它仍是单架构候选，不伪装为最终 paired
+  statement。
 
 CI 供应链矩阵现在对原生 amd64/arm64 均使用 `all`：任何 High/Critical 发现立即失败。
 每个平台生成绑定 commit、架构、image digest、SPDX/扫描/notices 摘要和 workflow
@@ -93,6 +95,13 @@ run/attempt 的 JSON；聚合 job 使用 `make verify-supply-chain-evidence` 拒
 对具体 CVE、包、可达性、版本和期限逐项正式接受并同步修改策略，才可通过。`fixed` 与
 `report` 只允许本地调查，不是当前合并或发布策略。
 
+提交 `5c3b3c7` 的原生 linux/arm64 候选 digest 为
+`sha256:8a88d26b6579afea21e4d3d85a1df7b5d45b5f851466c4afd6067d025516457d`，
+大小 `28,726,829` bytes。机器证据绑定相同 commit/digest，确认完整 release smoke
+通过、Trivy `all` 为 `0 Critical / 0 High`、`foliopath-glib` 为 `2.88.3-1`、四个
+被禁止运行包计数为零；细节和 artifact SHA-256 见
+[修复来源 GLib 运行时切片](s5-patched-glib-runtime.md)。
+
 ## 当前阻断
 
 先前候选的 GLib `CVE-2026-58010～58016` 和 util-linux `CVE-2026-53615` 已在
@@ -100,10 +109,16 @@ run/attempt 的 JSON；聚合 job 使用 `make verify-supply-chain-evidence` 拒
 漏洞忽略规则或风险接受。固定 Trivy `all` 策略得到 `0 Critical / 0 High`，ELF 与 SPDX
 也确认最终闭包不含 Debian GLib、blkid、mount 或 SELinux 包。
 
-当前阻断已从“已知漏洞未处置”变为“最终证据尚未形成”：该验证镜像来自 dirty worktree，
-尚未从合并后的干净提交生成 provenance；原生 linux/amd64 尚未对相同实现完成构建、
-媒体/恢复矩阵、SPDX/notices 和 `all` 策略复扫；安全与 LGPL 分发合规负责人也尚未签署。
-因此 R-017 只能从“开放”转为“缓解中”，不能标为关闭。
+当前阻断已从“已知漏洞未处置”变为“最终配对证据尚未形成”：干净候选提交的原生
+linux/arm64 证据已形成，但原生 linux/amd64 尚未对相同提交完成构建、媒体/恢复矩阵、
+SPDX/notices、provenance 和 `all` 策略复扫；安全与 LGPL 分发合规负责人也尚未签署。
+因此 R-017 保持“缓解中”，不能标为关闭。
+
+GitHub Actions
+[run 30551526321](https://github.com/HappyQuQu/foliopath/actions/runs/30551526321)
+已请求原生 amd64/arm64 paired 运行，但两个 job 均因账户付款失败或 spending limit 在
+runner 分配前被拒绝，steps 为空，paired job 跳过。该外部阻断不计为测试失败或通过；
+恢复 GitHub Actions 计费额度，或使用已授权的原生 amd64 runner，才可补齐配对证据。
 
 `S5-007B` 与 Release Candidate 仍要求：
 

@@ -291,6 +291,11 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
     - [x] CI 已建立原生双架构 `all` 策略 artifact 和
       `make verify-supply-chain-evidence` 成对合同，拒绝跨 commit/run、非零发现、
       SPDX 漂移、错误 GLib 版本或已移除包回退。
+    - [x] 干净候选提交 `5c3b3c7` 的原生 linux/arm64 已完成完整 release smoke、
+      SPDX、notices、SLSA provenance 与 `all` 策略零发现证据，并绑定不可变 image
+      digest；这是单架构半边证据，不关闭 `S5-007B`。
+    - [ ] GitHub Actions run `30551526321` 因账户付款失败或 spending limit 在 runner
+      分配前拒绝两个原生 job；恢复额度或提供已授权原生 amd64 runner 后重跑。
     - [ ] 同一干净提交的两个原生 job 与 paired summary 实际通过，并完成人工
       安全/合规签署。
 - [x] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
