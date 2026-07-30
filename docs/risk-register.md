@@ -78,8 +78,9 @@ R-021 属于当前 MVP revision 4 的
 键盘、触摸、forced-colors 与 reduced-motion 自动化适用复验，并把真实读屏、缩放、OS
 高对比和物理触摸明确留给 S5-006B；UIF-405 又在最新共享集合上通过三引擎 100k
 滚动/DOM/FPS/RSS，并以 10k/100k 完整扫描期浏览/搜索并发和跨库 worker 顺序复验后端
-容量边界。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC 重验；在完整仓库验证、
-文档同步和最终 Gate 完成前保持开放。
+容量边界；UIF-406 的 fmt、architecture、generation、lint、unit、integration 与生产容器
+E2E 七项完整验证全部通过。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC 重验；
+在文档同步和最终 Gate 完成前保持开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

@@ -269,7 +269,7 @@ flowchart TD
   - 跨媒体库 durable scan worker 并发/顺序测试通过；完整机器结果与适用边界见
     [`docs/evidence/uif-405`](../evidence/uif-405/README.md)。
 
-- [ ] `UIF-406` 运行并记录完整仓库验证：
+- [x] `UIF-406` 运行并记录完整仓库验证：
   - `make fmt`
   - `make arch-check`
   - `make generate-check`
@@ -277,6 +277,11 @@ flowchart TD
   - `make test`
   - `make test-integration`
   - `make test-e2e`
+  - 七项均已通过；E2E 使用恢复后的 Docker Desktop 29.6.2 重新构建生产镜像并输出
+    `application container smoke passed`，证据见
+    [`docs/evidence/uif-406`](../evidence/uif-406/README.md)。
+  - 首次 E2E 在产品断言前被 Docker containerd I/O error 阻断；仅清理约 15GiB
+    可重建的 ignored Trivy cache 并正常重启 Docker 后，原命令无修改通过。
 
 - [ ] `UIF-407` 同步 PRD、UI、用户流程、API/data/security/testing、traceability、风险和
   发布文档，把计划链接替换为实际证据。
