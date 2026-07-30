@@ -306,6 +306,11 @@ Chromium 结果为 `6 passed / 3 applicable skips`。步骤和只读证据见
 
 `UIF-404` 复验 Chromium/Firefox/WebKit、axe、键盘、Pixel 5 touch、Chrome forced-colors
 与 reduced-motion，并明确真实读屏、缩放、OS 高对比和物理设备仍归 S5-006B；
+`S5-006B` 后续增加 200% 浏览器缩放的确定性等效重排护栏：固定 `1280×800` 桌面在
+200% 下的有效 `640×400` CSS 视口，分别验证 Chromium、Firefox、WebKit、品牌
+Chrome Stable 与 forced-colors 的媒体卡焦点入口、查看器主焦点、缩放/信息/关闭控件、
+无页面横向溢出及 axe serious/critical 为零。该自动化只防止产品重排回归，不替代真实
+品牌 Firefox、物理浏览器缩放、读屏、触摸或移动设备签署；
 `UIF-405` 在最新共享集合上复验三引擎 100k 滚动/DOM/FPS/RSS，以及 10k 目录/100k 文件
 扫描期 2,353 次浏览和搜索并发；`UIF-406` 又原样运行 fmt、architecture、generation、
 lint、unit、integration 和生产容器 E2E 七项完整仓库验证。证据分别见

@@ -262,6 +262,11 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
     [浏览器质量候选 Gate](gates/MVP-2026-07-23/s5-browser-quality-candidate.md)。
   - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome 150 normal/forced-colors 及三引擎
     100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成读屏、缩放、触摸和视觉签署。
+    - [x] Chromium、Firefox、WebKit、品牌 Chrome Stable 与 forced-colors 已通过
+      `1280×800 @ 200%` 的 `640×400` 等效重排护栏，覆盖焦点、查看器控件、横向溢出和
+      axe；该自动化不替代物理缩放、读屏或触摸签署。
+    - [ ] Mozilla 官方 Firefox 153.0.1 下载在当前网络多次断流且未形成可校验应用；
+      取得真实品牌 Firefox 后重复核心纵向链。
 - [ ] `[后端]` `S5-007` 生成最终 SBOM，完成依赖漏洞、许可证和 FFmpeg 构建配置审查。
   - [x] `S5-007A` 建立候选 source/npm/image SPDX、固定 digest 漏洞扫描、CI artifact、
     修复可用时阻断策略，并升级 Go 1.26.5、`x/image` v0.44.0 与 Debian 13 候选基础；

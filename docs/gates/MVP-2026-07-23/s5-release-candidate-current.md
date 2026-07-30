@@ -31,7 +31,7 @@
 | S5-003 发布 HTTP 安全 | Passed | 已完成；最终 Compose 仍由 S5-001/002 复核 |
 | S5-004 恢复/升级 | Passed | 原生 amd64/arm64 均以不同前一候选 image ID 通过向前升级及旧镜像＋升级前备份配对回滚 |
 | S5-005 产品容量 | Passed | 原生 amd64 通过真实媒体和 100k/10k 目标档、100k 全量派生、cache 低水位及持续健康；本机三引擎 FPS/RSS 通过并冻结预算 |
-| S5-006 质量矩阵 | Blocked | Safari 26.5.2 真机及 Chrome 150 normal/forced-colors 通过；真实 Firefox、读屏/缩放/触摸/移动物理设备签署仍缺失 |
+| S5-006 质量矩阵 | Blocked | Safari 26.5.2 真机、Chrome 150 normal/forced-colors 及五桌面项目 200% 等效重排通过；真实品牌 Firefox、物理读屏/缩放/触摸/移动设备签署仍缺失 |
 | S5-007 供应链 | Blocked | 干净候选提交 `5c3b3c7` 的原生 arm64 已绑定完整 smoke、不可变 digest、SPDX/notices、provenance 和 `all` 策略 `0 Critical / 0 High`；仍缺同提交原生 amd64、paired summary 与安全/合规签署 |
 | S5-008 发布文档 | Passed | 已完成并由 `make release-docs-check` 防漂移 |
 
@@ -98,6 +98,14 @@ GitHub Actions
 的原生 amd64/arm64 job 在执行任何 step 前因账户付款失败或 spending limit 被拒绝，
 因此 paired job 跳过。该运行不改变 Gate 结论：它既不是产品失败，也没有提供原生
 amd64 通过证据；`S5-007` 与 Release Candidate 继续 No-Go。
+
+## 2026-07-30 浏览器质量续审
+
+新增的 200% 等效重排护栏已在 Chromium、Firefox、WebKit、品牌 Chrome Stable 与
+forced-colors 通过，覆盖媒体卡焦点入口、查看器主焦点、缩放/信息/关闭控件、页面横向
+溢出和 axe serious/critical。Mozilla 官方 Firefox 153.0.1 下载在当前网络反复断流，
+没有形成可校验的品牌版应用，因此真实 Firefox 纵向链仍未执行；物理读屏、真实浏览器
+缩放、触摸与移动设备签署也仍缺失。`S5-006` 状态保持 Blocked。
 
 ## 允许的下一步
 

@@ -167,6 +167,49 @@ test("mobile touch controls keep the viewer and recovery action reachable", asyn
   await expectNoSeriousAxeViolations(page);
 });
 
+test("200 percent equivalent desktop reflow keeps browse and viewer controls reachable", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    ![
+      "chromium",
+      "chrome-stable",
+      "chrome-forced-colors",
+      "firefox",
+      "webkit",
+    ].includes(testInfo.project.name),
+  );
+  // At 200% browser zoom a 1280×800 desktop exposes an effective 640×400 CSS
+  // viewport. This deterministic proxy guards product reflow in every desktop
+  // engine; the release Gate still requires a physical-browser zoom review.
+  await page.setViewportSize({ width: 640, height: 400 });
+  await mockStoryboardBrowseBackend(page, () => {});
+
+  await page.goto(`/libraries/${libraryId}/browse`);
+  const card = page.getByRole("article", {
+    name: "storyboard-video.mp4 · Video",
+  });
+  await expect(card).toBeVisible();
+  await expectNoPageOverflow(page);
+
+  const preview = card.getByRole("button", {
+    name: "Preview storyboard-video.mp4",
+  });
+  await preview.focus();
+  await expect(preview).toBeFocused();
+
+  await page.goto(`/libraries/${libraryId}/media/image_ready`);
+  await expect(page.getByRole("main", { name: "ready.png" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zoom in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zoom out" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Show basic information" }),
+  ).toBeVisible();
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+});
+
 test("storyboard hover is lazy, bounded, and input-mode aware", async ({
   page,
 }, testInfo) => {
