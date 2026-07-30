@@ -221,9 +221,16 @@ flowchart TD
 
 ## Phase 4：Integrated Slice Done
 
-- [ ] `UIF-401` 完成每页原型/生产同视口组合比较。
+- [x] `UIF-401` 完成每页原型/生产同视口组合比较。
   - 保存 comparison artifact 和 history。
   - 关闭全部 P0/P1/P2；P3 单独记录。
+  - 12 个 manifest 页面在同一个 `1280 × 720` CSS 视口、简体中文、深色主题下的原始截图、
+    逐页组合图、状态映射与迭代历史见
+    [`docs/evidence/uif-401`](../evidence/uif-401/README.md)。
+  - 认证卡片宽度、Logo 尺寸、居中层级和内边距已回到原型 token；Browse 使用真实只读
+    synthetic fixture 对齐京都目录、子目录、媒体与预览状态。
+  - 任务中心、缺失缓存补齐、全部重建和系统维护继续按已冻结 scope 排除，不把
+    `08-settings-storage.html` 中的 Post-MVP 控件伪装成已交付生产能力。
 
 - [ ] `UIF-402` 扩展 `web/tests/e2e/visual-regression.spec.ts`。
   - Header、管理中心四页、浏览顶部/底部、Search、预览、Viewer。

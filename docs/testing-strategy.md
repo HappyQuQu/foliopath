@@ -282,6 +282,12 @@ S3 同时通过双语双主题四档、键盘/触摸、axe、forced-colors/reduc
 输入 profile 与三引擎 100k 虚拟化预算。逐页三图 comparison 和扩大 Linux 基线仍由 S4
 阻断，S3 不能替代。
 
+`UIF-401` 已把该 manifest 的 12 个页面在同一 `1280 × 720` CSS 视口、简体中文、深色主题
+下渲染为原型截图、真实生产路由截图和逐页组合比较；证据与比较历史保存在
+[`docs/evidence/uif-401`](evidence/uif-401/README.md)。原型中明确属于 Post-MVP 的任务中心、
+缺失缓存补齐、全部重建和系统维护不计作当前生产缺失，也不得用静态控件或 mock 补齐；
+`UIF-402` 继续把当前 MVP 页面区域转成 Linux-owned 稳定基线。
+
 `UIF-S1` 已增加可重复的
 [10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped
 browse index，再执行 capability-derived Unicode 搜索键上的 literal `instr`；常规测试以

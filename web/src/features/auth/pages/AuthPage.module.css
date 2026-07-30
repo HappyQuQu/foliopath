@@ -1,7 +1,7 @@
 .card {
   width: min(var(--size-auth-card), 100%);
   justify-self: center;
-  padding: clamp(var(--space-8), 5vw, var(--space-10));
+  padding: var(--space-8) var(--space-7);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
@@ -13,7 +13,7 @@
   height: var(--size-auth-mark);
   display: grid;
   place-items: center;
-  margin-bottom: var(--space-7);
+  margin: 0 auto var(--space-6);
   border: 0;
   background: transparent;
 }
@@ -25,6 +25,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .card h1 {
@@ -32,12 +33,14 @@
   font-size: clamp(var(--font-size-5), 4vw, var(--font-size-7));
   line-height: var(--line-height-tight);
   letter-spacing: -0.04em;
+  text-align: center;
 }
 
 .intro {
   margin: var(--space-3) var(--space-0) var(--space-6);
   color: var(--color-text-muted);
   line-height: var(--line-height-relaxed);
+  text-align: center;
 }
 
 .card > [role="status"],
