@@ -6,7 +6,8 @@
 安全 Compose 和原生双架构验收面已经建立；本机 arm64 与指定原生 amd64 服务器
 已分别通过候选运行和升级/配对回滚，按操作者决定本轮不等待计费阻断的 amd64 CI。
 全量媒体吞吐与缓存水位已完成；真实 Firefox/读屏/移动设备、供应链和 RC Gate
-仍未完成。候选供应链扫描仍有 1 Critical / 8 High，是明确 No-Go。**
+仍未完成。修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`，但最终干净
+提交的原生双架构复扫、provenance 和安全/合规签署仍是明确 No-Go。**
 
 目前还没有可供用户使用的 FolioPath。开发工作现拆成独立的
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
@@ -281,8 +282,12 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
     Debian runtime，保留可扫描的包状态与许可证元数据；无 shell 生产镜像通过完整
     release smoke 和快速容量复验，发现进一步降至 1 Critical / 14 High，证据见
     [无 shell 最小运行时切片](gates/MVP-2026-07-23/s5-distroless-runtime.md)。
-  - [ ] `S5-007B` 处置或逐项正式接受候选扫描的 1 条 Critical / 8 条 High，
-    在最终双架构 digest 上执行全阻断策略，并完成 notices、provenance 与许可证签署。
+  - [x] `S5-007G` 以固定来源 GLib 2.88.3、上游 `CVE-2026-58016` 补丁和独立回归程序
+    替换 Debian GLib，并关闭 libmount/SELinux 间接闭包；本机 arm64 完整 smoke、SPDX、
+    notices 与 Trivy `all` 策略达到 `0 Critical / 0 High`，证据见
+    [修复来源 GLib 运行时切片](gates/MVP-2026-07-23/s5-patched-glib-runtime.md)。
+  - [ ] `S5-007B` 从最终干净提交在原生 linux/amd64 与 linux/arm64 重建，确认两个
+    digest 的全阻断扫描仍为零，并完成 notices、provenance 与许可证签署。
 - [x] `[共同]` `S5-008` 校对 README、Compose、部署、备份、支持格式和已知限制。
   - 完成证据：[发布文档 Gate](gates/MVP-2026-07-23/s5-release-documentation.md)。
     `make release-docs-check` 固定 candidate 警告、Compose 安全默认、格式、备份/回滚和限制披露。

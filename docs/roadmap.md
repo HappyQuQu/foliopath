@@ -14,10 +14,11 @@ libvips 与 FFmpeg 的非 root 候选镜像基础，`S5-003` 已完成可信代�
 恢复、盘满与损坏数据库失败关闭也已进入该 smoke。`S5-005A` 已通过本机真实候选
 100k/10k 容量档并建立原生双架构门禁；`S5-006A` 已建立 Firefox/WebKit 稳定状态矩阵
 和固定 Linux Chromium 视觉回归；`S5-007A` 已建立候选 SPDX、固定
-digest 漏洞扫描和许可证证据；`S5-007C/D/E/F` 已用最小 libvips、FFmpeg、内建
-健康检查和无 shell distroless 运行时将扫描降至
-1 Critical / 8 High，因此供应链 Gate 仍是
-No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并建立防漂移检查。
+digest 漏洞扫描和许可证证据；`S5-007C/D/E/F/G` 已用最小 libvips、FFmpeg、内建
+健康检查、无 shell distroless 和修复来源 GLib 运行时，把本机 arm64 候选扫描降至
+`0 Critical / 0 High`。最终干净提交的原生双架构复扫、provenance 与安全/合规签署
+仍未完成，因此供应链 Gate 继续 No-Go。`S5-008` 已完成 README/Compose/部署/备份/
+格式/限制校对并建立防漂移检查。
 `S5-009A` 已建立统一 RC readiness 快照和失败关闭检查，当前明确为 No-Go。
 原生 amd64/arm64 候选已分别通过运行与升级/配对回滚；最终不可变 digest、
 完整容量、最终浏览器/物理设备签署、漏洞处置和 RC Gate 仍未完成：

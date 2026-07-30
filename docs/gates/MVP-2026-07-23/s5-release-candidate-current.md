@@ -6,8 +6,8 @@
 
 `S5-009A` 已完成首次统一 RC 审计和失败关闭入口，但 `S5-009` 尚未完成。Stage 5 的八个
 前置 Gate 中 `S5-002`、`S5-003`、`S5-004`、`S5-005` 与 `S5-008` 通过，另外三个仍有可验证的硬阻断；
-八项发布阻断风险中五项处于缓解中、`R-008/R-011` 已关闭、`R-017` 仍开放，没有任何一项
-有时限地正式接受。
+八项发布阻断风险中六项处于缓解中、`R-008/R-011` 已关闭，没有开放或正式接受项；缓解中
+风险仍未达到发布关闭条件。
 
 ## 范围与所有权
 
@@ -32,7 +32,7 @@
 | S5-004 恢复/升级 | Passed | 原生 amd64/arm64 均以不同前一候选 image ID 通过向前升级及旧镜像＋升级前备份配对回滚 |
 | S5-005 产品容量 | Passed | 原生 amd64 通过真实媒体和 100k/10k 目标档、100k 全量派生、cache 低水位及持续健康；本机三引擎 FPS/RSS 通过并冻结预算 |
 | S5-006 质量矩阵 | Blocked | Safari 26.5.2 真机及 Chrome 150 normal/forced-colors 通过；真实 Firefox、读屏/缩放/触摸/移动物理设备签署仍缺失 |
-| S5-007 供应链 | Blocked | 双架构 SPDX/notices 和 fail-closed provenance 入口已建立；仍须处置/逐项接受 1 Critical、8 High，并生成最终 clean-commit statement、完成安全/合规签署 |
+| S5-007 供应链 | Blocked | 修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`；仍须从最终干净提交在原生 amd64/arm64 配对重建、全阻断复扫、生成 provenance 并完成安全/合规签署 |
 | S5-008 发布文档 | Passed | 已完成并由 `make release-docs-check` 防漂移 |
 
 任一 Blocked 项都足以保持 No-Go，不允许以总通过率、候选本机结果或“CI 已接线”替代证据。
@@ -56,7 +56,8 @@ ZFS 媒体发现并关闭 FFprobe 参数缺陷；证据见
 - `R-002/003/006/010/014`：`mitigating`，均有 owner 与下一条关闭条件；
 - `R-008`：`closed`，原生双架构完整候选矩阵及运行闭包已审阅；
 - `R-011`：`closed`，原生双架构升级与配对回滚证据已归档；
-- `R-017`：`open`，1 Critical / 8 High 尚未消除或逐项正式接受；
+- `R-017`：`mitigating`，本机 arm64 已为 `0 Critical / 0 High`，最终干净提交的原生
+  双架构复扫与签署尚未完成；
 - `closed`：2；
 - `accepted`：0。
 

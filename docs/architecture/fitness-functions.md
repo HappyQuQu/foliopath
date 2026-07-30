@@ -50,9 +50,9 @@ make test-e2e
 | AF-013 | 认证、会话、CSRF 与代理信任覆盖全部业务 API | 路由清单测试、安全 E2E、配置测试 | **S5-003 通过**：S1 认证 Integrated Done 加上显式 CIDR、非回环 require-proxy、严格单跳 HTTPS transport、Secure Cookie/Origin/HSTS/客户端限流集成矩阵；Compose 实际网络拓扑已由 S5-001B/002 在双架构复验 | 首个可共享预览版前 |
 | AF-014 | 备份、恢复、升级、磁盘满和强杀不破坏不可重建数据 | 故障注入与恢复演练 | **S5-004 通过**：原生 arm64/amd64 已验证离线恢复、强杀/WAL、满盘、损坏失败关闭，以及不同不可变候选间的向前升级和旧镜像＋升级前备份配对回滚 | Release Candidate 前 |
 | AF-015 | 目标规模内资源和交互不越过实测预算 | 10 万媒体／1 万目录／4 核／4 GiB 基准与趋势比较 | **S5-005 已通过**：原生 arm64/amd64 的 4 CPU/4 GiB 候选通过 100k/10k 扫描、认证查询、重扫、取消和 offline；指定 amd64 服务器完成 100k 全量派生、cache 水位及稳定性，三引擎 100k FPS/RSS 通过 | 发布前持续复测 |
-| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行、RC 阻断**：[S5-007A](../gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已为生产候选建立确定性 source/npm/image SPDX、固定 digest Trivy、修复可用时阻断、双架构 notices 和 in-toto/SLSA provenance 入口；最小运行时与固定源码 Expat 2.8.2 已把发现降至 1 Critical / 8 High。最终 clean-commit provenance、全阻断和安全/合规签署未完成 | Release Candidate 前 |
+| AF-016 | 镜像依赖、许可证与漏洞可追溯 | SBOM、license policy、镜像扫描 | **部分执行、RC 阻断**：[S5-007A/G](../gates/MVP-2026-07-23/s5-supply-chain-candidate.md) 已为生产候选建立确定性 source/npm/image SPDX、固定 digest Trivy、双架构 notices 和 in-toto/SLSA provenance 入口；修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`。最终原生双架构 clean-commit provenance、全阻断复扫和安全/合规签署未完成 | Release Candidate 前 |
 | AF-017 | SQLite 查询以 adapter 内的 SQL 源为唯一事实，生成代码不可手改或漂移 | sqlc 固定版本、临时目录重生成 diff、生成标记与 adapter 重复 SQL 检查 | **本地执行，CI 已接线**：媒体库及 scan claim/lease/recovery 查询由 `queries/` 生成到 `dbgen/` 并被 adapter 消费；复杂 generation finalize 仍在 adapter 内受事务测试约束 | 持续强制 |
-| AF-018 | RC 决策与 Stage 5 Gate、风险登记和证据不得矛盾，未处置项必须失败关闭 | `make release-readiness-check` 校验机器快照；`make release-ready` 强制全部 Gate passed、风险 closed/accepted | **S5-009A 已执行、当前 No-Go**：八个前置 Gate 中 S5-002/003/004/005/008 passed；五项发布风险 mitigating、R-008/R-011 closed、R-017 open。普通一致性检查通过，promotion 入口按预期非零失败 | Release Candidate 前持续强制 |
+| AF-018 | RC 决策与 Stage 5 Gate、风险登记和证据不得矛盾，未处置项必须失败关闭 | `make release-readiness-check` 校验机器快照；`make release-ready` 强制全部 Gate passed、风险 closed/accepted | **S5-009A 已执行、当前 No-Go**：八个前置 Gate 中 S5-002/003/004/005/008 passed；六项发布风险 mitigating、R-008/R-011 closed。普通一致性检查通过，promotion 入口按预期非零失败 | Release Candidate 前持续强制 |
 
 ## 前后端门禁顺序
 

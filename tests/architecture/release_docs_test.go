@@ -31,7 +31,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"## Supported Media",
 		"视频不会转码",
 		"SVG、HEIC/HEIF、AVIF 和 RAW",
-		"1 Critical / 8 High",
+		"0 Critical / 0 High",
 	})
 	requireFragments(t, "docs/deployment.md", deployment, []string{
 		"# FolioPath 候选部署与运维",
@@ -42,7 +42,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"## 媒体格式与播放边界",
 		"## 当前候选已知限制",
 		"WebKit 不等同于 Safari 真机",
-		"1 Critical / 8 High",
+		"0 Critical / 0 High",
 	})
 	requireFragments(t, "compose.yaml", compose, []string{
 		"${FOLIOPATH_IMAGE:?set FOLIOPATH_IMAGE to an immutable version tag or digest}",
@@ -72,6 +72,15 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"-Dnsgif=true",
 		"foliopath-libvips_8.16.1-1.deb",
 		"/opt/vips/share/licenses/libvips/LICENSE",
+		"ADD --checksum=sha256:ab24d24e698dfa1e408b7bcdb508f4aafc906185a8b8ce72fdf79bbbdc9b383b",
+		"ADD --checksum=sha256:27d9d53dd539175b034f3670d0b1d1fefbe0311cf63a928895d1809e23ddfbbf",
+		"ADD --checksum=sha256:e16c1df025f22c106456bb8c5a45213ed37942e7f22bc40622b9f9ab54dd80b2",
+		"glib-cve-2026-58016-runtime.patch",
+		"glib_cve_2026_58016.c",
+		"foliopath-glib_2.88.3-1.deb",
+		"-Dlibmount=disabled",
+		"-Dselinux=disabled",
+		"/opt/glib/share/licenses/glib/COPYING",
 		"ADD --checksum=sha256:e3963a50831c985933e1a625ed566ec4c7adb5c012c34fa9f84438e1d61bdacc",
 		"--disable-network",
 		"--enable-zlib",
@@ -94,6 +103,19 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	if strings.Contains(dockerfile, "ca-certificates curl") ||
 		strings.Contains(dockerfile, `CMD ["curl"`) {
 		t.Error("Dockerfile retains the removed production curl healthcheck closure")
+	}
+	for _, removedRuntimePackage := range []string{
+		"libblkid1",
+		"libglib2.0-0t64",
+		"libmount1",
+		"libselinux1",
+	} {
+		if strings.Contains(dockerfile, "\n      "+removedRuntimePackage+" \\") {
+			t.Errorf(
+				"Dockerfile retains removed runtime package %q",
+				removedRuntimePackage,
+			)
+		}
 	}
 
 	for _, extension := range []string{

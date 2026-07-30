@@ -149,8 +149,9 @@ peer、Host 与 TLS 状态。非回环监听可直接提供经认证的 LAN HTTP
 Stage 5 候选使用固定 digest 的 Go 1.26.5 trixie build layer 与 Debian 13
 distroless runtime；生产 final stage 不含 shell、curl、tar 或包管理器。
 固定来源和升级安全修复不能替代镜像审查：
-[S5-007 候选供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)仍记录
-1 Critical / 8 High，发布前必须处置或逐项正式接受，并在最终双架构 digest 上复扫。
+[S5-007 候选供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)记录的
+本机 arm64 修复候选已为 `0 Critical / 0 High`，但发布前仍必须从干净提交在最终原生
+双架构 digest 上复扫并完成 provenance 与安全/合规签署。
 
 ## 媒体解析
 

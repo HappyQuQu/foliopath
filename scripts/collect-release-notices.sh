@@ -16,6 +16,7 @@ mkdir -p \
   "${output_dir}/usr/share" \
   "${output_dir}/opt/expat/share" \
   "${output_dir}/opt/ffmpeg/share" \
+  "${output_dir}/opt/glib/share" \
   "${output_dir}/opt/vips/share" \
   "${output_dir}/var/lib/dpkg"
 test ! -e "${output_dir}/SHA256SUMS"
@@ -26,6 +27,8 @@ docker cp "${container}:/opt/expat/share/licenses" \
   "${output_dir}/opt/expat/share/"
 docker cp "${container}:/opt/ffmpeg/share/licenses" \
   "${output_dir}/opt/ffmpeg/share/"
+docker cp "${container}:/opt/glib/share/licenses" \
+  "${output_dir}/opt/glib/share/"
 docker cp "${container}:/opt/vips/share/licenses" \
   "${output_dir}/opt/vips/share/"
 docker cp "${container}:/var/lib/dpkg/status.d" \
@@ -40,8 +43,10 @@ docker cp "${container}:/var/lib/dpkg/status.d" \
 
 test -s "${output_dir}/opt/expat/share/licenses/expat/COPYING"
 test -s "${output_dir}/opt/ffmpeg/share/licenses/ffmpeg/COPYING.LGPLv2.1"
+test -s "${output_dir}/opt/glib/share/licenses/glib/COPYING"
 test -s "${output_dir}/opt/vips/share/licenses/libvips/LICENSE"
 test -s "${output_dir}/var/lib/dpkg/status.d/foliopath-expat"
 test -s "${output_dir}/var/lib/dpkg/status.d/foliopath-ffmpeg"
+test -s "${output_dir}/var/lib/dpkg/status.d/foliopath-glib"
 test -s "${output_dir}/var/lib/dpkg/status.d/foliopath-libvips"
 printf '%s\n' "release notices collected for ${image}"

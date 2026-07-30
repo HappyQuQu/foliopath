@@ -57,8 +57,8 @@
       "owner": "security",
       "evidence": "docs/gates/MVP-2026-07-23/s5-supply-chain-candidate.md",
       "blockingConditions": [
-        "One Critical and eight High package findings are neither removed nor individually time-bounded and accepted.",
-        "Deterministic dual-architecture SPDX, notices, and a fail-closed in-toto/SLSA provenance generator exist, but the final clean-commit digest statements, all-findings enforcement, and LGPL distribution sign-off are missing."
+        "The patched-source GLib linux/arm64 candidate scans at zero Critical and zero High, but the same implementation has not been rebuilt and rescanned from the final clean commit on native linux/amd64 and linux/arm64.",
+        "Deterministic SPDX, notices, and a fail-closed in-toto/SLSA provenance generator exist, but the final digest statements, paired all-findings enforcement, and LGPL distribution sign-off are missing."
       ]
     },
     {
@@ -116,9 +116,9 @@
     },
     {
       "id": "R-017",
-      "status": "open",
+      "status": "mitigating",
       "owner": "security",
-      "closureCondition": "Remove or individually accept every Critical and High finding with scope, reachability, expiry, and approver."
+      "closureCondition": "Rebuild both native architectures from the final clean commit, confirm zero Critical and High findings under the all policy, bind evidence to immutable digests, and obtain security sign-off."
     }
   ]
 }

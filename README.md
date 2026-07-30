@@ -458,7 +458,8 @@ make test-e2e
 - [x] Stage 5 候选：容器、Compose、双架构运行、恢复、升级/回滚和容量验证
 - [ ] 完成最终不可变镜像 digest 与干净提交 provenance
 - [ ] 完成真实 Firefox、读屏、缩放、触摸与移动物理设备签署
-- [ ] 清理或正式限时接受当前供应链扫描中的 `1 Critical / 8 High` 发现
+- [ ] 从最终干净提交完成原生双架构供应链复扫（本机 arm64 修复候选当前为
+  `0 Critical / 0 High`），并完成 provenance 与安全/合规签署
 - [ ] 通过最终 Release Candidate Gate 并发布首个稳定版本
 
 权威机器可读判断位于

@@ -13,7 +13,8 @@ smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也�
 仍不可作为稳定版部署。
 候选运行层已更新到固定 digest 的 Debian 13 distroless，Go 构建层固定为 1.26.5；
 这不是安全签署。当前 [S5-007 供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
-仍被 1 Critical / 8 High 阻断。
+的本机 arm64 修复候选为 `0 Critical / 0 High`，但仍被最终干净提交的原生双架构复扫、
+provenance 和安全/合规签署阻断。
 
 ## 部署目标
 
@@ -303,7 +304,8 @@ linux/arm64 同提交候选证据仍由
   预算也已通过，`S5-005` 已关闭。
 - Chromium、Firefox、WebKit 自动化候选矩阵已建立，但 WebKit 不等同于 Safari 真机；
   最终浏览器版本、读屏和物理设备仍待 `S5-006B`。
-- 当前供应链扫描仍有 1 Critical / 8 High，未处置或正式接受前是发布阻断。
+- 当前本机 arm64 修复候选扫描为 `0 Critical / 0 High`；最终原生双架构 digest 的
+  `all` 策略复扫、provenance 与安全/合规签署仍是发布阻断。
 - 当前没有 Prometheus/metrics endpoint、内建日志轮转或宿主磁盘余量采集；这些由部署平台监控。
 - MVP 只有一个管理员，不支持匿名 LAN、多用户角色、分享链接、上传或原媒体整理。
 - 正确性依赖启动、手动和计划完整扫描，不依赖 filesystem watcher；默认计划间隔为 24 小时。

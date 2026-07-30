@@ -5,15 +5,17 @@
 **No-Go — 自动化与候选证据已建立，但 `S5-007` 尚未完成。**
 
 候选镜像现在可重复生成 source、npm、image 三份 SPDX 2.3 SBOM，并使用固定 digest 的
-Trivy 扫描全部 High/Critical 漏洞。2026-07-28 本机 linux/arm64 生产 Dockerfile
-复扫得到 9 条包级发现、8 个唯一漏洞，其中 1 条 Critical、8 条 High；linux/amd64 与
-linux/arm64 结果一致，本次数据库中没有可用修复版本。它们没有被忽略或接受，仍是
-Release Candidate 阻断项。
+Trivy 扫描全部 High/Critical 漏洞。2026-07-30 的 `S5-007G` 本机 linux/arm64 候选已用
+固定来源 GLib 2.88.3、上游 `CVE-2026-58016` 补丁和更小 GIO 闭包，把扫描结果从
+`1 Critical / 8 High` 降为 `0 Critical / 0 High`。该结果尚未在合并后的干净提交和原生
+linux/amd64 上配对重建，也没有最终安全/合规签署，因此 `S5-007` 仍是 Release Candidate
+阻断项。
 
 ## 范围与所有权
 
 - 目标版本：`MVP-2026-07-23`
-- Stage / task：Stage 5 / `S5-007A`、`S5-007B`、`S5-007C`、`S5-007D`、`S5-007E`、`S5-007F`
+- Stage / task：Stage 5 / `S5-007A`、`S5-007B`、`S5-007C`、`S5-007D`、`S5-007E`、
+  `S5-007F`、`S5-007G`
 - 需求/质量：`NFR-COMP-001`、`NFR-SEC-001～002`
 - owner：发布负责人拥有候选镜像与 CI 证据；安全负责人拥有漏洞处置；合规负责人拥有
   notices、许可证与源码提供义务签署
@@ -70,6 +72,12 @@ Release Candidate 阻断项。
   2.8.2-1，libvips 构建及运行均显式链接它。完整 release smoke 在 arm64 和原生
   amd64 继续通过；原先 6 条 Expat High 全部消除，包级发现降至 9、唯一漏洞降至 8、
   Critical 保持 1、High 降至 8。
+- `S5-007G` 以官方 GLib 2.88.3 固定源码和两条固定 SHA-256 的上游
+  `CVE-2026-58016` 提交构建 `foliopath-glib` 2.88.3-1；独立恶意 XML 回归程序在构建
+  中失败关闭。关闭 `libmount` 与 SELinux 集成同时移除 `libblkid1/libmount1`，本机
+  linux/arm64 完整 release smoke、SPDX、notices 和 Trivy `all` 策略通过，结果为
+  `0 Critical / 0 High`。证据见
+  [修复来源 GLib 运行时切片](s5-patched-glib-runtime.md)。
 - 双架构均已生成并校验 image/source/npm SPDX；notices 收集器归档 103 个 Debian
   copyright、自建 Expat/libvips/FFmpeg 许可证和实际 `status.d` 元数据，并生成
   `SHA256SUMS`。这建立了可重复证据，不替代合规负责人的 LGPL 签署。
@@ -85,42 +93,23 @@ CI 的持续检查策略是 `fixed`：任何已有上游修复版本的 High/Cri
 
 ## 当前阻断
 
-剩余发现来自最小运行闭包中的 GLib、blkid 和 mount 原生库。
-不能用“暂无修复版本”替代处置。
+先前候选的 GLib `CVE-2026-58010～58016` 和 util-linux `CVE-2026-53615` 已在
+`S5-007G` 本机 linux/arm64 候选中通过升级、固定上游补丁和移除间接依赖处置，没有使用
+漏洞忽略规则或风险接受。固定 Trivy `all` 策略得到 `0 Critical / 0 High`，ELF 与 SPDX
+也确认最终闭包不含 Debian GLib、blkid、mount 或 SELinux 包。
 
-唯一 Critical 是 `libglib2.0-0t64` 的 `CVE-2026-58016`；GLib 是最小 libvips 的
-核心依赖。Debian trixie、forky 和 sid 当前仍标记该 CVE 未修复；Debian 只指向
-GLib 2.89.0 开发线的合并请求。`S5-007C/D/E/F` 已证明裁剪未使用的媒体、探针和通用基础层闭包可显著降低
-暴露面，但不能关闭 R-017；下一步是跟踪上游修复，并对无法消除的具体 CVE 作正式风险决定。
-
-对最终最小闭包的动态符号检查发现：应用只直接导入 8 个 GLib 符号，libvips 导入
-265 个，但应用和 libvips 都不直接导入下表对应的受影响入口。`libblkid1/libmount1`
-只由 GLib/GIO 间接带入；FolioPath 不接受块设备或分区表输入，并在
-`internal/files` 通过 kernel-anchored 边界拒绝 mount crossing。该结果降低可达性，但
-不能证明 GLib 内部不会经其他入口间接到达，因此不会自动改成 accepted：
-
-| CVE | 包 / 机制 | 当前可达性判断 | 候选处置草案 |
-| --- | --- | --- | --- |
-| CVE-2026-58016 | GLib GDBus introspection XML | 产品不使用 D-Bus，应用/libvips 无受影响符号导入 | Critical；只允许安全负责人逐项决定，最晚 2026-08-11 复审 |
-| CVE-2026-58015 | GLib GDBus SHA1 auth / path traversal | 产品不使用 D-Bus auth，应用/libvips 无受影响符号导入 | 等待 Debian stable 修复；最晚 2026-08-11 复审 |
-| CVE-2026-58010 | GLib GVariant serialiser | 无受影响符号直接导入，仍可能存在库内间接路径 | 不宣称不可达；等待上游修复或安全负责人接受 |
-| CVE-2026-58011 | GLib invalid GDateTime | 无受影响符号直接导入，媒体元数据仍可能间接使用日期 | 不宣称不可达；等待上游修复或安全负责人接受 |
-| CVE-2026-58012 | GLib regex replace | 无受影响符号直接导入，文件名/元数据为不可信输入 | 不宣称不可达；等待上游修复或安全负责人接受 |
-| CVE-2026-58013 | GLib GIOChannel line read | 无受影响符号直接导入，仍保留本地文件输入 | 不宣称不可达；等待上游修复或安全负责人接受 |
-| CVE-2026-58014 | GLib keyfile locale list | modules/loaders 已禁用且无受影响符号直接导入 | 等待上游修复；最晚 2026-08-11 复审 |
-| CVE-2026-53615 | util-linux DOS partition parser（两个包级发现） | 产品不接受块设备/分区表，两个库均为 GIO 间接依赖 | 等待 Debian stable 修复；最晚 2026-08-11 复审 |
-
-任何临时接受都必须只覆盖本候选的固定双架构 digest，记录安全负责人姓名、决定日期、
-到期日和撤销条件；上游出现稳定修复、可达性假设变化或媒体矩阵出现异常时立即撤销。
-当前这些字段尚无授权签署人，因此上表仍是处置草案，不是风险接受。
+当前阻断已从“已知漏洞未处置”变为“最终证据尚未形成”：该验证镜像来自 dirty worktree，
+尚未从合并后的干净提交生成 provenance；原生 linux/amd64 尚未对相同实现完成构建、
+媒体/恢复矩阵、SPDX/notices 和 `all` 策略复扫；安全与 LGPL 分发合规负责人也尚未签署。
+因此 R-017 只能从“开放”转为“缓解中”，不能标为关闭。
 
 `S5-007B` 与 Release Candidate 仍要求：
 
 1. 在最终 linux/amd64 与 linux/arm64 digest 上重复 SBOM 和 `all` 策略扫描；
-2. 升级、移除或以更小且经过媒体矩阵验证的运行时闭包处置全部发现；
-3. 对无法消除的每个发现完成具体、限时、可复审的正式风险接受；
-4. 汇总第三方 notices、许可证文本、必要源码/构建脚本与 provenance，并完成
+2. 确认两个最终 digest 的 High/Critical 仍为零；若重新出现发现，必须升级、移除或逐项
+   完成具体、限时、可复审的正式风险接受；
+3. 汇总第三方 notices、许可证文本、必要源码/构建脚本与 provenance，并完成
    LGPL 动态/静态链接分发审阅；
-5. 将每个平台 SBOM/provenance 绑定到最终不可变镜像 digest。
+4. 将每个平台 SBOM/provenance 绑定到最终不可变镜像 digest。
 
 在这些条件满足前，不得把 `S5-007`、`S5-009`、Release Candidate 或稳定 MVP 标为完成。
