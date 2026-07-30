@@ -3,6 +3,9 @@
 ## 当前状态
 
 - 当前阶段：Stage 5 发布加固准备
+- 当前前端优先级：先执行
+  [生产前端与原型一致性改造方案](frontend-prototype-fidelity-plan.md)，收敛共享壳、管理中心、
+  浏览、搜索和查看器的布局、样式与响应式，再继续扩展未排期运维能力。
 - 静态设计原型：已于 2026-07-24 完成 15 个界面/状态的浅色、深色和响应式验收；
   位于 [`prototypes/apple-redesign`](../prototypes/apple-redesign/index.html)，不放入
   生产 `web/src` import graph
@@ -32,6 +35,28 @@
 
 前端不得从 mock 反向发明 API。mock/Story 只能使用已评审契约 fixture；生产代码只通过统一
 `web/src/lib/api` adapter 访问服务。
+
+## 当前插入批次：生产前端原型一致性收敛
+
+本批次是正式的 [FTR-UIF-001](features/frontend-prototype-fidelity.md)，不是无后端影响的
+纯换肤。完整依赖、完成证据与唯一任务编号见
+[feature 开发清单](features/frontend-prototype-fidelity-task-list.md)；本节只提供前端视图，
+不得另建一套重复编号。
+
+- [ ] `UIF-301～306` 建立 reference manifest、唯一 token、`GlobalHeader`、
+  `BrowseShell`、`ManagementShell` 和共享组件工作台。
+- [ ] `UIF-307～311` 在 Backend Evidence Ready 后还原认证、欢迎、通用、媒体库、扫描与
+  缓存、账户独立页面并接真实合同。
+- [ ] `UIF-312～313` 对齐浏览工具栏、当前目录全量关键字、媒体类型、布局、排序、自适应
+  网格、非模态预览和单滚动容器，关闭滚动底部空白回归。
+- [ ] `UIF-314～316` 对齐全局搜索、Search 无侧栏命令区、结果、预览、查看器及全部稳定
+  状态，不复制 controller。
+- [ ] `UIF-317～318` 完成中英文、主题、四档响应式、键盘/触摸矩阵并签署 Consumer/UI Gate。
+- [ ] `UIF-401～408` 完成同视口组合比较、视觉回归、真实纵向 E2E、三浏览器、容量、完整
+  仓库检查、文档和 Integrated Slice Gate。
+
+任务中心、系统维护、AI 搜索、人脸识别和 OCR 不属于 `FTR-UIF-001`，不得借视觉收敛批次
+进入生产菜单。
 
 ## 已确认的界面与交互基线
 

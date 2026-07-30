@@ -37,6 +37,7 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 
 当前记录：
 
+- [UIF-S0：生产前端原型一致性 Architecture Ready](MVP-2026-07-23/uif-s0-architecture-ready.md)
 - [MVP-2026-07-23 / 阶段 0 当前判断](MVP-2026-07-23/stage-0-current.md)
 - [S0-105：路径证据与生产切片顺序](MVP-2026-07-23/s0-105-gate-order.md)
 - [S1-101：单管理员认证 Contract Ready](MVP-2026-07-23/s1-auth-contract-ready.md)

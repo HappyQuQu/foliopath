@@ -5,33 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>京都 — 家庭影像 — FolioPath</title>
   <meta name="description" content="FolioPath 媒体浏览器 — 浏览京都照片和视频">
-  <link rel="stylesheet" href="styles.css?v=20260729-2">
-  <script src="theme.js"></script>
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-14">
+  <script src="theme.js?v=20260730-8"></script>
 </head>
 <body>
   <a href="#browse-heading" class="skip-link">跳到主要内容</a>
 
-    <header class="global-header">
-    <div style="display: flex; align-items: center; gap: 8px;">
+  <header class="global-header" data-global-header>
+    <a href="03-browse.html" class="brand" aria-label="FolioPath 首页">
+      <img class="brand-mark" src="assets/foliopath-mark-tree.svg" alt="" aria-hidden="true">
+      <span class="brand-wordmark">FolioPath</span>
+    </a>
 
-      <a href="03-browse.html" class="brand">FolioPath</a>
-    </div>
-
-    <div class="global-header-right">
-
-      <span class="admin-badge">管理员</span>
-    </div>
-  </header>
-  <div class="app-layout">
-    <header class="global-header">
-    <div style="display: flex; align-items: center; gap: 8px;">
-
-      <a href="03-browse.html" class="brand">FolioPath</a>
-    </div>
+    <form class="global-search" action="04-search.html" role="search" data-global-search>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" name="q" placeholder="搜索全部照片和视频" aria-label="全局搜索" data-global-search-input>
+    </form>
 
     <div class="global-header-right">
-
-      <span class="admin-badge">管理员</span>
+      <button class="admin-badge" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleAccountMenu()" data-account-trigger>
+        <span class="admin-label">管理员</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="account-menu" role="menu" hidden data-account-menu>
+        <div class="account-menu-header"><strong>管理员</strong><span>admin</span></div>
+        <a href="06-settings-libraries.html" role="menuitem">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          媒体库
+        </a>
+        <a href="07-settings-general.html" role="menuitem">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          设置
+        </a>
+        <a href="01-auth.html" class="danger" role="menuitem">退出登录</a>
+      </div>
     </div>
   </header>
   <div class="app-layout">
@@ -162,7 +170,7 @@
       </nav>
 
       <!-- Bottom Nav -->
-      <nav class="sidebar-nav" aria-label="应用导航">
+      <nav class="sidebar-nav" aria-label="应用导航" hidden>
         <a href="04-search.html">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           搜索
@@ -203,42 +211,53 @@
         </nav>
 
         <!-- Search -->
-        <div class="page-header-search">
+        <div class="page-header-search" hidden>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" placeholder="搜索当前文件夹" aria-label="搜索">
         </div>
 
-        <div class="page-header-actions">
-          <button class="icon-btn" aria-label="筛选">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          </button>
-        </div>
       </div>
       <!-- Toolbar -->
       <div class="toolbar" role="region" aria-label="浏览工具">
-        <button class="toggle-btn" aria-pressed="false">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-          包含子目录
-        </button>
+        <div class="toolbar-filter-group">
+          <button class="toggle-btn" aria-pressed="false" data-recursive-toggle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+            包含子目录
+          </button>
 
-        <div class="segmented-control" role="group" aria-label="布局">
-          <button class="active" aria-label="网格">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          </button>
-          <button aria-label="瀑布流">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="7"/><rect x="14" y="4" width="6" height="5"/><rect x="4" y="13" width="6" height="7"/><rect x="14" y="11" width="6" height="9"/></svg>
-          </button>
+          <div class="segmented-control media-type-filter" role="group" aria-label="媒体类型">
+            <button class="active" aria-pressed="true" data-media-filter="all">全部</button>
+            <button aria-pressed="false" data-media-filter="image">图片</button>
+            <button aria-pressed="false" data-media-filter="video">视频</button>
+          </div>
         </div>
 
-        <label class="sort-select">
-          <span>排序</span>
-          <select>
-            <option>拍摄日期（从新到旧）</option>
-            <option>拍摄日期（从旧到新）</option>
-            <option>文件名 A→Z</option>
-            <option>文件名 Z→A</option>
-          </select>
-        </label>
+        <div class="toolbar-view-group">
+          <label class="directory-filter">
+            <span class="sr-only">筛选当前目录</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" placeholder="筛选当前目录" autocomplete="off" data-directory-filter>
+          </label>
+
+          <div class="segmented-control" role="group" aria-label="布局">
+            <button class="active" aria-label="网格">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
+            <button aria-label="瀑布流">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="7"/><rect x="14" y="4" width="6" height="5"/><rect x="4" y="13" width="6" height="7"/><rect x="14" y="11" width="6" height="9"/></svg>
+            </button>
+          </div>
+
+          <label class="sort-select">
+            <span>排序</span>
+            <select>
+              <option>拍摄日期（从新到旧）</option>
+              <option>拍摄日期（从旧到新）</option>
+              <option>文件名 A→Z</option>
+              <option>文件名 Z→A</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <!-- Content Area -->
@@ -256,7 +275,7 @@
 
           <!-- Folder Grid -->
           <h2 class="section-title">子目录</h2>
-          <p class="section-subtitle">8 个子目录 · 312 项媒体</p>
+          <p class="section-subtitle" data-folder-count>8 个子目录 · 312 项媒体</p>
 
           <div class="folder-grid">
             <a href="#" class="folder-card">
@@ -299,7 +318,7 @@
           <!-- Media Grid -->
           <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
             <h2 class="section-title" style="margin-bottom: 0;">媒体</h2>
-            <span style="font: var(--text-footnote); color: var(--text-tertiary);">已加载 312 项</span>
+            <span style="font: var(--text-footnote); color: var(--text-tertiary);" aria-live="polite" data-media-count>已加载 312 项</span>
           </div>
 
           <div class="media-grid">
@@ -509,8 +528,77 @@
       document.getElementById('sidebar').classList.remove('open');
       document.getElementById('scrim').classList.remove('open');
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const filterInput = document.querySelector('[data-directory-filter]');
+      const typeButtons = document.querySelectorAll('[data-media-filter]');
+      const folderCards = document.querySelectorAll('.folder-card');
+      const mediaCards = document.querySelectorAll('.media-card');
+      const folderCount = document.querySelector('[data-folder-count]');
+      const mediaCount = document.querySelector('[data-media-count]');
+      const recursiveToggle = document.querySelector('[data-recursive-toggle]');
+      let mediaType = new URLSearchParams(window.location.search).get('type') || 'all';
+
+      function applyFilters() {
+        const query = filterInput.value.trim().toLocaleLowerCase();
+        let visibleFolders = 0;
+        let visibleMedia = 0;
+
+        folderCards.forEach(function (card) {
+          const matches = !query || card.textContent.toLocaleLowerCase().includes(query);
+          card.hidden = !matches;
+          if (matches) visibleFolders += 1;
+        });
+
+        mediaCards.forEach(function (card) {
+          const kind = card.querySelector('.duration') ? 'video' : 'image';
+          const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
+          const matchesType = mediaType === 'all' || mediaType === kind;
+          card.hidden = !(matchesQuery && matchesType);
+          if (matchesQuery && matchesType) visibleMedia += 1;
+        });
+
+        folderCount.textContent = query
+          ? '显示 ' + visibleFolders + ' 个子目录 · 当前目录内匹配'
+          : '8 个子目录 · 312 项媒体';
+        mediaCount.textContent = query || mediaType !== 'all'
+          ? '显示 ' + visibleMedia + ' 项'
+          : '已加载 312 项';
+
+        const url = new URL(window.location.href);
+        if (query) url.searchParams.set('filter', filterInput.value.trim());
+        else url.searchParams.delete('filter');
+        if (mediaType !== 'all') url.searchParams.set('type', mediaType);
+        else url.searchParams.delete('type');
+        window.history.replaceState({}, '', url);
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      filterInput.value = params.get('filter') || '';
+      if (!['all', 'image', 'video'].includes(mediaType)) mediaType = 'all';
+      typeButtons.forEach(function (button) {
+        const active = button.dataset.mediaFilter === mediaType;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+        button.addEventListener('click', function () {
+          mediaType = button.dataset.mediaFilter;
+          typeButtons.forEach(function (item) {
+            const selected = item === button;
+            item.classList.toggle('active', selected);
+            item.setAttribute('aria-pressed', String(selected));
+          });
+          applyFilters();
+        });
+      });
+      filterInput.addEventListener('input', applyFilters);
+      recursiveToggle.addEventListener('click', function () {
+        const active = recursiveToggle.getAttribute('aria-pressed') !== 'true';
+        recursiveToggle.setAttribute('aria-pressed', String(active));
+        recursiveToggle.classList.toggle('active', active);
+      });
+      applyFilters();
+    });
   </script>
-  </div>
   </div>
 </body>
 </html>

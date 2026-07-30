@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统维护 — FolioPath</title>
+  <meta name="description" content="FolioPath 系统健康、完整性检查与应用数据备份">
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-15">
+  <script src="theme.js?v=20260730-8"></script>
+  <script src="settings.js?v=20260730-2" defer></script>
+</head>
+<body data-settings-page="maintenance">
+  <header class="global-header" data-global-header></header>
+  <div class="app-layout">
+    <main class="settings-split-layout">
+      <aside class="settings-sidebar" data-settings-sidebar data-active="maintenance"></aside>
+
+      <div class="settings-pane" id="main-content">
+        <div class="settings-hero settings-hero-row">
+          <div>
+            <p class="eyebrow">管理中心</p>
+            <h1>系统维护</h1>
+            <p>检查 FolioPath 的派生状态、创建应用数据备份并导出脱敏诊断信息。</p>
+          </div>
+          <button class="btn btn-secondary" type="button" data-export-diagnostics>导出诊断包</button>
+        </div>
+
+        <div class="inline-status info settings-note">
+          <span>维护操作只检查或重建索引、数据库与缓存，不会修改、移动或删除原始媒体。</span>
+        </div>
+
+        <section aria-labelledby="system-health-title">
+          <div class="settings-section-heading">
+            <h2 class="settings-section-title" id="system-health-title">系统健康</h2>
+            <span class="settings-section-meta">刚刚更新</span>
+          </div>
+          <div class="health-grid" data-maintenance-health></div>
+        </section>
+
+        <section aria-labelledby="integrity-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="integrity-title">完整性检查</h2>
+              <p class="settings-section-description">先生成报告，再由管理员决定是否重新扫描或重建派生数据。</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" data-run-all-checks>运行全部检查</button>
+          </div>
+          <div class="integrity-list" data-integrity-list></div>
+        </section>
+
+        <section aria-labelledby="backup-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="backup-title">应用数据备份</h2>
+              <p class="settings-section-description">包含数据库和设置，不包含原始媒体和可重建缓存。</p>
+            </div>
+            <button class="btn btn-primary btn-sm" type="button" data-create-backup>立即创建备份</button>
+          </div>
+
+          <form class="settings-form" data-backup-form novalidate>
+            <div class="settings-group">
+              <label class="settings-item" for="backup-enabled">
+                <span class="settings-item-info">
+                  <strong>定时备份</strong>
+                  <span>在完整扫描和数据库维护之外单独执行。</span>
+                </span>
+                <span class="settings-item-control">
+                  <input id="backup-enabled" name="enabled" type="checkbox" class="apple-switch">
+                </span>
+              </label>
+              <label class="settings-item" for="backup-schedule">
+                <span class="settings-item-info">
+                  <strong>执行时间</strong>
+                  <span>使用 FolioPath 所在服务器的本地时间。</span>
+                </span>
+                <span class="settings-item-control">
+                  <select id="backup-schedule" name="schedule">
+                    <option value="daily-0300">每天 03:00</option>
+                    <option value="daily-0100">每天 01:00</option>
+                    <option value="weekly">每周日 03:00</option>
+                  </select>
+                </span>
+              </label>
+              <label class="settings-item" for="backup-retention">
+                <span class="settings-item-info">
+                  <strong>保留数量</strong>
+                  <span>超过数量后只删除旧的应用数据备份。</span>
+                </span>
+                <span class="settings-item-control unit-input">
+                  <input id="backup-retention" name="retention" type="number" min="1" max="30" required>
+                  <span>份</span>
+                </span>
+              </label>
+            </div>
+            <strong class="field-error settings-form-error" hidden data-error-for="backup-settings"></strong>
+            <div class="settings-savebar compact">
+              <span class="settings-save-state" data-backup-save-state aria-live="polite">没有未保存的更改</span>
+              <button class="btn btn-primary" type="submit" disabled data-save-backup-settings>保存备份计划</button>
+            </div>
+          </form>
+
+          <div class="backup-list" data-backup-list></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="dialog-scrim" hidden data-dialog="create-backup">
+    <section class="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="create-backup-title">
+      <h2 id="create-backup-title">创建应用数据备份</h2>
+      <p>备份将保存到 <code>/app/data/backups</code>，不会读取或复制原始媒体。创建期间可以继续浏览。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+        <button class="btn btn-primary" type="button" data-confirm-create-backup>开始备份</button>
+      </div>
+    </section>
+  </div>
+  <div class="toast" role="status" hidden data-toast></div>
+</body>
+</html>

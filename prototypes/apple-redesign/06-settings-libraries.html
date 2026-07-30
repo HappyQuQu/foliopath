@@ -5,105 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>媒体库 — FolioPath</title>
   <meta name="description" content="FolioPath 媒体库设置">
-  <link rel="stylesheet" href="styles.css">
-  <script src="theme.js"></script>
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-15">
+  <script src="theme.js?v=20260730-8"></script>
+  <script src="settings.js?v=20260730-2" defer></script>
 </head>
-<body>
-  <header class="global-header">
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <a href="03-browse.html" class="brand">FolioPath</a>
-    </div>
-
-    <div class="global-header-right">
-      <span class="admin-badge">管理员</span>
-    </div>
-  </header>
+<body data-settings-page="libraries">
+  <header class="global-header" data-global-header></header>
   <div class="app-layout">
-  <main class="settings-split-layout">
+    <main class="settings-split-layout">
+      <aside class="settings-sidebar" data-settings-sidebar data-active="libraries"></aside>
 
-      <!-- Left Sidebar -->
-      <aside class="settings-sidebar">
-        <h2>设置</h2>
-        <ul class="settings-nav-list">
-          <li>
-            <a href="07-settings-general.html" class="settings-nav-item ">
-              <div class="settings-nav-icon general">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              </div>
-              通用
-            </a>
-          </li>
-          <li>
-            <a href="06-settings-libraries.html" class="settings-nav-item active">
-              <div class="settings-nav-icon library">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-              </div>
-              媒体库
-            </a>
-          </li>
-        </ul>
-      </aside>
-
-      <!-- Right Pane -->
-      <div class="settings-pane">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--space-8);">
-          <h1 style="font: var(--text-large-title);">媒体库</h1>
-          <button class="btn btn-primary btn-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            添加媒体库
+      <div class="settings-pane" id="main-content">
+        <div class="settings-hero settings-hero-row">
+          <div>
+            <p class="eyebrow">管理中心</p>
+            <h1>媒体库</h1>
+            <p>管理 FolioPath 可以浏览的只读目录、连接状态和扫描任务。</p>
+          </div>
+          <button class="btn btn-primary" type="button" data-open-add-library>
+            新建媒体库
           </button>
         </div>
 
-        <h3 class="settings-panel-header" style="font: var(--text-headline); color: var(--text-secondary); margin-bottom: 8px; padding-left: 16px;">已挂载的目录</h3>
-
-        <div class="settings-group">
-          <!-- Item 1 -->
-          <div class="settings-item" style="align-items: flex-start;">
-            <div class="settings-item-info">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span class="library-status ready" style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg> 就绪</span>
-                <strong style="margin:0;">家庭影像</strong>
-              </div>
-              <span style="font-family: var(--font-mono); margin-bottom: 4px;">/library/家庭影像</span>
-              <span>12,480 项 · 上次扫描: 2026-07-29</span>
-            </div>
-            <div class="settings-item-control">
-              <button class="btn btn-secondary btn-sm" aria-label="更多操作">...</button>
-            </div>
-          </div>
-
-          <!-- Item 2 -->
-          <div class="settings-item" style="align-items: flex-start;">
-            <div class="settings-item-info">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span class="library-status scanning" style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s linear infinite;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 扫描中</span>
-                <strong style="margin:0;">旅行摄影</strong>
-              </div>
-              <span style="font-family: var(--font-mono); margin-bottom: 4px;">/library/旅行</span>
-              <span>已发现 5,320 项</span>
-            </div>
-            <div class="settings-item-control">
-              <button class="btn btn-secondary btn-sm" aria-label="更多操作">...</button>
-            </div>
-          </div>
-
-          <!-- Item 3 -->
-          <div class="settings-item" style="align-items: flex-start;">
-            <div class="settings-item-info">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span class="library-status offline" style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg> 离线</span>
-                <strong style="margin:0;">工作素材</strong>
-              </div>
-              <span style="font-family: var(--font-mono); margin-bottom: 4px;">/library/工作</span>
-              <span>保留 3,210 项</span>
-            </div>
-            <div class="settings-item-control">
-              <button class="btn btn-secondary btn-sm" aria-label="更多操作">...</button>
-            </div>
-          </div>
+        <div class="inline-status info settings-note">
+          <span>媒体库只引用 <code>/library</code> 下的目录。原始文件永远不会被移动、修改或删除。</span>
         </div>
+
+        <section aria-labelledby="library-list-title">
+          <div class="settings-section-heading">
+            <h2 class="settings-section-title" id="library-list-title">已配置的媒体库</h2>
+            <span class="settings-section-meta" data-library-summary></span>
+          </div>
+          <div class="library-management-list" data-library-list></div>
+        </section>
       </div>
-  </main>
+    </main>
   </div>
+
+  <div class="dialog-scrim" hidden data-dialog="add-library">
+    <section class="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="add-library-title">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">新建媒体库</p>
+          <h2 id="add-library-title">选择只读媒体目录</h2>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-close-dialog>关闭</button>
+      </div>
+      <form data-add-library-form novalidate>
+        <label class="field">
+          <span>媒体库名称</span>
+          <input type="text" name="name" maxlength="48" autocomplete="off" placeholder="例如：家庭影像" required>
+          <small>名称必须非空，并且不能与现有媒体库重复。</small>
+          <strong class="field-error" hidden data-error-for="name"></strong>
+        </label>
+
+        <fieldset class="path-picker">
+          <legend>根目录</legend>
+          <div class="path-breadcrumb"><span>/library</span><strong data-selected-path>尚未选择</strong></div>
+          <div class="path-options" data-path-options></div>
+          <input type="hidden" name="path" required>
+          <strong class="field-error" hidden data-error-for="path"></strong>
+        </fieldset>
+
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+          <button class="btn btn-primary" type="submit">创建并开始扫描</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="dialog-scrim" hidden data-dialog="rename-library">
+    <section class="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="rename-library-title">
+      <h2 id="rename-library-title">重命名媒体库</h2>
+      <p>根目录保持不变。新名称必须在当前实例内唯一。</p>
+      <form data-rename-library-form novalidate>
+        <input type="hidden" name="id">
+        <label class="field">
+          <span>媒体库名称</span>
+          <input type="text" name="name" maxlength="48" required>
+          <strong class="field-error" hidden data-error-for="rename"></strong>
+        </label>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+          <button class="btn btn-primary" type="submit">保存名称</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="dialog-scrim" hidden data-dialog="remove-library">
+    <section class="dialog settings-dialog" role="alertdialog" aria-modal="true" aria-labelledby="remove-library-title">
+      <h2 id="remove-library-title">从 FolioPath 移除媒体库？</h2>
+      <p data-remove-library-copy></p>
+      <ul class="danger-list">
+        <li>移除媒体库配置、索引和未完成任务</li>
+        <li>清理该媒体库的可重建缩略图缓存</li>
+        <li><strong>不会删除、移动或修改任何原始文件</strong></li>
+      </ul>
+      <form data-remove-library-form>
+        <input type="hidden" name="id">
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+          <button class="btn btn-danger" type="submit">确认移除</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" role="status" hidden data-toast></div>
 </body>
 </html>

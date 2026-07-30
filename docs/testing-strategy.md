@@ -256,6 +256,25 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 
 端到端测试不能通过固定长时间 sleep 等待扫描，应轮询可观察状态并设置明确超时。
 
+#### FTR-UIF-001 一致性 Gate
+
+[FTR-UIF-001](features/frontend-prototype-fidelity.md)在原有功能 E2E 之上增加独立阻断矩阵：
+
+- 原型和生产使用同一 fixture、语言、主题、交互状态与
+  1440×900、1265×800、768×1024、390×844 视口；
+- 每个页面保存原型图、生产图和组合比较，P0/P1/P2 必须全部关闭，主要区域几何偏差不超过
+  2px；基线更新必须解释来源，不能批量无理由接受；
+- Linux-owned 确定性视觉回归覆盖单一 Header、管理四页、浏览顶部/底部、Search、预览与
+  Viewer；动态区域只做最小遮罩；
+- 真实纵向链覆盖资料/密码、建库/扫描、目录全量过滤、搜索/预览/Viewer、缓存清理和重新
+  登录；另跑 Chromium、Firefox、WebKit、axe、键盘、触摸、forced-colors 与 reduced-motion；
+- 100k 媒体/10k 目录验证稳定 cursor、有界 DOM、目录 query P95、滚动 FPS/RSS、缓存清理
+  写放大和并发浏览；全链前后校验只读媒体 sentinel。
+
+详细任务与证据归档入口见
+[FTR-UIF-001 开发清单](features/frontend-prototype-fidelity-task-list.md)。`UIF-S4` 通过后仍需
+重跑受影响 Stage 5 Gate，不能仅凭截图宣布可发布。
+
 ### 容器与发布测试
 
 - 最终镜像以非 root 用户运行，媒体目录 `:ro`，数据目录可写。

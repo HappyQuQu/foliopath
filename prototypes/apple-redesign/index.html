@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FolioPath — Apple 风格重设计原型目录</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="theme.js"></script>
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-14">
+  <script src="theme.js?v=20260730-8"></script>
   <style>
     .index-wrapper {
       max-width: 640px;
@@ -15,7 +16,16 @@
     .index-wrapper h1 {
       font: var(--text-large-title);
       letter-spacing: var(--tracking-tight);
-      margin-bottom: var(--space-2);
+    }
+    .index-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .index-brand img {
+      width: 32px;
+      height: 32px;
+      display: block;
     }
     .index-wrapper .subtitle {
       font: var(--text-callout);
@@ -75,7 +85,10 @@
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
       <div>
         <p style="font: var(--text-caption-2); text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: var(--space-2);">设计原型</p>
-        <h1>FolioPath</h1>
+        <div class="index-brand">
+          <img src="assets/foliopath-mark-tree.svg" alt="" aria-hidden="true">
+          <h1>FolioPath</h1>
+        </div>
       </div>
       <button class="icon-btn" onclick="toggleTheme()" aria-label="切换主题" style="width: 44px; height: 44px; background: var(--fill); border-radius: 50%;">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -141,7 +154,7 @@
           <span class="num">06</span>
           <div class="info">
             <strong>媒体库设置</strong>
-            <span>媒体库列表 + 状态 + 移除确认对话框</span>
+            <span>创建、改名、扫描、恢复连接与安全移除</span>
           </div>
           <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
@@ -151,7 +164,47 @@
           <span class="num">07</span>
           <div class="info">
             <strong>通用设置</strong>
-            <span>外观、语言、扫描周期、缓存配额、账户</span>
+            <span>外观、语言和浏览偏好，含保存与恢复状态</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="08-settings-storage.html">
+          <span class="num">08</span>
+          <div class="info">
+            <strong>扫描与缓存</strong>
+            <span>扫描计划、任务控制、进度和缓存配额管理</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="09-settings-account.html">
+          <span class="num">09</span>
+          <div class="info">
+            <strong>账户</strong>
+            <span>管理员资料、密码校验与退出登录确认</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="10-settings-maintenance.html">
+          <span class="num">10</span>
+          <div class="info">
+            <strong>系统维护</strong>
+            <span>健康状态、完整性检查、应用数据备份与脱敏诊断</span>
+          </div>
+          <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a href="11-task-detail.html?id=video-posters">
+          <span class="num">11</span>
+          <div class="info">
+            <strong>任务详情</strong>
+            <span>任务阶段、进度、取消、重试与可靠状态说明</span>
           </div>
           <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
@@ -159,7 +212,7 @@
     </ul>
 
     <p style="margin-top: var(--space-8); font: var(--text-caption-1); color: var(--text-tertiary); text-align: center;">
-      本原型仅用于视觉设计评审，不包含真实功能逻辑。
+      管理中心页面包含可操作的前端状态与完整流程；数据仅保存在当前浏览器，不连接真实后端。
     </p>
   </div>
 </body>

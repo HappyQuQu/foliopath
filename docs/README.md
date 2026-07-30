@@ -12,10 +12,10 @@
 | 读者 / 任务 | 首先阅读 | 继续阅读 |
 | --- | --- | --- |
 | 了解项目 | [项目 README](../README.md) | [产品需求](product-requirements.md)、[可行性研究](feasibility-study.md)、[路线图](roadmap.md) |
-| 确认产品范围 | [MVP scope manifest](releases/MVP-2026-07-23-scope.md) | [需求确认清单](requirements-checklist.md)、[产品需求](product-requirements.md)、[用户流程](user-flows.md) |
+| 确认产品范围 | [MVP scope manifest revision 4](releases/MVP-2026-07-23-scope-r4.md) | [需求确认清单](requirements-checklist.md)、[产品需求](product-requirements.md)、[用户流程](user-flows.md) |
 | 设计界面 | [界面设计规范](ui-design.md) | [品牌标识规范](branding.md)、[前端架构](architecture/frontend.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 开发后端或扫描器 | [后端开发清单](backend-task-list.md) | [模块边界](architecture/modules.md)、[目录与依赖约束](project-structure.md)、[数据模型](data-model.md)、[API 设计](api-design.md)、[安全模型](security.md) |
-| 开发前端 | [前端开发清单](frontend-task-list.md) | [前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
+| 开发前端 | [生产前端与原型一致性改造方案](frontend-prototype-fidelity-plan.md) | [前端开发清单](frontend-task-list.md)、[前端架构](architecture/frontend.md)、[界面设计规范](ui-design.md)、[用户流程](user-flows.md)、[API 设计](api-design.md) |
 | 部署和运维 | [部署](deployment.md) | [安全模型](security.md)、[测试策略](testing-strategy.md) |
 | 判断能否开工 | [开发就绪评审](development-readiness.md) | [S4 搜索 Backend Ready](gates/MVP-2026-07-23/s4-search-backend-ready.md)、[S4-002 搜索实现](gates/MVP-2026-07-23/s4-search-keyset.md)、[S4 搜索 Contract Ready](gates/MVP-2026-07-23/s4-search-contract-ready.md)、[S3-007 浏览/缩略图 Backend Ready](gates/MVP-2026-07-23/s3-browse-thumbnail-backend-ready.md)、[S3-006 敌意媒体与资源安全](gates/MVP-2026-07-23/s3-media-resource-safety.md)、[S3-005 媒体任务与缓存保护](gates/MVP-2026-07-23/s3-media-jobs-cache.md)、[S3-004 媒体处理](gates/MVP-2026-07-23/s3-media-processing.md)、[S3-003 目录树与详情](gates/MVP-2026-07-23/s3-directory-tree.md)、[S3-002 Catalog keyset](gates/MVP-2026-07-23/s3-catalog-keyset.md)、[S3 浏览 Contract Ready](gates/MVP-2026-07-23/s3-browse-contract-ready.md)、[扫描 Backend Ready](gates/MVP-2026-07-23/s2-scan-backend-ready.md)、[媒体库 Backend Ready](gates/MVP-2026-07-23/s2-library-backend-ready.md)、[认证 Backend Ready](gates/MVP-2026-07-23/s1-auth-backend-ready.md)、[Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[可行性研究](feasibility-study.md)、[风险登记](risk-register.md) |
 | 查看或更新任务 | [开发任务清单](task-list.md) | [路线图](roadmap.md)、[当前 Stage 0 Gate](gates/MVP-2026-07-23/stage-0-current.md)、[交付治理](architecture/delivery-governance.md) |
@@ -24,10 +24,17 @@
 ## 产品与体验
 
 - [产品需求](product-requirements.md)：愿景、用户、范围、需求编号和验收标准。
-- [MVP scope manifest revision 2](releases/MVP-2026-07-23-scope-r2.md)：冻结版本、revision、精确需求/非目标/验收 ID；已合入 revision 不原地改写。
+- [MVP scope manifest revision 4](releases/MVP-2026-07-23-scope-r4.md)：当前冻结版本、
+  精确需求/非目标/验收 ID；继承并替代 revision 3，已合入 revision 不原地改写。
 - [需求确认清单](requirements-checklist.md)：全部 14 项 A 方案的确认记录与未采用备选。
 - [用户流程](user-flows.md)：创建媒体库、扫描、浏览、搜索、查看和异常恢复流程。
 - [界面设计规范](ui-design.md)：信息架构、页面、组件、响应式、状态、可访问性和动效边界。
+- [生产前端与原型一致性改造方案](frontend-prototype-fidelity-plan.md)：汇总已确认需求、逐页
+  路由/合同映射、改造批次、同视口视觉 Gate 和防漂移机制；是当前生产前端收敛工作的执行入口。
+- [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)：正式 feature
+  规格、后端合同缺口、owner、失败矩阵、`UIF-AC-001～012` 与 `UIF-S0～S4` Gate。
+- [FTR-UIF-001 开发任务清单](features/frontend-prototype-fidelity-task-list.md)：从
+  Contract Ready、账户/目录/缓存后端到共享壳、逐页还原、视觉 QA 和 RC 重验的完整任务。
 - [品牌标识规范](branding.md)：标识概念、唯一资产、尺寸、主题、可访问性和生产接入规则。
 - [Apple 风格静态 UI 原型](../prototypes/apple-redesign/index.html)：登录、欢迎、浏览、搜索、查看器与设置页面的浅色/深色和响应式视觉验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。
@@ -70,6 +77,16 @@
 - [FTR-SCN-001 媒体库自动发现](features/automatic-library-discovery.md)：`Post-MVP/2`
   已冻结 feature；以 Linux 文件事件触发安全定向校准，并保留完整 generation 扫描作为
   正确性基线。WCH-S0 当前仅允许 spike 与 ADR 评审。
+- [FTR-INT-001 智能媒体发现候选能力](features/intelligent-media-discovery.md)：未排期
+  Future Candidate；记录 OCR、AI 语义搜索和人脸识别的需求触发条件、建议评估顺序、
+  隐私/资源边界和独立交付 Gate，不授权当前实现。
+- [FTR-OPS-001 后台任务中心](features/task-center.md)：`Post-MVP/3` scope proposed；
+  统一扫描与可重建派生缓存的高层任务投影、详情、取消、重试和 missing/all 批次，不暴露
+  逐资产内部队列。
+- [FTR-OPS-001 开发任务清单](features/task-center-task-list.md)：按
+  `OPS-S0 → S1 → S2 Backend Evidence → S3 Consumer/UI → S4 Integrated` 失败关闭交付。
+- [CR-2026-008 后台任务中心](changes/CR-2026-008-task-center.md)：记录产品确认、版本隔离、
+  owner、风险和 Conditional Go 边界。
 - [CR-2026-005 媒体库自动发现](changes/CR-2026-005-automatic-library-discovery.md)：
   记录自动近实时发现的用户确认、C3 架构影响、风险和 Gate 边界。
 - [路线图](roadmap.md)：不承诺日期的实施阶段、依赖与阶段出口条件。

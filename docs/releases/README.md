@@ -5,7 +5,12 @@
 
 - [MVP-2026-07-23 scope revision 1](MVP-2026-07-23-scope.md)
 - [MVP-2026-07-23 scope revision 2](MVP-2026-07-23-scope-r2.md)：加入经认证的局域网
-  HTTP 部署，并替代 revision 1 作为当前范围。
+  HTTP 部署，并替代 revision 1。
+- [MVP-2026-07-23 scope revision 3](MVP-2026-07-23-scope-r3.md)：加入管理中心四个独立
+  功能页与单管理员账户维护，并替代 revision 2。
+- [MVP-2026-07-23 scope revision 4](MVP-2026-07-23-scope-r4.md)：冻结
+  [FTR-UIF-001 生产前端原型一致性](../features/frontend-prototype-fidelity.md)，加入当前
+  目录全量过滤、生产视觉合同和阻断式一致性 Gate，并替代 revision 3 作为当前范围。
 - [MVP-2026-07-23 当前 RC readiness 快照](MVP-2026-07-23-rc-readiness.json)：
   聚合 Stage 5 前置 Gate 与发布阻断风险；不改变冻结 scope。
 

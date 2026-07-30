@@ -12,11 +12,20 @@
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
 交接点和共同发布任务。
 
+当前首要切片是 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)，
+已进入 MVP revision 4，S0 Architecture Ready 为 Go，S1 Contract Ready 尚未开始。完整执行
+见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)；账户、目录 q 和缓存清理
+必须先到 Backend Evidence Ready，前端再接真实业务。
+
 后续版本已经确认一个尚未开工的独立切片：
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它不进入当前
 MVP/RC，执行见[专用任务清单](features/video-storyboard-preview-task-list.md)，必须先后端
 达到 `VSP-S2 Backend Evidence Ready`，再开始生产前端接入。`POST-MVP-1` scope 已冻结，
 `VSP-S1 Contract Ready` 已 Go，当前正在执行 `VSP-106～113` 后端实现与证据。
+
+另已确认 `POST-MVP-3` 后台任务中心方向，但 scope 尚未冻结。它不进入 MVP/RC，执行见
+[FTR-OPS-001 开发任务清单](features/task-center-task-list.md)。当前只允许 S0 scope、
+owner 与容量 spike，不得从本清单顺带修改 OpenAPI、migration、后端或前端。
 
 | 阶段 | 用普通话解释 | 状态 | 完成后能看到什么 |
 | --- | --- | --- | --- |
@@ -30,16 +39,19 @@ MVP/RC，执行见[专用任务清单](features/video-storyboard-preview-task-li
 
 ### 当前只做什么
 
-当前两个工作流分别看：
+当前首要 feature 的交付顺序：
 
 ```text
-后端：运行骨架 ✅ → 初始化/密码 ✅ → 安全会话 ✅ → 安全验收 ✅ → Backend Ready ✅
-前端：静态原型（15 个界面/状态已确认）→ 应用壳 ✅ → 真实认证界面 ✅ → Integrated Done ✅
-共同：Contract Ready → Backend Ready → Integrated Done
+UIF-S0 架构 ✅
+  → UIF-S1 账户 / 目录 q / 缓存合同
+  → UIF-S2 后端证据
+  → UIF-S3 共享壳与真实页面
+  → UIF-S4 视觉 / E2E / 容量 / RC 重验
 ```
 
-前端壳、token、共享组件和契约 fixture 可以并行；真实业务 API 集成必须等待对应
-`Backend Ready`。这样既能分开开发，又不会让两边各自猜接口。
+前端壳、token、共享组件、reference manifest 和契约 fixture 可以在 S1/S2 同期推进；真实
+业务 API 集成必须等待对应 `Backend Evidence Ready`。既有 Stage 1～4 完成证据继续有效，
+但不能代替本 feature 的新增合同和一致性 Gate。
 
 ### 编号怎么读
 

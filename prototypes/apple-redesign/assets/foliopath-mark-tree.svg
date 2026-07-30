@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>FolioPath</title>
+  <path
+    d="M11 8V56M11 14H49"
+    stroke="#91B9F2"
+    stroke-width="7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M11 31H42"
+    stroke="#55C8D5"
+    stroke-width="7"
+    stroke-linecap="round"
+  />
+  <path
+    d="M23 31V50H50"
+    stroke="#278EE9"
+    stroke-width="7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

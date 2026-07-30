@@ -19,7 +19,9 @@ WCH-S3 行为，但使用工具栏末端的紧凑图标。账户菜单保留安�
 明确产品约束差异继续位于顶栏。
 
 本记录取代 `FIX-2026-07-29-navigation-simplification.md` 的当前界面决定；旧记录仅作为
-历史保留。
+历史保留。其“纯文字品牌”描述已由
+[`FIX-2026-07-30-prototype-brand-alignment.md`](FIX-2026-07-30-prototype-brand-alignment.md)
+按已确认的 `CR-2026-003` 品牌规范取代。
 
 ## 证据
 

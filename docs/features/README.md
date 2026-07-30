@@ -7,6 +7,14 @@ Contract Ready、Backend Evidence Ready、Consumer/UI Ready 和 Integrated Slice
 
 当前 feature：
 
+- [FTR-UIF-001：生产前端原型一致性](frontend-prototype-fidelity.md)
+- [FTR-UIF-001 开发任务清单](frontend-prototype-fidelity-task-list.md)
 - [FTR-VID-001：视频故事板悬停预览](video-storyboard-preview.md)
 - [FTR-VID-001 开发任务清单](video-storyboard-preview-task-list.md)
 - [FTR-SCN-001：媒体库自动发现](automatic-library-discovery.md)
+- [FTR-OPS-001：后台任务中心](task-center.md)（`Post-MVP/3` scope proposed）
+- [FTR-OPS-001 开发任务清单](task-center-task-list.md)
+
+未来候选（未排期，不授权实现）：
+
+- [FTR-INT-001：OCR、AI 语义搜索与人脸识别](intelligent-media-discovery.md)

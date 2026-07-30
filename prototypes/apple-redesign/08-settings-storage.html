@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扫描与缓存 — FolioPath</title>
+  <meta name="description" content="FolioPath 扫描与缓存设置">
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-15">
+  <script src="theme.js?v=20260730-8"></script>
+  <script src="settings.js?v=20260730-2" defer></script>
+</head>
+<body data-settings-page="storage">
+  <header class="global-header" data-global-header></header>
+  <div class="app-layout">
+    <main class="settings-split-layout">
+      <aside class="settings-sidebar" data-settings-sidebar data-active="storage"></aside>
+
+      <div class="settings-pane" id="main-content">
+        <div class="settings-hero settings-hero-row">
+          <div>
+            <p class="eyebrow">管理中心</p>
+            <h1>扫描与缓存</h1>
+            <p>集中查看扫描和派生媒体任务；失败不会清理最后可靠索引。</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-secondary" type="button" data-start-missing-cache>补齐缺失缓存</button>
+            <button class="btn btn-primary" type="button" data-open-rebuild-cache>重建全部缓存</button>
+          </div>
+        </div>
+
+        <section aria-labelledby="health-title">
+          <div class="settings-section-heading">
+            <h2 class="settings-section-title" id="health-title">运行概览</h2>
+            <a class="settings-inline-link" href="10-settings-maintenance.html">查看系统维护</a>
+          </div>
+          <div class="health-grid" data-storage-health></div>
+        </section>
+
+        <section aria-labelledby="tasks-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="tasks-title">任务中心</h2>
+              <p class="settings-section-description">每项任务都有独立状态、进度、历史与恢复操作。</p>
+            </div>
+            <div class="segmented-control" role="group" aria-label="筛选任务">
+              <button type="button" class="active" data-task-filter="active">进行中</button>
+              <button type="button" data-task-filter="all">全部</button>
+              <button type="button" data-task-filter="attention">需处理</button>
+            </div>
+          </div>
+          <div class="operation-task-list" data-operation-task-list></div>
+        </section>
+
+        <section aria-labelledby="schedule-title">
+          <h2 class="settings-section-title" id="schedule-title">扫描计划</h2>
+          <form class="settings-form" data-scan-settings-form novalidate>
+            <div class="settings-group">
+              <label class="settings-item" for="scheduled-scan">
+                <span class="settings-item-info">
+                  <strong>定时完整扫描</strong>
+                  <span>关闭后仍可手动扫描；启动校准保持启用。</span>
+                </span>
+                <span class="settings-item-control">
+                  <input id="scheduled-scan" name="scheduled" type="checkbox" class="apple-switch">
+                </span>
+              </label>
+              <label class="settings-item" for="scan-interval">
+                <span class="settings-item-info">
+                  <strong>扫描间隔</strong>
+                  <span>从上一次成功完整扫描结束后开始计算。</span>
+                </span>
+                <span class="settings-item-control unit-input">
+                  <input id="scan-interval" name="interval" type="number" min="1" max="8760" required>
+                  <span>小时</span>
+                </span>
+              </label>
+            </div>
+            <strong class="field-error settings-form-error" hidden data-error-for="scan-settings"></strong>
+            <div class="settings-savebar compact">
+              <span class="settings-save-state" data-scan-save-state aria-live="polite">没有未保存的更改</span>
+              <button class="btn btn-primary" type="submit" disabled data-save-scan-settings>保存扫描计划</button>
+            </div>
+          </form>
+        </section>
+
+        <section aria-labelledby="cache-title">
+          <h2 class="settings-section-title" id="cache-title">缩略图缓存</h2>
+          <div class="cache-card">
+            <div class="cache-card-header">
+              <div>
+                <strong>缓存使用量</strong>
+                <span data-cache-usage-copy></span>
+              </div>
+              <span class="cache-percent" data-cache-percent></span>
+            </div>
+            <div class="usage-track" aria-hidden="true"><span data-cache-usage-bar></span></div>
+            <form class="cache-actions" data-cache-form novalidate>
+              <label class="field inline-field">
+                <span>缓存配额</span>
+                <span class="unit-input">
+                  <input type="number" name="quota" min="1" max="1024" step="1" required>
+                  <span>GiB</span>
+                </span>
+                <strong class="field-error" hidden data-error-for="quota"></strong>
+              </label>
+              <div class="cache-action-buttons">
+                <button class="btn btn-secondary" type="button" data-open-clear-cache>清空可重建缓存</button>
+                <button class="btn btn-primary" type="submit" disabled data-save-cache>保存配额</button>
+              </div>
+            </form>
+            <p class="settings-caption">达到水位后按最近最少使用顺序清理，并为 SQLite 和临时文件保留安全余量。</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="dialog-scrim" hidden data-dialog="clear-cache">
+    <section class="dialog settings-dialog" role="alertdialog" aria-modal="true" aria-labelledby="clear-cache-title">
+      <h2 id="clear-cache-title">清空缩略图缓存？</h2>
+      <p>将删除所有可重建的缩略图和视频封面。下次浏览时会按需重新生成，原始媒体和索引不受影响。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+        <button class="btn btn-danger" type="button" data-confirm-clear-cache>清空缓存</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="dialog-scrim" hidden data-dialog="rebuild-cache">
+    <section class="dialog settings-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rebuild-cache-title">
+      <h2 id="rebuild-cache-title">重建全部缓存？</h2>
+      <p>这会重新生成所有缩略图和视频封面，可能持续较长时间。现有缓存会在新文件生成成功后替换，原始媒体不会被修改。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-dialog>取消</button>
+        <button class="btn btn-primary" type="button" data-confirm-rebuild-cache>开始重建</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" role="status" hidden data-toast></div>
+</body>
+</html>

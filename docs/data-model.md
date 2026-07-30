@@ -243,6 +243,20 @@ asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的
 并再次校验。取消会终止恢复，rebuild 或复核失败则应用启动失败关闭，但不得删除 `assets`
 权威索引。
 
+### FTR-UIF-001 数据影响（Contract Pending）
+
+[FTR-UIF-001](features/frontend-prototype-fidelity.md)优先复用现有 `users`、`sessions`、
+`directories`、`thumbnails` 与 `settings`：
+
+- 显示名称、password verifier 与 session/auth revision 如能满足原子改密语义，不新增账户表；
+- 目录关键字必须查询可靠 `directories` 索引；`UIF-104` 证明现有索引不足时，只追加目录
+  搜索键/索引或派生搜索结构，不在请求时遍历文件系统；
+- 缓存摘要从 thumbnail/cache owner 的权威状态聚合；只有 durable async cleanup 确实需要
+  重启恢复时才追加 cleanup run 状态，不引入通用任务中心表义。
+
+任何 schema 决定都在 `UIF-S1` 固定，并覆盖 fresh、逐版本 upgrade、失败回滚和
+`integrity_check`。已发布 migration 不得修改。
+
 ## 扫描一致性
 
 完整扫描开始时分配新 generation；分批 upsert 时更新 `last_seen_generation`。只有完整扫描成功后，才能删除更旧 generation 的目录和媒体记录。根目录离线、权限失败、任一子树无法可靠遍历、进程中断或用户取消都会使本次扫描失去清理资格。

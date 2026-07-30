@@ -147,6 +147,13 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
 
 目标：把功能构建提升为可安全安装、升级和恢复的版本。
 
+当前在 Stage 5 最终 RC 判断前插入
+[FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)。该 feature
+属于当前 MVP revision 4，按
+`UIF-S0 → S1 Contract → S2 Backend Evidence → S3 Consumer/UI → S4 Integrated`
+交付；S4 后重跑受影响的浏览器、容量、安全与 RC Gate。它不改变单容器架构，也不把任务中心、
+系统维护或 AI 带入 MVP。
+
 范围：
 
 - 完成并加固阶段 1 已建立的单管理员初始化、登录、会话、退出和 CSRF；补齐限流、代理信任、安全审计和恢复，不提供匿名局域网模式。
@@ -175,9 +182,17 @@ No-Go。`S5-008` 已完成 README/Compose/部署/备份/格式/限制校对并�
 - [FTR-SCN-001 媒体库自动发现](features/automatic-library-discovery.md)（`POST-MVP-2`
   revision 1 已冻结）：文件系统 watcher 只触发安全、定向的增量校准，完整扫描仍是正确性
   基线；WCH-S0 当前仅允许 time-boxed Linux spike 与 ADR 评审。
+- [FTR-OPS-001 后台任务中心](features/task-center.md)（`POST-MVP-3` scope proposed）：
+  统一完整扫描与可重建派生缓存的高层 run，提供有界历史、详情、取消、重试以及 missing/all
+  批次。当前只允许 S0 scope、owner 和 100k admission spike；Contract Ready 前不修改
+  OpenAPI、migration 或生产代码。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
 - 收藏、评分、历史、时间线、地图与重复检测。
 - 分享链接、多用户和细粒度授权。
+- [FTR-INT-001 智能媒体发现候选能力](features/intelligent-media-discovery.md)：OCR、AI
+  语义搜索和人脸识别保留为未排期的未来 feature。建议先评估 OCR，再评估语义搜索，最后
+  评估隐私风险最高的人脸识别；实际顺序由上线后的用户需求证据决定。三项能力默认关闭、
+  按媒体库启用、只生成可删除/可重建的派生状态，并且必须独立通过需求验证和 S0～S4 Gate。
 - 上传、备份、文件整理或任何写入原媒体的能力。
 - 多实例、外部数据库、独立 worker 或分布式队列。
 

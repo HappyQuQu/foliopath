@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>搜索"京都" — FolioPath</title>
   <meta name="description" content="FolioPath 搜索结果">
-  <link rel="stylesheet" href="styles.css">
-  <script src="theme.js"></script>
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-14">
+  <script src="theme.js?v=20260730-8"></script>
 </head>
 <body>
   <a href="#search-results" class="skip-link">跳到主要内容</a>
 
-    <header class="global-header">
+    <header class="global-header" hidden>
     <div style="display: flex; align-items: center; gap: 8px;">
       <button class="icon-btn menu-button" onclick="openSidebar()" aria-label="打开目录">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <a href="03-browse.html" class="brand">FolioPath</a>
+      <a href="03-browse.html" class="brand" aria-label="FolioPath 首页">
+        <img class="brand-mark" src="assets/foliopath-mark-tree.svg" alt="" aria-hidden="true">
+        <span class="brand-wordmark">FolioPath</span>
+      </a>
     </div>
 
     <div class="global-header-right">
@@ -26,13 +30,16 @@
       <span class="admin-badge">管理员</span>
     </div>
   </header>
-  <div class="app-layout">
-    <header class="global-header">
+  <div class="legacy-shell">
+    <header class="global-header" data-global-header>
     <div style="display: flex; align-items: center; gap: 8px;">
       <button class="icon-btn menu-button" onclick="openSidebar()" aria-label="打开目录">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <a href="03-browse.html" class="brand">FolioPath</a>
+      <a href="03-browse.html" class="brand" aria-label="FolioPath 首页">
+        <img class="brand-mark" src="assets/foliopath-mark-tree.svg" alt="" aria-hidden="true">
+        <span class="brand-wordmark">FolioPath</span>
+      </a>
     </div>
 
     <div class="global-header-right">
@@ -46,14 +53,22 @@
   <div class="app-shell" style="grid-template-columns: 1fr;">
     <div class="main-content">
 
-      <div class="page-header">
+      <div class="page-header" hidden>
         <a href="03-browse.html" class="icon-btn" aria-label="返回浏览">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </a>
       </div>
       <main>
         <div class="search-header">
-          <div class="search-input-large">
+          <div class="search-page-heading">
+            <div>
+              <h1>“京都”的搜索结果</h1>
+              <p>在家庭影像中搜索文件名、路径和目录</p>
+            </div>
+            <span style="font: var(--text-footnote); color: var(--text-tertiary);">已加载 48 项</span>
+          </div>
+
+          <div class="search-input-large" hidden>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="search" value="京都" placeholder="搜索文件名或路径…" aria-label="搜索" autofocus>
             <button class="icon-btn" aria-label="清除" style="width: 28px; height: 28px;">
@@ -77,7 +92,7 @@
 
         <!-- Results -->
         <div class="browse-content" id="search-results">
-          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
+          <div hidden style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
             <h1 style="font: var(--text-title-2); letter-spacing: var(--tracking-tight);">搜索结果</h1>
             <span style="font: var(--text-footnote); color: var(--text-tertiary);">已加载 48 项</span>
           </div>
