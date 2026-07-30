@@ -5,7 +5,8 @@
 一句话：**Stage 0～4 已 Integrated Done，Stage 5 发布加固正在进行；候选镜像、
 安全 Compose 和原生双架构验收面已经建立；本机 arm64 与指定原生 amd64 服务器
 已分别通过候选运行和升级/配对回滚，按操作者决定本轮不等待计费阻断的 amd64 CI。
-全量媒体吞吐与缓存水位已完成；真实 Firefox/读屏/移动设备、供应链和 RC Gate
+全量媒体吞吐与缓存水位以及 Chrome 151 物理 200% 缩放已完成；真实
+Firefox/读屏/触控/移动设备、供应链和 RC Gate
 仍未完成。修复来源 GLib 的本机 arm64 候选已达到 `0 Critical / 0 High`，但最终干净
 提交的原生双架构复扫、provenance 和安全/合规签署仍是明确 No-Go。**
 
@@ -260,11 +261,15 @@ cache 90%→80% 水位、持续健康与只读哨兵验证，`S5-005` 已关闭�
   - [x] `S5-006A` 建立 Chromium 日常纵向链、Firefox/WebKit 稳定状态矩阵和固定
     Linux Chromium 视觉基线；本机三引擎功能与独立 Linux 视觉复跑通过，证据见
     [浏览器质量候选 Gate](gates/MVP-2026-07-23/s5-browser-quality-candidate.md)。
-  - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome 150 normal/forced-colors 及三引擎
-    100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成读屏、缩放、触摸和视觉签署。
+  - [ ] `S5-006B` Safari 26.5.2 真机纵向链、Chrome normal/forced-colors、Chrome 151
+    物理 200% 缩放及三引擎 100k 性能已通过；仍须在真实 Firefox 与代表性物理设备完成
+    读屏、触摸、移动布局/解码、Safari/Firefox 缩放和视觉签署。
     - [x] Chromium、Firefox、WebKit、品牌 Chrome Stable 与 forced-colors 已通过
       `1280×800 @ 200%` 的 `640×400` 等效重排护栏，覆盖焦点、查看器控件、横向溢出和
       axe；该自动化不替代物理缩放、读屏或触摸签署。
+    - [x] Google Chrome `151.0.7922.71` 在物理 Mac / macOS 26.6 以原生 `200%`
+      页面缩放完成扫描、浏览、预览、Viewer、快捷键与缩放控件纵向链；只读挂载和媒体
+      SHA-256 未变，证据见 [`docs/evidence/s5-006b`](evidence/s5-006b/README.md)。
     - [ ] Mozilla 官方 Firefox 153.0.1 下载在当前网络多次断流且未形成可校验应用；
       取得真实品牌 Firefox 后重复核心纵向链。
 - [ ] `[后端]` `S5-007` 生成最终 SBOM，完成依赖漏洞、许可证和 FFmpeg 构建配置审查。

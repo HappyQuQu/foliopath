@@ -48,7 +48,7 @@
       "owner": "qa",
       "evidence": "docs/gates/MVP-2026-07-23/s5-browser-quality-candidate.md",
       "blockingConditions": [
-        "Safari 26.5.2 passed the physical Mac vertical flow, installed Chrome 150 passed normal plus forced-colors media matrices, and all five desktop automation projects passed the 200-percent equivalent reflow guard, but real branded Firefox plus physical screen-reader, browser zoom, touch, and mobile hardware sign-off are missing."
+        "Safari 26.5.2 passed the physical Mac vertical flow, installed Chrome passed normal plus forced-colors media matrices, all five desktop automation projects passed the 200-percent equivalent reflow guard, and Chrome 151 passed the native 200-percent physical-Mac vertical flow; real branded Firefox, physical screen-reader, touch and mobile hardware, Safari/Firefox zoom, media-decode, and final visual sign-off are still missing."
       ]
     },
     {
