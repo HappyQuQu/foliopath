@@ -1,97 +1,42 @@
-# Apple Redesign Shell Restoration — Design QA
+# FTR-UIF-001 设计一致性 QA
 
-## Comparison Target
+## 本轮范围
 
-- Source visual truth: `/Users/qu/Documents/GitHub/foliopath/prototypes/apple-redesign/qa/browse-after-desktop.png`
-- Implementation route: `http://127.0.0.1:18086/libraries/lib_1/browse/dir_5`
-- Before screenshot: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/04-before-full-redesign.png`
-- Final implementation screenshot: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/12-final-implementation.png`
-- Final combined comparison: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/13-final-comparison.png`
-- Browser CSS viewport: `1265 × 712`
-- Source pixels: `1265 × 712`
-- Implementation pixels: `1265 × 712`
-- Density normalization: none; source and implementation were captured at the same pixel dimensions.
-- State: Simplified Chinese, light theme, desktop browse route, one media item selected with the non-modal preview open.
+- 页面：生产 `GeneralSettingsPage` 与共享 `GlobalHeader`、`ManagementShell`。
+- 视觉真相：`prototypes/apple-redesign/qa/management-general-final.png`。
+- 桌面实现证据：`docs/evidence/uif-301/management-general-implementation.png`。
+- 桌面组合对照：`docs/evidence/uif-301/management-general-comparison.png`。
+- 移动实现证据：`docs/evidence/uif-301/management-general-mobile-390.png`。
+- 移动结构对照：`docs/evidence/uif-301/management-mobile-comparison.png`；左侧参考为同一管理壳的媒体库状态，右侧为通用设置状态，因此只比较 Header、管理导航、边距和响应式层级，不比较业务内容。
 
-## Full-view Comparison Evidence
+## 固定状态
 
-The final combined comparison restores the source design's major composition: 268px fixed sidebar, plain
-FolioPath wordmark, compact library picker with status below it, directory tree, bottom search/settings
-navigation, breadcrumb/search top bar, two-row sticky browse chrome, and a right-side non-modal preview.
+- 主题/语言：浅色、简体中文。
+- 桌面视口：1440 × 900，截图像素比 1。
+- 桌面视觉真相和实现截图均为 1440 × 900px；CSS 视口 1440 × 900、截图密度归一化为 1。
+- 移动验收档：390 CSS 宽度；内置浏览器扣除宿主框架后的内容截图与聚焦参考均为
+  375 × 812px，截图密度归一化为 1。
+- 交互状态：系统主题、跟随浏览器语言、自适应网格、默认固定预览开启、无未保存更改。
+- 数据：Storybook 使用已评审契约形状的确定性管理员会话，不进入生产 import graph。
 
-Dynamic content differs by design. The source uses a synthetic `家庭影像/京都` hierarchy with child-directory
-cards and a placeholder preview; the implementation shows the real `lib/4K风景` index, real thumbnails, and
-the selected original. These differences do not change the shell hierarchy or component styling being judged.
+## 比较历史与修复
 
-## Focused Comparison Evidence
+1. 首次比较发现内容被额外限制为窄列，且浏览偏好、保存条缺失，属于 P1 布局和功能缺口。已移除页面级最大宽度，补全四项偏好、脏状态、恢复与保存行为。
+2. 首次比较发现语言默认状态和预览开关与参考状态不一致，属于 P2 状态缺口。已加入“跟随浏览器”持久化语义，并以真实交互保存预览默认值。
+3. 移动检查发现管理导航单行横向滚动，影响层级和触摸浏览，属于 P2 响应式缺口。已改为两行自然换行。
+4. 移动检查发现 `.brand span` 同时隐藏了 `BrandMark` 内部图形，属于 P2 品牌资产缺口。已只隐藏字标并保留 28px 官方目录树标识。
+5. 通用设置原先在 feature 内维护开关样式。为保持唯一组件所有权，已抽为共享 `Switch`，并补行为测试与 Storybook 状态。
 
-The full-view combined image is sufficient for the shell, navigation, toolbar, grid, and preview proportions
-because both captures share the same 1265 × 712 viewport and all important controls are readable.
+## 最终检查
 
-- Fonts and typography: both use the product Apple-system/PingFang stack, compact UI sizes, medium navigation
-  labels, and the same heading hierarchy. Real long filenames correctly truncate.
-- Spacing and layout rhythm: fixed sidebar width, 52px top bars, compact picker, toolbar spacing, grid gutters,
-  preview split, borders, radii, and muted surfaces follow the source.
-- Colors and visual tokens: canvas, surface, border, muted text, accent-soft selection, and blue focus/selection
-  all reuse the central redesign tokens.
-- Image quality and asset fidelity: the implementation uses real indexed thumbnails and the authenticated
-  original preview. No placeholder, CSS drawing, emoji, or handcrafted SVG replaced a source asset.
-- Copy and content: shell labels match the Chinese redesign. Library, directory, counts, filenames, dates, and
-  preview details correctly come from the real API.
-- Icons: Phosphor icons retain the source's weight and size. The manual refresh is intentionally a compact icon
-  at the end of the toolbar.
-
-## Findings
-
-No actionable P0, P1, or P2 findings remain.
-
-- [P3] Product-required account control remains in the top bar.
-  - Evidence: the static source shows theme and filter controls only; production also exposes the authenticated
-    account/logout menu.
-  - Disposition: accepted because logout is a stable-release requirement and the control is visually compact.
-- [P3] Refresh icon is an intentional addition.
-  - Evidence: the static source predates WCH-S3 manual refresh.
-  - Disposition: accepted as a compact toolbar icon that does not alter the redesign hierarchy.
-
-## Comparison History
-
-### Pass 1 — blocked
-
-- Evidence: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/05-before-comparison.png`
-- [P1] Resizable oversized sidebar and branded mark changed the primary frame.
-- [P1] Search/settings navigation was removed from the sidebar and moved into unrelated top-right controls.
-- [P1] Browse toolbar grouped recursive/layout/type controls into a denser, non-source structure.
-- [P2] Library picker combined status into an oversized card instead of the compact source hierarchy.
-
-### Pass 2 — blocked
-
-- Evidence: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/08-after-comparison-pass1.png`
-- Fixed the frame, wordmark, picker hierarchy, bottom navigation, top bar, and toolbar.
-- Remaining [P2]: the active `返回浏览` self-link appeared in the browse sidebar although the source only shows
-  search and settings there.
-
-### Pass 3 — passed
-
-- Evidence: `/Users/qu/Documents/GitHub/foliopath/web/qa/redesign-regression-2026-07-29/13-final-comparison.png`
-- Removed the active browse self-link and aligned the preview width to the source state.
-- No actionable P0/P1/P2 visual mismatch remains after accounting for real-data and required-auth differences.
-
-## Interaction and Runtime Verification
-
-- Opened the production browse route against the preserved real database and desktop read-only media mount.
-- Opened a media preview and verified the docked layout.
-- Verified media type selection through the top-bar filter in component tests.
-- Verified manual refresh, directory navigation refresh, account logout semantics, mobile navigation focus, and
-  URL-bound browse state in component tests.
-- Production image rebuilt and the running application reports healthy.
-
-## Implementation Checklist
-
-- [x] Fixed redesign sidebar and bottom navigation restored.
-- [x] Breadcrumb/search top bar and compact browse toolbar restored.
-- [x] Media type filter retained in the source-style filter control.
-- [x] Manual refresh retained as a compact icon.
-- [x] Real data, preview, logout, themes, and URL state preserved.
-- [x] Same-viewport source/implementation comparison completed.
+- 布局：桌面 Header、260px 管理侧栏、内容起点、分组卡片和保存条与参考保持同一层级；没有重复 Header 或重复媒体库入口。
+- 字体与间距：标题、分区标题、行高、卡片内边距和行分隔保持参考密度；品牌字标是用户明确要求的增补。
+- 色彩与表面：使用中央语义 token；浅色背景、边框、圆角、悬浮保存条和蓝色强调与参考一致。
+- 图标与资产：使用项目唯一 `BrandMark` 和 Phosphor 图标，不包含 CSS 绘图、临时 SVG 或占位品牌。
+- 响应式：移动 Header 保留品牌图形、全局搜索和账户入口；管理导航两行换行；内容、卡片和保存操作没有页面级横向滚动。
+- 交互：已验证全局账户菜单、设置入口、退出动作、预览开关、保存及保存后无脏状态；Escape/焦点恢复由 AppShell 测试覆盖。
+- 可访问性：语义 Header、search、nav、main、label、select、`role="switch"`、可见焦点和 reduced-motion 均保留；移动目标尺寸不小于既有 token 约束。
+- 浏览器控制台：本轮桌面检查未发现页面错误。
+- 遗留：本报告只关闭通用设置和共享管理壳的 P0/P1/P2；其余生产页面仍按 `UIF-307～317` 和 `UIF-401～408` 逐页验收，不能据此宣布整个 feature 完成。
 
 final result: passed

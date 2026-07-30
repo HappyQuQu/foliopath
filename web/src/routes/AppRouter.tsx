@@ -24,7 +24,11 @@ import {
   useLibrariesQuery,
 } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
-import { GeneralSettingsPage } from "../features/settings";
+import {
+  AccountSettingsPage,
+  GeneralSettingsPage,
+  StorageSettingsPage,
+} from "../features/settings";
 import { SearchPage } from "../features/search";
 import { MediaViewerPage } from "../features/media";
 import {
@@ -52,6 +56,8 @@ export function AppRoutes() {
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
+        <Route path={paths.storageSettings} element={<ProtectedStorageRoute />} />
+        <Route path={paths.accountSettings} element={<ProtectedSettingsAccountRoute />} />
         <Route path={paths.browsePattern} element={<ProtectedBrowseRoute />} />
         <Route path={paths.mediaPattern} element={<ProtectedMediaRoute />} />
         <Route path={paths.search} element={<ProtectedSearchRoute />} />
@@ -186,6 +192,36 @@ function ProtectedAccountRoute() {
         session={sessionQuery.data}
       />
     );
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedStorageRoute() {
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return <StorageSettingsPage {...logout} session={sessionQuery.data} />;
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedSettingsAccountRoute() {
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return <AccountSettingsPage {...logout} session={sessionQuery.data} />;
   }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;

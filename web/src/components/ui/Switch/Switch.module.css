@@ -1,0 +1,50 @@
+.switch {
+  appearance: none;
+  width: 2.75rem;
+  height: 1.5rem;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-round);
+  outline: 0;
+  background: var(--color-surface-hover);
+  cursor: pointer;
+  transition:
+    background var(--motion-normal) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.switch::after {
+  content: "";
+  width: 1.25rem;
+  height: 1.25rem;
+  display: block;
+  transform: translate(0.125rem, 0.125rem);
+  border-radius: var(--radius-round);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--motion-normal) var(--ease-standard);
+}
+
+.switch:checked {
+  background: var(--color-accent);
+}
+
+.switch:checked::after {
+  transform: translate(1.375rem, 0.125rem);
+}
+
+.switch:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}

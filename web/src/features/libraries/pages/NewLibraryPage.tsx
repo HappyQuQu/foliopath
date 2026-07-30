@@ -13,7 +13,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AppShell } from "../../../components/patterns/AppShell/AppShell";
+import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
   Button,
   ErrorState,
@@ -138,16 +138,17 @@ export function NewLibraryPage({
   }
 
   return (
-    <AppShell
+    <ManagementShell
       active="libraries"
-      browseHref={paths.root}
+      accountHref={paths.accountSettings}
+      generalHref={paths.generalSettings}
+      homeHref={paths.root}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={paths.search}
-      settingsHref={paths.generalSettings}
-      title={t("newLibrary.title")}
+      storageHref={paths.storageSettings}
     >
       <section className={styles.page} aria-labelledby="new-library-title">
         <header className={styles.heading}>
@@ -285,7 +286,7 @@ export function NewLibraryPage({
           )}
         </div>
       </section>
-    </AppShell>
+    </ManagementShell>
   );
 }
 

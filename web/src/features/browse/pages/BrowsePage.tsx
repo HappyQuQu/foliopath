@@ -303,6 +303,7 @@ export function BrowsePage({
     <AppShell
       active="browse"
       browseHref={browseUrl(libraryId, directoryId, browseState)}
+      homeHref={paths.root}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}

@@ -5,7 +5,7 @@
 - Feature：[FTR-UIF-001](frontend-prototype-fidelity.md)
 - Change Record：[CR-2026-009](../changes/CR-2026-009-frontend-prototype-fidelity.md)
 - Scope：[MVP revision 4](../releases/MVP-2026-07-23-scope-r4.md)
-- 当前状态：S1 Contract Ready Go；S2 Backend Evidence Pending
+- 当前状态：S2 Backend Evidence Ready Go；Phase 3 生产前端逐页接入中
 - 强制顺序：S0 → S1 Contract → 后端 → S2 Backend Evidence → 前端 → S3 → S4
 
 只有实现、自动证据和文档同步都完成的任务才能勾选。原型完成、页面能打开、build 成功或截图
@@ -134,21 +134,32 @@ flowchart TD
 
 - [ ] `UIF-301` 建立逐页 reference manifest 和确定性截图 fixture。
 - [ ] `UIF-302` 映射字体、字号、间距、颜色、圆角、阴影、层级和动效到唯一 token。
-- [ ] `UIF-303` 实现唯一 `GlobalHeader`、全局搜索和管理员菜单。
+- [x] `UIF-303` 实现唯一 `GlobalHeader`、全局搜索和管理员菜单。
+  - 生产 `AppShell` 已统一接入正式 Logo、全局搜索、管理入口和退出；移动端只隐藏字标，
+    保留品牌图形。
 - [ ] `UIF-304` 实现唯一 `BrowseShell` 与移动目录抽屉。
-- [ ] `UIF-305` 实现唯一 `ManagementShell` 与移动横向分类条。
+- [x] `UIF-305` 实现唯一 `ManagementShell` 与移动横向分类条。
+  - 桌面使用 216～280px 自适应侧栏；390 档使用可换行分类条，无页面级横向滚动。
 - [ ] `UIF-306` 更新 Storybook 与共享组件行为、axe、键盘和视觉基线。
 
 ### 必须等待 S2 的真实页面接入
 
 - [ ] `UIF-307` 还原认证与欢迎页。
-- [ ] `UIF-308` 拆分并还原通用设置页。
+- [x] `UIF-308` 拆分并还原通用设置页。
+  - 主题、跟随浏览器语言、默认布局、默认固定预览、脏状态、恢复和保存均可操作；
+    共享 `Switch` 已进入组件工作台并有行为测试。
 - [ ] `UIF-309` 还原媒体库、新建媒体库和扫描详情页。
-- [ ] `UIF-310` 实现扫描与缓存独立页并接真实 cache 合同。
-- [ ] `UIF-311` 实现账户独立页并接真实资料/密码合同。
+- [x] `UIF-310` 实现扫描与缓存独立页并接真实 cache 合同。
+  - 独立路由读取真实 settings/cache summary，保存扫描计划与配额，并通过 CSRF 和
+    Idempotency-Key 启动有界缓存清理；活动清理轮询唯一 query owner。
+- [x] `UIF-311` 实现账户独立页并接真实资料/密码合同。
+  - 独立路由读取强 ETag，支持资料保存、当前密码验证、确认密码、改密及当前会话退出；
+    资料成功后同步唯一 auth session query。
 - [ ] `UIF-312` 还原浏览面包屑、工具栏、当前目录过滤和 URL codec。
 - [ ] `UIF-313` 修复单滚动容器、底部空白、自适应网格和预览宽度。
-- [ ] `UIF-314` 还原 Search 无侧栏、命令区、结果状态和全局搜索跳转。
+- [x] `UIF-314` 还原 Search 无侧栏、命令区、结果状态和全局搜索跳转。
+  - Search 不再渲染重复页面搜索框；全局 Header 提交查询，页面右侧命令区只保留范围、
+    类型、日期、排序和结果控制。
 - [ ] `UIF-315` 还原非模态预览与完整查看器，不复制 controller。
 - [ ] `UIF-316` 完成所有 loading/empty/offline/error/conflict/cancel/pending/success 状态。
 

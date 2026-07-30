@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  readPreviewPinnedPreference,
   readPreviewWidthPreference,
+  writePreviewPinnedPreference,
   writePreviewWidthPreference,
 } from "../../../lib/storage/preferences";
 import type { MediaCollectionHandle } from "../MediaCollection/MediaCollection";
@@ -19,7 +21,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
 }) {
   const [previewItem, setPreviewItem] = useState<T>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
-  const [pinned, setPinned] = useState(false);
+  const [pinned, setPinned] = useState(readPreviewPinnedPreference);
   const [width, setWidthState] = useState(readPreviewWidthPreference);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === "undefined" ? 1280 : window.innerWidth,
@@ -36,7 +38,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
   useEffect(() => {
     setPreviewItem(undefined);
     setSelectedItemId(undefined);
-    setPinned(false);
+    setPinned(readPreviewPinnedPreference());
   }, [resetKey]);
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
 
   function updatePinned(nextPinned: boolean) {
     setPinned(nextPinned);
+    writePreviewPinnedPreference(nextPinned);
     if (nextPinned || !selectedItemId) return;
     const selectedItem = items.find((item) => item.id === selectedItemId);
     if (selectedItem) setPreviewItem(selectedItem);
@@ -90,6 +93,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     const restoreItemId = previewItem?.id;
     setPreviewItem(undefined);
     setPinned(false);
+    writePreviewPinnedPreference(false);
     if (!restoreItemId) return;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {

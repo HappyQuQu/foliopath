@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MemoryRouter } from "react-router-dom";
 
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
+import { ToastProvider } from "../../ui/Toast/ToastProvider";
 import { AppShell } from "./AppShell";
 
 const meta = {
@@ -10,15 +11,18 @@ const meta = {
   decorators: [
     (Story) => (
       <ThemeProvider>
-        <MemoryRouter>
-          <Story />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter>
+            <Story />
+          </MemoryRouter>
+        </ToastProvider>
       </ThemeProvider>
     ),
   ],
   parameters: { layout: "fullscreen" },
   args: {
     active: "libraries",
+    homeHref: "/",
     identity: "家庭管理员",
     searchHref: "/search",
     settingsHref: "/settings/general",

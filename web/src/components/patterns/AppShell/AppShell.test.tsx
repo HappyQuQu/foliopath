@@ -16,10 +16,12 @@ it("closes mobile navigation with Escape and restores focus", async () => {
         <MemoryRouter>
           <AppShell
             active="libraries"
+            homeHref="/"
             identity="管理员"
             searchHref="/search"
             settingsHref="/settings/general"
             sidebarContent={<div>目录</div>}
+            topbarContent={<div>当前位置</div>}
             title="媒体库"
           >
             <h1>内容</h1>
@@ -41,7 +43,8 @@ it("closes mobile navigation with Escape and restores focus", async () => {
   expect(openButton).toHaveFocus();
 });
 
-it("keeps the directory sidebar with redesign navigation at the bottom", () => {
+it("keeps the directory sidebar without duplicate product navigation", async () => {
+  const user = userEvent.setup();
   render(
     <ThemeProvider>
       <ToastProvider>
@@ -49,6 +52,7 @@ it("keeps the directory sidebar with redesign navigation at the bottom", () => {
           <AppShell
             active="browse"
             browseHref="/libraries/lib_1/browse"
+            homeHref="/"
             identity="管理员"
             searchHref="/search"
             settingsHref="/settings/general"
@@ -67,17 +71,16 @@ it("keeps the directory sidebar with redesign navigation at the bottom", () => {
   expect(
     screen.queryByRole("link", { name: "返回浏览" }),
   ).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "搜索" })).toHaveAttribute(
-    "href",
-    "/search",
-  );
-  expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute(
+  expect(screen.getByRole("searchbox")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "管理员的账户菜单" }));
+  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
     "href",
     "/settings/general",
   );
 });
 
-it("shows contextual routes back to browse and search from settings", () => {
+it("uses only the global header on pages without a directory sidebar", async () => {
+  const user = userEvent.setup();
   render(
     <ThemeProvider>
       <ToastProvider>
@@ -85,6 +88,7 @@ it("shows contextual routes back to browse and search from settings", () => {
           <AppShell
             active="settings"
             browseHref="/libraries/lib_1/browse"
+            homeHref="/"
             identity="管理员"
             searchHref="/libraries/lib_1/search"
             settingsHref="/settings/general?libraryId=lib_1"
@@ -97,18 +101,17 @@ it("shows contextual routes back to browse and search from settings", () => {
     </ThemeProvider>,
   );
 
-  expect(screen.getByRole("link", { name: "返回浏览" })).toHaveAttribute(
+  expect(screen.queryByRole("link", { name: "返回浏览" })).not.toBeInTheDocument();
+  expect(screen.getByRole("searchbox")).toBeVisible();
+  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "管理员的账户菜单" }));
+  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
     "href",
-    "/libraries/lib_1/browse",
+    "/settings/general?libraryId=lib_1",
   );
-  expect(screen.getByRole("link", { name: "搜索" })).toHaveAttribute(
-    "href",
-    "/libraries/lib_1/search",
-  );
-  expect(screen.queryByRole("link", { name: "设置" })).not.toBeInTheDocument();
 });
 
-it("places the account after theme and supports direct logout", async () => {
+it("opens the global account menu and supports direct logout", async () => {
   const user = userEvent.setup();
   const onLogout = vi.fn().mockResolvedValue(undefined);
 
@@ -118,8 +121,10 @@ it("places the account after theme and supports direct logout", async () => {
         <MemoryRouter>
           <AppShell
             active="browse"
+            homeHref="/"
             identity="管理员"
             onLogout={onLogout}
+            searchHref="/search"
             settingsHref="/settings/general"
             title="浏览"
           >
@@ -130,11 +135,7 @@ it("places the account after theme and supports direct logout", async () => {
     </ThemeProvider>,
   );
 
-  const theme = screen.getByRole("button", { name: "切换到深色主题" });
   const account = screen.getByRole("button", { name: "管理员的账户菜单" });
-  expect(
-    theme.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
 
   await user.click(account);
   await user.click(screen.getByRole("menuitem", { name: "退出登录" }));
@@ -149,7 +150,9 @@ it("uses the fixed redesign sidebar without a resize control", () => {
         <MemoryRouter>
           <AppShell
             active="browse"
+            homeHref="/"
             identity="管理员"
+            searchHref="/search"
             settingsHref="/settings/general"
             sidebarContent={<div>目录</div>}
             title="浏览"
@@ -161,6 +164,8 @@ it("uses the fixed redesign sidebar without a resize control", () => {
     </ThemeProvider>,
   );
 
-  expect(screen.getByRole("complementary", { name: "主导航" })).toBeVisible();
+  expect(
+    screen.getByRole("complementary", { name: "媒体库和目录" }),
+  ).toBeVisible();
   expect(screen.queryByRole("separator")).not.toBeInTheDocument();
 });

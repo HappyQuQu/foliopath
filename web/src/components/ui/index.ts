@@ -19,6 +19,7 @@ export {
 export { LocaleSelect } from "./LocaleSelect/LocaleSelect";
 export { PanelResizer } from "./PanelResizer/PanelResizer";
 export { SearchInput, type SearchInputProps } from "./SearchInput/SearchInput";
+export { Switch, type SwitchProps } from "./Switch/Switch";
 export { ThemeToggle } from "./ThemeToggle/ThemeToggle";
 export {
   ToastProvider,

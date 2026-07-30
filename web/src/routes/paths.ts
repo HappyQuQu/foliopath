@@ -23,6 +23,8 @@ export const paths = {
   },
   mediaPattern: "/libraries/:libraryId/media/:assetId",
   generalSettings: "/settings/general",
+  storageSettings: "/settings/storage",
+  accountSettings: "/settings/account",
   generalSettingsForLibrary: (libraryId: string) =>
     `/settings/general?${new URLSearchParams({ libraryId }).toString()}`,
   unavailable: "/system/unavailable",

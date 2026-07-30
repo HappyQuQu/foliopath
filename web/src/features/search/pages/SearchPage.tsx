@@ -7,10 +7,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   type CSSProperties,
-  type FormEvent,
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -32,7 +30,6 @@ import {
   ErrorState,
   InlineStatus,
   OfflineState,
-  SearchInput,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { assetContentUrl, type Asset } from "../../../lib/api/catalog";
@@ -88,9 +85,7 @@ export function SearchPage({
     () => parseSearchUrlState(searchParams, libraryId),
     [libraryId, searchParams],
   );
-  const [draft, setDraft] = useState(state.q);
   const [refreshPending, setRefreshPending] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const layout = useState<MediaLayoutPreference>(
     readMediaLayoutPreference,
   )[0];
@@ -148,8 +143,6 @@ export function SearchPage({
     }
   }, [canonicalSearch, searchParams, setSearchParams]);
 
-  useEffect(() => setDraft(state.q), [state.q]);
-
   useEffect(() => {
     const returnState = readViewerReturnState(location.state);
     if (
@@ -167,16 +160,6 @@ export function SearchPage({
 
   function updateState(next: SearchUrlState) {
     setSearchParams(serializeSearchUrlState(next));
-  }
-
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const q = draft.trim();
-    if (!q) {
-      inputRef.current?.focus();
-      return;
-    }
-    updateState({ ...state, q });
   }
 
   function clearFilters() {
@@ -202,6 +185,7 @@ export function SearchPage({
     <AppShell
       active="search"
       browseHref={libraryId ? paths.browse(libraryId) : paths.root}
+      homeHref={paths.root}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
@@ -223,15 +207,6 @@ export function SearchPage({
         </header>
 
         <div className={styles.command}>
-          <SearchInput
-            ref={inputRef}
-            label={t("search.inputLabel")}
-            onChange={(event) => setDraft(event.target.value)}
-            onSubmit={submitSearch}
-            placeholder={t("search.placeholder")}
-            submitLabel={t("search.submit")}
-            value={draft}
-          />
           <SearchFilters
             canUseDirectory={Boolean(state.directoryId)}
             hasLibrary={Boolean(libraryId)}
@@ -304,7 +279,13 @@ export function SearchPage({
                       {t("search.clearFilters")}
                     </Button>
                   ) : (
-                    <Button onClick={() => inputRef.current?.focus()}>
+                    <Button
+                      onClick={() =>
+                        document.querySelector<HTMLInputElement>(
+                          "#global-search",
+                        )?.focus()
+                      }
+                    >
                       {t("search.editQuery")}
                     </Button>
                   )

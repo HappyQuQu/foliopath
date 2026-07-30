@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import {
+  clearLocalePreference,
   readLocalePreference,
   writeLocalePreference,
   type LocalePreference,
@@ -15,6 +16,29 @@ import {
 
 const zhCN = {
   "account.account": "账户",
+  "account.administrator": "管理员",
+  "account.changePassword": "修改密码",
+  "account.confirmPassword": "确认新密码",
+  "account.currentPassword": "当前密码",
+  "account.currentSession": "当前会话",
+  "account.loadFailed": "暂时无法读取管理员账户。",
+  "account.loading": "正在载入管理员账户…",
+  "account.newPassword": "新密码",
+  "account.pageDescription": "管理唯一管理员的显示信息、密码和当前登录会话。",
+  "account.passwordCaption": "保存后当前会话继续有效，其他会话需要重新登录。",
+  "account.passwordFailed": "密码没有更新，请检查当前密码后重试。",
+  "account.passwordMismatch": "两次输入的新密码不一致。",
+  "account.passwordRule": "至少 8 个 Unicode 字符，不强制组合规则。",
+  "account.passwordSaved": "管理员密码已更新。",
+  "account.passwordTooShort": "新密码至少需要 8 个字符。",
+  "account.profile": "管理员资料",
+  "account.profileCaption": "用户名是登录标识，首个稳定版保持不变。",
+  "account.profileSaved": "管理员资料已保存。",
+  "account.saveProfile": "保存资料",
+  "account.sessionActive": "当前活动 · 此浏览器",
+  "account.thisBrowser": "此浏览器",
+  "account.updatePassword": "更新密码",
+  "account.usernameImmutable": "首个稳定版不支持修改管理员用户名。",
   "account.appearance": "外观",
   "account.appearanceLanguage": "外观与语言",
   "account.description": "管理当前管理员会话与界面外观。",
@@ -47,6 +71,37 @@ const zhCN = {
   "auth.unknownFailure": "操作没有完成，请稍后重试。",
   "auth.unavailable": "暂时无法完成操作，请稍后重试。",
   "auth.username": "用户名",
+  "cache.available": "可用空间",
+  "cache.cleanupRunning": "正在清理可重建缓存，完成前可以离开此页面。",
+  "cache.cleanupStarted": "缓存清理已开始。",
+  "cache.clear": "清空可重建缓存",
+  "cache.clearDescription": "只会删除缩略图和视频封面；下次浏览时按需重建，原始媒体和可靠索引不受影响。",
+  "cache.clearTitle": "清空缩略图缓存？",
+  "cache.confirmClear": "清空缓存",
+  "cache.loadFailed": "暂时无法读取扫描与缓存状态。",
+  "cache.overview": "运行概览",
+  "cache.pageDescription": "管理扫描计划和可重建派生缓存；失败不会清理最后可靠索引。",
+  "cache.quota": "缓存配额",
+  "cache.scanSchedule": "扫描计划",
+  "cache.scanTasks": "媒体库扫描状态",
+  "cache.noLibraries": "尚未添加媒体库。请先在“媒体库”页面创建一个。",
+  "cache.thumbnailCache": "缩略图缓存",
+  "cache.usage": "缓存使用量",
+  "general.browsePreferences": "浏览偏好",
+  "general.defaultLayout": "默认布局",
+  "general.defaultLayoutDescription": "新打开目录时采用的媒体排列方式。",
+  "general.defaultPreview": "默认固定预览",
+  "general.defaultPreviewDescription": "在桌面浏览页打开时保持右侧预览面板。",
+  "general.languageBrowser": "跟随浏览器",
+  "general.description": "调整界面显示和浏览偏好。更改只影响当前 FolioPath 管理员。",
+  "general.themeDark": "深色",
+  "general.themeDescription": "跟随系统，或固定使用浅色、深色外观。",
+  "general.themeLight": "浅色",
+  "general.themeSystem": "跟随系统",
+  "general.noChanges": "没有未保存的更改",
+  "general.restore": "恢复已保存值",
+  "general.save": "保存更改",
+  "general.unsaved": "有未保存的更改",
   "browse.allMedia": "全部媒体",
   "browse.activatePreview": "预览 {name}",
   "browse.breadcrumbs": "目录位置",
@@ -199,6 +254,9 @@ const zhCN = {
   "libraries.statusReady": "可用",
   "libraries.statusScanning": "扫描中",
   "libraries.title": "媒体库",
+  "management.general": "通用",
+  "management.navigation": "管理中心导航",
+  "management.title": "管理中心",
   "libraries.viewStatus": "查看状态",
   "libraries.welcomeEyebrow": "开始整理",
   "newLibrary.back": "上一步",
@@ -343,6 +401,7 @@ const zhCN = {
   "search.emptyTitle": "没有搜索结果",
   "search.failed": "搜索请求没有完成，当前查询和筛选仍然保留。",
   "search.filters": "搜索筛选",
+  "search.globalPlaceholder": "搜索全部照片和视频",
   "search.heading": "搜索媒体",
   "search.includeChildren": "包含子目录",
   "search.inputLabel": "搜索文件名或路径",
@@ -433,6 +492,29 @@ export type Locale = LocalePreference;
 
 const en: Record<MessageKey, string> = {
   "account.account": "Account",
+  "account.administrator": "Administrator",
+  "account.changePassword": "Change password",
+  "account.confirmPassword": "Confirm new password",
+  "account.currentPassword": "Current password",
+  "account.currentSession": "Current session",
+  "account.loadFailed": "The administrator account could not be loaded.",
+  "account.loading": "Loading administrator account…",
+  "account.newPassword": "New password",
+  "account.pageDescription": "Manage the only administrator's profile, password, and current session.",
+  "account.passwordCaption": "The current session remains active; all other sessions must sign in again.",
+  "account.passwordFailed": "The password was not updated. Check the current password and try again.",
+  "account.passwordMismatch": "The new passwords do not match.",
+  "account.passwordRule": "Use at least 8 Unicode characters. No composition rule is required.",
+  "account.passwordSaved": "Administrator password updated.",
+  "account.passwordTooShort": "The new password must have at least 8 characters.",
+  "account.profile": "Administrator profile",
+  "account.profileCaption": "The username is the sign-in identity and remains immutable in the first stable release.",
+  "account.profileSaved": "Administrator profile saved.",
+  "account.saveProfile": "Save profile",
+  "account.sessionActive": "Active now · This browser",
+  "account.thisBrowser": "This browser",
+  "account.updatePassword": "Update password",
+  "account.usernameImmutable": "Changing the administrator username is not supported in the first stable release.",
   "account.appearance": "Appearance",
   "account.appearanceLanguage": "Appearance and language",
   "account.description": "Manage the current administrator session and interface appearance.",
@@ -465,6 +547,37 @@ const en: Record<MessageKey, string> = {
   "auth.unknownFailure": "The operation did not complete. Please try again.",
   "auth.unavailable": "Unable to complete the operation right now. Please try again.",
   "auth.username": "Username",
+  "cache.available": "Available space",
+  "cache.cleanupRunning": "Reconstructible cache cleanup is running. You can leave this page.",
+  "cache.cleanupStarted": "Cache cleanup started.",
+  "cache.clear": "Clear reconstructible cache",
+  "cache.clearDescription": "Only thumbnails and video posters are removed. They are rebuilt on demand; original media and the reliable index are unchanged.",
+  "cache.clearTitle": "Clear thumbnail cache?",
+  "cache.confirmClear": "Clear cache",
+  "cache.loadFailed": "Scanning and cache status could not be loaded.",
+  "cache.overview": "Runtime overview",
+  "cache.pageDescription": "Manage scan scheduling and reconstructible derived cache. Failures preserve the last reliable index.",
+  "cache.quota": "Cache quota",
+  "cache.scanSchedule": "Scan schedule",
+  "cache.scanTasks": "Library scan status",
+  "cache.noLibraries": "No libraries have been added. Create one from Libraries first.",
+  "cache.thumbnailCache": "Thumbnail cache",
+  "cache.usage": "Cache usage",
+  "general.browsePreferences": "Browse preferences",
+  "general.defaultLayout": "Default layout",
+  "general.defaultLayoutDescription": "Choose the media arrangement used when opening a directory.",
+  "general.defaultPreview": "Pin preview by default",
+  "general.defaultPreviewDescription": "Keep the right preview panel pinned when browsing on desktop.",
+  "general.languageBrowser": "Browser language",
+  "general.description": "Adjust interface and browsing preferences for the current FolioPath administrator.",
+  "general.themeDark": "Dark",
+  "general.themeDescription": "Follow the system or always use the light or dark appearance.",
+  "general.themeLight": "Light",
+  "general.themeSystem": "System",
+  "general.noChanges": "No unsaved changes",
+  "general.restore": "Restore saved values",
+  "general.save": "Save changes",
+  "general.unsaved": "Unsaved changes",
   "browse.allMedia": "All media",
   "browse.activatePreview": "Preview {name}",
   "browse.breadcrumbs": "Directory location",
@@ -618,6 +731,9 @@ const en: Record<MessageKey, string> = {
   "libraries.statusReady": "Available",
   "libraries.statusScanning": "Scanning",
   "libraries.title": "Libraries",
+  "management.general": "General",
+  "management.navigation": "Management center navigation",
+  "management.title": "Management Center",
   "libraries.viewStatus": "View status",
   "libraries.welcomeEyebrow": "Get started",
   "newLibrary.back": "Back",
@@ -764,6 +880,7 @@ const en: Record<MessageKey, string> = {
   "search.emptyTitle": "No search results",
   "search.failed": "The search did not finish. Your current query and filters are still preserved.",
   "search.filters": "Search filters",
+  "search.globalPlaceholder": "Search all photos and videos",
   "search.heading": "Search media",
   "search.includeChildren": "Include subdirectories",
   "search.inputLabel": "Search filenames or paths",
@@ -851,13 +968,17 @@ const en: Record<MessageKey, string> = {
 
 interface LocaleContextValue {
   locale: Locale;
+  localePreference: LocalePreference | "browser";
   setLocale: (locale: Locale) => void;
+  setLocalePreference: (locale: LocalePreference | "browser") => void;
   t: (key: MessageKey) => string;
 }
 
 const LocaleContext = createContext<LocaleContextValue>({
   locale: "zh-CN",
+  localePreference: "browser",
   setLocale: () => undefined,
+  setLocalePreference: () => undefined,
   t: (key) => zhCN[key],
 });
 
@@ -878,6 +999,9 @@ export function translate(locale: Locale, key: MessageKey): string {
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(applyInitialLocale);
+  const [localePreference, setLocalePreferenceState] = useState<
+    LocalePreference | "browser"
+  >(() => readLocalePreference() ?? "browser");
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -886,13 +1010,25 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
+      localePreference,
       setLocale: (nextLocale) => {
         writeLocalePreference(nextLocale);
+        setLocalePreferenceState(nextLocale);
         setLocaleState(nextLocale);
+      },
+      setLocalePreference: (nextPreference) => {
+        setLocalePreferenceState(nextPreference);
+        if (nextPreference === "browser") {
+          clearLocalePreference();
+          setLocaleState(detectBrowserLocale());
+          return;
+        }
+        writeLocalePreference(nextPreference);
+        setLocaleState(nextPreference);
       },
       t: (key) => translate(locale, key),
     }),
-    [locale],
+    [locale, localePreference],
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

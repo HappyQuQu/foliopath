@@ -125,11 +125,11 @@ it("restores a library search and exposes the source library and directory", asy
   expect(
     screen.getByRole("link", { name: "家庭影像 · 旅行/日本" }),
   ).toHaveAttribute("href", "/libraries/lib_family/browse/dir_japan");
-  expect(screen.getByRole("link", { name: "返回浏览" })).toHaveAttribute(
-    "href",
-    "/libraries/lib_family/browse",
+  expect(screen.queryByRole("link", { name: "返回浏览" })).not.toBeInTheDocument();
+  await userEvent.setup().click(
+    screen.getByRole("button", { name: "家庭管理员的账户菜单" }),
   );
-  expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute(
+  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
     "href",
     "/settings/general?libraryId=lib_family",
   );

@@ -7,6 +7,7 @@ export type MediaLayoutPreference = "grid" | "masonry";
 interface Preferences {
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
+  previewPinned?: boolean;
   previewWidth?: number;
   sidebarWidth?: number;
   theme?: ThemePreference;
@@ -50,6 +51,11 @@ export function writeLocalePreference(locale: LocalePreference): void {
   writePreferences({ ...readPreferences(), locale });
 }
 
+export function clearLocalePreference(): void {
+  const { locale: _locale, ...preferences } = readPreferences();
+  writePreferences(preferences);
+}
+
 export function readMediaLayoutPreference(): MediaLayoutPreference {
   const layout = readPreferences().mediaLayout;
   return layout === "masonry" ? "masonry" : "grid";
@@ -59,6 +65,14 @@ export function writeMediaLayoutPreference(
   mediaLayout: MediaLayoutPreference,
 ): void {
   writePreferences({ ...readPreferences(), mediaLayout });
+}
+
+export function readPreviewPinnedPreference(): boolean {
+  return readPreferences().previewPinned === true;
+}
+
+export function writePreviewPinnedPreference(previewPinned: boolean): void {
+  writePreferences({ ...readPreferences(), previewPinned });
 }
 
 function readWidthPreference(

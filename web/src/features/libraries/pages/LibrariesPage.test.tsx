@@ -53,7 +53,8 @@ it("uses the library action as the only browse navigation after indexing", async
 
   expect(await screen.findByRole("button", { name: "浏览" })).toBeVisible();
   expect(screen.queryByRole("link", { name: "浏览" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "返回浏览" })).toHaveAttribute(
+  expect(screen.queryByRole("link", { name: "返回浏览" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "FolioPath" })).toHaveAttribute(
     "href",
     "/",
   );

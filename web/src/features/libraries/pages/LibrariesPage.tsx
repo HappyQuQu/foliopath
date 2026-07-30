@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AppShell } from "../../../components/patterns/AppShell/AppShell";
+import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
   Button,
   Dialog,
@@ -70,16 +70,17 @@ export function LibrariesPage({
     [query.data],
   );
   return (
-    <AppShell
+    <ManagementShell
       active="libraries"
-      browseHref={paths.root}
+      accountHref={paths.accountSettings}
+      generalHref={paths.generalSettings}
+      homeHref={paths.root}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={paths.search}
-      settingsHref={paths.generalSettings}
-      title={t("libraries.title")}
+      storageHref={paths.storageSettings}
     >
       {query.isPending && <LoadingLibraries />}
       {query.isError && (
@@ -95,7 +96,7 @@ export function LibrariesPage({
           session={session}
         />
       )}
-    </AppShell>
+    </ManagementShell>
   );
 }
 

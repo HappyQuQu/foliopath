@@ -7,7 +7,7 @@ import {
 import { useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { AppShell } from "../../../components/patterns/AppShell/AppShell";
+import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
   Button,
   ErrorState,
@@ -62,16 +62,17 @@ export function ScanStatusPage({
   const { refetch: refreshScan } = scanQuery;
 
   return (
-    <AppShell
+    <ManagementShell
       active="libraries"
-      browseHref={paths.root}
+      accountHref={paths.accountSettings}
+      generalHref={paths.generalSettings}
+      homeHref={paths.root}
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
       searchHref={paths.search}
-      settingsHref={paths.generalSettings}
-      title={t("scan.pageTitle")}
+      storageHref={paths.storageSettings}
     >
       <section className={styles.page} aria-labelledby="scan-title">
         <header className={styles.heading}>
@@ -116,7 +117,7 @@ export function ScanStatusPage({
           />
         )}
       </section>
-    </AppShell>
+    </ManagementShell>
   );
 }
 

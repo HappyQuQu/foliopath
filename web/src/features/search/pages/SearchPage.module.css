@@ -33,7 +33,9 @@
 }
 
 .command {
-  display: grid;
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
   gap: var(--space-4);
   padding-top: var(--space-5);
   padding-bottom: var(--space-5);
@@ -43,6 +45,7 @@
 }
 
 .filters {
+  width: min(100%, 52rem);
   display: flex;
   align-items: end;
   gap: var(--space-3);
@@ -167,10 +170,15 @@
   }
 
   .filters {
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .command {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 36rem) {
