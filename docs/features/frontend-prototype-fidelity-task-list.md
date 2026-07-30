@@ -249,6 +249,10 @@ flowchart TD
   - `FOLIOPATH_E2E_SUITE=chromium tests/e2e/web_auth.sh`：
     `6 passed / 3 applicable skips`，证据见
     [`docs/evidence/uif-403`](../evidence/uif-403/README.md)。
+  - 2026-07-30 真实 21,391 项媒体库复验发现“图片”筛选把 `image,animated` 错误
+    序列化为重复 `kind` 参数并触发 400；唯一 HTTP client 已按冻结
+    `KindFilterParameter` 的 `form / explode: false` 合同统一数组序列化，回归测试固定
+    逗号分隔请求，修复镜像在递归目录中正常载入首批 50 张图片且 `/library` 保持只读。
 
 - [x] `UIF-404` 完成 Firefox、WebKit、Chromium、axe、键盘、触摸、forced-colors、
   reduced-motion 和物理辅助功能适用复验。
