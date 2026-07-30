@@ -250,8 +250,16 @@ flowchart TD
     `6 passed / 3 applicable skips`，证据见
     [`docs/evidence/uif-403`](../evidence/uif-403/README.md)。
 
-- [ ] `UIF-404` 完成 Firefox、WebKit、Chromium、axe、键盘、触摸、forced-colors、
+- [x] `UIF-404` 完成 Firefox、WebKit、Chromium、axe、键盘、触摸、forced-colors、
   reduced-motion 和物理辅助功能适用复验。
+  - Chromium/移动 Chromium `6 passed / 3 applicability skips`；
+    Firefox/WebKit `4 passed / 13 applicability or platform skips`；
+    Chrome Stable/forced-colors `4 passed / 2 applicability skips`。
+  - axe serious/critical、键盘与焦点、Pixel 5 touch、Chrome forced-colors、
+    storyboard reduced-motion 和三引擎降级状态均已通过，证据见
+    [`docs/evidence/uif-404`](../evidence/uif-404/README.md)。
+  - 自动化不冒充物理辅助功能签署：真实 Firefox、读屏、200%/400% 缩放、物理
+    OS 高对比和代表性触摸/移动设备继续由 `S5-006B` 阻断。
 
 - [ ] `UIF-405` 完成 100k/10k 前端容量、滚动、DOM、FPS/RSS 和后端并发复验。
 

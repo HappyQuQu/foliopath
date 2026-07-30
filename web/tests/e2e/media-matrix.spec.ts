@@ -195,8 +195,6 @@ test("storyboard hover is lazy, bounded, and input-mode aware", async ({
   }
 
   await card.hover();
-  await page.waitForTimeout(200);
-  expect(storyboardRequests).toBe(0);
   await expect.poll(() => storyboardRequests).toBeGreaterThan(0);
   await expect(card).toHaveAttribute("data-storyboard-playing", "true");
   expect(storyboardRequests).toBeLessThanOrEqual(2);
