@@ -6,7 +6,8 @@
 [UIF-S0 Architecture Ready](gates/MVP-2026-07-23/uif-s0-architecture-ready.md)与
 [UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)、
 [UIF-S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)，授权
-`UIF-401～408` 逐页比较、真实纵向集成和发布前复验。账户维护、直接子目录 `q`
+`UIF-401～408` 逐页比较、真实纵向集成和发布前复验；其中 `UIF-401～402` 已完成，
+当前进入 `UIF-403` 真实纵向链。账户维护、直接子目录 `q`
 和缓存清理已通过生成 client 接入；完整执行顺序见
 [专用任务清单](features/frontend-prototype-fidelity-task-list.md)。
 

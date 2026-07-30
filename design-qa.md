@@ -1,92 +1,79 @@
-# UIF-401 Design QA
+# UIF-402 Design QA
 
 ## Comparison target
 
-- Canonical page list: `web/qa/visual-reference-manifest.json`.
-- Latest prototype sources: the twelve mapped pages under
+- Prototype/source authority:
+  `web/qa/visual-reference-manifest.json` and the twelve latest pages under
   `prototypes/apple-redesign`.
-- Production implementation: the corresponding React routes rendered against
-  a real administrator session, a temporary read-only synthetic media library,
-  completed scans, catalog/search responses, previews, and original media.
-- Combined artifact: `docs/evidence/uif-401/index.html`.
-- Raw and combined evidence:
-  `docs/evidence/uif-401/source`,
-  `docs/evidence/uif-401/implementation`, and
-  `docs/evidence/uif-401/comparison`.
+- Same-state source/production comparison:
+  `docs/evidence/uif-401/index.html`.
+- Regression implementation:
+  `web/tests/e2e/visual-regression.spec.ts`.
+- Linux baseline inventory and reproduction record:
+  `docs/evidence/uif-402/README.md`.
 
-## Normalization
+UIF-401 remains the visual source comparison. UIF-402 does not reinterpret the
+prototype or accept new functionality; it turns the approved current MVP
+regions into stable regression assets.
 
-- Every raw capture used the same in-app-browser `1280 × 720` CSS viewport,
-  Simplified Chinese locale, and dark theme.
-- A scrolling document reserves a 15px browser scrollbar gutter, so the raw PNG
-  may be `1265 × 712`; non-scrolling captures are `1280 × 720`. This is a
-  browser raster boundary, not a different CSS viewport.
-- The combined artifact applies one equal review scale to both raw images. It
-  does not crop either page; the original PNGs remain available for 1:1 review.
-- Browse was normalized to the Kyoto directory with five child directories,
-  four direct images, and an open preview. Search was normalized to the same
-  “Kyoto” indexed-path result set.
-- `auth-setup`, `library-new`, and `library-status` inherit an approved
-  page-family prototype but are independent production routes by accepted
-  requirement. Their review compares the inherited shell, hierarchy, spacing,
-  components, and safety language rather than pretending a dialog and a
-  navigable route are the same DOM.
+## Captured states
 
-## Findings and fixes
+- One canonical global Header.
+- Management Center: General, Libraries, Scanning and cache, Account.
+- Browse: top, document bottom, and open right-side preview.
+- Search: populated current-library result state.
+- Viewer: available image and preserved offline-source state.
 
-- No actionable P0, P1, or P2 difference remains inside the frozen MVP scope.
-- The login comparison exposed a real geometry drift: production used a 420px
-  card and 56px mark with left-aligned hierarchy while the prototype used a
-  460px card, 64px mark, centered heading hierarchy, and tighter vertical
-  padding. The central auth tokens and canonical Auth page styles now match the
-  prototype values; login and first-administrator setup consume the same fix.
-- Browse initially compared different folders and media counts. The production
-  evidence was regenerated from a read-only synthetic Kyoto tree with the same
-  folder/media/preview state, preventing content differences from being
-  misreported as layout findings.
-- General settings, the management shell, global Header, Browse, Search, and
-  Viewer retain the accepted shared token, radius, typography, icon, and
-  responsive patterns. No placeholder logo, emoji, CSS drawing, or handwritten
-  SVG replaces a visible source asset.
-- The latest Storage prototype also shows task center, missing-cache backfill,
-  full rebuild, and maintenance concepts. Those controls are explicitly outside
-  `FTR-UIF-001` and remain governed by the Post-MVP task-center/system-
-  maintenance records. Production correctly exposes only the real scan,
-  settings, cache-summary, and bounded cleanup contracts; no mock or fake
-  success was added for visual similarity.
+Every new capture uses a fixed Linux Chromium environment at `1280 × 800`,
+English, dark theme, and reduced motion. The authenticated account, library,
+directory tree, settings, cache, media metadata, ETags, dates, counts, and
+synthetic media bytes are deterministic.
 
-## Comparison history
+## Combined visual review
 
-1. UIF-301 established the central visual foundation, shared Header, management
-   shell, and navigation ownership.
-2. UIF-312 closed Browse current-directory filter placement and the top/middle/
-   bottom blank-space defect.
-3. UIF-315 closed Viewer desktop/mobile composition and interaction findings.
-4. UIF-316 and UIF-317 closed shared async-state, locale, theme, breakpoint,
-   contrast, long-name overflow, and duplicate-submit findings.
-5. UIF-401 captured all twelve manifest pages in one browser viewport. The
-   first pass found the auth geometry drift and a non-equivalent Browse fixture;
-   both were corrected and the affected combined images were regenerated.
+The UIF-401 source captures and UIF-402 baselines were reviewed together at one
+equal scale for General, Libraries, Storage, Account, Browse, Search, and
+Viewer. The expected language and viewport-height differences do not change the
+shared composition:
 
-## Browser verification
+- the same global Header remains the only top-level Header;
+- management navigation remains one non-duplicated left rail with four
+  independent routes;
+- Browse keeps the filter on the right, the directory hierarchy on the left,
+  a single vertical document scroll, and the preview in the right workspace;
+- Search remains a dedicated result page entered from the global search;
+- Viewer keeps the approved full-screen toolbar, media stage, close,
+  previous/next, fit/zoom/1:1, fullscreen, and information behavior.
 
-- Comparison artifact:
-  `http://127.0.0.1:4175/docs/evidence/uif-401/index.html`.
-- Production routes: `http://127.0.0.1:4174`.
-- Prototype routes: `http://127.0.0.1:4173`.
-- Verified flows: first administrator setup, first-run empty library, three-step
-  library creation, real scan completion/status, four management routes,
-  directory traversal, preview, indexed path search, full Viewer, logout, and
-  login.
-- Original media remained on the temporary read-only mount. No production
-  screenshot depends on a static replacement page or localStorage business
-  success.
+No visible P0, P1, or P2 regression was found. No placeholder logo, emoji, CSS
+drawing, handwritten SVG, or mock-only production control was introduced.
 
-## Follow-up polish
+## Stability controls
 
-- No P3 item is deferred from UIF-401.
-- UIF-402 owns the Linux screenshot baselines for Header, four management
-  pages, Browse top/bottom, Search, preview, and Viewer. UIF-401 does not
-  pre-accept those future baseline files.
+- All API responses are intercepted at the real generated-client HTTP boundary;
+  feature code is not altered to consume test-only state.
+- The committed `tests/fixtures/media/viewer-blue-violet.png` is used for
+  thumbnails and original-image responses.
+- Image completion, decode, and paint frames are awaited before capture.
+- The preview selection/focus transition is allowed to settle before capture.
+- No screenshot mask is used.
+- Baselines were generated in Linux, then the full visual file was run again
+  without `--update-snapshots`: `9 passed`.
+
+## Scope guard
+
+The latest prototype Storage page still contains Post-MVP task-center,
+missing-cache backfill, full rebuild, and maintenance concepts. UIF-402 does
+not add those unsupported controls to production. Their contracts and delivery
+remain governed by the separate Post-MVP feature records, so visual fidelity
+does not create false backend capability.
+
+## Follow-up
+
+- UIF-403 owns the complete real backend vertical chain.
+- UIF-404 owns the release browser/accessibility matrix.
+- UIF-405 owns candidate 100k/10k capacity evidence.
+- UIF-406～408 own full repository verification, documentation convergence, and
+  Integrated Slice sign-off.
 
 final result: passed

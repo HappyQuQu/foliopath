@@ -286,7 +286,11 @@ S3 同时通过双语双主题四档、键盘/触摸、axe、forced-colors/reduc
 下渲染为原型截图、真实生产路由截图和逐页组合比较；证据与比较历史保存在
 [`docs/evidence/uif-401`](evidence/uif-401/README.md)。原型中明确属于 Post-MVP 的任务中心、
 缺失缓存补齐、全部重建和系统维护不计作当前生产缺失，也不得用静态控件或 mock 补齐；
-`UIF-402` 继续把当前 MVP 页面区域转成 Linux-owned 稳定基线。
+`UIF-402` 已把当前 MVP 页面区域转成 11 张 Linux-owned 稳定基线：单一 Header、管理四页、
+Browse 顶部/底部/预览、Search、可用图片 Viewer 和既有离线 Viewer。测试固定
+`1280 × 800`、English、dark、reduced-motion、认证/媒体合同与仓库 synthetic image，
+不遮罩任何动态区域；Linux 生成后无更新复跑 `9 passed`。基线清单、fixture 边界与命令见
+[`docs/evidence/uif-402`](evidence/uif-402/README.md)。
 
 `UIF-S1` 已增加可重复的
 [10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped

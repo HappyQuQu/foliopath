@@ -232,9 +232,14 @@ flowchart TD
   - 任务中心、缺失缓存补齐、全部重建和系统维护继续按已冻结 scope 排除，不把
     `08-settings-storage.html` 中的 Post-MVP 控件伪装成已交付生产能力。
 
-- [ ] `UIF-402` 扩展 `web/tests/e2e/visual-regression.spec.ts`。
+- [x] `UIF-402` 扩展 `web/tests/e2e/visual-regression.spec.ts`。
   - Header、管理中心四页、浏览顶部/底部、Search、预览、Viewer。
   - Linux-owned、确定性 fixture、动态区域最小遮罩。
+  - 已固定 `1280 × 800`、English、dark、reduced-motion 的 Linux Chromium
+    环境；11 张基线覆盖上述区域和既有离线 Viewer，无动态遮罩。
+  - 生成后立即无 `--update-snapshots` 复跑 `9 passed`；fixture 只使用固定合同
+    响应和仓库内 synthetic media，证据见
+    [`docs/evidence/uif-402`](../evidence/uif-402/README.md)。
 
 - [ ] `UIF-403` 完成真实纵向 E2E。
   - setup/login → 管理资料/改密 → 建库/扫描 → 目录过滤 → 搜索 → 预览/Viewer →
