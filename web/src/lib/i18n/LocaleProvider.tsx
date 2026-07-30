@@ -61,7 +61,8 @@ const zhCN = {
   "auth.login": "登录",
   "auth.loginIntro": "使用管理员账户继续访问您的媒体库。",
   "auth.loginTitle": "登录 FolioPath",
-  "auth.originInvalid": "当前页面来源未通过安全检查，请从 FolioPath 正式地址访问。",
+  "auth.originInvalid":
+    "当前页面来源未通过安全检查，请从 FolioPath 正式地址访问。",
   "auth.password": "密码",
   "auth.rateLimited": "尝试次数过多，请稍后再试。",
   "auth.sessionExpired": "为了保护您的媒体库，会话已过期。请重新登录。",
@@ -75,12 +76,14 @@ const zhCN = {
   "cache.cleanupRunning": "正在清理可重建缓存，完成前可以离开此页面。",
   "cache.cleanupStarted": "缓存清理已开始。",
   "cache.clear": "清空可重建缓存",
-  "cache.clearDescription": "只会删除缩略图和视频封面；下次浏览时按需重建，原始媒体和可靠索引不受影响。",
+  "cache.clearDescription":
+    "只会删除缩略图和视频封面；下次浏览时按需重建，原始媒体和可靠索引不受影响。",
   "cache.clearTitle": "清空缩略图缓存？",
   "cache.confirmClear": "清空缓存",
   "cache.loadFailed": "暂时无法读取扫描与缓存状态。",
   "cache.overview": "运行概览",
-  "cache.pageDescription": "管理扫描计划和可重建派生缓存；失败不会清理最后可靠索引。",
+  "cache.pageDescription":
+    "管理扫描计划和可重建派生缓存；失败不会清理最后可靠索引。",
   "cache.quota": "缓存配额",
   "cache.scanSchedule": "扫描计划",
   "cache.scanTasks": "媒体库扫描状态",
@@ -93,7 +96,8 @@ const zhCN = {
   "general.defaultPreview": "默认固定预览",
   "general.defaultPreviewDescription": "在桌面浏览页打开时保持右侧预览面板。",
   "general.languageBrowser": "跟随浏览器",
-  "general.description": "调整界面显示和浏览偏好。更改只影响当前 FolioPath 管理员。",
+  "general.description":
+    "调整界面显示和浏览偏好。更改只影响当前 FolioPath 管理员。",
   "general.themeDark": "深色",
   "general.themeDescription": "跟随系统，或固定使用浅色、深色外观。",
   "general.themeLight": "浅色",
@@ -114,6 +118,8 @@ const zhCN = {
   "browse.directMediaDescription": "只显示当前目录中的媒体。",
   "browse.directoriesFailed": "暂时无法读取子目录，请重新尝试。",
   "browse.directory": "目录",
+  "browse.filterCurrentDirectory": "筛选当前目录",
+  "browse.clearDirectoryFilter": "清除目录筛选",
   "browse.directoryNavigation": "媒体库目录",
   "browse.directorySummary": "{directories} 个子目录 · {media} 项媒体",
   "browse.detailDimensions": "尺寸",
@@ -151,11 +157,15 @@ const zhCN = {
   "browse.mediaType": "媒体类型",
   "browse.nextMedia": "下一项",
   "browse.noChildDirectories": "此目录下没有子目录。",
+  "browse.noDirectoryFilterResults": "当前目录没有匹配项",
+  "browse.noDirectoryFilterResultsDescription":
+    "没有找到匹配的子目录或媒体。清除筛选后可恢复完整列表。",
   "browse.noDirectMedia": "当前目录没有媒体",
   "browse.noMediaDescription": "可靠索引中没有符合当前范围的媒体。",
   "browse.noRecursiveMedia": "当前目录及子目录没有媒体",
   "browse.offlinePreserved": "媒体库当前离线，正在显示上次可靠扫描保留的目录。",
-  "browse.offlineEmptyDescription": "保留索引中没有可显示的媒体，这不表示原目录为空。请恢复媒体挂载并重新扫描；原始媒体不会被修改。",
+  "browse.offlineEmptyDescription":
+    "保留索引中没有可显示的媒体，这不表示原目录为空。请恢复媒体挂载并重新扫描；原始媒体不会被修改。",
   "browse.offlineEmptyTitle": "媒体库当前离线",
   "browse.openSourceDirectory": "来源：{path}",
   "browse.openFullViewer": "进入完整查看器",
@@ -169,8 +179,10 @@ const zhCN = {
   "browse.previewPinnedTitle": "预览已固定",
   "browse.previewVideoFailed": "无法播放此视频。",
   "browse.previousMedia": "上一项",
-  "browse.recursiveMediaDescription": "显示当前目录及全部子目录中的媒体，并标出来源。",
+  "browse.recursiveMediaDescription":
+    "显示当前目录及全部子目录中的媒体，并标出来源。",
   "browse.refresh": "刷新当前目录",
+  "browse.scanningBanner": "正在扫描媒体库“{name}”。您可以浏览已索引的内容。",
   "browse.resetSort": "恢复默认排序",
   "browse.resizePreview": "调整预览宽度",
   "shell.resizeSidebar": "调整目录栏宽度",
@@ -202,7 +214,8 @@ const zhCN = {
   "common.readOnlyFooter": "您的原始媒体始终保持只读",
   "error.confirmingSecurity": "正在确认安全状态…",
   "error.reload": "重新载入",
-  "error.renderBody": "您的媒体没有被修改。请重新载入界面；如果问题持续，请检查服务状态。",
+  "error.renderBody":
+    "您的媒体没有被修改。请重新载入界面；如果问题持续，请检查服务状态。",
   "error.renderTitle": "界面暂时无法显示",
   "error.pageFailed": "页面暂时无法载入。",
   "error.serviceFailed": "FolioPath 暂时无法响应。原始媒体没有被修改。",
@@ -224,7 +237,8 @@ const zhCN = {
   "libraries.loading": "正在载入媒体库…",
   "libraries.loadMore": "载入更多",
   "libraries.manageEyebrow": "管理",
-  "libraries.mountDescription": "完成挂载后返回这里，从 /library 下选择一个目录。",
+  "libraries.mountDescription":
+    "完成挂载后返回这里，从 /library 下选择一个目录。",
   "libraries.mountTitle": "在容器中以只读方式挂载媒体目录",
   "libraries.noScanAvailable": "此媒体库还没有扫描记录",
   "libraries.newName": "新名称",
@@ -272,7 +286,8 @@ const zhCN = {
   "newLibrary.createAndScan": "创建并扫描",
   "newLibrary.createFailed": "暂时无法创建媒体库，请检查服务状态后重试。",
   "newLibrary.created": "媒体库已创建，首次完整扫描已加入队列。",
-  "newLibrary.description": "媒体库根目录创建后不可修改，但可以随时重命名或移除配置。",
+  "newLibrary.description":
+    "媒体库根目录创建后不可修改，但可以随时重命名或移除配置。",
   "newLibrary.eyebrow": "媒体库设置",
   "newLibrary.loadingPaths": "正在读取服务器批准的目录…",
   "newLibrary.mediaRoot": "媒体根目录",
@@ -285,11 +300,13 @@ const zhCN = {
   "newLibrary.noDirectories": "此位置下没有可显示的目录。",
   "newLibrary.openDirectory": "打开目录 {name}",
   "newLibrary.pathBreadcrumbs": "目录位置",
-  "newLibrary.pathDescription": "这里只显示服务器批准的 /library 子目录，不会暴露宿主机路径。",
+  "newLibrary.pathDescription":
+    "这里只显示服务器批准的 /library 子目录，不会暴露宿主机路径。",
   "newLibrary.pathOverlap": "所选目录与已有媒体库重叠，请选择其他目录。",
   "newLibrary.pathsFailed": "暂时无法读取可选目录，请重新尝试。",
   "newLibrary.pathTitle": "选择允许的目录",
-  "newLibrary.relativePathNotice": "提交给服务端的路径始终是 /library 的相对路径。",
+  "newLibrary.relativePathNotice":
+    "提交给服务端的路径始终是 /library 的相对路径。",
   "newLibrary.reviewDescription": "创建后会立即安排首次完整扫描。",
   "newLibrary.reviewName": "名称",
   "newLibrary.reviewOriginals": "原始媒体",
@@ -311,10 +328,12 @@ const zhCN = {
   "newLibrary.validationFailed": "请检查媒体库名称和目录后重试。",
   "readiness.applicationData":
     "应用数据目录不可用。请检查数据卷挂载与写入权限后重新检查。",
-  "readiness.database": "应用数据库暂时不可用。原始媒体未被修改，请稍后重新检查。",
+  "readiness.database":
+    "应用数据库暂时不可用。原始媒体未被修改，请稍后重新检查。",
   "readiness.migration":
     "数据库升级没有完成。原始媒体未被修改，请检查服务日志后重新检查。",
-  "readiness.shuttingDown": "FolioPath 正在安全停止。请等待服务重新启动后再检查。",
+  "readiness.shuttingDown":
+    "FolioPath 正在安全停止。请等待服务重新启动后再检查。",
   "scan.actionFailed": "暂时无法开始扫描，请稍后重试。",
   "scan.activeTitle": "正在扫描“{name}”",
   "scan.assets": "发现媒体",
@@ -322,9 +341,11 @@ const zhCN = {
   "scan.cancel": "取消扫描",
   "scan.cancelFailed": "取消请求没有完成，请刷新状态后重试。",
   "scan.cancelling": "正在安全停止",
-  "scan.descriptionCancelled": "扫描已取消；上次可靠索引与安全提交的新增内容均被保留。",
+  "scan.descriptionCancelled":
+    "扫描已取消；上次可靠索引与安全提交的新增内容均被保留。",
   "scan.descriptionCancelling": "取消请求已提交，任务会在安全检查点停止。",
-  "scan.descriptionFailed": "扫描没有完成。旧索引未被清理，可以修复问题后重试。",
+  "scan.descriptionFailed":
+    "扫描没有完成。旧索引未被清理，可以修复问题后重试。",
   "scan.descriptionInterrupted": "服务中断了本次扫描；旧索引保持可用。",
   "scan.descriptionOffline": "媒体库根目录当前不可读；不会把离线误判为空库。",
   "scan.descriptionQueued": "扫描已加入有界任务队列，等待执行。",
@@ -375,10 +396,12 @@ const zhCN = {
   "settings.cacheDescription": "以 GiB 为单位；达到水位线后清理可重建内容。",
   "settings.cacheInvalid": "缓存配额必须大于 0 GiB。",
   "settings.cacheQuota": "缩略图缓存上限（GiB）",
-  "settings.cacheSafety": "缓存清理只影响可重建缩略图，并始终保留独立的安全可用空间。",
+  "settings.cacheSafety":
+    "缓存清理只影响可重建缩略图，并始终保留独立的安全可用空间。",
   "settings.changedElsewhere": "设置已在其他位置更新，请重新载入后再保存。",
   "settings.interval": "扫描间隔（小时）",
-  "settings.intervalDescription": "允许 1～8760 小时；关闭定时扫描后仍可手动扫描。",
+  "settings.intervalDescription":
+    "允许 1～8760 小时；关闭定时扫描后仍可手动扫描。",
   "settings.intervalInvalid": "扫描间隔必须是 1～8760 之间的整数小时。",
   "settings.invalid": "设置值未通过服务端校验，请检查后重试。",
   "settings.loadFailed": "暂时无法读取扫描与缓存设置。",
@@ -388,7 +411,8 @@ const zhCN = {
   "settings.saveFailed": "设置没有保存，请稍后重试。",
   "settings.scanCache": "扫描与缓存",
   "settings.scheduledScan": "启用定时完整扫描",
-  "settings.scheduledScanDescription": "定期以文件系统为准核对媒体库；默认每 24 小时。",
+  "settings.scheduledScanDescription":
+    "定期以文件系统为准核对媒体库；默认每 24 小时。",
   "search.allLibraries": "全部媒体库",
   "search.clearFilters": "清除筛选",
   "search.date": "修改时间",
@@ -397,7 +421,8 @@ const zhCN = {
   "search.dateYear": "今年",
   "search.description": "按文件名或媒体库内相对路径查找已索引的图片与视频。",
   "search.editQuery": "修改搜索词",
-  "search.emptyDescription": "没有找到与“{query}”匹配的媒体。当前查询和筛选仍会保留。",
+  "search.emptyDescription":
+    "没有找到与“{query}”匹配的媒体。当前查询和筛选仍会保留。",
   "search.emptyTitle": "没有搜索结果",
   "search.failed": "搜索请求没有完成，当前查询和筛选仍然保留。",
   "search.filters": "搜索筛选",
@@ -412,7 +437,8 @@ const zhCN = {
   "search.loadedCount": "已载入 {count} 项",
   "search.loading": "正在搜索媒体…",
   "search.loadingMore": "正在载入更多结果",
-  "search.offlineDescription": "此媒体库当前离线；保留索引中没有匹配项。这不表示原目录为空。",
+  "search.offlineDescription":
+    "此媒体库当前离线；保留索引中没有匹配项。这不表示原目录为空。",
   "search.offlineTitle": "媒体库当前离线",
   "search.placeholder": "输入文件名或路径，例如 京都",
   "search.previewOutsideResults": "固定预览不在当前结果中",
@@ -425,7 +451,8 @@ const zhCN = {
   "search.scopeLibrary": "当前媒体库",
   "search.sort": "排序",
   "search.source": "{library} · {path}",
-  "search.startDescription": "输入文件名或媒体库内路径。搜索只读取可靠索引，不会遍历或修改原始媒体。",
+  "search.startDescription":
+    "输入文件名或媒体库内路径。搜索只读取可靠索引，不会遍历或修改原始媒体。",
   "search.startTitle": "开始搜索",
   "search.submit": "搜索",
   "search.title": "搜索",
@@ -454,22 +481,30 @@ const zhCN = {
   "viewer.videoFailed": "无法播放此视频。",
   "viewer.zoomIn": "放大",
   "viewer.zoomOut": "缩小",
-  "mediaState.deletedDescription": "此项目已不在可靠索引中。您仍可继续浏览上一项、下一项或返回原页面。",
+  "mediaState.deletedDescription":
+    "此项目已不在可靠索引中。您仍可继续浏览上一项、下一项或返回原页面。",
   "mediaState.deletedTitle": "媒体已从索引中移除",
-  "mediaState.invalidDescription": "媒体探测失败，文件可能已损坏或内容与扩展名不一致。FolioPath 没有修改原文件。",
+  "mediaState.invalidDescription":
+    "媒体探测失败，文件可能已损坏或内容与扩展名不一致。FolioPath 没有修改原文件。",
   "mediaState.invalidTitle": "无法读取媒体内容",
-  "mediaState.loadFailedDescription": "原文件可能刚刚发生变化，或浏览器无法完成读取。可以重新尝试，原文件不会被修改。",
+  "mediaState.loadFailedDescription":
+    "原文件可能刚刚发生变化，或浏览器无法完成读取。可以重新尝试，原文件不会被修改。",
   "mediaState.loadFailedTitle": "内容暂时无法显示",
-  "mediaState.missingDescription": "索引中的记录仍被保留，但原文件当前不存在。请恢复文件后重新扫描。",
+  "mediaState.missingDescription":
+    "索引中的记录仍被保留，但原文件当前不存在。请恢复文件后重新扫描。",
   "mediaState.missingTitle": "原文件已不存在",
-  "mediaState.offlineDescription": "媒体库挂载当前不可用。FolioPath 保留了上次可靠索引，不会把离线误判为空目录。",
+  "mediaState.offlineDescription":
+    "媒体库挂载当前不可用。FolioPath 保留了上次可靠索引，不会把离线误判为空目录。",
   "mediaState.offlineTitle": "媒体库当前离线",
   "mediaState.retry": "重新检查",
-  "mediaState.unreadableDescription": "服务器无法读取原文件。请检查媒体挂载与文件权限后重试。",
+  "mediaState.unreadableDescription":
+    "服务器无法读取原文件。请检查媒体挂载与文件权限后重试。",
   "mediaState.unreadableTitle": "无法读取原文件",
-  "mediaState.unsupportedCodecDescription": "此视频容器已被索引，但浏览器无法播放它的编码。MVP 不会转码或修改原视频。",
+  "mediaState.unsupportedCodecDescription":
+    "此视频容器已被索引，但浏览器无法播放它的编码。MVP 不会转码或修改原视频。",
   "mediaState.unsupportedCodecTitle": "浏览器无法播放此视频",
-  "mediaState.unsupportedDescription": "此文件无法按 MVP 支持的媒体格式解析。FolioPath 保留记录，但不会尝试修改原文件。",
+  "mediaState.unsupportedDescription":
+    "此文件无法按 MVP 支持的媒体格式解析。FolioPath 保留记录，但不会尝试修改原文件。",
   "mediaState.unsupportedTitle": "不支持此媒体内容",
   "unavailable.default":
     "FolioPath 暂时无法完成启动，系统已安全停止。媒体目录没有被修改。",
@@ -500,32 +535,42 @@ const en: Record<MessageKey, string> = {
   "account.loadFailed": "The administrator account could not be loaded.",
   "account.loading": "Loading administrator account…",
   "account.newPassword": "New password",
-  "account.pageDescription": "Manage the only administrator's profile, password, and current session.",
-  "account.passwordCaption": "The current session remains active; all other sessions must sign in again.",
-  "account.passwordFailed": "The password was not updated. Check the current password and try again.",
+  "account.pageDescription":
+    "Manage the only administrator's profile, password, and current session.",
+  "account.passwordCaption":
+    "The current session remains active; all other sessions must sign in again.",
+  "account.passwordFailed":
+    "The password was not updated. Check the current password and try again.",
   "account.passwordMismatch": "The new passwords do not match.",
-  "account.passwordRule": "Use at least 8 Unicode characters. No composition rule is required.",
+  "account.passwordRule":
+    "Use at least 8 Unicode characters. No composition rule is required.",
   "account.passwordSaved": "Administrator password updated.",
-  "account.passwordTooShort": "The new password must have at least 8 characters.",
+  "account.passwordTooShort":
+    "The new password must have at least 8 characters.",
   "account.profile": "Administrator profile",
-  "account.profileCaption": "The username is the sign-in identity and remains immutable in the first stable release.",
+  "account.profileCaption":
+    "The username is the sign-in identity and remains immutable in the first stable release.",
   "account.profileSaved": "Administrator profile saved.",
   "account.saveProfile": "Save profile",
   "account.sessionActive": "Active now · This browser",
   "account.thisBrowser": "This browser",
   "account.updatePassword": "Update password",
-  "account.usernameImmutable": "Changing the administrator username is not supported in the first stable release.",
+  "account.usernameImmutable":
+    "Changing the administrator username is not supported in the first stable release.",
   "account.appearance": "Appearance",
   "account.appearanceLanguage": "Appearance and language",
-  "account.description": "Manage the current administrator session and interface appearance.",
+  "account.description":
+    "Manage the current administrator session and interface appearance.",
   "account.eyebrow": "Preferences",
   "account.language": "Language",
-  "account.languageDescription": "Uses your browser language by default, or choose one here.",
+  "account.languageDescription":
+    "Uses your browser language by default, or choose one here.",
   "account.logout": "Log out",
   "account.logoutFailed": "Unable to log out right now. Please try again.",
   "account.menu": "Account menu for {name}",
   "account.theme": "Theme",
-  "account.themeDescription": "Follows your system by default, with a page-level override.",
+  "account.themeDescription":
+    "Follows your system by default, with a page-level override.",
   "account.title": "General settings",
   "account.username": "Username: ",
   "auth.confirmPassword": "Confirm password",
@@ -535,43 +580,57 @@ const en: Record<MessageKey, string> = {
   "auth.invalidCredentials": "The username or password is incorrect.",
   "auth.invalidInput": "Check the entered information and try again.",
   "auth.login": "Log in",
-  "auth.loginIntro": "Use the administrator account to continue to your media libraries.",
+  "auth.loginIntro":
+    "Use the administrator account to continue to your media libraries.",
   "auth.loginTitle": "Log in to FolioPath",
-  "auth.originInvalid": "This page did not pass the security check. Use the official FolioPath address.",
+  "auth.originInvalid":
+    "This page did not pass the security check. Use the official FolioPath address.",
   "auth.password": "Password",
   "auth.rateLimited": "Too many attempts. Please try again later.",
-  "auth.sessionExpired": "Your session expired to protect your media libraries. Please log in again.",
-  "auth.setupInProgress": "Another setup is in progress. Please try again shortly.",
-  "auth.setupIntro": "This account manages media libraries, scan jobs, and system settings.",
+  "auth.sessionExpired":
+    "Your session expired to protect your media libraries. Please log in again.",
+  "auth.setupInProgress":
+    "Another setup is in progress. Please try again shortly.",
+  "auth.setupIntro":
+    "This account manages media libraries, scan jobs, and system settings.",
   "auth.setupTitle": "Create administrator account",
   "auth.unknownFailure": "The operation did not complete. Please try again.",
-  "auth.unavailable": "Unable to complete the operation right now. Please try again.",
+  "auth.unavailable":
+    "Unable to complete the operation right now. Please try again.",
   "auth.username": "Username",
   "cache.available": "Available space",
-  "cache.cleanupRunning": "Reconstructible cache cleanup is running. You can leave this page.",
+  "cache.cleanupRunning":
+    "Reconstructible cache cleanup is running. You can leave this page.",
   "cache.cleanupStarted": "Cache cleanup started.",
   "cache.clear": "Clear reconstructible cache",
-  "cache.clearDescription": "Only thumbnails and video posters are removed. They are rebuilt on demand; original media and the reliable index are unchanged.",
+  "cache.clearDescription":
+    "Only thumbnails and video posters are removed. They are rebuilt on demand; original media and the reliable index are unchanged.",
   "cache.clearTitle": "Clear thumbnail cache?",
   "cache.confirmClear": "Clear cache",
   "cache.loadFailed": "Scanning and cache status could not be loaded.",
   "cache.overview": "Runtime overview",
-  "cache.pageDescription": "Manage scan scheduling and reconstructible derived cache. Failures preserve the last reliable index.",
+  "cache.pageDescription":
+    "Manage scan scheduling and reconstructible derived cache. Failures preserve the last reliable index.",
   "cache.quota": "Cache quota",
   "cache.scanSchedule": "Scan schedule",
   "cache.scanTasks": "Library scan status",
-  "cache.noLibraries": "No libraries have been added. Create one from Libraries first.",
+  "cache.noLibraries":
+    "No libraries have been added. Create one from Libraries first.",
   "cache.thumbnailCache": "Thumbnail cache",
   "cache.usage": "Cache usage",
   "general.browsePreferences": "Browse preferences",
   "general.defaultLayout": "Default layout",
-  "general.defaultLayoutDescription": "Choose the media arrangement used when opening a directory.",
+  "general.defaultLayoutDescription":
+    "Choose the media arrangement used when opening a directory.",
   "general.defaultPreview": "Pin preview by default",
-  "general.defaultPreviewDescription": "Keep the right preview panel pinned when browsing on desktop.",
+  "general.defaultPreviewDescription":
+    "Keep the right preview panel pinned when browsing on desktop.",
   "general.languageBrowser": "Browser language",
-  "general.description": "Adjust interface and browsing preferences for the current FolioPath administrator.",
+  "general.description":
+    "Adjust interface and browsing preferences for the current FolioPath administrator.",
   "general.themeDark": "Dark",
-  "general.themeDescription": "Follow the system or always use the light or dark appearance.",
+  "general.themeDescription":
+    "Follow the system or always use the light or dark appearance.",
   "general.themeLight": "Light",
   "general.themeSystem": "System",
   "general.noChanges": "No unsaved changes",
@@ -586,12 +645,17 @@ const en: Record<MessageKey, string> = {
   "browse.copyLink": "Copy current directory link",
   "browse.currentlyPreviewing": "Currently previewing",
   "browse.currentDirectory": "Current directory",
-  "browse.descendantMediaAvailable": "Subdirectories contain {count} more media items.",
-  "browse.directMediaDescription": "Showing media directly inside this directory.",
+  "browse.descendantMediaAvailable":
+    "Subdirectories contain {count} more media items.",
+  "browse.directMediaDescription":
+    "Showing media directly inside this directory.",
   "browse.directoriesFailed": "Subdirectories could not be loaded. Try again.",
   "browse.directory": "Directory",
+  "browse.filterCurrentDirectory": "Filter current directory",
+  "browse.clearDirectoryFilter": "Clear directory filter",
   "browse.directoryNavigation": "Media library directories",
-  "browse.directorySummary": "{directories} subdirectories · {media} media items",
+  "browse.directorySummary":
+    "{directories} subdirectories · {media} media items",
   "browse.detailDimensions": "Dimensions",
   "browse.detailDuration": "Duration",
   "browse.detailModified": "Modified",
@@ -611,10 +675,12 @@ const en: Record<MessageKey, string> = {
   "browse.library": "Media library",
   "browse.libraryFallback": "Current library",
   "browse.linkCopied": "Current directory link copied.",
-  "browse.linkCopyFailed": "Could not copy the link. Copy it from the browser address bar.",
+  "browse.linkCopyFailed":
+    "Could not copy the link. Copy it from the browser address bar.",
   "browse.loadMoreDirectories": "Load more directories",
   "browse.loadMoreMedia": "Load more media",
-  "browse.loadMoreMediaFailed": "More media could not be loaded. Items already shown are preserved.",
+  "browse.loadMoreMediaFailed":
+    "More media could not be loaded. Items already shown are preserved.",
   "browse.loadingDirectories": "Loading directories…",
   "browse.loadingLocation": "Opening directory…",
   "browse.loadingMedia": "Loading media…",
@@ -627,30 +693,40 @@ const en: Record<MessageKey, string> = {
   "browse.mediaType": "Media type",
   "browse.nextMedia": "Next item",
   "browse.noChildDirectories": "This directory has no subdirectories.",
+  "browse.noDirectoryFilterResults": "No matches in this directory",
+  "browse.noDirectoryFilterResultsDescription":
+    "No matching subdirectories or media were found. Clear the filter to restore the full list.",
   "browse.noDirectMedia": "No media in this directory",
   "browse.noMediaDescription": "The reliable index has no media in this scope.",
   "browse.noRecursiveMedia": "No media in this directory or its subdirectories",
-  "browse.offlinePreserved": "This library is offline. Showing directories preserved from the last reliable scan.",
-  "browse.offlineEmptyDescription": "The preserved index has no media to display; this does not mean the source directory is empty. Restore the media mount and scan again; originals will not be modified.",
+  "browse.offlinePreserved":
+    "This library is offline. Showing directories preserved from the last reliable scan.",
+  "browse.offlineEmptyDescription":
+    "The preserved index has no media to display; this does not mean the source directory is empty. Restore the media mount and scan again; originals will not be modified.",
   "browse.offlineEmptyTitle": "This library is offline",
   "browse.openSourceDirectory": "Source: {path}",
   "browse.openFullViewer": "Open full viewer",
   "browse.pinPreview": "Pin preview",
   "browse.preview": "Preview",
-  "browse.previewFollowingDescription": "Click another media item to update the preview.",
+  "browse.previewFollowingDescription":
+    "Click another media item to update the preview.",
   "browse.previewFollowingTitle": "Preview follows selection",
   "browse.previewImageFailed": "This image could not be displayed.",
   "browse.previewPosition": "Item {current} of {total}",
-  "browse.previewPinnedDescription": "Click changes selection; double-click switches the preview.",
+  "browse.previewPinnedDescription":
+    "Click changes selection; double-click switches the preview.",
   "browse.previewPinnedTitle": "Preview pinned",
   "browse.previewVideoFailed": "This video could not be played.",
   "browse.previousMedia": "Previous item",
-  "browse.recursiveMediaDescription": "Showing media from this directory and every subdirectory, with its source.",
+  "browse.recursiveMediaDescription":
+    "Showing media from this directory and every subdirectory, with its source.",
   "browse.refresh": "Refresh current directory",
+  "browse.scanningBanner": "Scanning “{name}”. You can browse content that is already indexed.",
   "browse.resetSort": "Reset default sort",
   "browse.resizePreview": "Resize preview",
   "shell.resizeSidebar": "Resize directory sidebar",
-  "browse.selectPinnedPreview": "Select {name}; double-click to switch the pinned preview",
+  "browse.selectPinnedPreview":
+    "Select {name}; double-click to switch the pinned preview",
   "browse.retryLoadMoreMedia": "Retry loading more",
   "browse.sort": "Sort",
   "browse.sortModifiedAscending": "Modified time (oldest first)",
@@ -682,32 +758,41 @@ const en: Record<MessageKey, string> = {
     "Your media was not modified. Reload the interface and check the service status if the problem continues.",
   "error.renderTitle": "The interface could not be displayed",
   "error.pageFailed": "The page could not be loaded.",
-  "error.serviceFailed": "FolioPath is temporarily unavailable. Original media was not modified.",
+  "error.serviceFailed":
+    "FolioPath is temporarily unavailable. Original media was not modified.",
   "error.serviceOffline":
     "Unable to reach the FolioPath service. Original media was not modified. Confirm the service is running and check again.",
   "libraries.assetCount": "{count} items",
   "libraries.browse": "Browse",
-  "libraries.actionFailed": "The operation did not complete. Reload and try again.",
-  "libraries.changedElsewhere": "The library changed elsewhere. Reload and try again.",
+  "libraries.actionFailed":
+    "The operation did not complete. Reload and try again.",
+  "libraries.changedElsewhere":
+    "The library changed elsewhere. Reload and try again.",
   "libraries.confirmRemove": "Remove library",
   "libraries.create": "New library",
   "libraries.deploymentHelp": "View deployment help",
-  "libraries.description": "Add libraries and review their status. Original files are never modified.",
+  "libraries.description":
+    "Add libraries and review their status. Original files are never modified.",
   "libraries.emptyDescription":
     "Choose a server-approved directory and FolioPath will build a read-only index and thumbnails without moving or changing the originals.",
   "libraries.emptyTitle": "No libraries yet",
-  "libraries.errorSafety": "A list-loading failure does not affect original media or saved library configuration.",
-  "libraries.loadFailed": "The library list could not be loaded. Please try again.",
+  "libraries.errorSafety":
+    "A list-loading failure does not affect original media or saved library configuration.",
+  "libraries.loadFailed":
+    "The library list could not be loaded. Please try again.",
   "libraries.loading": "Loading libraries…",
   "libraries.loadMore": "Load more",
   "libraries.manageEyebrow": "Manage",
-  "libraries.mountDescription": "After mounting, return here and choose a directory below /library.",
-  "libraries.mountTitle": "Mount the media directory read-only in the container",
+  "libraries.mountDescription":
+    "After mounting, return here and choose a directory below /library.",
+  "libraries.mountTitle":
+    "Mount the media directory read-only in the container",
   "libraries.noScanAvailable": "This library has no scan record yet",
   "libraries.newName": "New name",
   "libraries.nameRequired": "Enter a library name.",
   "libraries.nameTooLong": "The library name must be 128 characters or fewer.",
-  "libraries.originalsSafe": "Original directories and media files will not be deleted, moved, or changed.",
+  "libraries.originalsSafe":
+    "Original directories and media files will not be deleted, moved, or changed.",
   "libraries.remove": "Remove",
   "libraries.removeCache": "Clear reconstructible thumbnail cache",
   "libraries.removeConfiguration": "Remove library configuration",
@@ -716,7 +801,8 @@ const en: Record<MessageKey, string> = {
   "libraries.removeJobs": "Stop and clean up related jobs",
   "libraries.removeSucceeded": "“{name}” was removed from FolioPath.",
   "libraries.removeTitle": "Remove library?",
-  "libraries.removalFailed": "Cleanup did not finish. The library remains identifiable and removal can be retried safely.",
+  "libraries.removalFailed":
+    "Cleanup did not finish. The library remains identifiable and removal can be retried safely.",
   "libraries.rename": "Rename",
   "libraries.renameSucceeded": "Library name updated.",
   "libraries.renameTitle": "Rename library",
@@ -724,7 +810,8 @@ const en: Record<MessageKey, string> = {
   "libraries.retryOffline": "Check again",
   "libraries.retryRemoval": "Retry removal",
   "libraries.saveName": "Save name",
-  "libraries.scanFinished": "The scan has already finished. Refresh its status.",
+  "libraries.scanFinished":
+    "The scan has already finished. Refresh its status.",
   "libraries.statusError": "Needs attention",
   "libraries.statusOffline": "Offline",
   "libraries.statusPending": "Waiting for first scan",
@@ -747,27 +834,37 @@ const en: Record<MessageKey, string> = {
   "newLibrary.cancel": "Cancel",
   "newLibrary.continue": "Continue",
   "newLibrary.createAndScan": "Create and scan",
-  "newLibrary.createFailed": "The library could not be created. Check the service and try again.",
+  "newLibrary.createFailed":
+    "The library could not be created. Check the service and try again.",
   "newLibrary.created": "Library created. The first full scan is queued.",
-  "newLibrary.description": "A library root cannot be changed after creation, but its name and configuration can be removed.",
+  "newLibrary.description":
+    "A library root cannot be changed after creation, but its name and configuration can be removed.",
   "newLibrary.eyebrow": "Library settings",
   "newLibrary.loadingPaths": "Loading server-approved directories…",
   "newLibrary.mediaRoot": "Media root",
-  "newLibrary.nameConflict": "That library name is already in use. Choose another name.",
-  "newLibrary.nameDescription": "The name must be unique in this FolioPath instance.",
+  "newLibrary.nameConflict":
+    "That library name is already in use. Choose another name.",
+  "newLibrary.nameDescription":
+    "The name must be unique in this FolioPath instance.",
   "newLibrary.nameLabel": "Library name",
   "newLibrary.nameRequired": "Enter a library name.",
   "newLibrary.nameTitle": "Name the library",
   "newLibrary.nameTooLong": "The library name must be 128 characters or fewer.",
-  "newLibrary.noDirectories": "There are no directories to show at this location.",
+  "newLibrary.noDirectories":
+    "There are no directories to show at this location.",
   "newLibrary.openDirectory": "Open directory {name}",
   "newLibrary.pathBreadcrumbs": "Directory location",
-  "newLibrary.pathDescription": "Only server-approved directories below /library are shown. Host paths are never exposed.",
-  "newLibrary.pathOverlap": "The selected directory overlaps an existing library. Choose another directory.",
-  "newLibrary.pathsFailed": "Available directories could not be loaded. Try again.",
+  "newLibrary.pathDescription":
+    "Only server-approved directories below /library are shown. Host paths are never exposed.",
+  "newLibrary.pathOverlap":
+    "The selected directory overlaps an existing library. Choose another directory.",
+  "newLibrary.pathsFailed":
+    "Available directories could not be loaded. Try again.",
   "newLibrary.pathTitle": "Choose an allowed directory",
-  "newLibrary.relativePathNotice": "The server receives only a path relative to /library.",
-  "newLibrary.reviewDescription": "The first full scan will be queued immediately after creation.",
+  "newLibrary.relativePathNotice":
+    "The server receives only a path relative to /library.",
+  "newLibrary.reviewDescription":
+    "The first full scan will be queued immediately after creation.",
   "newLibrary.reviewName": "Name",
   "newLibrary.reviewOriginals": "Original media",
   "newLibrary.reviewOriginalsValue": "Read-only; never moved or deleted",
@@ -775,17 +872,22 @@ const en: Record<MessageKey, string> = {
   "newLibrary.reviewScan": "First scan",
   "newLibrary.reviewScanValue": "Starts immediately after creation",
   "newLibrary.reviewTitle": "Review and start scanning",
-  "newLibrary.rootMount": "The selected directory crosses a disallowed mount boundary.",
-  "newLibrary.rootSymlink": "The selected directory is a symbolic link and cannot be a library root.",
-  "newLibrary.rootUnavailable": "The selected directory is currently unavailable or unreadable.",
+  "newLibrary.rootMount":
+    "The selected directory crosses a disallowed mount boundary.",
+  "newLibrary.rootSymlink":
+    "The selected directory is a symbolic link and cannot be a library root.",
+  "newLibrary.rootUnavailable":
+    "The selected directory is currently unavailable or unreadable.",
   "newLibrary.selectable": "Available",
-  "newLibrary.selectableWithChildren": "Available, with subdirectories to browse",
+  "newLibrary.selectableWithChildren":
+    "Available, with subdirectories to browse",
   "newLibrary.selectCurrent": "Select this directory",
   "newLibrary.stepName": "Name",
   "newLibrary.stepPath": "Choose directory",
   "newLibrary.stepReview": "Review",
   "newLibrary.title": "New library",
-  "newLibrary.validationFailed": "Check the library name and directory, then try again.",
+  "newLibrary.validationFailed":
+    "Check the library name and directory, then try again.",
   "readiness.applicationData":
     "Application data is unavailable. Check the data volume mount and write permissions, then check again.",
   "readiness.database":
@@ -799,21 +901,30 @@ const en: Record<MessageKey, string> = {
   "scan.assets": "Assets found",
   "scan.back": "Back to libraries",
   "scan.cancel": "Cancel scan",
-  "scan.cancelFailed": "The cancellation request did not complete. Refresh and try again.",
+  "scan.cancelFailed":
+    "The cancellation request did not complete. Refresh and try again.",
   "scan.cancelling": "Stopping safely",
-  "scan.descriptionCancelled": "The scan was cancelled. The last reliable index and safely committed additions were preserved.",
-  "scan.descriptionCancelling": "Cancellation was requested. The job will stop at a safe checkpoint.",
-  "scan.descriptionFailed": "The scan did not finish. The previous index was not cleared and can be retried after the issue is fixed.",
-  "scan.descriptionInterrupted": "The service interrupted this scan. The previous index remains available.",
-  "scan.descriptionOffline": "The library root is currently unreadable and will not be mistaken for an empty library.",
+  "scan.descriptionCancelled":
+    "The scan was cancelled. The last reliable index and safely committed additions were preserved.",
+  "scan.descriptionCancelling":
+    "Cancellation was requested. The job will stop at a safe checkpoint.",
+  "scan.descriptionFailed":
+    "The scan did not finish. The previous index was not cleared and can be retried after the issue is fixed.",
+  "scan.descriptionInterrupted":
+    "The service interrupted this scan. The previous index remains available.",
+  "scan.descriptionOffline":
+    "The library root is currently unreadable and will not be mistaken for an empty library.",
   "scan.descriptionQueued": "The scan is waiting in the bounded job queue.",
-  "scan.descriptionRunning": "The scan is running in the background while other screens remain available.",
-  "scan.descriptionSucceeded": "The full scan completed and the reliable index was updated.",
+  "scan.descriptionRunning":
+    "The scan is running in the background while other screens remain available.",
+  "scan.descriptionSucceeded":
+    "The full scan completed and the reliable index was updated.",
   "scan.directories": "Directories found",
   "scan.eyebrow": "Job details",
   "scan.finished": "Finished",
   "scan.finishedTitle": "Latest scan for “{name}”",
-  "scan.indexPreserved": "The last reliable index is preserved. This state does not delete or clear original media.",
+  "scan.indexPreserved":
+    "The last reliable index is preserved. This state does not delete or clear original media.",
   "scan.issue.invalid_media": "Invalid media",
   "scan.issue.io_error": "Read error",
   "scan.issue.maintained_directory_skipped": "Maintained directory skipped",
@@ -829,7 +940,8 @@ const en: Record<MessageKey, string> = {
   "scan.libraryFailed": "The library information could not be loaded.",
   "scan.loading": "Loading scan status…",
   "scan.loadFailed": "The scan status could not be loaded.",
-  "scan.noHistory": "This library has no scan history. A full scan can be started now.",
+  "scan.noHistory":
+    "This library has no scan history. A full scan can be started now.",
   "scan.notFinished": "Not finished",
   "scan.notStarted": "Not started",
   "scan.pageTitle": "Library status",
@@ -841,7 +953,8 @@ const en: Record<MessageKey, string> = {
   "scan.phase.walking": "Scanning directories",
   "scan.processed": "Processed",
   "scan.progress": "Scan progress",
-  "scan.progressUnknown": "This phase has no reliable percentage. Discovery counts will continue to update.",
+  "scan.progressUnknown":
+    "This phase has no reliable percentage. Discovery counts will continue to update.",
   "scan.start": "Start full scan",
   "scan.started": "Started",
   "scan.statusCancelled": "Scan cancelled",
@@ -851,15 +964,21 @@ const en: Record<MessageKey, string> = {
   "scan.statusQueued": "Waiting to scan",
   "scan.statusRunning": "Scan in progress",
   "scan.statusSucceeded": "Scan completed",
-  "settings.cacheDescription": "Measured in GiB. Reconstructible content is evicted at the cache waterline.",
+  "settings.cacheDescription":
+    "Measured in GiB. Reconstructible content is evicted at the cache waterline.",
   "settings.cacheInvalid": "The cache quota must be greater than 0 GiB.",
   "settings.cacheQuota": "Thumbnail cache limit (GiB)",
-  "settings.cacheSafety": "Cache cleanup affects only reconstructible thumbnails and preserves an independent safe-free-space margin.",
-  "settings.changedElsewhere": "Settings changed elsewhere. Reload before saving again.",
+  "settings.cacheSafety":
+    "Cache cleanup affects only reconstructible thumbnails and preserves an independent safe-free-space margin.",
+  "settings.changedElsewhere":
+    "Settings changed elsewhere. Reload before saving again.",
   "settings.interval": "Scan interval (hours)",
-  "settings.intervalDescription": "Use 1–8760 hours. Manual scans remain available when scheduling is disabled.",
-  "settings.intervalInvalid": "The scan interval must be a whole number from 1 to 8760 hours.",
-  "settings.invalid": "The server rejected these values. Check them and try again.",
+  "settings.intervalDescription":
+    "Use 1–8760 hours. Manual scans remain available when scheduling is disabled.",
+  "settings.intervalInvalid":
+    "The scan interval must be a whole number from 1 to 8760 hours.",
+  "settings.invalid":
+    "The server rejected these values. Check them and try again.",
   "settings.loadFailed": "Scan and cache settings could not be loaded.",
   "settings.loading": "Loading scan and cache settings…",
   "settings.save": "Save scan and cache settings",
@@ -867,18 +986,22 @@ const en: Record<MessageKey, string> = {
   "settings.saveFailed": "Settings were not saved. Try again.",
   "settings.scanCache": "Scanning and cache",
   "settings.scheduledScan": "Enable scheduled full scans",
-  "settings.scheduledScanDescription": "Regularly reconcile libraries against the filesystem. The default is every 24 hours.",
+  "settings.scheduledScanDescription":
+    "Regularly reconcile libraries against the filesystem. The default is every 24 hours.",
   "search.allLibraries": "All libraries",
   "search.clearFilters": "Clear filters",
   "search.date": "Modified",
   "search.date30d": "Last 30 days",
   "search.dateAny": "Any date",
   "search.dateYear": "This year",
-  "search.description": "Find indexed images and videos by filename or library-relative path.",
+  "search.description":
+    "Find indexed images and videos by filename or library-relative path.",
   "search.editQuery": "Edit search",
-  "search.emptyDescription": "No media matched “{query}”. Your query and filters are still preserved.",
+  "search.emptyDescription":
+    "No media matched “{query}”. Your query and filters are still preserved.",
   "search.emptyTitle": "No search results",
-  "search.failed": "The search did not finish. Your current query and filters are still preserved.",
+  "search.failed":
+    "The search did not finish. Your current query and filters are still preserved.",
   "search.filters": "Search filters",
   "search.globalPlaceholder": "Search all photos and videos",
   "search.heading": "Search media",
@@ -887,14 +1010,17 @@ const en: Record<MessageKey, string> = {
   "search.kind": "Media type",
   "search.kindAll": "All types",
   "search.loadMore": "Load more results",
-  "search.loadMoreFailed": "More search results could not be loaded. The visible results are preserved.",
+  "search.loadMoreFailed":
+    "More search results could not be loaded. The visible results are preserved.",
   "search.loadedCount": "{count} loaded",
   "search.loading": "Searching media…",
   "search.loadingMore": "Loading more results",
-  "search.offlineDescription": "This library is offline and its preserved index has no matches. This does not mean the source directory is empty.",
+  "search.offlineDescription":
+    "This library is offline and its preserved index has no matches. This does not mean the source directory is empty.",
   "search.offlineTitle": "Library is offline",
   "search.placeholder": "Search a filename or path, for example Kyoto",
-  "search.previewOutsideResults": "Pinned preview is outside the current results",
+  "search.previewOutsideResults":
+    "Pinned preview is outside the current results",
   "search.resultsFor": "Results for “{query}”",
   "search.refresh": "Refresh search results",
   "search.retryLoadMore": "Retry loading more",
@@ -904,7 +1030,8 @@ const en: Record<MessageKey, string> = {
   "search.scopeLibrary": "Current library",
   "search.sort": "Sort",
   "search.source": "{library} · {path}",
-  "search.startDescription": "Enter a filename or library-relative path. Search reads the reliable index and never traverses or changes original media.",
+  "search.startDescription":
+    "Enter a filename or library-relative path. Search reads the reliable index and never traverses or changes original media.",
   "search.startTitle": "Start a search",
   "search.submit": "Search",
   "search.title": "Search",
@@ -926,42 +1053,55 @@ const en: Record<MessageKey, string> = {
   "viewer.imageFailed": "This image could not be displayed.",
   "viewer.info": "Show basic information",
   "viewer.information": "Basic information",
-  "viewer.loadFailed": "This media could not be loaded. The original file was not modified.",
+  "viewer.loadFailed":
+    "This media could not be loaded. The original file was not modified.",
   "viewer.loading": "Opening media…",
   "viewer.originalSize": "Show at 1:1",
-  "viewer.shortcutHint": "Zoom with controls · drag to pan · I for info · Esc to exit",
+  "viewer.shortcutHint":
+    "Zoom with controls · drag to pan · I for info · Esc to exit",
   "viewer.videoFailed": "This video could not be played.",
   "viewer.zoomIn": "Zoom in",
   "viewer.zoomOut": "Zoom out",
-  "mediaState.deletedDescription": "This item is no longer in the reliable index. You can continue to the previous or next item, or return to the source page.",
+  "mediaState.deletedDescription":
+    "This item is no longer in the reliable index. You can continue to the previous or next item, or return to the source page.",
   "mediaState.deletedTitle": "Media removed from the index",
-  "mediaState.invalidDescription": "Media probing failed. The file may be corrupt or its contents may not match its extension. FolioPath did not modify it.",
+  "mediaState.invalidDescription":
+    "Media probing failed. The file may be corrupt or its contents may not match its extension. FolioPath did not modify it.",
   "mediaState.invalidTitle": "Media content could not be read",
-  "mediaState.loadFailedDescription": "The source may have just changed, or the browser could not finish reading it. You can retry; the original will not be modified.",
+  "mediaState.loadFailedDescription":
+    "The source may have just changed, or the browser could not finish reading it. You can retry; the original will not be modified.",
   "mediaState.loadFailedTitle": "Content cannot be displayed right now",
-  "mediaState.missingDescription": "The indexed record is preserved, but the original file is currently missing. Restore it and run another scan.",
+  "mediaState.missingDescription":
+    "The indexed record is preserved, but the original file is currently missing. Restore it and run another scan.",
   "mediaState.missingTitle": "Original file is missing",
-  "mediaState.offlineDescription": "The library mount is unavailable. FolioPath preserves the last reliable index and does not treat an offline library as empty.",
+  "mediaState.offlineDescription":
+    "The library mount is unavailable. FolioPath preserves the last reliable index and does not treat an offline library as empty.",
   "mediaState.offlineTitle": "Library is offline",
   "mediaState.retry": "Check again",
-  "mediaState.unreadableDescription": "The server cannot read the original file. Check the media mount and file permissions, then retry.",
+  "mediaState.unreadableDescription":
+    "The server cannot read the original file. Check the media mount and file permissions, then retry.",
   "mediaState.unreadableTitle": "Original file is unreadable",
-  "mediaState.unsupportedCodecDescription": "The video container was indexed, but its codec cannot be played by this browser. The MVP does not transcode or modify the original video.",
+  "mediaState.unsupportedCodecDescription":
+    "The video container was indexed, but its codec cannot be played by this browser. The MVP does not transcode or modify the original video.",
   "mediaState.unsupportedCodecTitle": "This browser cannot play the video",
-  "mediaState.unsupportedDescription": "This file cannot be parsed as an MVP-supported media format. FolioPath preserves the record and does not modify the original.",
+  "mediaState.unsupportedDescription":
+    "This file cannot be parsed as an MVP-supported media format. FolioPath preserves the record and does not modify the original.",
   "mediaState.unsupportedTitle": "Unsupported media content",
   "unavailable.default":
     "FolioPath could not finish starting and stopped safely. The media directory was not modified.",
   "unavailable.eyebrow": "Service unavailable",
-  "unavailable.noDiagnostics": "Internal paths and diagnostics are not displayed",
+  "unavailable.noDiagnostics":
+    "Internal paths and diagnostics are not displayed",
   "unavailable.readOnly": "Original media remains read-only",
   "unavailable.safety": "Safe state",
   "unavailable.title": "FolioPath could not finish starting",
   "validation.confirmPassword": "The passwords do not match.",
   "validation.displayName": "Enter a display name.",
-  "validation.displayNameLength": "The display name must be 128 characters or fewer.",
+  "validation.displayNameLength":
+    "The display name must be 128 characters or fewer.",
   "validation.password": "Enter a password.",
-  "validation.passwordLength": "The password must contain at least 8 characters.",
+  "validation.passwordLength":
+    "The password must contain at least 8 characters.",
   "validation.username": "Enter a username.",
   "validation.usernameLength": "The username must be 64 characters or fewer.",
 };
@@ -983,8 +1123,11 @@ const LocaleContext = createContext<LocaleContextValue>({
 });
 
 export function detectBrowserLocale(): Locale {
-  const candidates = navigator.languages.length > 0 ? navigator.languages : [navigator.language];
-  return candidates.some((locale) => locale.toLowerCase().startsWith("zh")) ? "zh-CN" : "en";
+  const candidates =
+    navigator.languages.length > 0 ? navigator.languages : [navigator.language];
+  return candidates.some((locale) => locale.toLowerCase().startsWith("zh"))
+    ? "zh-CN"
+    : "en";
 }
 
 export function applyInitialLocale(): Locale {
@@ -1031,7 +1174,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     [locale, localePreference],
   );
 
-  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+  return (
+    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+  );
 }
 
 export function useLocale(): LocaleContextValue {

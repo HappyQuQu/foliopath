@@ -7,4 +7,5 @@ import type { paths } from "./generated/schema";
 export const apiClient = createClient<paths>({
   baseUrl: "",
   credentials: "same-origin",
+  fetch: (...args) => globalThis.fetch(...args),
 });

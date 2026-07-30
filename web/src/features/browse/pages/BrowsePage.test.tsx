@@ -23,7 +23,8 @@ import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { BrowsePage } from "./BrowsePage";
 
 vi.mock("../../../lib/api/catalog", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../lib/api/catalog")>();
+  const actual =
+    await importOriginal<typeof import("../../../lib/api/catalog")>();
   return {
     ...actual,
     getDirectory: vi.fn(),
@@ -33,7 +34,8 @@ vi.mock("../../../lib/api/catalog", async (importOriginal) => {
 });
 
 vi.mock("../../../lib/api/libraries", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../lib/api/libraries")>();
+  const actual =
+    await importOriginal<typeof import("../../../lib/api/libraries")>();
   return {
     ...actual,
     getLibrary: vi.fn(),
@@ -204,21 +206,27 @@ it("restores a deep directory, exposes breadcrumbs, and lazily expands its tree 
 
   renderBrowse();
 
-  expect(await screen.findByRole("heading", { name: "旅行", level: 1 })).toBeVisible();
-  expect(screen.getByRole("navigation", { name: "目录位置" })).toHaveTextContent(
-    "家庭影像旅行",
+  expect(
+    await screen.findByRole("heading", { name: "旅行", level: 1 }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("navigation", { name: "目录位置" }),
+  ).toHaveTextContent("家庭影像旅行");
+  expect(screen.getByRole("link", { name: /^日本4 项$/ })).toHaveAttribute(
+    "href",
+    "/libraries/lib_family/browse/dir_japan",
   );
-  expect(
-    screen.getByRole("link", { name: /^日本4 项$/ }),
-  ).toHaveAttribute("href", "/libraries/lib_family/browse/dir_japan");
-  expect(
-    screen.getByRole("link", { name: "家庭影像" }),
-  ).toHaveAttribute("href", "/libraries/lib_family/browse");
+  expect(screen.getByRole("link", { name: "家庭影像" })).toHaveAttribute(
+    "href",
+    "/libraries/lib_family/browse",
+  );
 
   const collapse = await screen.findByRole("button", { name: "收起目录 旅行" });
   const tree = screen.getByRole("navigation", { name: "媒体库目录" });
   await user.click(collapse);
-  expect(within(tree).queryByRole("link", { name: "日本" })).not.toBeInTheDocument();
+  expect(
+    within(tree).queryByRole("link", { name: "日本" }),
+  ).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "展开目录 旅行" }));
   expect(await within(tree).findByRole("link", { name: "日本" })).toBeVisible();
 });
@@ -240,7 +248,9 @@ it("opens the library menu and restores focus when it closes with Escape", async
   ).toHaveAttribute("aria-selected", "true");
 
   await user.keyboard("{Escape}");
-  expect(screen.queryByRole("listbox", { name: "媒体库" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("listbox", { name: "媒体库" }),
+  ).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
 
@@ -255,9 +265,7 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
   await user.click(masonryLayout);
   expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
   expect(
-    JSON.parse(
-      window.localStorage.getItem("foliopath.preferences.v1") ?? "{}",
-    ),
+    JSON.parse(window.localStorage.getItem("foliopath.preferences.v1") ?? "{}"),
   ).toMatchObject({ mediaLayout: "masonry" });
 
   const recursiveToggle = await screen.findByRole("button", {
@@ -348,12 +356,10 @@ it("switches between all media, pictures, and videos through URL-bound queries",
 
   renderBrowse();
 
-  await user.click(await screen.findByRole("button", { name: "搜索筛选" }));
   let typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
-  expect(within(typeFilter).getByRole("radio", { name: "全部" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  expect(
+    within(typeFilter).getByRole("radio", { name: "全部" }),
+  ).toHaveAttribute("aria-checked", "true");
 
   const images = within(typeFilter).getByRole("radio", { name: "图片" });
   await user.click(images);
@@ -364,7 +370,6 @@ it("switches between all media, pictures, and videos through URL-bound queries",
     expect.objectContaining({ kinds: ["image", "animated"] }),
   );
 
-  await user.click(screen.getByRole("button", { name: "搜索筛选" }));
   typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
   const videos = within(typeFilter).getByRole("radio", { name: "视频" });
   await user.click(videos);
@@ -376,7 +381,6 @@ it("switches between all media, pictures, and videos through URL-bound queries",
   );
 
   const callsAfterVideo = vi.mocked(listAssets).mock.calls.length;
-  await user.click(screen.getByRole("button", { name: "搜索筛选" }));
   typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
   const all = within(typeFilter).getByRole("radio", { name: "全部" });
   await user.click(all);
@@ -384,6 +388,48 @@ it("switches between all media, pictures, and videos through URL-bound queries",
     "/libraries/lib_family/browse/dir_travel",
   );
   expect(listAssets).toHaveBeenCalledTimes(callsAfterVideo);
+});
+
+it("filters subdirectories and media within the current directory through URL-backed queries", async () => {
+  const user = userEvent.setup();
+
+  renderBrowse();
+
+  const filter = screen.getByRole("searchbox", {
+    name: "筛选当前目录",
+  });
+  await user.type(filter, "日本");
+
+  await waitFor(() => {
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/libraries/lib_family/browse/dir_travel?q=%E6%97%A5%E6%9C%AC",
+    );
+  });
+  expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
+    "modifiedAt:desc",
+  );
+  expect(vi.mocked(listDirectories)).toHaveBeenCalledWith(
+    expect.objectContaining({ parentId: "dir_travel", q: "日本" }),
+  );
+  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      directoryId: "dir_travel",
+      order: "desc",
+      q: "日本",
+      recursive: false,
+      sort: "modifiedAt",
+    }),
+  );
+
+  await user.clear(filter);
+  await waitFor(() => {
+    expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
+      "name:asc",
+    );
+  });
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    /^\/libraries\/lib_family\/browse\/dir_travel$/,
+  );
 });
 
 it("uses a stable gallery skeleton while the first media page is loading", async () => {
@@ -416,9 +462,7 @@ it("keeps an offline library distinct from an empty reliable index", async () =>
   renderBrowse();
 
   expect(await screen.findByText("媒体库当前离线")).toBeVisible();
-  expect(
-    screen.getByText(/这不表示原目录为空/),
-  ).toBeVisible();
+  expect(screen.getByText(/这不表示原目录为空/)).toBeVisible();
   expect(screen.queryByText("当前目录没有媒体")).not.toBeInTheDocument();
 });
 
@@ -430,7 +474,9 @@ it("recovers a first-page media error through the shared retry action", async ()
 
   renderBrowse();
 
-  expect(await screen.findByText("暂时无法读取媒体，请重新尝试。")).toBeVisible();
+  expect(
+    await screen.findByText("暂时无法读取媒体，请重新尝试。"),
+  ).toBeVisible();
   await user.click(screen.getByRole("button", { name: "重新尝试" }));
   expect(await screen.findByText("当前目录没有媒体")).toBeVisible();
   expect(listAssets).toHaveBeenCalledTimes(2);
@@ -446,9 +492,7 @@ it("refreshes the current directory from the toolbar", async () => {
   const directoryCalls = vi.mocked(getDirectory).mock.calls.length;
   const libraryCalls = vi.mocked(getLibrary).mock.calls.length;
 
-  await user.click(
-    screen.getByRole("button", { name: "刷新当前目录" }),
-  );
+  await user.click(screen.getByRole("button", { name: "刷新当前目录" }));
 
   await waitFor(() => {
     expect(listAssets).toHaveBeenCalledTimes(assetsCalls + 1);
@@ -515,7 +559,9 @@ it("refetches a cached directory when directory navigation returns to it", async
   await waitFor(() => {
     const travelCalls = vi
       .mocked(listAssets)
-      .mock.calls.filter(([input]) => input.directoryId === "dir_travel").length;
+      .mock.calls.filter(
+        ([input]) => input.directoryId === "dir_travel",
+      ).length;
     expect(travelCalls).toBeGreaterThan(initialTravelCalls);
   });
 });
@@ -642,9 +688,7 @@ function renderRootBrowse() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <MemoryRouter
-            initialEntries={["/libraries/lib_family/browse"]}
-          >
+          <MemoryRouter initialEntries={["/libraries/lib_family/browse"]}>
             <BrowsePage libraryId="lib_family" session={session} />
             <LocationProbe />
           </MemoryRouter>

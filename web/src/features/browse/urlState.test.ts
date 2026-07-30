@@ -12,12 +12,14 @@ describe("browse URL state", () => {
     expect(parseBrowseUrlState(new URLSearchParams())).toEqual({
       kind: "all",
       order: "asc",
+      q: "",
       recursive: false,
       sort: "name",
     });
     expect(parseBrowseUrlState(new URLSearchParams("recursive=1"))).toEqual({
       kind: "all",
       order: "desc",
+      q: "",
       recursive: true,
       sort: "modifiedAt",
     });
@@ -35,6 +37,7 @@ describe("browse URL state", () => {
     ).toEqual({
       kind: "all",
       order: "asc",
+      q: "",
       recursive: true,
       sort: "name",
     });
@@ -42,6 +45,7 @@ describe("browse URL state", () => {
       serializeBrowseUrlState({
         kind: "all",
         order: "asc",
+        q: "",
         recursive: true,
         sort: "name",
       }),
@@ -53,6 +57,7 @@ describe("browse URL state", () => {
     ).toEqual({
       kind: "all",
       order: "asc",
+      q: "",
       recursive: false,
       sort: "name",
     });
@@ -65,31 +70,27 @@ describe("browse URL state", () => {
   });
 
   it("keeps an explicit all-media destination distinct from root recursion", () => {
-    const allMediaState = parseBrowseUrlState(
-      new URLSearchParams("view=all"),
-    );
+    const allMediaState = parseBrowseUrlState(new URLSearchParams("view=all"));
 
     expect(allMediaState).toEqual({
       allMedia: true,
       kind: "all",
       order: "desc",
+      q: "",
       recursive: true,
       sort: "modifiedAt",
     });
-    expect(serializeBrowseUrlState(allMediaState)).toBe(
-      "recursive=1&view=all",
+    expect(serializeBrowseUrlState(allMediaState)).toBe("recursive=1&view=all");
+    expect(browseUrl("lib_family", "dir_japan", allMediaState)).toBe(
+      "/libraries/lib_family/browse/dir_japan?recursive=1",
     );
-    expect(
-      browseUrl("lib_family", "dir_japan", allMediaState),
-    ).toBe("/libraries/lib_family/browse/dir_japan?recursive=1");
   });
 
   it("preserves the three-state media filter in canonical browse links", () => {
-    expect(
-      parseBrowseUrlState(new URLSearchParams("kind=image")),
-    ).toEqual({
+    expect(parseBrowseUrlState(new URLSearchParams("kind=image"))).toEqual({
       kind: "image",
       order: "asc",
+      q: "",
       recursive: false,
       sort: "name",
     });
@@ -97,12 +98,32 @@ describe("browse URL state", () => {
       serializeBrowseUrlState({
         kind: "video",
         order: "desc",
+        q: "",
         recursive: true,
         sort: "modifiedAt",
       }),
     ).toBe("recursive=1&kind=video");
+    expect(parseBrowseUrlState(new URLSearchParams("kind=animated")).kind).toBe(
+      "all",
+    );
+  });
+
+  it("keeps current-directory keywords in the URL and defaults filtered results to newest first", () => {
+    expect(parseBrowseUrlState(new URLSearchParams("q=京都"))).toEqual({
+      kind: "all",
+      order: "desc",
+      q: "京都",
+      recursive: false,
+      sort: "modifiedAt",
+    });
     expect(
-      parseBrowseUrlState(new URLSearchParams("kind=animated")).kind,
-    ).toBe("all");
+      serializeBrowseUrlState({
+        kind: "image",
+        order: "desc",
+        q: "京都",
+        recursive: false,
+        sort: "modifiedAt",
+      }),
+    ).toBe("q=%E4%BA%AC%E9%83%BD&kind=image");
   });
 });

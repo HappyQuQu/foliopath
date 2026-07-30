@@ -32,14 +32,15 @@ export function pendingThumbnailRefreshInterval(
 
 export const catalogKeys = {
   all: ["catalog"] as const,
-  directories: (libraryId: string, parentId?: string) =>
-    ["catalog", "directories", libraryId, parentId ?? "root"] as const,
+  directories: (libraryId: string, parentId: string | undefined, q: string) =>
+    ["catalog", "directories", libraryId, parentId ?? "root", q] as const,
   directory: (directoryId: string) =>
     ["catalog", "directory", directoryId] as const,
   assets: (
     libraryId: string,
     directoryId: string | undefined,
     recursive: boolean,
+    q: string,
     kinds: AssetKind[] | undefined,
     sort: AssetSort,
     order: SortOrder,
@@ -50,6 +51,7 @@ export const catalogKeys = {
       libraryId,
       directoryId ?? "root",
       recursive,
+      q,
       kinds?.join(",") ?? "all",
       sort,
       order,
@@ -61,6 +63,7 @@ export interface CatalogScope {
   kinds?: AssetKind[] | undefined;
   libraryId: string;
   order: SortOrder;
+  q: string;
   recursive: boolean;
   sort: AssetSort;
 }
@@ -72,11 +75,13 @@ export async function refreshCatalogScope(
   const directoriesKey = catalogKeys.directories(
     scope.libraryId,
     scope.directoryId,
+    scope.q,
   );
   const assetsKey = catalogKeys.assets(
     scope.libraryId,
     scope.directoryId,
     scope.recursive,
+    scope.q,
     scope.kinds,
     scope.sort,
     scope.order,
@@ -88,9 +93,7 @@ export async function refreshCatalogScope(
   const keys = [
     directoriesKey,
     assetsKey,
-    ...(scope.directoryId
-      ? [catalogKeys.directory(scope.directoryId)]
-      : []),
+    ...(scope.directoryId ? [catalogKeys.directory(scope.directoryId)] : []),
   ];
   await Promise.all(
     keys.map((queryKey) =>
@@ -103,17 +106,20 @@ export function useDirectoriesQuery({
   enabled = true,
   libraryId,
   parentId,
+  q = "",
 }: {
   enabled?: boolean;
   libraryId: string;
   parentId?: string | undefined;
+  q?: string | undefined;
 }) {
   return useInfiniteQuery({
-    queryKey: catalogKeys.directories(libraryId, parentId),
+    queryKey: catalogKeys.directories(libraryId, parentId, q),
     queryFn: ({ pageParam }) =>
       listDirectories({
         libraryId,
         ...(parentId ? { parentId } : {}),
+        ...(q ? { q } : {}),
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
     enabled: enabled && libraryId.length > 0,
@@ -128,6 +134,7 @@ export function useAssetsQuery({
   kinds,
   libraryId,
   order,
+  q = "",
   recursive,
   sort,
 }: {
@@ -135,6 +142,7 @@ export function useAssetsQuery({
   kinds?: AssetKind[] | undefined;
   libraryId: string;
   order: SortOrder;
+  q?: string | undefined;
   recursive: boolean;
   sort: AssetSort;
 }) {
@@ -143,6 +151,7 @@ export function useAssetsQuery({
       libraryId,
       directoryId,
       recursive,
+      q,
       kinds,
       sort,
       order,
@@ -152,6 +161,7 @@ export function useAssetsQuery({
         libraryId,
         ...(kinds ? { kinds } : {}),
         order,
+        ...(q ? { q } : {}),
         recursive,
         sort,
         ...(directoryId ? { directoryId } : {}),
@@ -181,14 +191,12 @@ function keepOnlyFirstPage<Page>(
   queryClient: QueryClient,
   queryKey: readonly unknown[],
 ): void {
-  queryClient.setQueryData<InfiniteData<Page, unknown>>(
-    queryKey,
-    (current) =>
-      current && current.pages.length > 1
-        ? {
-            pageParams: current.pageParams.slice(0, 1),
-            pages: current.pages.slice(0, 1),
-          }
-        : current,
+  queryClient.setQueryData<InfiniteData<Page, unknown>>(queryKey, (current) =>
+    current && current.pages.length > 1
+      ? {
+          pageParams: current.pageParams.slice(0, 1),
+          pages: current.pages.slice(0, 1),
+        }
+      : current,
   );
 }

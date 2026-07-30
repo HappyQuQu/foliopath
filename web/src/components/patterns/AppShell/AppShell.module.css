@@ -60,7 +60,7 @@
   position: sticky;
   z-index: calc(var(--layer-header) - 1);
   top: var(--size-header);
-  min-height: 3rem;
+  min-height: var(--size-context-bar);
   display: flex;
   align-items: center;
   gap: var(--space-3);

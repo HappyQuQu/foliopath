@@ -1,42 +1,93 @@
-# FTR-UIF-001 设计一致性 QA
+# UIF-312 Browse 设计 QA
 
-## 本轮范围
+## 比较目标
 
-- 页面：生产 `GeneralSettingsPage` 与共享 `GlobalHeader`、`ManagementShell`。
-- 视觉真相：`prototypes/apple-redesign/qa/management-general-final.png`。
-- 桌面实现证据：`docs/evidence/uif-301/management-general-implementation.png`。
-- 桌面组合对照：`docs/evidence/uif-301/management-general-comparison.png`。
-- 移动实现证据：`docs/evidence/uif-301/management-general-mobile-390.png`。
-- 移动结构对照：`docs/evidence/uif-301/management-mobile-comparison.png`；左侧参考为同一管理壳的媒体库状态，右侧为通用设置状态，因此只比较 Header、管理导航、边距和响应式层级，不比较业务内容。
+- source visual truth：
+  - `prototypes/apple-redesign/qa/browse-directory-filter-right.png`
+  - `prototypes/apple-redesign/qa/browse-directory-filter-right-mobile.png`
+- implementation：
+  - Storybook `Features/Browse/Directory`
+  - `http://127.0.0.1:6006/iframe.html?id=features-browse-directory--default&viewMode=story`
+- 主题 / 语言 / 状态：浅色、简体中文、京都目录、扫描进行中；桌面选中首项并打开固定预览。
+- 桌面 source：1842 × 783 px。
+- 桌面浏览器 viewport override：1842 × 783 CSS px，device scale 1；浏览器截图提供方实际输出
+  1827 × 777 px，比较前等比归一到 1842 × 783 px。
+- 移动 source：375 × 812 px。
+- 移动浏览器 viewport override：375 × 812 CSS px，device scale 1；浏览器截图提供方实际输出
+  360 × 780 px，比较前等比归一到 375 × 812 px。
 
-## 固定状态
+## 证据
 
-- 主题/语言：浅色、简体中文。
-- 桌面视口：1440 × 900，截图像素比 1。
-- 桌面视觉真相和实现截图均为 1440 × 900px；CSS 视口 1440 × 900、截图密度归一化为 1。
-- 移动验收档：390 CSS 宽度；内置浏览器扣除宿主框架后的内容截图与聚焦参考均为
-  375 × 812px，截图密度归一化为 1。
-- 交互状态：系统主题、跟随浏览器语言、自适应网格、默认固定预览开启、无未保存更改。
-- 数据：Storybook 使用已评审契约形状的确定性管理员会话，不进入生产 import graph。
+- 桌面实现：`docs/evidence/uif-312/browse-directory-implementation.png`
+- 桌面完整组合比较：`docs/evidence/uif-312/browse-directory-comparison.png`
+- 桌面工具栏聚焦比较：`docs/evidence/uif-312/browse-toolbar-comparison.png`
+- 移动实现：`docs/evidence/uif-312/browse-directory-mobile-implementation.png`
+- 移动组合比较：`docs/evidence/uif-312/browse-directory-mobile-comparison.png`
 
-## 比较历史与修复
+完整组合用于判断 Header、侧栏、面包屑、工具栏、扫描横幅、目录卡、媒体网格和固定预览的
+整体比例；工具栏聚焦比较用于确认控件顺序、两侧分组、间距和 sticky 层级。移动组合足以清楚
+读取全部关键控件与前三张目录卡，因此未再增加移动局部裁剪。
 
-1. 首次比较发现内容被额外限制为窄列，且浏览偏好、保存条缺失，属于 P1 布局和功能缺口。已移除页面级最大宽度，补全四项偏好、脏状态、恢复与保存行为。
-2. 首次比较发现语言默认状态和预览开关与参考状态不一致，属于 P2 状态缺口。已加入“跟随浏览器”持久化语义，并以真实交互保存预览默认值。
-3. 移动检查发现管理导航单行横向滚动，影响层级和触摸浏览，属于 P2 响应式缺口。已改为两行自然换行。
-4. 移动检查发现 `.brand span` 同时隐藏了 `BrandMark` 内部图形，属于 P2 品牌资产缺口。已只隐藏字标并保留 28px 官方目录树标识。
-5. 通用设置原先在 feature 内维护开关样式。为保持唯一组件所有权，已抽为共享 `Switch`，并补行为测试与 Storybook 状态。
+## Findings
 
-## 最终检查
+当前没有可执行的 P0 / P1 / P2 差异。
 
-- 布局：桌面 Header、260px 管理侧栏、内容起点、分组卡片和保存条与参考保持同一层级；没有重复 Header 或重复媒体库入口。
-- 字体与间距：标题、分区标题、行高、卡片内边距和行分隔保持参考密度；品牌字标是用户明确要求的增补。
-- 色彩与表面：使用中央语义 token；浅色背景、边框、圆角、悬浮保存条和蓝色强调与参考一致。
-- 图标与资产：使用项目唯一 `BrandMark` 和 Phosphor 图标，不包含 CSS 绘图、临时 SVG 或占位品牌。
-- 响应式：移动 Header 保留品牌图形、全局搜索和账户入口；管理导航两行换行；内容、卡片和保存操作没有页面级横向滚动。
-- 交互：已验证全局账户菜单、设置入口、退出动作、预览开关、保存及保存后无脏状态；Escape/焦点恢复由 AppShell 测试覆盖。
-- 可访问性：语义 Header、search、nav、main、label、select、`role="switch"`、可见焦点和 reduced-motion 均保留；移动目标尺寸不小于既有 token 约束。
-- 浏览器控制台：本轮桌面检查未发现页面错误。
-- 遗留：本报告只关闭通用设置和共享管理壳的 P0/P1/P2；其余生产页面仍按 `UIF-307～317` 和 `UIF-401～408` 逐页验收，不能据此宣布整个 feature 完成。
+- 字体与排版：实现使用中心字体与字号 token；标题、工具栏小字、卡片名称和辅助计数的层级与
+  source 一致，没有阻断性的换行或截断。source 截图选择了“拍摄日期”状态，生产默认仍按
+  已批准 URL 合同显示“文件名（自然顺序）”；用户选择日期排序时 URL 和结果可恢复。
+- 间距与布局：桌面保持全局 Header、固定目录侧栏、双层顶部上下文、五列媒体网格和约 400px
+  固定预览；移动端保持三行工具栏和单列目录卡。页面使用一个 window scroll，没有底部高度
+  补偿空白。
+- 颜色与 token：画布、表面、弱分隔线、蓝色选中态、状态横幅和预览层级均来自中心 token，
+  与 source 的浅色层级一致。
+- 图片与资产：正式 `BrandMark` 按已批准产品合同保留；source 只有文字字标的旧截图不再覆盖
+  “项目 Logo 必须进入全局 Header”的较新确认。Storybook 使用真实 `unavailable` 派生状态，
+  所以媒体内容不是 source 的彩色占位图；卡片裁切、比例和预览槽位仍按同一几何比较，不把
+  合成占位色误当成生产资产。
+- 文案与内容：当前目录筛选、媒体类型、扫描进行中、目录与媒体标题、预览操作均为正式中英文
+  i18n 文案。实现 fixture 的目录数量与 source 不同，但不改变层级或布局。
+
+## Comparison history
+
+### Iteration 1
+
+- [P2] 扫描横幅位于工具栏上方，与 source 的“工具栏 → 扫描状态”顺序相反。
+- [P2] 固定预览打开后媒体区域显示六列，source 为五列，卡片密度偏高。
+- 修复：把 offline/scanning 状态移到工具栏之后；媒体集合最小列宽从 180px 收敛到 210px，
+  skeleton 使用同一密度。
+- post-fix evidence：`browse-directory-comparison.png`。
+
+### Iteration 2
+
+- [P2] 375px 下布局/排序/刷新被拆成三个额外行，首屏比 source 多占一行。
+- [P2] 移动面包屑隐藏了首个父目录“旅行”，只剩当前目录。
+- 修复：布局、排序和紧凑刷新在第三行共享可用宽度；面包屑保留第一个父目录与当前目录，只
+  折叠中间深层路径。
+- post-fix evidence：`browse-directory-mobile-comparison.png`。
+
+## 交互与运行检查
+
+- 当前目录输入 `伏见` 后，目录和媒体同时进入 URL-backed 过滤，排序切到筛选默认值；
+  清除操作恢复完整目录。
+- “图片”三态切换后只保留图片结果；恢复“全部”后视频重新出现。
+- 双击首项打开固定预览，父列表继续可操作。
+- 检查浏览器 error / warning 日志；没有应用 error，只有 Storybook 自身的未来版本
+  `PopoverProvider ariaLabel` warning。
+
+## Follow-up polish
+
+- [P3] source 的合成彩色媒体与真实派生失败 fixture 不是同一像素内容；后续 Linux 视觉基线应
+  使用正式 synthetic media fixture 固定缩略图字节。
+- [P3] 刷新是 `docs/ui-design.md` 明确要求的紧凑操作，因此生产工具栏比旧 source 多一个
+  刷新图标；它不改变桌面分组，移动端仍保持三行。
+
+## Implementation checklist
+
+- [x] 当前目录 `q` 同时绑定 directory 和 asset cursor query。
+- [x] 媒体类型由孤立漏斗改为可见三态。
+- [x] 工具栏右侧依次为目录关键字、布局、排序和紧凑刷新。
+- [x] 桌面固定预览、五列网格、单滚动容器与 sticky offset 对齐。
+- [x] 375px 工具栏、面包屑和单列目录卡对齐。
+- [x] Storybook 稳定状态、类型检查、行为测试和组合截图已生成。
 
 final result: passed

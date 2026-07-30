@@ -155,8 +155,19 @@ flowchart TD
 - [x] `UIF-311` 实现账户独立页并接真实资料/密码合同。
   - 独立路由读取强 ETag，支持资料保存、当前密码验证、确认密码、改密及当前会话退出；
     资料成功后同步唯一 auth session query。
-- [ ] `UIF-312` 还原浏览面包屑、工具栏、当前目录过滤和 URL codec。
-- [ ] `UIF-313` 修复单滚动容器、底部空白、自适应网格和预览宽度。
+- [x] `UIF-312` 还原浏览面包屑、工具栏、当前目录过滤和 URL codec。
+  - 当前目录关键字以 300ms 防抖写入 `q`，同时绑定 direct-child directory 与 asset
+    query key/cursor；“全部 / 图片 / 视频”、递归范围和排序继续由唯一 Browse URL codec
+    恢复。
+  - 最新视觉真相：
+    `prototypes/apple-redesign/qa/browse-directory-filter-right.png` 与
+    `browse-directory-filter-right-mobile.png`；实现证据见
+    [`docs/evidence/uif-312`](../evidence/uif-312/)。
+- [x] `UIF-313` 修复单滚动容器、底部空白、自适应网格和预览宽度。
+  - 页面最小高度扣除全局 Header 与 context bar；浏览工具栏和固定预览共享明确 sticky
+    offset，不再叠加虚假页面高度。
+  - 右侧预览打开时桌面媒体网格按约 210px 最小卡宽收敛为五列；390 档工具栏三行重排，
+    文件夹单列且无页面级横向溢出。
 - [x] `UIF-314` 还原 Search 无侧栏、命令区、结果状态和全局搜索跳转。
   - Search 不再渲染重复页面搜索框；全局 Header 提交查询，页面右侧命令区只保留范围、
     类型、日期、排序和结果控制。

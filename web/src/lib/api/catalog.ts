@@ -31,8 +31,7 @@ export interface DirectoryPage {
 export type AssetKind = "image" | "animated" | "video";
 export type AssetSort = "name" | "modifiedAt";
 export type SortOrder = "asc" | "desc";
-export type StoryboardReference =
-  components["schemas"]["StoryboardReference"];
+export type StoryboardReference = components["schemas"]["StoryboardReference"];
 
 export interface Asset {
   directoryId: string;
@@ -45,7 +44,8 @@ export interface Asset {
   mimeType: string;
   modifiedAt: string;
   name: string;
-  playbackStatus: "playable" | "unsupported_codec" | "not_applicable" | "unknown";
+  playbackStatus:
+    "playable" | "unsupported_codec" | "not_applicable" | "unknown";
   probeStatus: "pending" | "ready" | "failed" | "unsupported";
   relativePath: string;
   sizeBytes: number;
@@ -86,6 +86,7 @@ export async function listAssets({
   libraryId,
   limit = 50,
   order,
+  q,
   recursive,
   sort,
 }: {
@@ -95,6 +96,7 @@ export async function listAssets({
   libraryId: string;
   limit?: number;
   order: SortOrder;
+  q?: string;
   recursive: boolean;
   sort: AssetSort;
 }): Promise<AssetPage> {
@@ -111,6 +113,7 @@ export async function listAssets({
             ...(cursor ? { cursor } : {}),
             ...(directoryId ? { directoryId } : {}),
             ...(kinds?.length ? { kind: kinds } : {}),
+            ...(q ? { q } : {}),
             ...(recursive ? { recursive: true } : {}),
           },
         },
@@ -220,11 +223,13 @@ export async function listDirectories({
   libraryId,
   limit = 50,
   parentId,
+  q,
 }: {
   cursor?: string;
   libraryId: string;
   limit?: number;
   parentId?: string;
+  q?: string;
 }): Promise<DirectoryPage> {
   try {
     const { data, error, response } = await apiClient.GET(
@@ -236,6 +241,7 @@ export async function listDirectories({
             limit,
             ...(cursor ? { cursor } : {}),
             ...(parentId ? { parentId } : {}),
+            ...(q ? { q } : {}),
           },
         },
       },
@@ -252,7 +258,9 @@ export async function listDirectories({
   }
 }
 
-export async function getDirectory(directoryId: string): Promise<DirectoryDetail> {
+export async function getDirectory(
+  directoryId: string,
+): Promise<DirectoryDetail> {
   try {
     const { data, error, response } = await apiClient.GET(
       "/api/v1/directories/{directoryId}",

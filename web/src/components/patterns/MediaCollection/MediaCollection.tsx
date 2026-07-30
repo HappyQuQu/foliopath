@@ -641,7 +641,7 @@ function decodeImage(image: HTMLImageElement): Promise<void> {
 }
 
 function columnCount(width: number): number {
-  return Math.max(1, Math.min(6, Math.floor((width + 12) / 180)));
+  return Math.max(1, Math.min(6, Math.floor((width + 12) / 210)));
 }
 
 function estimatedCardHeight(

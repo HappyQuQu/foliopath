@@ -1,11 +1,13 @@
 .preview {
+  --preview-top: var(--preview-sticky-top, calc(var(--size-header) * 2));
+
   position: sticky;
-  top: calc(var(--size-header) * 2);
+  top: var(--preview-top);
   align-self: start;
   width: var(--preview-width);
   min-width: 22.5rem;
   max-width: 38.75rem;
-  height: calc(100dvh - var(--size-header) * 2);
+  height: calc(100dvh - var(--preview-top));
   display: flex;
   flex-direction: column;
   container-type: inline-size;

@@ -7,7 +7,6 @@ import {
   CircleNotch,
   Columns,
   Folder,
-  Funnel,
   GridFour,
   House,
   ImageSquare,
@@ -22,7 +21,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type FormEvent,
 } from "react";
 import {
   Link,
@@ -120,8 +118,7 @@ export function BrowsePage({
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
-  const [topbarQuery, setTopbarQuery] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [directoryFilterDraft, setDirectoryFilterDraft] = useState("");
   const [manualRefreshPending, setManualRefreshPending] = useState(false);
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams),
@@ -130,26 +127,26 @@ export function BrowsePage({
   const librariesQuery = useLibrariesQuery();
   const libraryQuery = useLibraryQuery(libraryId);
   const directoryQuery = useDirectoryQuery(directoryId);
-  const childrenQuery = useDirectoriesQuery({ libraryId, parentId: directoryId });
+  const childrenQuery = useDirectoriesQuery({
+    libraryId,
+    parentId: directoryId,
+    q: browseState.q,
+  });
   const browseKinds = kindsForBrowse(browseState.kind);
   const assetsQuery = useAssetsQuery({
     directoryId,
     kinds: browseKinds,
     libraryId,
     order: browseState.order,
+    q: browseState.q,
     recursive: browseState.recursive,
     sort: browseState.sort,
   });
   const { refetch: refreshLibrary } = libraryQuery;
   const { refetch: refreshDirectory } = directoryQuery;
-  const {
-    fetchNextPage: loadMoreChildren,
-    refetch: refreshChildren,
-  } = childrenQuery;
-  const {
-    fetchNextPage: loadMoreAssets,
-    refetch: refreshAssets,
-  } = assetsQuery;
+  const { fetchNextPage: loadMoreChildren, refetch: refreshChildren } =
+    childrenQuery;
+  const { fetchNextPage: loadMoreAssets, refetch: refreshAssets } = assetsQuery;
   const libraries = useMemo(
     () => librariesQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [librariesQuery.data],
@@ -234,12 +231,37 @@ export function BrowsePage({
     [breadcrumbs],
   );
   const currentName =
-    directoryQuery.data?.name ?? currentLibrary?.name ?? t("browse.libraryFallback");
-  const currentMediaCount =
-    directoryQuery.data?.directAssetCount ?? currentLibrary?.assetCount ?? 0;
+    directoryQuery.data?.name ??
+    currentLibrary?.name ??
+    t("browse.libraryFallback");
+  const currentMediaCount = browseState.q
+    ? assets.length
+    : (directoryQuery.data?.directAssetCount ??
+      currentLibrary?.assetCount ??
+      0);
   const canonicalSearch = serializeBrowseUrlState(browseState);
   const navigationScope = `${libraryId}:${directoryId ?? "root"}`;
   const previousNavigationScope = useRef(navigationScope);
+
+  useEffect(() => {
+    setDirectoryFilterDraft(browseState.q);
+  }, [browseState.q]);
+
+  useEffect(() => {
+    const q = directoryFilterDraft.trim();
+    if (q === browseState.q) return;
+
+    const timer = window.setTimeout(() => {
+      const scopeChanged = !q || !browseState.q;
+      const defaults = defaultBrowseUrlState(browseState.recursive, q);
+      updateBrowseState({
+        ...browseState,
+        q,
+        ...(scopeChanged ? { order: defaults.order, sort: defaults.sort } : {}),
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [browseState, directoryFilterDraft]);
 
   const refreshCurrentScope = useCallback(async () => {
     await Promise.all([
@@ -248,6 +270,7 @@ export function BrowsePage({
         kinds: browseKinds,
         libraryId,
         order: browseState.order,
+        q: browseState.q,
         recursive: browseState.recursive,
         sort: browseState.sort,
       }),
@@ -256,6 +279,7 @@ export function BrowsePage({
   }, [
     browseKinds,
     browseState.order,
+    browseState.q,
     browseState.recursive,
     browseState.sort,
     directoryId,
@@ -288,7 +312,14 @@ export function BrowsePage({
       replace: true,
       state: null,
     });
-  }, [assets, location.pathname, location.search, location.state, navigate, preview.collectionRef]);
+  }, [
+    assets,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+    preview.collectionRef,
+  ]);
 
   function updateBrowseState(nextState: BrowseUrlState) {
     setSearchParams(serializeBrowseUrlState(nextState));
@@ -326,11 +357,7 @@ export function BrowsePage({
           browseState={browseState}
           onLibraryChange={(nextLibraryId) =>
             navigate(
-              browseUrl(
-                nextLibraryId,
-                undefined,
-                defaultBrowseUrlState(),
-              ),
+              browseUrl(nextLibraryId, undefined, defaultBrowseUrlState()),
             )
           }
           selectedDirectoryId={directoryId}
@@ -338,110 +365,22 @@ export function BrowsePage({
         />
       }
       topbarContent={
-        <>
-          <Breadcrumbs
-            browseState={browseState}
-            breadcrumbs={breadcrumbs}
-            libraryId={libraryId}
-            rootName={currentLibrary?.name ?? currentName}
-          />
-          <form
-            className={styles.topbarSearch}
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              const q = topbarQuery.trim();
-              if (!q) return;
-              navigate(
-                `${paths.librarySearch(libraryId)}?${new URLSearchParams({
-                  q,
-                  scope: "library",
-                }).toString()}`,
-              );
-            }}
-          >
-            <MagnifyingGlass aria-hidden="true" size={16} />
-            <input
-              aria-label={t("search.inputLabel")}
-              onChange={(event) => setTopbarQuery(event.currentTarget.value)}
-              placeholder={t("search.placeholder")}
-              type="search"
-              value={topbarQuery}
-            />
-          </form>
-          <div
-            className={styles.topbarFilters}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                setFilterOpen(false);
-              }
-            }}
-          >
-            <IconButton
-              aria-controls="browse-media-filter"
-              aria-expanded={filterOpen}
-              label={t("search.filters")}
-              onClick={() => setFilterOpen((open) => !open)}
-              pressed={filterOpen}
-            >
-              <Funnel aria-hidden="true" size={19} />
-            </IconButton>
-            {filterOpen && (
-              <div
-                aria-label={t("browse.mediaType")}
-                className={styles.filterMenu}
-                id="browse-media-filter"
-                role="radiogroup"
-              >
-                {(["all", "image", "video"] as const).map((kind) => (
-                  <Button
-                    aria-checked={browseState.kind === kind}
-                    className={styles.filterOption}
-                    key={kind}
-                    onClick={() => {
-                      updateBrowseState({ ...browseState, kind });
-                      setFilterOpen(false);
-                    }}
-                    role="radio"
-                    variant="quiet"
-                  >
-                    {kind === "all"
-                      ? t("browse.kindAll")
-                      : kind === "image"
-                        ? t("browse.kindImage")
-                        : t("browse.kindVideo")}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
+        <Breadcrumbs
+          browseState={browseState}
+          breadcrumbs={breadcrumbs}
+          libraryId={libraryId}
+          rootName={currentLibrary?.name ?? currentName}
+        />
       }
       title={t("browse.title")}
     >
       <section className={styles.page} aria-labelledby="browse-heading">
-        {currentLibrary?.status === "offline" && (
-          <div className={styles.banner}>
-            <InlineStatus tone="warning">
-              {t("browse.offlinePreserved")}
-            </InlineStatus>
-          </div>
-        )}
-        {currentLibrary?.status === "scanning" && (
-          <div className={styles.scanBanner}>
-            <CircleNotch aria-hidden="true" className={styles.scanIcon} size={18} />
-            <span>{t("libraries.statusScanning")}</span>
-            <span className={styles.scanStats}>
-              {t("browse.mediaCount").replace(
-                "{count}",
-                String(currentLibrary.assetCount),
-              )}
-            </span>
-          </div>
-        )}
         <BrowseToolbar
           browseState={browseState}
+          directoryFilter={directoryFilterDraft}
           mediaLayout={mediaLayout}
           onChange={updateBrowseState}
+          onDirectoryFilterChange={setDirectoryFilterDraft}
           onLayoutChange={updateMediaLayout}
           onRefresh={async () => {
             setManualRefreshPending(true);
@@ -453,250 +392,299 @@ export function BrowsePage({
           }}
           refreshPending={manualRefreshPending}
         />
+        {currentLibrary?.status === "offline" && (
+          <div className={styles.banner}>
+            <InlineStatus tone="warning">
+              {t("browse.offlinePreserved")}
+            </InlineStatus>
+          </div>
+        )}
+        {currentLibrary?.status === "scanning" && (
+          <div className={styles.scanBanner}>
+            <CircleNotch
+              aria-hidden="true"
+              className={styles.scanIcon}
+              size={18}
+            />
+            <span>
+              {t("browse.scanningBanner").replace(
+                "{name}",
+                currentLibrary.name,
+              )}
+            </span>
+            <span className={styles.scanStats}>
+              {t("browse.mediaCount").replace(
+                "{count}",
+                String(currentLibrary.assetCount),
+              )}
+            </span>
+          </div>
+        )}
 
         <div
           className={styles.workspace}
           data-has-preview={previewItem ? "" : undefined}
-          style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
+          style={
+            {
+              "--preview-sticky-top":
+                "calc(var(--size-header) + var(--size-context-bar) * 2)",
+              "--preview-width": `${preview.width}px`,
+            } as CSSProperties
+          }
         >
-        <div className={styles.content}>
-          {(libraryQuery.isPending || (directoryId && directoryQuery.isPending)) && (
-            <LoadingState label={t("browse.loadingLocation")} />
-          )}
-          {(libraryQuery.isError || directoryQuery.isError) && (
-            <ErrorState
-              message={t("browse.locationFailed")}
-              onRetry={() => {
-                void refreshLibrary();
-                void refreshDirectory();
-              }}
-            />
-          )}
-          {libraryQuery.isSuccess &&
-            (!directoryId || directoryQuery.isSuccess) && (
-              <>
-                <h1 className={styles.screenReaderOnly} id="browse-heading">
-                  {currentName}
-                </h1>
-                {(childrenQuery.isPending ||
-                  childrenQuery.isError ||
-                  children.length > 0) && (
-                  <section aria-labelledby="child-directories-heading">
+          <div className={styles.content}>
+            {(libraryQuery.isPending ||
+              (directoryId && directoryQuery.isPending)) && (
+              <LoadingState label={t("browse.loadingLocation")} />
+            )}
+            {(libraryQuery.isError || directoryQuery.isError) && (
+              <ErrorState
+                message={t("browse.locationFailed")}
+                onRetry={() => {
+                  void refreshLibrary();
+                  void refreshDirectory();
+                }}
+              />
+            )}
+            {libraryQuery.isSuccess &&
+              (!directoryId || directoryQuery.isSuccess) && (
+                <>
+                  <h1 className={styles.screenReaderOnly} id="browse-heading">
+                    {currentName}
+                  </h1>
+                  {(childrenQuery.isPending ||
+                    childrenQuery.isError ||
+                    children.length > 0 ||
+                    browseState.q) && (
+                    <section aria-labelledby="child-directories-heading">
+                      <div className={styles.sectionHeading}>
+                        <div>
+                          <h2 id="child-directories-heading">
+                            {t("browse.childDirectories")}
+                          </h2>
+                          <p>
+                            {t("browse.directorySummary")
+                              .replace("{directories}", String(children.length))
+                              .replace("{media}", String(currentMediaCount))}
+                          </p>
+                        </div>
+                      </div>
+                      {childrenQuery.isPending && (
+                        <LoadingState label={t("browse.loadingDirectories")} />
+                      )}
+                      {childrenQuery.isError && (
+                        <ErrorState
+                          message={t("browse.directoriesFailed")}
+                          onRetry={() => void refreshChildren()}
+                        />
+                      )}
+                      {children.length > 0 && (
+                        <div className={styles.folderGrid}>
+                          {children.map((directory) => (
+                            <Link
+                              className={styles.folderCard}
+                              key={directory.id}
+                              to={browseUrl(
+                                libraryId,
+                                directory.id,
+                                browseState,
+                              )}
+                            >
+                              <Folder
+                                aria-hidden="true"
+                                size={30}
+                                weight="fill"
+                              />
+                              <strong>{directory.name}</strong>
+                              <span>
+                                {t("browse.mediaCount").replace(
+                                  "{count}",
+                                  String(directory.recursiveAssetCount),
+                                )}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                      {childrenQuery.hasNextPage && (
+                        <Button
+                          className={styles.loadMore}
+                          loading={childrenQuery.isFetchingNextPage}
+                          onClick={() => void loadMoreChildren()}
+                        >
+                          {t("browse.loadMoreDirectories")}
+                        </Button>
+                      )}
+                    </section>
+                  )}
+                  <section aria-labelledby="media-heading">
                     <div className={styles.sectionHeading}>
                       <div>
-                        <h2 id="child-directories-heading">
-                          {t("browse.childDirectories")}
-                        </h2>
+                        <h2 id="media-heading">{t("browse.mediaHeading")}</h2>
                         <p>
-                          {t("browse.directorySummary")
-                            .replace(
-                              "{directories}",
-                              String(children.length),
-                            )
-                            .replace(
-                              "{media}",
-                              String(currentMediaCount),
-                            )}
+                          {browseState.recursive
+                            ? t("browse.recursiveMediaDescription")
+                            : t("browse.directMediaDescription")}
                         </p>
                       </div>
+                      <span>
+                        {t("browse.loadedMediaCount").replace(
+                          "{count}",
+                          String(assets.length),
+                        )}
+                      </span>
                     </div>
-                  {childrenQuery.isPending && (
-                    <LoadingState label={t("browse.loadingDirectories")} />
-                  )}
-                  {childrenQuery.isError && (
-                    <ErrorState
-                      message={t("browse.directoriesFailed")}
-                      onRetry={() => void refreshChildren()}
-                    />
-                  )}
-                  {children.length > 0 && (
-                    <div className={styles.folderGrid}>
-                      {children.map((directory) => (
-                        <Link
-                          className={styles.folderCard}
-                          key={directory.id}
-                          to={browseUrl(libraryId, directory.id, browseState)}
-                        >
-                          <Folder aria-hidden="true" size={30} weight="fill" />
-                          <strong>{directory.name}</strong>
-                          <span>
-                            {t("browse.mediaCount").replace(
-                              "{count}",
-                              String(directory.recursiveAssetCount),
-                            )}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  {childrenQuery.hasNextPage && (
-                    <Button
-                      className={styles.loadMore}
-                      loading={childrenQuery.isFetchingNextPage}
-                      onClick={() => void loadMoreChildren()}
-                    >
-                      {t("browse.loadMoreDirectories")}
-                    </Button>
-                  )}
-                  </section>
-                )}
-                <section aria-labelledby="media-heading">
-                  <div className={styles.sectionHeading}>
-                    <div>
-                      <h2 id="media-heading">{t("browse.mediaHeading")}</h2>
-                      <p>
-                        {browseState.recursive
-                          ? t("browse.recursiveMediaDescription")
-                          : t("browse.directMediaDescription")}
-                      </p>
-                    </div>
-                    <span>
-                      {t("browse.loadedMediaCount").replace(
-                        "{count}",
-                        String(assets.length),
-                      )}
-                    </span>
-                  </div>
-                  {assetsQuery.isPending && (
-                    <MediaCollectionSkeleton label={t("browse.loadingMedia")} />
-                  )}
-                  {assetsQuery.isError && assets.length === 0 && (
-                    <ErrorState
-                      message={t("browse.mediaFailed")}
-                      onRetry={() => void refreshAssets()}
-                    />
-                  )}
-                  {assetsQuery.isSuccess &&
-                    assets.length === 0 &&
-                    currentLibrary?.status === "offline" && (
-                      <OfflineState
-                        description={t("browse.offlineEmptyDescription")}
-                        title={t("browse.offlineEmptyTitle")}
+                    {assetsQuery.isPending && (
+                      <MediaCollectionSkeleton
+                        label={t("browse.loadingMedia")}
                       />
                     )}
-                  {assetsQuery.isSuccess &&
-                    assets.length === 0 &&
-                    currentLibrary?.status !== "offline" && (
-                      <EmptyMedia
-                        browseState={browseState}
-                        directory={directoryQuery.data}
-                        onEnableRecursive={() =>
-                          updateBrowseState({
-                            ...defaultBrowseUrlState(true),
-                            kind: browseState.kind,
+                    {assetsQuery.isError && assets.length === 0 && (
+                      <ErrorState
+                        message={t("browse.mediaFailed")}
+                        onRetry={() => void refreshAssets()}
+                      />
+                    )}
+                    {assetsQuery.isSuccess &&
+                      assets.length === 0 &&
+                      currentLibrary?.status === "offline" && (
+                        <OfflineState
+                          description={t("browse.offlineEmptyDescription")}
+                          title={t("browse.offlineEmptyTitle")}
+                        />
+                      )}
+                    {assetsQuery.isSuccess &&
+                      assets.length === 0 &&
+                      currentLibrary?.status !== "offline" && (
+                        <EmptyMedia
+                          browseState={browseState}
+                          directory={directoryQuery.data}
+                          onClearQuery={() => setDirectoryFilterDraft("")}
+                          onEnableRecursive={() =>
+                            updateBrowseState({
+                              ...defaultBrowseUrlState(true, browseState.q),
+                              kind: browseState.kind,
+                            })
+                          }
+                        />
+                      )}
+                    {assets.length > 0 && (
+                      <MediaCollection
+                        ref={preview.collectionRef}
+                        hasNextPage={assetsQuery.hasNextPage}
+                        isFetchingNextPage={
+                          assetsQuery.isFetchingNextPage ||
+                          (assetsQuery.isFetchNextPageError &&
+                            assetsQuery.isRefetching)
+                        }
+                        items={mediaItems}
+                        labels={{
+                          activatePreview: preview.pinned
+                            ? t("browse.selectPinnedPreview")
+                            : t("browse.activatePreview"),
+                          animated: t("browse.kindAnimated"),
+                          failedThumbnail: t("browse.thumbnailFailed"),
+                          image: t("browse.kindImage"),
+                          loadMore: t("browse.loadMoreMedia"),
+                          loadMoreFailed: t("browse.loadMoreMediaFailed"),
+                          loadingMore: t("browse.loadingMoreMedia"),
+                          pendingThumbnail: t("browse.thumbnailPending"),
+                          previewing: t("browse.currentlyPreviewing"),
+                          retryLoadMore: t("browse.retryLoadMoreMedia"),
+                          unavailableThumbnail: t(
+                            "browse.thumbnailUnavailable",
+                          ),
+                          video: t("browse.kindVideo"),
+                        }}
+                        layout={mediaLayout}
+                        onItemActivate={(assetId, activation) =>
+                          preview.activate(assetId, activation)
+                        }
+                        onLoadMore={loadMoreAssets}
+                        onRetryLoadMore={() =>
+                          void retryInfiniteNextPage({
+                            error: assetsQuery.error,
+                            loadNextPage: assetsQuery.fetchNextPage,
+                            refresh: assetsQuery.refetch,
                           })
                         }
+                        paginationError={assetsQuery.isFetchNextPageError}
+                        {...(previewAsset
+                          ? { previewItemId: previewAsset.id }
+                          : {})}
+                        {...(preview.selectedItemId
+                          ? { selectedItemId: preview.selectedItemId }
+                          : {})}
                       />
                     )}
-                  {assets.length > 0 && (
-                    <MediaCollection
-                      ref={preview.collectionRef}
-                      hasNextPage={assetsQuery.hasNextPage}
-                      isFetchingNextPage={
-                        assetsQuery.isFetchingNextPage ||
-                        (assetsQuery.isFetchNextPageError &&
-                          assetsQuery.isRefetching)
-                      }
-                      items={mediaItems}
-                      labels={{
-                        activatePreview: preview.pinned
-                          ? t("browse.selectPinnedPreview")
-                          : t("browse.activatePreview"),
-                        animated: t("browse.kindAnimated"),
-                        failedThumbnail: t("browse.thumbnailFailed"),
-                        image: t("browse.kindImage"),
-                        loadMore: t("browse.loadMoreMedia"),
-                        loadMoreFailed: t("browse.loadMoreMediaFailed"),
-                        loadingMore: t("browse.loadingMoreMedia"),
-                        pendingThumbnail: t("browse.thumbnailPending"),
-                        previewing: t("browse.currentlyPreviewing"),
-                        retryLoadMore: t("browse.retryLoadMoreMedia"),
-                        unavailableThumbnail: t("browse.thumbnailUnavailable"),
-                        video: t("browse.kindVideo"),
-                      }}
-                      layout={mediaLayout}
-                      onItemActivate={(assetId, activation) =>
-                        preview.activate(assetId, activation)
-                      }
-                      onLoadMore={loadMoreAssets}
-                      onRetryLoadMore={() =>
-                        void retryInfiniteNextPage({
-                          error: assetsQuery.error,
-                          loadNextPage: assetsQuery.fetchNextPage,
-                          refresh: assetsQuery.refetch,
-                        })
-                      }
-                      paginationError={assetsQuery.isFetchNextPageError}
-                      {...(previewAsset
-                        ? { previewItemId: previewAsset.id }
-                        : {})}
-                      {...(preview.selectedItemId
-                        ? { selectedItemId: preview.selectedItemId }
-                        : {})}
-                    />
-                  )}
-                </section>
-              </>
-            )}
-        </div>
-        {previewItem && (
-          <MediaPreview
-            availability={
-              previewAsset && mediaAvailability(previewAsset)
-                ? mediaAvailabilityPresentation(
-                    mediaAvailability(previewAsset)!,
-                    t,
-                    () => void refreshAssets(),
-                  )
-                : undefined
-            }
-            canGoNext={
-              preview.previewIndex >= 0 &&
-              preview.previewIndex < assets.length - 1
-            }
-            canGoPrevious={preview.previewIndex > 0}
-            item={previewItem}
-            labels={{
-              close: t("browse.closePreview"),
-              followingDescription: t("browse.previewFollowingDescription"),
-              followingTitle: t("browse.previewFollowingTitle"),
-              imageFailed: t("browse.previewImageFailed"),
-              loadFailedDescription: t("mediaState.loadFailedDescription"),
-              next: t("browse.nextMedia"),
-              openViewer: t("browse.openFullViewer"),
-              pin: t("browse.pinPreview"),
-              pinnedDescription: t("browse.previewPinnedDescription"),
-              pinnedTitle: t("browse.previewPinnedTitle"),
-              position: t("browse.previewPosition")
-                .replace("{current}", String(preview.previewIndex + 1))
-                .replace("{total}", String(assets.length)),
-              previous: t("browse.previousMedia"),
-              preview: t("browse.preview"),
-              resize: t("browse.resizePreview"),
-              retry: t("mediaState.retry"),
-              unpin: t("browse.unpinPreview"),
-              videoFailed: t("browse.previewVideoFailed"),
-            }}
-            maxWidth={preview.maxWidth}
-            onClose={preview.close}
-            onNext={() => preview.moveTo(assets[preview.previewIndex + 1])}
-            onOpenViewer={() => {
-              if (!previewAsset) return;
-              const returnTo = `${location.pathname}${location.search}`;
-              navigate(
-                paths.media(previewAsset.libraryId, previewAsset.id, returnTo),
-                {
-                  state: createViewerLocationState(assets, returnTo),
-                },
-              );
-            }}
-            onPinnedChange={preview.updatePinned}
-            onPrevious={() => preview.moveTo(assets[preview.previewIndex - 1])}
-            onWidthChange={preview.setWidth}
-            pinned={preview.pinned}
-            width={preview.width}
-          />
-        )}
+                  </section>
+                </>
+              )}
+          </div>
+          {previewItem && (
+            <MediaPreview
+              availability={
+                previewAsset && mediaAvailability(previewAsset)
+                  ? mediaAvailabilityPresentation(
+                      mediaAvailability(previewAsset)!,
+                      t,
+                      () => void refreshAssets(),
+                    )
+                  : undefined
+              }
+              canGoNext={
+                preview.previewIndex >= 0 &&
+                preview.previewIndex < assets.length - 1
+              }
+              canGoPrevious={preview.previewIndex > 0}
+              item={previewItem}
+              labels={{
+                close: t("browse.closePreview"),
+                followingDescription: t("browse.previewFollowingDescription"),
+                followingTitle: t("browse.previewFollowingTitle"),
+                imageFailed: t("browse.previewImageFailed"),
+                loadFailedDescription: t("mediaState.loadFailedDescription"),
+                next: t("browse.nextMedia"),
+                openViewer: t("browse.openFullViewer"),
+                pin: t("browse.pinPreview"),
+                pinnedDescription: t("browse.previewPinnedDescription"),
+                pinnedTitle: t("browse.previewPinnedTitle"),
+                position: t("browse.previewPosition")
+                  .replace("{current}", String(preview.previewIndex + 1))
+                  .replace("{total}", String(assets.length)),
+                previous: t("browse.previousMedia"),
+                preview: t("browse.preview"),
+                resize: t("browse.resizePreview"),
+                retry: t("mediaState.retry"),
+                unpin: t("browse.unpinPreview"),
+                videoFailed: t("browse.previewVideoFailed"),
+              }}
+              maxWidth={preview.maxWidth}
+              onClose={preview.close}
+              onNext={() => preview.moveTo(assets[preview.previewIndex + 1])}
+              onOpenViewer={() => {
+                if (!previewAsset) return;
+                const returnTo = `${location.pathname}${location.search}`;
+                navigate(
+                  paths.media(
+                    previewAsset.libraryId,
+                    previewAsset.id,
+                    returnTo,
+                  ),
+                  {
+                    state: createViewerLocationState(assets, returnTo),
+                  },
+                );
+              }}
+              onPinnedChange={preview.updatePinned}
+              onPrevious={() =>
+                preview.moveTo(assets[preview.previewIndex - 1])
+              }
+              onWidthChange={preview.setWidth}
+              pinned={preview.pinned}
+              width={preview.width}
+            />
+          )}
         </div>
       </section>
     </AppShell>
@@ -705,15 +693,19 @@ export function BrowsePage({
 
 function BrowseToolbar({
   browseState,
+  directoryFilter,
   mediaLayout,
   onChange,
+  onDirectoryFilterChange,
   onLayoutChange,
   onRefresh,
   refreshPending,
 }: {
   browseState: BrowseUrlState;
+  directoryFilter: string;
   mediaLayout: MediaCollectionLayout;
   onChange: (state: BrowseUrlState) => void;
+  onDirectoryFilterChange: (query: string) => void;
   onLayoutChange: (layout: MediaCollectionLayout) => void;
   onRefresh: () => Promise<void>;
   refreshPending: boolean;
@@ -721,7 +713,7 @@ function BrowseToolbar({
   const { t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
   const defaults = {
-    ...defaultBrowseUrlState(browseState.recursive),
+    ...defaultBrowseUrlState(browseState.recursive, browseState.q),
     ...(browseState.allMedia ? { allMedia: true as const } : {}),
     kind: browseState.kind,
   };
@@ -729,13 +721,17 @@ function BrowseToolbar({
     browseState.sort !== defaults.sort || browseState.order !== defaults.order;
 
   return (
-    <div className={styles.toolbar} role="region" aria-label={t("browse.tools")}>
+    <div
+      className={styles.toolbar}
+      role="region"
+      aria-label={t("browse.tools")}
+    >
       <Button
         aria-pressed={browseState.recursive}
         className={styles.recursiveToggle}
         onClick={() =>
           onChange({
-            ...defaultBrowseUrlState(!browseState.recursive),
+            ...defaultBrowseUrlState(!browseState.recursive, browseState.q),
             kind: browseState.kind,
           })
         }
@@ -748,6 +744,44 @@ function BrowseToolbar({
         )}
         {t("browse.includeSubdirectories")}
       </Button>
+      <div
+        aria-label={t("browse.mediaType")}
+        className={styles.kindControls}
+        role="radiogroup"
+      >
+        {(["all", "image", "video"] as const).map((kind) => (
+          <Button
+            aria-checked={browseState.kind === kind}
+            className={styles.kindButton}
+            key={kind}
+            onClick={() => onChange({ ...browseState, kind })}
+            role="radio"
+            size="small"
+            variant={browseState.kind === kind ? "secondary" : "quiet"}
+          >
+            {kind === "all"
+              ? t("browse.kindAll")
+              : kind === "image"
+                ? t("browse.kindImage")
+                : t("browse.kindVideo")}
+          </Button>
+        ))}
+      </div>
+      <label className={styles.directoryFilter}>
+        <MagnifyingGlass aria-hidden="true" size={17} />
+        <span className={styles.screenReaderOnly}>
+          {t("browse.filterCurrentDirectory")}
+        </span>
+        <input
+          autoComplete="off"
+          onChange={(event) =>
+            onDirectoryFilterChange(event.currentTarget.value)
+          }
+          placeholder={t("browse.filterCurrentDirectory")}
+          type="search"
+          value={directoryFilter}
+        />
+      </label>
       <div
         className={styles.layoutControls}
         role="group"
@@ -817,10 +851,12 @@ function BrowseToolbar({
 function EmptyMedia({
   browseState,
   directory,
+  onClearQuery,
   onEnableRecursive,
 }: {
   browseState: BrowseUrlState;
   directory?: Directory | undefined;
+  onClearQuery: () => void;
   onEnableRecursive: () => void;
 }) {
   const { t } = useLocale();
@@ -833,27 +869,35 @@ function EmptyMedia({
   return (
     <EmptyState
       action={
-        hasDescendantMedia ? (
+        browseState.q ? (
+          <Button onClick={onClearQuery}>
+            {t("browse.clearDirectoryFilter")}
+          </Button>
+        ) : hasDescendantMedia ? (
           <Button onClick={onEnableRecursive}>
             {t("browse.enableRecursive")}
           </Button>
         ) : undefined
       }
       description={
-        hasDescendantMedia
-          ? t("browse.descendantMediaAvailable").replace(
-              "{count}",
-              String(
-                directory.recursiveAssetCount - directory.directAssetCount,
-              ),
-            )
-          : t("browse.noMediaDescription")
+        browseState.q
+          ? t("browse.noDirectoryFilterResultsDescription")
+          : hasDescendantMedia
+            ? t("browse.descendantMediaAvailable").replace(
+                "{count}",
+                String(
+                  directory.recursiveAssetCount - directory.directAssetCount,
+                ),
+              )
+            : t("browse.noMediaDescription")
       }
       icon={ImageSquare}
       title={
-        browseState.recursive
-          ? t("browse.noRecursiveMedia")
-          : t("browse.noDirectMedia")
+        browseState.q
+          ? t("browse.noDirectoryFilterResults")
+          : browseState.recursive
+            ? t("browse.noRecursiveMedia")
+            : t("browse.noDirectMedia")
       }
     />
   );
@@ -892,7 +936,11 @@ function Breadcrumbs({
       {items.map((item, index) => {
         const current = index === items.length - 1;
         return (
-          <span className={styles.crumb} key={item.id}>
+          <span
+            className={styles.crumb}
+            data-first={index === 0 ? "" : undefined}
+            key={item.id}
+          >
             {index > 0 && <CaretRight aria-hidden="true" size={14} />}
             {current ? (
               <span aria-current="page">{item.name}</span>
@@ -937,7 +985,8 @@ function DirectoryNavigation({
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const libraryOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const currentLibrary = libraries.find((library) => library.id === libraryId);
-  const allMediaSelected = !selectedDirectoryId && browseState.allMedia === true;
+  const allMediaSelected =
+    !selectedDirectoryId && browseState.allMedia === true;
   const libraryRootSelected = !selectedDirectoryId && !allMediaSelected;
 
   function statusLabel(library: LibrarySummary | undefined) {
@@ -1150,7 +1199,10 @@ function DirectoryNavigation({
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
         </Link>
-        <div className={styles.treeRow} style={{ "--tree-depth": 0 } as CSSProperties}>
+        <div
+          className={styles.treeRow}
+          style={{ "--tree-depth": 0 } as CSSProperties}
+        >
           <span className={styles.treeToggleStatic}>
             <CaretDown aria-hidden="true" size={15} />
           </span>
@@ -1192,21 +1244,25 @@ function DirectoryChildren({
 }) {
   const { t } = useLocale();
   const query = useDirectoriesQuery({ libraryId, parentId });
-  const {
-    fetchNextPage: loadMoreDirectories,
-    refetch: refreshDirectories,
-  } = query;
+  const { fetchNextPage: loadMoreDirectories, refetch: refreshDirectories } =
+    query;
   const directories = useMemo(
     () => query.data?.pages.flatMap((page) => page.items) ?? [],
     [query.data],
   );
 
   if (query.isPending) {
-    return <span className={styles.treeState}>{t("browse.loadingDirectories")}</span>;
+    return (
+      <span className={styles.treeState}>{t("browse.loadingDirectories")}</span>
+    );
   }
   if (query.isError) {
     return (
-      <Button size="small" variant="quiet" onClick={() => void refreshDirectories()}>
+      <Button
+        size="small"
+        variant="quiet"
+        onClick={() => void refreshDirectories()}
+      >
         {t("common.retry")}
       </Button>
     );
@@ -1265,13 +1321,19 @@ function DirectoryTreeItem({
 
   return (
     <div>
-      <div className={styles.treeRow} style={{ "--tree-depth": depth } as CSSProperties}>
+      <div
+        className={styles.treeRow}
+        style={{ "--tree-depth": depth } as CSSProperties}
+      >
         {directory.hasChildren ? (
           <IconButton
             className={styles.treeToggle}
             label={
               expanded
-                ? t("browse.collapseDirectory").replace("{name}", directory.name)
+                ? t("browse.collapseDirectory").replace(
+                    "{name}",
+                    directory.name,
+                  )
                 : t("browse.expandDirectory").replace("{name}", directory.name)
             }
             onClick={() => setExpanded((value) => !value)}

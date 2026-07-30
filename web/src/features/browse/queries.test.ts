@@ -10,7 +10,9 @@ import {
   refreshCatalogScope,
 } from "./queries";
 
-function page(status: "pending" | "ready" | "failed" | "unavailable"): AssetPage {
+function page(
+  status: "pending" | "ready" | "failed" | "unavailable",
+): AssetPage {
   return {
     items: [
       {
@@ -88,6 +90,7 @@ it("drops loaded cursor pages before refreshing the current scope", async () => 
     "lib_test",
     "dir_test",
     false,
+    "",
     undefined,
     "name",
     "asc",
@@ -101,6 +104,7 @@ it("drops loaded cursor pages before refreshing the current scope", async () => 
     directoryId: "dir_test",
     libraryId: "lib_test",
     order: "asc",
+    q: "",
     recursive: false,
     sort: "name",
   });
