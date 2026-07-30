@@ -261,7 +261,13 @@ flowchart TD
   - 自动化不冒充物理辅助功能签署：真实 Firefox、读屏、200%/400% 缩放、物理
     OS 高对比和代表性触摸/移动设备继续由 `S5-006B` 阻断。
 
-- [ ] `UIF-405` 完成 100k/10k 前端容量、滚动、DOM、FPS/RSS 和后端并发复验。
+- [x] `UIF-405` 完成 100k/10k 前端容量、滚动、DOM、FPS/RSS 和后端并发复验。
+  - 三引擎 100k 媒体连续滚动均保持 60 个 mounted item，FPS ≥58、帧间隔 P95
+    ≤22ms、RSS ≤1,350,352,896B，全部通过冻结预算。
+  - 10k 目录/100k 独立文件真实扫描 58.836s；扫描期间完成 2,353 次浏览和 2,353 次
+    搜索，并发 P95 分别为 0.369ms / 12.275ms，0 budget violation。
+  - 跨媒体库 durable scan worker 并发/顺序测试通过；完整机器结果与适用边界见
+    [`docs/evidence/uif-405`](../evidence/uif-405/README.md)。
 
 - [ ] `UIF-406` 运行并记录完整仓库验证：
   - `make fmt`

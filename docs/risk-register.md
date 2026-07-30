@@ -76,8 +76,10 @@ R-021 属于当前 MVP revision 4 的
 有界 DOM 关闭对应子风险；UIF-401/402/403 又完成逐页同状态比较、Linux-owned 基线和真实
 容器纵向链，并验证 cache cleanup 与媒体路径/SHA-256 不变；UIF-404 已通过三引擎、axe、
 键盘、触摸、forced-colors 与 reduced-motion 自动化适用复验，并把真实读屏、缩放、OS
-高对比和物理触摸明确留给 S5-006B。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC
-重验；在容量、100k/10k 集成证据和最终 Gate 完成前保持开放。
+高对比和物理触摸明确留给 S5-006B；UIF-405 又在最新共享集合上通过三引擎 100k
+滚动/DOM/FPS/RSS，并以 10k/100k 完整扫描期浏览/搜索并发和跨库 worker 顺序复验后端
+容量边界。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC 重验；在完整仓库验证、
+文档同步和最终 Gate 完成前保持开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到
