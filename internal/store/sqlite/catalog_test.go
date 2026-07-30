@@ -470,6 +470,9 @@ func TestCatalogAssetKeysetSupportsDirectRecursiveFilterAndDirection(t *testing.
 	if len(recursive.Items) != 1 || recursive.Items[0].RelativePath != "Album 2/clip.mp4" {
 		t.Fatalf("recursive video page = %#v", recursive)
 	}
+	if recursive.Counts != (catalog.AssetCounts{All: 4, Images: 3, Videos: 1}) {
+		t.Fatalf("recursive asset counts = %#v", recursive.Counts)
+	}
 
 	ascending, err := service.ListAssets(context.Background(), catalog.AssetRequest{
 		LibraryID: libraryID, Recursive: true,
@@ -484,6 +487,38 @@ func TestCatalogAssetKeysetSupportsDirectRecursiveFilterAndDirection(t *testing.
 	}
 	if !slices.Equal(gotMTime, []int64{10, 20, 30, 40}) {
 		t.Fatalf("ascending modified times = %v", gotMTime)
+	}
+
+	if _, err := store.db.Exec(`
+		UPDATE assets SET size_bytes = 30 WHERE name = 'photo-2.jpg'
+	`); err != nil {
+		t.Fatal(err)
+	}
+	largest, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: libraryID, Recursive: true,
+		Sort: catalog.SortSize, Order: catalog.OrderDesc, Limit: 2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(largest.Items) != 2 ||
+		largest.Items[0].SizeBytes != 40 ||
+		largest.Items[1].SizeBytes != 30 ||
+		largest.NextCursor == "" {
+		t.Fatalf("largest asset page = %#v", largest)
+	}
+	smallest, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: libraryID, Recursive: true,
+		Sort: catalog.SortSize, Order: catalog.OrderDesc,
+		Cursor: largest.NextCursor, Limit: 2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(smallest.Items) != 2 ||
+		smallest.Items[0].SizeBytes != 30 ||
+		smallest.Items[1].SizeBytes != 10 {
+		t.Fatalf("second size page = %#v", smallest)
 	}
 }
 

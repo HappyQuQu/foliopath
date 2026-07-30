@@ -314,8 +314,11 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
 - `q={query}`
 - `kind=image|animated|video`
 - `modifiedFrom={UTC RFC3339}` 与 `modifiedBefore={UTC RFC3339}`
-- `sort=name|modifiedAt` 与 `order=asc|desc`；普通目录默认自然名称升序，递归与搜索默认修改时间倒序
+- `sort=name|modifiedAt|size` 与 `order=asc|desc`；普通目录默认自然名称升序，递归与搜索默认修改时间倒序，大小排序使用 `(sizeBytes, id)`
 - `cursor` 与 `limit`
+
+资产页同时返回当前 scope 与文本/日期筛选下、应用 kind 筛选前的 `counts.all/images/videos`；
+`images` 包含 image 与 animated。它用于目录媒体类型控件，不得通过加载全部分页计算。
 
 查询必须基于索引完成，不能在请求路径中现场递归文件系统。每种排序都以稳定唯一 ID 作为最后比较项。目录不存在或媒体库离线时，应区分“索引中无此目录”和“当前原文件不可访问”。
 
@@ -328,8 +331,10 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
   NFKC 与 full case folding，按 Unicode 空白分词并去重；所有词都必须在两个规范化字段之一
   以字面子串命中。变音符号不折叠，标点、引号、`%`、`_` 与路径分隔符没有操作符含义，
   也不向客户端暴露 FTS 语法；一至二字符查询仍须正确工作。
-- 库内端点带 `q` 且省略 `directoryId` 时表示当前媒体库；同时提供二者时表示当前目录，
-  `recursive` 省略/false 只查直接媒体，true 包含后代。全局端点且必填 `q` 表示全部媒体库。
+- 库内端点带 `q` 且同时省略 `directoryId` 与 `recursive` 时表示当前媒体库；省略
+  `directoryId` 但显式提供 `recursive=false|true` 时表示媒体库根目录的直接/递归筛选；
+  同时提供 `directoryId` 时表示该当前目录，false 只查直接媒体，true 包含后代。全局端点且
+  必填 `q` 表示全部媒体库。
 - `kind` 可多选；时间范围是 filesystem mtime 的
   `[modifiedFrom, modifiedBefore)`，两个边界都是 UTC RFC 3339，且同时出现时前者必须早于
   后者。EXIF 或容器创建时间不参与此筛选。
@@ -359,7 +364,8 @@ composition，并用自动 fixture 固定中文、英文、大小写、组合字
 内容响应要求：
 
 - 通过媒体 ID 查索引后由 `internal/files` 安全打开，不能接收客户端文件路径。
-- 只有 JPEG、PNG、WebP、GIF 和 MP4、MOV、MKV 属于 MVP 媒体契约；视频容器被索引不等于其编码可由浏览器直接播放。
+- MVP 媒体契约为 JPEG、PNG、WebP、GIF 和 MP4、MOV、MKV；Post-MVP/1 通过
+  [CR-2026-010](changes/CR-2026-010-avi-and-size-sort.md)追加 AVI。视频容器被索引不等于其编码可由浏览器直接播放。
 - 支持 `ETag`、`Last-Modified`、`If-None-Match`/`If-Modified-Since` 和准确的单范围
   Range；多范围、畸形或不可满足范围统一返回 `416`。
 - 正确处理 `206`、`416`、`HEAD`、客户端取消和离线源文件。

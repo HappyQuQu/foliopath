@@ -84,7 +84,8 @@ export interface paths {
          *     descending and include a safe media-library name and relative path.
          *     Explicit name ordering uses
          *     `(naturalNameKey, name, libraryId, relativePath, id)`; modification-time
-         *     ordering uses `(modifiedAt, id)`. No relevance order is provided.
+         *     ordering uses `(modifiedAt, id)` and size ordering uses
+         *     `(sizeBytes, id)`. No relevance order is provided.
          *
          *     A global cursor binds every normalized query field plus one persisted
          *     global catalog revision. That revision advances when a library is
@@ -499,13 +500,15 @@ export interface paths {
          *     selected directory. `recursive=true` includes the selected directory
          *     and all indexed descendants; at the root it includes the whole library.
          *
-         *     With `q` and no `directoryId`, the scope is the entire current library
-         *     and `recursive` must be omitted. With both `q` and `directoryId`, the
-         *     scope is that current directory; omitted/false `recursive` searches
-         *     direct assets and true includes descendants. An explicit indexed root
-         *     ID is therefore a directory scope, while an omitted directory is the
-         *     distinct whole-library search scope. Every item retains its source
-         *     `directoryId` and library-relative path.
+         *     With `q`, no `directoryId`, and no `recursive` parameter, the scope is
+         *     the entire current library. Supplying `recursive=false` explicitly
+         *     selects only direct assets at the logical library root; supplying
+         *     `recursive=true` selects the root and all descendants. With both `q`
+         *     and `directoryId`, the scope is that current directory; omitted/false
+         *     `recursive` searches direct assets and true includes descendants. This
+         *     explicit recursive parameter lets the browse UI distinguish a filtered
+         *     root directory from the distinct whole-library search scope. Every item
+         *     retains its source `directoryId` and library-relative path.
          *
          *     Search input is plain text, never FTS syntax. The server trims outer
          *     Unicode whitespace, applies Unicode NFKC and full case folding, splits
@@ -525,8 +528,9 @@ export interface paths {
          *     ascending. Recursive or searched results default to file modification
          *     time descending. Name order uses
          *     `(naturalNameKey, name, relativePath, id)` and modified-time order uses
-         *     `(modifiedAt, id)`, with every tuple component following the requested
-         *     direction. No relevance sort exists in the MVP. Cursors bind the
+         *     `(modifiedAt, id)`; size order uses `(sizeBytes, id)`, with every tuple
+         *     component following the requested direction. No relevance sort exists.
+         *     Cursors bind the
          *     library, canonical scope, effective recursive mode, normalized terms,
          *     kinds, time bounds, effective sort/order, ordering/profile versions,
          *     and reliable catalog generation. Any bound-value or generation change
@@ -860,7 +864,7 @@ export interface components {
             /** @description Safe display name needed to distinguish cross-library search results. */
             libraryName: string;
             /** @enum {string} */
-            mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "video/mp4" | "video/quicktime" | "video/x-matroska";
+            mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "video/mp4" | "video/quicktime" | "video/x-matroska" | "video/x-msvideo";
             modifiedAt: components["schemas"]["Timestamp"];
             name: string;
             playbackStatus: components["schemas"]["PlaybackStatus"];
@@ -874,6 +878,18 @@ export interface components {
             /** Format: int32 */
             width: number | null;
         };
+        /**
+         * @description Complete counts for the selected scope and text/date filters, before
+         *     applying the media-kind filter. Animated images are included in images.
+         */
+        AssetCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            videos: number;
+        };
         /** @enum {string} */
         AssetKind: "image" | "animated" | "video";
         /**
@@ -881,6 +897,7 @@ export interface components {
          *     when no further item exists for this query and reliable generation.
          */
         AssetPage: {
+            counts: components["schemas"]["AssetCounts"];
             items: components["schemas"]["Asset"][];
             nextCursor: components["schemas"]["NullableCursor"];
         };
@@ -1373,7 +1390,7 @@ export interface components {
         };
         SupportedMedia: {
             imageMimeTypes: ("image/jpeg" | "image/png" | "image/webp" | "image/gif")[];
-            videoMimeTypes: ("video/mp4" | "video/quicktime" | "video/x-matroska")[];
+            videoMimeTypes: ("video/mp4" | "video/quicktime" | "video/x-matroska" | "video/x-msvideo")[];
             /** @enum {boolean} */
             videoTranscoding: false;
         };
@@ -1485,6 +1502,7 @@ export interface components {
                 "video/mp4": string;
                 "video/quicktime": string;
                 "video/x-matroska": string;
+                "video/x-msvideo": string;
             };
         };
         /** @description Unexpected failure represented by a safe public code and request ID. */
@@ -1541,6 +1559,7 @@ export interface components {
                 "video/mp4": string;
                 "video/quicktime": string;
                 "video/x-matroska": string;
+                "video/x-msvideo": string;
             };
         };
         /** @description The supplied If-Match no longer identifies the current representation. */
@@ -1678,7 +1697,7 @@ export interface components {
         ModifiedFromParameter: components["schemas"]["Timestamp"];
         /**
          * @description Explicit sort direction. When omitted, `name` uses ascending and
-         *     `modifiedAt` uses descending.
+         *     `modifiedAt` and `size` use descending.
          */
         OrderParameter: "asc" | "desc";
         /**
@@ -1717,7 +1736,7 @@ export interface components {
          * @description Explicit sort field. When omitted, direct non-search browse uses `name`;
          *     recursive browse and every search use `modifiedAt`.
          */
-        SortParameter: "name" | "modifiedAt";
+        SortParameter: "name" | "modifiedAt" | "size";
         /**
          * @description Bounded, server-defined transform variant. `grid` is the static image
          *     thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame
@@ -1750,7 +1769,7 @@ export interface components {
         /** @description Source modification time formatted as an HTTP date. */
         LastModified: string;
         /** @description Server-verified MIME type from the supported MVP media allowlist. */
-        MediaContentType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "video/mp4" | "video/quicktime" | "video/x-matroska";
+        MediaContentType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "video/mp4" | "video/quicktime" | "video/x-matroska" | "video/x-msvideo";
         /** @description Prevents browser MIME sniffing. */
         NoSniff: "nosniff";
         /** @description Authentication state and credentials must not be stored by browsers or intermediaries. */
@@ -1898,7 +1917,7 @@ export interface operations {
                 modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
                 /**
                  * @description Explicit sort direction. When omitted, `name` uses ascending and
-                 *     `modifiedAt` uses descending.
+                 *     `modifiedAt` and `size` use descending.
                  */
                 order?: components["parameters"]["OrderParameter"];
                 /**
@@ -2657,7 +2676,7 @@ export interface operations {
                 modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
                 /**
                  * @description Explicit sort direction. When omitted, `name` uses ascending and
-                 *     `modifiedAt` uses descending.
+                 *     `modifiedAt` and `size` use descending.
                  */
                 order?: components["parameters"]["OrderParameter"];
                 /**

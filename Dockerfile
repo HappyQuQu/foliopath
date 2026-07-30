@@ -205,7 +205,7 @@ RUN mkdir -p /src/ffmpeg \
        --enable-libwebp \
        --enable-zlib \
        --enable-protocol=file,pipe \
-       --enable-demuxer=mov,matroska,image2 \
+       --enable-demuxer=mov,matroska,avi,image2 \
        --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png,gif,ffv1,vp8,vp9,av1,prores,mpeg1video,mpeg2video,theora,vc1 \
        --enable-parser=h264,hevc,mpeg4video,mpegvideo,vp8,vp9,av1 \
        --enable-filter=scale,setsar,xstack \

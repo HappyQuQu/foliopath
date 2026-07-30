@@ -41,6 +41,7 @@ func TestSystemStatusProviderUsesRuntimeAndCanonicalCapabilities(t *testing.T) {
 		"video/mp4",
 		"video/quicktime",
 		"video/x-matroska",
+		"video/x-msvideo",
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("video MIME types = %q, want %q", got, want)
 	}

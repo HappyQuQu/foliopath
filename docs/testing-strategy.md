@@ -362,7 +362,7 @@ browse index，再执行 capability-derived Unicode 搜索键上的 literal `ins
 
 `tests/fixtures` 只保存小型、合成或许可明确的数据，并带一份 manifest 描述预期：
 
-- JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV 中的最小有效样例。
+- JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV、AVI 中的最小有效样例。
 - 扩展名与魔数不一致、截断、畸形、超大像素声明、长动画元数据。
 - 横竖方向、透明度、Unicode/emoji/组合字符、大小写近似和超长文件名。
 - 深目录、空目录、隐藏目录、系统垃圾目录和权限受限子树。

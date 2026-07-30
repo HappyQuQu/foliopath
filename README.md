@@ -132,7 +132,7 @@ VSP-303 文档收敛与 VSP-304 Integrated Done 因此前置条件保持 Pending
 | --- | --- | --- | --- |
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 查看原始内容 |
 | 动图 | `.gif` | 索引、元数据、静态缩略图 | 使用原文件播放动画 |
-| 视频 | `.mp4`、`.mov`、`.mkv` | ffprobe 元数据、FFmpeg poster、HTTP Range | 播放浏览器原生支持的编码 |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi` | ffprobe 元数据、FFmpeg poster、HTTP Range | 播放浏览器原生支持的编码 |
 
 扩展名匹配不区分大小写。FolioPath 的视频支持指容器格式与服务端处理契约，不表示浏览器能
 解码容器内的任意视频/音频 codec。视频不会转码；不兼容内容会显示可理解的降级状态。

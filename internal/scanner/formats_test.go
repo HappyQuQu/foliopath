@@ -2,7 +2,7 @@ package scanner
 
 import "testing"
 
-func TestClassifyPathUsesFixedMVPFormats(t *testing.T) {
+func TestClassifyPathUsesSupportedFormats(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -20,6 +20,7 @@ func TestClassifyPathUsesFixedMVPFormats(t *testing.T) {
 		{path: "clip.mp4", supported: true, kind: AssetKindVideo, format: MediaFormatMP4, mime: "video/mp4"},
 		{path: "clip.mov", supported: true, kind: AssetKindVideo, format: MediaFormatMOV, mime: "video/quicktime"},
 		{path: "clip.MKV", supported: true, kind: AssetKindVideo, format: MediaFormatMKV, mime: "video/x-matroska"},
+		{path: "legacy.AVI", supported: true, kind: AssetKindVideo, format: MediaFormatAVI, mime: "video/x-msvideo"},
 		{path: "photo.heic", supported: false},
 		{path: "photo.heif", supported: false},
 		{path: "photo.avif", supported: false},

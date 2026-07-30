@@ -193,7 +193,7 @@ func ValidateSourceSize(format Format, sizeBytes int64) error {
 		if sizeBytes > MaxImageSourceBytes {
 			return ErrInvalidMedia
 		}
-	case FormatMP4, FormatMOV, FormatMKV:
+	case FormatMP4, FormatMOV, FormatMKV, FormatAVI:
 		if sizeBytes > MaxVideoSourceBytes {
 			return ErrInvalidMedia
 		}

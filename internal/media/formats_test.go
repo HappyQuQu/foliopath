@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSupportedMIMETypesMatchMVPContract(t *testing.T) {
+func TestSupportedMIMETypesMatchProductContract(t *testing.T) {
 	if got, want := ImageMIMETypes(), []string{
 		"image/jpeg",
 		"image/png",
@@ -18,6 +18,7 @@ func TestSupportedMIMETypesMatchMVPContract(t *testing.T) {
 		"video/mp4",
 		"video/quicktime",
 		"video/x-matroska",
+		"video/x-msvideo",
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("VideoMIMETypes() = %q, want %q", got, want)
 	}

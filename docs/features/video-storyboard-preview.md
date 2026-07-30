@@ -50,7 +50,7 @@ Release Candidate 的范围或结论。
 
 ### 包含
 
-- 现有 MP4、MOV、MKV 视频格式；
+- MP4、MOV、MKV，以及 CR-2026-010 追加的 AVI 视频格式；
 - `duration_ms >= 2000` 且 probe 成功的视频；
 - 每个视频按已冻结时长档生成 4 或 10 个均匀采样画面；
 - 单个 WebP sprite 交付；

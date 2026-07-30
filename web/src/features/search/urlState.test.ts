@@ -88,5 +88,18 @@ describe("search URL state", () => {
         q: "京都",
       }),
     ).toBe("q=%E4%BA%AC%E9%83%BD");
+    expect(
+      serializeSearchUrlState({
+        ...defaultSearchUrlState("lib_family"),
+        order: "asc",
+        sort: "size",
+      }),
+    ).toBe("sort=size&order=asc");
+    expect(
+      parseSearchUrlState(
+        new URLSearchParams("sort=size&order=desc"),
+        "lib_family",
+      ),
+    ).toMatchObject({ order: "desc", sort: "size" });
   });
 });

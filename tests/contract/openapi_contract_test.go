@@ -878,7 +878,9 @@ func TestSearchContractFreezesScopesFiltersOrderingAndCursorSemantics(t *testing
 
 	operations := map[string][]string{
 		"GET /api/v1/libraries/{libraryId}/assets": {
-			"With `q` and no `directoryId`, the scope is the entire current library",
+			"no `directoryId`, and no `recursive` parameter, the scope is the entire current library",
+			"Supplying `recursive=false` explicitly selects only direct assets at the logical library root",
+			"supplying `recursive=true` selects the root and all descendants",
 			"With both `q` and `directoryId`, the scope is that current directory",
 			"requires every term to occur as a literal substring",
 			"One- and two-character terms remain valid",

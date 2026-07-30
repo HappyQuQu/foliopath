@@ -88,7 +88,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"--enable-encoder=libwebp",
 		"--enable-encoder=libwebp,png",
 		"--enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png",
-		"--enable-demuxer=mov,matroska,image2",
+		"--enable-demuxer=mov,matroska,avi,image2",
 		"--enable-filter=scale,setsar,xstack",
 		"foliopath-ffmpeg_7.1.5-2.deb",
 		"/opt/ffmpeg/share/licenses/ffmpeg/LICENSE.md",
@@ -120,7 +120,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 
 	for _, extension := range []string{
 		`".jpg"`, `".jpeg"`, `".png"`, `".webp"`,
-		`".gif"`, `".mp4"`, `".mov"`, `".mkv"`,
+		`".gif"`, `".mp4"`, `".mov"`, `".mkv"`, `".avi"`,
 	} {
 		if !strings.Contains(formats, extension) {
 			t.Fatalf("canonical media format source is missing %s", extension)

@@ -86,9 +86,16 @@
   background: var(--color-surface-subtle);
 }
 
+.headerActions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: var(--space-2);
+}
+
 .account {
   position: relative;
-  justify-self: end;
 }
 
 .trigger {
@@ -203,7 +210,7 @@
 
 @media (max-width: 48rem) {
   .header {
-    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
     gap: var(--space-2);
     padding: 0 var(--space-3);
   }
@@ -221,10 +228,14 @@
 
 @media (max-width: 30rem) {
   .header {
-    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
   }
 
   .search {
     padding: 0 var(--space-3);
+  }
+
+  .headerActions {
+    gap: var(--space-1);
   }
 }

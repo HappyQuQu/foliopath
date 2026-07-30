@@ -89,8 +89,15 @@ type assetResponse struct {
 }
 
 type assetPageResponse struct {
-	Items      []assetResponse `json:"items"`
-	NextCursor *string         `json:"nextCursor"`
+	Items      []assetResponse     `json:"items"`
+	NextCursor *string             `json:"nextCursor"`
+	Counts     assetCountsResponse `json:"counts"`
+}
+
+type assetCountsResponse struct {
+	All    int64 `json:"all"`
+	Images int64 `json:"images"`
+	Videos int64 `json:"videos"`
 }
 
 type catalogStateResponse struct {
@@ -244,7 +251,12 @@ func writeAssetPage(writer http.ResponseWriter, page catalog.AssetPage) {
 	if page.NextCursor != "" {
 		next = &page.NextCursor
 	}
-	writeJSON(writer, http.StatusOK, assetPageResponse{Items: items, NextCursor: next})
+	writeJSON(writer, http.StatusOK, assetPageResponse{
+		Items: items, NextCursor: next,
+		Counts: assetCountsResponse{
+			All: page.Counts.All, Images: page.Counts.Images, Videos: page.Counts.Videos,
+		},
+	})
 }
 
 func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
@@ -317,9 +329,6 @@ func parseAssetListQuery(raw string) (catalog.AssetRequest, error) {
 		if err != nil || request.Limit < 1 || request.Limit > catalog.MaxPageSize {
 			return catalog.AssetRequest{}, catalog.ErrInvalidQuery
 		}
-	}
-	if request.SearchQuery != nil && !request.DirectorySet && request.RecursiveSet {
-		return catalog.AssetRequest{}, catalog.ErrInvalidQuery
 	}
 	return request, nil
 }

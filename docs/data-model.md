@@ -63,6 +63,8 @@
 唯一约束为 `(library_id, relative_path)`。重命名在首版表现为新路径新增，并在成功完整扫描后清理旧路径；不承诺依赖 inode 自动识别跨路径移动。
 S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`，修改时间序使用
 `(mtime_ns, id)`；migration 7 已建立与两个 tuple 和目录 scope 相符的索引。
+Post-MVP/1 的文件大小序使用 `(size_bytes, id)`；migration 14 在不修改历史 migration
+的前提下将 `avi` 加入 `media_format` CHECK，并增加目录、媒体库与全局大小排序索引。
 `OFFSET` 不是容量档下的可接受实现。migration 8 追加媒体属性和 probe/playback 状态；
 已有资产回填为待探测状态，不把未知值伪装成处理成功。
 

@@ -38,7 +38,7 @@
   --size-context-bar: 3rem;
   --size-auth-card: 28.75rem;
   --size-auth-mark: 4rem;
-  --size-sidebar: 17rem;
+  --size-sidebar: clamp(14rem, 20vw, 19rem);
   --size-settings-content: 54rem;
   --size-content: 70rem;
 

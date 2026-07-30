@@ -924,6 +924,7 @@ func TestMediaCandidateFingerprintAndConvergenceHaveCanonicalOwners(t *testing.T
 				"var supportedExtensions",
 				`".jpg"`,
 				`".mkv"`,
+				`".avi"`,
 			},
 		},
 		{

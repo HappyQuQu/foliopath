@@ -114,6 +114,9 @@ beforeEach(() => {
     relativePath: "旅行",
   });
   vi.mocked(listAssets).mockImplementation(async ({ recursive }) => ({
+    counts: recursive
+      ? { all: 8, images: 6, videos: 2 }
+      : { all: 2, images: 2, videos: 0 },
     items: recursive
       ? [
           {
@@ -358,10 +361,12 @@ it("switches between all media, pictures, and videos through URL-bound queries",
 
   let typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
   expect(
-    within(typeFilter).getByRole("radio", { name: "全部" }),
+    await within(typeFilter).findByRole("radio", { name: "全部 2" }),
   ).toHaveAttribute("aria-checked", "true");
 
-  const images = within(typeFilter).getByRole("radio", { name: "图片" });
+  const images = await within(typeFilter).findByRole("radio", {
+    name: "图片 2",
+  });
   await user.click(images);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel?kind=image",
@@ -371,7 +376,9 @@ it("switches between all media, pictures, and videos through URL-bound queries",
   );
 
   typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
-  const videos = within(typeFilter).getByRole("radio", { name: "视频" });
+  const videos = await within(typeFilter).findByRole("radio", {
+    name: "视频 0",
+  });
   await user.click(videos);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel?kind=video",
@@ -382,7 +389,9 @@ it("switches between all media, pictures, and videos through URL-bound queries",
 
   const callsAfterVideo = vi.mocked(listAssets).mock.calls.length;
   typeFilter = screen.getByRole("radiogroup", { name: "媒体类型" });
-  const all = within(typeFilter).getByRole("radio", { name: "全部" });
+  const all = await within(typeFilter).findByRole("radio", {
+    name: "全部 2",
+  });
   await user.click(all);
   expect(screen.getByTestId("location")).toHaveTextContent(
     "/libraries/lib_family/browse/dir_travel",
@@ -429,6 +438,22 @@ it("filters subdirectories and media within the current directory through URL-ba
   });
   expect(screen.getByTestId("location")).toHaveTextContent(
     /^\/libraries\/lib_family\/browse\/dir_travel$/,
+  );
+
+  await user.click(screen.getByRole("button", { name: "包含子目录" }));
+  await user.type(filter, "日本");
+
+  await waitFor(() => {
+    expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        directoryId: "dir_travel",
+        q: "日本",
+        recursive: true,
+      }),
+    );
+  });
+  expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/browse/dir_travel?recursive=1&q=%E6%97%A5%E6%9C%AC",
   );
 });
 

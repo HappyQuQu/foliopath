@@ -66,6 +66,7 @@ const (
 	SortDefault    SortField = ""
 	SortName       SortField = "name"
 	SortModifiedAt SortField = "modifiedAt"
+	SortSize       SortField = "size"
 )
 
 type SortOrder string
@@ -189,6 +190,7 @@ type AssetPosition struct {
 	LibraryID      int64
 	RelativePath   string
 	ModifiedAtNS   int64
+	SizeBytes      int64
 	ID             int64
 }
 
@@ -224,6 +226,7 @@ type Repository interface {
 	ResolveCatalogContentRevision(context.Context) (int64, error)
 	ListDirectoryPage(context.Context, DirectoryListParams) ([]Directory, error)
 	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
+	CountAssets(context.Context, AssetQuery) (AssetCounts, error)
 	GetAsset(context.Context, int64) (Asset, error)
 	GetDirectoryLineage(context.Context, int64, int) (DirectoryLineage, error)
 }
@@ -338,6 +341,13 @@ type DirectoryPage struct {
 type AssetPage struct {
 	Items      []Asset
 	NextCursor string
+	Counts     AssetCounts
+}
+
+type AssetCounts struct {
+	All    int64
+	Images int64
+	Videos int64
 }
 
 type Service struct {
@@ -443,7 +453,7 @@ func (service *Service) ListAssets(ctx context.Context, request AssetRequest) (A
 		return AssetPage{}, err
 	}
 	query.Scope = scope
-	if searchRequested && !request.DirectorySet {
+	if searchRequested && !request.DirectorySet && !request.RecursiveSet {
 		query.ScopeKind = ScopeLibrary
 	} else {
 		query.ScopeKind = ScopeDirectory
@@ -488,6 +498,16 @@ func (service *Service) listAssetQuery(
 		revision = query.CatalogRevision
 	}
 	fingerprint := assetFingerprint(query)
+	countQuery := query
+	countQuery.Kinds = nil
+	counts, err := service.repository.CountAssets(ctx, countQuery)
+	if err != nil {
+		return AssetPage{}, err
+	}
+	if counts.All < 0 || counts.Images < 0 || counts.Videos < 0 ||
+		counts.Images+counts.Videos != counts.All {
+		return AssetPage{}, errors.New("catalog repository returned invalid asset counts")
+	}
 	var after *AssetPosition
 	if cursor != "" {
 		position, decodeErr := service.decodeAssetCursor(
@@ -512,7 +532,7 @@ func (service *Service) listAssetQuery(
 		}
 	}
 	if len(items) <= limit {
-		return AssetPage{Items: items}, nil
+		return AssetPage{Items: items, Counts: counts}, nil
 	}
 	items = items[:limit]
 	last := items[len(items)-1]
@@ -522,12 +542,13 @@ func (service *Service) listAssetQuery(
 		LibraryID:      last.LibraryID,
 		RelativePath:   last.RelativePath,
 		ModifiedAtNS:   last.ModifiedAtNS,
+		SizeBytes:      last.SizeBytes,
 		ID:             last.ID,
 	})
 	if err != nil {
 		return AssetPage{}, err
 	}
-	return AssetPage{Items: items, NextCursor: next}, nil
+	return AssetPage{Items: items, NextCursor: next, Counts: counts}, nil
 }
 
 func (service *Service) GetAsset(ctx context.Context, assetID int64) (Asset, error) {
@@ -633,9 +654,6 @@ func normalizeAssetQuery(request AssetRequest) (AssetQuery, bool, error) {
 		if err != nil {
 			return AssetQuery{}, false, ErrInvalidQuery
 		}
-		if !request.DirectorySet && request.RecursiveSet {
-			return AssetQuery{}, false, ErrInvalidQuery
-		}
 	}
 
 	kinds, err := normalizeKinds(request.Kinds)
@@ -654,7 +672,7 @@ func normalizeAssetQuery(request AssetRequest) (AssetQuery, bool, error) {
 			sortField = SortName
 		}
 	}
-	if sortField != SortName && sortField != SortModifiedAt {
+	if sortField != SortName && sortField != SortModifiedAt && sortField != SortSize {
 		return AssetQuery{}, false, ErrInvalidQuery
 	}
 	order := request.Order
@@ -691,7 +709,7 @@ func normalizeGlobalSearchQuery(request GlobalSearchRequest) (AssetQuery, error)
 	if sortField == SortDefault {
 		sortField = SortModifiedAt
 	}
-	if sortField != SortName && sortField != SortModifiedAt {
+	if sortField != SortName && sortField != SortModifiedAt && sortField != SortSize {
 		return AssetQuery{}, ErrInvalidQuery
 	}
 	order := request.Order
@@ -862,6 +880,7 @@ type assetCursor struct {
 	LibraryID    int64     `json:"l,omitempty"`
 	RelativePath string    `json:"p,omitempty"`
 	ModifiedAtNS int64     `json:"m,omitempty"`
+	SizeBytes    int64     `json:"z,omitempty"`
 	ID           int64     `json:"i"`
 }
 
@@ -883,7 +902,8 @@ func (service *Service) encodeAssetCursor(
 		Sort: query.Sort, Key: position.NaturalNameKey, Name: position.Name,
 		LibraryID:    position.LibraryID,
 		RelativePath: position.RelativePath, ModifiedAtNS: position.ModifiedAtNS,
-		ID: position.ID,
+		SizeBytes: position.SizeBytes,
+		ID:        position.ID,
 	}, assetCursorAudience(query))
 	if err != nil {
 		return "", fmt.Errorf("encode asset cursor: %w", err)
@@ -916,7 +936,8 @@ func (service *Service) decodeAssetCursor(
 	}
 	return AssetPosition{
 		NaturalNameKey: decoded.Key, Name: decoded.Name, RelativePath: decoded.RelativePath,
-		LibraryID: decoded.LibraryID, ModifiedAtNS: decoded.ModifiedAtNS, ID: decoded.ID,
+		LibraryID: decoded.LibraryID, ModifiedAtNS: decoded.ModifiedAtNS,
+		SizeBytes: decoded.SizeBytes, ID: decoded.ID,
 	}, nil
 }
 

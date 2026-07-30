@@ -55,6 +55,7 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   assetContentUrl,
   type Asset,
+  type AssetCounts,
   type Breadcrumb,
   type Directory,
 } from "../../../lib/api/catalog";
@@ -376,6 +377,7 @@ export function BrowsePage({
     >
       <section className={styles.page} aria-labelledby="browse-heading">
         <BrowseToolbar
+          counts={assetsQuery.data?.pages[0]?.counts}
           browseState={browseState}
           directoryFilter={directoryFilterDraft}
           mediaLayout={mediaLayout}
@@ -693,6 +695,7 @@ export function BrowsePage({
 
 function BrowseToolbar({
   browseState,
+  counts,
   directoryFilter,
   mediaLayout,
   onChange,
@@ -702,6 +705,7 @@ function BrowseToolbar({
   refreshPending,
 }: {
   browseState: BrowseUrlState;
+  counts?: AssetCounts | undefined;
   directoryFilter: string;
   mediaLayout: MediaCollectionLayout;
   onChange: (state: BrowseUrlState) => void;
@@ -710,7 +714,7 @@ function BrowseToolbar({
   onRefresh: () => Promise<void>;
   refreshPending: boolean;
 }) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
   const defaults = {
     ...defaultBrowseUrlState(browseState.recursive, browseState.q),
@@ -751,6 +755,23 @@ function BrowseToolbar({
       >
         {(["all", "image", "video"] as const).map((kind) => (
           <Button
+            aria-label={
+              counts
+                ? `${
+                    kind === "all"
+                      ? t("browse.kindAll")
+                      : kind === "image"
+                        ? t("browse.kindImage")
+                        : t("browse.kindVideo")
+                  } ${new Intl.NumberFormat(locale).format(
+                    kind === "all"
+                      ? counts.all
+                      : kind === "image"
+                        ? counts.images
+                        : counts.videos,
+                  )}`
+                : undefined
+            }
             aria-checked={browseState.kind === kind}
             className={styles.kindButton}
             key={kind}
@@ -759,11 +780,24 @@ function BrowseToolbar({
             size="small"
             variant={browseState.kind === kind ? "secondary" : "quiet"}
           >
-            {kind === "all"
-              ? t("browse.kindAll")
-              : kind === "image"
-                ? t("browse.kindImage")
-                : t("browse.kindVideo")}
+            <span>
+              {kind === "all"
+                ? t("browse.kindAll")
+                : kind === "image"
+                  ? t("browse.kindImage")
+                  : t("browse.kindVideo")}
+            </span>
+            {counts && (
+              <span className={styles.kindCount}>
+                {new Intl.NumberFormat(locale).format(
+                  kind === "all"
+                    ? counts.all
+                    : kind === "image"
+                      ? counts.images
+                      : counts.videos,
+                )}
+              </span>
+            )}
           </Button>
         ))}
       </div>
@@ -822,6 +856,8 @@ function BrowseToolbar({
           <option value="modifiedAt:asc">
             {t("browse.sortModifiedAscending")}
           </option>
+          <option value="size:desc">{t("browse.sortSizeDescending")}</option>
+          <option value="size:asc">{t("browse.sortSizeAscending")}</option>
         </select>
       </label>
       {customSort && (

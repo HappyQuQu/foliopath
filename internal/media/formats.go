@@ -26,6 +26,7 @@ const (
 	FormatMP4  Format = "mp4"
 	FormatMOV  Format = "mov"
 	FormatMKV  Format = "mkv"
+	FormatAVI  Format = "avi"
 )
 
 type descriptor struct {
@@ -43,11 +44,17 @@ var supportedExtensions = map[string]descriptor{
 	".mp4":  {KindVideo, FormatMP4, "video/mp4"},
 	".mov":  {KindVideo, FormatMOV, "video/quicktime"},
 	".mkv":  {KindVideo, FormatMKV, "video/x-matroska"},
+	".avi":  {KindVideo, FormatAVI, "video/x-msvideo"},
 }
 
 var (
 	imageMIMETypes = []string{"image/jpeg", "image/png", "image/webp", "image/gif"}
-	videoMIMETypes = []string{"video/mp4", "video/quicktime", "video/x-matroska"}
+	videoMIMETypes = []string{
+		"video/mp4",
+		"video/quicktime",
+		"video/x-matroska",
+		"video/x-msvideo",
+	}
 )
 
 func ClassifyPath(relativePath string) (Kind, Format, string, bool) {

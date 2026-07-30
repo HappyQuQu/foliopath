@@ -157,6 +157,8 @@ distroless runtime；生产 final stage 不含 shell、curl、tar 或包管理�
 
 - 按允许的媒体类型和文件魔数识别输入，不能只信任扩展名或客户端 MIME。
 - MVP 允许列表为 JPEG、PNG、WebP、GIF，以及 MP4、MOV、MKV；SVG、HEIC/HEIF、AVIF 与 RAW 不进入首版媒体处理契约。容器允许不代表浏览器编码可直放。
+- Post-MVP/1 通过 CR-2026-010 将 AVI 加入同一扩展名/MIME allowlist、FFmpeg 资源预算
+  和原内容 Range 边界；AVI 容器不构成浏览器可播放承诺。
 - libvips、`ffprobe` 和 FFmpeg 操作必须具有超时、取消、输入大小限制和全局并发上限。
 - 限制图片像素数、动画帧数、媒体探测时间和输出尺寸，防止像素炸弹及 CPU、内存或磁盘耗尽。
 - 调用媒体 CLI 时使用独立参数数组，不拼接 shell 命令；媒体文件名不得成为可解释的命令片段。

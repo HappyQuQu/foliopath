@@ -129,14 +129,12 @@ export function AccountSettingsPage({
                     value={displayName}
                   />
                   <FormField
-                    description={t("account.usernameImmutable")}
                     label={t("auth.username")}
                     readOnly
                     value={accountQuery.data.username}
                   />
                 </div>
-                <div className={styles.footer}>
-                  <span className={styles.caption}>{t("account.profileCaption")}</span>
+                <div className={`${styles.footer} ${styles.footerEnd}`}>
                   <Button
                     disabled={
                       !displayName.trim() ||

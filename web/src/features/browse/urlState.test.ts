@@ -52,6 +52,20 @@ describe("browse URL state", () => {
     ).toBe("recursive=1&sort=name&order=asc");
     expect(
       parseBrowseUrlState(
+        new URLSearchParams("recursive=1&sort=size&order=asc"),
+      ),
+    ).toMatchObject({ order: "asc", sort: "size" });
+    expect(
+      serializeBrowseUrlState({
+        kind: "all",
+        order: "desc",
+        q: "",
+        recursive: false,
+        sort: "size",
+      }),
+    ).toBe("sort=size&order=desc");
+    expect(
+      parseBrowseUrlState(
         new URLSearchParams("recursive=yes&sort=unknown&order=sideways"),
       ),
     ).toEqual({

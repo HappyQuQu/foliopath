@@ -119,6 +119,7 @@ const (
 	MediaFormatMP4  MediaFormat = "mp4"
 	MediaFormatMOV  MediaFormat = "mov"
 	MediaFormatMKV  MediaFormat = "mkv"
+	MediaFormatAVI  MediaFormat = "avi"
 )
 
 type CatalogEntry struct {

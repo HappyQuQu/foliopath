@@ -95,7 +95,7 @@
 }
 
 .page {
-  width: min(var(--size-settings-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  width: calc(100% - clamp(var(--space-8), 7vw, 5.75rem));
   margin: var(--space-10) auto 6.25rem;
 }
 

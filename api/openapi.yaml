@@ -1476,13 +1476,15 @@ paths:
         selected directory. `recursive=true` includes the selected directory
         and all indexed descendants; at the root it includes the whole library.
 
-        With `q` and no `directoryId`, the scope is the entire current library
-        and `recursive` must be omitted. With both `q` and `directoryId`, the
-        scope is that current directory; omitted/false `recursive` searches
-        direct assets and true includes descendants. An explicit indexed root
-        ID is therefore a directory scope, while an omitted directory is the
-        distinct whole-library search scope. Every item retains its source
-        `directoryId` and library-relative path.
+        With `q`, no `directoryId`, and no `recursive` parameter, the scope is
+        the entire current library. Supplying `recursive=false` explicitly
+        selects only direct assets at the logical library root; supplying
+        `recursive=true` selects the root and all descendants. With both `q`
+        and `directoryId`, the scope is that current directory; omitted/false
+        `recursive` searches direct assets and true includes descendants. This
+        explicit recursive parameter lets the browse UI distinguish a filtered
+        root directory from the distinct whole-library search scope. Every item
+        retains its source `directoryId` and library-relative path.
 
         Search input is plain text, never FTS syntax. The server trims outer
         Unicode whitespace, applies Unicode NFKC and full case folding, splits
@@ -1502,8 +1504,9 @@ paths:
         ascending. Recursive or searched results default to file modification
         time descending. Name order uses
         `(naturalNameKey, name, relativePath, id)` and modified-time order uses
-        `(modifiedAt, id)`, with every tuple component following the requested
-        direction. No relevance sort exists in the MVP. Cursors bind the
+        `(modifiedAt, id)`; size order uses `(sizeBytes, id)`, with every tuple
+        component following the requested direction. No relevance sort exists.
+        Cursors bind the
         library, canonical scope, effective recursive mode, normalized terms,
         kinds, time bounds, effective sort/order, ordering/profile versions,
         and reliable catalog generation. Any bound-value or generation change
@@ -1576,7 +1579,8 @@ paths:
         descending and include a safe media-library name and relative path.
         Explicit name ordering uses
         `(naturalNameKey, name, libraryId, relativePath, id)`; modification-time
-        ordering uses `(modifiedAt, id)`. No relevance order is provided.
+        ordering uses `(modifiedAt, id)` and size ordering uses
+        `(sizeBytes, id)`. No relevance order is provided.
 
         A global cursor binds every normalized query field plus one persisted
         global catalog revision. That revision advances when a library is
@@ -2034,14 +2038,14 @@ components:
         recursive browse and every search use `modifiedAt`.
       schema:
         type: string
-        enum: [name, modifiedAt]
+        enum: [name, modifiedAt, size]
     OrderParameter:
       name: order
       in: query
       required: false
       description: |
         Explicit sort direction. When omitted, `name` uses ascending and
-        `modifiedAt` uses descending.
+        `modifiedAt` and `size` use descending.
       schema:
         type: string
         enum: [asc, desc]
@@ -2194,6 +2198,7 @@ components:
           - video/mp4
           - video/quicktime
           - video/x-matroska
+          - video/x-msvideo
     InlineContentDisposition:
       description: |
         Safe inline disposition with a server-encoded filename. It never
@@ -2373,6 +2378,10 @@ components:
           schema:
             type: string
             format: binary
+        video/x-msvideo:
+          schema:
+            type: string
+            format: binary
     PartialMediaContent:
       description: Exact single byte range of original supported media.
       headers:
@@ -2420,6 +2429,10 @@ components:
             type: string
             format: binary
         video/x-matroska:
+          schema:
+            type: string
+            format: binary
+        video/x-msvideo:
           schema:
             type: string
             format: binary
@@ -2784,12 +2797,12 @@ components:
             enum: [image/jpeg, image/png, image/webp, image/gif]
         videoMimeTypes:
           type: array
-          minItems: 3
-          maxItems: 3
+          minItems: 4
+          maxItems: 4
           uniqueItems: true
           items:
             type: string
-            enum: [video/mp4, video/quicktime, video/x-matroska]
+            enum: [video/mp4, video/quicktime, video/x-matroska, video/x-msvideo]
         videoTranscoding:
           type: boolean
           enum: [false]
@@ -3679,6 +3692,7 @@ components:
             - video/mp4
             - video/quicktime
             - video/x-matroska
+            - video/x-msvideo
         sizeBytes:
           type: integer
           format: int64
@@ -3717,7 +3731,7 @@ components:
       description: |
         Stable keyset page from the preserved index. `nextCursor` is null only
         when no further item exists for this query and reliable generation.
-      required: [items, nextCursor]
+      required: [items, nextCursor, counts]
       properties:
         items:
           type: array
@@ -3726,6 +3740,29 @@ components:
             $ref: '#/components/schemas/Asset'
         nextCursor:
           $ref: '#/components/schemas/NullableCursor'
+        counts:
+          $ref: '#/components/schemas/AssetCounts'
+
+    AssetCounts:
+      type: object
+      additionalProperties: false
+      description: |
+        Complete counts for the selected scope and text/date filters, before
+        applying the media-kind filter. Animated images are included in images.
+      required: [all, images, videos]
+      properties:
+        all:
+          type: integer
+          format: int64
+          minimum: 0
+        images:
+          type: integer
+          format: int64
+          minimum: 0
+        videos:
+          type: integer
+          format: int64
+          minimum: 0
 
     ThumbnailPending:
       type: object

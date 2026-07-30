@@ -84,7 +84,10 @@ func (processor *Processor) Process(
 	source io.ReadSeeker,
 	format media.Format,
 ) (media.ProcessingResult, error) {
-	if format != media.FormatMP4 && format != media.FormatMOV && format != media.FormatMKV {
+	if format != media.FormatMP4 &&
+		format != media.FormatMOV &&
+		format != media.FormatMKV &&
+		format != media.FormatAVI {
 		return media.ProcessingResult{}, media.ErrUnsupportedMedia
 	}
 	file, ok := source.(*os.File)
@@ -144,7 +147,8 @@ func (processor *Processor) Storyboard(
 ) (media.StoryboardResult, error) {
 	if format != media.FormatMP4 &&
 		format != media.FormatMOV &&
-		format != media.FormatMKV {
+		format != media.FormatMKV &&
+		format != media.FormatAVI {
 		return media.StoryboardResult{}, media.ErrUnsupportedMedia
 	}
 	if media.ValidateStoryboardRequest(request) != nil ||

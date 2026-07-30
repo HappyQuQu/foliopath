@@ -278,7 +278,7 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 | --- | --- | --- | --- |
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp` | 索引、元数据、WebP 缩略图 | 原内容查看 |
 | 动图 | `.gif` | 索引、元数据、静态缩略图 | 原内容动画 |
-| 视频 | `.mp4`、`.mov`、`.mkv` | 索引、ffprobe 元数据、FFmpeg poster、原文件 Range | 仅当前浏览器原生兼容 codec 可直接播放 |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi` | 索引、ffprobe 元数据、FFmpeg poster、原文件 Range | 仅当前浏览器原生兼容 codec 可直接播放 |
 
 扩展名匹配不区分大小写。MVP 不转码，也不生成兼容播放副本；支持视频容器不等于支持其中
 任意 codec。SVG、HEIC/HEIF、AVIF 与 RAW 不进入 MVP 索引/缩略图契约。
