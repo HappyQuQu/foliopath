@@ -171,7 +171,14 @@ flowchart TD
 - [x] `UIF-314` 还原 Search 无侧栏、命令区、结果状态和全局搜索跳转。
   - Search 不再渲染重复页面搜索框；全局 Header 提交查询，页面右侧命令区只保留范围、
     类型、日期、排序和结果控制。
-- [ ] `UIF-315` 还原非模态预览与完整查看器，不复制 controller。
+- [x] `UIF-315` 还原非模态预览与完整查看器，不复制 controller。
+  - 继续复用浏览/搜索共享的唯一 preview controller；完整查看器保持真实媒体、Range、
+    可用性状态与来源序列合同，不新增 mock 状态机。
+  - 查看器按 `05-viewer.html` 收敛为近黑画布、单一顶部工具栏、无常驻底栏、默认收起且
+    从右侧进入的信息面板；390 档工具栏单行自适应，信息面板改为底部面板。
+  - 最新视觉真相：`prototypes/apple-redesign/05-viewer.html`；实现与同视口组合证据见
+    [`docs/evidence/uif-315`](../evidence/uif-315/)，设计 QA 结论见仓库根目录
+    [`design-qa.md`](../../design-qa.md)。
 - [ ] `UIF-316` 完成所有 loading/empty/offline/error/conflict/cancel/pending/success 状态。
 
 - [ ] `UIF-317` 完成中英文、浅色/深色、390/768/1265/1440 响应式和键盘/触摸矩阵。

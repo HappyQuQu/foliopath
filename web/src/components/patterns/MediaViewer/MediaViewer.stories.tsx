@@ -7,7 +7,7 @@ const meta = {
     canGoNext: true,
     canGoPrevious: true,
     item: {
-      contentUrl: "/storybook-preview-photo.jpg",
+      contentUrl: "/test-media/viewer-blue-violet.png",
       details: [
         { label: "位置", value: "旅行/日本/京都/八坂塔.jpg" },
         { label: "修改时间", value: "2026年7月21日 19:12" },
@@ -17,9 +17,11 @@ const meta = {
       id: "pagoda",
       kind: "image",
       name: "2026-07-21 19-12-43.jpg",
+      summary: "图像 · JPG",
     },
     labels: {
       close: "关闭",
+      closeInformation: "关闭信息面板",
       exitFullscreen: "退出全屏",
       fit: "适应窗口",
       fullscreen: "全屏",
@@ -63,7 +65,8 @@ export const Video: Story = {
       id: "video",
       kind: "video",
       name: "京都散步.mp4",
-      posterUrl: "/storybook-preview-photo.jpg",
+      posterUrl: "/test-media/viewer-blue-violet.png",
+      summary: "视频 · MP4",
     },
   },
 };
@@ -98,7 +101,8 @@ export const UnsupportedCodec: Story = {
       id: "unsupported-video",
       kind: "video",
       name: "归档视频.mkv",
-      posterUrl: "/storybook-preview-photo.jpg",
+      posterUrl: "/test-media/viewer-blue-violet.png",
+      summary: "视频 · MKV",
     },
   },
 };

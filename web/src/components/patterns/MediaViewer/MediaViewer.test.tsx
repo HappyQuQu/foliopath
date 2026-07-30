@@ -6,6 +6,7 @@ import { MediaViewer } from "./MediaViewer";
 
 const labels = {
   close: "Close",
+  closeInformation: "Close information panel",
   exitFullscreen: "Exit fullscreen",
   fit: "Fit to window",
   fullscreen: "Fullscreen",
@@ -32,6 +33,7 @@ const item = {
   id: "photo",
   kind: "image" as const,
   name: "photo.jpg",
+  summary: "Image · JPEG",
 };
 
 beforeEach(() => {
@@ -65,8 +67,8 @@ it("provides fit, 1:1, zoom, information, and close controls", async () => {
     "src",
     item.contentUrl,
   );
-  expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
-  expect(screen.getByText("Travel/Kyoto/photo.jpg")).toBeVisible();
+  expect(screen.getByRole("main", { name: "photo.jpg" })).toHaveFocus();
+  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Fit to window" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -82,6 +84,9 @@ it("provides fit, 1:1, zoom, information, and close controls", async () => {
   });
   expect(screen.getByText("125%")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Show basic information" }));
+  expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
+  expect(screen.getByText("Travel/Kyoto/photo.jpg")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Close information panel" }));
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Close" }));
   expect(close).toHaveBeenCalledOnce();
@@ -91,7 +96,7 @@ it("supports keyboard navigation from viewer buttons without hijacking media con
   const close = vi.fn();
   const next = vi.fn();
   const previous = vi.fn();
-  const { rerender } = render(
+  const { container, rerender } = render(
     <MediaViewer
       canGoNext
       canGoPrevious
@@ -118,9 +123,9 @@ it("supports keyboard navigation from viewer buttons without hijacking media con
   expect(next).toHaveBeenCalledTimes(2);
 
   fireEvent.keyDown(window, { key: "i" });
-  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-  fireEvent.keyDown(window, { key: "I" });
   expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
+  fireEvent.keyDown(window, { key: "I" });
+  expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
 
   rerender(
     <MediaViewer
@@ -134,7 +139,7 @@ it("supports keyboard navigation from viewer buttons without hijacking media con
       position="Item 2 of 4"
     />,
   );
-  const video = screen.getByLabelText("clip.mp4");
+  const video = container.querySelector("video")!;
   video.focus();
   fireEvent.keyDown(video, { key: "ArrowRight" });
   expect(next).toHaveBeenCalledTimes(2);
@@ -157,7 +162,7 @@ it("uses the fullscreen API and native video controls", async () => {
     configurable: true,
     value: requestFullscreen,
   });
-  const { rerender } = render(
+  const { container, rerender } = render(
     <MediaViewer
       canGoNext={false}
       canGoPrevious={false}
@@ -192,8 +197,8 @@ it("uses the fullscreen API and native video controls", async () => {
       position="Current media"
     />,
   );
-  expect(screen.getByLabelText("clip.mp4")).toHaveAttribute("controls");
-  expect(screen.getByLabelText("clip.mp4")).toHaveAttribute(
+  expect(container.querySelector("video")).toHaveAttribute("controls");
+  expect(container.querySelector("video")).toHaveAttribute(
     "poster",
     "/api/v1/assets/clip/thumbnail",
   );

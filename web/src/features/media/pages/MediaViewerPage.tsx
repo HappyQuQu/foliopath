@@ -74,6 +74,12 @@ export function MediaViewerPage({
             id: asset.id,
             kind: asset.kind,
             name: asset.name,
+            summary:
+              asset.kind === "video"
+                ? t("browse.kindVideo")
+                : asset.kind === "animated"
+                  ? t("browse.kindAnimated")
+                  : t("browse.kindImage"),
             ...(mediaPosterUrl(asset)
               ? { posterUrl: mediaPosterUrl(asset) }
               : {}),
@@ -139,6 +145,7 @@ export function MediaViewerPage({
       item={usableViewerItem}
       labels={{
         close: t("viewer.close"),
+        closeInformation: t("viewer.closeInformation"),
         exitFullscreen: t("viewer.exitFullscreen"),
         fit: t("viewer.fit"),
         fullscreen: t("viewer.fullscreen"),

@@ -16,7 +16,7 @@ import {
   type WheelEvent,
 } from "react";
 
-import { Button, IconButton } from "../../ui";
+import { IconButton } from "../../ui";
 import {
   MediaAvailabilityState,
   type MediaAvailabilityPresentation,
@@ -30,10 +30,12 @@ export interface MediaViewerItem {
   kind: "image" | "animated" | "video";
   name: string;
   posterUrl?: string | undefined;
+  summary?: string | undefined;
 }
 
 export interface MediaViewerLabels {
   close: string;
+  closeInformation: string;
   exitFullscreen: string;
   fit: string;
   fullscreen: string;
@@ -77,10 +79,9 @@ export function MediaViewer({
   position: string;
 }) {
   const rootRef = useRef<HTMLElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef({ originX: 0, originY: 0, pointerX: 0, pointerY: 0 });
   const [fit, setFit] = useState(true);
-  const [infoOpen, setInfoOpen] = useState(true);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -91,10 +92,7 @@ export function MediaViewer({
   const hasDetails = item.details.length > 0;
 
   useEffect(() => {
-    closeRef.current?.focus();
-    if (window.matchMedia?.("(max-width: 48rem)").matches) {
-      setInfoOpen(false);
-    }
+    rootRef.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -238,20 +236,32 @@ export function MediaViewer({
   const showImageControls = imageLike && !visibleAvailability;
 
   return (
-    <main className={styles.viewer} ref={rootRef}>
+    <main
+      aria-label={item.name}
+      className={styles.viewer}
+      ref={rootRef}
+      tabIndex={-1}
+    >
       <header className={styles.header}>
-        <Button
+        <IconButton
           className={styles.close}
+          label={labels.close}
           onClick={onClose}
-          ref={closeRef}
-          size="small"
-          variant="quiet"
         >
           <X aria-hidden="true" size={18} />
-          {labels.close}
-        </Button>
+        </IconButton>
         <strong title={item.name}>{item.name}</strong>
         <div className={styles.actions}>
+          {hasDetails && (
+            <IconButton
+              className={styles.infoToggle}
+              label={labels.info}
+              onClick={() => setInfoOpen((current) => !current)}
+              pressed={infoOpen}
+            >
+              <Info aria-hidden="true" size={19} />
+            </IconButton>
+          )}
           {showImageControls && (
             <>
               <IconButton label={labels.fit} onClick={showFit} pressed={fit}>
@@ -279,15 +289,6 @@ export function MediaViewer({
                 <MagnifyingGlassPlus aria-hidden="true" size={19} />
               </IconButton>
             </>
-          )}
-          {hasDetails && (
-            <IconButton
-              label={labels.info}
-              onClick={() => setInfoOpen((current) => !current)}
-              pressed={infoOpen}
-            >
-              <Info aria-hidden="true" size={19} />
-            </IconButton>
           )}
           <IconButton
             label={fullscreen ? labels.exitFullscreen : labels.fullscreen}
@@ -363,7 +364,19 @@ export function MediaViewer({
 
       {infoOpen && hasDetails && (
         <aside aria-label={labels.information} className={styles.info}>
-          <h2>{labels.information}</h2>
+          <div className={styles.infoHeader}>
+            <h2>{labels.information}</h2>
+            <IconButton
+              label={labels.closeInformation}
+              onClick={() => setInfoOpen(false)}
+            >
+              <X aria-hidden="true" size={18} />
+            </IconButton>
+          </div>
+          <div className={styles.infoIdentity}>
+            <strong title={item.name}>{item.name}</strong>
+            {item.summary && <span>{item.summary}</span>}
+          </div>
           <dl>
             {item.details.map((detail) => (
               <div key={detail.label}>
@@ -375,11 +388,15 @@ export function MediaViewer({
         </aside>
       )}
 
-      <footer className={styles.footer}>
+      <footer className={styles.assistive}>
         <span aria-live="polite">{position}</span>
         <span>{labels.shortcutHint}</span>
-        {!fit && showImageControls && <span>{Math.round(scale * 100)}%</span>}
       </footer>
+      {!fit && showImageControls && (
+        <output aria-live="polite" className={styles.zoomStatus}>
+          {Math.round(scale * 100)}%
+        </output>
+      )}
     </main>
   );
 }
