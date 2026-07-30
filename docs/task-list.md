@@ -17,8 +17,8 @@
 [S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)、
 [S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)均为 Go。
 完整执行见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)。当前进入
-`UIF-403～408` 纵向集成、容量与最终 Gate；`UIF-401～402` 的逐页比较和 Linux-owned
-视觉回归已经完成。
+`UIF-404～408` 浏览器/可访问性、容量与最终 Gate；`UIF-401～403` 的逐页比较、
+Linux-owned 视觉回归和真实纵向链已经完成。
 
 后续版本已经确认一个尚未开工的独立切片：
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它不进入当前

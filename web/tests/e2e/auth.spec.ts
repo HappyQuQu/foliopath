@@ -6,6 +6,10 @@ const administrator = {
   username: "browser-admin",
   password: "admin-88",
 };
+const updatedAdministrator = {
+  displayName: "完整链验收管理员",
+  password: "admin-99",
+};
 
 const longPathSegments = [
   process.env.FOLIOPATH_E2E_LONG_PATH_ONE ??
@@ -30,17 +34,23 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   await page.getByLabel("Display name *").fill(administrator.displayName);
   await page.getByLabel("Username *").fill(administrator.username);
-  await page.getByLabel("Password *", { exact: true }).fill(administrator.password);
+  await page
+    .getByLabel("Password *", { exact: true })
+    .fill(administrator.password);
   await page.getByLabel("Confirm password *").fill(administrator.password);
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page).toHaveURL(/\/settings\/libraries$/);
-  await expect(page.getByRole("heading", { name: "No libraries yet" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "No libraries yet" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "New library" }).click();
   await page.getByLabel("Library name *").fill("Browser acceptance library");
   await page.getByRole("button", { name: "Continue" }).click();
   for (const segment of longPathSegments) {
-    await page.getByRole("button", { name: `Open directory ${segment}` }).click();
+    await page
+      .getByRole("button", { name: `Open directory ${segment}` })
+      .click();
   }
   await page.getByRole("button", { name: /Select this directory/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -57,14 +67,18 @@ test("administrator, library-management, and browsing vertical slice", async ({
     await route.continue();
   });
   await page.getByRole("button", { name: "Create and scan" }).dblclick();
-  await expect(page.getByRole("heading", { name: "Browser acceptance library" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Browser acceptance library" }),
+  ).toBeVisible();
   expect(createRequests).toBe(1);
   await page.unroute("**/api/v1/libraries");
 
   const renameButton = page.getByRole("button", { name: "Rename" });
   await renameButton.focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog", { name: "Rename library" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Rename library" }),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(renameButton).toBeFocused();
 
@@ -79,7 +93,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await renameButton.click();
   await page.getByLabel("New name *").fill(longLibraryName);
   await page.getByRole("button", { name: "Save name" }).dblclick();
-  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: longLibraryName }),
+  ).toBeVisible();
   expect(renameRequests).toBe(1);
   await page.unroute("**/api/v1/libraries/*");
   await expectNoPageOverflow(page);
@@ -89,7 +105,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   const statusPath = new URL(page.url()).pathname;
   const libraryId = statusPath.split("/").at(-2);
   expect(libraryId).toBeTruthy();
-  await expect(page.getByRole("heading", { name: "Library status" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Library status" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Back to libraries" }).click();
 
   let delayNextLibraryList = true;
@@ -115,14 +133,18 @@ test("administrator, library-management, and browsing vertical slice", async ({
   });
   await page.reload();
   await expect(page.getByText("Loading libraries…")).toBeVisible();
-  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: longLibraryName }),
+  ).toBeVisible();
   failNextLibraryList = true;
   await page.reload();
   await expect(
     page.getByText("The library list could not be loaded. Please try again."),
   ).toBeVisible();
   await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: longLibraryName }),
+  ).toBeVisible();
   await page.unroute("**/api/v1/libraries?*");
 
   let scanFixtureState: "running" | "cancelled" | "failed" | "offline" =
@@ -144,7 +166,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   scanFixtureState = "failed";
   await page.reload();
   await expect(page.getByText("Scan incomplete")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Issue summary" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Issue summary" }),
+  ).toBeVisible();
   await expect(page.getByText("restricted-folder")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("/Users/");
 
@@ -158,12 +182,12 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   const createdLibraryId = libraryId ?? "";
   await page.goto(`/libraries/${createdLibraryId}/browse`);
-  await expect(page.getByRole("heading", { name: longLibraryName })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: longLibraryName }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /^Media library[：:]/ }),
-  ).toContainText(
-    longLibraryName,
-  );
+  ).toContainText(longLibraryName);
   await expect(page.getByText("direct-photo.jpg")).toBeVisible({
     timeout: 15_000,
   });
@@ -180,10 +204,16 @@ test("administrator, library-management, and browsing vertical slice", async ({
     name: "Preview: direct-photo.jpg",
   });
   await expect(preview).toBeVisible();
-  await expect(preview.getByRole("img", { name: "direct-photo.jpg" })).toBeVisible();
+  await expect(
+    preview.getByRole("img", { name: "direct-photo.jpg" }),
+  ).toBeVisible();
   await expect(preview).toContainText("image/jpeg");
-  await expect(preview.getByRole("button", { name: "Previous item" })).toBeDisabled();
-  await expect(preview.getByRole("button", { name: "Next item" })).toBeDisabled();
+  await expect(
+    preview.getByRole("button", { name: "Previous item" }),
+  ).toBeDisabled();
+  await expect(
+    preview.getByRole("button", { name: "Next item" }),
+  ).toBeDisabled();
   await expect(
     preview.getByRole("separator", { name: "Resize preview" }),
   ).toHaveCount(0);
@@ -235,7 +265,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
   await expect
     .poll(() =>
-      page.evaluate(() => window.localStorage.getItem("foliopath.preferences.v1")),
+      page.evaluate(() =>
+        window.localStorage.getItem("foliopath.preferences.v1"),
+      ),
     )
     .toContain('"mediaLayout":"masonry"');
   await page.reload();
@@ -245,6 +277,19 @@ test("administrator, library-management, and browsing vertical slice", async ({
     name: /visible-child.*1 item/i,
   });
   await expect(childDirectoryCard).toBeVisible();
+
+  const directoryFilter = page.getByRole("searchbox", {
+    name: "Filter current directory",
+  });
+  await directoryFilter.fill("visible-child");
+  await expect(page).toHaveURL(
+    `/libraries/${createdLibraryId}/browse?q=visible-child`,
+  );
+  await expect(childDirectoryCard).toBeVisible();
+  await expect(page.getByText("direct-photo.jpg")).toHaveCount(0);
+  await directoryFilter.fill("");
+  await expect(page).toHaveURL(`/libraries/${createdLibraryId}/browse`);
+  await expect(page.getByText("direct-photo.jpg")).toBeVisible();
 
   const recursiveToggle = page.getByRole("button", {
     name: "Include subdirectories",
@@ -313,18 +358,24 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(page).toHaveURL(
     new RegExp(`/libraries/${createdLibraryId}/browse/dir_`),
   );
-  await expect(page.getByRole("heading", { name: "visible-child" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "visible-child" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Directory location" }),
   ).toContainText(longLibraryName);
   const directDirectoryURL = page.url();
   await page.reload();
   await expect(page).toHaveURL(directDirectoryURL);
-  await expect(page.getByRole("heading", { name: "visible-child" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "visible-child" }),
+  ).toBeVisible();
 
   const openNavigation = page.getByRole("button", { name: "Open navigation" });
   await openNavigation.click();
-  await expect(page.getByRole("navigation", { name: "Media library directories" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Media library directories" }),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(openNavigation).toBeFocused();
   await expectNoPageOverflow(page);
@@ -361,7 +412,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
         return;
       }
       if (browseFixtureState === "next-page-error") {
-        const cursor = new URL(route.request().url()).searchParams.get("cursor");
+        const cursor = new URL(route.request().url()).searchParams.get(
+          "cursor",
+        );
         if (cursor) {
           await route.fulfill({
             status: 503,
@@ -379,9 +432,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify(
-            browseAssetPage("failed", "next-page-cursor"),
-          ),
+          body: JSON.stringify(browseAssetPage("failed", "next-page-cursor")),
         });
         return;
       }
@@ -404,9 +455,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
     },
   );
 
-  await page.goto(
-    `/libraries/${createdLibraryId}/browse?sort=name&order=desc`,
-  );
+  await page.goto(`/libraries/${createdLibraryId}/browse?sort=name&order=desc`);
   await expect(
     page.getByRole("status", { name: "Loading media…" }),
   ).toBeVisible();
@@ -468,7 +517,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     page.getByText("This library is offline", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/does not mean the source directory is empty/)).toBeVisible();
+  await expect(
+    page.getByText(/does not mean the source directory is empty/),
+  ).toBeVisible();
   await expect(page.getByText("No media in this directory")).toHaveCount(0);
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -479,7 +530,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/libraries/${createdLibraryId}/search?q=direct-photo`);
-  await expect(page.getByRole("heading", { name: "Search media" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Search media" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("article", { name: "direct-photo.jpg · Image" }),
   ).toBeVisible();
@@ -590,6 +643,29 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await waitForVisualState(page);
   await expectNoSeriousAxeViolations(page);
 
+  await page.getByRole("link", { name: "Account" }).click();
+  await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
+  await page
+    .getByLabel("Display name *")
+    .fill(updatedAdministrator.displayName);
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Administrator profile saved.")).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: `Account menu for ${updatedAdministrator.displayName}`,
+    }),
+  ).toBeVisible();
+
+  await page.getByLabel("Current password *").fill(administrator.password);
+  await page
+    .getByLabel("New password *", { exact: true })
+    .fill(updatedAdministrator.password);
+  await page
+    .getByLabel("Confirm new password *")
+    .fill(updatedAdministrator.password);
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByText("Administrator password updated.")).toBeVisible();
+
   await page.getByRole("link", { name: "Scanning and cache" }).click();
   await page.getByLabel("Scan interval (hours)").fill("48");
   await page.getByLabel("Thumbnail cache limit (GiB)").fill("2");
@@ -608,13 +684,32 @@ test("administrator, library-management, and browsing vertical slice", async ({
   expect(settingsRequests).toBe(1);
   await page.unroute("**/api/v1/settings");
 
+  let cleanupRequests = 0;
+  await page.route("**/api/v1/cache/cleanup", async (route) => {
+    if (route.request().method() === "POST") {
+      cleanupRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    await route.continue();
+  });
+  await page
+    .getByRole("button", { name: "Clear reconstructible cache" })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Clear thumbnail cache?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clear cache" }).dblclick();
+  await expect(page.getByText("Cache cleanup started.")).toBeVisible();
+  expect(cleanupRequests).toBe(1);
+  await page.unroute("**/api/v1/cache/cleanup");
+
   await page.getByRole("link", { name: "General" }).click();
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("heading", { name: "通用" })).toBeVisible();
   await page
     .getByRole("button", {
-      name: `${administrator.displayName}的账户菜单`,
+      name: `${updatedAdministrator.displayName}的账户菜单`,
     })
     .click();
   await page.getByRole("menuitem", { name: "退出登录" }).click();
@@ -630,7 +725,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expectNoSeriousAxeViolations(page);
 
   await page.getByLabel("用户名 *").fill(administrator.username);
-  await page.getByLabel("密码 *").fill(administrator.password);
+  await page.getByLabel("密码 *").fill(updatedAdministrator.password);
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/settings\/libraries$/);
   await page.goto("/settings/general");
@@ -651,11 +746,15 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   await page.goto("/settings/libraries");
   await page.getByRole("button", { name: "移除" }).click();
-  await expect(page.getByText("原始目录与媒体文件不会被删除、移动或修改。")).toBeVisible();
+  await expect(
+    page.getByText("原始目录与媒体文件不会被删除、移动或修改。"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "确认移除" }).click();
-  await expect(page.getByRole("heading", { name: "还没有媒体库" })).toBeVisible({
-    timeout: 10_000,
-  });
+  await expect(page.getByRole("heading", { name: "还没有媒体库" })).toBeVisible(
+    {
+      timeout: 10_000,
+    },
+  );
 });
 
 function scanFixture(
@@ -742,8 +841,7 @@ function browseAssetPage(
         thumbnail: {
           status: thumbnailStatus,
           url: null,
-          errorCode:
-            thumbnailStatus === "failed" ? "thumbnail_failed" : null,
+          errorCode: thumbnailStatus === "failed" ? "thumbnail_failed" : null,
         },
       },
     ],
@@ -784,7 +882,9 @@ test("readiness failure uses the contracted safe state", async ({ page }) => {
     page.getByRole("heading", { name: "FolioPath could not finish starting" }),
   ).toBeVisible();
   await expect(page.getByText(/Application data is unavailable/)).toBeVisible();
-  await expect(page.getByText(/Original media remains read-only/)).toBeVisible();
+  await expect(
+    page.getByText(/Original media remains read-only/),
+  ).toBeVisible();
   await expect(page.locator("body")).not.toContainText("/Users/");
   await expect(page.locator("body")).not.toContainText("/app/data");
   await expect(page.locator("body")).not.toContainText("sqlite");
@@ -832,10 +932,9 @@ async function expectPrototypeFidelityMatrix(page: Page) {
   for (const preference of preferences) {
     await page.evaluate(({ locale, theme }) => {
       const key = "foliopath.preferences.v1";
-      const current = JSON.parse(window.localStorage.getItem(key) ?? "{}") as Record<
-        string,
-        unknown
-      >;
+      const current = JSON.parse(
+        window.localStorage.getItem(key) ?? "{}",
+      ) as Record<string, unknown>;
       window.localStorage.setItem(
         key,
         JSON.stringify({ ...current, locale, theme }),
@@ -875,10 +974,9 @@ async function expectPrototypeFidelityMatrix(page: Page) {
 
   await page.evaluate(() => {
     const key = "foliopath.preferences.v1";
-    const current = JSON.parse(window.localStorage.getItem(key) ?? "{}") as Record<
-      string,
-      unknown
-    >;
+    const current = JSON.parse(
+      window.localStorage.getItem(key) ?? "{}",
+    ) as Record<string, unknown>;
     window.localStorage.setItem(
       key,
       JSON.stringify({ ...current, locale: "zh-CN", theme: "dark" }),
@@ -890,7 +988,8 @@ async function expectPrototypeFidelityMatrix(page: Page) {
 async function expectNoSeriousAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).analyze();
   const violations = results.violations.filter(
-    (violation) => violation.impact === "serious" || violation.impact === "critical",
+    (violation) =>
+      violation.impact === "serious" || violation.impact === "critical",
   );
 
   expect(violations).toEqual([]);

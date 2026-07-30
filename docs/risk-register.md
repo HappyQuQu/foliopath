@@ -73,8 +73,10 @@ R-020 属于 `Post-MVP/3` scope proposed 的
 R-021 属于当前 MVP revision 4 的
 [FTR-UIF-001](features/frontend-prototype-fidelity.md)；UIF-S1/S2/S3 已依次用真实合同、
 账户/目录/cache 后端、机器 reference manifest、四档状态矩阵、三浏览器/可访问性与 100k
-有界 DOM 关闭对应子风险。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC 重验；在逐页
-同状态比较、完整纵向链、候选容量和 100k/10k 集成证据完成前保持开放。
+有界 DOM 关闭对应子风险；UIF-401/402/403 又完成逐页同状态比较、Linux-owned 基线和真实
+容器纵向链，并验证 cache cleanup 与媒体路径/SHA-256 不变。R-021 继续阻断 `UIF-S4`
+和受影响的 Stage 5 RC 重验；在候选浏览器/可访问性、容量和 100k/10k 集成证据完成前保持
+开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

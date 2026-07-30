@@ -241,9 +241,14 @@ flowchart TD
     响应和仓库内 synthetic media，证据见
     [`docs/evidence/uif-402`](../evidence/uif-402/README.md)。
 
-- [ ] `UIF-403` 完成真实纵向 E2E。
+- [x] `UIF-403` 完成真实纵向 E2E。
   - setup/login → 管理资料/改密 → 建库/扫描 → 目录过滤 → 搜索 → 预览/Viewer →
     settings/cache cleanup → logout/login。
+  - 真实容器、全新数据库、只读 `/library` 和生成 client 的 Chromium 链已覆盖全部步骤；
+    浏览前后媒体路径与 SHA-256 清单必须完全一致。
+  - `FOLIOPATH_E2E_SUITE=chromium tests/e2e/web_auth.sh`：
+    `6 passed / 3 applicable skips`，证据见
+    [`docs/evidence/uif-403`](../evidence/uif-403/README.md)。
 
 - [ ] `UIF-404` 完成 Firefox、WebKit、Chromium、axe、键盘、触摸、forced-colors、
   reduced-motion 和物理辅助功能适用复验。

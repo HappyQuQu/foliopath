@@ -292,6 +292,12 @@ Browse 顶部/底部/预览、Search、可用图片 Viewer 和既有离线 Viewe
 不遮罩任何动态区域；Linux 生成后无更新复跑 `9 passed`。基线清单、fixture 边界与命令见
 [`docs/evidence/uif-402`](evidence/uif-402/README.md)。
 
+`UIF-403` 已把 setup/login、账户改名/改密、建库/扫描、当前目录 `q`、Search、预览/
+Viewer、扫描与缓存设置、真实 cache cleanup、logout/login 和安全移除串成同一真实容器
+纵向链。`tests/e2e/web_auth.sh` 在运行前后比较 `/library` 全部路径和原文件 SHA-256；
+Chromium 结果为 `6 passed / 3 applicable skips`。步骤和只读证据见
+[`docs/evidence/uif-403`](evidence/uif-403/README.md)。
+
 `UIF-S1` 已增加可重复的
 [10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped
 browse index，再执行 capability-derived Unicode 搜索键上的 literal `instr`；常规测试以

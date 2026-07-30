@@ -15,7 +15,31 @@ media_root="${e2e_root}/library"
 long_path_one="family-archives-with-a-deliberately-long-directory-name"
 long_path_two="2026-travel-and-celebration-originals-with-more-context"
 vite_log="${e2e_root}/vite.log"
+media_hashes_before="${e2e_root}/media-hashes-before"
+media_hashes_after="${e2e_root}/media-hashes-after"
+media_paths_before="${e2e_root}/media-paths-before"
+media_paths_after="${e2e_root}/media-paths-after"
 vite_pid=""
+
+if command -v sha256sum >/dev/null 2>&1; then
+	media_hash_tool="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+	media_hash_tool="shasum"
+else
+	printf '%s\n' "sha256sum or shasum is required for the media invariant" >&2
+	exit 1
+fi
+
+hash_media_file() {
+	case "${media_hash_tool}" in
+	sha256sum)
+		sha256sum "$1"
+		;;
+	shasum)
+		shasum -a 256 "$1"
+		;;
+	esac
+}
 
 cleanup() {
 	if [ -n "${vite_pid}" ]; then
@@ -40,6 +64,17 @@ cp \
 	"${media_root}/${long_path_one}/${long_path_two}/visible-child/nested-photo.jpg"
 ln -s "visible-child" \
 	"${media_root}/${long_path_one}/${long_path_two}/linked-child"
+(
+	cd "${media_root}"
+	find . -type f -print | LC_ALL=C sort |
+		while IFS= read -r media_path; do
+			hash_media_file "${media_path}"
+		done
+) >"${media_hashes_before}"
+(
+	cd "${media_root}"
+	find . -mindepth 1 -print | LC_ALL=C sort
+) >"${media_paths_before}"
 chmod 0777 "${data_root}"
 chmod 0555 "${media_root}"
 
@@ -113,5 +148,19 @@ FOLIOPATH_WEB_E2E_URL="http://127.0.0.1:${web_port}" \
 	FOLIOPATH_E2E_LONG_PATH_ONE="${long_path_one}" \
 	FOLIOPATH_E2E_LONG_PATH_TWO="${long_path_two}" \
 	npm --prefix "${repo_root}/web" run test:e2e -- ${playwright_projects}
+
+(
+	cd "${media_root}"
+	find . -type f -print | LC_ALL=C sort |
+		while IFS= read -r media_path; do
+			hash_media_file "${media_path}"
+		done
+) >"${media_hashes_after}"
+(
+	cd "${media_root}"
+	find . -mindepth 1 -print | LC_ALL=C sort
+) >"${media_paths_after}"
+cmp "${media_hashes_before}" "${media_hashes_after}"
+cmp "${media_paths_before}" "${media_paths_after}"
 
 printf '%s\n' "${e2e_suite} browser e2e suite passed"
