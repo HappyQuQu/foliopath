@@ -12,9 +12,10 @@ Gate；原型不进入生产 import graph。源码分层、设计系统唯一所
 生产还原由正式 feature [FTR-UIF-001](features/frontend-prototype-fidelity.md)承接；范围、
 后端合同、视觉 Gate 与执行顺序以其
 [开发清单](features/frontend-prototype-fidelity-task-list.md)为准。当前生产页面、共享壳和
-真实合同消费已完成 `UIF-401～407`；逐页原型比较、Linux 基线、浏览器/可访问性和容量证据
-统一汇总在[当前 UIF 集成状态](releases/MVP-2026-07-23-uif-integration-status.md)。`UIF-408` 与
-Stage 5 重验前，本状态不等于稳定发布。
+真实合同消费已完成 `UIF-401～408` 并通过
+[`UIF-S4 Integrated Slice Done`](gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)；
+逐页原型比较、Linux 基线、四档逐页审阅、浏览器/可访问性和容量证据统一汇总在
+[当前 UIF 集成状态](releases/MVP-2026-07-23-uif-integration-status.md)。该状态不等于稳定发布。
 
 设计方向是“内容优先、目录清晰、状态诚实”：采用克制的 Apple 桌面应用视觉语言，以系统字体、
 半透明层级、紧凑工具栏、圆润表面和轻量动效组织信息，让照片和视频成为主要色彩；文件夹层级

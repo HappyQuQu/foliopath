@@ -5,7 +5,7 @@
 - Feature：[FTR-UIF-001](frontend-prototype-fidelity.md)
 - Change Record：[CR-2026-009](../changes/CR-2026-009-frontend-prototype-fidelity.md)
 - Scope：[MVP revision 4](../releases/MVP-2026-07-23-scope-r4.md)
-- 当前状态：S2 Backend Evidence Ready Go；Phase 3 生产前端逐页接入中
+- 当前状态：`UIF-S4 Integrated Slice Done` Go；feature 已完成，MVP RC 仍 No-Go
 - 强制顺序：S0 → S1 Contract → 后端 → S2 Backend Evidence → 前端 → S3 → S4
 
 只有实现、自动证据和文档同步都完成的任务才能勾选。原型完成、页面能打开、build 成功或截图
@@ -288,15 +288,23 @@ flowchart TD
   - 持续性规范已从“账户/目录 q/cache cleanup 待开发”更新为 migration 13、Backend Ready、
     generated client 和真实纵向链事实。
   - 冻结 scope manifest 与 S0～S3 历史 Gate 不倒写；新增只追加的
-    [UIF 当前集成状态](../releases/MVP-2026-07-23-uif-integration-status.md)聚合 UIF-401～407
-    证据和 UIF-408/Stage 5 剩余项。
+    [UIF 当前集成状态](../releases/MVP-2026-07-23-uif-integration-status.md)在该任务完成时
+    聚合 UIF-401～407 证据和 UIF-408/Stage 5 剩余项；UIF-408 随后只追加更新该状态。
   - 审计文件、关闭冲突和 Post-MVP 边界见
     [`docs/evidence/uif-407`](../evidence/uif-407/README.md)。
 
-- [ ] `UIF-408` 签署 `UIF-S4 Integrated Slice Done` 并重跑受影响 Stage 5 RC Gate。
+- [x] `UIF-408` 签署 `UIF-S4 Integrated Slice Done` 并重跑受影响 Stage 5 RC Gate。
+  - 补齐 12 个 manifest 页面在 `390×844 / 768×1024 / 1265×800 / 1440×900`
+    的 48 张原型图、48 张真实生产路由图和 12 张成对审阅图；全部无横向溢出且无
+    P0/P1/P2 或延期 P3。
+  - `make test-web-release-e2e`、`make test-web-chrome-stable`、三引擎 100k 容量、
+    生产容器 E2E、release docs/readiness 聚合通过；`make release-ready` 因既有独立
+    Stage 5 阻断按设计失败关闭。
+  - Gate：[UIF-S4 Integrated Slice Done](../gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)；
+    完整证据见[`docs/evidence/uif-408`](../evidence/uif-408/README.md)。
 
 ## Feature 完成定义
 
-只有 `UIF-001～408` 适用项完成、`UIF-AC-001～012` 有实际证据、S4 Go 且 Stage 5 受影响
-Gate 重跑后，才能称 `FTR-UIF-001` 完成。不得因为原型已完成、共享壳已合并或某个页面通过
-截图而提前关闭 feature。
+`UIF-001～408` 适用项、`UIF-AC-001～012` 实际证据、S4 Go 和受影响 Stage 5 复验均已
+完成，因此 `FTR-UIF-001` 为 Integrated Slice Done。该状态不等于 MVP RC 或稳定发布；
+最终 digest、物理辅助功能和供应链仍由既有 Stage 5 Gate 阻断。

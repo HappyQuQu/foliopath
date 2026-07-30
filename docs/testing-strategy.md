@@ -272,8 +272,8 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
   写放大和并发浏览；全链前后校验只读媒体 sentinel。
 
 详细任务与证据归档入口见
-[FTR-UIF-001 开发清单](features/frontend-prototype-fidelity-task-list.md)。`UIF-S4` 通过后仍需
-重跑受影响 Stage 5 Gate，不能仅凭截图宣布可发布。
+[FTR-UIF-001 开发清单](features/frontend-prototype-fidelity-task-list.md)。`UIF-S4` 已通过，
+但最终 digest、物理辅助功能和供应链 Gate 仍阻断发布，不能仅凭截图宣布可发布。
 
 [UIF-S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)已固定
 `web/qa/visual-reference-manifest.json`：12 个生产页面必须映射到原型、生产路由、状态与
@@ -291,6 +291,12 @@ Browse 顶部/底部/预览、Search、可用图片 Viewer 和既有离线 Viewe
 `1280 × 800`、English、dark、reduced-motion、认证/媒体合同与仓库 synthetic image，
 不遮罩任何动态区域；Linux 生成后无更新复跑 `9 passed`。基线清单、fixture 边界与命令见
 [`docs/evidence/uif-402`](evidence/uif-402/README.md)。
+
+`UIF-408` 又在 `390×844 / 768×1024 / 1265×800 / 1440×900` 为同一 12 页分别保存
+48 张原型图、48 张真实生产路由图和 12 张成对审阅图，确认无横向溢出、P0/P1/P2 或延期
+P3；这组逐页断点证据不与 UIF-317 双语双主题共享状态矩阵或 UIF-401 共同 1280 比较混淆。
+同轮 browser release E2E、Chrome Stable、三引擎容量、生产容器和 RC readiness 复验见
+[`docs/evidence/uif-408`](evidence/uif-408/README.md)。
 
 `UIF-403` 已把 setup/login、账户改名/改密、建库/扫描、当前目录 `q`、Search、预览/
 Viewer、扫描与缓存设置、真实 cache cleanup、logout/login 和安全移除串成同一真实容器

@@ -4,9 +4,9 @@
 
 - Scope: frozen revision 4; this document does not change the manifest.
 - Feature: [`FTR-UIF-001`](../features/frontend-prototype-fidelity.md).
-- Current result: `UIF-401～407` completed with evidence.
-- Next decision: `UIF-408` Integrated Slice Done sign-off and affected Stage 5
-  Gate reruns.
+- Current result: `UIF-401～408` completed; `UIF-S4 Integrated Slice Done` is Go.
+- Next decision: none inside `FTR-UIF-001`; continue the independent Stage 5
+  release-blocker closure work.
 - Release status: not released; the existing Release Candidate remains No-Go
   until all independent Stage 5 blockers close.
 
@@ -26,26 +26,26 @@ records.
 | `UIF-405` | Three-engine 100k scroll/DOM/FPS/RSS and backend 10k-directory/100k-file scan-time concurrency passed with zero budget violations. [Evidence](../evidence/uif-405/README.md) |
 | `UIF-406` | `fmt`, architecture, generation, lint, unit, integration and production-container E2E all passed. [Evidence](../evidence/uif-406/README.md) |
 | `UIF-407` | PRD, UI, flows, API, data, security, testing, deployment, traceability, risk, README and release status converged on the same implementation/evidence boundary. [Evidence](../evidence/uif-407/README.md) |
+| `UIF-408` | Twelve pages were reviewed source/production side by side at all four declared CSS viewports; affected browser, capacity, container and RC readiness checks were rerun, and UIF-S4 was signed Go. [Evidence](../evidence/uif-408/README.md) / [Gate](../gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md) |
 
-The four breakpoint contract is supported separately by the
-`390×844 / 768×1024 / 1265×800 / 1440×900` bilingual, dual-theme state,
-overflow, input and responsive matrix in
-[`UIF-317`](../evidence/uif-317/README.md). It is not mislabeled as twelve
-page-by-page captures at every breakpoint.
+The shared bilingual, dual-theme state matrix remains in
+[`UIF-317`](../evidence/uif-317/README.md). The distinct twelve-page,
+four-breakpoint source/production matrix now exists in `UIF-408`; neither
+evidence set is mislabeled as the other.
 
-## Acceptance evidence ready for UIF-408
+## Acceptance evidence accepted by UIF-S4
 
-| Acceptance | Candidate evidence |
+| Acceptance | Accepted evidence |
 | --- | --- |
 | `UIF-AC-001～003` | Shared Header/management shell and twelve-page comparison (`UIF-401`); real route/actions (`UIF-403`) |
 | `UIF-AC-004～006` | Account transaction, directory q and cache cleanup Backend Ready plus real browser chain (`UIF-S2`, `UIF-403`) |
-| `UIF-AC-007～009` | Browse top/bottom/preview comparison, shared responsive matrix and Linux baselines (`UIF-317`, `UIF-401`, `UIF-402`) |
+| `UIF-AC-007～009` | Browse top/bottom/preview comparison, shared responsive matrix, Linux baselines and twelve-page four-breakpoint review (`UIF-317`, `UIF-401`, `UIF-402`, `UIF-408`) |
 | `UIF-AC-010` | Browser/input/accessibility applicability (`UIF-404`) |
 | `UIF-AC-011` | Frontend and backend full-capacity revalidation (`UIF-405`) |
 | `UIF-AC-012` | Read-only mount, media path/SHA-256 invariance and complete repository verification (`UIF-403`, `UIF-406`) |
 
-This table assembles evidence for the next Gate; it does not sign `UIF-S4` by
-itself.
+The signed decision is
+[`UIF-S4 Integrated Slice Done`](../gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md).
 
 ## Scope exclusions preserved
 
@@ -57,11 +57,7 @@ must not be reintroduced as static controls or local mock success.
 
 ## Remaining release work
 
-1. Sign `UIF-408` only after checking `UIF-AC-001～012` and the evidence links
-   above.
-2. Rerun the affected Stage 5 browser/accessibility, capacity, security and RC
-   aggregation Gates.
-3. Keep S5-006B physical Firefox, screen reader, 200%/400% zoom, OS
+1. Keep S5-006B physical Firefox, screen reader, 200%/400% zoom, OS
    high-contrast and representative touch/mobile review open.
-4. Keep final immutable digest and unresolved supply-chain findings under
+2. Keep final immutable digest and unresolved supply-chain findings under
    their existing Stage 5 owners.

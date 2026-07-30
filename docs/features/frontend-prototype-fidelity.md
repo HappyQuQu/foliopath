@@ -2,10 +2,10 @@
 
 ## 状态与版本
 
-- 状态：Integrated Slice tasks `UIF-401～407` completed；`UIF-408` Pending
+- 状态：`UIF-S4 Integrated Slice Done` Go；MVP Release Candidate 仍 No-Go
 - 目标版本：`MVP-2026-07-23` / scope revision 4
-- 当前阶段：`UIF-S3 Consumer/UI Ready` 已完成；逐页集成、候选复验和文档收敛已完成，
-  等待 `UIF-S4` 签署及受影响 Stage 5 Gate 重验
+- 当前阶段：`UIF-S4` 已签署；`UIF-001～408` 与受影响 Stage 5 复验完成，独立发布
+  阻断继续由 Stage 5 Gate 持有
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
 - Capability Owner：`internal/auth`、`internal/catalog`、`internal/thumbnail` 与 `web`
@@ -17,10 +17,12 @@
 - Contract Gate：[UIF-S1 Contract Ready](../gates/MVP-2026-07-23/uif-s1-contract-ready.md)
 - Backend Gate：[UIF-S2 Backend Evidence Ready](../gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
 - Consumer/UI Gate：[UIF-S3 Consumer/UI Ready](../gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)
+- Integrated Gate：[UIF-S4 Integrated Slice Done](../gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)
 - Integrated evidence：[UIF-401](../evidence/uif-401/README.md)、
   [UIF-402](../evidence/uif-402/README.md)、[UIF-403](../evidence/uif-403/README.md)、
   [UIF-404](../evidence/uif-404/README.md)、[UIF-405](../evidence/uif-405/README.md)、
-  [UIF-406](../evidence/uif-406/README.md)、[UIF-407](../evidence/uif-407/README.md)
+  [UIF-406](../evidence/uif-406/README.md)、[UIF-407](../evidence/uif-407/README.md)、
+  [UIF-408](../evidence/uif-408/README.md)
 - 风险：[R-021](../risk-register.md)，并复用 R-010、R-012、R-015、R-016
 
 ## 用户问题与结果
@@ -250,9 +252,10 @@ UIF-S0 Architecture Ready
   → Stage 5 RC Gate rerun
 ```
 
-- S0、S1、S2 与 S3 已 Go；`UIF-401～407` 已完成并有实际证据；
+- S0、S1、S2、S3 与 S4 已 Go；`UIF-401～408` 已完成并有实际证据；
 - 账户修改、全量目录过滤与缓存清理已通过生成 client 接入真实 Backend Ready owner；
 - reference manifest、token、壳、Storybook、逐页比较、Linux 基线、真实纵向链、候选浏览器、
   可访问性、100k/10k 容量和完整仓库验证已完成；
-- UIF-408 签署前不得称整个 feature Integrated Done 或可发布；
-- S4 后仍需重跑受影响的 Stage 5 浏览器、容量、安全和 RC Gate。
+- feature 可称为 Integrated Slice Done，但不得称 MVP/RC 可发布；
+- 受影响的 Stage 5 浏览器、容量、容器和 RC 聚合已重跑；最终 digest、物理辅助功能和
+  供应链阻断保持 No-Go。

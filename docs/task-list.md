@@ -12,13 +12,13 @@
 [后端清单](backend-task-list.md)与[前端清单](frontend-task-list.md)；本文件只负责总进度、
 交接点和共同发布任务。
 
-当前首要切片是 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)，
-已进入 MVP revision 4，S0 Architecture Ready、S1 Contract Ready 与
+最近完成的切片是 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)，
+属于 MVP revision 4，S0 Architecture Ready、S1 Contract Ready 与
 [S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)、
-[S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)均为 Go。
-完整执行见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)。当前进入
-`UIF-404～408` 浏览器/可访问性、容量与最终 Gate；`UIF-401～403` 的逐页比较、
-Linux-owned 视觉回归和真实纵向链已经完成。
+[S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)与
+[S4 Integrated Slice Done](gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)均为 Go。
+`UIF-001～408` 完整执行见[专用任务清单](features/frontend-prototype-fidelity-task-list.md)；
+MVP RC 仍由 Stage 5 最终 digest、物理辅助功能和供应链阻断持有。
 
 后续版本已经确认一个尚未开工的独立切片：
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)。它不进入当前
@@ -49,12 +49,12 @@ UIF-S0 架构 ✅
   → UIF-S1 账户 / 目录 q / 缓存合同 ✅
   → UIF-S2 后端证据 ✅
   → UIF-S3 共享壳与真实页面 ✅
-  → UIF-S4 视觉 / E2E / 容量 / RC 重验
+  → UIF-S4 视觉 / E2E / 容量 / RC 重验 ✅
 ```
 
 前端壳、token、共享组件、reference manifest 和契约 fixture 可以在 S1/S2 同期推进；真实
 业务 API 集成必须等待对应 `Backend Evidence Ready`。既有 Stage 1～4 完成证据继续有效，
-但不能代替本 feature 的新增合同和一致性 Gate。
+该 feature 已完成；既有 Stage 5 发布 Gate 仍独立判断 RC。
 
 ### 编号怎么读
 

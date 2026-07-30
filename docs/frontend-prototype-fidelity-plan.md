@@ -10,8 +10,8 @@
 
 ## 1. 结论与优先级
 
-- 状态：`UIF-S0～S3` 已 Go，`UIF-401～407` 已完成，`UIF-408` 与受影响 Stage 5 Gate
-  重验 Pending
+- 状态：`UIF-S0～S4` 已 Go，`UIF-001～408` 和受影响 Stage 5 复验已完成；
+  `FTR-UIF-001` 为 Integrated Slice Done，MVP RC 仍 No-Go
 - 当前优先级：在继续扩展后台任务中心或系统维护功能前，先让现有生产 React 前端与
   [`prototypes/apple-redesign`](../prototypes/apple-redesign/index.html) 在布局、样式、
   交互层级和响应式行为上保持一致。

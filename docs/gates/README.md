@@ -41,6 +41,7 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 - [UIF-S1：生产前端原型一致性 Contract Ready](MVP-2026-07-23/uif-s1-contract-ready.md)
 - [UIF-S2：生产前端原型一致性 Backend Evidence Ready](MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
 - [UIF-S3：生产前端原型一致性 Consumer/UI Ready](MVP-2026-07-23/uif-s3-consumer-ui-ready.md)
+- [UIF-S4：生产前端原型一致性 Integrated Slice Done](MVP-2026-07-23/uif-s4-integrated-slice-done.md)
 - [MVP-2026-07-23 / 阶段 0 当前判断](MVP-2026-07-23/stage-0-current.md)
 - [S0-105：路径证据与生产切片顺序](MVP-2026-07-23/s0-105-gate-order.md)
 - [S1-101：单管理员认证 Contract Ready](MVP-2026-07-23/s1-auth-contract-ready.md)

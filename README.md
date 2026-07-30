@@ -25,8 +25,9 @@
 > FolioPath 当前是 **Stage 5 发布候选，不是稳定版本**。Stage 0～4 的产品纵向切片已经完成，
 > 候选容器、Compose、双架构运行、恢复、容量和浏览器自动化已有验证证据；最终不可变镜像
 > digest、完整真实设备/辅助功能签署和供应链高危项处置尚未完成。当前 Release Candidate
-> 判定为 **No-Go**。生产前端原型一致性 feature 已完成 UIF-401～407，仍须 UIF-408 和受影响
-> Stage 5 Gate 重验。不要把当前 candidate 当作正式发布版用于关键数据或公网服务。
+> 判定为 **No-Go**。生产前端原型一致性 feature 已完成 UIF-401～408 并通过
+> `UIF-S4 Integrated Slice Done`；当前 No-Go 只由既有 Stage 5 最终 digest、物理辅助功能
+> 和供应链阻断持有。不要把当前 candidate 当作正式发布版用于关键数据或公网服务。
 
 ## 目录
 
