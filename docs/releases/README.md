@@ -13,6 +13,9 @@
   目录全量过滤、生产视觉合同和阻断式一致性 Gate，并替代 revision 3 作为当前范围。
 - [MVP-2026-07-23 当前 RC readiness 快照](MVP-2026-07-23-rc-readiness.json)：
   聚合 Stage 5 前置 Gate 与发布阻断风险；不改变冻结 scope。
+- [MVP-2026-07-23 UIF 当前集成状态](MVP-2026-07-23-uif-integration-status.md)：
+  只追加聚合 `UIF-401～407` 实际证据、精确视觉矩阵边界和 `UIF-408`/Stage 5 剩余工作；
+  不修改 revision 4 manifest 或历史 Gate。
 
 已冻结的后续版本能力：
 

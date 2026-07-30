@@ -28,7 +28,7 @@
 | R-018 | 视频故事板 backfill、重复 seek 或 hover 生命周期造成 CPU、I/O、缓存、请求或前端资源失控 | 中 | 高 | grid/poster 等待变长；浏览 P95 上升；队列/缓存持续增长；快速掠过产生请求风暴；虚拟卡片回收后 timer/动画仍活动 | [VSP-S2 Backend Evidence Ready](gates/POST-MVP-1/vsp-s2-backend-evidence-ready.md)已以双架构生产 FFmpeg、单并发/低优先级、128 项 admission、真实 cache repair 和 Linux 100k/10k 档关闭后端 Gate；[VSP-S3 Consumer/UI Ready](gates/POST-MVP-1/vsp-s3-consumer-ui-ready.md)又以 300ms intent、按需 decode、单活动动画、生命周期回收、六种浏览器/输入 profile 和 100-video 三引擎容量关闭前端 Gate；[VSP-301](gates/POST-MVP-1/vsp-301-product-vertical.md)已贯通生产镜像真实全链，剩余风险由 [VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md) 原生候选复验与 VSP-S4 最终签署阻断 | 依次降低 worker/尺寸/质量、改为有界按需 admission；仍不满足时禁用 storyboard 并保留现有 poster | 媒体处理与前端性能负责人 | 缓解中 |
 | R-019 | 文件事件丢失、乱序、overflow、网络盘不转发、watch 资源不足或删除误判导致内容延迟或索引损失 | 高 | 严重 | `IN_Q_OVERFLOW`/`ENOSPC`、watch 被移除、事件后目录不一致、挂载掉线时出现批量 delete、dirty 队列持续满或页面长期不更新 | [FTR-SCN-001](features/automatic-library-discovery.md)要求事件只作不可信提示；新增/修改/删除均经 `internal/files` 安全定向校准确认，掉盘/权限/overflow 保留可靠索引并合并安排完整扫描；每目录而非每文件 watch，队列/并发/revision 轮询有界；实现前必须通过 WCH-S0 ADR 与 Linux 100k/10k burst/恢复证据 | 先扩大合并并降低定向并发，再按库进入 degraded；仍不可靠时全局禁用自动发现，保留创建/启动/手动/定时完整扫描 | 扫描与运维负责人 | 开放 |
 | R-020 | 任务中心全量重建造成无界 admission、队列饥饿、磁盘耗尽，或先清缓存导致可用预览丢失 | 中 | 高 | rebuild 一次登记全部资产；日常 poster/grid 或浏览延迟持续恶化；取消后队列继续增长；ENOSPC 后旧 ready 不可用 | [FTR-OPS-001](features/task-center.md)要求 parent run、asset keyset 小批 admission、最低后台优先级、active coalesce、磁盘安全余量、停止 admission 的协作取消和新文件成功后才替换旧缓存；OPS-003 必须在 100k/10k 档冻结上限 | 只保留 missing backfill，禁用 all rebuild；必要时完全隐藏批量入口并继续现有按需 self-heal | 媒体处理与性能负责人 | 开放 |
-| R-021 | 原型、共享 token、生产页面和视觉基线各自演进，导致跨页漂移或为追求像素一致破坏真实功能、可访问性和大列表能力 | 高 | 高 | 同一控件出现多份样式；批量接受截图变化；页面只在 1440px 正常；为匹配原型改用 mock、全量客户端过滤或嵌套滚动 | [FTR-UIF-001](features/frontend-prototype-fidelity.md)固定视觉/功能双真相、唯一 shared owner、四档同视口 Gate、P0/P1/P2 清零、2px 几何阈值、真实 API/100k/10k/三浏览器/axe/焦点证据；UIF-S1/S2 阻断假业务接入 | 逐页切换并保留当前生产页面；未通过视觉与功能 Gate 的页面不启用新壳，不能以静态原型替换真实链路 | 前端、设计系统与 QA 负责人 | 开放 |
+| R-021 | 原型、共享 token、生产页面和视觉基线各自演进，导致跨页漂移或为追求像素一致破坏真实功能、可访问性和大列表能力 | 高 | 高 | 同一控件出现多份样式；批量接受截图变化；页面只在 1440px 正常；为匹配原型改用 mock、全量客户端过滤或嵌套滚动 | [FTR-UIF-001](features/frontend-prototype-fidelity.md)固定视觉/功能双真相与唯一 shared owner；UIF-401～407 已完成逐页比较、Linux 基线、真实 API、三浏览器/axe/输入、100k/10k 和跨文档收敛，且区分 12 页共同 1280 比较与四档响应式矩阵；UIF-408/Stage 5 继续阻断最终声明 | 保留已验证生产页面和机器 reference manifest；任何基线变化须解释来源，不能以静态原型、mock 或批量 snapshot 更新替代真实链路 | 前端、设计系统与 QA 负责人 | 缓解中 |
 
 Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
 source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
@@ -79,8 +79,10 @@ R-021 属于当前 MVP revision 4 的
 高对比和物理触摸明确留给 S5-006B；UIF-405 又在最新共享集合上通过三引擎 100k
 滚动/DOM/FPS/RSS，并以 10k/100k 完整扫描期浏览/搜索并发和跨库 worker 顺序复验后端
 容量边界；UIF-406 的 fmt、architecture、generation、lint、unit、integration 与生产容器
-E2E 七项完整验证全部通过。R-021 继续阻断 `UIF-S4` 和受影响的 Stage 5 RC 重验；
-在文档同步和最终 Gate 完成前保持开放。
+E2E 七项完整验证全部通过；UIF-407 又把 PRD、UI、流程、API/data/security/testing、
+deployment、traceability、风险、README 和 release 状态统一到实际证据，并明确 12 页
+共同 1280 逐页比较与四档响应式矩阵不是同一证据。R-021 继续阻断 `UIF-S4` 和受影响的
+Stage 5 RC 重验；在 UIF-408 与最终 Gate 完成前保持开放。
 
 2026-07-28 的 [S5-009A 当前 RC 判断](gates/MVP-2026-07-23/s5-release-candidate-current.md)
 已把八个前置 Gate 与八项发布阻断风险聚合到

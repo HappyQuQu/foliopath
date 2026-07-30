@@ -2,9 +2,10 @@
 
 ## 状态与版本
 
-- 状态：Confirmed
+- 状态：Integrated Slice tasks `UIF-401～407` completed；`UIF-408` Pending
 - 目标版本：`MVP-2026-07-23` / scope revision 4
-- 当前阶段：`UIF-S3 Consumer/UI Ready` 已完成；授权进入逐页集成与发布前复验
+- 当前阶段：`UIF-S3 Consumer/UI Ready` 已完成；逐页集成、候选复验和文档收敛已完成，
+  等待 `UIF-S4` 签署及受影响 Stage 5 Gate 重验
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
 - Capability Owner：`internal/auth`、`internal/catalog`、`internal/thumbnail` 与 `web`
@@ -16,6 +17,10 @@
 - Contract Gate：[UIF-S1 Contract Ready](../gates/MVP-2026-07-23/uif-s1-contract-ready.md)
 - Backend Gate：[UIF-S2 Backend Evidence Ready](../gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
 - Consumer/UI Gate：[UIF-S3 Consumer/UI Ready](../gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)
+- Integrated evidence：[UIF-401](../evidence/uif-401/README.md)、
+  [UIF-402](../evidence/uif-402/README.md)、[UIF-403](../evidence/uif-403/README.md)、
+  [UIF-404](../evidence/uif-404/README.md)、[UIF-405](../evidence/uif-405/README.md)、
+  [UIF-406](../evidence/uif-406/README.md)、[UIF-407](../evidence/uif-407/README.md)
 - 风险：[R-021](../risk-register.md)，并复用 R-010、R-012、R-015、R-016
 
 ## 用户问题与结果
@@ -115,7 +120,7 @@
 
 ### 账户维护
 
-S1 必须接受：
+S1 已接受、S2 已实现并验证：
 
 - 管理员资料更新 operation；
 - 密码修改 operation：当前密码、新密码；
@@ -124,8 +129,8 @@ S1 必须接受：
 - 成功后当前会话继续有效，其他会话原子撤销；
 - 响应和日志不包含当前密码、新密码、hash、Cookie 或 CSRF secret。
 
-现有 `users` 与 sessions schema 具备显示名称、password verifier 和 auth version 基础。S1
-必须确认是否无需 migration；如果需要新字段，只能追加 migration。
+`users` 与 sessions schema 复用显示名称、password verifier 和 auth version，并由只追加
+migration 13 增加 account revision；没有修改已发布 migration。
 
 ### 当前目录关键字
 
@@ -134,8 +139,8 @@ S1 必须接受：
 - 目录匹配只查询可靠索引，不在请求时遍历文件系统；
 - 离线媒体库继续查询最后可靠目录索引；
 - query 改变后旧 cursor 返回 `invalid_cursor`；
-- 10k 目录档必须证明查询计划、内存和响应有界；若现有索引不满足，S1 设计只追加索引或目录
-  搜索结构。
+- 10k 目录档已证明查询计划、内存和响应有界；实现使用 migration 13 的目录搜索键与既有
+  parent-scoped browse index，没有引入目录 FTS 或客户端全量过滤。
 
 ### 缓存摘要与最小清理
 
@@ -245,8 +250,9 @@ UIF-S0 Architecture Ready
   → Stage 5 RC Gate rerun
 ```
 
-- S0、S1、S2 与 S3 已 Go；生产消费者、共享壳、状态与输入矩阵允许进入 Integrated Slice；
+- S0、S1、S2 与 S3 已 Go；`UIF-401～407` 已完成并有实际证据；
 - 账户修改、全量目录过滤与缓存清理已通过生成 client 接入真实 Backend Ready owner；
-- reference manifest、token、壳和 Storybook 已有机器检查；不得由 Phase 4 再建立平行实现；
-- S4 前不得称“与原型一致”或“可发布”；
+- reference manifest、token、壳、Storybook、逐页比较、Linux 基线、真实纵向链、候选浏览器、
+  可访问性、100k/10k 容量和完整仓库验证已完成；
+- UIF-408 签署前不得称整个 feature Integrated Done 或可发布；
 - S4 后仍需重跑受影响的 Stage 5 浏览器、容量、安全和 RC Gate。

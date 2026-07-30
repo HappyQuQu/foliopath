@@ -5,7 +5,8 @@
 可靠扫描、浏览/缩略图、搜索、非模态预览与完整查看器均已接入真实产品纵向链。Stage 5
 候选镜像、Compose、可信代理、恢复/失败关闭、原生双架构运行/升级和完整容量 Gate 已通过；
 真实 Firefox/物理辅助功能、供应链处置、最终不可变 digest 与 Release Candidate Gate
-仍未完成，当前候选不是稳定发布。
+仍未完成，当前候选不是稳定发布。`FTR-UIF-001` 已完成 UIF-401～407，当前证据聚合见
+[UIF 集成状态](releases/MVP-2026-07-23-uif-integration-status.md)。
 
 ## 从哪里开始
 
@@ -42,6 +43,9 @@
 - [UIF-S3 Consumer/UI Ready](gates/MVP-2026-07-23/uif-s3-consumer-ui-ready.md)：
   逐页 reference manifest、generated-client 消费、共享壳/状态、四档双语双主题、
   键盘/触摸和三引擎容量已通过；仅授权进入 Integrated Slice。
+- [UIF-401～407 当前集成状态](releases/MVP-2026-07-23-uif-integration-status.md)：
+  聚合逐页比较、Linux 基线、真实纵向链、浏览器/可访问性、100k/10k 容量、完整仓库验证和
+  文档收敛证据；`UIF-408` 与受影响 Stage 5 Gate 仍 Pending。
 - [品牌标识规范](branding.md)：标识概念、唯一资产、尺寸、主题、可访问性和生产接入规则。
 - [Apple 风格静态 UI 原型](../prototypes/apple-redesign/index.html)：登录、欢迎、浏览、搜索、查看器与设置页面的浅色/深色和响应式视觉验收基线；不进入生产 import graph。
 - [CR-2026-001 非模态媒体预览](changes/CR-2026-001-non-modal-media-preview.md)：默认预览、固定与双击切换、完整查看器分层的确认记录。

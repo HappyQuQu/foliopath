@@ -10,7 +10,8 @@
 
 ## 1. 结论与优先级
 
-- 状态：产品确认后的生产前端收敛方案
+- 状态：`UIF-S0～S3` 已 Go，`UIF-401～407` 已完成，`UIF-408` 与受影响 Stage 5 Gate
+  重验 Pending
 - 当前优先级：在继续扩展后台任务中心或系统维护功能前，先让现有生产 React 前端与
   [`prototypes/apple-redesign`](../prototypes/apple-redesign/index.html) 在布局、样式、
   交互层级和响应式行为上保持一致。
@@ -93,22 +94,23 @@
 
 | 原型 | 生产目标 | 当前数据来源 | 处理决定 |
 | --- | --- | --- | --- |
-| `01-auth.html` | `/setup/admin`、`/login` | 认证 API | 还原认证卡、Logo、排版和错误状态 |
-| `02-welcome.html` | 空实例默认入口 | 媒体库列表 | 还原欢迎层级；创建媒体库进入真实流程 |
-| `03-browse.html` | `/libraries/:libraryId/browse/:directoryId?` | catalog、library、scan | 重构全局壳、工具栏、目录过滤、网格和预览 |
-| `04-search.html` | `/search`、`/libraries/:libraryId/search` | search API | 移除重复菜单，统一全局搜索和结果命令区 |
-| `05-viewer.html` | `/libraries/:libraryId/media/:assetId` | media API | 对齐黑色查看器、工具栏、导航和信息面板 |
-| `06-settings-libraries.html` | `/settings/libraries` | library、scan API | 使用管理中心壳，保留真实生命周期操作 |
-| `07-settings-general.html` | `/settings/general` | 本地偏好与设置 API | 只负责通用偏好，不再混放扫描与账户 |
-| `08-settings-storage.html` | `/settings/storage` | settings、scan、cache 合同 | 拆为独立页；只接入已有合同支持的操作 |
-| `09-settings-account.html` | `/settings/account` | auth/session 合同 | 独立页；资料/密码功能等待 Backend Ready |
+| `01-auth.html` | `/setup/admin`、`/login` | 认证 API | 已接真实 setup/login；认证卡、Logo、排版和错误状态已对齐 |
+| `02-welcome.html` | 空实例默认入口 | 媒体库列表 | 已接真实空态与创建媒体库流程 |
+| `03-browse.html` | `/libraries/:libraryId/browse/:directoryId?` | catalog、library、scan | 已实现全局壳、服务端目录过滤、自适应网格和唯一预览 |
+| `04-search.html` | `/search`、`/libraries/:libraryId/search` | search API | 已移除重复菜单并复用全局搜索、媒体集合和预览 |
+| `05-viewer.html` | `/libraries/:libraryId/media/:assetId` | media API | 已对齐查看器、工具栏、导航、焦点和信息面板 |
+| `06-settings-libraries.html` | `/settings/libraries` | library、scan API | 已使用管理中心壳并保留真实生命周期操作 |
+| `07-settings-general.html` | `/settings/general` | 本地偏好与设置 API | 已成为独立通用偏好页 |
+| `08-settings-storage.html` | `/settings/storage` | settings、scan、cache 合同 | 已接扫描计划、缓存配额/摘要和安全清理；Post-MVP 操作排除 |
+| `09-settings-account.html` | `/settings/account` | account/password/session 合同 | 已接真实资料、改密、会话和退出 |
 | `10-settings-maintenance.html` | 暂无生产路由 | 尚无合同 | 保留原型，生产阻断 |
 | `11-task-detail.html` | 暂无生产路由 | `FTR-OPS-001` 提案 | 保留原型，按 `OPS-S0～S4` 后端优先 |
 
-## 4. 后端影响与合同缺口
+## 4. 后端影响与已关闭合同缺口
 
 界面还原不等于全部只改前端。当前 OpenAPI 已能支撑现有浏览、搜索、媒体库、扫描和设置主链，
-但讨论中有三类真实新行为需要先补后端合同。
+讨论中识别出的三类真实新行为已经按 S1/S2 后端优先顺序补齐；以下记录实际落点，不能再被
+页面当成待办或以 mock 重做。
 
 ### 4.1 不需要后端调整
 
@@ -123,50 +125,43 @@
 | 扫描周期和缓存配额 | 已有 `GET/PATCH /api/v1/settings` |
 | 预览、查看器、滚动空白和自适应宽度 | 使用现有媒体合同，属于前端布局与生命周期修复 |
 
-### 4.2 必须先调整后端
+### 4.2 已完成的后端调整
 
 #### A. 账户资料与密码
 
-当前认证合同只有 setup、login、session 和 logout，没有修改显示名称或密码的 operation。
-`/settings/account` 要达到完整功能，需要：
+`UIF-S1/S2` 已完成账户资料与密码 operation：
 
 - 接受管理员资料更新合同，至少支持显示名称；
 - 接受修改密码合同，输入当前密码和新密码，服务端完成当前密码验证与 Argon2id 重算；
 - 修改密码后保留当前会话、撤销其他会话；
 - 加入 CSRF、限流、统一错误、幂等/并发语义和不记录秘密的安全测试；
-- OpenAPI、auth service、SQLite adapter、HTTP handler、生成 client 与前端按 Gate 顺序交付。
+- OpenAPI、auth service、SQLite adapter、HTTP handler、生成 client 与前端已按 Gate 顺序交付。
 
-在这组合同 Backend Ready 前，生产账户页只能展示当前会话和真实退出，不能放置假保存或假改密。
+`/settings/account` 已通过真实改名、改密、退出和新密码重登纵向链。
 
 #### B. 当前目录关键字过滤
 
-`GET /api/v1/libraries/{libraryId}/assets` 已支持 `directoryId + recursive + q`，所以媒体文件名过滤
-可复用现有后端；但 `GET /api/v1/libraries/{libraryId}/directories` 当前没有 `q`。
-
-如果只在浏览器里过滤已加载目录，会漏掉后续 cursor 页，不符合“过滤当前目录全部子目录”的
-完整语义。推荐为目录列表增加规范化 `q`：
+资产查询继续复用 `directoryId + recursive + q`；目录列表已经增加规范化 `q`：
 
 - 与 `parentId`、自然排序和 cursor query binding 组合；
 - 只匹配可靠索引中的直接子目录名称，不扫描文件系统；
 - 查询变化使旧 cursor 失败关闭；
 - 离线时继续查询最后可靠目录索引；
-- 更新 OpenAPI、SQLite 查询、集成测试、生成 client 和统一 Browse URL codec。
+- OpenAPI、SQLite 查询、集成测试、生成 client 和统一 Browse URL codec 已同步。
 
-如果产品选择“只过滤当前已加载项”，可以不改后端，但页面必须明确标注该限制；本方案不推荐
-这种降级。
+10k 目录和真实浏览器链证明它不是只过滤客户端已加载页。
 
 #### C. 缓存状态、清理与重建
 
-当前设置合同只有缩略图缓存配额，没有缓存使用量、补齐缺失、清理或全部重建 operation。
-若 `/settings/storage` 要实现原型中的完整缓存操作，需要后端提供：
+本 feature 已实现最小缓存摘要和安全清理：
 
 - 可安全展示的缓存使用量、水位和最近清理摘要；
-- “清理可重建缓存”或等价的有界 operation；
-- 若进入范围，“补齐缺失”和“全部重建”的批次创建、确认、进度、取消、重试和失败语义；
-- 任务重启安全、幂等、资源上限、磁盘安全余量和原始媒体只读证据。
+- “清理可重建缓存”的有界 operation；
+- 清理使用单例 durable 状态，具备幂等、重启恢复、资源上限、磁盘安全余量和原始媒体
+  只读证据。
 
 “补齐缺失 / 全部重建 / 统一任务详情”属于 `FTR-OPS-001`，继续由 `Post-MVP/3` Gate 管理；
-不能为了匹配原型提前塞进 MVP API。MVP 本轮可以先完成扫描计划、扫描状态和缓存配额的独立页面。
+不能为了匹配原型提前塞进 MVP API；当前生产页没有这些假按钮。
 
 ### 4.3 后端仍保持阻断的后续功能
 
@@ -243,7 +238,8 @@ Header、按钮、卡片、菜单或响应式规则。
 3. `/settings/storage` 复用现有扫描周期、缓存配额和扫描状态能力；清理/重建按钮只在已有
    operation 合同存在时启用。
 4. `/settings/account` 先接会话信息和真实退出；资料和密码修改按 `FR-AUTH-005` 先完成
-   OpenAPI、安全评审、后端实现与 Backend Ready，再接前端。
+   OpenAPI、安全评审、后端实现与 Backend Ready，再接前端。该顺序已完成，不能退回
+   feature-local wire 或 mock。
 5. 新建媒体库与扫描详情保留独立可直达页面，并在管理中心导航中保持媒体库或扫描分类选中。
 
 ## 6. 怎么保证一致性
@@ -317,7 +313,7 @@ typecheck、Storybook/a11y、Chromium/Firefox/WebKit、键盘、触摸和四档�
 - 媒体库页视觉还原；
 - 通用、扫描与缓存、账户独立路由；
 - 新建、改名、扫描、取消、重试、移除、设置保存真实流程；
-- 未 Backend Ready 的账户操作保持阻断。
+- 账户、目录 `q` 和 cache cleanup 只在 Backend Ready 后接入真实页面。
 
 出口：每个菜单都是可直达的独立功能页，刷新和前进后退保持当前页。
 

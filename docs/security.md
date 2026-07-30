@@ -223,7 +223,7 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
 
 ## 必需测试
 
-`FTR-UIF-001` 还必须补充以下安全证据：
+`FTR-UIF-001` 已补充并通过以下安全证据：
 
 - 管理员改密验证当前密码、限流、CSRF、`no-store`、请求体上限和统一凭据错误；成功时当前
   session 保留、其他 session 在同一事务语义中撤销，事务失败不得留下半更新状态；
@@ -232,6 +232,12 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
 - 缓存清理只调用 thumbnail/cache owner，只删除 `/app/data` 下可重建派生物；不接受路径，
   盘满、权限失败、重启和重复请求都必须保留配置、索引和原媒体；
 - 合成媒体 sentinel 在账户、目录过滤和缓存清理纵向链前后逐项、逐字节一致。
+
+账户事务、目录索引边界和 cache owner 证据由
+[UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)持有；
+真实浏览器链在只读 `/library` 前后比较全部路径与 SHA-256，见
+[`UIF-403`](evidence/uif-403/README.md)。这不关闭 S5-006B 的物理辅助功能，也不替代最终
+发布镜像、网络拓扑与供应链安全签署。
 
 - `..`、绝对路径、双重 URL 编码、NUL 和符号链接逃逸。
 - Linux 同设备、跨设备与 self-bind 子挂载拒绝，以及 `openat2`/resolve flags

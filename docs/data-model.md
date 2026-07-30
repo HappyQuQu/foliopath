@@ -243,9 +243,9 @@ asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的
 并再次校验。取消会终止恢复，rebuild 或复核失败则应用启动失败关闭，但不得删除 `assets`
 权威索引。
 
-### FTR-UIF-001 数据决定
+### FTR-UIF-001 已实现的数据决定
 
-`UIF-S1` 决定后续使用只追加 `00013` migration，不修改 migration 1～12：
+`UIF-S1` 决定并由 `UIF-S2` 实现只追加 `00013` migration；migration 1～12 未修改：
 
 - `users` 追加 `revision INTEGER NOT NULL DEFAULT 1 CHECK (revision > 0)`。资料更新只推进
   account revision；改密在同一事务推进 account revision 与既有 `auth_version`，并把当前
@@ -260,8 +260,12 @@ asset insert/update/delete trigger 维护 FTS 行，scanner 在资产 upsert 的
   请求秘密、路径或文件列表。
 
 `UIF-104` 的 10k 直接子目录末尾命中实测 P95 为 1.981167ms，查询计划使用 parent-scoped
-browse index；详见 [UIF-001 spike](spikes/uif-001-directory-filter.md)。S2 仍需覆盖 fresh、
-12→13 upgrade、失败回滚、backfill 取消/重启、`integrity_check` 和四核/4 GiB 并发复验。
+browse index；详见 [UIF-001 spike](spikes/uif-001-directory-filter.md)。Fresh、12→13
+upgrade、失败回滚、backfill 取消/重启、`integrity_check`、100k ready cache cleanup 和
+四核/4 GiB 并发复验均已由
+[UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)
+关闭；最新 10k/100k 扫描期并发结果见
+[`UIF-405`](evidence/uif-405/README.md)。
 
 ## 扫描一致性
 

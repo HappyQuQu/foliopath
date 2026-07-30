@@ -283,8 +283,15 @@ flowchart TD
   - 首次 E2E 在产品断言前被 Docker containerd I/O error 阻断；仅清理约 15GiB
     可重建的 ignored Trivy cache 并正常重启 Docker 后，原命令无修改通过。
 
-- [ ] `UIF-407` 同步 PRD、UI、用户流程、API/data/security/testing、traceability、风险和
+- [x] `UIF-407` 同步 PRD、UI、用户流程、API/data/security/testing、traceability、风险和
   发布文档，把计划链接替换为实际证据。
+  - 持续性规范已从“账户/目录 q/cache cleanup 待开发”更新为 migration 13、Backend Ready、
+    generated client 和真实纵向链事实。
+  - 冻结 scope manifest 与 S0～S3 历史 Gate 不倒写；新增只追加的
+    [UIF 当前集成状态](../releases/MVP-2026-07-23-uif-integration-status.md)聚合 UIF-401～407
+    证据和 UIF-408/Stage 5 剩余项。
+  - 审计文件、关闭冲突和 Post-MVP 边界见
+    [`docs/evidence/uif-407`](../evidence/uif-407/README.md)。
 
 - [ ] `UIF-408` 签署 `UIF-S4 Integrated Slice Done` 并重跑受影响 Stage 5 RC Gate。
 

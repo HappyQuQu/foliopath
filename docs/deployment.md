@@ -8,8 +8,9 @@ linux/arm64 本地验证只读容器根、丢弃 capabilities、只读媒体、�
 和 SIGTERM。可信代理边界已通过 `S5-003`；[CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md)
 进一步允许经认证的 LAN HTTP，根 `compose.yaml` 已通过同架构
 smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也已通过。
-原生 amd64/arm64 候选结果、真实升级、代表性设备和其余 Release Gate 尚未完成，当前
-候选仍不可作为稳定版部署。
+原生 amd64/arm64 候选运行、真实升级/回滚与目标容量已经通过；真实 Firefox、物理
+辅助功能、最终不可变 digest、供应链处置和 Release Candidate Gate 尚未完成，当前候选
+仍不可作为稳定版部署。
 候选运行层已更新到固定 digest 的 Debian 13 distroless，Go 构建层固定为 1.26.5；
 这不是安全签署。当前 [S5-007 供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
 仍被 1 Critical / 8 High 阻断。

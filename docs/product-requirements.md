@@ -240,7 +240,11 @@ AI 语义搜索、人脸识别。
 
 范围包括全局 Header、共享页面壳、四个独立管理页、当前目录全量关键字过滤、账户维护、
 最小缓存摘要/清理和阻断式视觉回归。任务中心、缓存 missing/all rebuild、系统维护、备份、
-AI/OCR/人脸仍不进入本 feature。实施必须按 `UIF-S0～S4` 后端优先 Gate 交付。
+AI/OCR/人脸仍不进入本 feature。`UIF-S0～S3` 已 Go，`UIF-401～407` 已完成逐页比较、
+Linux 视觉基线、真实纵向链、浏览器/可访问性、100k/10k 容量、完整仓库验证与文档收敛；
+实际证据见[开发清单](features/frontend-prototype-fidelity-task-list.md)和
+[当前集成状态](releases/MVP-2026-07-23-uif-integration-status.md)。`UIF-408` 与受影响
+Stage 5 Gate 重验完成前，仍不能称该 feature 或 MVP 已发布。
 
 ## MVP 验收标准
 

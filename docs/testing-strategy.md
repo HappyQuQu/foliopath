@@ -279,8 +279,8 @@ ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补
 `web/qa/visual-reference-manifest.json`：12 个生产页面必须映射到原型、生产路由、状态与
 确定性 Storybook/component/E2E fixture；`npm run check:visual-references` 已进入前端总检查。
 S3 同时通过双语双主题四档、键盘/触摸、axe、forced-colors/reduced-motion、六种浏览器/
-输入 profile 与三引擎 100k 虚拟化预算。逐页三图 comparison 和扩大 Linux 基线仍由 S4
-阻断，S3 不能替代。
+输入 profile 与三引擎 100k 虚拟化预算。它只授权进入 Integrated Slice；后续逐页 comparison、
+Linux 基线、真实纵向链和候选复验由 UIF-401～406 分别完成，不能倒写为 S3 当时已经完成。
 
 `UIF-401` 已把该 manifest 的 12 个页面在同一 `1280 × 720` CSS 视口、简体中文、深色主题
 下渲染为原型截图、真实生产路由截图和逐页组合比较；证据与比较历史保存在
@@ -298,10 +298,19 @@ Viewer、扫描与缓存设置、真实 cache cleanup、logout/login 和安全�
 Chromium 结果为 `6 passed / 3 applicable skips`。步骤和只读证据见
 [`docs/evidence/uif-403`](evidence/uif-403/README.md)。
 
+`UIF-404` 复验 Chromium/Firefox/WebKit、axe、键盘、Pixel 5 touch、Chrome forced-colors
+与 reduced-motion，并明确真实读屏、缩放、OS 高对比和物理设备仍归 S5-006B；
+`UIF-405` 在最新共享集合上复验三引擎 100k 滚动/DOM/FPS/RSS，以及 10k 目录/100k 文件
+扫描期 2,353 次浏览和搜索并发；`UIF-406` 又原样运行 fmt、architecture、generation、
+lint、unit、integration 和生产容器 E2E 七项完整仓库验证。证据分别见
+[`UIF-404`](evidence/uif-404/README.md)、[`UIF-405`](evidence/uif-405/README.md)和
+[`UIF-406`](evidence/uif-406/README.md)。
+
 `UIF-S1` 已增加可重复的
 [10k 直接子目录过滤 spike](spikes/uif-001-directory-filter.md)：查询先使用 parent-scoped
 browse index，再执行 capability-derived Unicode 搜索键上的 literal `instr`；常规测试以
-100ms P95 为跨环境护栏，S2 目标容量仍需复验扫描并发、RSS 与 SQLite busy。
+100ms P95 为跨环境护栏。S2 已关闭 Backend Ready；UIF-405 又在完整 10k/100k 档复验
+扫描期间浏览/搜索并发、数据库大小和零预算违规。
 
 ### 容器与发布测试
 

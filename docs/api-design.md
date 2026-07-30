@@ -4,9 +4,11 @@
 
 [`api/openapi.yaml`](../api/openapi.yaml) 已建立，并且是请求、响应、状态码、认证边界和生成
 类型的权威结构化事实来源。本文保留设计动机、资源边界与人类可读语义；与 OpenAPI 冲突时
-必须先停止实现并修复契约或本文，不能让 handler 成为第三个事实来源。Go/HTTP 运行骨架已经
-可启动，但当前仍没有认证或其他业务 handler；仓库已有确定性生成的 TypeScript 类型和唯一
-Web API client 基础，但它们只是消费者契约边界。因此“认证 Contract Ready”不等于认证 API 已实现。
+必须先停止实现并修复契约或本文，不能让 handler 成为第三个事实来源。Go/HTTP composition
+现已实现认证、账户、媒体库、扫描、目录/媒体 catalog、搜索、设置、缓存摘要/清理和媒体内容
+handler；React 只通过确定性生成的 TypeScript client 与手写领域 adapter 消费这些合同。
+Contract Ready、Backend Evidence Ready 和 Consumer/UI Ready 仍是不同 Gate，本文不以
+handler 存在替代对应证据。
 
 用户已于 2026-07-23 确认[需求确认清单](requirements-checklist.md)中的全部 A 方案。
 单管理员认证、三种搜索范围、格式矩阵、默认排序、扫描取消、不可修改媒体库根路径、分页
@@ -419,10 +421,10 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
 - 游标格式错误返回稳定的 `invalid_cursor`，不能回退到第一页造成重复列表。
 - 索引在翻页期间变化时允许最终一致，但不能因为只按非唯一字段排序而永久漏项或死循环。
 
-## FTR-UIF-001 Contract Ready
+## FTR-UIF-001 已接受并实现的合同
 
-[FTR-UIF-001](features/frontend-prototype-fidelity.md)的 `UIF-S1` 已冻结下列 wire；精确结构以
-`api/openapi.yaml` 为权威：
+[FTR-UIF-001](features/frontend-prototype-fidelity.md)的 `UIF-S1` 已冻结、`UIF-S2` 已实现
+并验证下列 wire；精确结构继续以 `api/openapi.yaml` 为权威：
 
 1. `GET/PATCH /api/v1/account` 读取和修改显示名称。Account 使用独立单调 revision 和强
    ETag；PATCH 要求 `If-Match` 与 CSRF，用户名不可修改，无变化提交不推进 revision。
@@ -439,7 +441,9 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
    补齐、重建、取消、保留历史或暴露逐资产任务。
 
 账户与 cache 响应使用 `no-store`；新增 wire 没有扩大已有全局 ErrorCode enum，字段校验复用
-`validation_failed`，并已通过对变更前权威 OpenAPI 的 `oasdiff --fail-on WARN`。
+`validation_failed`，并已通过对变更前权威 OpenAPI 的 `oasdiff --fail-on WARN`。生成 client
+已被四个独立管理页和 Browse 真实消费；账户改名/改密、目录 `q`、cache cleanup 与重新登录
+的同一容器证据见 [`UIF-403`](evidence/uif-403/README.md)。
 
 ## 安全与隐私
 
@@ -462,11 +466,10 @@ OpenAPI 第一版已经固定：
 6. 原媒体支持完整响应或单一 Range，以及 `200`、`206`、`304`、`416`；多段、畸形和
    不可满足 Range 都返回 `416`。
 
-认证 HTTP/数据契约已在 `S1-101` 固定。仍需在后续实现任务固定并验证的内部参数包括：
-密码哈希算法与成本、会话绝对期限、
-登录限流阈值、可信代理清单、轮询退避曲线、自然排序键、游标签名密钥轮换和缓存安全余量。
-这些参数不得改变已固定 wire 行为；若必须改变外部契约，先更新 OpenAPI、契约测试和受影响
-Gate，再实现 handler。生产 handler 与生成客户端不得反向改写本说明。
+认证 HTTP/数据契约已在 `S1-101` 固定。密码哈希与成本、会话期限、登录限流、可信代理、
+轮询退避、自然排序、游标签名和缓存安全余量均已有对应 capability owner 与实现测试；
+它们仍是不得静默改变 wire 行为的内部策略。若必须改变外部契约，先更新 OpenAPI、契约测试
+和受影响 Gate，再实现 handler。生产 handler 与生成客户端不得反向改写本说明。
 
 媒体库 HTTP/数据契约已在
 [S2-001 Contract Ready](gates/MVP-2026-07-23/s2-library-contract-ready.md)完成切片评审：
