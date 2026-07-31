@@ -17,6 +17,7 @@ export {
   type InlineStatusTone,
 } from "./InlineStatus/InlineStatus";
 export { LocaleSelect } from "./LocaleSelect/LocaleSelect";
+export { LocaleToggle } from "./LocaleToggle/LocaleToggle";
 export { PanelResizer } from "./PanelResizer/PanelResizer";
 export { SearchInput, type SearchInputProps } from "./SearchInput/SearchInput";
 export { Switch, type SwitchProps } from "./Switch/Switch";

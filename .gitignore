@@ -29,6 +29,7 @@ coverage.out
 
 # Runtime state
 /data/
+/library/
 foliopath-data/
 *.db
 *.db-shm

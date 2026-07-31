@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
 
@@ -40,6 +41,7 @@ func TestSettingsRoutesGetAndDisableSchedule(t *testing.T) {
 		ScheduledScanIntervalHours: &hours,
 		AutomaticDiscoveryEnabled:  true,
 		ThumbnailCacheQuotaBytes:   10_737_418_240,
+		ResourceProfile:            resourcecontrol.ProfileBalanced,
 		Language:                   "browser",
 		Revision:                   1,
 		UpdatedAtMS:                1_000,
@@ -65,6 +67,29 @@ func TestSettingsRoutesGetAndDisableSchedule(t *testing.T) {
 		!service.update.SetSchedule ||
 		service.update.ScheduledScanIntervalHours != nil {
 		t.Fatalf("disable schedule = %d %q %#v %s", response.Code, response.Header().Get("ETag"), service.update, response.Body.String())
+	}
+}
+
+func TestSettingsRoutesUpdateResourceProfile(t *testing.T) {
+	service := &settingsServiceStub{values: appsettings.Values{
+		ResourceProfile: resourcecontrol.ProfileBalanced,
+		Revision:        1,
+	}}
+	mux := http.NewServeMux()
+	registerSettingsRoutes(mux, service)
+	request := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/settings",
+		strings.NewReader(`{"resourceProfile":"eco"}`),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("If-Match", `"settings-r1"`)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK ||
+		service.update.ResourceProfile == nil ||
+		*service.update.ResourceProfile != resourcecontrol.ProfileEco {
+		t.Fatalf("resource profile update = %d %#v", response.Code, service.update)
 	}
 }
 

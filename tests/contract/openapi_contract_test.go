@@ -71,9 +71,9 @@ func TestOpenAPIDeclaresRepositoryLicenseAndFrozenBaseline(t *testing.T) {
 	for _, required := range []string{
 		"name: AGPL-3.0-or-later",
 		"status: authoritative",
-		"targetVersion: MVP-2026-07-23",
+		"targetVersion: POST-MVP-1",
 		"scopeRevision: 4",
-		"baselineEvent: CR-2026-009",
+		"baselineEvent: CR-2026-012",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("OpenAPI metadata is missing %q", required)

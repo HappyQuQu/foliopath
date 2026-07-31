@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 
+import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { ToastProvider } from "../../ui/Toast/ToastProvider";
 import { AppShell } from "./AppShell";
@@ -178,6 +179,57 @@ it("switches theme directly beside the global account menu", async () => {
     screen.getByRole("button", { name: "切换到浅色主题" }),
   ).toBeVisible();
   expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+});
+
+it("switches language directly in the global header", async () => {
+  const user = userEvent.setup();
+  window.localStorage.setItem(
+    "foliopath.preferences.v1",
+    '{"locale":"zh-CN"}',
+  );
+
+  render(
+    <LocaleProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <MemoryRouter>
+            <AppShell
+              active="browse"
+              homeHref="/"
+              identity="管理员"
+              searchHref="/search"
+              settingsHref="/settings/general"
+              title="浏览"
+            >
+              <h1>内容</h1>
+            </AppShell>
+          </MemoryRouter>
+        </ToastProvider>
+      </ThemeProvider>
+    </LocaleProvider>,
+  );
+
+  const languageToggle = screen.getByRole("button", {
+    name: "切换到 English",
+  });
+  const themeToggle = screen.getByRole("button", {
+    name: "切换到深色主题",
+  });
+  const account = screen.getByRole("button", { name: "管理员的账户菜单" });
+
+  expect(languageToggle.compareDocumentPosition(themeToggle)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(themeToggle.compareDocumentPosition(account)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+
+  await user.click(languageToggle);
+
+  expect(document.documentElement).toHaveAttribute("lang", "en");
+  expect(
+    screen.getByRole("button", { name: "Switch to 简体中文" }),
+  ).toBeVisible();
 });
 
 it("uses the fixed redesign sidebar without a resize control", () => {

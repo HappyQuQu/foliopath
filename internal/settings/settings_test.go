@@ -3,6 +3,8 @@ package settings
 import (
 	"context"
 	"testing"
+
+	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 )
 
 type repositoryStub struct{ values Values }
@@ -21,32 +23,52 @@ type wakerStub struct{ count int }
 
 func (stub *wakerStub) Wake() { stub.count++ }
 
+type resourceApplierStub struct {
+	count   int
+	profile resourcecontrol.Profile
+}
+
+func (stub *resourceApplierStub) ApplyResourceProfile(profile resourcecontrol.Profile) error {
+	stub.count++
+	stub.profile = profile
+	return nil
+}
+
 func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	hours := int64(24)
 	repository := &repositoryStub{values: Values{
 		ScheduledScanIntervalHours: &hours,
 		ThumbnailCacheQuotaBytes:   10,
+		ResourceProfile:            resourcecontrol.ProfileBalanced,
 		Language:                   "browser",
 		Revision:                   1,
 	}}
 	scheduleWaker := &wakerStub{}
 	discoveryWaker := &wakerStub{}
 	cacheWaker := &wakerStub{}
-	service, err := NewService(repository, scheduleWaker, discoveryWaker, cacheWaker, FieldValidators{
-		Schedule: func(value *int64) error {
-			if value != nil && *value < 1 {
-				return ErrInvalid
-			}
-			return nil
+	resourceApplier := &resourceApplierStub{}
+	service, err := NewService(
+		repository,
+		scheduleWaker,
+		discoveryWaker,
+		cacheWaker,
+		resourceApplier,
+		FieldValidators{
+			Schedule: func(value *int64) error {
+				if value != nil && *value < 1 {
+					return ErrInvalid
+				}
+				return nil
+			},
+			CacheQuota: func(value int64) error {
+				if value < 1 {
+					return ErrInvalid
+				}
+				return nil
+			},
+			Language: ValidateLanguage,
 		},
-		CacheQuota: func(value int64) error {
-			if value < 1 {
-				return ErrInvalid
-			}
-			return nil
-		},
-		Language: ValidateLanguage,
-	})
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +98,16 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	if discoveryWaker.count != 1 {
 		t.Fatalf("discovery wakes = %d, want 1", discoveryWaker.count)
 	}
-	disabled, err := service.Update(context.Background(), 4, Update{SetSchedule: true})
+	profile := resourcecontrol.ProfileEco
+	if _, err := service.Update(context.Background(), 4, Update{
+		ResourceProfile: &profile,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if resourceApplier.count != 1 || resourceApplier.profile != profile {
+		t.Fatalf("resource apply = count %d profile %q", resourceApplier.count, resourceApplier.profile)
+	}
+	disabled, err := service.Update(context.Background(), 5, Update{SetSchedule: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +115,7 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 		t.Fatalf("disabled settings = %#v, wakes %d", disabled, scheduleWaker.count)
 	}
 	invalid := int64(0)
-	if _, err := service.Update(context.Background(), 5, Update{
+	if _, err := service.Update(context.Background(), 6, Update{
 		SetSchedule: true, ScheduledScanIntervalHours: &invalid,
 	}); err != ErrInvalid {
 		t.Fatalf("invalid interval error = %v", err)

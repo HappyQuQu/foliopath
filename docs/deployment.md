@@ -62,23 +62,33 @@ docker pull --platform linux/arm64 evanqu/foliopath:VERSION
 
 ## 候选 Compose
 
-权威候选配置是仓库根 [`compose.yaml`](../compose.yaml)，参数清单见
-根 [`.env.example`](../.env.example)。复制为 `.env` 后必须填写：
+权威候选配置是仓库根 [`compose.yaml`](../compose.yaml)。它提供可直接启动的默认值，
+不要求 `.env`：默认使用官方 `latest` 镜像、仓库相对的 `./library` 和
+`./data`，监听所有 IPv4 接口的 `8080` 端口。缺失的宿主目录由 Docker 自动创建，
+随后可直接运行 `docker compose up -d`。
+
+需要把媒体、数据或端口放在其他位置时，可以直接编辑 `compose.yaml`，也可以复制
+根 [`.env.example`](../.env.example) 为可选的 `.env`，使用以下覆盖项：
 
 - `FOLIOPATH_IMAGE`：明确版本或 digest；不得使用会静默漂移的 `latest`；
 - `FOLIOPATH_LIBRARY_PATH`：宿主机唯一媒体呈现根；
 - `FOLIOPATH_DATA_PATH`：宿主机本地、由 UID/GID `65532:65532` 可写的数据目录；
 - `FOLIOPATH_BIND_ADDRESS`：宿主端口绑定地址，默认 `0.0.0.0` 供受信局域网访问；
-- `FOLIOPATH_PORT`：宿主端口，默认 `8080`。
+- `FOLIOPATH_PORT`：宿主端口，默认 `8080`；
+- `TZ`：容器时区，默认 `UTC`，例如可改为 `Asia/Shanghai`。
+
+镜像自身已固定容器内监听地址 `0.0.0.0:8080`。普通 Compose 部署只需映射端口，
+不需要暴露或设置 `FOLIOPATH_LISTEN`。
 
 官方多架构镜像发布在 `evanqu/foliopath`。README 快速开始使用 `latest`；需要可控升级时，
-请在 `.env` 中改为明确版本或 digest。需要验证当前源码时，也可以本地构建：
+请在 Compose 或可选 `.env` 中改为明确版本或 digest。需要验证当前源码时，也可以本地构建：
 
 ```sh
 docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 ```
 
-并把 `.env` 中的 `FOLIOPATH_IMAGE` 设为 `foliopath:stage5-local` 后运行
+并把 Compose 中的镜像改为 `foliopath:stage5-local`，或在可选 `.env` 中将
+`FOLIOPATH_IMAGE` 设为该值，然后运行
 `docker compose up -d`。Compose 默认将宿主端口发布到所有 IPv4 接口，以
 UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
 `/tmp` tmpfs 启动。镜像内 healthcheck 已由候选 smoke 验证。
@@ -90,7 +100,7 @@ UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privile
 
 ```text
 宿主机 /mnt/photos       →  容器 /library   只读允许边界
-宿主机 ./foliopath-data →  容器 /app/data  可写持久数据
+宿主机 ./data           →  容器 /app/data  可写持久数据
 ```
 
 Web 设置只能从 `/library` 中选择媒体库。例如，`/mnt/photos` 中存在 `family`、
@@ -107,7 +117,7 @@ mount point。下面这种拼装方式**不受支持且会被拒绝**：
 volumes:
   - /volume1/family:/library/family:ro
   - /volume2/work:/library/work:ro
-  - ./foliopath-data:/app/data
+  - ./data:/app/data
 ```
 
 若媒体分布在多个独立宿主机卷，部署者必须先在宿主机侧把它们提供为一个、对容器
@@ -116,7 +126,7 @@ volumes:
 ```yaml
 volumes:
   - /host/media-presentation:/library:ro
-  - ./foliopath-data:/app/data
+  - ./data:/app/data
 ```
 
 FolioPath 不选择、配置或承诺具体 union、聚合文件系统或 NAS 技术；部署者需要验证
@@ -215,8 +225,8 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 
 ## 网络、反向代理与认证
 
-- 应用二进制默认监听 `127.0.0.1:8080`，根 Compose 在容器内设置为
-  `0.0.0.0:8080`。可通过 `FOLIOPATH_LISTEN` 或
+- 应用二进制默认监听 `127.0.0.1:8080`，正式容器镜像默认设置为
+  `0.0.0.0:8080`。高级部署可通过 `FOLIOPATH_LISTEN` 或
   `--listen=<IP>:<PORT>` 设置，参数优先于环境变量；两者都只接受一个数值 IP 与
   `1～65535` 端口。
 - `/library` 与 `/app/data` 是固定容器边界，不提供改写它们的环境变量或参数。媒体库在
@@ -255,7 +265,7 @@ HTTP 并进入 ready。数据目录不可用、数据库打不开或 migration �
 
 1. 在 `compose.yaml` 所在目录运行 `docker compose stop foliopath`。
 2. 用 `docker compose ps --status running --quiet foliopath` 确认没有运行中的应用容器。
-3. 从 `.env` 确认 `FOLIOPATH_DATA_PATH` 的精确宿主路径，归档该目录的全部内容；最安全的
+3. 从 Compose 或可选 `.env` 确认数据目录的精确宿主路径，归档该目录的全部内容；最安全的
    默认是包含 `foliopath.db`、可能存在的 `-wal`/`-shm`、`cache/` 和 `tmp/`。
 4. 把归档复制到不与活动数据共盘的受保护位置，记录当前镜像版本/digest，并验证归档可读。
 5. 运行 `docker compose start foliopath`，等待 `docker compose ps` 显示 healthy。
@@ -286,7 +296,8 @@ Stage 5 候选 smoke 已在应用停止后归档完整 SQLite family，并有意
 
 恢复目标必须由容器内 UID/GID `65532:65532` 读写。rootless Docker 或启用 user namespace
 remapping 时，宿主机实际 ID 可能不同，应以该运行时的映射为准，不能机械执行全局
-`chown -R`。先在新目录演练并验证成功，再切换 `.env` 的 `FOLIOPATH_DATA_PATH`；不要解包
+`chown -R`。先在新目录演练并验证成功，再切换 Compose 数据目录或可选 `.env` 的
+`FOLIOPATH_DATA_PATH`；不要解包
 覆盖唯一活动副本。
 
 候选镜像的自动恢复演练已经建立并在本机 linux/arm64 通过；原生 linux/arm64 与

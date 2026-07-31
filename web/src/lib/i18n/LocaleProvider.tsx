@@ -83,6 +83,15 @@ const zhCN = {
   "cache.pageDescription":
     "管理扫描计划和可重建派生缓存；失败不会清理最后可靠索引。",
   "cache.quota": "缓存配额",
+  "cache.resourceProfile": "NAS 资源模式",
+  "cache.resourceProfileDescription":
+    "限制扫描、媒体处理和原图读取的并发。调低后不会中断正在处理的任务。",
+  "cache.resourceProfile.eco": "NAS 友好",
+  "cache.resourceProfile.ecoDescription": "后台 1 路、原图与视频读取最多 4 路。",
+  "cache.resourceProfile.balanced": "均衡",
+  "cache.resourceProfile.balancedDescription": "后台 2 路、原图与视频读取最多 8 路。",
+  "cache.resourceProfile.performance": "性能",
+  "cache.resourceProfile.performanceDescription": "后台 4 路、原图与视频读取最多 16 路。",
   "cache.scanSchedule": "扫描计划",
   "cache.scanTasks": "媒体库扫描状态",
   "cache.noLibraries": "尚未添加媒体库。请先在“媒体库”页面创建一个。",
@@ -464,6 +473,8 @@ const zhCN = {
   "shell.primaryNavigation": "主导航",
   "shell.search": "搜索",
   "shell.settings": "设置",
+  "locale.toEnglish": "切换到 English",
+  "locale.toChinese": "切换到简体中文",
   "theme.toDark": "切换到深色主题",
   "theme.toLight": "切换到浅色主题",
   "viewer.close": "关闭",
@@ -609,6 +620,17 @@ const en: Record<MessageKey, string> = {
   "cache.pageDescription":
     "Manage scan scheduling and reconstructible derived cache. Failures preserve the last reliable index.",
   "cache.quota": "Cache quota",
+  "cache.resourceProfile": "NAS resource mode",
+  "cache.resourceProfileDescription":
+    "Limits concurrent scanning, media processing, and original reads. Lowering it does not interrupt active work.",
+  "cache.resourceProfile.eco": "NAS friendly",
+  "cache.resourceProfile.ecoDescription": "1 background operation and up to 4 original or video reads.",
+  "cache.resourceProfile.balanced": "Balanced",
+  "cache.resourceProfile.balancedDescription":
+    "2 background operations and up to 8 original or video reads.",
+  "cache.resourceProfile.performance": "Performance",
+  "cache.resourceProfile.performanceDescription":
+    "4 background operations and up to 16 original or video reads.",
   "cache.scanSchedule": "Scan schedule",
   "cache.scanTasks": "Library scan status",
   "cache.noLibraries":
@@ -1042,6 +1064,8 @@ const en: Record<MessageKey, string> = {
   "shell.primaryNavigation": "Primary navigation",
   "shell.search": "Search",
   "shell.settings": "Settings",
+  "locale.toEnglish": "Switch to English",
+  "locale.toChinese": "Switch to 简体中文",
   "theme.toDark": "Switch to dark theme",
   "theme.toLight": "Switch to light theme",
   "viewer.close": "Close",

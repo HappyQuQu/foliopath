@@ -93,7 +93,7 @@ func TestOriginalMediaContentBoundaryIsCanonical(t *testing.T) {
 			path: compositionPath,
 			contents: []string{
 				"media.NewContentService(database, directorySource)",
-				"Content:        contentService",
+				"Content:          contentService",
 			},
 		},
 	} {
@@ -196,7 +196,7 @@ func TestAuthenticationHTTPBoundaryIsCentralizedAndFailClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(appRunSource), "Authentication: authentication") {
+	if !strings.Contains(string(appRunSource), "Authentication:   authentication") {
 		t.Error("composition root does not wire the canonical authentication service into HTTP")
 	}
 	if strings.Contains(string(appRunSource), "denySystemStatus") {
@@ -275,7 +275,7 @@ func TestLibraryPathFilesystemBoundaryIsCentralized(t *testing.T) {
 			path: appPath,
 			content: []string{
 				"newMediaRootService(configuration.mediaRoot)",
-				"LibraryPaths:   libraryPaths",
+				"LibraryPaths:     libraryPaths",
 			},
 		},
 	} {
@@ -774,9 +774,9 @@ func TestScanHTTPQueriesUseCapabilityAndGeneratedClientBoundary(t *testing.T) {
 			path: filepath.Join(root, "internal", "app", "run.go"),
 			contents: []string{
 				"scanner.NewQueryService(database, nil)",
-				"Scans:          scanQueries",
+				"Scans:            scanQueries",
 				"scanner.NewScheduler(",
-				"Settings:       settingsService",
+				"Settings:         settingsService",
 			},
 		},
 		{
@@ -1186,7 +1186,7 @@ func TestThumbnailHTTPUsesCanonicalDeliveryBoundary(t *testing.T) {
 			relative: "internal/app/run.go",
 			contents: []string{
 				"thumbnail.NewDeliveryService(",
-				"Thumbnails:     thumbnailDelivery",
+				"Thumbnails:       thumbnailDelivery",
 			},
 		},
 	} {

@@ -209,7 +209,7 @@ func TestComposeOwnsValidatedConfiguration(t *testing.T) {
 	for _, candidate := range application.components {
 		componentNames = append(componentNames, candidate.name)
 	}
-	if got, want := strings.Join(componentNames, ","), "database,media-root,image-runtime,media-worker,scan-worker,automatic-discovery,library-removal-worker,http,readiness"; got != want {
+	if got, want := strings.Join(componentNames, ","), "database,resource-profile,media-root,image-runtime,media-worker,scan-worker,automatic-discovery,library-removal-worker,http,readiness"; got != want {
 		t.Fatalf("composed components = %q, want %q", got, want)
 	}
 

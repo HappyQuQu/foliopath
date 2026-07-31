@@ -18,6 +18,7 @@
 - [CR-2026-009：生产前端原型一致性](CR-2026-009-frontend-prototype-fidelity.md)
 - [CR-2026-010：AVI 与文件大小排序](CR-2026-010-avi-and-size-sort.md)
 - [CR-2026-011：目录媒体计数](CR-2026-011-directory-media-counts.md)
+- [CR-2026-012：NAS 资源模式](CR-2026-012-nas-resource-profiles.md)
 
 ### Post-MVP 与未来提案
 
@@ -47,8 +48,11 @@
 ### 2026-07-31
 
 - [AVI 解封装与失败任务重试](FIX-2026-07-31-avi-demuxer.md)
+- [双语 README](FIX-2026-07-31-bilingual-readme.md)
+- [Compose 无 `.env` 快速部署](FIX-2026-07-31-compose-without-env.md)
 - [Docker Hub 双架构自动发布](FIX-2026-07-31-dockerhub-publish.md)
 - [关闭自动 CI，改为本地验证](FIX-2026-07-31-local-verification.md)
+- [Header 快速语言切换](FIX-2026-07-31-header-locale-toggle.md)
 - [Header 快速主题切换](FIX-2026-07-31-header-theme-toggle.md)
 - [媒体库列表自适应宽度](FIX-2026-07-31-library-list-fluid-width.md)
 - [管理页按钮前景色](FIX-2026-07-31-management-button-contrast.md)

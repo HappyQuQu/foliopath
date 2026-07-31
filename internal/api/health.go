@@ -39,19 +39,20 @@ type SupportedMedia struct {
 }
 
 type RouteDependencies struct {
-	Readiness      func() Readiness
-	Authentication AuthenticationService
-	Account        AccountService
-	Cache          CacheService
-	SystemStatus   func(context.Context) (SystemStatus, error)
-	LibraryPaths   LibraryPathService
-	Libraries      LibraryLifecycleService
-	ScanAdmission  ScanAdmissionService
-	Scans          ScanQueryService
-	Settings       SettingsService
-	Catalog        CatalogService
-	Thumbnails     ThumbnailService
-	Content        ContentService
+	Readiness        func() Readiness
+	Authentication   AuthenticationService
+	Account          AccountService
+	Cache            CacheService
+	SystemStatus     func(context.Context) (SystemStatus, error)
+	LibraryPaths     LibraryPathService
+	Libraries        LibraryLifecycleService
+	ScanAdmission    ScanAdmissionService
+	Scans            ScanQueryService
+	Settings         SettingsService
+	Catalog          CatalogService
+	Thumbnails       ThumbnailService
+	Content          ContentService
+	ContentAdmission ContentAdmission
 }
 
 type SettingsService interface {
@@ -99,7 +100,7 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		registerThumbnailRoute(mux, dependencies.Thumbnails)
 	}
 	if dependencies.Content != nil {
-		registerContentRoutes(mux, dependencies.Content)
+		registerContentRoutes(mux, dependencies.Content, dependencies.ContentAdmission)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

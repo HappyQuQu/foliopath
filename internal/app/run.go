@@ -19,6 +19,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/media/imagevips"
 	"github.com/HappyQuQu/foliopath/internal/media/videoffmpeg"
+	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
@@ -126,6 +127,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	reconcileSignal := jobs.NewSignal()
 	mediaSignal := jobs.NewSignal()
 	cacheSignal := jobs.NewSignal()
+	resourceController, err := resourcecontrol.NewController(resourcecontrol.ProfileEco)
+	if err != nil {
+		return nil, fmt.Errorf("construct resource controller: %w", err)
+	}
 	scanAdmission, err := scanner.NewAdmissionService(database, scanSignal)
 	if err != nil {
 		return nil, fmt.Errorf("construct scan admission service: %w", err)
@@ -139,6 +144,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		scheduleSignal,
 		discoveryConfigSignal,
 		cacheSignal,
+		resourceController,
 		appsettings.FieldValidators{
 			Schedule:   scanner.ValidateScheduledScanInterval,
 			CacheQuota: thumbnail.ValidateCacheQuota,
@@ -147,6 +153,13 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	)
 	if err != nil {
 		return nil, fmt.Errorf("construct settings service: %w", err)
+	}
+	resourceProfileComponent, err := newResourceProfileComponent(
+		settingsService,
+		resourceController,
+	)
+	if err != nil {
+		return nil, err
 	}
 	catalogService, err := catalog.NewService(database, nil)
 	if err != nil {
@@ -171,9 +184,13 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct scan processor: %w", err)
 	}
+	limitedScanProcessor, err := resourcecontrol.LimitBackground(resourceController, scanProcessor)
+	if err != nil {
+		return nil, fmt.Errorf("limit scan processor: %w", err)
+	}
 	scanWorker, err := jobs.NewWorkerPool(
 		scanJobQueue{database: database},
-		scanProcessor,
+		limitedScanProcessor,
 		scanSignal,
 		jobs.WorkerOptions{},
 	)
@@ -226,9 +243,16 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 			err,
 		)
 	}
+	limitedReconcileProcessor, err := resourcecontrol.LimitBackground(
+		resourceController,
+		reconcileProcessor,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("limit automatic discovery processor: %w", err)
+	}
 	reconcileWorker, err := jobs.NewWorkerPool(
 		reconcileJobQueue{database: database},
-		reconcileProcessor,
+		limitedReconcileProcessor,
 		reconcileSignal,
 		jobs.WorkerOptions{Workers: scanner.MaxConcurrentReconciles},
 	)
@@ -304,9 +328,16 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct claimed media processor: %w", err)
 	}
+	limitedMediaProcessor, err := resourcecontrol.LimitBackground(
+		resourceController,
+		mediaProcessor,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("limit media processor: %w", err)
+	}
 	mediaWorker, err := jobs.NewWorkerPool(
 		mediaJobQueue{database: database},
-		mediaProcessor,
+		limitedMediaProcessor,
 		mediaSignal,
 		jobs.WorkerOptions{Workers: thumbnail.MediaWorkerCount},
 	)
@@ -330,19 +361,20 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct library lifecycle service: %w", err)
 	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
-		Readiness:      readiness.snapshot,
-		Authentication: authentication,
-		Account:        authentication,
-		Cache:          cacheManager,
-		SystemStatus:   systemStatusProvider(input.Version, readiness, authentication),
-		LibraryPaths:   libraryPaths,
-		Libraries:      libraries,
-		ScanAdmission:  scanAdmission,
-		Scans:          scanQueries,
-		Settings:       settingsService,
-		Catalog:        catalogService,
-		Thumbnails:     thumbnailDelivery,
-		Content:        contentService,
+		Readiness:        readiness.snapshot,
+		Authentication:   authentication,
+		Account:          authentication,
+		Cache:            cacheManager,
+		SystemStatus:     systemStatusProvider(input.Version, readiness, authentication),
+		LibraryPaths:     libraryPaths,
+		Libraries:        libraries,
+		ScanAdmission:    scanAdmission,
+		Scans:            scanQueries,
+		Settings:         settingsService,
+		Catalog:          catalogService,
+		Thumbnails:       thumbnailDelivery,
+		Content:          contentService,
+		ContentAdmission: resourceController,
 	})
 	if err != nil {
 		return nil, err
@@ -362,6 +394,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	application, err := newApplication(
 		[]component{
 			databaseComponent,
+			resourceProfileComponent,
 			mediaRootComponent,
 			imageRuntimeComponent,
 			mediaComponent,

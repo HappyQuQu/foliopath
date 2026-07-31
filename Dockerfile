@@ -333,7 +333,9 @@ LABEL org.opencontainers.image.title="FolioPath" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.description="Stage 5 release candidate; not a stable release"
 COPY --from=runtime-assemble /rootfs/ /
-ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib
+ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib \
+    FOLIOPATH_LISTEN=0.0.0.0:8080 \
+    TZ=UTC
 USER 65532:65532
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \

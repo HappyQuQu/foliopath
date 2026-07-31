@@ -1,15 +1,19 @@
 # FolioPath
 
 <p align="center">
-  <img src="web/public/foliopath-mark-tree.svg" alt="FolioPath 标志" width="96">
+  <a href="README.zh-CN.md">简体中文</a> · <strong>English</strong>
 </p>
 
 <p align="center">
-  <strong>📚 为套图浏览而生的只读、自托管媒体浏览器</strong>
+  <img src="web/public/foliopath-mark-tree.svg" alt="FolioPath logo" width="96">
 </p>
 
 <p align="center">
-  不导入，不重组。沿着现有文件夹，自由浏览整套照片和视频。
+  <strong>📚 A read-only, self-hosted media browser built for browsing photo sets</strong>
+</p>
+
+<p align="center">
+  No imports. No reorganization. Browse complete photo and video sets through the folders you already have.
 </p>
 
 <p align="center">
@@ -18,104 +22,119 @@
   <img alt="Platforms: Linux amd64 and arm64" src="https://img.shields.io/badge/platform-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey.svg">
 </p>
 
-FolioPath 适合已经按**作品、旅行、活动、人物或日期**整理好文件夹的人。它直接读取原有
-目录，把一个文件夹及其子目录当作完整套图来浏览，不要求重新上传、建立相册或改变归档方式。
+FolioPath is for people who already organize folders by **project, trip, event, person, or date**.
+It reads the existing directory tree and lets you browse a folder and all its descendants as one
+complete set—without re-uploading files, creating albums, or changing your archive.
 
-## 🖼️ 界面预览
+## 🖼️ Preview
 
-### 🏠 主页
+### 🏠 Home
 
-![FolioPath 浅色主页](docs/screenshots/home-light.webp)
+![FolioPath home in light mode](docs/screenshots/home-light.webp)
 
-### 🔍 搜索
+### 🔍 Search
 
-![FolioPath 搜索页面](docs/screenshots/search.webp)
+![FolioPath search](docs/screenshots/search.webp)
 
-### ⚙️ 管理中心
+### ⚙️ Administration
 
-![FolioPath 管理中心](docs/screenshots/admin-center.webp)
+![FolioPath administration](docs/screenshots/admin-center.webp)
 
-### 🌙 深色模式
+### 🌙 Dark Mode
 
-![FolioPath 深色主页](docs/screenshots/home-dark.webp)
+![FolioPath home in dark mode](docs/screenshots/home-dark.webp)
 
-## ✨ 套图浏览，更顺手
+## ✨ Better Browsing for Complete Sets
 
-- **穿透子目录**：一次浏览整套内容，不必逐层点开文件夹。
-- **保留来源路径**：汇总浏览时仍知道每张图片来自哪里。
-- **固定预览**：看着一张继续挑下一张，方便筛选和比较相似镜头。
-- **网格与瀑布流**：适应不同尺寸、横竖构图和大规模媒体库。
-- **搜索与筛选**：按文件名、路径、类型、日期和范围快速定位。
-- **完整查看器**：支持缩放、平移、1:1、前后切换、全屏和视频播放。
+- **Browse through subdirectories:** See a complete set without opening every folder.
+- **Keep source paths visible:** Know where each item came from in aggregated views.
+- **Pin the preview:** Keep one item visible while selecting and comparing similar shots.
+- **Grid and masonry layouts:** Adapt to mixed dimensions, orientations, and large libraries.
+- **Search and filter:** Find media by filename, path, type, date, and scope.
+- **Full viewer:** Zoom, pan, view at 1:1, move between items, enter fullscreen, and play video.
 
-## 🛡️ 原文件始终是原文件
+## 🛡️ Your Originals Stay Original
 
-- `/library` 只读：FolioPath 不移动、不重命名、不编辑、不删除媒体。
-- 文件系统是事实来源；索引、缩略图和视频封面都可重建。
-- 支持多个互不重叠的媒体库，并保留原有目录层级和空目录。
-- 媒体库离线或扫描中断时保留最后可靠索引，不会误判为空库。
-- 单容器、单进程、SQLite，适合 NAS、家庭服务器和个人媒体归档。
+- `/library` is read-only: FolioPath never moves, renames, edits, or deletes your media.
+- The filesystem is the source of truth; indexes, thumbnails, and video posters are rebuildable.
+- Multiple non-overlapping libraries retain their existing hierarchy, including empty directories.
+- If a library goes offline or a scan is interrupted, FolioPath preserves the last reliable index.
+- A single-container, single-process SQLite design fits NAS devices, home servers, and personal archives.
+- NAS-friendly, balanced, and performance resource modes bound combined background work and original-media reads.
 
-## 🎞️ 支持格式
+## Supported Media
 
-| 类型 | 格式 |
+| Type | Formats |
 | --- | --- |
-| 图片 | JPEG、PNG、WebP、GIF |
-| 视频 | MP4、MOV、MKV、AVI |
+| Images | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`) |
+| Video | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`), AVI (`.avi`) |
 
-视频不转码，能否直接播放取决于浏览器支持的内部编码。不兼容内容仍会保留封面和文件信息。
-SVG、HEIC/HEIF、AVIF 和 RAW 暂不支持。
+Videos are never transcoded. Direct playback depends on the codecs supported by your browser.
+FolioPath still preserves posters and file information for incompatible media.
+SVG, HEIC/HEIF, AVIF, and RAW are not currently supported.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-需要 Linux `amd64` 或 `arm64`、Docker 和 Compose v2。
+You need Linux on `amd64` or `arm64`, Docker, and Docker Compose v2.
 
-```bash
-mkdir -p foliopath/foliopath-data
-cd foliopath
+Create an empty directory, save the following as `compose.yaml`, and change `/mnt/photos` to your
+media directory:
 
-curl -fsSLO https://raw.githubusercontent.com/HappyQuQu/foliopath/main/compose.yaml
-curl -fsSL https://raw.githubusercontent.com/HappyQuQu/foliopath/main/.env.example -o .env
-
-sudo chown -R 65532:65532 foliopath-data
-chmod 750 foliopath-data
+```yaml
+services:
+  foliopath:
+    image: evanqu/foliopath:latest
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
 ```
 
-编辑 `.env`，至少确认这三项：
-
-```dotenv
-FOLIOPATH_LIBRARY_PATH=/mnt/photos
-FOLIOPATH_DATA_PATH=./foliopath-data
-FOLIOPATH_PORT=8080
-```
-
-启动：
+Start FolioPath:
 
 ```bash
 docker compose up -d
 ```
 
-打开 `http://<服务器局域网地址>:8080`，创建管理员，然后在“管理中心 → 媒体库”中选择
-要浏览的目录。
+### Configuration
 
-> 建议仅在受信局域网中直接使用。公网访问请在外部配置 HTTPS 和访问控制。
+| Setting | What to change |
+| --- | --- |
+| `image` | `latest` is the simplest start. Pin a version tag or digest for controlled upgrades. |
+| `restart` | `unless-stopped` restarts FolioPath after a failure or host reboot unless you stopped it manually. |
+| `TZ` | Set your timezone, for example `Asia/Shanghai`. |
+| `ports` | Change the left-hand `8080` to select the host port, for example `"9000:8080"`. |
+| `/mnt/photos:/library:ro` | Replace `/mnt/photos` with the one host directory containing your media. Keep `/library:ro` unchanged. |
+| `./data:/app/data` | Docker automatically creates this directory for the database, settings, jobs, and cache. Back it up before upgrades. |
 
-## 🧭 它适合你吗？
+Open `http://<your-server-LAN-address>:8080`, create the administrator account, and choose the
+directories to browse under **Administration → Libraries**.
 
-**适合：** 文件夹套图、摄影归档、家庭影像、NAS 媒体库，以及不希望软件接管原文件的人。
+> Direct HTTP is intended for a trusted LAN. For public access, put FolioPath behind external HTTPS
+> termination and appropriate access controls.
 
-**不适合：** 照片备份与手机同步、多人相册、AI 人脸识别、图片编辑或视频转码。
+## 🧭 Is FolioPath for You?
 
-## 📖 更多文档
+**A good fit:** folder-based photo sets, photography archives, family media, NAS libraries, and
+anyone who does not want an application to take ownership of original files.
 
-- [部署、升级、备份与反向代理](docs/deployment.md)
-- [安全与文件访问边界](docs/security.md)
-- [项目文档与开发入口](docs/README.md)
-- [系统架构](docs/architecture/README.md)
+**Not a fit:** photo backup and phone sync, multi-user albums, AI face recognition, image editing,
+or video transcoding.
 
-## 许可证
+## 📖 More Documentation
 
-[GNU Affero General Public License v3.0 or later](LICENSE)（`AGPL-3.0-or-later`）
+- [Advanced deployment, `.env` overrides, upgrades, backup, and reverse proxy](docs/deployment.md)
+- [Security and filesystem boundaries](docs/security.md)
+- [Project documentation and development entry point](docs/README.md)
+- [System architecture](docs/architecture/README.md)
+
+## License
+
+[GNU Affero General Public License v3.0 or later](LICENSE) (`AGPL-3.0-or-later`)
 
 ---
 

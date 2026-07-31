@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
 
@@ -17,6 +18,7 @@ type settingsResponse struct {
 	ScheduledScanIntervalHours *int64 `json:"scheduledScanIntervalHours"`
 	AutomaticDiscoveryEnabled  bool   `json:"automaticDiscoveryEnabled"`
 	ThumbnailCacheQuotaBytes   int64  `json:"thumbnailCacheQuotaBytes"`
+	ResourceProfile            string `json:"resourceProfile"`
 	Language                   string `json:"language"`
 	UpdatedAt                  string `json:"updatedAt"`
 }
@@ -92,6 +94,13 @@ func decodeSettingsUpdate(writer http.ResponseWriter, request *http.Request) (ap
 				return appsettings.Update{}, errInvalidSettingsRequest
 			}
 			update.AutomaticDiscoveryEnabled = &value
+		case "resourceProfile":
+			var value string
+			if json.Unmarshal(raw, &value) != nil {
+				return appsettings.Update{}, errInvalidSettingsRequest
+			}
+			profile := resourcecontrol.Profile(value)
+			update.ResourceProfile = &profile
 		case "language":
 			var value string
 			if json.Unmarshal(raw, &value) != nil {
@@ -128,6 +137,7 @@ func settingsWire(values appsettings.Values) settingsResponse {
 		ScheduledScanIntervalHours: values.ScheduledScanIntervalHours,
 		AutomaticDiscoveryEnabled:  values.AutomaticDiscoveryEnabled,
 		ThumbnailCacheQuotaBytes:   values.ThumbnailCacheQuotaBytes,
+		ResourceProfile:            string(values.ResourceProfile),
 		Language:                   values.Language,
 		UpdatedAt:                  timestamp(values.UpdatedAtMS),
 	}

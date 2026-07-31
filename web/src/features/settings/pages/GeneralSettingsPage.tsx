@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import { Button, Switch } from "../../../components/ui";
@@ -36,6 +36,11 @@ export function GeneralSettingsPage({
   );
   const [savedLayout, setSavedLayout] = useState(layout);
   const [savedPreviewPinned, setSavedPreviewPinned] = useState(previewPinned);
+
+  useEffect(() => {
+    setDraftLocale(localePreference);
+  }, [localePreference]);
+
   const dirty =
     draftTheme !== preference ||
     draftLocale !== localePreference ||

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/store/sqlite/dbgen"
 )
@@ -31,6 +32,7 @@ func (s *Store) UpdateSettings(
 		ScheduledScanIntervalHours: interval,
 		AutomaticDiscoveryEnabled:  boolToInt64(values.AutomaticDiscoveryEnabled),
 		ThumbnailCacheQuotaBytes:   values.ThumbnailCacheQuotaBytes,
+		ResourceProfile:            string(values.ResourceProfile),
 		Language:                   values.Language,
 		UpdatedAtMs:                s.nowMS(),
 		ExpectedRevision:           expectedRevision,
@@ -48,6 +50,7 @@ func settingsValues(row dbgen.Setting) settings.Values {
 	values := settings.Values{
 		AutomaticDiscoveryEnabled: row.AutomaticDiscoveryEnabled != 0,
 		ThumbnailCacheQuotaBytes:  row.ThumbnailCacheQuotaBytes,
+		ResourceProfile:           resourcecontrol.Profile(row.ResourceProfile),
 		Language:                  row.Language, Revision: row.Revision, UpdatedAtMS: row.UpdatedAtMs,
 	}
 	if row.ScheduledScanIntervalHours.Valid {

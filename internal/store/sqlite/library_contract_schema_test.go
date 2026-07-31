@@ -51,8 +51,8 @@ func TestLibraryContractMigrationUpgradesAuthenticationSchema(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatalf("read migration version: %v", err)
 	}
-	if version != 15 {
-		t.Fatalf("migration version = %d, want 15", version)
+	if version != 16 {
+		t.Fatalf("migration version = %d, want 16", version)
 	}
 }
 

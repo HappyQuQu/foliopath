@@ -19,6 +19,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	}
 
 	readme := read("README.md")
+	readmeZhCN := read("README.zh-CN.md")
 	deployment := read("docs/deployment.md")
 	compose := read("compose.yaml")
 	environment := read(".env.example")
@@ -26,10 +27,20 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	formats := read("internal/media/formats.go")
 
 	requireFragments(t, "README.md", readme, []string{
+		"README.zh-CN.md",
 		"evanqu/foliopath:latest",
 		"docker compose up -d",
-		"docker run --detach",
+		"### Configuration",
 		"## Supported Media",
+		"Videos are never transcoded",
+		"SVG, HEIC/HEIF, AVIF, and RAW",
+	})
+	requireFragments(t, "README.zh-CN.md", readmeZhCN, []string{
+		"README.md",
+		"evanqu/foliopath:latest",
+		"docker compose up -d",
+		"### 参数说明",
+		"## 🎞️ 支持格式",
 		"视频不会转码",
 		"SVG、HEIC/HEIF、AVIF 和 RAW",
 	})
@@ -45,8 +56,9 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"0 Critical / 0 High",
 	})
 	requireFragments(t, "compose.yaml", compose, []string{
-		"${FOLIOPATH_IMAGE:?set FOLIOPATH_IMAGE to an immutable version tag or digest}",
-		`FOLIOPATH_LISTEN: "0.0.0.0:8080"`,
+		"${FOLIOPATH_IMAGE:-evanqu/foliopath:latest}",
+		"${FOLIOPATH_LIBRARY_PATH:-./library}",
+		"${FOLIOPATH_DATA_PATH:-./data}",
 		`- "${FOLIOPATH_BIND_ADDRESS:-0.0.0.0}:${FOLIOPATH_PORT:-8080}:8080"`,
 		"target: /library",
 		"read_only: true",
@@ -57,10 +69,9 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	requireFragments(t, ".env.example", environment, []string{
 		"FOLIOPATH_IMAGE=evanqu/foliopath:latest",
 		"FOLIOPATH_LIBRARY_PATH=/mnt/photos",
-		"FOLIOPATH_DATA_PATH=./foliopath-data",
+		"FOLIOPATH_DATA_PATH=./data",
 		"FOLIOPATH_BIND_ADDRESS=0.0.0.0",
 		"FOLIOPATH_PORT=8080",
-		"TZ=UTC",
 	})
 	requireFragments(t, "Dockerfile", dockerfile, []string{
 		`org.opencontainers.image.description="Stage 5 release candidate; not a stable release"`,
@@ -99,6 +110,8 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		`CMD ["/app/foliopath", "healthcheck"]`,
 		"USER 65532:65532",
 		`ENTRYPOINT ["/app/foliopath"]`,
+		"FOLIOPATH_LISTEN=0.0.0.0:8080",
+		"TZ=UTC",
 	})
 	if strings.Contains(dockerfile, "ca-certificates curl") ||
 		strings.Contains(dockerfile, `CMD ["curl"`) {
@@ -129,6 +142,9 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		if !strings.Contains(readme, documented) {
 			t.Errorf("README.md is missing canonical media extension %s", documented)
 		}
+		if !strings.Contains(readmeZhCN, documented) {
+			t.Errorf("README.zh-CN.md is missing canonical media extension %s", documented)
+		}
 		if !strings.Contains(deployment, documented) {
 			t.Errorf("docs/deployment.md is missing canonical media extension %s", documented)
 		}
@@ -139,7 +155,9 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"当前还没有 React 产品前端、正式发布 Dockerfile",
 		"具体文件名在实现迁移前可调整",
 	} {
-		if strings.Contains(readme, stale) || strings.Contains(deployment, stale) {
+		if strings.Contains(readme, stale) ||
+			strings.Contains(readmeZhCN, stale) ||
+			strings.Contains(deployment, stale) {
 			t.Errorf("release documentation retains stale implementation claim %q", stale)
 		}
 	}

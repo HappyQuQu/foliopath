@@ -3,7 +3,7 @@ info:
   title: FolioPath HTTP API
   version: 0.1.0
   description: |
-    Authoritative HTTP contract for the FolioPath MVP-2026-07-23 scope,
+    Authoritative HTTP contract for the FolioPath POST-MVP-1 scope,
     revision 4.
 
     All business endpoints use an authenticated same-origin browser session.
@@ -20,9 +20,9 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
 x-foliopath-contract:
   status: authoritative
-  targetVersion: MVP-2026-07-23
+  targetVersion: POST-MVP-1
   scopeRevision: 4
-  baselineEvent: CR-2026-009
+  baselineEvent: CR-2026-012
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -2814,6 +2814,7 @@ components:
         - scheduledScanIntervalHours
         - automaticDiscoveryEnabled
         - thumbnailCacheQuotaBytes
+        - resourceProfile
         - language
         - updatedAt
       properties:
@@ -2838,6 +2839,8 @@ components:
           minimum: 1
           default: 10737418240
           description: Cache quota. Eviction also preserves the server's independent safe-free-space margin.
+        resourceProfile:
+          $ref: '#/components/schemas/ResourceProfile'
         language:
           $ref: '#/components/schemas/LanguagePreference'
         updatedAt:
@@ -2862,8 +2865,20 @@ components:
           type: integer
           format: int64
           minimum: 1
+        resourceProfile:
+          $ref: '#/components/schemas/ResourceProfile'
         language:
           $ref: '#/components/schemas/LanguagePreference'
+
+    ResourceProfile:
+      type: string
+      enum: [eco, balanced, performance]
+      default: balanced
+      description: |
+        Instance-wide NAS resource preset. Eco allows one background media-source
+        operation and four concurrent content reads; balanced allows two and
+        eight; performance allows four and sixteen. Existing work is not
+        cancelled when the limit is lowered.
 
     CacheSummary:
       type: object

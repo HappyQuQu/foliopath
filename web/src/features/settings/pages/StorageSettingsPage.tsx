@@ -16,6 +16,7 @@ import {
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import type { LibraryStatus } from "../../../lib/api/libraries";
+import type { ResourceProfile } from "../../../lib/api/settings";
 import { createRequestKey } from "../../../lib/requestKey";
 import {
   useLocale,
@@ -55,6 +56,7 @@ export function StorageSettingsPage({
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setInterval] = useState("24");
   const [quota, setQuota] = useState("10");
+  const [resourceProfile, setResourceProfile] = useState<ResourceProfile>("balanced");
   const [confirmCleanup, setConfirmCleanup] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function StorageSettingsPage({
     setScheduleEnabled(settingsQuery.data.scheduledScanIntervalHours !== null);
     setInterval(String(settingsQuery.data.scheduledScanIntervalHours ?? 24));
     setQuota(String(Math.round(settingsQuery.data.thumbnailCacheQuotaBytes / bytesPerGiB)));
+    setResourceProfile(settingsQuery.data.resourceProfile);
   }, [settingsQuery.data]);
 
   const numberFormat = useMemo(
@@ -90,6 +93,7 @@ export function StorageSettingsPage({
         etag: settingsQuery.data.etag,
         scheduledScanIntervalHours: scheduleEnabled ? parsedInterval : null,
         thumbnailCacheQuotaBytes: Math.round(parsedQuota * bytesPerGiB),
+        resourceProfile,
       })
       .then(() =>
         toast.show({ message: t("settings.saved"), tone: "success" }),
@@ -180,6 +184,30 @@ export function StorageSettingsPage({
             </section>
 
             <form onSubmit={saveSettings}>
+              <section className={styles.section}>
+                <h2>{t("cache.resourceProfile")}</h2>
+                <div className={styles.card}>
+                  <p className={styles.caption}>{t("cache.resourceProfileDescription")}</p>
+                  <div className={styles.profileGrid}>
+                    {(["eco", "balanced", "performance"] as const).map((profile) => (
+                      <label className={styles.profileOption} key={profile}>
+                        <input
+                          checked={resourceProfile === profile}
+                          name="resourceProfile"
+                          onChange={() => setResourceProfile(profile)}
+                          type="radio"
+                          value={profile}
+                        />
+                        <span>
+                          <strong>{t(`cache.resourceProfile.${profile}`)}</strong>
+                          <span>{t(`cache.resourceProfile.${profile}Description`)}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
               <section className={styles.section}>
                 <h2>{t("cache.scanSchedule")}</h2>
                 <div className={`${styles.card} ${styles.form}`}>

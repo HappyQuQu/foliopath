@@ -50,4 +50,5 @@ type Setting struct {
 	Revision                   int64
 	UpdatedAtMs                int64
 	AutomaticDiscoveryEnabled  int64
+	ResourceProfile            string
 }

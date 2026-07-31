@@ -214,7 +214,9 @@ MVP 的日期语义是文件修改时间；不提供完整 EXIF 面板。未可�
 | `GET` | `/api/v1/settings` | 获取用户可调整的应用设置 |
 | `PATCH` | `/api/v1/settings` | 更新 schema 已知且当前主体有权修改的设置 |
 
-设置至少包括 24 小时默认完整扫描周期（可修改或关闭）、10 GiB 默认缩略图缓存配额和中英语言偏好。
+设置至少包括 24 小时默认完整扫描周期（可修改或关闭）、10 GiB 默认缩略图缓存配额、
+中英语言偏好和 `eco | balanced | performance` 的实例级资源模式。资源模式的 wire
+合同以 `api/openapi.yaml` 为准；更新沿用强 ETag/If-Match。
 
 ### 初始化、认证与会话
 

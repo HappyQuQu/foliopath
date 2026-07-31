@@ -44,7 +44,7 @@ docker version --format '{{.Server.Version}} {{.Server.Os}}/{{.Server.Arch}}'
 结果：本机 Docker daemon 未运行：
 
 ```text
-Cannot connect to the Docker daemon at unix:///Users/qu/.docker/run/docker.sock.
+Cannot connect to the Docker daemon at unix://<local-docker-socket>.
 ```
 
 启动 Docker Desktop 后，Docker Engine `29.6.2` 提供

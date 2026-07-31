@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { BrandMark } from "../../ui/BrandMark/BrandMark";
+import { LocaleToggle } from "../../ui/LocaleToggle/LocaleToggle";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
@@ -100,6 +101,7 @@ export function GlobalHeader({
       </form>
 
       <div className={styles.headerActions}>
+        <LocaleToggle />
         <ThemeToggle />
         <div className={styles.account} ref={accountRef}>
           <button

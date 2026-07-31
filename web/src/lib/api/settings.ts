@@ -5,14 +5,18 @@ export interface ApplicationSettings {
   etag: string;
   language: "browser" | "zh-CN" | "en";
   scheduledScanIntervalHours: number | null;
+  resourceProfile: ResourceProfile;
   thumbnailCacheQuotaBytes: number;
   updatedAt: string;
 }
+
+export type ResourceProfile = "eco" | "balanced" | "performance";
 
 export interface SettingsUpdate {
   csrfToken: string;
   etag: string;
   scheduledScanIntervalHours: number | null;
+  resourceProfile: ResourceProfile;
   thumbnailCacheQuotaBytes: number;
 }
 
@@ -33,6 +37,7 @@ export async function updateSettings(
     const { data, error, response } = await apiClient.PATCH("/api/v1/settings", {
       body: {
         scheduledScanIntervalHours: input.scheduledScanIntervalHours,
+        resourceProfile: input.resourceProfile,
         thumbnailCacheQuotaBytes: input.thumbnailCacheQuotaBytes,
       },
       headers: { "X-CSRF-Token": input.csrfToken },
@@ -51,6 +56,7 @@ function mapSettings(
   settings: {
     language: ApplicationSettings["language"];
     scheduledScanIntervalHours: number | null;
+    resourceProfile: ResourceProfile;
     thumbnailCacheQuotaBytes: number;
     updatedAt: string;
   },
@@ -60,6 +66,7 @@ function mapSettings(
     etag,
     language: settings.language,
     scheduledScanIntervalHours: settings.scheduledScanIntervalHours,
+    resourceProfile: settings.resourceProfile,
     thumbnailCacheQuotaBytes: settings.thumbnailCacheQuotaBytes,
     updatedAt: settings.updatedAt,
   };

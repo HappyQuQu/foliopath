@@ -26,9 +26,14 @@ type ContentService interface {
 	Open(context.Context, int64) (media.Content, error)
 }
 
+type ContentAdmission interface {
+	TryAcquireContent() (release func(), ok bool)
+}
+
 type contentHandler struct {
-	service ContentService
-	slots   chan struct{}
+	service   ContentService
+	slots     chan struct{}
+	admission ContentAdmission
 }
 
 type byteRange struct {
@@ -36,10 +41,17 @@ type byteRange struct {
 	end   int64
 }
 
-func registerContentRoutes(mux *http.ServeMux, service ContentService) {
+func registerContentRoutes(
+	mux *http.ServeMux,
+	service ContentService,
+	admissions ...ContentAdmission,
+) {
 	handler := &contentHandler{
 		service: service,
 		slots:   make(chan struct{}, contentReadConcurrency),
+	}
+	if len(admissions) > 0 {
+		handler.admission = admissions[0]
 	}
 	mux.HandleFunc("GET /api/v1/assets/{assetId}/content", handler.handle)
 	mux.HandleFunc("HEAD /api/v1/assets/{assetId}/content", handler.handle)
@@ -59,14 +71,13 @@ func (handler *contentHandler) handle(writer http.ResponseWriter, request *http.
 		writePublicError(writer, request, http.StatusNotFound, "asset_not_found", "The media item was not found.")
 		return
 	}
-	select {
-	case handler.slots <- struct{}{}:
-		defer func() { <-handler.slots }()
-	default:
+	release, admitted := handler.tryAcquire()
+	if !admitted {
 		writer.Header().Set("Retry-After", "1")
 		writePublicError(writer, request, http.StatusTooManyRequests, "rate_limited", "Too many media requests are active.")
 		return
 	}
+	defer release()
 
 	content, err := handler.service.Open(request.Context(), assetID)
 	if err != nil {
@@ -123,6 +134,18 @@ func (handler *contentHandler) handle(writer http.ResponseWriter, request *http.
 	writer.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 	writer.WriteHeader(http.StatusPartialContent)
 	_ = copyContent(request.Context(), writer, content.File, length)
+}
+
+func (handler *contentHandler) tryAcquire() (func(), bool) {
+	if handler.admission != nil {
+		return handler.admission.TryAcquireContent()
+	}
+	select {
+	case handler.slots <- struct{}{}:
+		return func() { <-handler.slots }, true
+	default:
+		return nil, false
+	}
 }
 
 func validContentRequestHeaders(request *http.Request) bool {
