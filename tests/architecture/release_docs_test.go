@@ -105,7 +105,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"foliopath-ffmpeg_7.1.5-2.deb",
 		"/opt/ffmpeg/share/licenses/ffmpeg/LICENSE.md",
 		"AS runtime-assemble",
-		"gcr.io/distroless/cc-debian13@sha256:d97bc0a941b8d4be647dc0ee75b264ddbb772f1ac5ba690a4309c00723b23775",
+		"gcr.io/distroless/cc-debian13@sha256:ed7c407fd64eb0af9dddb9456b94cee188a40a7f53cf38c9836e1e9ae14fca02",
 		"/rootfs/var/lib/dpkg/status.d",
 		"COPY --from=runtime-assemble /rootfs/ /",
 		`CMD ["/app/foliopath", "healthcheck"]`,

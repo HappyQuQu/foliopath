@@ -29,7 +29,7 @@ MVP 已完成。
   - 锁定 npm 安装并构建 Vite；
   - `CGO_ENABLED=1`、`libvips` build tag 构建真实应用；
   - 运行层包含 CA、时区、libvips 与 FFmpeg；
-  - 固定 `USER 65532:65532` 和 readiness healthcheck。
+  - 运行身份现由 ADR-0012 修订为默认 root，并保留 readiness healthcheck。
 - `.dockerignore` 排除开发依赖、生成输出、原型、QA 图片、数据库和运行状态。
 - `internal/webassets` 只嵌入构建时生成的 `dist`；仓库仅跟踪 `.gitkeep`，不提交 Vite
   生成文件。普通 Go checkout 仍可构建，缺少生产 SPA 时安全回落到服务端 404。

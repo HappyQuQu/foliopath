@@ -17,9 +17,8 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 mkdir -p "${data_root}" "${media_root}"
-# The directory is disposable test state. Production deployments must grant
-# UID/GID 65532 ownership instead of using a world-writable data directory.
-chmod 0777 "${data_root}"
+# Match Docker's root-owned bind directory created by a short Compose mount.
+chmod 0755 "${data_root}"
 printf '%s\n' "media must remain unchanged" >"${smoke_root}/media-sentinel"
 cp "${smoke_root}/media-sentinel" "${media_root}/sentinel.txt"
 chmod 0444 "${media_root}/sentinel.txt"
@@ -69,7 +68,7 @@ stop_application() {
 }
 
 start_application
-test "$(docker inspect --format '{{.Config.User}}' "${container}")" = "65532:65532"
+test -z "$(docker inspect --format '{{.Config.User}}' "${container}")"
 test "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/library"}}{{.RW}}{{end}}{{end}}' "${container}")" = "false"
 docker exec "${container}" curl --fail --silent --show-error \
 	http://127.0.0.1:8080/health/live | grep -q '"status":"live"'

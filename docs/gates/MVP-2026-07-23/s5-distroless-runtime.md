@@ -29,14 +29,15 @@ Compose/代理、恢复失败语义和快速容量复验。生产镜像不包含
 ## 实现与证据
 
 - 最终基础层固定为
-  `gcr.io/distroless/cc-debian13@sha256:d97bc0a941b8d4be647dc0ee75b264ddbb772f1ac5ba690a4309c00723b23775`。
+  `gcr.io/distroless/cc-debian13@sha256:ed7c407fd64eb0af9dddb9456b94cee188a40a7f53cf38c9836e1e9ae14fca02`。
+  ADR-0012 将原先的 `nonroot` 变体替换为默认 root 变体，同时保持无 shell 运行时。
   Debian trixie-slim 只用于构建和 `runtime-assemble`，不会进入最终镜像。
 - assembly stage 按包枚举并复制实际共享库，同时保留
   `/var/lib/dpkg/status.d/` 和许可证文件；SBOM/扫描因此仍能识别实际运行闭包，不以删除
   包数据库制造“零发现”。
 - 生产健康检查继续使用 `/app/foliopath healthcheck`。需要 HTTP、归档或故障注入的发布
   smoke 使用隔离的测试 sidecar；生产容器不通过临时安装调试工具改变不可变运行时。
-- `make test-release-image` 通过完整 SPA、非 root、只读根/媒体、MVP 图片/视频、
+- `make test-release-image` 通过完整 SPA、默认 root、只读根/媒体、MVP 图片/视频、
   Compose/可信代理、优雅停止、备份恢复、`SIGKILL`/WAL、64 KiB 数据盘满、损坏数据库
   与 linux/arm64 检查。
 - 对上述精确镜像的 1,000 资产快速容量复验通过：scan 1,000 ms，

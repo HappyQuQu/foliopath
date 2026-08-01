@@ -325,7 +325,7 @@ RUN set -eu; \
     chmod 0750 /rootfs/app/data; \
     chmod 0555 /rootfs/library
 
-FROM gcr.io/distroless/cc-debian13@sha256:d97bc0a941b8d4be647dc0ee75b264ddbb772f1ac5ba690a4309c00723b23775
+FROM gcr.io/distroless/cc-debian13@sha256:ed7c407fd64eb0af9dddb9456b94cee188a40a7f53cf38c9836e1e9ae14fca02
 ARG VERSION=stage5-candidate
 LABEL org.opencontainers.image.title="FolioPath" \
       org.opencontainers.image.version="${VERSION}" \

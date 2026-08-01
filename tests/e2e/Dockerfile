@@ -25,13 +25,9 @@ LABEL org.opencontainers.image.title="FolioPath application smoke" \
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl libvips42 \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system --gid 65532 foliopath \
-    && useradd --system --uid 65532 --gid 65532 \
-       --home-dir /nonexistent --shell /usr/sbin/nologin foliopath \
-    && install -d -o 65532 -g 65532 -m 0750 /app/data \
-    && install -d -o 65532 -g 65532 -m 0555 /library
-COPY --from=build --chown=65532:65532 /out/foliopath /app/foliopath
-USER 65532:65532
+    && install -d -m 0750 /app/data \
+    && install -d -m 0555 /library
+COPY --from=build /out/foliopath /app/foliopath
 EXPOSE 8080
 HEALTHCHECK --interval=2s --timeout=2s --start-period=2s --retries=15 \
     CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/health/ready"]
