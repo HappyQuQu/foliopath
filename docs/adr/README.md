@@ -29,3 +29,4 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0009：Linux `openat2` 与单一媒体根挂载](0009-linux-openat2-single-media-root.md)
 - [ADR-0010：经认证的局域网 HTTP 与可选外部 TLS](0010-authenticated-lan-http.md)
 - [ADR-0011：Linux 文件事件只触发锚定的定向校准](0011-linux-inotify-hints-and-anchored-reconciliation.md)
+- [ADR-0012：默认 root 运行与免初始化 bind 数据目录](0012-root-runtime-bind-data.md)

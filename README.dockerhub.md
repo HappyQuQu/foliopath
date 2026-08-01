@@ -37,7 +37,7 @@ FolioPath directly reads an existing directory tree and lets you browse a folder
 - Zoom, pan, view at 1:1, navigate between items, use fullscreen, and play videos.
 - Configure multiple non-overlapping libraries below one read-only `/library` mount.
 - Preserve the last reliable index when a library is offline or a scan is interrupted.
-- Run as one non-root container with SQLite and rebuildable thumbnails and posters.
+- Run as one container with SQLite and rebuildable thumbnails and posters.
 
 ## Supported media
 
@@ -85,7 +85,7 @@ For controlled upgrades, replace `latest` with a specific version tag or immutab
 | `/library` | Read-only | The one allowed media root and all selectable library directories below it |
 | `/app/data` | Read-write | SQLite database, settings, jobs, thumbnails, posters, and temporary state |
 
-The container runs as UID/GID `65532:65532`. That identity needs read and directory traversal access to `/library`, plus full read/write access to `/app/data`.
+The container runs as root so a bind-mounted `./data` directory created by Docker is writable without a host-side ownership step. Keep `/library` read-only; root runtime increases the impact of a container compromise, so do not expose FolioPath directly to an untrusted network.
 
 Mount the media tree exactly once at `/library`. Nested volumes, bind mounts, or other mount points below `/library` are unsupported and rejected. FolioPath never moves, renames, edits, or deletes original media.
 
@@ -131,7 +131,7 @@ FolioPath 是一款为整套照片和视频浏览而生的只读、自托管媒�
 - 支持缩放、平移、1:1、前后切换、全屏和视频播放。
 - 在唯一的只读 `/library` 挂载下配置多个互不重叠的媒体库。
 - 媒体库离线或扫描中断时保留最后可靠索引。
-- 以非 root 用户运行单容器服务，使用 SQLite，并可重建缩略图和视频封面。
+- 使用单容器和 SQLite，并可重建缩略图和视频封面。
 
 ### 支持格式
 
@@ -179,7 +179,7 @@ docker compose up -d
 | `/library` | 只读 | 唯一媒体允许根，以及其下可选择的所有媒体库目录 |
 | `/app/data` | 读写 | SQLite 数据库、设置、任务、缩略图、视频封面和临时状态 |
 
-容器使用 UID/GID `65532:65532` 运行。该身份需要读取和遍历 `/library` 的权限，以及完整读写 `/app/data` 的权限。
+容器以 root 运行，因此 Docker 自动创建的 bind mount `./data` 无需在宿主机额外修改所有权即可写入。必须保持 `/library` 只读；root 运行会扩大容器被攻破后的影响，因此不要把 FolioPath 直接暴露到不可信网络。
 
 媒体目录只能整体挂载一次到 `/library`。不支持并会拒绝 `/library` 下的嵌套 volume、bind mount 或其他挂载点。FolioPath 不会移动、重命名、编辑或删除原始媒体。
 

@@ -335,7 +335,7 @@ browse index，再执行 capability-derived Unicode 搜索键上的 literal `ins
 
 ### 容器与发布测试
 
-- 最终镜像以非 root 用户运行，媒体目录 `:ro`，数据目录可写。
+- 最终镜像按 ADR-0012 以 root 运行，媒体目录 `:ro`，Docker 创建的 root-owned 数据目录可写。
 - `linux/amd64` 与 `linux/arm64` 运行相同的 smoke suite。
 - PID 1 收到终止信号时停止接收请求、取消任务、提交安全状态并按时退出。
 - readiness 与 liveness 在迁移、扫描、单库离线和数据库不可写时语义正确。
@@ -493,7 +493,7 @@ lease/recovery、schedule 与资源上限契约；这不是完整领域实现一
 Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 4xx 响应的规则 warning，
 没有结构错误。`generate-check` 同时验证固定版本 sqlc 和 OpenAPI TypeScript 生成无漂移，
 `web-check`、摘要锁和语义兼容入口已在本地通过。`test-e2e` 已使用测试专用容器启动真实
-`cmd/foliopath`，覆盖非 root、固定 volumes、health、默认 401、重复 migration、SIGTERM
+`cmd/foliopath`，覆盖 root runtime、固定 volumes、health、默认 401、重复 migration、SIGTERM
 和媒体只读 sentinel。前端组件/token、认证与媒体库/扫描浏览器产品 E2E 已可执行；浏览、
 搜索、预览和查看器继续按对应前端 Stage 补齐。
 

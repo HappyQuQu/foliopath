@@ -65,7 +65,7 @@ func TestDockerHubReadmeUsesAbsoluteReferences(t *testing.T) {
 		"security_opt:",
 		"cap_drop:",
 		"stop_grace_period:",
-		`user: "65532:65532"`,
+		"    user:",
 		"read_only: true",
 		"tmpfs:",
 	} {

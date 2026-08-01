@@ -198,13 +198,14 @@ seek/输出上限、峰值 RSS、worker 优先级和 backfill admission。它继
 
 ## 容器和持久数据
 
-- 只把一个媒体 volume 挂到 `/library:ro`，不在其下创建子挂载；应用以非 root
-  用户运行。
+- 只把一个媒体 volume 挂到 `/library:ro`，不在其下创建子挂载。根据
+  [ADR-0012](adr/0012-root-runtime-bind-data.md)，应用默认以 root 运行以兼容自动创建的
+  root-owned 数据 bind；这是已接受的扩大风险，不放宽媒体路径或写入边界。
 - 最终镜像只包含运行所需的 Go 服务、libvips、FFmpeg、证书和必要运行库。
 - 默认丢弃不需要的 Linux capabilities，并启用 `no-new-privileges`；在兼容的部署环境中使用只读根文件系统和独立可写 `/app/data`。
 - 默认 seccomp/LSM 策略必须允许应用使用所需 `openat2` flags。生产容器不需要
   mount capability；`CAP_SYS_ADMIN` 只授予隔离测试容器以构造边界探针。
-- `/app/data` 应设置明确的所有者和权限，并避免放在不可靠的网络文件系统上。
+- `/app/data` 可由 Docker 自动创建为 root-owned bind 目录，并避免放在不可靠的网络文件系统上。
 - 数据库迁移、磁盘已满、断电和进程终止必须有恢复测试。缩略图缓存耗尽不能破坏数据库或原媒体。
 - 发布镜像使用不可变版本标签，并为 amd64/arm64 维护依赖与许可证清单。
 
@@ -253,5 +254,5 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
   native 调用返回后的取消安全点。
 - HTTP Range、条件请求、无效 Range 和取消播放。
 - 管理员初始化竞态、未认证访问、登录限流、会话过期/撤销、退出、CSRF 和反向代理配置。
-- 非 root、单一只读媒体根挂载、无 mount capability、真实 tmpfs 磁盘已满和数据库恢复的
+- root runtime、单一只读媒体根挂载、无 mount capability、真实 tmpfs 磁盘已满和数据库恢复的
   Docker 集成测试；非 Linux 结果不能代替 Linux mount-boundary 证据。

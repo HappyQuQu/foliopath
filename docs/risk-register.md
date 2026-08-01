@@ -29,6 +29,7 @@
 | R-019 | 文件事件丢失、乱序、overflow、网络盘不转发、watch 资源不足或删除误判导致内容延迟或索引损失 | 高 | 严重 | `IN_Q_OVERFLOW`/`ENOSPC`、watch 被移除、事件后目录不一致、挂载掉线时出现批量 delete、dirty 队列持续满或页面长期不更新 | [FTR-SCN-001](features/automatic-library-discovery.md)要求事件只作不可信提示；新增/修改/删除均经 `internal/files` 安全定向校准确认，掉盘/权限/overflow 保留可靠索引并合并安排完整扫描；每目录而非每文件 watch，队列/并发/revision 轮询有界；实现前必须通过 WCH-S0 ADR 与 Linux 100k/10k burst/恢复证据 | 先扩大合并并降低定向并发，再按库进入 degraded；仍不可靠时全局禁用自动发现，保留创建/启动/手动/定时完整扫描 | 扫描与运维负责人 | 开放 |
 | R-020 | 任务中心全量重建造成无界 admission、队列饥饿、磁盘耗尽，或先清缓存导致可用预览丢失 | 中 | 高 | rebuild 一次登记全部资产；日常 poster/grid 或浏览延迟持续恶化；取消后队列继续增长；ENOSPC 后旧 ready 不可用 | [FTR-OPS-001](features/task-center.md)要求 parent run、asset keyset 小批 admission、最低后台优先级、active coalesce、磁盘安全余量、停止 admission 的协作取消和新文件成功后才替换旧缓存；OPS-003 必须在 100k/10k 档冻结上限 | 只保留 missing backfill，禁用 all rebuild；必要时完全隐藏批量入口并继续现有按需 self-heal | 媒体处理与性能负责人 | 开放 |
 | R-021 | 原型、共享 token、生产页面和视觉基线各自演进，导致跨页漂移或为追求像素一致破坏真实功能、可访问性和大列表能力 | 高 | 高 | 同一控件出现多份样式；批量接受截图变化；页面只在 1440px 正常；为匹配原型改用 mock、全量客户端过滤或嵌套滚动 | [FTR-UIF-001](features/frontend-prototype-fidelity.md)固定视觉/功能双真相与唯一 shared owner；[UIF-S4](gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)已接受 12 页共同 1280、12 页 × 4 断点、Linux 基线、真实 API、三浏览器/axe/输入、100k/10k 和跨文档收敛证据；没有以 mock、无界加载或嵌套滚动换取截图一致 | 保留已验证生产页面和机器 reference manifest；任何基线变化须解释来源并重跑真实链，不能以静态原型、mock 或批量 snapshot 更新替代 | 前端、设计系统与 QA 负责人 | 已关闭 |
+| R-022 | root runtime 扩大应用或媒体解析漏洞的容器内影响 | 中 | 严重 | 进程可写非持久根、获得默认 capabilities、访问未授权挂载或修改宿主 bind 内容 | [ADR-0012](adr/0012-root-runtime-bind-data.md)只为零初始化 `/app/data` 接受 root；继续强制 `/library:ro`、锚定 `openat2`、认证、输入上限和有界媒体工具；权威 Compose 保留只读根、cap-drop 与 `no-new-privileges` | 收窄到受信 LAN，使用权威 Compose；若出现越界写或媒体工具逃逸则停止发布并恢复非 root/降权启动器方案 | 安全与发布负责人 | 已接受 |
 
 Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
 source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
@@ -46,6 +47,7 @@ PR native job，Stage 5 仍阻断正式只读 volume、运行期 unmount、浏�
 - R-008 中实际承诺发布的架构。
 - R-014 许可证与分发义务。
 - R-017 最终原生双架构镜像尚未从干净提交完成全阻断复扫与安全签署。
+- R-022 root runtime 的剩余影响必须按 ADR-0012 由产品与安全接受，并完成新候选 smoke。
 
 R-005、R-008、R-009、R-011 与 R-013 已由 Stage 5 容量、双架构和恢复证据关闭；
 R-002～004、R-006～007、R-010、R-012、R-014～016 仍处于缓解中。但其余项目对应的
@@ -93,6 +95,8 @@ R-021 当前 feature 风险关闭；未来改动继续由 reference manifest 和
 当前六项发布风险为“缓解中”、R-008/R-011 为“已关闭”，没有“开放”或“已接受”项，但
 缓解中风险仍未达到发布关闭条件，因此
 Release Candidate 明确为 No-Go。
+该快照早于 2026-08-01 的 ADR-0012；root runtime 变更新增已接受的 R-022，并重新打开
+AF-012 镜像身份与 bind-data smoke。新的 root 候选证据完成前继续 No-Go。
 
 同日对当前已提交 HEAD 的 GitHub Actions run `30314930003` 复核发现，全部 job 因账户
 付款失败或 spending limit 在 runner 分配前失败，没有任何测试 step。`S5-001C` 已为后续

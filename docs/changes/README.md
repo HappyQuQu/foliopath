@@ -19,6 +19,7 @@
 - [CR-2026-010：AVI 与文件大小排序](CR-2026-010-avi-and-size-sort.md)
 - [CR-2026-011：目录媒体计数](CR-2026-011-directory-media-counts.md)
 - [CR-2026-012：NAS 资源模式](CR-2026-012-nas-resource-profiles.md)
+- [CR-2026-013：root runtime 与零初始化 bind 数据目录](CR-2026-013-root-runtime-bind-data.md)
 
 ### Post-MVP 与未来提案
 

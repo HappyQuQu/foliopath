@@ -23,6 +23,11 @@ cleanup() {
 	docker rm --force "${proxy_container}" >/dev/null 2>&1 || true
 	docker network rm "${proxy_network}" >/dev/null 2>&1 || true
 	docker volume rm "${fixture_volume}" >/dev/null 2>&1 || true
+	if [ -d "${data_root}" ]; then
+		docker run --rm --entrypoint /bin/chmod \
+			--mount "type=bind,src=${data_root},dst=/data" \
+			"${fixture_image}" -R 0777 /data >/dev/null 2>&1 || true
+	fi
 	if [ "${build_image}" = "1" ]; then
 		docker image rm --force "${image}" >/dev/null 2>&1 || true
 	fi
@@ -31,9 +36,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-mkdir -p "${data_root}" "${media_root}"
-# Disposable test state only. Deployments grant UID/GID 65532 ownership.
-chmod 0777 "${data_root}"
+mkdir -p "${media_root}"
 printf '%s\n' "original media is immutable" >"${media_root}/sentinel.txt"
 chmod 0444 "${media_root}/sentinel.txt"
 chmod 0555 "${media_root}"
@@ -82,7 +85,7 @@ docker run --detach \
 	--cap-drop ALL \
 	--security-opt no-new-privileges:true \
 	--tmpfs /tmp:rw,noexec,nosuid,size=16m \
-	--mount "type=bind,src=${data_root},dst=/app/data" \
+	--volume "${data_root}:/app/data" \
 	--mount "type=bind,src=${media_root},dst=/library,readonly" \
 	--mount "type=volume,src=${fixture_volume},dst=/fixtures" \
 	"${image}" >/dev/null
@@ -104,7 +107,7 @@ test "$(docker inspect --format '{{.State.Health.Status}}' "${container}")" = "h
 
 build_release_http_client "${repo_root}"
 start_release_http_client "${http_client}" "${container}"
-test "$(docker inspect --format '{{.Config.User}}' "${container}")" = "65532:65532"
+test "$(docker inspect --format '{{.Config.User}}' "${container}")" = "0:0"
 test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "${container}")" = "true"
 test "$(docker inspect --format '{{.HostConfig.CapDrop}}' "${container}")" = "[ALL]"
 test "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/library"}}{{.RW}}{{end}}{{end}}' "${container}")" = "false"

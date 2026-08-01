@@ -22,7 +22,8 @@ migration 已接入数据库 → HTTP → readiness 启动链路。
 HTTP 运行边界已具备单 listener、服务端 request ID、统一安全错误、JSON 日志和
 在途请求排空、liveness/readiness 和受保护系统状态路由；只有数据目录可用、数据库打开且
 migration 成功后才进入 ready，失败时进程不提供业务服务。系统状态在认证实现前默认拒绝；
-真实组合测试与测试专用应用容器已覆盖取消、重复启动、非 root、固定 volume 和内部 health；
+真实组合测试与测试专用应用容器已覆盖取消、重复启动、固定 volume 和内部 health；
+当前 root runtime 由 ADR-0012 修订并等待新候选复验；
 认证 HTTP 与 `users`/`sessions` 数据契约已达到 S1-101 Contract Ready，但当前还没有业务
 路由或认证 service。React 产品应用、
 完整媒体工具链与正式发布容器仍未形成产品。生成 TypeScript
@@ -115,7 +116,7 @@ flowchart LR
         hostMedia["宿主媒体目录"]
         hostData["本地持久数据目录"]
 
-        subgraph container["非 root FolioPath 容器 [T]"]
+        subgraph container["root FolioPath 容器 [T]"]
             http["Go HTTP 进程"]
             allowed["/library :ro"]
             appData["/app/data :rw"]

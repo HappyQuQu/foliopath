@@ -42,7 +42,8 @@ Goose migration、权威 `api/openapi.yaml`、确定性 TypeScript 类型生成�
 `internal/app` 已拥有唯一组合点、进程根取消、顺序启动、失败回滚、运行故障传播、反向关闭和
 有界停机；启动配置已固定 `/library`、`/app/data`、单监听地址和认证前回环限制。正式应用已
 接入 SQLite WAL、嵌入 migration、空数据目录准备、重复启动和迁移失败关闭，并由真实
-composition root 集成测试和测试专用非 root 容器 smoke 覆盖。`internal/auth` 已实现
+composition root 集成测试和测试专用容器 smoke 覆盖。root runtime 变更按 ADR-0012
+等待当前候选复验。`internal/auth` 已实现
 Argon2id 密码存储、Unicode 管理员身份规范化、单管理员原子初始化，以及高熵摘要化会话、
 7 天绝对期限、重启恢复、退出撤销和 Cookie 策略，并经 SQLite adapter 接入 composition
 root。五个认证 HTTP handler、同源 Origin、session-bound CSRF、业务 API 默认拒绝、
@@ -83,7 +84,7 @@ ADR 流程。
 | UI/UX | 创建媒体库、扫描状态、目录浏览、递归浏览、非模态预览、查看器和异常恢复的可评审流程；前端分层、共享组件和响应式/无障碍要求 | 2026-07-24 完整静态原型已覆盖 15 个界面/状态；生产 token、共享组件、虚拟化、浅/深主题、390～1440px、axe、Chromium 桌面/移动与 Stage 1～4 纵向 E2E 已通过各自 Integrated Done Gate。S5-006A 又建立 Firefox/WebKit 查看器稳定状态和固定 Linux 视觉基线，Safari 26.5.2、Chrome 151 原生 200% 及 Firefox 153.0.1 核心链/原生 200%/400% 已通过；物理读屏/触控/移动设备、Safari 缩放与最终视觉签署仍待 S5-006B |
 | 数据 | 首个 schema、迁移工具、外键/索引、generation 与任务恢复测试方案 | Goose migration 1～10 已执行；媒体库 revision/removal/idempotency、扫描与媒体 durable contract、typed settings、目录/资产自然名称 keyset、asset source fingerprint、thumbnail/cache deletion、搜索规范键/FTS 与 global revision 具备真实升级与约束测试；发布版本升级仍待 Release Gate |
 | 测试 | 测试层次、合成 fixture、风险用例和发布门槛 | 原生双架构 Go/race、Web 契约、媒体、mount、runtime/recovery 与 Stage 0 SBOM CI 已通过；候选镜像/Compose 同入口已在本机原生 arm64 与指定原生 amd64 服务器通过。S5-005 的真实候选 100k/10k、100k 全量媒体、cache 水位和三引擎 100k FPS/RSS 预算已通过；S5-006A 的 Firefox/WebKit 稳定状态与 Linux 视觉基线、Safari 26.5.2 真机链、Chrome normal/forced-colors、Chrome 原生 200% 及 Firefox 153.0.1 核心链/原生 200%/400% 已通过；S5-007G 的修复来源 GLib 将本机 arm64 候选扫描降至 `0 Critical / 0 High`。物理读屏/触控/移动设备、Safari 缩放、最终原生双架构供应链复扫及正式安全/合规签署仍阻断 |
-| 部署 | 单容器 Dockerfile/Compose、非 root 权限、健康检查、备份恢复和升级流程 | 生产候选 Dockerfile、Compose、固定 UID/GID、只读根/媒体、health、媒体工具、代理、离线恢复、强杀/WAL 恢复和盘满/损坏失败关闭 smoke 已在原生 arm64/amd64 通过；两架构也已用不同的不可变候选 image ID 通过向前升级和配对回滚；S5-008 已校对 README/部署/备份/格式/限制并建立防漂移检查。最终不可变 digest、供应链和发布签署未完成 |
+| 部署 | 单容器 Dockerfile/Compose、root bind-data 兼容、健康检查、备份恢复和升级流程 | 历史非 root 候选的只读根/媒体、health、媒体工具、代理、恢复和容量证据保留；ADR-0012 已把当前镜像改为 root，以支持 Docker 自动创建的 `./data`，因此当前身份、Compose 和双架构镜像 smoke 必须重跑。最终不可变 digest、供应链和发布签署未完成 |
 | 安全 | 路径边界、媒体解析限制、同源策略、认证决策、依赖更新和日志脱敏 | FS-01 Stage 0 路径范围通过；S5-003 已覆盖可信代理 transport；候选 Compose 已验证回环发布端口、只读根、最小权限和代理失败关闭。发布 volume/unmount 仍由后续 Stage 5 Gate 阻断 |
 
 ## 环境与工具链状态
@@ -133,7 +134,7 @@ ADR 流程。
 5. **建立前端基础而非业务替身**：只为已批准 S0/S1 切片按时间盒创建最小 React/Vite 应用壳、路由、token、共享原语和组件工作台；原型不进入生产 import graph，业务 feature 等待对应后端契约与集成证据。
 6. **完成安全纵向切片**：只实现“列出允许目录 → 创建媒体库 → 安全扫描 → 索引一页媒体 → 返回缩略图状态”；先通过 Backend Ready，再实现对应 UI，全程使用合成 fixture。
 7. **补齐故障路径**：验证重叠库、离线挂载、中断扫描、路径逃逸、损坏媒体和进程重启。
-8. **容器化验收**：非 root 单容器运行，仅挂载 `/library:ro` 与 `/app/data`，演练健康检查、备份和恢复。
+8. **容器化验收**：root 单容器运行，仅挂载 `/library:ro` 与 `/app/data`，以 Docker 自动创建的数据 bind 演练健康检查、备份和恢复。
 
 在纵向切片通过前，不并行铺开搜索、分享、EXIF、watcher 或其他未来功能。
 

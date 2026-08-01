@@ -283,7 +283,7 @@ RUN dpkg --auto-deconfigure --install \
     && rm /tmp/foliopath-expat.deb \
        /tmp/foliopath-glib.deb \
        /tmp/foliopath-libvips.deb /tmp/foliopath-ffmpeg.deb
-COPY --from=build --chown=65532:65532 /out/foliopath /app/foliopath
+COPY --from=build /out/foliopath /app/foliopath
 RUN set -eu; \
     mkdir -p /rootfs/app/data /rootfs/library /rootfs/opt \
       /rootfs/usr/local/bin /rootfs/var/lib/dpkg/status.d; \
@@ -322,9 +322,7 @@ RUN set -eu; \
       >/rootfs/var/lib/dpkg/status.d/foliopath-libvips; \
     ln -s /opt/ffmpeg/bin/ffmpeg /rootfs/usr/local/bin/ffmpeg; \
     ln -s /opt/ffmpeg/bin/ffprobe /rootfs/usr/local/bin/ffprobe; \
-    chown 65532:65532 /rootfs/app/data; \
     chmod 0750 /rootfs/app/data; \
-    chown 65532:65532 /rootfs/library; \
     chmod 0555 /rootfs/library
 
 FROM gcr.io/distroless/cc-debian13@sha256:d97bc0a941b8d4be647dc0ee75b264ddbb772f1ac5ba690a4309c00723b23775
@@ -336,7 +334,7 @@ COPY --from=runtime-assemble /rootfs/ /
 ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib \
     FOLIOPATH_LISTEN=0.0.0.0:8080 \
     TZ=UTC
-USER 65532:65532
+USER 0:0
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
     CMD ["/app/foliopath", "healthcheck"]

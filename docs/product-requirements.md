@@ -68,7 +68,7 @@ MVP 不包含（稳定 ID 由 [scope manifest](releases/MVP-2026-07-23-scope.md)
 | ID | 需求 |
 | --- | --- |
 | FR-DEP-001 | 系统必须以单个 FolioPath 容器和单个 HTTP 端口运行，媒体根目录固定为 `/library`，持久数据目录固定为 `/app/data`。 |
-| FR-DEP-002 | 推荐部署必须支持仅用 `/host/media:/library:ro` 与 `/host/data:/app/data` 两个 volume 开始使用。 |
+| FR-DEP-002 | 推荐部署必须支持仅用 `/host/media:/library:ro` 与 `/host/data:/app/data` 两个 bind mount 开始使用；Docker 自动创建 root-owned 数据目录时不得要求额外 `chown`、named volume 或 Compose `user`。 |
 | FR-DEP-003 | 除宿主机挂载、网络和运行环境等容器边界外，媒体库及面向用户的应用设置必须通过 Web 界面管理并持久化。 |
 | FR-DEP-004 | 应用必须明确显示其处于规划、初始化、可用或需要处理的状态，不能把未完成初始化表现为空媒体库。 |
 | FR-DEP-005 | 推荐 Compose 必须可通过单个宿主端口直接提供受单管理员认证保护的局域网 HTTP 访问；公网或其他不可信网络的 TLS 终止与反向代理由部署者负责，不是 FolioPath 的必需部署单元。 |

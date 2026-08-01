@@ -2,7 +2,6 @@ services:
   foliopath:
     image: ${FOLIOPATH_IMAGE:-evanqu/foliopath:latest}
     restart: unless-stopped
-    user: "65532:65532"
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -12,7 +11,7 @@ services:
     environment:
       TZ: ${TZ:-UTC}
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532,mode=0700
+      - /tmp:rw,noexec,nosuid,size=16m,uid=0,gid=0,mode=0700
     ports:
       - "${FOLIOPATH_BIND_ADDRESS:-0.0.0.0}:${FOLIOPATH_PORT:-8080}:8080"
     volumes:

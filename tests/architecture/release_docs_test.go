@@ -65,6 +65,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"target: /app/data",
 		"no-new-privileges:true",
 		"- ALL",
+		"uid=0,gid=0",
 	})
 	requireFragments(t, ".env.example", environment, []string{
 		"FOLIOPATH_IMAGE=evanqu/foliopath:latest",
@@ -108,11 +109,14 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"/rootfs/var/lib/dpkg/status.d",
 		"COPY --from=runtime-assemble /rootfs/ /",
 		`CMD ["/app/foliopath", "healthcheck"]`,
-		"USER 65532:65532",
+		"USER 0:0",
 		`ENTRYPOINT ["/app/foliopath"]`,
 		"FOLIOPATH_LISTEN=0.0.0.0:8080",
 		"TZ=UTC",
 	})
+	if strings.Contains(compose, `user: "65532:65532"`) {
+		t.Error("compose.yaml must rely on the image's root runtime for bind-mounted data")
+	}
 	if strings.Contains(dockerfile, "ca-certificates curl") ||
 		strings.Contains(dockerfile, `CMD ["curl"`) {
 		t.Error("Dockerfile retains the removed production curl healthcheck closure")

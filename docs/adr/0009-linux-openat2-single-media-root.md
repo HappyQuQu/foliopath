@@ -2,7 +2,7 @@
 
 ## 状态
 
-已接受（2026-07-23）；修订 [ADR-0002](0002-library-path-model.md) 中允许把多个宿主机目录分别挂载到 `/library` 子目录的部署形式
+已接受（2026-07-23）；修订 [ADR-0002](0002-library-path-model.md) 中允许把多个宿主机目录分别挂载到 `/library` 子目录的部署形式；发布身份部分由 [ADR-0012](0012-root-runtime-bind-data.md) 替代
 
 ## 决策角色
 

@@ -3,7 +3,7 @@
 ## 状态
 
 本文描述首个可用版本的候选部署方式。Stage 5 `S5-001A` 已建立根 `Dockerfile` 候选镜像：
-它构建并嵌入真实 Vite SPA，以 UID/GID `65532:65532` 运行真实 `cmd/foliopath`，并在
+它构建并嵌入真实 Vite SPA。既有 UID/GID `65532:65532` 候选曾在
 linux/arm64 本地验证只读容器根、丢弃 capabilities、只读媒体、健康检查、MVP 媒体矩阵
 和 SIGTERM。可信代理边界已通过 `S5-003`；[CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md)
 进一步允许经认证的 LAN HTTP，根 `compose.yaml` 已通过同架构
@@ -15,6 +15,8 @@ smoke。本机 100k/10k 容量档和 Chromium/Firefox/WebKit 候选自动化也�
 这不是安全签署。当前 [S5-007 供应链 Gate](gates/MVP-2026-07-23/s5-supply-chain-candidate.md)
 的本机 arm64 修复候选为 `0 Critical / 0 High`，但仍被最终干净提交的原生双架构复扫、
 provenance 和安全/合规签署阻断。
+[ADR-0012](adr/0012-root-runtime-bind-data.md) 已将当前候选改为 root runtime，以支持
+Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据不能替代新候选复验。
 
 ## 部署目标
 
@@ -73,7 +75,7 @@ docker pull --platform linux/arm64 evanqu/foliopath:VERSION
 
 - `FOLIOPATH_IMAGE`：明确版本或 digest；不得使用会静默漂移的 `latest`；
 - `FOLIOPATH_LIBRARY_PATH`：宿主机唯一媒体呈现根；
-- `FOLIOPATH_DATA_PATH`：宿主机本地、由 UID/GID `65532:65532` 可写的数据目录；
+- `FOLIOPATH_DATA_PATH`：宿主机本地可写数据目录；默认 `./data` 可由 Docker 直接创建；
 - `FOLIOPATH_BIND_ADDRESS`：宿主端口绑定地址，默认 `0.0.0.0` 供受信局域网访问；
 - `FOLIOPATH_PORT`：宿主端口，默认 `8080`；
 - `TZ`：容器时区，默认 `UTC`，例如可改为 `Asia/Shanghai`。
@@ -91,7 +93,7 @@ docker build --build-arg VERSION=stage5-local -t foliopath:stage5-local .
 并把 Compose 中的镜像改为 `foliopath:stage5-local`，或在可选 `.env` 中将
 `FOLIOPATH_IMAGE` 设为该值，然后运行
 `docker compose up -d`。Compose 默认将宿主端口发布到所有 IPv4 接口，以
-UID/GID `65532:65532`、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
+root runtime、只读根、全部 capabilities 丢弃、`no-new-privileges` 和受限
 `/tmp` tmpfs 启动。镜像内 healthcheck 已由候选 smoke 验证。
 
 本地 tag 只标识当前源码验证，不是不可变发布引用。长期部署建议使用 Docker Hub 上的明确
@@ -152,10 +154,12 @@ Linux 版本从已锚定的 `/library` 目录文件描述符打开每个媒体�
 
 ## 文件权限
 
-- 候选镜像以固定非 root UID/GID `65532:65532` 运行。
-- 该用户对 `/library` 及所选普通子目录需要读取和目录遍历权限，对 `/app/data` 需要读写、创建、重命名和同步权限。
+- 候选镜像以 root 运行，使 Docker 自动创建的 `./data` bind 目录无需 `chown` 即可写入。
+- root runtime 扩大容器被攻破后的影响；权威 Compose 仍使用只读根、丢弃 capabilities 和
+  `no-new-privileges`，简化部署不得暴露到不可信网络。
+- 容器对 `/library` 及所选普通子目录需要读取和目录遍历权限，对 `/app/data` 需要读写、创建、重命名和同步权限。
 - 媒体映射必须使用 `:ro`。应用报“只读”不能替代 Docker 层的只读保护。
-- 建议在首次启动前创建数据目录并设置精确所有者，不使用全局可写 `0777` 作为长期方案。
+- 使用默认 `./data` 时可由 Docker 自动创建；无需预创建、`chown` 或全局可写 `0777`。
 - SELinux 主机可能需要专用 volume label；准确选项应在对应发行版验证后加入平台说明。
 
 应用需要临时文件时，应使用受控的 `/app/data/tmp` 或 Compose 中受限的 `/tmp` tmpfs。
@@ -295,7 +299,7 @@ Stage 5 候选 smoke 已在应用停止后归档完整 SQLite family，并有意
 4. 验证迁移、媒体库配置、扫描历史和抽样媒体浏览。
 5. 若宿主机媒体位置改变，先恢复相同的容器内 `/library` 布局；数据库不应依赖宿主机绝对路径。
 
-恢复目标必须由容器内 UID/GID `65532:65532` 读写。rootless Docker 或启用 user namespace
+恢复目标必须允许容器 root runtime 写入。rootless Docker 或启用 user namespace
 remapping 时，宿主机实际 ID 可能不同，应以该运行时的映射为准，不能机械执行全局
 `chown -R`。先在新目录演练并验证成功，再切换 Compose 数据目录或可选 `.env` 的
 `FOLIOPATH_DATA_PATH`；不要解包
@@ -374,8 +378,8 @@ linux/arm64 同提交候选证据仍由
 ## 发布前部署门槛
 
 - amd64/arm64 镜像通过相同集成与媒体 fixture 测试。
-- 非 root、`:ro` 媒体、capabilities 丢弃和只读根文件系统组合经过验证。
-- Compose 中的镜像、端口、UID/GID、healthcheck 和环境变量全部为真实值。
+- root runtime、`:ro` 媒体、capabilities 丢弃和只读根文件系统组合经过验证。
+- Compose 中的镜像、端口、运行身份、healthcheck 和环境变量全部为真实值。
 - 完成数据库备份/恢复、升级失败和磁盘已满演练。
 - SBOM、第三方许可证和镜像漏洞扫描纳入发布流程；候选自动化已经建立，但只有最终
   双架构 digest 的全阻断扫描、notices/provenance 与签署完成后才满足此项。
