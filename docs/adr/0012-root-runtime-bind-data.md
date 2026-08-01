@@ -27,7 +27,7 @@ volume 或在 Compose 覆盖用户均被产品操作者明确拒绝。
 
 ## 决策
 
-- 正式镜像显式声明 `USER 0:0`；Compose 和快速启动示例不设置 `user`。
+- 正式镜像不声明 `USER`，使用 Docker 默认 root 身份；Compose 和快速启动示例不设置 `user`。
 - `/app/data` 继续是唯一可写持久边界，允许直接使用 `./data:/app/data`。
 - `/library` 必须继续以 `:ro` 挂载；API、`internal/files`、`openat2`、无 symlink/no-xdev
   和单一媒体根规则不变。root 身份不得成为跨越这些边界的理由。
@@ -45,7 +45,7 @@ Docker 自动创建的 `./data` 可直接承载 SQLite，不再需要 `chown`、
 ## 验证与复审
 
 - 对应 fitness function：修订后的 `AF-012`。
-- 证据：架构测试固定 `USER 0:0`、Compose 无用户覆盖；release image/Compose smoke 使用
+- 证据：架构测试固定 Dockerfile/Compose 均无用户覆盖；release image/Compose smoke 使用
   root-owned 数据 bind 并验证数据库、health、媒体只读与优雅退出。
 - 需要复审：Docker/Compose 支持可移植的 bind ownership 初始化，或产品重新接受非 root、
   named volume、权限初始化命令或特权降权启动器。

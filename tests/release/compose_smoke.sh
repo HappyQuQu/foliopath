@@ -35,7 +35,7 @@ container=$(FOLIOPATH_IMAGE="${image}" \
 	docker compose --project-name "${project}" \
 	--file "${repo_root}/compose.yaml" ps --quiet foliopath)
 test -n "${container}"
-test "$(docker inspect --format '{{.Config.User}}' "${container}")" = "0:0"
+test -z "$(docker inspect --format '{{.Config.User}}' "${container}")"
 
 deadline=$(( $(date +%s) + 60 ))
 while [ "$(date +%s)" -lt "${deadline}" ]; do

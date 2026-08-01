@@ -107,7 +107,7 @@ test "$(docker inspect --format '{{.State.Health.Status}}' "${container}")" = "h
 
 build_release_http_client "${repo_root}"
 start_release_http_client "${http_client}" "${container}"
-test "$(docker inspect --format '{{.Config.User}}' "${container}")" = "0:0"
+test -z "$(docker inspect --format '{{.Config.User}}' "${container}")"
 test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "${container}")" = "true"
 test "$(docker inspect --format '{{.HostConfig.CapDrop}}' "${container}")" = "[ALL]"
 test "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/library"}}{{.RW}}{{end}}{{end}}' "${container}")" = "false"

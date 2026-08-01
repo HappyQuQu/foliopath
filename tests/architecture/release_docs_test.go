@@ -109,13 +109,15 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		"/rootfs/var/lib/dpkg/status.d",
 		"COPY --from=runtime-assemble /rootfs/ /",
 		`CMD ["/app/foliopath", "healthcheck"]`,
-		"USER 0:0",
 		`ENTRYPOINT ["/app/foliopath"]`,
 		"FOLIOPATH_LISTEN=0.0.0.0:8080",
 		"TZ=UTC",
 	})
 	if strings.Contains(compose, `user: "65532:65532"`) {
 		t.Error("compose.yaml must rely on the image's root runtime for bind-mounted data")
+	}
+	if strings.Contains(dockerfile, "\nUSER ") {
+		t.Error("Dockerfile final runtime must use Docker's default root identity without a USER directive")
 	}
 	if strings.Contains(dockerfile, "ca-certificates curl") ||
 		strings.Contains(dockerfile, `CMD ["curl"`) {
