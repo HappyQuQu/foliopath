@@ -59,17 +59,8 @@ services:
   foliopath:
     image: evanqu/foliopath:latest
     restart: unless-stopped
-    user: "65532:65532"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    stop_grace_period: 15s
     environment:
       TZ: Asia/Shanghai
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532,mode=0700
     ports:
       - "8080:8080"
     volumes:
@@ -162,17 +153,8 @@ services:
   foliopath:
     image: evanqu/foliopath:latest
     restart: unless-stopped
-    user: "65532:65532"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    stop_grace_period: 15s
     environment:
       TZ: Asia/Shanghai
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532,mode=0700
     ports:
       - "8080:8080"
     volumes:

@@ -60,4 +60,17 @@ func TestDockerHubReadmeUsesAbsoluteReferences(t *testing.T) {
 			}
 		}
 	}
+
+	for _, advancedComposeSetting := range []string{
+		"security_opt:",
+		"cap_drop:",
+		"stop_grace_period:",
+		`user: "65532:65532"`,
+		"read_only: true",
+		"tmpfs:",
+	} {
+		if strings.Contains(string(content), advancedComposeSetting) {
+			t.Errorf("Docker Hub quick start must omit advanced Compose setting %q", advancedComposeSetting)
+		}
+	}
 }
