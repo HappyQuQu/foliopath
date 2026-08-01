@@ -30,11 +30,15 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"provenance: true",
 		"type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}",
 		"DOCKERHUB_DESCRIPTION_TOKEN",
+		"secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN",
 		"readme-filepath: README.dockerhub.md",
 	})
 
 	if strings.Contains(workflow, "pull_request:") {
 		t.Error("Docker Hub publication must not expose registry credentials to pull requests")
+	}
+	if strings.Contains(workflow, "Skip Docker Hub overview sync") {
+		t.Error("Docker Hub overview publication must not be silently skipped")
 	}
 }
 

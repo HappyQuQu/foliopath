@@ -23,7 +23,6 @@ concurrency:
 
 env:
   IMAGE_NAME: evanqu/foliopath
-  DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
 
 jobs:
   publish:
@@ -73,15 +72,10 @@ jobs:
           provenance: true
 
       - name: Update Docker Hub overview
-        if: env.DOCKERHUB_DESCRIPTION_TOKEN != ''
         uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_DESCRIPTION_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: README.dockerhub.md
           short-description: Read-only self-hosted photo and video browser for NAS libraries.
-
-      - name: Skip Docker Hub overview sync
-        if: env.DOCKERHUB_DESCRIPTION_TOKEN == ''
-        run: echo "::notice title=Docker Hub overview skipped::Add DOCKERHUB_DESCRIPTION_TOKEN to sync README.dockerhub.md."
