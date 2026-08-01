@@ -117,7 +117,7 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 		t.Error("compose.yaml must rely on the image's root runtime for bind-mounted data")
 	}
 	if strings.Contains(dockerfile, "\nUSER ") {
-		t.Error("Dockerfile final runtime must use Docker's default root identity without a USER directive")
+		t.Error("Dockerfile final stage must inherit UID 0 from the pinned root distroless base without a USER directive")
 	}
 	if strings.Contains(dockerfile, "ca-certificates curl") ||
 		strings.Contains(dockerfile, `CMD ["curl"`) {

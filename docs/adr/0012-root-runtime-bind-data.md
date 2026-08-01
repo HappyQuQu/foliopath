@@ -27,7 +27,8 @@ volume 或在 Compose 覆盖用户均被产品操作者明确拒绝。
 
 ## 决策
 
-- 正式镜像不声明 `USER`，使用 Docker 默认 root 身份；Compose 和快速启动示例不设置 `user`。
+- 正式镜像的 Dockerfile 不声明 `USER`，从固定的 root distroless 基础镜像继承 OCI 用户
+  `0`；Compose 和快速启动示例不设置 `user`。
 - `/app/data` 继续是唯一可写持久边界，允许直接使用 `./data:/app/data`。
 - `/library` 必须继续以 `:ro` 挂载；API、`internal/files`、`openat2`、无 symlink/no-xdev
   和单一媒体根规则不变。root 身份不得成为跨越这些边界的理由。

@@ -8,7 +8,8 @@
 - Scope revision：不增加用户能力；修订 `FR-DEP-001～004` 的运行身份合同
 - 基线事件：2026-08-01 产品操作者明确要求 root runtime、bind data、无 Compose user
 - Owner：发布与运维；实现 owner 为根 `Dockerfile`、`compose.yaml` 和 `internal/app` smoke
-- 合同：Dockerfile/Compose 均不声明用户、`./data:/app/data`、`/library:ro`、ADR-0012
+- 合同：Dockerfile/Compose 均不声明用户覆盖，镜像 OCI 用户为 `0`、
+  `./data:/app/data`、`/library:ro`、ADR-0012
 - 证据：架构检查、release image smoke、Compose smoke、双架构 Docker Hub 构建
 
 ## 决定
