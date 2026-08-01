@@ -178,6 +178,12 @@ Post-MVP/1 revision 3 通过
 [`POST-MVP-1 revision 4`](releases/POST-MVP-1-scope-r4.md)，完整决定见
 [CR-2026-012](changes/CR-2026-012-nas-resource-profiles.md)。
 
+2026-08-01 用户确认 `FR-MED-013`：媒体库状态页必须把完整扫描与缩略图/视频封面、视频
+悬停预览的后台生成进度分开显示；扫描终态后只要派生队列仍活动就继续有界轮询，并单列失败
+数量。扫描仍在发现媒体或 storyboard eligibility 尚未稳定时不得显示伪造百分比。该能力属于
+[`POST-MVP-1 revision 5`](releases/POST-MVP-1-scope-r5.md)，完整决定见
+[CR-2026-014](changes/CR-2026-014-derived-media-progress.md)；它不提前实现通用任务中心。
+
 2026-07-29 确认
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)，需求 ID 为
 `FR-MED-009～011` 与 `FR-UI-008`。它为已探测视频生成最多 10 帧均匀采样的可重建

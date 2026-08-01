@@ -14,6 +14,75 @@ import (
 
 const MaxStoryboardAdmissionBatch = 128
 
+func (s *Store) GetMediaProcessingProgress(
+	ctx context.Context,
+	libraryID int64,
+) (thumbnail.ProcessingProgress, bool, error) {
+	var progress thumbnail.ProcessingProgress
+	var found int
+	err := s.db.QueryRowContext(ctx, `
+        WITH library_jobs AS (
+            SELECT job.variant, job.status, asset.kind
+            FROM media_jobs AS job
+            JOIN assets AS asset
+              ON asset.library_id = job.library_id
+             AND asset.id = job.asset_id
+            WHERE job.library_id = ?
+        )
+        SELECT
+            EXISTS(SELECT 1 FROM libraries WHERE id = ?),
+            COALESCE(SUM(variant = 'grid' AND status = 'queued'), 0),
+            COALESCE(SUM(variant = 'grid' AND status = 'running'), 0),
+            COALESCE(SUM(variant = 'grid' AND status = 'succeeded'), 0),
+            COALESCE(SUM(variant = 'grid' AND status = 'failed'), 0),
+            COALESCE(SUM(variant = 'storyboard' AND status = 'queued'), 0),
+            COALESCE(SUM(variant = 'storyboard' AND status = 'running'), 0),
+            COALESCE(SUM(variant = 'storyboard' AND status = 'succeeded'), 0),
+            COALESCE(SUM(variant = 'storyboard' AND status = 'failed'), 0),
+			(
+				SELECT COUNT(*)
+				FROM assets AS video
+				JOIN media_jobs AS grid
+				  ON grid.asset_id = video.id AND grid.variant = 'grid'
+				WHERE video.library_id = ? AND video.kind = 'video'
+				  AND (
+					grid.status IN ('queued', 'running')
+					OR (
+						grid.status = 'succeeded'
+						AND video.probe_status = 'ready'
+						AND video.duration_ms >= ?
+						AND NOT EXISTS (
+							SELECT 1 FROM media_jobs AS storyboard
+							WHERE storyboard.asset_id = video.id
+							  AND storyboard.variant = 'storyboard'
+						)
+					)
+				)
+			)
+        FROM library_jobs`,
+		libraryID,
+		libraryID,
+		libraryID,
+		thumbnail.StoryboardMinimumDurationMS,
+	).Scan(
+		&found,
+		&progress.Grid.Queued,
+		&progress.Grid.Running,
+		&progress.Grid.Succeeded,
+		&progress.Grid.Failed,
+		&progress.Storyboard.Queued,
+		&progress.Storyboard.Running,
+		&progress.Storyboard.Succeeded,
+		&progress.Storyboard.Failed,
+		&progress.StoryboardPendingEligibility,
+	)
+	if err != nil {
+		return thumbnail.ProcessingProgress{}, false,
+			fmt.Errorf("get media processing progress: %w", err)
+	}
+	return progress, found != 0, nil
+}
+
 func (s *Store) AdmitStoryboardJobs(
 	ctx context.Context,
 	limit int,

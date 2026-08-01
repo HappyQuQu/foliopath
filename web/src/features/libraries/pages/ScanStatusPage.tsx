@@ -4,7 +4,7 @@ import {
   CircleNotch,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
@@ -16,6 +16,10 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
+import type {
+  MediaJobProgress,
+  MediaProcessingProgress,
+} from "../../../lib/api/media-processing";
 import type { ScanRun, ScanStatus } from "../../../lib/api/scans";
 import {
   useLocale,
@@ -28,6 +32,7 @@ import {
   useRequestScanMutation,
   useScanQuery,
 } from "../scan-queries";
+import { useMediaProcessingProgressQuery } from "../media-processing-queries";
 import { useLibraryQuery } from "../queries";
 import styles from "./ScanStatusPage.module.css";
 
@@ -60,6 +65,17 @@ export function ScanStatusPage({
   const scanId = stateScanId ?? libraryQuery.data?.library.latestScanId ?? undefined;
   const scanQuery = useScanQuery(scanId);
   const { refetch: refreshScan } = scanQuery;
+  const scanActive =
+    scanQuery.data?.status === "queued" || scanQuery.data?.status === "running";
+  const mediaProgressQuery = useMediaProcessingProgressQuery(
+    libraryId,
+    scanActive,
+  );
+  const { refetch: refreshMediaProgress } = mediaProgressQuery;
+
+  useEffect(() => {
+    if (scanQuery.data && !scanActive) void refreshMediaProgress();
+  }, [refreshMediaProgress, scanActive, scanQuery.data]);
 
   return (
     <ManagementShell
@@ -112,6 +128,9 @@ export function ScanStatusPage({
         {libraryQuery.isSuccess && scanQuery.isSuccess && (
           <ScanDetails
             libraryName={libraryQuery.data.library.name}
+            mediaProgress={mediaProgressQuery.data}
+            mediaProgressError={mediaProgressQuery.isError}
+            onRefreshMediaProgress={() => void refreshMediaProgress()}
             scan={scanQuery.data}
             session={session}
           />
@@ -165,10 +184,16 @@ function NoScan({
 
 function ScanDetails({
   libraryName,
+  mediaProgress,
+  mediaProgressError,
+  onRefreshMediaProgress,
   scan,
   session,
 }: {
   libraryName: string;
+  mediaProgress: MediaProcessingProgress | undefined;
+  mediaProgressError: boolean;
+  onRefreshMediaProgress: () => void;
   scan: ScanRun;
   session: AuthenticatedSession;
 }) {
@@ -297,6 +322,13 @@ function ScanDetails({
         </dl>
       </section>
 
+      <DerivedMediaProgress
+        error={mediaProgressError}
+        onRetry={onRefreshMediaProgress}
+        progress={mediaProgress}
+        scanActive={active}
+      />
+
       {scan.issues.length > 0 && (
         <section className={styles.issues} aria-labelledby="issues-title">
           <h2 id="issues-title">{t("scan.issueSummary")}</h2>
@@ -341,6 +373,135 @@ function ScanDetails({
         )}
       </div>
     </>
+  );
+}
+
+function DerivedMediaProgress({
+  error,
+  onRetry,
+  progress,
+  scanActive,
+}: {
+  error: boolean;
+  onRetry: () => void;
+  progress: MediaProcessingProgress | undefined;
+  scanActive: boolean;
+}) {
+  const { locale, t } = useLocale();
+  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+
+  if (error) {
+    return (
+      <section className={styles.derived} aria-labelledby="derived-title">
+        <h2 id="derived-title">{t("scan.mediaProcessing")}</h2>
+        <ErrorState message={t("scan.mediaProcessingFailed")} onRetry={onRetry} />
+      </section>
+    );
+  }
+  if (!progress) {
+    return (
+      <section className={styles.derived} aria-labelledby="derived-title">
+        <h2 id="derived-title">{t("scan.mediaProcessing")}</h2>
+        <LoadingState label={t("scan.mediaProcessingLoading")} />
+      </section>
+    );
+  }
+
+  const active = scanActive || progress.active;
+  return (
+    <section
+      aria-labelledby="derived-title"
+      className={styles.derived}
+    >
+      <div className={styles.progressHeading}>
+        <div>
+          <h2 id="derived-title">{t("scan.mediaProcessing")}</h2>
+          <p>{t("scan.mediaProcessingDescription")}</p>
+        </div>
+        <InlineStatus tone={active ? "info" : "success"}>
+          {active ? t("scan.mediaProcessingActive") : t("scan.mediaProcessingComplete")}
+        </InlineStatus>
+      </div>
+      <div className={styles.derivedList}>
+        <DerivedMediaRow
+          label={t("scan.thumbnails")}
+          number={number}
+          progress={progress.thumbnails}
+          stable={!scanActive}
+        />
+        <DerivedMediaRow
+          label={t("scan.videoPreviews")}
+          number={number}
+          progress={progress.videoPreviews}
+          stable={
+            !scanActive && progress.videoPreviewsPendingEligibility === 0
+          }
+          waiting={progress.videoPreviewsPendingEligibility}
+        />
+      </div>
+    </section>
+  );
+}
+
+function DerivedMediaRow({
+  label,
+  number,
+  progress,
+  stable,
+  waiting = 0,
+}: {
+  label: string;
+  number: Intl.NumberFormat;
+  progress: MediaJobProgress;
+  stable: boolean;
+  waiting?: number;
+}) {
+  const { t } = useLocale();
+  const progressLabel = t("scan.mediaProcessingCount")
+    .replace("{processed}", number.format(progress.processed))
+    .replace("{total}", number.format(progress.total));
+  return (
+    <article className={styles.derivedRow}>
+      <div className={styles.derivedRowHeading}>
+        <strong>{label}</strong>
+        <span>{progressLabel}</span>
+      </div>
+      <progress
+        aria-label={`${label} · ${progressLabel}`}
+        max={Math.max(1, progress.total)}
+        value={stable ? (progress.total === 0 ? 1 : progress.processed) : undefined}
+      />
+      <div className={styles.derivedMeta}>
+        <span>
+          {t("scan.mediaProcessingQueued").replace(
+            "{count}",
+            number.format(progress.queued),
+          )}
+        </span>
+        <span>
+          {t("scan.mediaProcessingRunning").replace(
+            "{count}",
+            number.format(progress.running),
+          )}
+        </span>
+        {waiting > 0 && (
+          <span>
+            {t("scan.mediaProcessingWaiting").replace(
+              "{count}",
+              number.format(waiting),
+            )}
+          </span>
+        )}
+        {progress.failed > 0 && (
+          <span className={styles.failedCount}>
+            {t("scan.mediaProcessingFailures").replace(
+              "{count}",
+              number.format(progress.failed),
+            )}
+          </span>
+        )}
+      </div>
+    </article>
   );
 }
 

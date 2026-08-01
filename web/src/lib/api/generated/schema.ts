@@ -594,6 +594,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/media-processing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get thumbnail and video-preview generation progress for a library
+         * @description Returns an aggregate projection of the durable per-asset derived-media
+         *     queue. Thumbnail/poster work and lower-priority video storyboard work
+         *     remain separate. `processed` includes both succeeded and terminally
+         *     failed work so clients can show completion without hiding failures.
+         *     Video preview totals are not stable while
+         *     `videoPreviewsPendingEligibility` is non-zero because eligibility is
+         *     determined only after the video's grid poster and metadata are ready.
+         */
+        get: operations["getLibraryMediaProcessingProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/scans": {
         parameters: {
             query?: never;
@@ -1187,6 +1216,34 @@ export interface components {
          *     `invalid_credentials` response as an incorrect password.
          */
         LoginUsername: string;
+        MediaJobProgress: {
+            /** Format: int64 */
+            failed: number;
+            /**
+             * Format: int64
+             * @description Terminal jobs, equal to succeeded plus failed.
+             */
+            processed: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            running: number;
+            /** Format: int64 */
+            succeeded: number;
+            /** Format: int64 */
+            total: number;
+        };
+        MediaProcessingProgress: {
+            /** @description True while either queue is active or video preview eligibility is still pending. */
+            active: boolean;
+            thumbnails: components["schemas"]["MediaJobProgress"];
+            videoPreviews: components["schemas"]["MediaJobProgress"];
+            /**
+             * Format: int64
+             * @description Videos whose grid work or bounded storyboard admission must finish before the total is final.
+             */
+            videoPreviewsPendingEligibility: number;
+        };
         NotReadyResponse: {
             /**
              * @description Safe operational reason for a failed readiness probe.
@@ -2775,6 +2832,34 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryMediaProcessingProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current aggregate derived-media processing state. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaProcessingProgress"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];

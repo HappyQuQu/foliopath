@@ -72,8 +72,8 @@ func TestOpenAPIDeclaresRepositoryLicenseAndFrozenBaseline(t *testing.T) {
 		"name: AGPL-3.0-or-later",
 		"status: authoritative",
 		"targetVersion: POST-MVP-1",
-		"scopeRevision: 4",
-		"baselineEvent: CR-2026-012",
+		"scopeRevision: 5",
+		"baselineEvent: CR-2026-014",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("OpenAPI metadata is missing %q", required)
@@ -129,6 +129,7 @@ func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 		"GET /api/v1/library-removals/{removalId}",
 		"GET /api/v1/libraries/{libraryId}/scans",
 		"POST /api/v1/libraries/{libraryId}/scans",
+		"GET /api/v1/libraries/{libraryId}/media-processing",
 		"GET /api/v1/scans/{scanId}",
 		"POST /api/v1/scans/{scanId}/cancel",
 		"GET /api/v1/libraries/{libraryId}/directories",

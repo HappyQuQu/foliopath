@@ -55,6 +55,38 @@ func TestMediaJobClaimIsFairAcrossLibraries(t *testing.T) {
 	}
 }
 
+func TestMediaProcessingProgressAggregatesCurrentLibraryJobs(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedStoryboardAsset(t, store.db)
+	ctx := context.Background()
+	if _, err := store.db.ExecContext(ctx, `
+		INSERT INTO media_jobs(
+			library_id, asset_id, variant, priority, transform_version,
+			source_fingerprint, status, available_at_ms, attempt_count,
+			created_at_ms, started_at_ms, heartbeat_at_ms, lease_expires_at_ms
+		) VALUES
+			(1, 1, 'grid', 0, 1, 'v1:42:100', 'running', 0, 1, 1,
+			 1, 1, 100);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	progress, found, err := store.GetMediaProcessingProgress(ctx, 1)
+	if err != nil || !found {
+		t.Fatalf("progress = %#v, found %t, error %v", progress, found, err)
+	}
+	if progress.Grid.Running != 1 || progress.Grid.Total() != 1 ||
+		progress.Storyboard.Total() != 0 ||
+		progress.StoryboardPendingEligibility != 1 || !progress.Active() {
+		t.Fatalf("progress = %#v", progress)
+	}
+
+	empty, found, err := store.GetMediaProcessingProgress(ctx, 999)
+	if err != nil || found || empty != (thumbnail.ProcessingProgress{}) {
+		t.Fatalf("missing progress = %#v, found %t, error %v", empty, found, err)
+	}
+}
+
 func TestMediaJobClaimStrictlyPrioritizesGridBeforeStoryboard(t *testing.T) {
 	store, _ := openTestStore(t)
 	seedBrowseCatalog(t, store)

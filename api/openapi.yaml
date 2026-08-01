@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Authoritative HTTP contract for the FolioPath POST-MVP-1 scope,
-    revision 4.
+    revision 5.
 
     All business endpoints use an authenticated same-origin browser session.
     State-changing authenticated operations additionally require the
@@ -21,8 +21,8 @@ info:
 x-foliopath-contract:
   status: authoritative
   targetVersion: POST-MVP-1
-  scopeRevision: 4
-  baselineEvent: CR-2026-012
+  scopeRevision: 5
+  baselineEvent: CR-2026-014
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -1247,6 +1247,46 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/media-processing:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [Media]
+      operationId: getLibraryMediaProcessingProgress
+      summary: Get thumbnail and video-preview generation progress for a library
+      description: |
+        Returns an aggregate projection of the durable per-asset derived-media
+        queue. Thumbnail/poster work and lower-priority video storyboard work
+        remain separate. `processed` includes both succeeded and terminally
+        failed work so clients can show completion without hiding failures.
+        Video preview totals are not stable while
+        `videoPreviewsPendingEligibility` is non-zero because eligibility is
+        determined only after the video's grid poster and metadata are ready.
+      x-requirements: [FR-MED-013, FR-SCN-006, FR-MED-001, FR-MED-009, FR-MED-010, FR-UI-008]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Current aggregate derived-media processing state.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaProcessingProgress'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -3416,6 +3456,59 @@ components:
             $ref: '#/components/schemas/ScanRun'
         nextCursor:
           $ref: '#/components/schemas/NullableCursor'
+
+    MediaJobProgress:
+      type: object
+      additionalProperties: false
+      required: [total, processed, queued, running, succeeded, failed]
+      properties:
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+        processed:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Terminal jobs, equal to succeeded plus failed.
+        queued:
+          type: integer
+          format: int64
+          minimum: 0
+        running:
+          type: integer
+          format: int64
+          minimum: 0
+        succeeded:
+          type: integer
+          format: int64
+          minimum: 0
+        failed:
+          type: integer
+          format: int64
+          minimum: 0
+
+    MediaProcessingProgress:
+      type: object
+      additionalProperties: false
+      required:
+        - active
+        - thumbnails
+        - videoPreviews
+        - videoPreviewsPendingEligibility
+      properties:
+        active:
+          type: boolean
+          description: True while either queue is active or video preview eligibility is still pending.
+        thumbnails:
+          $ref: '#/components/schemas/MediaJobProgress'
+        videoPreviews:
+          $ref: '#/components/schemas/MediaJobProgress'
+        videoPreviewsPendingEligibility:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Videos whose grid work or bounded storyboard admission must finish before the total is final.
 
     Breadcrumb:
       type: object

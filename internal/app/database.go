@@ -43,6 +43,7 @@ type databaseStore interface {
 	thumbnail.CacheRepository
 	thumbnail.CleanupRepository
 	thumbnail.JobCompletionRepository
+	thumbnail.ProgressRepository
 	thumbnail.DeliveryRepository
 	media.ContentRepository
 	scanQueueStore
@@ -378,6 +379,18 @@ func (service *databaseService) FinishMediaJob(
 		return thumbnail.ErrRepositoryNotReady
 	}
 	return service.store.FinishMediaJob(ctx, job, result)
+}
+
+func (service *databaseService) GetMediaProcessingProgress(
+	ctx context.Context,
+	libraryID int64,
+) (thumbnail.ProcessingProgress, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ProcessingProgress{}, false, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.GetMediaProcessingProgress(ctx, libraryID)
 }
 
 type scanQueueStore interface {

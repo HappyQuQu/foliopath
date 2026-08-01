@@ -361,6 +361,7 @@ composition，并用自动 fixture 固定中文、英文、大小写、组合字
 | --- | --- | --- |
 | `GET` | `/api/v1/assets/{assetId}` | 获取媒体详情和派生状态 |
 | `GET` | `/api/v1/assets/{assetId}/thumbnail?variant=grid` | 返回允许的缩略图变体 |
+| `GET` | `/api/v1/libraries/{libraryId}/media-processing` | 返回每库 thumbnail/poster 与 storyboard 的只读聚合进度 |
 | `GET` | `/api/v1/assets/{assetId}/content` | 返回原始图片或浏览器兼容视频 |
 
 内容响应要求：

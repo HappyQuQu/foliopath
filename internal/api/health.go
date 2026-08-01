@@ -48,6 +48,7 @@ type RouteDependencies struct {
 	Libraries        LibraryLifecycleService
 	ScanAdmission    ScanAdmissionService
 	Scans            ScanQueryService
+	MediaProgress    MediaProgressService
 	Settings         SettingsService
 	Catalog          CatalogService
 	Thumbnails       ThumbnailService
@@ -89,6 +90,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Scans != nil {
 		registerScanQueryRoutes(mux, dependencies.Scans)
+	}
+	if dependencies.MediaProgress != nil {
+		registerMediaProgressRoute(mux, dependencies.MediaProgress)
 	}
 	if dependencies.Settings != nil {
 		registerSettingsRoutes(mux, dependencies.Settings)

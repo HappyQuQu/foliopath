@@ -322,6 +322,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct thumbnail delivery service: %w", err)
 	}
+	mediaProgress, err := thumbnail.NewProgressService(database)
+	if err != nil {
+		return nil, fmt.Errorf("construct media progress service: %w", err)
+	}
 	mediaProcessor, err := thumbnail.NewClaimedProcessor(
 		thumbnailService, storyboardService, database,
 	)
@@ -370,6 +374,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Libraries:        libraries,
 		ScanAdmission:    scanAdmission,
 		Scans:            scanQueries,
+		MediaProgress:    mediaProgress,
 		Settings:         settingsService,
 		Catalog:          catalogService,
 		Thumbnails:       thumbnailDelivery,
