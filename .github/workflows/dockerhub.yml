@@ -79,9 +79,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_DESCRIPTION_TOKEN }}
           repository: ${{ env.IMAGE_NAME }}
-          readme-filepath: README.md
+          readme-filepath: README.dockerhub.md
           short-description: Read-only self-hosted photo and video browser for NAS libraries.
 
       - name: Skip Docker Hub overview sync
         if: env.DOCKERHUB_DESCRIPTION_TOKEN == ''
-        run: echo "::notice title=Docker Hub overview skipped::Add DOCKERHUB_DESCRIPTION_TOKEN to sync README.md."
+        run: echo "::notice title=Docker Hub overview skipped::Add DOCKERHUB_DESCRIPTION_TOKEN to sync README.dockerhub.md."

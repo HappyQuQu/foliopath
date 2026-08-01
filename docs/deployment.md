@@ -37,7 +37,7 @@ provenance 和安全/合规签署阻断。
 | --- | --- | --- |
 | Secret | `DOCKERHUB_USERNAME` | Docker Hub 用户名或组织机器人账号 |
 | Secret | `DOCKERHUB_TOKEN` | 具备目标仓库推送所需最小权限的 Docker Hub access token |
-| Secret（可选） | `DOCKERHUB_DESCRIPTION_TOKEN` | 同步根 README 到 Docker Hub Overview |
+| Secret（可选） | `DOCKERHUB_DESCRIPTION_TOKEN` | 同步专用 `README.dockerhub.md` 到 Docker Hub Overview |
 
 触发与标签规则：
 
@@ -46,7 +46,8 @@ provenance 和安全/合规签署阻断。
   和 `latest`。
 - 从 Actions 手动运行时必须指定标签，默认是 `edge`，不会更新 `latest`。
 - 单个 GitHub-hosted runner 通过 Buildx/QEMU 构建并推送 amd64 与 arm64 manifest。
-- 构建附带 SBOM 和 provenance；配置可选 description token 时同步根 README。
+- 构建附带 SBOM 和 provenance；配置可选 description token 时同步专用
+  `README.dockerhub.md`。
 
 发布完成后验证：
 
