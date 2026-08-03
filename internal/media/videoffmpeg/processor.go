@@ -253,12 +253,14 @@ func (processor *Processor) storyboardFrame(
 		"pipe:1",
 	)
 	if err != nil {
-		return nil, classifyCommandError(ctx, err)
+		return nil, classifyCommandError(ctx, err, media.StageFrameExtract, "ffmpeg")
 	}
 	pngSignature := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
 	if len(output) < len(pngSignature) ||
 		!bytes.Equal(output[:len(pngSignature)], pngSignature) {
-		return nil, media.ErrProcessingFailed
+		return nil, media.WithFailureDiagnostic(media.ErrProcessingFailed, media.FailureDiagnostic{
+			Stage: media.StageValidation, Reason: media.ReasonNoFrame, Tool: "ffmpeg",
+		})
 	}
 	return output, nil
 }
@@ -313,7 +315,7 @@ func (processor *Processor) composeStoryboard(
 		args...,
 	)
 	if err != nil {
-		return nil, classifyCommandError(ctx, err)
+		return nil, classifyCommandError(ctx, err, media.StageCompose, "ffmpeg")
 	}
 	return output, nil
 }
@@ -328,7 +330,7 @@ func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDo
 		"-i", inheritedFilePath(),
 	)
 	if err != nil {
-		return probeDocument{}, classifyCommandError(ctx, err)
+		return probeDocument{}, classifyCommandError(ctx, err, media.StageProbe, "ffprobe")
 	}
 	var document probeDocument
 	if err := json.Unmarshal(output, &document); err != nil {
@@ -356,10 +358,12 @@ func (processor *Processor) poster(ctx context.Context, source *os.File) ([]byte
 		"pipe:1",
 	)
 	if err != nil {
-		return nil, classifyCommandError(ctx, err)
+		return nil, classifyCommandError(ctx, err, media.StagePoster, "ffmpeg")
 	}
 	if len(output) == 0 {
-		return nil, media.ErrInvalidMedia
+		return nil, media.WithFailureDiagnostic(media.ErrInvalidMedia, media.FailureDiagnostic{
+			Stage: media.StageValidation, Reason: media.ReasonNoFrame, Tool: "ffmpeg",
+		})
 	}
 	return output, nil
 }
@@ -416,12 +420,12 @@ func (processor *Processor) runCommand(
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
 		if stdout.exceeded || stderr.exceeded {
-			return nil, media.ErrProcessingFailed
+			return nil, &commandExecutionError{cause: media.ErrProcessingFailed, outputExceeded: true}
 		}
-		return nil, err
+		return nil, &commandExecutionError{cause: err, stderr: stderr.Bytes()}
 	}
 	if stdout.exceeded || stderr.exceeded {
-		return nil, media.ErrProcessingFailed
+		return nil, &commandExecutionError{cause: media.ErrProcessingFailed, outputExceeded: true}
 	}
 	return stdout.Bytes(), nil
 }
@@ -457,15 +461,62 @@ func inheritedFilePath() string {
 	return "/dev/fd/3"
 }
 
-func classifyCommandError(ctx context.Context, err error) error {
+type commandExecutionError struct {
+	cause          error
+	stderr         []byte
+	outputExceeded bool
+}
+
+func (err *commandExecutionError) Error() string { return err.cause.Error() }
+func (err *commandExecutionError) Unwrap() error { return err.cause }
+
+func classifyCommandError(
+	ctx context.Context,
+	err error,
+	stage media.FailureStage,
+	tool string,
+) error {
+	diagnostic := media.FailureDiagnostic{Stage: stage, Reason: media.ReasonToolFailed, Tool: tool}
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return ctxErr
+		diagnostic.Reason = media.ReasonTimedOut
+		return media.WithFailureDiagnostic(ctxErr, diagnostic)
+	}
+	var commandError *commandExecutionError
+	if errors.As(err, &commandError) {
+		if commandError.outputExceeded {
+			diagnostic.Reason = media.ReasonOutputLimit
+			return media.WithFailureDiagnostic(media.ErrProcessingFailed, diagnostic)
+		}
+		diagnostic.Reason = classifyFFmpegReason(string(commandError.stderr))
 	}
 	var exitError *exec.ExitError
 	if errors.As(err, &exitError) {
-		return media.ErrInvalidMedia
+		exitCode := exitError.ExitCode()
+		diagnostic.ExitCode = &exitCode
+		return media.WithFailureDiagnostic(media.ErrInvalidMedia, diagnostic)
 	}
-	return media.ErrProcessingFailed
+	return media.WithFailureDiagnostic(media.ErrProcessingFailed, diagnostic)
+}
+
+func classifyFFmpegReason(stderr string) media.FailureReason {
+	message := strings.ToLower(stderr)
+	switch {
+	case strings.Contains(message, "moov atom not found"):
+		return media.ReasonMissingMoovAtom
+	case strings.Contains(message, "decoder") &&
+		(strings.Contains(message, "not found") || strings.Contains(message, "unknown")):
+		return media.ReasonDecoderUnavailable
+	case strings.Contains(message, "invalid data found"):
+		return media.ReasonInvalidData
+	case strings.Contains(message, "error while decoding"),
+		strings.Contains(message, "decode_slice_header error"):
+		return media.ReasonDecodeFailed
+	case strings.Contains(message, "output file is empty"),
+		strings.Contains(message, "could not find codec parameters"):
+		return media.ReasonNoFrame
+	default:
+		return media.ReasonToolFailed
+	}
 }
 
 func firstVideoStream(document probeDocument) (struct {

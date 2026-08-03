@@ -4,12 +4,13 @@ import {
   CircleNotch,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
   Button,
+  Dialog,
   ErrorState,
   InlineStatus,
   LoadingState,
@@ -27,6 +28,7 @@ import {
 } from "../../../lib/i18n/LocaleProvider";
 import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
+import { useRepairMediaProcessingMutation } from "../../diagnostics";
 import {
   useCancelScanMutation,
   useRequestScanMutation,
@@ -201,6 +203,8 @@ function ScanDetails({
   const toast = useToast();
   const requestMutation = useRequestScanMutation();
   const cancelMutation = useCancelScanMutation();
+  const repairMediaProcessing = useRepairMediaProcessingMutation();
+  const [rebuildOpen, setRebuildOpen] = useState(false);
   const runSubmission = useSubmissionGuard();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
@@ -244,6 +248,29 @@ function ScanDetails({
         });
       } catch {
         toast.show({ message: t("scan.cancelFailed"), tone: "danger" });
+      }
+    });
+  }
+
+  async function processMedia(mode: "missing" | "all") {
+    await runSubmission(async () => {
+      try {
+        const summary = await repairMediaProcessing.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: scan.libraryId,
+          mode,
+        });
+        onRefreshMediaProgress();
+        if (mode === "all") setRebuildOpen(false);
+        toast.show({
+          message: t("scan.mediaActionQueued").replace(
+            "{count}",
+            String(summary.requeued),
+          ),
+          tone: summary.requeued > 0 ? "success" : "neutral",
+        });
+      } catch {
+        toast.show({ message: t("scan.mediaActionFailed"), tone: "danger" });
       }
     });
   }
@@ -363,15 +390,65 @@ function ScanDetails({
             {cancelling ? t("scan.cancelling") : t("scan.cancel")}
           </Button>
         ) : (
-          <Button
-            loading={requestMutation.isPending}
-            onClick={() => void requestScan()}
-            variant="primary"
-          >
-            {t("libraries.rescan")}
-          </Button>
+          <>
+            <Button
+              loading={requestMutation.isPending}
+              onClick={() => void requestScan()}
+              variant="quiet"
+            >
+              {t("scan.rescanFiles")}
+            </Button>
+            <Button
+              disabled={!mediaProgress || repairMediaProcessing.isPending}
+              loading={
+                repairMediaProcessing.isPending &&
+                repairMediaProcessing.variables?.mode === "missing"
+              }
+              onClick={() => void processMedia("missing")}
+              variant="secondary"
+            >
+              {t("scan.fillMissing")}
+            </Button>
+            <Button
+              disabled={!mediaProgress || repairMediaProcessing.isPending}
+              loading={
+                repairMediaProcessing.isPending &&
+                repairMediaProcessing.variables?.mode === "all"
+              }
+              onClick={() => setRebuildOpen(true)}
+              variant="primary"
+            >
+              {t("scan.rebuildAll")}
+            </Button>
+          </>
         )}
       </div>
+      <Dialog
+        actions={
+          <>
+            <Button onClick={() => setRebuildOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              loading={repairMediaProcessing.isPending}
+              onClick={() => void processMedia("all")}
+              variant="primary"
+            >
+              {t("scan.rebuildAll")}
+            </Button>
+          </>
+        }
+        description={t("scan.rebuildAllDescription")}
+        onOpenChange={(open) => {
+          if (!repairMediaProcessing.isPending) setRebuildOpen(open);
+        }}
+        open={rebuildOpen}
+        title={t("scan.rebuildAllTitle")}
+      >
+        <InlineStatus tone="warning">
+          {t("scan.rebuildAllWarning")}
+        </InlineStatus>
+      </Dialog>
     </>
   );
 }
@@ -472,6 +549,12 @@ function DerivedMediaRow({
         value={stable ? (progress.total === 0 ? 1 : progress.processed) : undefined}
       />
       <div className={styles.derivedMeta}>
+        <span>
+          {t("scan.mediaProcessingSucceeded").replace(
+            "{count}",
+            number.format(progress.succeeded),
+          )}
+        </span>
         <span>
           {t("scan.mediaProcessingQueued").replace(
             "{count}",

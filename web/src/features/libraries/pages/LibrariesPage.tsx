@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
@@ -21,10 +21,12 @@ import {
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/errors";
+import type { MediaJobProgress } from "../../../lib/api/media-processing";
 import type {
   LibraryStatus,
   LibrarySummary,
 } from "../../../lib/api/libraries";
+import type { ScanStatus } from "../../../lib/api/scans";
 import {
   useLocale,
   type MessageKey,
@@ -32,7 +34,17 @@ import {
 import { createRequestKey } from "../../../lib/requestKey";
 import { useSubmissionGuard } from "../../../lib/useSubmissionGuard";
 import { paths } from "../../../routes/paths";
-import { useRequestScanMutation } from "../scan-queries";
+import { useRepairMediaProcessingMutation } from "../../diagnostics";
+import {
+  mediaProcessingIsActive,
+  useMediaProcessingProgressQuery,
+} from "../media-processing-queries";
+import {
+  isActiveScan,
+  useCancelScanMutation,
+  useRequestScanMutation,
+  useScanQuery,
+} from "../scan-queries";
 import {
   libraryKeys,
   useLibrariesQuery,
@@ -41,6 +53,12 @@ import {
   useRenameLibraryMutation,
 } from "../queries";
 import styles from "./LibrariesPage.module.css";
+import {
+  LibraryProcessingResults,
+  LibraryScanRecords,
+} from "./LibraryRecords";
+
+type LibraryView = "libraries" | "scans" | "results";
 
 const statusMessage: Record<LibraryStatus, MessageKey> = {
   pending: "libraries.statusPending",
@@ -60,6 +78,13 @@ export function LibrariesPage({
   session: AuthenticatedSession;
 }) {
   const { t } = useLocale();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: LibraryView =
+    searchParams.get("view") === "scans"
+      ? "scans"
+      : searchParams.get("view") === "results"
+        ? "results"
+        : "libraries";
   const query = useLibrariesQuery();
   const {
     fetchNextPage: loadNextPage,
@@ -93,7 +118,13 @@ export function LibrariesPage({
           hasMore={query.hasNextPage}
           libraries={libraries}
           onLoadMore={() => void loadNextPage()}
+          onViewChange={(nextView) => {
+            const next = new URLSearchParams();
+            if (nextView !== "libraries") next.set("view", nextView);
+            setSearchParams(next, { replace: true });
+          }}
           session={session}
+          view={view}
         />
       )}
     </ManagementShell>
@@ -163,19 +194,27 @@ function LibraryList({
   hasMore,
   libraries,
   onLoadMore,
+  onViewChange,
   session,
+  view,
 }: {
   fetchingMore: boolean;
   hasMore: boolean;
   libraries: LibrarySummary[];
   onLoadMore: () => void;
+  onViewChange: (view: LibraryView) => void;
   session: AuthenticatedSession;
+  view: LibraryView;
 }) {
   const { locale, t } = useLocale();
   const navigate = useNavigate();
   const numberFormatter = useMemo(
     () => new Intl.NumberFormat(locale),
     [locale],
+  );
+  const [searchParams] = useSearchParams();
+  const [statusLibraryId, setStatusLibraryId] = useState<string | undefined>(
+    searchParams.get("status") ?? undefined,
   );
 
   return (
@@ -186,39 +225,73 @@ function LibraryList({
           <h1 id="libraries-title">{t("libraries.title")}</h1>
           <p>{t("libraries.description")}</p>
         </div>
-        <Button onClick={() => navigate(paths.newLibrary)} variant="primary">
-          <Plus aria-hidden="true" size={18} />
-          {t("libraries.create")}
-        </Button>
+        {view === "libraries" && (
+          <Button onClick={() => navigate(paths.newLibrary)} variant="primary">
+            <Plus aria-hidden="true" size={18} />
+            {t("libraries.create")}
+          </Button>
+        )}
       </header>
-      <div className={styles.list}>
-        {libraries.map((library) => (
-          <LibraryRow
-            key={library.id}
-            library={library}
-            numberFormatter={numberFormatter}
-            session={session}
-          />
+      <div className={styles.tabs} role="tablist" aria-label={t("libraryRecords.views")}>
+        {(["libraries", "scans", "results"] as const).map((item) => (
+          <Button
+            aria-selected={view === item}
+            key={item}
+            onClick={() => onViewChange(item)}
+            role="tab"
+            variant={view === item ? "secondary" : "quiet"}
+          >
+            {t(`libraryRecords.${item}Tab` as MessageKey)}
+          </Button>
         ))}
       </div>
-      {hasMore && (
-        <div className={styles.loadMore}>
-          <Button loading={fetchingMore} onClick={onLoadMore}>
-            {t("libraries.loadMore")}
-          </Button>
-        </div>
+
+      {view === "libraries" && (
+        <>
+          <div className={styles.list} role="tabpanel">
+            {libraries.map((library) => (
+              <LibraryRow
+                expanded={statusLibraryId === library.id}
+                key={library.id}
+                library={library}
+                numberFormatter={numberFormatter}
+                onViewStatus={() =>
+                  setStatusLibraryId((current) =>
+                    current === library.id ? undefined : library.id,
+                  )
+                }
+                session={session}
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <div className={styles.loadMore}>
+              <Button loading={fetchingMore} onClick={onLoadMore}>
+                {t("libraries.loadMore")}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+      {view === "scans" && <LibraryScanRecords libraries={libraries} />}
+      {view === "results" && (
+        <LibraryProcessingResults libraries={libraries} />
       )}
     </section>
   );
 }
 
 function LibraryRow({
+  expanded,
   library,
   numberFormatter,
+  onViewStatus,
   session,
 }: {
+  expanded: boolean;
   library: LibrarySummary;
   numberFormatter: Intl.NumberFormat;
+  onViewStatus: () => void;
   session: AuthenticatedSession;
 }) {
   const { t } = useLocale();
@@ -227,7 +300,6 @@ function LibraryRow({
   const queryClient = useQueryClient();
   const renameMutation = useRenameLibraryMutation();
   const removeMutation = useRemoveLibraryMutation();
-  const scanMutation = useRequestScanMutation();
   const [renameOpen, setRenameOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [nextName, setNextName] = useState(library.name);
@@ -302,32 +374,19 @@ function LibraryRow({
     });
   }
 
-  async function requestScan() {
-    setActionError(undefined);
-    await runSubmission(async () => {
-      try {
-        const scan = await scanMutation.mutateAsync({
-          csrfToken: session.csrfToken,
-          libraryId: library.id,
-        });
-        navigate(paths.libraryStatus(library.id), {
-          state: { scanId: scan.id },
-        });
-      } catch (error) {
-        toast.show({ message: actionMessage(error, t), tone: "danger" });
-      }
-    });
-  }
-
   const removalActive =
     removeMutation.isPending ||
     removalQuery.data?.status === "queued" ||
     removalQuery.data?.status === "running";
   const removalFailed = removalQuery.data?.status === "failed";
 
+  const statusPanelId = `library-status-${library.id}`;
+
   return (
-    <>
-      <article className={styles.library}>
+    <div className={styles.libraryGroup}>
+      <article
+        className={`${styles.library} ${expanded ? styles.libraryExpanded : ""}`}
+      >
         <div className={styles.libraryIcon}>
           <FolderOpen aria-hidden="true" size={24} weight="duotone" />
         </div>
@@ -354,8 +413,10 @@ function LibraryRow({
             {t("libraries.browse")}
           </Button>
           <Button
+            aria-controls={statusPanelId}
+            aria-expanded={expanded}
             disabled={!library.latestScanId}
-            onClick={() => navigate(paths.libraryStatus(library.id))}
+            onClick={onViewStatus}
             size="small"
             title={
               library.latestScanId
@@ -363,16 +424,7 @@ function LibraryRow({
                 : t("libraries.noScanAvailable")
             }
           >
-            {t("libraries.viewStatus")}
-          </Button>
-          <Button
-            loading={scanMutation.isPending}
-            onClick={() => void requestScan()}
-            size="small"
-          >
-            {library.status === "offline"
-              ? t("libraries.retryOffline")
-              : t("libraries.rescan")}
+            {expanded ? t("libraries.hideStatus") : t("libraries.viewStatus")}
           </Button>
           <Button onClick={openRename} size="small" variant="quiet">
             {t("libraries.rename")}
@@ -390,6 +442,14 @@ function LibraryRow({
           </Button>
         </div>
       </article>
+
+      {expanded && (
+        <LibraryInlineStatus
+          id={statusPanelId}
+          library={library}
+          session={session}
+        />
+      )}
 
       <Dialog
         actions={
@@ -475,8 +535,320 @@ function LibraryRow({
           {t("libraries.originalsSafe")}
         </InlineStatus>
       </Dialog>
-    </>
+    </div>
   );
+}
+
+function LibraryInlineStatus({
+  id,
+  library,
+  session,
+}: {
+  id: string;
+  library: LibrarySummary;
+  session: AuthenticatedSession;
+}) {
+  const { locale, t } = useLocale();
+  const toast = useToast();
+  const scanQuery = useScanQuery(library.latestScanId ?? undefined);
+  const scanActive = isActiveScan(scanQuery.data);
+  const mediaQuery = useMediaProcessingProgressQuery(library.id, scanActive);
+  const requestScanMutation = useRequestScanMutation();
+  const cancelScanMutation = useCancelScanMutation();
+  const repairMediaProcessingMutation = useRepairMediaProcessingMutation();
+  const [rebuildOpen, setRebuildOpen] = useState(false);
+  const runSubmission = useSubmissionGuard();
+  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const date = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [locale],
+  );
+
+  async function requestFullScan() {
+    await runSubmission(async () => {
+      try {
+        await requestScanMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: library.id,
+        });
+        toast.show({ message: t("scan.descriptionQueued"), tone: "success" });
+      } catch {
+        toast.show({ message: t("scan.actionFailed"), tone: "danger" });
+      }
+    });
+  }
+
+  async function cancelCurrentScan() {
+    if (!scanQuery.data) return;
+    await runSubmission(async () => {
+      try {
+        await cancelScanMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          scanId: scanQuery.data.id,
+        });
+      } catch {
+        toast.show({ message: t("scan.cancelFailed"), tone: "danger" });
+      }
+    });
+  }
+
+  async function processMedia(mode: "missing" | "all") {
+    await runSubmission(async () => {
+      try {
+        const summary = await repairMediaProcessingMutation.mutateAsync({
+          csrfToken: session.csrfToken,
+          libraryId: library.id,
+          mode,
+        });
+        void mediaQuery.refetch();
+        if (mode === "all") setRebuildOpen(false);
+        toast.show({
+          message: t("scan.mediaActionQueued").replace(
+            "{count}",
+            String(summary.requeued),
+          ),
+          tone: summary.requeued > 0 ? "success" : "neutral",
+        });
+      } catch {
+        toast.show({ message: t("scan.mediaActionFailed"), tone: "danger" });
+      }
+    });
+  }
+
+  return (
+    <section
+      aria-label={t("libraries.statusPreviewTitle").replace("{name}", library.name)}
+      className={styles.statusPreview}
+      id={id}
+    >
+      <header className={styles.inlineStatusHeader}>
+        <div>
+          <h3>{t("libraries.statusPreviewTitle").replace("{name}", library.name)}</h3>
+          <p>{t("libraries.statusPreviewDescription")}</p>
+        </div>
+      </header>
+      <div className={styles.statusPreviewBody}>
+        <div className={styles.previewOverview}>
+          <StatusPill status={library.status} />
+          <span>
+            {t("libraries.assetCount").replace(
+              "{count}",
+              number.format(library.assetCount),
+            )}
+          </span>
+        </div>
+
+        {scanQuery.isPending && <LoadingState label={t("scan.loading")} />}
+        {scanQuery.isError && (
+          <ErrorState
+            message={t("scan.loadFailed")}
+            onRetry={() => void scanQuery.refetch()}
+          />
+        )}
+        {scanQuery.data && (
+          <section className={styles.previewSection} aria-labelledby="status-preview-scan">
+            <div className={styles.previewHeading}>
+              <h3 id="status-preview-scan">{t("libraries.latestScan")}</h3>
+              <InlineStatus tone={scanTone(scanQuery.data.status)}>
+                {t(scanStatusKey(scanQuery.data.status))}
+              </InlineStatus>
+            </div>
+            <dl className={styles.previewCounters}>
+              <div>
+                <dt>{t("scan.assets")}</dt>
+                <dd>{number.format(scanQuery.data.discoveredAssets)}</dd>
+              </div>
+              <div>
+                <dt>{t("scan.directories")}</dt>
+                <dd>{number.format(scanQuery.data.discoveredDirectories)}</dd>
+              </div>
+              <div>
+                <dt>{t("scan.processed")}</dt>
+                <dd>{number.format(scanQuery.data.processedAssets)}</dd>
+              </div>
+              <div>
+                <dt>{t("scan.issues")}</dt>
+                <dd>{number.format(scanQuery.data.errorCount)}</dd>
+              </div>
+            </dl>
+            <p className={styles.previewTime}>
+              {date.format(
+                new Date(
+                  scanQuery.data.finishedAt ??
+                    scanQuery.data.startedAt ??
+                    scanQuery.data.createdAt,
+                ),
+              )}
+            </p>
+          </section>
+        )}
+
+        <section className={styles.previewSection} aria-labelledby="status-preview-media">
+          <div className={styles.previewHeading}>
+            <h3 id="status-preview-media">{t("scan.mediaProcessing")}</h3>
+            {mediaQuery.data && (
+              <InlineStatus tone={mediaProcessingIsActive(mediaQuery.data) ? "info" : "success"}>
+                {mediaProcessingIsActive(mediaQuery.data)
+                  ? t("scan.mediaProcessingActive")
+                  : t("scan.mediaProcessingComplete")}
+              </InlineStatus>
+            )}
+          </div>
+          {mediaQuery.isPending && (
+            <LoadingState label={t("scan.mediaProcessingLoading")} />
+          )}
+          {mediaQuery.isError && (
+            <ErrorState
+              message={t("scan.mediaProcessingFailed")}
+              onRetry={() => void mediaQuery.refetch()}
+            />
+          )}
+          {mediaQuery.data && (
+            <div className={styles.previewMediaList}>
+              <StatusMediaRow
+                label={t("scan.thumbnails")}
+                number={number}
+                progress={mediaQuery.data.thumbnails}
+              />
+              <StatusMediaRow
+                label={t("scan.videoPreviews")}
+                number={number}
+                progress={mediaQuery.data.videoPreviews}
+              />
+            </div>
+          )}
+        </section>
+
+        <footer className={styles.statusActions}>
+          <p>{t("libraries.originalsSafe")}</p>
+          <div>
+            {scanActive ? (
+              <Button
+                disabled={
+                  !scanQuery.data?.canCancel ||
+                  Boolean(scanQuery.data.cancelRequestedAt)
+                }
+                loading={cancelScanMutation.isPending}
+                onClick={() => void cancelCurrentScan()}
+                variant="danger"
+              >
+                {scanQuery.data?.cancelRequestedAt
+                  ? t("scan.cancelling")
+                  : t("scan.cancel")}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  loading={requestScanMutation.isPending}
+                  onClick={() => void requestFullScan()}
+                  variant="quiet"
+                >
+                  {t("scan.rescanFiles")}
+                </Button>
+                <Button
+                  disabled={!mediaQuery.data || repairMediaProcessingMutation.isPending}
+                  loading={
+                    repairMediaProcessingMutation.isPending &&
+                    repairMediaProcessingMutation.variables?.mode === "missing"
+                  }
+                  onClick={() => void processMedia("missing")}
+                  variant="secondary"
+                >
+                  {t("scan.fillMissing")}
+                </Button>
+                <Button
+                  disabled={!mediaQuery.data || repairMediaProcessingMutation.isPending}
+                  loading={
+                    repairMediaProcessingMutation.isPending &&
+                    repairMediaProcessingMutation.variables?.mode === "all"
+                  }
+                  onClick={() => setRebuildOpen(true)}
+                  variant="primary"
+                >
+                  {t("scan.rebuildAll")}
+                </Button>
+              </>
+            )}
+          </div>
+        </footer>
+      </div>
+      <Dialog
+        actions={
+          <>
+            <Button onClick={() => setRebuildOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              loading={repairMediaProcessingMutation.isPending}
+              onClick={() => void processMedia("all")}
+              variant="primary"
+            >
+              {t("scan.rebuildAll")}
+            </Button>
+          </>
+        }
+        description={t("scan.rebuildAllDescription")}
+        onOpenChange={(open) => {
+          if (!repairMediaProcessingMutation.isPending) setRebuildOpen(open);
+        }}
+        open={rebuildOpen}
+        title={t("scan.rebuildAllTitle")}
+      >
+        <InlineStatus tone="warning">
+          {t("scan.rebuildAllWarning")}
+        </InlineStatus>
+      </Dialog>
+    </section>
+  );
+}
+
+function StatusMediaRow({
+  label,
+  number,
+  progress,
+}: {
+  label: string;
+  number: Intl.NumberFormat;
+  progress: MediaJobProgress;
+}) {
+  const { t } = useLocale();
+  const progressLabel = t("scan.mediaProcessingCount")
+    .replace("{processed}", number.format(progress.processed))
+    .replace("{total}", number.format(progress.total));
+  return (
+    <article className={styles.previewMediaRow}>
+      <div>
+        <strong>{label}</strong>
+        <span>{progressLabel}</span>
+      </div>
+      <progress
+        aria-label={`${label} · ${progressLabel}`}
+        max={Math.max(1, progress.total)}
+        value={progress.total === 0 ? 1 : progress.processed}
+      />
+      <p>
+        {t("scan.mediaProcessingQueued").replace("{count}", number.format(progress.queued))}
+        {" · "}
+        {t("scan.mediaProcessingRunning").replace("{count}", number.format(progress.running))}
+        {" · "}
+        {t("scan.mediaProcessingFailures").replace("{count}", number.format(progress.failed))}
+      </p>
+    </article>
+  );
+}
+
+function scanStatusKey(status: ScanStatus): MessageKey {
+  return `scan.status${status.charAt(0).toUpperCase()}${status.slice(1)}` as MessageKey;
+}
+
+function scanTone(status: ScanStatus): "info" | "success" | "warning" {
+  if (status === "succeeded") return "success";
+  if (status === "queued" || status === "running") return "info";
+  return "warning";
 }
 
 function StatusPill({ status }: { status: LibraryStatus }) {

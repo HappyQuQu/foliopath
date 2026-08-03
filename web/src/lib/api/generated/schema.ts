@@ -376,6 +376,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/diagnostics/media-failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List safe derived-media failure diagnostics
+         * @description Returns a bounded newest-first diagnostic projection. It exposes only
+         *     library-relative paths and stable reason codes, never host paths, SQL,
+         *     stack traces, or raw media-tool output.
+         */
+        get: operations["listMediaFailures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/media-failures/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a media failure and its bounded attempt history
+         * @description Returns safe structured stages, reason codes, tool names, exit codes,
+         *     and durations for up to ten recent attempts. Raw subprocess output and
+         *     host paths are never persisted or returned.
+         */
+        get: operations["getMediaFailure"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/directories/{directoryId}": {
         parameters: {
             query?: never;
@@ -623,6 +667,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/media-processing/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requeue missing or all derived media
+         * @description With `mode=missing`, requeues grid and storyboard jobs whose ready derived
+         *     file is missing or whose previous processing attempt failed. With
+         *     `mode=all`, requeues every completed or failed grid and storyboard job.
+         *     Terminal failure codes prevent automatic retry loops but never block an
+         *     administrator-triggered action. Admission uses bounded database batches,
+         *     active work is never duplicated, and original media is never modified.
+         */
+        post: operations["repairLibraryMediaProcessing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/scans": {
         parameters: {
             query?: never;
@@ -693,6 +765,28 @@ export interface paths {
         };
         /** Get asynchronous media-library removal status */
         get: operations["getLibraryRemoval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the installed version, stable release history, and update status
+         * @description Uses a bounded, cached server-side check of the official stable release
+         *     feed. Network failure never changes readiness or media behavior. This
+         *     endpoint only reports updates; FolioPath never replaces its own container.
+         */
+        get: operations["getReleaseInformation"];
         put?: never;
         post?: never;
         delete?: never;
@@ -787,6 +881,30 @@ export interface paths {
          *     shell and never include database, cache, container-internal, or host paths.
          */
         get: operations["getSystemStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List bounded sanitized system events
+         * @description Returns newest-first application lifecycle, administrator mutation,
+         *     rejected-request, and server-failure events. Entries contain stable
+         *     codes and request correlation only; host paths, SQL, stack traces,
+         *     credentials, headers, arbitrary errors, and subprocess output are
+         *     never stored or returned.
+         */
+        get: operations["listSystemEvents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1216,6 +1334,61 @@ export interface components {
          *     `invalid_credentials` response as an incorrect password.
          */
         LoginUsername: string;
+        MediaFailure: {
+            assetId: components["schemas"]["ResourceID"];
+            attempts: number;
+            errorCode: components["schemas"]["MediaJobErrorCode"];
+            /** Format: date-time */
+            finishedAt: string;
+            id: string;
+            latestAttempt?: components["schemas"]["MediaFailureAttempt"];
+            libraryId: components["schemas"]["ResourceID"];
+            libraryName: string;
+            /** @description Library-relative path; never a host or allowed-root path. */
+            relativePath: string;
+            /** @enum {string} */
+            variant: "grid" | "storyboard";
+        };
+        MediaFailureAttempt: {
+            attemptNumber: number;
+            /** Format: int64 */
+            durationMs: number;
+            exitCode: number | null;
+            /** Format: date-time */
+            finishedAt: string;
+            /** @enum {string} */
+            outcome: "succeeded" | "retry" | "permanent_failure";
+            /** @enum {string|null} */
+            reasonCode: "time_limit_exceeded" | "invalid_media_data" | "missing_moov_atom" | "decoder_unavailable" | "decode_failed" | "frame_unavailable" | "output_limit_exceeded" | "tool_failed" | "source_unavailable" | "cache_unavailable" | null;
+            /** @enum {string|null} */
+            stage: "source_read" | "probe" | "poster_extract" | "frame_extract" | "storyboard_compose" | "output_validation" | "cache_publish" | null;
+            /** @enum {string|null} */
+            tool: "ffmpeg" | "ffprobe" | "libvips" | "filesystem" | "cache" | null;
+        };
+        MediaFailureDetail: {
+            attemptHistory: components["schemas"]["MediaFailureAttempt"][];
+            failure: components["schemas"]["MediaFailure"];
+        };
+        MediaFailurePage: {
+            items: components["schemas"]["MediaFailure"][];
+            nextCursor: string | null;
+            /** @description Changes whenever the latest matching failure event changes, including a retry of an existing job. */
+            revision: string | null;
+        };
+        MediaFailureRetrySummary: {
+            /**
+             * Format: int64
+             * @deprecated
+             * @description Always zero; manual missing/all actions include terminal failures.
+             */
+            permanentFailures: number;
+            /** Format: int64 */
+            remainingEligible: number;
+            /** Format: int64 */
+            requeued: number;
+        };
+        /** @enum {string} */
+        MediaJobErrorCode: "invalid_media" | "unsupported_media" | "media_processing_failed" | "media_processing_timeout" | "source_unavailable" | "cache_unavailable";
         MediaJobProgress: {
             /** Format: int64 */
             failed: number;
@@ -1289,6 +1462,23 @@ export interface components {
             reasonCode: null;
             /** @enum {string} */
             status: "ready";
+        };
+        ReleaseInformation: {
+            /** Format: date-time */
+            checkedAt: string;
+            currentVersion: string;
+            latestVersion: string | null;
+            releases: components["schemas"]["ReleaseSummary"][];
+            updateAvailable: boolean;
+        };
+        ReleaseSummary: {
+            name: string;
+            /** Format: date-time */
+            publishedAt: string;
+            summary: string;
+            /** Format: uri */
+            url: string;
+            version: string;
         };
         RenameLibraryRequest: {
             /** @description New instance-unique name. A root path is deliberately not accepted. */
@@ -1461,6 +1651,26 @@ export interface components {
             videoMimeTypes: ("video/mp4" | "video/quicktime" | "video/x-matroska" | "video/x-msvideo")[];
             /** @enum {boolean} */
             videoTranscoding: false;
+        };
+        SystemEvent: {
+            /** Format: int64 */
+            durationMs: number | null;
+            eventCode: string;
+            id: string;
+            level: components["schemas"]["SystemEventLevel"];
+            method: string | null;
+            module: string;
+            /** Format: date-time */
+            occurredAt: string;
+            requestId: string | null;
+            routePattern: string | null;
+            statusCode: number | null;
+        };
+        /** @enum {string} */
+        SystemEventLevel: "info" | "warning" | "error";
+        SystemEventPage: {
+            items: components["schemas"]["SystemEvent"][];
+            nextCursor: string | null;
         };
         SystemStatus: {
             /** @enum {string} */
@@ -2490,6 +2700,62 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    listMediaFailures: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                errorCode?: components["schemas"]["MediaJobErrorCode"];
+                libraryId?: components["schemas"]["ResourceID"];
+                limit?: number;
+                variant?: "grid" | "storyboard";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded page of safe failure diagnostics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaFailurePage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMediaFailure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Safe bounded failure detail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaFailureDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getDirectory: {
         parameters: {
             query?: never;
@@ -2866,6 +3132,37 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    repairLibraryMediaProcessing: {
+        parameters: {
+            query?: {
+                /** @description Missing/failed results by default, or every completed/failed result. */
+                mode?: "missing" | "all";
+            };
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All matching jobs were admitted through bounded batches. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaFailureRetrySummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     listLibraryScans: {
         parameters: {
             query?: {
@@ -3036,6 +3333,40 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getReleaseInformation: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current release and update information. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseInformation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            /** @description No cached release information is available and the upstream check failed. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getScan: {
         parameters: {
             query?: never;
@@ -3192,6 +3523,35 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listSystemEvents: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                level?: components["schemas"]["SystemEventLevel"];
+                limit?: number;
+                module?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded page of sanitized system events. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemEventPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

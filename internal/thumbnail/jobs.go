@@ -52,6 +52,8 @@ type JobResult struct {
 	Outcome    JobOutcome
 	Code       JobErrorCode
 	RetryDelay time.Duration
+	Diagnostic media.FailureDiagnostic
+	Duration   time.Duration
 }
 
 type JobCompletionRepository interface {
@@ -78,6 +80,7 @@ func NewClaimedProcessor(
 }
 
 func (processor *ClaimedProcessor) Process(ctx context.Context, job Job) error {
+	startedAt := time.Now()
 	var err error
 	switch {
 	case job.Variant == VariantGrid &&
@@ -95,10 +98,31 @@ func (processor *ClaimedProcessor) Process(ctx context.Context, job Job) error {
 		return ctx.Err()
 	}
 	result := classifyJobResult(err)
+	result.Duration = time.Since(startedAt)
+	if diagnostic, ok := media.DiagnoseFailure(err); ok {
+		result.Diagnostic = diagnostic
+	} else {
+		result.Diagnostic = fallbackDiagnostic(result.Code)
+	}
 	if finishErr := processor.repository.FinishMediaJob(ctx, job, result); finishErr != nil {
 		return errors.Join(err, finishErr)
 	}
 	return err
+}
+
+func fallbackDiagnostic(code JobErrorCode) media.FailureDiagnostic {
+	switch code {
+	case JobErrorTimeout:
+		return media.FailureDiagnostic{Reason: media.ReasonTimedOut}
+	case JobErrorSource:
+		return media.FailureDiagnostic{Stage: media.StageSourceRead, Reason: media.ReasonSourceUnavailable, Tool: "filesystem"}
+	case JobErrorCache:
+		return media.FailureDiagnostic{Stage: media.StageCachePublish, Reason: media.ReasonCacheUnavailable, Tool: "cache"}
+	case JobErrorProcessing:
+		return media.FailureDiagnostic{Reason: media.ReasonToolFailed}
+	default:
+		return media.FailureDiagnostic{}
+	}
 }
 
 func classifyJobResult(err error) JobResult {

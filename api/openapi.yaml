@@ -3,8 +3,8 @@ info:
   title: FolioPath HTTP API
   version: 0.1.0
   description: |
-    Authoritative HTTP contract for the FolioPath POST-MVP-1 scope,
-    revision 5.
+    Authoritative HTTP contract through the FolioPath POST-MVP-3 scope,
+    revision 1.
 
     All business endpoints use an authenticated same-origin browser session.
     State-changing authenticated operations additionally require the
@@ -20,9 +20,9 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
 x-foliopath-contract:
   status: authoritative
-  targetVersion: POST-MVP-1
-  scopeRevision: 5
-  baselineEvent: CR-2026-014
+  targetVersion: POST-MVP-3
+  scopeRevision: 1
+  baselineEvent: CR-2026-015
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -1291,6 +1291,225 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/media-processing/repair:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    post:
+      tags: [Media]
+      operationId: repairLibraryMediaProcessing
+      summary: Requeue missing or all derived media
+      description: |
+        With `mode=missing`, requeues grid and storyboard jobs whose ready derived
+        file is missing or whose previous processing attempt failed. With
+        `mode=all`, requeues every completed or failed grid and storyboard job.
+        Terminal failure codes prevent automatic retry loops but never block an
+        administrator-triggered action. Admission uses bounded database batches,
+        active work is never duplicated, and original media is never modified.
+      x-requirements: [FR-OPS-007, NFR-OPS-003]
+      parameters:
+        - name: mode
+          in: query
+          required: false
+          description: Missing/failed results by default, or every completed/failed result.
+          schema:
+            type: string
+            enum: [missing, all]
+            default: missing
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [library_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '202':
+          description: All matching jobs were admitted through bounded batches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaFailureRetrySummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/diagnostics/media-failures:
+    get:
+      tags: [Media]
+      operationId: listMediaFailures
+      summary: List safe derived-media failure diagnostics
+      description: |
+        Returns a bounded newest-first diagnostic projection. It exposes only
+        library-relative paths and stable reason codes, never host paths, SQL,
+        stack traces, or raw media-tool output.
+      x-requirements: [FR-OPS-008, NFR-PRIV-001]
+      parameters:
+        - name: libraryId
+          in: query
+          schema:
+            $ref: '#/components/schemas/ResourceID'
+        - name: variant
+          in: query
+          schema:
+            type: string
+            enum: [grid, storyboard]
+        - name: errorCode
+          in: query
+          schema:
+            $ref: '#/components/schemas/MediaJobErrorCode'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            pattern: '^mjob_[1-9][0-9]*$'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: A bounded page of safe failure diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaFailurePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/diagnostics/media-failures/{jobId}:
+    get:
+      tags: [Media]
+      operationId: getMediaFailure
+      summary: Get a media failure and its bounded attempt history
+      description: |
+        Returns safe structured stages, reason codes, tool names, exit codes,
+        and durations for up to ten recent attempts. Raw subprocess output and
+        host paths are never persisted or returned.
+      x-requirements: [FR-OPS-008, NFR-PRIV-001]
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^mjob_[1-9][0-9]*$'
+      responses:
+        '200':
+          description: Safe bounded failure detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaFailureDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/system-logs:
+    get:
+      tags: [System]
+      operationId: listSystemEvents
+      summary: List bounded sanitized system events
+      description: |
+        Returns newest-first application lifecycle, administrator mutation,
+        rejected-request, and server-failure events. Entries contain stable
+        codes and request correlation only; host paths, SQL, stack traces,
+        credentials, headers, arbitrary errors, and subprocess output are
+        never stored or returned.
+      x-requirements: [FR-OPS-008, NFR-PRIV-001]
+      parameters:
+        - name: level
+          in: query
+          schema:
+            $ref: '#/components/schemas/SystemEventLevel'
+        - name: module
+          in: query
+          schema:
+            type: string
+            maxLength: 64
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            pattern: '^sevt_[1-9][0-9]*$'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Bounded page of sanitized system events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemEventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/releases:
+    get:
+      tags: [System]
+      operationId: getReleaseInformation
+      summary: Get the installed version, stable release history, and update status
+      description: |
+        Uses a bounded, cached server-side check of the official stable release
+        feed. Network failure never changes readiness or media behavior. This
+        endpoint only reports updates; FolioPath never replaces its own container.
+      x-requirements: [FR-OPS-009, FR-OPS-010, NFR-OPS-004]
+      parameters:
+        - name: refresh
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Current release and update information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseInformation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          description: No cached release information is available and the upstream check failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/scans/{scanId}:
     get:
@@ -3509,6 +3728,283 @@ components:
           format: int64
           minimum: 0
           description: Videos whose grid work or bounded storyboard admission must finish before the total is final.
+
+    MediaJobErrorCode:
+      type: string
+      enum:
+        - invalid_media
+        - unsupported_media
+        - media_processing_failed
+        - media_processing_timeout
+        - source_unavailable
+        - cache_unavailable
+
+    MediaFailure:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - libraryId
+        - libraryName
+        - assetId
+        - relativePath
+        - variant
+        - errorCode
+        - attempts
+        - finishedAt
+      properties:
+        id:
+          type: string
+          pattern: '^mjob_[1-9][0-9]*$'
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        libraryName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        assetId:
+          $ref: '#/components/schemas/ResourceID'
+        relativePath:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Library-relative path; never a host or allowed-root path.
+        variant:
+          type: string
+          enum: [grid, storyboard]
+        errorCode:
+          $ref: '#/components/schemas/MediaJobErrorCode'
+        attempts:
+          type: integer
+          minimum: 0
+          maximum: 3
+        finishedAt:
+          type: string
+          format: date-time
+        latestAttempt:
+          $ref: '#/components/schemas/MediaFailureAttempt'
+
+    MediaFailureAttempt:
+      type: object
+      additionalProperties: false
+      required:
+        - attemptNumber
+        - outcome
+        - stage
+        - reasonCode
+        - tool
+        - exitCode
+        - durationMs
+        - finishedAt
+      properties:
+        attemptNumber:
+          type: integer
+          minimum: 1
+        outcome:
+          type: string
+          enum: [succeeded, retry, permanent_failure]
+        stage:
+          type: string
+          nullable: true
+          enum: [source_read, probe, poster_extract, frame_extract, storyboard_compose, output_validation, cache_publish]
+        reasonCode:
+          type: string
+          nullable: true
+          enum: [time_limit_exceeded, invalid_media_data, missing_moov_atom, decoder_unavailable, decode_failed, frame_unavailable, output_limit_exceeded, tool_failed, source_unavailable, cache_unavailable]
+        tool:
+          type: string
+          nullable: true
+          enum: [ffmpeg, ffprobe, libvips, filesystem, cache]
+        exitCode:
+          type: integer
+          nullable: true
+        durationMs:
+          type: integer
+          format: int64
+          minimum: 0
+        finishedAt:
+          type: string
+          format: date-time
+
+    MediaFailureDetail:
+      type: object
+      additionalProperties: false
+      required: [failure, attemptHistory]
+      properties:
+        failure:
+          $ref: '#/components/schemas/MediaFailure'
+        attemptHistory:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MediaFailureAttempt'
+
+    MediaFailurePage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, revision]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/MediaFailure'
+        nextCursor:
+          type: string
+          nullable: true
+          pattern: '^mjob_[1-9][0-9]*$'
+        revision:
+          type: string
+          nullable: true
+          pattern: '^mfailrev_[1-9][0-9]*_[1-9][0-9]*$'
+          description: Changes whenever the latest matching failure event changes, including a retry of an existing job.
+
+    MediaFailureRetrySummary:
+      type: object
+      additionalProperties: false
+      required: [requeued, remainingEligible, permanentFailures]
+      properties:
+        requeued:
+          type: integer
+          format: int64
+          minimum: 0
+        remainingEligible:
+          type: integer
+          format: int64
+          minimum: 0
+        permanentFailures:
+          type: integer
+          format: int64
+          minimum: 0
+          deprecated: true
+          description: Always zero; manual missing/all actions include terminal failures.
+
+    SystemEventLevel:
+      type: string
+      enum: [info, warning, error]
+
+    SystemEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - level
+        - module
+        - eventCode
+        - occurredAt
+        - requestId
+        - method
+        - routePattern
+        - statusCode
+        - durationMs
+      properties:
+        id:
+          type: string
+          pattern: '^sevt_[1-9][0-9]*$'
+        level:
+          $ref: '#/components/schemas/SystemEventLevel'
+        module:
+          type: string
+          minLength: 1
+          maxLength: 64
+        eventCode:
+          type: string
+          minLength: 1
+          maxLength: 128
+        occurredAt:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          nullable: true
+          maxLength: 128
+        method:
+          type: string
+          nullable: true
+          maxLength: 16
+        routePattern:
+          type: string
+          nullable: true
+          maxLength: 512
+        statusCode:
+          type: integer
+          nullable: true
+          minimum: 100
+          maximum: 599
+        durationMs:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+
+    SystemEventPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SystemEvent'
+        nextCursor:
+          type: string
+          nullable: true
+          pattern: '^sevt_[1-9][0-9]*$'
+
+    ReleaseSummary:
+      type: object
+      additionalProperties: false
+      required: [version, name, summary, publishedAt, url]
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 128
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        summary:
+          type: string
+          maxLength: 500
+        publishedAt:
+          type: string
+          format: date-time
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+
+    ReleaseInformation:
+      type: object
+      additionalProperties: false
+      required:
+        - currentVersion
+        - latestVersion
+        - updateAvailable
+        - checkedAt
+        - releases
+      properties:
+        currentVersion:
+          type: string
+          minLength: 1
+          maxLength: 128
+        latestVersion:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 128
+        updateAvailable:
+          type: boolean
+        checkedAt:
+          type: string
+          format: date-time
+        releases:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/ReleaseSummary'
 
     Breadcrumb:
       type: object

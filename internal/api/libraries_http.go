@@ -343,6 +343,7 @@ var errPreconditionRequired = errors.New("precondition required")
 func libraryID(id int64) string { return "lib_" + strconv.FormatInt(id, 10) }
 func scanID(id int64) string    { return "scan_" + strconv.FormatInt(id, 10) }
 func removalID(id int64) string { return "rmv_" + strconv.FormatInt(id, 10) }
+func assetID(id int64) string   { return "ast_" + strconv.FormatInt(id, 10) }
 
 func libraryETag(item library.Details) string {
 	return fmt.Sprintf(`"%s-r%d"`, libraryID(item.ID), item.Revision)

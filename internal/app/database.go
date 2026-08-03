@@ -18,6 +18,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
+	"github.com/HappyQuQu/foliopath/internal/systemlog"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
@@ -38,12 +39,14 @@ type databaseStore interface {
 	scanner.ReconcileExecutionRepository
 	scanner.AutomaticDiscoveryStateRepository
 	appsettings.Repository
+	systemlog.Repository
 	thumbnail.Repository
 	thumbnail.StoryboardRepository
 	thumbnail.CacheRepository
 	thumbnail.CleanupRepository
 	thumbnail.JobCompletionRepository
 	thumbnail.ProgressRepository
+	thumbnail.DiagnosticsRepository
 	thumbnail.DeliveryRepository
 	media.ContentRepository
 	scanQueueStore
@@ -391,6 +394,81 @@ func (service *databaseService) GetMediaProcessingProgress(
 		return thumbnail.ProcessingProgress{}, false, thumbnail.ErrRepositoryNotReady
 	}
 	return service.store.GetMediaProcessingProgress(ctx, libraryID)
+}
+
+func (service *databaseService) ListMediaFailures(
+	ctx context.Context,
+	query thumbnail.FailureQuery,
+) ([]thumbnail.MediaFailure, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.ListMediaFailures(ctx, query)
+}
+
+func (service *databaseService) LatestMediaFailureRevision(
+	ctx context.Context,
+	query thumbnail.FailureQuery,
+) (thumbnail.FailureRevision, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.FailureRevision{}, false, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.LatestMediaFailureRevision(ctx, query)
+}
+
+func (service *databaseService) GetMediaFailure(
+	ctx context.Context,
+	jobID int64,
+) (thumbnail.MediaFailure, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.MediaFailure{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.GetMediaFailure(ctx, jobID)
+}
+
+func (service *databaseService) RequeueMediaProcessing(
+	ctx context.Context,
+	libraryID int64,
+	mode thumbnail.RequeueMode,
+	limit int,
+) (thumbnail.RetrySummary, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.RetrySummary{}, thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.RequeueMediaProcessing(ctx, libraryID, mode, limit)
+}
+
+func (service *databaseService) AppendSystemEvent(
+	ctx context.Context,
+	event systemlog.Event,
+	maximum int,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return scanner.ErrDatabaseUnavailable
+	}
+	return service.store.AppendSystemEvent(ctx, event, maximum)
+}
+
+func (service *databaseService) ListSystemEvents(
+	ctx context.Context,
+	query systemlog.Query,
+) ([]systemlog.Event, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, scanner.ErrDatabaseUnavailable
+	}
+	return service.store.ListSystemEvents(ctx, query)
 }
 
 type scanQueueStore interface {

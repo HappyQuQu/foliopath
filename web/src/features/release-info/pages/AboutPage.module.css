@@ -1,0 +1,124 @@
+.main {
+  width: 100%;
+  padding: var(--space-10);
+}
+
+.hero {
+  margin-bottom: var(--space-8);
+}
+
+.hero p {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: var(--font-size-7);
+  letter-spacing: -0.04em;
+}
+
+.hero span,
+.muted,
+.release span,
+.release p,
+.versionCard small {
+  color: var(--color-text-muted);
+}
+
+.hero span {
+  display: block;
+  max-width: 42rem;
+  margin-top: var(--space-2);
+}
+
+.versionCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.versionCard > div:first-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.versionCard strong {
+  font-size: var(--font-size-6);
+}
+
+.updateState {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section {
+  margin-top: var(--space-8);
+}
+
+.section h2 {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-4);
+}
+
+.releaseList {
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.release {
+  padding: var(--space-5);
+}
+
+.release + .release {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.release > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.release p {
+  margin: var(--space-3) 0;
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+}
+
+.release a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent);
+}
+
+@media (max-width: 45rem) {
+  .main {
+    padding: var(--space-6) var(--space-4) var(--space-8);
+  }
+
+  .hero h1 {
+    font-size: var(--font-size-6);
+  }
+
+  .versionCard,
+  .updateState,
+  .release > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

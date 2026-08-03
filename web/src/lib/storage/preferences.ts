@@ -7,6 +7,8 @@ export type MediaLayoutPreference = "grid" | "masonry";
 interface Preferences {
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
+  dismissedCompletedNotifications?: string[];
+  acknowledgedMediaFailureRevision?: string;
   previewPinned?: boolean;
   previewWidth?: number;
   sidebarWidth?: number;
@@ -101,4 +103,34 @@ export function readPreviewWidthPreference(): number {
 
 export function writePreviewWidthPreference(previewWidth: number): void {
   writePreferences({ ...readPreferences(), previewWidth });
+}
+
+export function readDismissedCompletedNotifications(): string[] {
+  const values = readPreferences().dismissedCompletedNotifications;
+  if (!Array.isArray(values)) return [];
+  return values.filter(
+    (value): value is string =>
+      typeof value === "string" && /^scan_[1-9][0-9]*$/.test(value),
+  ).slice(-200);
+}
+
+export function writeDismissedCompletedNotifications(values: string[]): void {
+  writePreferences({
+    ...readPreferences(),
+    dismissedCompletedNotifications: values
+      .filter((value) => /^scan_[1-9][0-9]*$/.test(value))
+      .slice(-200),
+  });
+}
+
+export function readAcknowledgedMediaFailureRevision(): string | undefined {
+  const value = readPreferences().acknowledgedMediaFailureRevision;
+  return typeof value === "string" && /^mfailrev_[1-9][0-9]*_[1-9][0-9]*$/.test(value)
+    ? value
+    : undefined;
+}
+
+export function writeAcknowledgedMediaFailureRevision(value: string): void {
+  if (!/^mfailrev_[1-9][0-9]*_[1-9][0-9]*$/.test(value)) return;
+  writePreferences({ ...readPreferences(), acknowledgedMediaFailureRevision: value });
 }

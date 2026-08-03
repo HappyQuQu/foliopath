@@ -5,7 +5,8 @@
 [`api/openapi.yaml`](../api/openapi.yaml) 已建立，并且是请求、响应、状态码、认证边界和生成
 类型的权威结构化事实来源。本文保留设计动机、资源边界与人类可读语义；与 OpenAPI 冲突时
 必须先停止实现并修复契约或本文，不能让 handler 成为第三个事实来源。Go/HTTP composition
-现已实现认证、账户、媒体库、扫描、目录/媒体 catalog、搜索、设置、缓存摘要/清理和媒体内容
+现已实现认证、账户、媒体库、扫描、目录/媒体 catalog、搜索、设置、缓存摘要/清理、媒体内容、
+派生失败诊断/有界重试、分级系统事件和 release information
 handler；React 只通过确定性生成的 TypeScript client 与手写领域 adapter 消费这些合同。
 Contract Ready、Backend Evidence Ready 和 Consumer/UI Ready 仍是不同 Gate，本文不以
 handler 存在替代对应证据。
@@ -71,6 +72,24 @@ handler 存在替代对应证据。
 - `429` 和暂时不可用响应可带 `Retry-After`。
 
 ## 资源模型
+
+### Diagnostics 与 release information
+
+- `GET /api/v1/diagnostics/media-failures` 使用 `mjob_` keyset cursor，默认 50、最大 100，
+  只返回认证管理员可见的 library-relative path、opaque IDs、variant、稳定错误码、尝试次数和
+  最新一次结构化诊断；page 的 opaque revision 在新增失败或既有 job 重试后再次失败时变化，
+  供浏览器保存确认水位；
+- `GET /api/v1/diagnostics/media-failures/{jobId}` 返回最多 10 次尝试的阶段、稳定原因、工具、
+  退出码和耗时，不返回原始 stderr、宿主路径或命令行；
+- `POST /api/v1/libraries/{libraryId}/media-processing/repair?mode=missing|all` 以每批最多 256
+  项的短事务持续接纳：missing 包含未生成、缓存丢失和全部失败 job，all 包含全部成功和失败
+  job；invalid/unsupported 只限制自动重试，不限制管理员显式操作。响应保留兼容字段
+  permanentFailures，但手动操作下固定为 0；
+- `GET /api/v1/system-logs` 使用 `sevt_` keyset cursor，按级别和模块筛选有界系统事件；只返回
+  稳定事件码、route pattern、状态码、耗时和 request ID，不返回任意错误文本或请求参数；
+- `GET /api/v1/releases` 返回 build currentVersion、缓存的官方稳定历史和 updateAvailable；
+  `refresh=true` 触发受 5 秒超时约束的检查。无缓存且上游失败返回安全 `503`，不改变 readiness。
+
 
 ### Library
 

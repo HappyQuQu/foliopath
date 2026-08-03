@@ -369,6 +369,7 @@ func TestWebUsesSingleGeneratedAPIClientBoundary(t *testing.T) {
 	webSource := filepath.Join(root, "web", "src")
 	clientPath := filepath.Join(webSource, "lib", "api", "client.ts")
 	generatedPath := filepath.Join(webSource, "lib", "api", "generated", "schema.ts")
+	directFetchPattern := regexp.MustCompile(`(^|[^[:alnum:]_])fetch[[:space:]]*\(`)
 
 	for _, required := range []string{clientPath, generatedPath} {
 		if info, err := os.Stat(required); err != nil {
@@ -401,7 +402,7 @@ func TestWebUsesSingleGeneratedAPIClientBoundary(t *testing.T) {
 		if strings.Contains(source, "generated/schema") && !inAPIBoundary {
 			t.Errorf("%s imports generated OpenAPI types outside lib/api", relative)
 		}
-		if strings.Contains(source, "fetch(") && path != clientPath {
+		if directFetchPattern.MatchString(source) && path != clientPath {
 			t.Errorf("%s calls fetch outside the canonical client", relative)
 		}
 		return nil

@@ -28,6 +28,7 @@
 - [CR-2026-007：运维与维护原型](CR-2026-007-operations-maintenance-prototype.md)
 - [CR-2026-008：后台任务中心](CR-2026-008-task-center.md)
 - [CR-2026-014：扫描后派生媒体进度](CR-2026-014-derived-media-progress.md)
+- [CR-2026-015：任务可恢复、日志中心、版本更新与消息中心](CR-2026-015-operations-observability-and-updates.md)
 
 ## Routine fixes
 

@@ -97,6 +97,24 @@ migration 8 已实现该表和 ready/failed 状态约束；durable media job、L
 跨库公平领取游标；它不是任务事实来源。`cache_deletions` 保存 fingerprint 失效后必须
 幂等清理的相对缓存路径，绝不保存或删除原媒体路径。
 
+`POST-MVP-3` 首个失败诊断切片不新增媒体结果副本：日志列表由 `media_jobs` 联结 `assets` 和
+`libraries` 的既有终态事实生成，并按 `media_jobs.id DESC` keyset 分页。手动恢复在短写事务中
+把最多 256 个 transient failed row 重置为 queued；`invalid_media` 和 `unsupported_media`
+保持终态。Header 最近完成的清除状态只存在当前浏览器 localStorage，不属于可靠任务历史。
+
+### `media_job_attempts`
+
+Migration 18 为诊断启用后的派生任务追加有界尝试事实：`job_id`、`attempt_number`、outcome、
+失败 stage、稳定 reason code、处理 tool、可空 exit code、duration 与 finish time。每次任务
+结束在同一事务内更新 `media_jobs` 并写入尝试；每个 job 只保留最近 10 条。表不保存 media path、
+命令参数、stderr、SQL 或 stack，媒体相对路径仍由查询时联结 canonical asset 获得。
+
+migration 17 追加 `system_events` 作为系统级运维事件事实：保存 `info`/`warning`/`error`、
+稳定模块与事件码、request ID、HTTP method/route pattern/status/duration 和发生时间。每次追加
+后把实例历史裁剪为最新 5,000 条；列表按 `id DESC` keyset 分页。表中不保存请求参数、任意
+错误文本、媒体/宿主路径、header、SQL、stack 或 subprocess 输出。扫描历史仍由 `scan_runs`
+拥有，逐媒体处理结果仍由 `media_jobs` 拥有。
+
 ### Post-MVP `storyboard` 派生
 
 [FTR-VID-001](features/video-storyboard-preview.md)已通过只向前 migration 11 让

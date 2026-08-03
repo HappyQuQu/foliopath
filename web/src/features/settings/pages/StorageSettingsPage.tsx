@@ -1,6 +1,6 @@
 import { Broom, FloppyDisk } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
@@ -15,15 +15,10 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import type { LibraryStatus } from "../../../lib/api/libraries";
 import type { ResourceProfile } from "../../../lib/api/settings";
 import { createRequestKey } from "../../../lib/requestKey";
-import {
-  useLocale,
-  type MessageKey,
-} from "../../../lib/i18n/LocaleProvider";
+import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { paths } from "../../../routes/paths";
-import { useLibrariesQuery } from "../../libraries";
 import { useCacheSummaryQuery, useStartCacheCleanupMutation } from "../cache-queries";
 import { useSettingsQuery, useUpdateSettingsMutation } from "../queries";
 import styles from "./ManagementPage.module.css";
@@ -41,14 +36,13 @@ export function StorageSettingsPage({
 }) {
   const { locale, t } = useLocale();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const section = searchParams.get("section") === "cache" ? "cache" : "scan";
   const toast = useToast();
   const settingsQuery = useSettingsQuery();
   const cacheQuery = useCacheSummaryQuery();
-  const librariesQuery = useLibrariesQuery();
   const { refetch: refreshSettings } = settingsQuery;
   const { refetch: refreshCache } = cacheQuery;
-  const { refetch: refreshLibraries, fetchNextPage: loadMoreLibraries } =
-    librariesQuery;
   const updateSettings = useUpdateSettingsMutation();
   const cleanup = useStartCacheCleanupMutation();
   const savePendingRef = useRef(false);
@@ -74,10 +68,6 @@ export function StorageSettingsPage({
   const usagePercent = cacheQuery.data
     ? Math.min(100, (cacheQuery.data.usageBytes / cacheQuery.data.quotaBytes) * 100)
     : 0;
-  const libraries = useMemo(
-    () => librariesQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [librariesQuery.data],
-  );
 
   function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,7 +118,7 @@ export function StorageSettingsPage({
 
   return (
     <ManagementShell
-      active="storage"
+      active="general"
       accountHref={paths.accountSettings}
       generalHref={paths.generalSettings}
       homeHref={paths.root}
@@ -142,30 +132,47 @@ export function StorageSettingsPage({
       <div className={styles.main}>
         <header className={styles.hero}>
           <p className={styles.eyebrow}>{t("management.title")}</p>
-          <h1>{t("settings.scanCache")}</h1>
-          <p>{t("cache.pageDescription")}</p>
+          <h1>{t("management.general")}</h1>
+          <p>{t("configuration.description")}</p>
         </header>
 
-        {(settingsQuery.isPending ||
-          cacheQuery.isPending ||
-          librariesQuery.isPending) && (
+        <div className={styles.tabs} role="tablist" aria-label={t("configuration.sections")}>
+          <Button onClick={() => navigate(paths.generalSettings)} role="tab" variant="quiet">
+            {t("configuration.generalTab")}
+          </Button>
+          <Button
+            aria-selected={section === "scan"}
+            onClick={() => navigate(`${paths.storageSettings}?section=scan`)}
+            role="tab"
+            variant={section === "scan" ? "secondary" : "quiet"}
+          >
+            {t("configuration.scanTab")}
+          </Button>
+          <Button
+            aria-selected={section === "cache"}
+            onClick={() => navigate(`${paths.storageSettings}?section=cache`)}
+            role="tab"
+            variant={section === "cache" ? "secondary" : "quiet"}
+          >
+            {t("configuration.cacheTab")}
+          </Button>
+        </div>
+
+        {(settingsQuery.isPending || cacheQuery.isPending) && (
           <LoadingState label={t("settings.loading")} />
         )}
-        {(settingsQuery.isError ||
-          cacheQuery.isError ||
-          librariesQuery.isError) && (
+        {(settingsQuery.isError || cacheQuery.isError) && (
           <ErrorState
             message={t("cache.loadFailed")}
             onRetry={() => {
               void refreshSettings();
               void refreshCache();
-              void refreshLibraries();
             }}
           />
         )}
-        {settingsQuery.data && cacheQuery.data && librariesQuery.data && (
+        {settingsQuery.data && cacheQuery.data && (
           <>
-            <section className={styles.section}>
+            {section === "cache" && <section className={styles.section}>
               <h2>{t("cache.overview")}</h2>
               <div className={styles.metricGrid}>
                 <div className={styles.metric}>
@@ -181,10 +188,10 @@ export function StorageSettingsPage({
                   <strong>{formatBytes(cacheQuery.data.availableBytes, numberFormat)}</strong>
                 </div>
               </div>
-            </section>
+            </section>}
 
             <form onSubmit={saveSettings}>
-              <section className={styles.section}>
+              {section === "scan" && <section className={styles.section}>
                 <h2>{t("cache.resourceProfile")}</h2>
                 <div className={styles.card}>
                   <p className={styles.caption}>{t("cache.resourceProfileDescription")}</p>
@@ -206,9 +213,9 @@ export function StorageSettingsPage({
                     ))}
                   </div>
                 </div>
-              </section>
+              </section>}
 
-              <section className={styles.section}>
+              {section === "scan" && <section className={styles.section}>
                 <h2>{t("cache.scanSchedule")}</h2>
                 <div className={`${styles.card} ${styles.form}`}>
                   <label className={styles.row}>
@@ -231,49 +238,15 @@ export function StorageSettingsPage({
                     value={interval}
                   />
                 </div>
-              </section>
-
-              <section className={styles.section}>
-                <h2>{t("cache.scanTasks")}</h2>
-                <div className={styles.card}>
-                  {libraries.length === 0 ? (
-                    <p className={styles.caption}>{t("cache.noLibraries")}</p>
-                  ) : (
-                    <div className={styles.jobList}>
-                      {libraries.map((library) => (
-                        <div className={styles.jobRow} key={library.id}>
-                          <div>
-                            <strong>{library.name}</strong>
-                            <span>{library.displayPath}</span>
-                          </div>
-                          <InlineStatus tone={statusTone(library.status)}>
-                            {t(statusKey(library.status))}
-                          </InlineStatus>
-                          <Button
-                            disabled={!library.latestScanId}
-                            onClick={() => navigate(paths.libraryStatus(library.id))}
-                            size="small"
-                          >
-                            {t("libraries.viewStatus")}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {librariesQuery.hasNextPage && (
-                    <div className={styles.loadMore}>
-                      <Button
-                        loading={librariesQuery.isFetchingNextPage}
-                        onClick={() => void loadMoreLibraries()}
-                      >
-                        {t("libraries.loadMore")}
-                      </Button>
-                    </div>
-                  )}
+                <div className={styles.sectionActions}>
+                  <Button loading={updateSettings.isPending} type="submit" variant="primary">
+                    <FloppyDisk aria-hidden="true" size={17} />
+                    {t("settings.save")}
+                  </Button>
                 </div>
-              </section>
+              </section>}
 
-              <section className={styles.section}>
+              {section === "cache" && <section className={styles.section}>
                 <h2>{t("cache.thumbnailCache")}</h2>
                 <div className={styles.card}>
                   <div className={styles.usageHeader}>
@@ -313,7 +286,7 @@ export function StorageSettingsPage({
                     </div>
                   </div>
                 </div>
-              </section>
+              </section>}
             </form>
           </>
         )}
@@ -343,22 +316,4 @@ function formatBytes(bytes: number, format: Intl.NumberFormat): string {
   if (bytes >= 1024 ** 3) return `${format.format(bytes / 1024 ** 3)} GiB`;
   if (bytes >= 1024 ** 2) return `${format.format(bytes / 1024 ** 2)} MiB`;
   return `${format.format(bytes / 1024)} KiB`;
-}
-
-function statusKey(status: LibraryStatus): MessageKey {
-  const keys: Record<LibraryStatus, MessageKey> = {
-    error: "libraries.statusError",
-    offline: "libraries.statusOffline",
-    pending: "libraries.statusPending",
-    ready: "libraries.statusReady",
-    scanning: "libraries.statusScanning",
-  };
-  return keys[status];
-}
-
-function statusTone(status: LibraryStatus): "danger" | "info" | "warning" {
-  if (status === "ready") return "info";
-  if (status === "scanning" || status === "pending") return "info";
-  if (status === "offline" || status === "error") return "danger";
-  return "warning";
 }

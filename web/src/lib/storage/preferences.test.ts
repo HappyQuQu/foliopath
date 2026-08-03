@@ -1,10 +1,12 @@
 import { expect, it } from "vitest";
 
 import {
+  readAcknowledgedMediaFailureRevision,
   readMediaLayoutPreference,
   readPreviewWidthPreference,
   readSidebarWidthPreference,
   writeMediaLayoutPreference,
+  writeAcknowledgedMediaFailureRevision,
   writePreviewWidthPreference,
   writeSidebarWidthPreference,
 } from "./preferences";
@@ -43,4 +45,12 @@ it("reads and writes remembered panel widths", () => {
 
   expect(readSidebarWidthPreference()).toBe(320);
   expect(readPreviewWidthPreference()).toBe(520);
+});
+
+it("stores only a valid acknowledged media failure watermark", () => {
+  writeAcknowledgedMediaFailureRevision("mfailrev_1000_42");
+  expect(readAcknowledgedMediaFailureRevision()).toBe("mfailrev_1000_42");
+
+  writeAcknowledgedMediaFailureRevision("../../42");
+  expect(readAcknowledgedMediaFailureRevision()).toBe("mfailrev_1000_42");
 });

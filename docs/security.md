@@ -218,6 +218,16 @@ seek/输出上限、峰值 RSS、worker 优先级和 backfill admission。它继
   不提供打开、写入、移动、改名或删除 `/library` 原件的能力。
 - 对扫描失败、路径拒绝、媒体解析超时、队列深度、缓存占用和磁盘余量提供可观察信息。
 - 同一损坏媒体的自动重试必须有上限和退避，避免永久占满工作队列。
+- 认证的处理结果只读取既有结构化失败事实；媒体 relative path 在 HTML 中按文本编码，
+  cursor/limit 有界；invalid/unsupported 保持永久失败，手动恢复只重新接纳 transient code。
+- 派生尝试只持久化白名单 stage/reason/tool、退出码和耗时，每个 job 最多 10 条；FFmpeg/ffprobe
+  stderr 只在进程内匹配稳定原因后丢弃，不保存原文、命令参数或输入路径。未知输出统一归类为
+  `tool_failed`，不得为了“更详细”而回传或落盘任意工具文本。
+- 系统日志只持久化白名单字段（级别、模块、稳定事件码、request ID、route pattern、状态码和
+  耗时），不保存 query/body/header、任意错误文本、媒体或宿主路径、logger 原文；最多保留
+  5,000 条并使用有界 keyset 分页。
+- 更新检测只访问固定官方 HTTPS Release API，使用 5 秒超时、1 MiB 响应上限和六小时缓存；
+  不接受用户提供 URL，不发送媒体路径、库名、账户或实例标识，失败不改变 readiness。
 
 S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQLite 索引、
 `internal/media` fingerprint 校验和 `internal/files.Root.Open` 读取；poisoned traversal、

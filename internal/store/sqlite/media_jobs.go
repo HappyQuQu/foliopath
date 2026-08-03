@@ -495,12 +495,18 @@ func (s *Store) FinishMediaJob(
 		now := s.nowMS()
 		switch result.Outcome {
 		case thumbnail.JobSucceeded:
-			return finishMediaJobTx(ctx, tx, job, "succeeded", "", now)
+			if err := finishMediaJobTx(ctx, tx, job, "succeeded", "", now); err != nil {
+				return err
+			}
+			return recordMediaJobAttemptTx(ctx, tx, job, result, now)
 		case thumbnail.JobPermanent:
 			if !validJobErrorCode(result.Code) {
 				return thumbnail.ErrInvalidJob
 			}
-			return finishMediaJobTx(ctx, tx, job, "failed", result.Code, now)
+			if err := finishMediaJobTx(ctx, tx, job, "failed", result.Code, now); err != nil {
+				return err
+			}
+			return recordMediaJobAttemptTx(ctx, tx, job, result, now)
 		case thumbnail.JobStale:
 			_, err := tx.ExecContext(ctx, `
                 DELETE FROM media_jobs
@@ -518,7 +524,10 @@ func (s *Store) FinishMediaJob(
 				return thumbnail.ErrInvalidJob
 			}
 			if job.Attempt >= thumbnail.MaxJobAttempts {
-				return failMediaJobTx(ctx, tx, job, result.Code, now)
+				if err := failMediaJobTx(ctx, tx, job, result.Code, now); err != nil {
+					return err
+				}
+				return recordMediaJobAttemptTx(ctx, tx, job, result, now)
 			}
 			delay := result.RetryDelay * time.Duration(1<<(job.Attempt-1))
 			update, err := tx.ExecContext(ctx, `
@@ -536,11 +545,64 @@ func (s *Store) FinishMediaJob(
 			if err != nil {
 				return fmt.Errorf("retry media job: %w", err)
 			}
-			return requireOneMediaJobRow(update)
+			if err := requireOneMediaJobRow(update); err != nil {
+				return err
+			}
+			return recordMediaJobAttemptTx(ctx, tx, job, result, now)
 		default:
 			return thumbnail.ErrInvalidJob
 		}
 	})
+}
+
+func recordMediaJobAttemptTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	job thumbnail.Job,
+	result thumbnail.JobResult,
+	now int64,
+) error {
+	durationMS := result.Duration.Milliseconds()
+	if durationMS < 0 {
+		return thumbnail.ErrInvalidJob
+	}
+	var stage, reason, tool any
+	if result.Diagnostic.Stage != "" {
+		stage = string(result.Diagnostic.Stage)
+	}
+	if result.Diagnostic.Reason != "" {
+		reason = string(result.Diagnostic.Reason)
+	}
+	if result.Diagnostic.Tool != "" {
+		tool = result.Diagnostic.Tool
+	}
+	var exitCode any
+	if result.Diagnostic.ExitCode != nil {
+		exitCode = *result.Diagnostic.ExitCode
+	}
+	outcome := string(result.Outcome)
+	if result.Outcome == thumbnail.JobRetry && job.Attempt >= thumbnail.MaxJobAttempts {
+		outcome = string(thumbnail.JobPermanent)
+	}
+	if _, err := tx.ExecContext(ctx, `
+        INSERT INTO media_job_attempts(
+            job_id, attempt_number, outcome, stage, reason_code, tool,
+            exit_code, duration_ms, finished_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		job.ID, job.Attempt, outcome, stage, reason, tool,
+		exitCode, durationMS, now,
+	); err != nil {
+		return fmt.Errorf("record media job attempt: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+        DELETE FROM media_job_attempts
+        WHERE job_id = ? AND id NOT IN (
+            SELECT id FROM media_job_attempts
+            WHERE job_id = ? ORDER BY id DESC LIMIT 10
+        )`, job.ID, job.ID); err != nil {
+		return fmt.Errorf("trim media job attempts: %w", err)
+	}
+	return nil
 }
 
 func finishMediaJobTx(

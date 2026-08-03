@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import { Button, Switch } from "../../../components/ui";
@@ -25,6 +26,7 @@ export function GeneralSettingsPage({
   session: AuthenticatedSession;
 }) {
   const { localePreference, setLocalePreference, t } = useLocale();
+  const navigate = useNavigate();
   const { preference, setPreference } = useTheme();
   const [draftTheme, setDraftTheme] = useState(preference);
   const [draftLocale, setDraftLocale] = useState(localePreference);
@@ -83,6 +85,18 @@ export function GeneralSettingsPage({
           <h1>{t("management.general")}</h1>
           <span>{t("general.description")}</span>
         </header>
+
+        <div className={styles.tabs} role="tablist" aria-label={t("configuration.sections")}>
+          <Button aria-selected="true" role="tab" variant="secondary">
+            {t("configuration.generalTab")}
+          </Button>
+          <Button onClick={() => navigate(`${paths.storageSettings}?section=scan`)} role="tab" variant="quiet">
+            {t("configuration.scanTab")}
+          </Button>
+          <Button onClick={() => navigate(`${paths.storageSettings}?section=cache`)} role="tab" variant="quiet">
+            {t("configuration.cacheTab")}
+          </Button>
+        </div>
 
         <section aria-labelledby="appearance-title">
           <h2 className={styles.sectionTitle} id="appearance-title">

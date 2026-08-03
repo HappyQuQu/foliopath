@@ -42,6 +42,15 @@
   手动刷新
   [FTR-SCN-001 媒体库自动发现](../features/automatic-library-discovery.md)；
   WCH-S0 当前只对 Linux watcher spike 与 ADR 评审 Conditional Go。
+- [`POST-MVP-3` scope revision 1](POST-MVP-3-scope.md)：冻结后台任务恢复、结构化日志、
+  关于/版本更新与全局消息中心；按失败诊断、发布信息、消费者 UI 和统一任务历史分片交付。
 
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。
+
+## 稳定版本发布记录
+
+稳定标签必须使用 `vMAJOR.MINOR.PATCH`。创建标签前必须新增非空的
+`docs/releases/vMAJOR.MINOR.PATCH.md`，使用面向用户的“新增、优化、修复、升级注意事项和已知
+限制”描述；Docker Hub workflow 在构建前验证该文件，并在镜像成功发布后用同一文件创建
+GitHub Release。构建参数写入相同标签，应用关于页和官方 Release 因而共享版本号与更新记录。

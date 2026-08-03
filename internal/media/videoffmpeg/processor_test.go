@@ -76,6 +76,21 @@ printf 'synthetic-webp'
 	}
 }
 
+func TestClassifyFFmpegReasonReturnsStableSafeReasons(t *testing.T) {
+	tests := map[string]media.FailureReason{
+		"moov atom not found":                                    media.ReasonMissingMoovAtom,
+		"Invalid data found when processing input":               media.ReasonInvalidData,
+		"Error while decoding stream #0:0":                       media.ReasonDecodeFailed,
+		"Decoder h265 not found":                                 media.ReasonDecoderUnavailable,
+		"unrecognized diagnostic containing /private/source.mp4": media.ReasonToolFailed,
+	}
+	for stderr, want := range tests {
+		if got := classifyFFmpegReason(stderr); got != want {
+			t.Errorf("classifyFFmpegReason(%q) = %q, want %q", stderr, got, want)
+		}
+	}
+}
+
 func TestVideoProcessorPropagatesDeadlineAndRejectsWrongFormat(t *testing.T) {
 	directory := t.TempDir()
 	slow := filepath.Join(directory, "slow")

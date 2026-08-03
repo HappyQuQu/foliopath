@@ -13,6 +13,7 @@ import { LocaleToggle } from "../../ui/LocaleToggle/LocaleToggle";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
 import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
+import { useHeaderAddon } from "./HeaderAddonContext";
 
 export function GlobalHeader({
   homeHref,
@@ -33,6 +34,7 @@ export function GlobalHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
+  const headerAddon = useHeaderAddon();
   const [accountOpen, setAccountOpen] = useState(false);
   const [query, setQuery] = useState(
     () => new URLSearchParams(location.search).get("q") ?? "",
@@ -103,6 +105,7 @@ export function GlobalHeader({
       <div className={styles.headerActions}>
         <LocaleToggle />
         <ThemeToggle />
+        {headerAddon}
         <div className={styles.account} ref={accountRef}>
           <button
             aria-expanded={accountOpen}

@@ -28,6 +28,7 @@ type requestTransport struct {
 type TransportConfig struct {
 	TrustedProxyPrefixes []netip.Prefix
 	RequireTrustedProxy  bool
+	SystemEvents         SystemEventRecorder
 }
 
 func withTrustedTransport(next http.Handler, config TransportConfig) http.Handler {

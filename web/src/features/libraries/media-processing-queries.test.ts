@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { MediaProcessingProgress } from "../../lib/api/media-processing";
-import { mediaProcessingRefreshInterval } from "./media-processing-queries";
+import {
+  mediaProcessingIsActive,
+  mediaProcessingRefreshInterval,
+} from "./media-processing-queries";
 
 const terminal: MediaProcessingProgress = {
   active: false,
@@ -34,5 +37,14 @@ describe("mediaProcessingRefreshInterval", () => {
 
   it("stops after both scanning and derived work are terminal", () => {
     expect(mediaProcessingRefreshInterval(terminal, false)).toBe(false);
+  });
+
+  it("treats queued work as active even if a stale active flag is false", () => {
+    const queued = {
+      ...terminal,
+      thumbnails: { ...terminal.thumbnails, processed: 1, queued: 1 },
+    };
+    expect(mediaProcessingIsActive(queued)).toBe(true);
+    expect(mediaProcessingRefreshInterval(queued, false)).toBe(1_500);
   });
 });

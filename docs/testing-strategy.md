@@ -196,6 +196,14 @@ Stage 1 认证、Stage 2 媒体库/扫描、Stage 3 浏览/非模态预览和 St
 - libvips/FFprobe/FFmpeg 的输入大小、像素炸弹、超时、进程树取消、工具输出和并发限制；
   与 CLI 的调用使用参数数组而非 shell，Linux tmpfs 注入真实 `ENOSPC`。
 - 数据库迁移从每个已发布版本前进，并验证失败时不部分就绪。
+- `POST-MVP-3` 诊断/恢复覆盖 newest-first 有界列表、library-relative path、transient/
+  permanent 重试策略、每 job 最近 10 次 attempt 保留、FFmpeg 输出到稳定原因的脱敏分类、
+  旧失败无详情降级，以及消息 failure watermark 对确认和新失败的重新触发；
+  重新排队、permanent 保留、256 admission 上限、CSRF/认证和安全错误；release-info 覆盖
+  stable semver、draft/prerelease 忽略、5 秒超时、1 MiB cap、六小时缓存与无缓存降级；系统
+  日志覆盖分级、白名单字段、5,000 条保留、keyset 分页和认证；Web 覆盖媒体库扫描记录/处理
+  结果空错状态与结果分页、系统日志筛选、关于更新状态，以及消息中心派生任务 1.5 秒轮询、
+  聚合计数、Escape/外点/清除完成而保留 active/attention。
 
 POST-MVP-2 自动发现的 WCH-S2 后端证据还必须覆盖：
 

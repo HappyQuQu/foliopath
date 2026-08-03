@@ -36,13 +36,21 @@ export async function refreshLibraryDetail(
   });
 }
 
-export function useLibrariesQuery() {
+export function useLibrariesQuery(live = false) {
   return useInfiniteQuery({
     queryKey: libraryKeys.list(),
     queryFn: ({ pageParam }) =>
       listLibraries(pageParam ? { cursor: pageParam } : undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    refetchInterval: live
+      ? (query) => {
+          const active = query.state.data?.pages.some((page) =>
+            page.items.some((library) => library.status === "scanning"),
+          );
+          return active ? 1_500 : 10_000;
+        }
+      : false,
     staleTime: 15_000,
   });
 }

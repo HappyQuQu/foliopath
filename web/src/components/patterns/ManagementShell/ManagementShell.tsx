@@ -1,7 +1,8 @@
 import {
-  Database,
+  FileText,
   FolderOpen,
   GearSix,
+  Info,
   UserCircle,
 } from "@phosphor-icons/react";
 import type { ComponentType, ReactNode } from "react";
@@ -11,10 +12,22 @@ import { useLocale, type MessageKey } from "../../../lib/i18n/LocaleProvider";
 import { AppShell } from "../AppShell/AppShell";
 import styles from "./ManagementShell.module.css";
 
-export type ManagementSection = "general" | "libraries" | "storage" | "account";
+export type ManagementSection =
+  | "general"
+  | "libraries"
+  | "storage"
+  | "account"
+  | "logs"
+  | "about";
 
 const navigation: Array<{
-  hrefKey: "accountHref" | "generalHref" | "librariesHref" | "storageHref";
+  hrefKey:
+    | "accountHref"
+    | "aboutHref"
+    | "generalHref"
+    | "librariesHref"
+    | "logsHref"
+    | "storageHref";
   icon: ComponentType<{ "aria-hidden": "true"; size: number }>;
   key: MessageKey;
   section: ManagementSection;
@@ -32,27 +45,35 @@ const navigation: Array<{
     section: "libraries",
   },
   {
-    hrefKey: "storageHref",
-    icon: Database,
-    key: "settings.scanCache",
-    section: "storage",
-  },
-  {
     hrefKey: "accountHref",
     icon: UserCircle,
     key: "account.account",
     section: "account",
+  },
+  {
+    hrefKey: "logsHref",
+    icon: FileText,
+    key: "management.logs",
+    section: "logs",
+  },
+  {
+    hrefKey: "aboutHref",
+    icon: Info,
+    key: "management.about",
+    section: "about",
   },
 ];
 
 export function ManagementShell({
   active,
   accountHref,
+  aboutHref = "/settings/about",
   children,
   generalHref,
   homeHref,
   identity,
   librariesHref,
+  logsHref = "/settings/logs",
   logoutPending,
   onLogout,
   searchHref,
@@ -60,18 +81,27 @@ export function ManagementShell({
 }: {
   active: ManagementSection;
   accountHref: string;
+  aboutHref?: string;
   children: ReactNode;
   generalHref: string;
   homeHref: string;
   identity: string;
   librariesHref: string;
+  logsHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
   searchHref: string;
   storageHref: string;
 }) {
   const { t } = useLocale();
-  const hrefs = { accountHref, generalHref, librariesHref, storageHref };
+  const hrefs = {
+    accountHref,
+    aboutHref,
+    generalHref,
+    librariesHref,
+    logsHref,
+    storageHref,
+  };
 
   return (
     <AppShell

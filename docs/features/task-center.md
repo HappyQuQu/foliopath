@@ -2,17 +2,18 @@
 
 ## 状态与版本
 
-- 状态：Confirmed Direction / Scope Proposed
-- 目标版本：`POST-MVP-3` / `Post-MVP/3`
-- 当前阶段：S0 Architecture Ready 准备；不授权生产实现或修改权威 OpenAPI
+- 状态：Scope Frozen / In Delivery
+- 目标版本：`POST-MVP-3` revision 1 / `Post-MVP/3`
+- 当前阶段：revision 1 分片交付；失败诊断/恢复已进入 S1/S2，统一 parent task 仍按原清单推进
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
 - Change Record：[CR-2026-008](../changes/CR-2026-008-task-center.md)
 - 开发清单：[FTR-OPS-001 开发任务清单](task-center-task-list.md)
 - 新风险：[R-020](../risk-register.md)
 
-`POST-MVP-3` 当前只是目标版本标签，没有冻结 scope manifest。该 feature 不进入正在加固的
-MVP，也不插入 `POST-MVP-1` 或已冻结的 `POST-MVP-2`。
+`POST-MVP-3` 已由 2026-08-03 的产品确认冻结为
+[revision 1](../releases/POST-MVP-3-scope.md)。该 feature 不进入正在加固的 MVP，也不插入
+`POST-MVP-1` 或已冻结的 `POST-MVP-2`。
 
 ## 用户问题
 
@@ -35,7 +36,7 @@ FolioPath 已有可靠完整扫描、媒体派生任务、租约恢复、缓存�
 | `FR-OPS-001` | 管理员必须能在独立任务中心查看高层任务，并按进行中、全部、需处理筛选。列表使用稳定 keyset cursor，不读取或渲染无界历史。 |
 | `FR-OPS-002` | 每个高层任务必须有可直达详情，显示类型、状态、阶段、可靠进度或未知总量、计数、时间、安全错误摘要和当前允许操作。 |
 | `FR-OPS-003` | 取消和重试必须幂等、可恢复并委托给任务真实 owner；取消、失败、离线和中断不得删除最后可靠索引或已安全发布的派生缓存。 |
-| `FR-OPS-004` | 管理员可以按媒体库或全部媒体库创建“补齐缺失缓存”批次；批次只登记缺失、过期或不兼容的派生项，并有界分页 admission。 |
+| `FR-OPS-004` | 管理员可以按媒体库或全部媒体库创建“补齐缺失缓存”批次；批次登记缺失、过期、不兼容或处理失败的派生项，并有界分页 admission。invalid/unsupported 只停止自动循环重试，不阻止管理员显式操作。 |
 | `FR-OPS-005` | 管理员可以在明确确认后创建“重建全部缓存”批次；新派生文件成功发布后才替换旧缓存，不清空可用缓存作为开始条件。 |
 | `FR-OPS-006` | 终态任务和稳定失败摘要必须保留用于诊断；首版不提供删除任务历史、清空失败记录或任意修改内部并发数。 |
 | `NFR-OPS-002` | 任务中心聚合、轮询、批量 admission 和详情查询必须有界，不能使浏览、扫描、poster 或现有缩略图任务无限饥饿。 |
@@ -54,7 +55,8 @@ FolioPath 已有可靠完整扫描、媒体派生任务、租约恢复、缓存�
 
 ### 不包含
 
-- 系统健康、完整性检查、数据库备份、诊断包或版本更新；
+- 系统健康、完整性检查、数据库备份或诊断包；版本更新由同版本独立 release-info owner 提供，
+  任务中心只消费其通知投影；
 - AI 搜索、OCR、人脸识别、重复检测或其他未来模型任务；
 - 逐资产任务浏览器、原始错误日志或底层 SQL/lease 管理；
 - 暂停全部 worker、清空队列、删除失败历史或绕过重试策略；
@@ -130,10 +132,10 @@ derived run 的候选阶段：
 - 没有 ready 派生状态；
 - ready 记录的缓存文件缺失；
 - source fingerprint 或 transform version 不匹配；
-- transient failed 且仍在允许重试范围，或管理员显式重试的新 run。
+- 所有 failed 结果；该操作本身就是管理员显式发起的新 run。
 
-unsupported/invalid 等永久失败不得在每次补齐时无限重试；必须由 transform/model/version 变化
-或显式的受限重试规则重新获得资格。
+unsupported/invalid 等稳定失败不得进入后台无限自动重试；管理员再次点击“补齐缺失”或
+“全部重建”属于新的显式、受限操作，可以重新获得资格并采集新的结构化诊断。
 
 ### 重建全部缓存
 

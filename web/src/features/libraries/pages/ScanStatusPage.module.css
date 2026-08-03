@@ -1,5 +1,8 @@
 .page {
-  width: min(52rem, calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 90rem;
+  padding-inline: clamp(var(--space-6), 4vw, var(--space-10));
   margin: var(--space-10) auto 6.25rem;
 }
 
@@ -235,6 +238,7 @@
 }
 
 .actions {
+  flex-wrap: wrap;
   margin-top: var(--space-5);
   justify-content: flex-end;
 }
@@ -267,7 +271,7 @@
 
 @media (max-width: 40rem) {
   .page {
-    width: calc(100% - var(--space-8));
+    padding-inline: var(--space-4);
     margin-top: var(--space-8);
   }
 
@@ -295,5 +299,15 @@
 
   .actions button {
     width: 100%;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .derivedRowHeading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

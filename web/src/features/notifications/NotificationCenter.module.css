@@ -1,0 +1,136 @@
+.root {
+  position: relative;
+}
+
+.root button {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  min-width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  padding: 0 0.2rem;
+  color: var(--color-on-accent);
+  border: 2px solid var(--color-glass);
+  border-radius: var(--radius-round);
+  background: var(--color-danger);
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+.panel {
+  position: absolute;
+  z-index: var(--layer-dialog);
+  top: calc(100% + 0.625rem);
+  right: 0;
+  width: min(23rem, calc(100vw - var(--space-6)));
+  max-height: min(34rem, calc(100vh - var(--size-header) - var(--space-6)));
+  overflow: auto;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.panel header {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: var(--font-size-4);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text);
+  border-radius: var(--radius-2);
+  text-decoration: none;
+}
+
+.item:hover {
+  background: var(--color-surface-subtle);
+}
+
+.actionItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--radius-2);
+}
+
+.actionItem:hover {
+  background: var(--color-surface-subtle);
+}
+
+.actionItem .item:hover {
+  background: transparent;
+}
+
+.item span,
+.item strong,
+.item small {
+  min-width: 0;
+  display: block;
+}
+
+.item progress {
+  width: 100%;
+  height: 0.35rem;
+  display: block;
+  margin-top: var(--space-2);
+  accent-color: var(--color-accent);
+}
+
+.item .progressMeta {
+  overflow: visible;
+  white-space: normal;
+}
+
+.item small {
+  overflow: hidden;
+  margin-top: 0.15rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: var(--space-6) var(--space-3);
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.spinning {
+  animation: notification-spin 1s linear infinite;
+}
+
+@keyframes notification-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
+}

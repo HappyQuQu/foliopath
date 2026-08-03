@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,9 +20,12 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/media/imagevips"
 	"github.com/HappyQuQu/foliopath/internal/media/videoffmpeg"
+	"github.com/HappyQuQu/foliopath/internal/releaseinfo"
+	releasegithub "github.com/HappyQuQu/foliopath/internal/releaseinfo/github"
 	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
+	"github.com/HappyQuQu/foliopath/internal/systemlog"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail/cachefs"
 	"github.com/HappyQuQu/foliopath/internal/webassets"
@@ -138,6 +142,25 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	scanQueries, err := scanner.NewQueryService(database, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct scan query service: %w", err)
+	}
+	mediaDiagnostics, err := thumbnail.NewDiagnosticsService(database, mediaSignal)
+	if err != nil {
+		return nil, fmt.Errorf("construct media diagnostics service: %w", err)
+	}
+	systemLogs, err := systemlog.NewService(database)
+	if err != nil {
+		return nil, fmt.Errorf("construct system log service: %w", err)
+	}
+	releaseSource, err := releasegithub.New(&http.Client{Timeout: 5 * time.Second}, "")
+	if err != nil {
+		return nil, fmt.Errorf("construct release source: %w", err)
+	}
+	releaseInformation, err := releaseinfo.NewService(
+		normalizedApplicationVersion(input.Version),
+		releaseSource,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct release information service: %w", err)
 	}
 	settingsService, err := appsettings.NewService(
 		database,
@@ -375,6 +398,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		ScanAdmission:    scanAdmission,
 		Scans:            scanQueries,
 		MediaProgress:    mediaProgress,
+		MediaDiagnostics: mediaDiagnostics,
+		SystemLogs:       systemLogs,
+		ReleaseInfo:      releaseInformation,
 		Settings:         settingsService,
 		Catalog:          catalogService,
 		Thumbnails:       thumbnailDelivery,
@@ -392,6 +418,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 			api.TransportConfig{
 				TrustedProxyPrefixes: parseTrustedProxyPrefixes(configuration.trustedProxies),
 				RequireTrustedProxy:  configuration.requireProxy,
+				SystemEvents:         systemLogs,
 			},
 		),
 		logger,
@@ -399,6 +426,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	application, err := newApplication(
 		[]component{
 			databaseComponent,
+			newSystemEventComponent(systemLogs),
 			resourceProfileComponent,
 			mediaRootComponent,
 			imageRuntimeComponent,

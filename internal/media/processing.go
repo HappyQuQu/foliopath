@@ -50,6 +50,62 @@ const (
 
 type ProcessingErrorCode string
 
+type FailureStage string
+type FailureReason string
+
+const (
+	StageSourceRead   FailureStage = "source_read"
+	StageProbe        FailureStage = "probe"
+	StagePoster       FailureStage = "poster_extract"
+	StageFrameExtract FailureStage = "frame_extract"
+	StageCompose      FailureStage = "storyboard_compose"
+	StageValidation   FailureStage = "output_validation"
+	StageCachePublish FailureStage = "cache_publish"
+)
+
+const (
+	ReasonTimedOut           FailureReason = "time_limit_exceeded"
+	ReasonInvalidData        FailureReason = "invalid_media_data"
+	ReasonMissingMoovAtom    FailureReason = "missing_moov_atom"
+	ReasonDecoderUnavailable FailureReason = "decoder_unavailable"
+	ReasonDecodeFailed       FailureReason = "decode_failed"
+	ReasonNoFrame            FailureReason = "frame_unavailable"
+	ReasonOutputLimit        FailureReason = "output_limit_exceeded"
+	ReasonToolFailed         FailureReason = "tool_failed"
+	ReasonSourceUnavailable  FailureReason = "source_unavailable"
+	ReasonCacheUnavailable   FailureReason = "cache_unavailable"
+)
+
+type FailureDiagnostic struct {
+	Stage    FailureStage
+	Reason   FailureReason
+	Tool     string
+	ExitCode *int
+}
+
+type DiagnosticError struct {
+	cause      error
+	diagnostic FailureDiagnostic
+}
+
+func (err *DiagnosticError) Error() string { return err.cause.Error() }
+func (err *DiagnosticError) Unwrap() error { return err.cause }
+
+func WithFailureDiagnostic(err error, diagnostic FailureDiagnostic) error {
+	if err == nil {
+		return nil
+	}
+	return &DiagnosticError{cause: err, diagnostic: diagnostic}
+}
+
+func DiagnoseFailure(err error) (FailureDiagnostic, bool) {
+	var diagnosticError *DiagnosticError
+	if !errors.As(err, &diagnosticError) {
+		return FailureDiagnostic{}, false
+	}
+	return diagnosticError.diagnostic, true
+}
+
 const (
 	ErrorUnsupportedMedia ProcessingErrorCode = "unsupported_media"
 	ErrorInvalidMedia     ProcessingErrorCode = "invalid_media"

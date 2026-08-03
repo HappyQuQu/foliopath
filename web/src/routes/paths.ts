@@ -3,6 +3,18 @@ export const paths = {
   setup: "/setup/admin",
   login: "/login",
   libraries: "/settings/libraries",
+  libraryInlineStatus: (libraryId: string) =>
+    `/settings/libraries?${new URLSearchParams({ status: libraryId }).toString()}`,
+  libraryScanRecords: (libraryId?: string) =>
+    `/settings/libraries?${new URLSearchParams({
+      view: "scans",
+      ...(libraryId ? { libraryId } : {}),
+    }).toString()}`,
+  libraryProcessingResults: (libraryId?: string) =>
+    `/settings/libraries?${new URLSearchParams({
+      view: "results",
+      ...(libraryId ? { libraryId } : {}),
+    }).toString()}`,
   libraryStatus: (libraryId: string) => `/settings/libraries/${libraryId}/status`,
   libraryStatusPattern: "/settings/libraries/:libraryId/status",
   newLibrary: "/settings/libraries/new",
@@ -25,6 +37,8 @@ export const paths = {
   generalSettings: "/settings/general",
   storageSettings: "/settings/storage",
   accountSettings: "/settings/account",
+  logsSettings: "/settings/logs",
+  aboutSettings: "/settings/about",
   generalSettingsForLibrary: (libraryId: string) =>
     `/settings/general?${new URLSearchParams({ libraryId }).toString()}`,
   unavailable: "/system/unavailable",

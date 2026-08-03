@@ -30,6 +30,15 @@
   line-height: var(--line-height-normal);
 }
 
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
 .section {
   margin-top: var(--space-8);
 }
@@ -38,6 +47,12 @@
   margin: 0 0 var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-4);
+}
+
+.sectionActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
 }
 
 .card {
@@ -242,7 +257,8 @@
   }
 
   .footer button,
-  .row button {
+  .row button,
+  .sectionActions button {
     width: 100%;
   }
 }

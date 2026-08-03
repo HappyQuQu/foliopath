@@ -17,4 +17,5 @@ describe("Dialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "关闭对话框" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
 });
