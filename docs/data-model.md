@@ -61,8 +61,10 @@
 - `last_seen_generation`。
 
 唯一约束为 `(library_id, relative_path)`。重命名在首版表现为新路径新增，并在成功完整扫描后清理旧路径；不承诺依赖 inode 自动识别跨路径移动。
-S3 浏览的直接名称序使用 `(natural_name_key, name, relative_path, id)`，修改时间序使用
-`(mtime_ns, id)`；migration 7 已建立与两个 tuple 和目录 scope 相符的索引。
+名称序 v2 使用从 `relative_path` 与 `name` 派生的来源文件夹路径作为第一排序项：库内为
+`(directory_path, natural_name_key, name, relative_path, id)`，跨库再以 `library_id` 为首项；
+修改时间序使用 `(mtime_ns, id)`。`directory_path` 只在查询时派生，不新增持久化权威字段；
+migration 19 为完整 v2 tuple 增加表达式索引。
 Post-MVP/1 的文件大小序使用 `(size_bytes, id)`；migration 14 在不修改历史 migration
 的前提下将 `avi` 加入 `media_format` CHECK，并增加目录、媒体库与全局大小排序索引。
 `OFFSET` 不是容量档下的可接受实现。migration 8 追加媒体属性和 probe/playback 状态；
@@ -326,6 +328,9 @@ library/global content revision 与任务水位。文件系统 I/O、媒体探�
 ## 删除与离线语义
 
 - 删除媒体库：删除其配置、索引、任务和派生缓存，不修改原文件。
+- 删除媒体或目录：可靠定向校准和成功完整 generation 都必须先在同一事务把 ready 派生路径
+  写入 `cache_deletions`，再删除索引；提交后异步、幂等删除物理缓存。失败、取消、离线或
+  部分不可读扫描不获得该资格。
 - 媒体库离线：保留全部索引并记录状态；恢复后重新扫描。
 - 媒体文件打开失败：返回稳定错误并触发后续校准，不在读取请求中直接大范围修改索引。
 - 缓存缺失或损坏：将对应派生状态恢复为待处理，原媒体记录保持不变。

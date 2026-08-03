@@ -474,6 +474,45 @@ func TestCatalogAssetKeysetSupportsDirectRecursiveFilterAndDirection(t *testing.
 		t.Fatalf("recursive asset counts = %#v", recursive.Counts)
 	}
 
+	var folderThenName []string
+	var cursor string
+	for {
+		page, pageErr := service.ListAssets(context.Background(), catalog.AssetRequest{
+			LibraryID: libraryID, Recursive: true, Sort: catalog.SortName,
+			Order: catalog.OrderAsc, Cursor: cursor, Limit: 1,
+		})
+		if pageErr != nil {
+			t.Fatal(pageErr)
+		}
+		for _, item := range page.Items {
+			folderThenName = append(folderThenName, item.RelativePath)
+		}
+		if page.NextCursor == "" {
+			break
+		}
+		cursor = page.NextCursor
+	}
+	if want := []string{
+		"photo-2.jpg", "photo-10.jpg", "Album 2/clip.mp4", "Album 2/Nested/photo.jpg",
+	}; !slices.Equal(folderThenName, want) {
+		t.Fatalf("folder-then-name order = %v, want %v", folderThenName, want)
+	}
+	descendingByFolder, err := service.ListAssets(context.Background(), catalog.AssetRequest{
+		LibraryID: libraryID, Recursive: true, Sort: catalog.SortName, Order: catalog.OrderDesc,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	descendingPaths := make([]string, 0, len(descendingByFolder.Items))
+	for _, item := range descendingByFolder.Items {
+		descendingPaths = append(descendingPaths, item.RelativePath)
+	}
+	if want := []string{
+		"Album 2/Nested/photo.jpg", "Album 2/clip.mp4", "photo-10.jpg", "photo-2.jpg",
+	}; !slices.Equal(descendingPaths, want) {
+		t.Fatalf("descending folder-then-name order = %v, want %v", descendingPaths, want)
+	}
+
 	ascending, err := service.ListAssets(context.Background(), catalog.AssetRequest{
 		LibraryID: libraryID, Recursive: true,
 		Sort: catalog.SortModifiedAt, Order: catalog.OrderAsc,

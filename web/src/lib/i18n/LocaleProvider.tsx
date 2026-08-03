@@ -238,6 +238,16 @@ const zhCN = {
   "libraries.create": "新建媒体库",
   "libraries.deploymentHelp": "查看部署帮助",
   "libraries.description": "添加并查看媒体库状态。原始文件不会被修改。",
+  "libraries.discoveryActive": "自动发现正常",
+  "libraries.discoveryDegraded": "自动发现已降级",
+  "libraries.discoveryDisabled": "自动发现已关闭",
+  "libraries.discoveryUnsupported": "自动发现不受支持",
+  "libraries.discoveryErrorInternal": "自动发现发生内部错误，已安排完整扫描。",
+  "libraries.discoveryErrorOverflow": "文件事件过多或丢失，已安排完整扫描。",
+  "libraries.discoveryErrorResources": "系统可用的目录监听资源不足。",
+  "libraries.discoveryErrorSource": "媒体库当前不可可靠读取。",
+  "libraries.discoveryErrorUnavailable": "当前平台或文件系统无法提供可靠监听。",
+  "libraries.discoveryLastUpdated": "最近自动同步：{time}",
   "libraries.emptyDescription":
     "选择服务器已允许的目录后，FolioPath 会建立只读索引与缩略图，不会移动或修改原文件。",
   "libraries.emptyTitle": "还没有媒体库",
@@ -263,6 +273,7 @@ const zhCN = {
   "libraries.removeSucceeded": "媒体库“{name}”已从 FolioPath 移除。",
   "libraries.removeTitle": "移除媒体库？",
   "libraries.removalFailed": "清理没有完成，媒体库仍可识别。可以安全重试。",
+  "libraries.refresh": "刷新",
   "libraries.rename": "重命名",
   "libraries.renameSucceeded": "媒体库名称已更新。",
   "libraries.renameTitle": "重命名媒体库",
@@ -654,7 +665,7 @@ const zhCN = {
   "shell.openNavigation": "打开导航",
   "shell.primaryNavigation": "主导航",
   "shell.search": "搜索",
-  "shell.settings": "设置",
+  "shell.settings": "管理中心",
   "locale.toEnglish": "切换到 English",
   "locale.toChinese": "切换到简体中文",
   "theme.toDark": "切换到深色主题",
@@ -976,6 +987,20 @@ const en: Record<MessageKey, string> = {
   "libraries.deploymentHelp": "View deployment help",
   "libraries.description":
     "Add libraries and review their status. Original files are never modified.",
+  "libraries.discoveryActive": "Automatic discovery active",
+  "libraries.discoveryDegraded": "Automatic discovery degraded",
+  "libraries.discoveryDisabled": "Automatic discovery disabled",
+  "libraries.discoveryUnsupported": "Automatic discovery unsupported",
+  "libraries.discoveryErrorInternal":
+    "Automatic discovery encountered an internal error; a full scan was scheduled.",
+  "libraries.discoveryErrorOverflow":
+    "File events were lost or exceeded capacity; a full scan was scheduled.",
+  "libraries.discoveryErrorResources":
+    "The system does not have enough directory-watch resources.",
+  "libraries.discoveryErrorSource": "The library cannot currently be read reliably.",
+  "libraries.discoveryErrorUnavailable":
+    "This platform or filesystem cannot provide reliable change notifications.",
+  "libraries.discoveryLastUpdated": "Last automatic sync: {time}",
   "libraries.emptyDescription":
     "Choose a server-approved directory and FolioPath will build a read-only index and thumbnails without moving or changing the originals.",
   "libraries.emptyTitle": "No libraries yet",
@@ -1006,6 +1031,7 @@ const en: Record<MessageKey, string> = {
   "libraries.removeTitle": "Remove library?",
   "libraries.removalFailed":
     "Cleanup did not finish. The library remains identifiable and removal can be retried safely.",
+  "libraries.refresh": "Refresh",
   "libraries.rename": "Rename",
   "libraries.renameSucceeded": "Library name updated.",
   "libraries.renameTitle": "Rename library",
@@ -1427,7 +1453,7 @@ const en: Record<MessageKey, string> = {
   "shell.openNavigation": "Open navigation",
   "shell.primaryNavigation": "Primary navigation",
   "shell.search": "Search",
-  "shell.settings": "Settings",
+  "shell.settings": "Management Center",
   "locale.toEnglish": "Switch to English",
   "locale.toChinese": "Switch to 简体中文",
   "theme.toDark": "Switch to dark theme",

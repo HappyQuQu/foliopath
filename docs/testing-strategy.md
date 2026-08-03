@@ -209,6 +209,8 @@ POST-MVP-2 自动发现的 WCH-S2 后端证据还必须覆盖：
 
 - fresh schema 与 migration 11→12、CHECK/FK/唯一键、运行 lease 恢复以及设置 ETag；
 - create/close-write/move-in/rename/delete、新建空目录、慢写稳定窗口和事件合并；
+- watcher 删除与 full-scan stale cleanup 均在索引删除前登记 grid/storyboard 缓存删除；
+  failed/cancelled/offline 扫描不得登记，提交后缓存 worker 被主动唤醒并可幂等重试；
 - running 期间的新事件递增水位且不能被旧 claim 删除，完整扫描与定向校准按库互斥；
 - 父目录不可完整枚举、root replacement、symlink、nested mount、unmount、overflow、
   watch `ENOSPC`、强杀、重启和 full-scan 最终收敛；
@@ -218,6 +220,8 @@ POST-MVP-2 自动发现的 WCH-S2 后端证据还必须覆盖：
   自动发现 P95 及浏览/搜索 P95；
 - 认证 `GET /api/v1/catalog/state` 的 `200/304/401/429/500`、ETag/no-store、错误脱敏和
   revision 与搜索 cursor revision 的独立性。
+- 可见媒体库/浏览/搜索页面每 5 秒条件检查、隐藏暂停、`304` 不刷新、revision 变化只裁剪并
+  重取 active scope 第一页，以及自动发现状态/净化原因的中英文呈现。
 
 WCH-S1 冻结的进程内上限是：每实例最多 32,768 个目录 watch、8,192 个未合并事件、
 4,096 个 dirty 目录、全局最多 2 个定向执行、每库最多 1 个；基础 debounce 750ms，
@@ -519,6 +523,11 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - Docker Hub 发布只允许由 `main` push、`vMAJOR.MINOR.PATCH` tag 或显式手动运行触发；
   PR 不得读取发布凭据或推送镜像。发布的 OCI index 必须同时包含 `linux/amd64`
   与 `linux/arm64`。
+- Release Please 只在 `main` push 上维护 Release PR；用户更新日志必须保留带 Emoji 的
+  “新功能、改进、修复、注意事项”分类，并隐藏纯技术提交。只有适用 Release Gate 通过后
+  才可合并 Release PR；自动化不替代 Go/No-Go 判断。
+- 发布 workflow 不包含 SSH、实例地址或远程部署 action；版本和 Docker 发布不得隐式更新
+  任何实际运行实例。
 - `make test-release-image` 必须在原生 linux/amd64 与 linux/arm64 runner 对同一提交
   成功；它覆盖真实 SPA、MVP 媒体 probe/poster、损坏输入、Compose 安全约束、代理
   失败关闭、HSTS、健康检查、SIGTERM、离线恢复、强杀恢复、数据盘满和损坏数据库。

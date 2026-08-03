@@ -37,9 +37,9 @@
   在 VSP-302～304 完成前不得改写为已发布。
 - [`POST-MVP-1` readiness 快照](POST-MVP-1-readiness.json)：机器校验 VSP Gate、
   `VSP-AC-001～008`、R-018 与最终 Go/No-Go；当前为 No-Go。
-- [`POST-MVP-2` scope revision 2](POST-MVP-2-scope-r2.md)：当前冻结；继承
-  [revision 1](POST-MVP-2-scope.md)的后端自动发现合同，并把页面消费改为目录导航重取和
-  手动刷新
+- [`POST-MVP-2` scope revision 3](POST-MVP-2-scope-r3.md)：当前冻结；继承
+  [revision 2](POST-MVP-2-scope-r2.md)的后端自动发现合同，并补充完整扫描缓存删除、媒体库
+  状态/刷新以及可见相关页面的 5 秒 ETag 条件检查
   [FTR-SCN-001 媒体库自动发现](../features/automatic-library-discovery.md)；
   WCH-S0 当前只对 Linux watcher spike 与 ADR 评审 Conditional Go。
 - [`POST-MVP-3` scope revision 1](POST-MVP-3-scope.md)：冻结后台任务恢复、结构化日志、
@@ -50,7 +50,9 @@ manifest，并在新旧文件中链接替代关系。安全不变量不能通过
 
 ## 稳定版本发布记录
 
-稳定标签必须使用 `vMAJOR.MINOR.PATCH`。创建标签前必须新增非空的
-`docs/releases/vMAJOR.MINOR.PATCH.md`，使用面向用户的“新增、优化、修复、升级注意事项和已知
-限制”描述；Docker Hub workflow 在构建前验证该文件，并在镜像成功发布后用同一文件创建
-GitHub Release。构建参数写入相同标签，应用关于页和官方 Release 因而共享版本号与更新记录。
+稳定标签必须使用 `vMAJOR.MINOR.PATCH`，并由 Release Please 的 Release PR 正常创建。
+根 [`CHANGELOG.md`](../../CHANGELOG.md) 是面向用户的累计更新记录；自动生成内容按
+`✨ 新功能`、`🚀 改进`、`🐛 修复` 与 `⚠️ 注意事项` 分类。提交标题负责提供用户可理解的
+中文描述，纯技术提交默认隐藏。合并 Release PR 后，workflow 使用同一版本和日志创建 GitHub
+Release，并为 Docker 镜像追加 `MAJOR.MINOR.PATCH`、`MAJOR.MINOR`、`latest` 与 `sha-*`
+标签。版本准备和 Docker 发布不包含任何实际实例部署。

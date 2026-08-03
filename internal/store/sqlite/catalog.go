@@ -713,47 +713,68 @@ func appendAssetKeyset(
 	if query.ScopeKind == catalog.ScopeGlobal {
 		builder.WriteString(`
           AND (
-            a.natural_name_key ` + operator + ` ?
-            OR (a.natural_name_key = ? AND a.name ` + operator + ` ?)
+            a.library_id ` + operator + ` ?
+            OR (a.library_id = ? AND ` + assetDirectoryPathSQL + ` ` + operator + ` ?)
             OR (
-                a.natural_name_key = ? AND a.name = ?
-                AND a.library_id ` + operator + ` ?
+                a.library_id = ? AND ` + assetDirectoryPathSQL + ` = ?
+                AND a.natural_name_key ` + operator + ` ?
             )
             OR (
-                a.natural_name_key = ? AND a.name = ? AND a.library_id = ?
+                a.library_id = ? AND ` + assetDirectoryPathSQL + ` = ?
+                AND a.natural_name_key = ? AND a.name ` + operator + ` ?
+            )
+            OR (
+                a.library_id = ? AND ` + assetDirectoryPathSQL + ` = ?
+                AND a.natural_name_key = ? AND a.name = ?
                 AND a.relative_path ` + operator + ` ?
             )
             OR (
-                a.natural_name_key = ? AND a.name = ? AND a.library_id = ?
+                a.library_id = ? AND ` + assetDirectoryPathSQL + ` = ?
+                AND a.natural_name_key = ? AND a.name = ?
                 AND a.relative_path = ? AND a.id ` + operator + ` ?
             )
           )`)
 		*args = append(*args,
-			after.NaturalNameKey,
-			after.NaturalNameKey, after.Name,
-			after.NaturalNameKey, after.Name, after.LibraryID,
-			after.NaturalNameKey, after.Name, after.LibraryID, after.RelativePath,
-			after.NaturalNameKey, after.Name, after.LibraryID, after.RelativePath, after.ID,
+			after.LibraryID,
+			after.LibraryID, after.DirectoryPath,
+			after.LibraryID, after.DirectoryPath, after.NaturalNameKey,
+			after.LibraryID, after.DirectoryPath, after.NaturalNameKey, after.Name,
+			after.LibraryID, after.DirectoryPath, after.NaturalNameKey, after.Name, after.RelativePath,
+			after.LibraryID, after.DirectoryPath, after.NaturalNameKey, after.Name, after.RelativePath, after.ID,
 		)
 		return
 	}
 	builder.WriteString(`
           AND (
-            a.natural_name_key ` + operator + ` ?
-            OR (a.natural_name_key = ? AND a.name ` + operator + ` ?)
-            OR (a.natural_name_key = ? AND a.name = ? AND a.relative_path ` + operator + ` ?)
+            ` + assetDirectoryPathSQL + ` ` + operator + ` ?
+            OR (` + assetDirectoryPathSQL + ` = ? AND a.natural_name_key ` + operator + ` ?)
             OR (
-                a.natural_name_key = ? AND a.name = ? AND a.relative_path = ?
+                ` + assetDirectoryPathSQL + ` = ? AND a.natural_name_key = ?
+                AND a.name ` + operator + ` ?
+            )
+            OR (
+                ` + assetDirectoryPathSQL + ` = ? AND a.natural_name_key = ?
+                AND a.name = ? AND a.relative_path ` + operator + ` ?
+            )
+            OR (
+                ` + assetDirectoryPathSQL + ` = ? AND a.natural_name_key = ?
+                AND a.name = ? AND a.relative_path = ?
                 AND a.id ` + operator + ` ?
             )
           )`)
 	*args = append(*args,
-		after.NaturalNameKey,
-		after.NaturalNameKey, after.Name,
-		after.NaturalNameKey, after.Name, after.RelativePath,
-		after.NaturalNameKey, after.Name, after.RelativePath, after.ID,
+		after.DirectoryPath,
+		after.DirectoryPath, after.NaturalNameKey,
+		after.DirectoryPath, after.NaturalNameKey, after.Name,
+		after.DirectoryPath, after.NaturalNameKey, after.Name, after.RelativePath,
+		after.DirectoryPath, after.NaturalNameKey, after.Name, after.RelativePath, after.ID,
 	)
 }
+
+const assetDirectoryPathSQL = `CASE
+    WHEN length(a.relative_path) = length(a.name) THEN ''
+    ELSE substr(a.relative_path, 1, length(a.relative_path) - length(a.name) - 1)
+END`
 
 func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	direction := " ASC"
@@ -770,16 +791,18 @@ func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	}
 	if query.ScopeKind == catalog.ScopeGlobal {
 		builder.WriteString(
-			` ORDER BY a.natural_name_key` + direction +
+			` ORDER BY a.library_id` + direction +
+				`, ` + assetDirectoryPathSQL + direction +
+				`, a.natural_name_key` + direction +
 				`, a.name` + direction +
-				`, a.library_id` + direction +
 				`, a.relative_path` + direction +
 				`, a.id` + direction,
 		)
 		return
 	}
 	builder.WriteString(
-		` ORDER BY a.natural_name_key` + direction +
+		` ORDER BY ` + assetDirectoryPathSQL + direction +
+			`, a.natural_name_key` + direction +
 			`, a.name` + direction +
 			`, a.relative_path` + direction +
 			`, a.id` + direction,

@@ -181,10 +181,14 @@ describe("authentication routes", () => {
       items: [
         {
           assetCount: 12,
+          automaticDiscoveryErrorCode: null,
+          automaticDiscoveryStatus: "active",
+          contentRevision: 2,
           directoryCount: 3,
           displayPath: "家庭照片",
           id: "01JTESTLIBRARY0000000000000",
           lastSuccessfulScanAt: "2026-07-29T00:00:00Z",
+          lastAutomaticDiscoveryAt: "2026-07-29T00:01:00Z",
           latestScanId: "01JTESTSCAN000000000000000",
           name: "家庭照片",
           status: "ready",

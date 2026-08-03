@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BrowserRouter,
   Navigate,
   Route,
   Routes,
   useNavigate,
+  useLocation,
   useParams,
 } from "react-router-dom";
 
@@ -16,11 +18,16 @@ import {
   useLogoutMutation,
   useSessionQuery,
 } from "../features/auth";
-import { BrowsePage } from "../features/browse";
+import { BrowsePage, catalogKeys } from "../features/browse";
+import {
+  refreshChangedCatalogQueries,
+  useCatalogStateQuery,
+} from "../features/catalog-state";
 import {
   LibrariesPage,
   NewLibraryPage,
   ScanStatusPage,
+  libraryKeys,
   useLibrariesQuery,
 } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
@@ -29,7 +36,7 @@ import {
   GeneralSettingsPage,
   StorageSettingsPage,
 } from "../features/settings";
-import { SearchPage } from "../features/search";
+import { SearchPage, searchKeys } from "../features/search";
 import { MediaViewerPage } from "../features/media";
 import { LogsPage } from "../features/diagnostics";
 import { AboutPage } from "../features/release-info";
@@ -53,6 +60,7 @@ export function AppRouter() {
 export function AppRoutes() {
   return (
     <ReadinessGate>
+      <CatalogRevisionMonitor />
       <Routes>
         <Route path={paths.root} element={<RootRoute />} />
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
@@ -80,6 +88,39 @@ export function AppRoutes() {
       </Routes>
     </ReadinessGate>
   );
+}
+
+function CatalogRevisionMonitor() {
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const previousRevision = useRef<number | undefined>(undefined);
+  const session = useSessionQuery();
+  const enabled = session.isSuccess && (
+    location.pathname === paths.libraries ||
+    location.pathname === paths.search ||
+    location.pathname.includes("/browse") ||
+    location.pathname.includes("/search")
+  );
+  const state = useCatalogStateQuery(enabled);
+
+  useEffect(() => {
+    const revision = state.data?.contentRevision;
+    if (revision === undefined) return;
+    if (previousRevision.current === undefined) {
+      previousRevision.current = revision;
+      return;
+    }
+    if (previousRevision.current === revision) return;
+    previousRevision.current = revision;
+
+    void refreshChangedCatalogQueries(queryClient, [
+      catalogKeys.all,
+      searchKeys.all,
+      libraryKeys.all,
+    ]);
+  }, [queryClient, state.data?.contentRevision]);
+
+  return null;
 }
 
 function ReadinessGate({ children }: { children: ReactNode }) {

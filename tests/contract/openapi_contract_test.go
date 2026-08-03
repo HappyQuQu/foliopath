@@ -793,7 +793,7 @@ func TestBrowseContractDefinesRootScopeBreadcrumbsAndReliableIndexSemantics(t *t
 			"'404': [library_not_found, directory_not_found]",
 			"`recursive=false` returns only assets",
 			"`recursive=true` includes the selected directory",
-			"`(naturalNameKey, name, relativePath, id)`",
+			"`(directoryPath, naturalNameKey, name, relativePath, id)`",
 			"`(modifiedAt, id)`",
 			"reliable catalog generation",
 			"never falls back to page one",
@@ -900,7 +900,7 @@ func TestSearchContractFreezesScopesFiltersOrderingAndCursorSemantics(t *testing
 		"GET /api/v1/assets": {
 			"Searches all configured libraries",
 			"literal substring of normalized filename or library-relative path",
-			"`(naturalNameKey, name, libraryId, relativePath, id)`",
+			"`(libraryId, directoryPath, naturalNameKey, name, relativePath, id)`",
 			"one persisted global catalog revision",
 			"Offline libraries contribute their preserved indexed results",
 			"#/components/parameters/ModifiedFromParameter",

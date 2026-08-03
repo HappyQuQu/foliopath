@@ -294,6 +294,31 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	if rootRecursive != 1 || albumDirect != 1 || albumRecursive != 1 {
 		t.Fatalf("directory counts root=%d album=(%d,%d), want 1 and (1,1)", rootRecursive, albumDirect, albumRecursive)
 	}
+	var staleAssetID int64
+	var staleFingerprint string
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT id, source_fingerprint
+		FROM assets
+		WHERE library_id = ? AND relative_path = 'album/photo.jpg'
+	`, libraryRecord.ID).Scan(&staleAssetID, &staleFingerprint); err != nil {
+		t.Fatalf("read stale asset identity: %v", err)
+	}
+	if _, err := store.db.ExecContext(ctx, `
+		INSERT INTO thumbnails(
+			library_id, asset_id, variant, source_fingerprint,
+			transform_version, cache_rel_path, status, width, height,
+			byte_size, created_at_ms, last_accessed_at_ms,
+			frame_count, sprite_columns, sprite_rows, cell_width, cell_height
+		) VALUES (?, ?, 'grid', ?, 1, 'libraries/lib_1/stale.webp',
+		          'ready', 16, 16, 5, 1, 1, NULL, NULL, NULL, NULL, NULL),
+		         (?, ?, 'storyboard', ?, 1, 'libraries/lib_1/stale-storyboard.webp',
+		          'ready', 64, 16, 7, 1, 1, 4, 4, 1, 16, 16)
+	`,
+		libraryRecord.ID, staleAssetID, staleFingerprint,
+		libraryRecord.ID, staleAssetID, staleFingerprint,
+	); err != nil {
+		t.Fatalf("insert stale thumbnail: %v", err)
+	}
 
 	second, err := store.BeginFullScan(ctx, libraryRecord.ID, scanner.TriggerManual)
 	if err != nil {
@@ -318,6 +343,15 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	_, assets := countCatalog(t, store, libraryRecord.ID)
 	if assets != 1 {
 		t.Fatalf("assets after failed scan = %d, want 1", assets)
+	}
+	var pendingCacheDeletions int
+	if err := store.db.QueryRowContext(ctx,
+		`SELECT count(*) FROM cache_deletions`,
+	).Scan(&pendingCacheDeletions); err != nil {
+		t.Fatalf("count cache deletions after failed scan: %v", err)
+	}
+	if pendingCacheDeletions != 0 {
+		t.Fatalf("cache deletions after failed scan = %d, want 0", pendingCacheDeletions)
 	}
 	current, err := store.GetLibrary(ctx, libraryRecord.ID)
 	if err != nil {
@@ -347,6 +381,16 @@ func TestFailedScanPreservesOldIndexAndSuccessfulScanCleansStale(t *testing.T) {
 	_, assets = countCatalog(t, store, libraryRecord.ID)
 	if assets != 0 {
 		t.Fatalf("assets after successful stale cleanup = %d, want 0", assets)
+	}
+	var scheduledCacheCount int
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT count(*) FROM cache_deletions
+		WHERE library_id = ?
+	`, libraryRecord.ID).Scan(&scheduledCacheCount); err != nil {
+		t.Fatalf("read scheduled stale cache deletion: %v", err)
+	}
+	if scheduledCacheCount != 2 {
+		t.Fatalf("scheduled stale cache deletions = %d, want 2", scheduledCacheCount)
 	}
 	current, err = store.GetLibrary(ctx, libraryRecord.ID)
 	if err != nil {

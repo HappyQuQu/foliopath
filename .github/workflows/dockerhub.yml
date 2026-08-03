@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: dockerhub-${{ github.ref }}-${{ inputs.image_tag || 'release' }}
@@ -25,16 +27,54 @@ env:
   IMAGE_NAME: evanqu/foliopath
 
 jobs:
+  release:
+    name: Prepare or publish release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+    steps:
+      - name: Update release pull request or create release
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   publish:
     name: Build and push
+    needs:
+      - release
+    if: >-
+      always() &&
+      (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate user-facing release notes
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: test -s "docs/releases/${GITHUB_REF_NAME}.md"
+      - name: Resolve embedded version
+        id: version
+        shell: bash
+        env:
+          RELEASE_CREATED: ${{ needs.release.outputs.release_created }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag_name }}
+          DISPATCH_TAG: ${{ inputs.image_tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "${RELEASE_CREATED}" == "true" ]]; then
+            value="${RELEASE_TAG}"
+          elif [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            value="${DISPATCH_TAG}"
+          else
+            value="${REF_NAME}"
+          fi
+          echo "value=${value}" >> "${GITHUB_OUTPUT}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -56,6 +96,8 @@ jobs:
           tags: |
             type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
+            type=raw,value=${{ needs.release.outputs.major }}.${{ needs.release.outputs.minor }},enable=${{ needs.release.outputs.release_created == 'true' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
@@ -69,7 +111,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.ref_name }}
+            VERSION=${{ steps.version.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           sbom: true
@@ -83,19 +125,3 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: README.dockerhub.md
           short-description: Read-only self-hosted photo and video browser for NAS libraries.
-
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release edit "${GITHUB_REF_NAME}" \
-              --title "FolioPath ${GITHUB_REF_NAME}" \
-              --notes-file "docs/releases/${GITHUB_REF_NAME}.md"
-          else
-            gh release create "${GITHUB_REF_NAME}" \
-              --verify-tag \
-              --title "FolioPath ${GITHUB_REF_NAME}" \
-              --notes-file "docs/releases/${GITHUB_REF_NAME}.md"
-          fi

@@ -32,6 +32,14 @@
 
 ## Routine fixes
 
+### 2026-08-03
+
+- [名称排序先按来源文件夹分组](FIX-2026-08-03-folder-first-name-sort.md)
+
+### 2026-08-04
+
+- [自动版本与用户友好更新日志](FIX-2026-08-04-automated-friendly-releases.md)
+
 ### 2026-07-29
 
 - [管理员密码最低长度](FIX-2026-07-29-admin-password-minimum.md)

@@ -91,6 +91,7 @@ func TestCatalogBrowseMigrationBackfillsVersionSixRowsAndIndexes(t *testing.T) {
 		"assets_browse_directory_name",
 		"assets_browse_library_name",
 		"assets_browse_directory_modified",
+		"assets_browse_folder_name_v2",
 	} {
 		var exists int64
 		if err := store.db.QueryRowContext(ctx, `

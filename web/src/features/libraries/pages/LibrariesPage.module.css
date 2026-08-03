@@ -118,6 +118,14 @@
   color: var(--color-text-muted);
 }
 
+.headingActions,
+.statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .list {
   display: grid;
   gap: var(--space-3);
@@ -200,6 +208,39 @@
   border-radius: var(--radius-round);
   background: var(--color-accent-soft);
   font-size: var(--font-size-1);
+}
+
+.discoveryStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-subtle);
+  font-size: var(--font-size-1);
+}
+
+.discoveryBlock {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.discoveryDetail {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.discovery_active {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.discovery_degraded,
+.discovery_unsupported {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
 }
 
 .ready {
@@ -396,7 +437,8 @@
     flex-direction: column;
   }
 
-  .heading > button {
+  .headingActions,
+  .headingActions button {
     width: 100%;
   }
 

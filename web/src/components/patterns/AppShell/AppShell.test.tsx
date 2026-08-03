@@ -74,7 +74,7 @@ it("keeps the directory sidebar without duplicate product navigation", async () 
   ).not.toBeInTheDocument();
   expect(screen.getByRole("searchbox")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "管理员的账户菜单" }));
-  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
+  expect(screen.getByRole("menuitem", { name: "管理中心" })).toHaveAttribute(
     "href",
     "/settings/general",
   );
@@ -106,7 +106,7 @@ it("uses only the global header on pages without a directory sidebar", async () 
   expect(screen.getByRole("searchbox")).toBeVisible();
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "管理员的账户菜单" }));
-  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
+  expect(screen.getByRole("menuitem", { name: "管理中心" })).toHaveAttribute(
     "href",
     "/settings/general?libraryId=lib_1",
   );

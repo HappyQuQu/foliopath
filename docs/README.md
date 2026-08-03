@@ -17,6 +17,7 @@
 | 查看 API | [OpenAPI](../api/openapi.yaml) | 已实现 API 的权威合同 |
 | 设计或修改界面 | [界面设计规范](ui-design.md) | 导航、组件、响应式、可访问性和动效 |
 | 部署或运维 | [部署](deployment.md) | 容器、卷、权限、备份、恢复和升级 |
+| 查看用户更新 | [更新日志](../CHANGELOG.md) | 自动维护的用户可见新增、改进、修复和注意事项 |
 | 查看当前工作 | [开发任务清单](task-list.md) | 当前进度、阻断和下一步 |
 | 判断能否发布 | [版本与 readiness](releases/README.md) | scope、候选状态和发布说明 |
 

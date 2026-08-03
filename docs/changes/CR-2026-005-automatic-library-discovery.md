@@ -5,7 +5,7 @@
 - 状态：Confirmed
 - 变更等级：C3（用户可见能力 + 文件系统机制 + 增量任务一致性）
 - 目标版本：`POST-MVP-2` / `Post-MVP/2`
-- Scope revision / 范围状态：[POST-MVP-2 revision 2](../releases/POST-MVP-2-scope-r2.md)
+- Scope revision / 范围状态：[POST-MVP-2 revision 3](../releases/POST-MVP-2-scope-r3.md)
   已冻结；不修改 `MVP-2026-07-23` 或 `POST-MVP-1`
 - Change Record ID / 输入事件：CR-2026-005 / 2026-07-29 用户要求自动发现、方案文档并继续推进
 - 提出日期：2026-07-29
@@ -43,7 +43,8 @@
   实现 Linux watch 与安全重开；`internal/jobs` 继续拥有 durable lease worker；
   `internal/store/sqlite` 实现队列和 content revision；`internal/app` 组装生命周期。
 - API / 用户流程：Settings 和 Library 增加自动发现开关/状态/revision；浏览/搜索页面在
-  目录导航或用户点击刷新时由 TanStack Query owner 重建当前 cursor 链，不持续轮询。
+  目录导航或用户点击刷新时由 TanStack Query owner 重建当前 cursor 链；revision 3 允许
+  相关可见页面每 5 秒执行一次 ETag 条件检查，`304` 不重取 catalog。
 - 数据 / migration / 派生状态：预计新增或扩展 durable incremental queue，并增加独立
   `content_revision`；只追加 migration，精确方案由 Contract Ready 冻结。
 - 安全、隐私与信任边界：监听路径是不可信提示，实际确认仍经过 pathpolicy 与 Linux
@@ -83,10 +84,18 @@
 
 - 新切片：`WCH-S0 Architecture Ready → WCH-S1 Contract Ready → WCH-S2 Backend
   Evidence Ready → WCH-S3 Consumer/UI Ready → WCH-S4 Integrated Slice Done`。
-- 产品决定：Confirmed；`POST-MVP-2` revision 2 保留自动近实时索引、默认开启、安全降级
-  和完整扫描兜底，把打开页面的消费方式改为目录导航重取和手动刷新。
+- 产品决定：Confirmed；`POST-MVP-2` revision 3 保留自动近实时索引、默认开启、安全降级
+  和完整扫描兜底，并加入有界条件检查、媒体库状态/刷新与完整扫描缓存删除一致性。
 - 架构决定：[WCH-S0](../gates/POST-MVP-2/wch-s0-architecture-ready.md)已 Go；
   WCH-001 Linux/arm64 spike 通过，ADR-0011 已接受。
 - API/数据决定：[WCH-S1 Contract Ready](../gates/POST-MVP-2/wch-s1-contract-ready.md)
   已 Go；OpenAPI、migration 12、稳定错误码、content revision、任务水位与资源上限已冻结。
 - 当前结论：允许 WCH-S2 后端实现与证据；产品 UI 仍须等待 Backend Evidence Ready。
+
+## 2026-08-03 Revision 3 补充决定
+
+产品用户要求删除内容同步清理派生缓存，并让已停留页面接近实时反映变化。Revision 3 接受
+既有 catalog-state ETag 合同的 5 秒可见页面条件检查，替代 revision 2 的“完全不持续检查”
+消费者限制；未变化的 `304` 不刷新 catalog，变化后只重建 active scope 第一页。同时修复
+完整 generation stale cleanup 未登记物理缓存删除的正确性缺口。该补充不改变 watcher 的
+不可信 hint 地位、完整扫描正确性基线、原媒体只读边界或单容器拓扑。

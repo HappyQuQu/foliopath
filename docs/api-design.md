@@ -149,7 +149,7 @@ handler 存在替代对应证据。
   `(natural_name_key ASC, name ASC, id ASC)` 分页；空目录不会被隐藏。
 - 资产列表省略 `directoryId` 表示根；`recursive=false` 只含所选目录的直接媒体，
   `recursive=true` 包含所选目录及全部已索引后代。递归项保留真实 `directoryId` 和媒体库相对路径。
-- 直接非搜索浏览默认按 `(natural_name_key, name, relative_path, id)` 升序；递归或搜索默认按
+- 直接非搜索浏览默认按 `(directory_path, natural_name_key, name, relative_path, id)` 升序；递归或搜索默认按
   `(mtime_ns, id)` 倒序。显式方向作用于整个 tuple，游标包含规范 scope、全部查询字段、排序版本
   和可靠 catalog generation。
 - 成功完整扫描推进 reliable generation 后，旧游标返回 `invalid_cursor`，绝不回退第一页。
@@ -360,7 +360,9 @@ run 只记录请求并由 worker 在有界 checkpoint 协作完成；两者都�
   `[modifiedFrom, modifiedBefore)`，两个边界都是 UTC RFC 3339，且同时出现时前者必须早于
   后者。EXIF 或容器创建时间不参与此筛选。
 - 搜索默认 `(modifiedAt, id) DESC`，不提供相关度排序。库内名称排序 tuple 是
-  `(naturalNameKey, name, relativePath, id)`；跨库名称排序在 name 后加入 `libraryId`。
+  `(directoryPath, naturalNameKey, name, relativePath, id)`；跨库名称排序使用
+  `(libraryId, directoryPath, naturalNameKey, name, relativePath, id)`，先固定媒体库与来源文件夹，
+  再按自然文件名排序。
 - 库内 cursor 绑定规范 scope、递归、规范化搜索词、类型/时间筛选、排序、search profile/
   ordering version 与可靠 generation。跨库 cursor 改为绑定同样的查询字段和一个持久化全局
   catalog revision；该 revision 在媒体库创建/移除或可靠 full-scan generation 发布时推进，

@@ -8,6 +8,33 @@ export interface Breadcrumb {
   relativePath: string;
 }
 
+export interface CatalogStateResult {
+  contentRevision: number | null;
+  etag: string;
+}
+
+export async function getCatalogState(etag?: string): Promise<CatalogStateResult> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/catalog/state", {
+      params: {
+        header: {
+          ...(etag ? { "If-None-Match": etag } : {}),
+        },
+      },
+    });
+    const nextEtag = response.headers.get("ETag") ?? etag;
+    if (response.status === 304 && nextEtag) {
+      return { contentRevision: null, etag: nextEtag };
+    }
+    if (data && nextEtag) {
+      return { contentRevision: data.contentRevision, etag: nextEtag };
+    }
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
 export interface Directory {
   directAssetCount: number;
   hasChildren: boolean;

@@ -1761,8 +1761,9 @@ paths:
 
         With no search and `recursive=false`, the default order is natural name
         ascending. Recursive or searched results default to file modification
-        time descending. Name order uses
-        `(naturalNameKey, name, relativePath, id)` and modified-time order uses
+        time descending. Name order groups media by source folder before
+        applying natural filename order. Within one library its tuple is
+        `(directoryPath, naturalNameKey, name, relativePath, id)`; modified-time order uses
         `(modifiedAt, id)`; size order uses `(sizeBytes, id)`, with every tuple
         component following the requested direction. No relevance sort exists.
         Cursors bind the
@@ -1836,8 +1837,9 @@ paths:
         `kind` and `[modifiedFrom, modifiedBefore)` use the same filtering
         semantics as library search. Results default to file modification time
         descending and include a safe media-library name and relative path.
-        Explicit name ordering uses
-        `(naturalNameKey, name, libraryId, relativePath, id)`; modification-time
+        Explicit name ordering groups results by library and source folder,
+        then applies natural filename order using
+        `(libraryId, directoryPath, naturalNameKey, name, relativePath, id)`; modification-time
         ordering uses `(modifiedAt, id)` and size ordering uses
         `(sizeBytes, id)`. No relevance order is provided.
 

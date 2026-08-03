@@ -31,7 +31,7 @@ const (
 
 	queryVersion     = 1
 	directoryOrderV1 = 1
-	assetOrderV1     = 1
+	assetOrderV2     = 2
 	searchProfileV1  = 1
 )
 
@@ -185,6 +185,7 @@ type DirectoryPosition struct {
 }
 
 type AssetPosition struct {
+	DirectoryPath  string
 	NaturalNameKey []byte
 	Name           string
 	LibraryID      int64
@@ -537,6 +538,7 @@ func (service *Service) listAssetQuery(
 	items = items[:limit]
 	last := items[len(items)-1]
 	next, err := service.encodeAssetCursor(revision, fingerprint, query, AssetPosition{
+		DirectoryPath:  assetDirectoryPath(last.RelativePath),
 		NaturalNameKey: last.NaturalNameKey,
 		Name:           last.Name,
 		LibraryID:      last.LibraryID,
@@ -806,7 +808,7 @@ func directoryFingerprint(scope Scope, terms []string) [sha256.Size]byte {
 
 func assetFingerprint(query AssetQuery) [sha256.Size]byte {
 	return hashFingerprint(queryFingerprint{
-		Version: queryVersion, OrderVersion: assetOrderV1,
+		Version: queryVersion, OrderVersion: assetOrderV2,
 		SearchProfile: searchProfileV1, ScopeKind: query.ScopeKind,
 		LibraryID: query.Scope.LibraryID, DirectoryID: query.Scope.CanonicalDirectoryID,
 		Generation: query.Scope.Generation, CatalogRevision: query.CatalogRevision,
@@ -871,17 +873,18 @@ func (service *Service) decodeDirectoryCursor(
 }
 
 type assetCursor struct {
-	Version      int       `json:"v"`
-	Generation   int64     `json:"g"`
-	Fingerprint  []byte    `json:"f"`
-	Sort         SortField `json:"s"`
-	Key          []byte    `json:"k,omitempty"`
-	Name         string    `json:"n,omitempty"`
-	LibraryID    int64     `json:"l,omitempty"`
-	RelativePath string    `json:"p,omitempty"`
-	ModifiedAtNS int64     `json:"m,omitempty"`
-	SizeBytes    int64     `json:"z,omitempty"`
-	ID           int64     `json:"i"`
+	Version       int       `json:"v"`
+	Generation    int64     `json:"g"`
+	Fingerprint   []byte    `json:"f"`
+	Sort          SortField `json:"s"`
+	DirectoryPath string    `json:"d,omitempty"`
+	Key           []byte    `json:"k,omitempty"`
+	Name          string    `json:"n,omitempty"`
+	LibraryID     int64     `json:"l,omitempty"`
+	RelativePath  string    `json:"p,omitempty"`
+	ModifiedAtNS  int64     `json:"m,omitempty"`
+	SizeBytes     int64     `json:"z,omitempty"`
+	ID            int64     `json:"i"`
 }
 
 func (service *Service) encodeAssetCursor(
@@ -894,12 +897,14 @@ func (service *Service) encodeAssetCursor(
 		(query.ScopeKind == ScopeGlobal && query.Sort == SortName && position.LibraryID <= 0) ||
 		(query.Sort == SortName &&
 			(len(position.NaturalNameKey) == 0 || position.Name == "" ||
-				position.RelativePath == "")) {
+				position.RelativePath == "" ||
+				position.DirectoryPath != assetDirectoryPath(position.RelativePath))) {
 		return "", errors.New("catalog repository returned an invalid asset position")
 	}
 	value, err := service.codec.Encode(assetCursor{
 		Version: queryVersion, Generation: revision, Fingerprint: fingerprint[:],
-		Sort: query.Sort, Key: position.NaturalNameKey, Name: position.Name,
+		Sort: query.Sort, DirectoryPath: position.DirectoryPath,
+		Key: position.NaturalNameKey, Name: position.Name,
 		LibraryID:    position.LibraryID,
 		RelativePath: position.RelativePath, ModifiedAtNS: position.ModifiedAtNS,
 		SizeBytes: position.SizeBytes,
@@ -928,17 +933,27 @@ func (service *Service) decodeAssetCursor(
 		return AssetPosition{}, ErrInvalidCursor
 	}
 	if query.Sort == SortName &&
-		(len(decoded.Key) == 0 || decoded.Name == "" || decoded.RelativePath == "") {
+		(len(decoded.Key) == 0 || decoded.Name == "" || decoded.RelativePath == "" ||
+			decoded.DirectoryPath != assetDirectoryPath(decoded.RelativePath)) {
 		return AssetPosition{}, ErrInvalidCursor
 	}
 	if query.ScopeKind == ScopeGlobal && query.Sort == SortName && decoded.LibraryID <= 0 {
 		return AssetPosition{}, ErrInvalidCursor
 	}
 	return AssetPosition{
-		NaturalNameKey: decoded.Key, Name: decoded.Name, RelativePath: decoded.RelativePath,
+		DirectoryPath: decoded.DirectoryPath, NaturalNameKey: decoded.Key,
+		Name: decoded.Name, RelativePath: decoded.RelativePath,
 		LibraryID: decoded.LibraryID, ModifiedAtNS: decoded.ModifiedAtNS,
 		SizeBytes: decoded.SizeBytes, ID: decoded.ID,
 	}, nil
+}
+
+func assetDirectoryPath(relativePath string) string {
+	directoryPath := path.Dir(relativePath)
+	if directoryPath == "." {
+		return ""
+	}
+	return directoryPath
 }
 
 func assetCursorAudience(query AssetQuery) string {

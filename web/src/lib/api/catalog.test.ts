@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
 import {
   assetContentUrl,
+  getCatalogState,
   getAsset,
   getDirectory,
   listAssets,
@@ -26,6 +27,41 @@ describe("catalog adapter", () => {
     expect(assetContentUrl("asset/with space")).toBe(
       "/api/v1/assets/asset%2Fwith%20space/content",
     );
+  });
+
+  it("uses the catalog validator for lightweight revision checks", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: undefined,
+      error: undefined,
+      response: new Response(null, {
+        headers: { ETag: '"catalog-r7"' },
+        status: 304,
+      }),
+    } as never);
+
+    await expect(getCatalogState('"catalog-r7"')).resolves.toEqual({
+      contentRevision: null,
+      etag: '"catalog-r7"',
+    });
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/catalog/state", {
+      params: { header: { "If-None-Match": '"catalog-r7"' } },
+    });
+  });
+
+  it("returns a changed catalog revision and its new validator", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: { contentRevision: 8 },
+      error: undefined,
+      response: new Response(null, {
+        headers: { ETag: '"catalog-r8"' },
+        status: 200,
+      }),
+    } as never);
+
+    await expect(getCatalogState('"catalog-r7"')).resolves.toEqual({
+      contentRevision: 8,
+      etag: '"catalog-r8"',
+    });
   });
 
   it("loads one asset through the generated detail operation", async () => {

@@ -3,13 +3,14 @@
 ## 文档状态
 
 - Feature ID：`FTR-SCN-001`
-- 状态：[WCH-S2 Backend Evidence Ready](../gates/POST-MVP-2/wch-s2-backend-evidence-ready.md)
+- 状态：[WCH-S2 Backend Evidence Ready](../gates/POST-MVP-2/wch-s2-backend-evidence-ready.md)，
+  消费语义以 [POST-MVP-2 revision 3](../releases/POST-MVP-2-scope-r3.md) 为准
   当前 No-Go，仅等待原生 Linux/amd64
 - Change Record：[CR-2026-005](../changes/CR-2026-005-automatic-library-discovery.md)
 - 提案需求：`FR-SCN-010～014`、`NFR-REL-002`、`NFR-PERF-003`
 - 验收：`WCH-AC-001～012`
 - 目标版本：`POST-MVP-2` / `Post-MVP/2`；
-  [scope revision 2](../releases/POST-MVP-2-scope-r2.md)
+  [scope revision 3](../releases/POST-MVP-2-scope-r3.md)
 - 交付切片：`WCH`
 - 产品负责人：产品用户
 - 架构负责人：FolioPath maintainers
@@ -28,7 +29,8 @@ ADR-0011 与 WCH-S1 已接受，当前仅授权生产后端与证据；WCH-S2 �
 FolioPath 采用两条互补路径：
 
 1. **快速路径**：Linux 文件事件把发生变化的目录标记为 dirty，经过短暂合并后执行有界、
-   安全的定向校准；成功提交的变化递增内容 revision，目录导航或显式刷新重新获取页面。
+   安全的定向校准；成功提交的变化递增内容 revision，可见相关页面以条件请求检测变化，
+   目录导航或显式刷新仍可立即重新获取页面。
 2. **正确性路径**：创建、启动、手动和定时完整 generation 扫描继续作为唯一完整性基线，
    负责纠正丢失、乱序、溢出或停机期间未收到的事件。
 
@@ -69,11 +71,11 @@ flowchart LR
 | `FR-SCN-011` | 新建目录必须在安全确认后加入监听范围并进入目录索引，包括空目录；删除或移动目录只能在父目录可可靠枚举、媒体库根身份未变化且目标缺失已确认后清理对应索引子树。 |
 | `FR-SCN-012` | 监听溢出、错误、资源不足、程序停机、根目录不可用或事件无法确认时，系统必须保留已有索引，显示 degraded/offline 状态，并安排或等待下一次完整扫描恢复一致性。 |
 | `FR-SCN-013` | 管理员必须能查看自动发现的 `active`、`degraded`、`unsupported` 或 `disabled` 状态以及经过净化的原因；关闭自动发现不得关闭启动、手动或定时完整扫描。 |
-| `FR-SCN-014` | 每次成功的定向校准必须递增独立的内容 revision；浏览和搜索页提供键盘可用的刷新操作，进入或切换目录时重新获取目标范围，并从第一页重建 cursor 链；不持续轮询或推送。 |
+| `FR-SCN-014` | 每次成功的定向校准必须递增独立的内容 revision；相关页面可见时以有界 ETag 条件检查检测变化，浏览和搜索页仍提供键盘可用的刷新操作；变化、进入或切换目录时重新获取目标范围，并从第一页重建 cursor 链。 |
 | `NFR-REL-002` | 文件事件不参与完整 generation 的成功清理资格；事件丢失、重复、乱序、溢出或进程终止后，下一次成功完整扫描必须最终收敛。 |
 | `NFR-PERF-003` | watcher、dirty 集合、任务 admission、定向枚举、SQLite 写入和前端刷新都必须有界；10 万媒体／1 万目录目标档不能因每文件常驻 watcher、无界事件队列或刷新风暴失效。 |
 
-这些 ID 已由 `POST-MVP-2` revision 2 冻结，但不修改 MVP PRD 中现有
+这些 ID 已由 `POST-MVP-2` revision 3 冻结，但不修改 MVP PRD 中现有
 `FR-SCN-001～009` 或 `MVP-NG-008`。
 
 ## 范围

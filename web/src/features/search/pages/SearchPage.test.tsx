@@ -93,10 +93,14 @@ beforeEach(() => {
     etag: '"library-v1"',
     library: {
       assetCount: 8,
+      automaticDiscoveryErrorCode: null,
+      automaticDiscoveryStatus: "active",
+      contentRevision: 2,
       directoryCount: 3,
       displayPath: "/library/family",
       id: "lib_family",
       lastSuccessfulScanAt: "2026-07-28T00:00:00Z",
+      lastAutomaticDiscoveryAt: "2026-07-28T00:01:00Z",
       latestScanId: "scan_test",
       name: "家庭影像",
       status: "ready",
@@ -129,7 +133,7 @@ it("restores a library search and exposes the source library and directory", asy
   await userEvent.setup().click(
     screen.getByRole("button", { name: "家庭管理员的账户菜单" }),
   );
-  expect(screen.getByRole("menuitem", { name: "设置" })).toHaveAttribute(
+  expect(screen.getByRole("menuitem", { name: "管理中心" })).toHaveAttribute(
     "href",
     "/settings/general?libraryId=lib_family",
   );

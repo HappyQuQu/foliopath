@@ -16,6 +16,7 @@ import (
 type mediaWakeScanRepository struct {
 	scanner.Repository
 	waker          interface{ Wake() }
+	cacheWaker     interface{ Wake() }
 	discoveryWaker interface{ Wake() }
 }
 
@@ -27,6 +28,9 @@ func (repository mediaWakeScanRepository) CompleteFullScan(
 	run, err := repository.Repository.CompleteFullScan(ctx, runID, skipped)
 	if err != nil {
 		return scanner.ScanRun{}, err
+	}
+	if repository.cacheWaker != nil {
+		repository.cacheWaker.Wake()
 	}
 	if repository.discoveryWaker != nil {
 		repository.discoveryWaker.Wake()

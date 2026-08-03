@@ -68,10 +68,14 @@ beforeEach(() => {
     items: [
       {
         assetCount: 9_983,
+        automaticDiscoveryErrorCode: null,
+        automaticDiscoveryStatus: "active",
+        contentRevision: 2,
         directoryCount: 13,
         displayPath: "/library/temp",
         id: "lib_1",
         lastSuccessfulScanAt: "2026-07-28T00:00:00Z",
+        lastAutomaticDiscoveryAt: "2026-07-28T00:01:00Z",
         latestScanId: "scan_1",
         name: "temp",
         status: "ready",
@@ -136,6 +140,15 @@ beforeEach(() => {
     },
     videoPreviewsPendingEligibility: 0,
   });
+});
+
+it("shows automatic discovery health and explicitly refreshes the library list", async () => {
+  const user = userEvent.setup();
+  renderLibraries();
+
+  expect(await screen.findByText("自动发现正常")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "刷新" }));
+  await waitFor(() => expect(listLibraries).toHaveBeenCalledTimes(2));
 });
 
 it("moves scan history and processing results into library tabs", async () => {

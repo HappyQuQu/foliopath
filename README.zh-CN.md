@@ -1,7 +1,7 @@
 # FolioPath
 
 <p align="center">
-  <strong>简体中文</strong> · <a href="README.md">English</a>
+  <strong>简体中文</strong> · <a href="README.md">English</a> · <a href="CHANGELOG.md">更新日志</a>
 </p>
 
 <p align="center">

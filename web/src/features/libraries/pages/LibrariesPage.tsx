@@ -1,4 +1,5 @@
 import {
+  ArrowsClockwise,
   CheckCircle,
   CircleNotch,
   FolderOpen,
@@ -23,6 +24,8 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/errors";
 import type { MediaJobProgress } from "../../../lib/api/media-processing";
 import type {
+  AutomaticDiscoveryErrorCode,
+  AutomaticDiscoveryStatus,
   LibraryStatus,
   LibrarySummary,
 } from "../../../lib/api/libraries";
@@ -66,6 +69,21 @@ const statusMessage: Record<LibraryStatus, MessageKey> = {
   ready: "libraries.statusReady",
   offline: "libraries.statusOffline",
   error: "libraries.statusError",
+};
+
+const discoveryStatusMessage: Record<AutomaticDiscoveryStatus, MessageKey> = {
+  active: "libraries.discoveryActive",
+  degraded: "libraries.discoveryDegraded",
+  disabled: "libraries.discoveryDisabled",
+  unsupported: "libraries.discoveryUnsupported",
+};
+
+const discoveryErrorMessage: Record<AutomaticDiscoveryErrorCode, MessageKey> = {
+  internal_error: "libraries.discoveryErrorInternal",
+  source_unavailable: "libraries.discoveryErrorSource",
+  watch_overflow: "libraries.discoveryErrorOverflow",
+  watch_resource_limit: "libraries.discoveryErrorResources",
+  watch_unavailable: "libraries.discoveryErrorUnavailable",
 };
 
 export function LibrariesPage({
@@ -118,12 +136,14 @@ export function LibrariesPage({
           hasMore={query.hasNextPage}
           libraries={libraries}
           onLoadMore={() => void loadNextPage()}
+          onRefresh={() => void refreshLibraries()}
           onViewChange={(nextView) => {
             const next = new URLSearchParams();
             if (nextView !== "libraries") next.set("view", nextView);
             setSearchParams(next, { replace: true });
           }}
           session={session}
+          refreshing={query.isFetching && !query.isFetchingNextPage}
           view={view}
         />
       )}
@@ -194,16 +214,20 @@ function LibraryList({
   hasMore,
   libraries,
   onLoadMore,
+  onRefresh,
   onViewChange,
   session,
+  refreshing,
   view,
 }: {
   fetchingMore: boolean;
   hasMore: boolean;
   libraries: LibrarySummary[];
   onLoadMore: () => void;
+  onRefresh: () => void;
   onViewChange: (view: LibraryView) => void;
   session: AuthenticatedSession;
+  refreshing: boolean;
   view: LibraryView;
 }) {
   const { locale, t } = useLocale();
@@ -226,10 +250,16 @@ function LibraryList({
           <p>{t("libraries.description")}</p>
         </div>
         {view === "libraries" && (
-          <Button onClick={() => navigate(paths.newLibrary)} variant="primary">
-            <Plus aria-hidden="true" size={18} />
-            {t("libraries.create")}
-          </Button>
+          <div className={styles.headingActions}>
+            <Button loading={refreshing} onClick={onRefresh}>
+              <ArrowsClockwise aria-hidden="true" size={18} />
+              {t("libraries.refresh")}
+            </Button>
+            <Button onClick={() => navigate(paths.newLibrary)} variant="primary">
+              <Plus aria-hidden="true" size={18} />
+              {t("libraries.create")}
+            </Button>
+          </div>
         )}
       </header>
       <div className={styles.tabs} role="tablist" aria-label={t("libraryRecords.views")}>
@@ -402,7 +432,10 @@ function LibraryRow({
               )}
             </span>
           </p>
-          <StatusPill status={library.status} />
+          <div className={styles.statuses}>
+            <StatusPill status={library.status} />
+            <DiscoveryStatus library={library} />
+          </div>
         </div>
         <div className={styles.rowActions}>
           <Button
@@ -869,6 +902,36 @@ function StatusPill({ status }: { status: LibraryStatus }) {
         weight="bold"
       />
       {t(statusMessage[status])}
+    </span>
+  );
+}
+
+function DiscoveryStatus({ library }: { library: LibrarySummary }) {
+  const { locale, t } = useLocale();
+  const error = library.automaticDiscoveryErrorCode;
+  const title = [
+    error ? t(discoveryErrorMessage[error]) : undefined,
+    library.lastAutomaticDiscoveryAt
+      ? t("libraries.discoveryLastUpdated").replace(
+          "{time}",
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "short",
+            timeStyle: "short",
+          }).format(new Date(library.lastAutomaticDiscoveryAt)),
+        )
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <span className={styles.discoveryBlock}>
+      <span
+        className={`${styles.discoveryStatus} ${styles[`discovery_${library.automaticDiscoveryStatus}`]}`}
+      >
+        {t(discoveryStatusMessage[library.automaticDiscoveryStatus])}
+      </span>
+      {title && <span className={styles.discoveryDetail}>{title}</span>}
     </span>
   );
 }

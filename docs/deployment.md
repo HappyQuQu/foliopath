@@ -29,9 +29,11 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 ## Docker Hub 自动发布
 
 独立 workflow [`.github/workflows/dockerhub.yml`](../.github/workflows/dockerhub.yml)
-负责构建并发布一个同时包含 `linux/amd64` 与 `linux/arm64` 的 Docker Hub image index。
-自动测试 CI 已关闭，测试与候选证据由发布者在本地完成。推送到 `main`、推送
-`vMAJOR.MINOR.PATCH` 标签或手动运行时，才会触发此 Docker 发布 workflow；PR 不触发。
+负责版本准备和 Docker 发布。推送到 `main` 后，Release Please 根据 Conventional Commits
+维护一个 Release PR，同时构建并发布包含 `linux/amd64` 与 `linux/arm64` 的 Docker Hub
+image index；PR 本身不接触仓库凭据。合并 Release PR 后，同一次 `main` workflow 创建
+`vMAJOR.MINOR.PATCH` GitHub Release，并为 Docker 镜像追加版本标签。自动测试 CI 已关闭，
+测试与候选证据仍由发布者在本地完成。该流程不连接或更新任何实际部署实例。
 
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
 
@@ -44,12 +46,22 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 触发与标签规则：
 
 - 推送到 `main` 时自动构建并推送 `latest` 与 `sha-*` 标签。
-- 推送 `vMAJOR.MINOR.PATCH` Git tag 时自动推送版本标签、`major.minor`、`sha-*`
-  和 `latest`。
+- 普通 `main` 提交按 `feat:`、`fix:` 和 breaking-change 语义累计下一版本，并更新一个
+  Release PR；不会为每次提交创建正式版本。
+- 合并 Release PR 时自动创建 `vMAJOR.MINOR.PATCH` 标签和 GitHub Release，并在同一次
+  Docker 构建中追加 `MAJOR.MINOR.PATCH` 与 `MAJOR.MINOR` 标签。
+- 手工推送 `vMAJOR.MINOR.PATCH` Git tag 仍可构建相同的语义化版本标签，但正常发布应由
+  Release PR 驱动，避免版本号与 `CHANGELOG.md` 分离。
 - 从 Actions 手动运行时必须指定标签，默认是 `edge`，不会更新 `latest`。
 - 单个 GitHub-hosted runner 通过 Buildx/QEMU 构建并推送 amd64 与 arm64 manifest。
 - 构建附带 SBOM 和 provenance；发布后同步专用 `README.dockerhub.md`。默认复用
   `DOCKERHUB_TOKEN`，也可配置独立的 description token 覆盖它。
+
+面向用户的更新日志由根 [`CHANGELOG.md`](../CHANGELOG.md) 承载。合入 `main` 的提交标题必须
+使用用户能理解的中文 Conventional Commit，例如 `feat: 媒体库内容变化后自动刷新`；
+Release Please 将内容归入 `✨ 新功能`、`🚀 改进`、`🐛 修复` 和 `⚠️ 注意事项`。
+`docs:`、`test:`、`build:`、`ci:` 与 `chore:` 等纯技术提交不会出现在用户更新日志。
+版本和日志先出现在 Release PR 中，发布者可在合并前检查措辞。
 
 发布完成后验证：
 

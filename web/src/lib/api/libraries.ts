@@ -2,14 +2,25 @@ import { apiClient } from "./client";
 import { createApiError } from "./errors";
 
 export type LibraryStatus = "pending" | "scanning" | "ready" | "offline" | "error";
+export type AutomaticDiscoveryStatus = "active" | "degraded" | "unsupported" | "disabled";
+export type AutomaticDiscoveryErrorCode =
+  | "watch_unavailable"
+  | "watch_resource_limit"
+  | "watch_overflow"
+  | "source_unavailable"
+  | "internal_error";
 
 export interface LibrarySummary {
   assetCount: number;
+  automaticDiscoveryErrorCode: AutomaticDiscoveryErrorCode | null;
+  automaticDiscoveryStatus: AutomaticDiscoveryStatus;
+  contentRevision: number;
   directoryCount: number;
   displayPath: string;
   id: string;
   lastSuccessfulScanAt: string | null;
   latestScanId: string | null;
+  lastAutomaticDiscoveryAt: string | null;
   name: string;
   status: LibraryStatus;
 }
@@ -276,21 +287,29 @@ export async function getLibraryRemoval(
 
 function mapLibrary(library: {
   assetCount: number;
+  automaticDiscoveryErrorCode: AutomaticDiscoveryErrorCode | null;
+  automaticDiscoveryStatus: AutomaticDiscoveryStatus;
+  contentRevision: number;
   directoryCount: number;
   displayPath: string;
   id: string;
   lastSuccessfulScanAt: string | null;
   latestScanId: string | null;
+  lastAutomaticDiscoveryAt: string | null;
   name: string;
   status: LibraryStatus;
 }): LibrarySummary {
   return {
     assetCount: library.assetCount,
+    automaticDiscoveryErrorCode: library.automaticDiscoveryErrorCode,
+    automaticDiscoveryStatus: library.automaticDiscoveryStatus,
+    contentRevision: library.contentRevision,
     directoryCount: library.directoryCount,
     displayPath: library.displayPath,
     id: library.id,
     lastSuccessfulScanAt: library.lastSuccessfulScanAt,
     latestScanId: library.latestScanId,
+    lastAutomaticDiscoveryAt: library.lastAutomaticDiscoveryAt,
     name: library.name,
     status: library.status,
   };

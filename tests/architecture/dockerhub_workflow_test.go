@@ -23,12 +23,16 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"IMAGE_NAME: evanqu/foliopath",
 		"username: ${{ secrets.DOCKERHUB_USERNAME }}",
 		"password: ${{ secrets.DOCKERHUB_TOKEN }}",
+		"uses: googleapis/release-please-action@v4",
+		"config-file: release-please-config.json",
+		"manifest-file: .release-please-manifest.json",
 		"uses: docker/setup-qemu-action@v3",
 		"platforms: linux/amd64,linux/arm64",
-		"VERSION=${{ github.ref_name }}",
+		"VERSION=${{ steps.version.outputs.value }}",
 		"sbom: true",
 		"provenance: true",
 		"type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}",
+		"type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}",
 		"DOCKERHUB_DESCRIPTION_TOKEN",
 		"secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN",
 		"readme-filepath: README.dockerhub.md",
@@ -40,6 +44,44 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 	if strings.Contains(workflow, "Skip Docker Hub overview sync") {
 		t.Error("Docker Hub overview publication must not be silently skipped")
 	}
+	if strings.Contains(workflow, "192.168.2.222") ||
+		strings.Contains(workflow, "appleboy/ssh-action") {
+		t.Error("release publication must not deploy to a live instance")
+	}
+}
+
+func TestFriendlyReleaseAutomationContract(t *testing.T) {
+	root := repositoryRoot(t)
+	config, err := os.ReadFile(filepath.Join(root, "release-please-config.json"))
+	if err != nil {
+		t.Fatalf("read release-please config: %v", err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(root, ".release-please-manifest.json"))
+	if err != nil {
+		t.Fatalf("read release-please manifest: %v", err)
+	}
+	changelog, err := os.ReadFile(filepath.Join(root, "CHANGELOG.md"))
+	if err != nil {
+		t.Fatalf("read changelog: %v", err)
+	}
+
+	requireFragments(t, "release-please-config.json", string(config), []string{
+		`"release-type": "simple"`,
+		`"include-v-in-tag": true`,
+		`"section": "✨ 新功能"`,
+		`"section": "🚀 改进"`,
+		`"section": "🐛 修复"`,
+		`"section": "⚠️ 注意事项"`,
+		`"type": "chore"`,
+		`"hidden": true`,
+	})
+	requireFragments(t, ".release-please-manifest.json", string(manifest), []string{
+		`".": "0.0.0"`,
+	})
+	requireFragments(t, "CHANGELOG.md", string(changelog), []string{
+		"# 更新日志",
+		"用户可见变化",
+	})
 }
 
 func TestDockerHubReadmeUsesAbsoluteReferences(t *testing.T) {

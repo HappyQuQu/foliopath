@@ -589,6 +589,15 @@ func (s *Store) CompleteFullScan(
 		if err := validateCatalogRelationshipsTx(ctx, tx, run.LibraryID, run.Generation); err != nil {
 			return err
 		}
+		if err := scheduleGenerationCacheDeletionTx(
+			ctx,
+			tx,
+			run.LibraryID,
+			run.Generation,
+			s.nowMS(),
+		); err != nil {
+			return err
+		}
 
 		if _, err := tx.ExecContext(ctx, `
             DELETE FROM assets WHERE library_id = ? AND last_seen_generation < ?`,
@@ -635,6 +644,30 @@ func (s *Store) CompleteFullScan(
 		return err
 	})
 	return completed, err
+}
+
+func scheduleGenerationCacheDeletionTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	libraryID int64,
+	generation int64,
+	now int64,
+) error {
+	if _, err := tx.ExecContext(ctx, `
+		INSERT OR IGNORE INTO cache_deletions(
+			library_id, cache_rel_path, byte_size, created_at_ms
+		)
+		SELECT thumbnail.library_id, thumbnail.cache_rel_path,
+		       thumbnail.byte_size, ?
+		FROM thumbnails AS thumbnail
+		JOIN assets AS asset ON asset.id = thumbnail.asset_id
+		WHERE asset.library_id = ?
+		  AND asset.last_seen_generation < ?
+		  AND thumbnail.status = 'ready'
+	`, now, libraryID, generation); err != nil {
+		return fmt.Errorf("schedule stale generation cache cleanup: %w", err)
+	}
+	return nil
 }
 
 const directoryRollupBatchSize = 500

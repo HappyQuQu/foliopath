@@ -196,6 +196,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		mediaWakeScanRepository{
 			Repository:     database,
 			waker:          mediaSignal,
+			cacheWaker:     cacheSignal,
 			discoveryWaker: discoveryRecoverySignal,
 		},
 		scanner.Config{},
@@ -257,7 +258,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	reconcileProcessor, err := scanner.NewReconcileProcessor(
 		database,
 		directorySource,
-		mediaSignal,
+		multiWaker{mediaSignal, cacheSignal},
 		discoveryCoordinator,
 	)
 	if err != nil {
