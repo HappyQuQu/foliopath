@@ -50,9 +50,11 @@ manifest，并在新旧文件中链接替代关系。安全不变量不能通过
 
 ## 稳定版本发布记录
 
-稳定标签必须使用 `vMAJOR.MINOR.PATCH`，并由 Release Please 的 Release PR 正常创建。
+稳定标签必须使用 `vMAJOR.MINOR.PATCH`，并由 Release Please 的 Release PR 自动创建和
+squash merge。
 根 [`CHANGELOG.md`](../../CHANGELOG.md) 是面向用户的累计更新记录；自动生成内容按
 `✨ 新功能`、`🚀 改进`、`🐛 修复` 与 `⚠️ 注意事项` 分类。提交标题负责提供用户可理解的
 中文描述，纯技术提交默认隐藏。合并 Release PR 后，workflow 使用同一版本和日志创建 GitHub
 Release，并为 Docker 镜像追加 `MAJOR.MINOR.PATCH`、`MAJOR.MINOR`、`latest` 与 `sha-*`
-标签。版本准备和 Docker 发布不包含任何实际实例部署。
+标签。Release PR 不等待人工批准，因此提交者必须在推送 `main` 前确认措辞与适用发布 Gate；
+版本准备和 Docker 发布不包含任何实际实例部署。

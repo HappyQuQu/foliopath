@@ -1,6 +1,7 @@
 package architecture_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,6 +27,11 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"uses: googleapis/release-please-action@v4",
 		"config-file: release-please-config.json",
 		"manifest-file: .release-please-manifest.json",
+		"Automatically merge release pull request",
+		`gh pr merge "${pr_number}"`,
+		"--squash",
+		"Finalize automatically merged release",
+		"skip-github-pull-request: true",
 		"uses: docker/setup-qemu-action@v3",
 		"platforms: linux/amd64,linux/arm64",
 		"VERSION=${{ steps.version.outputs.value }}",
@@ -33,6 +39,7 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"provenance: true",
 		"type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}",
 		"type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}",
+		"type=raw,value=sha-${{ steps.version.outputs.short_sha }}",
 		"DOCKERHUB_DESCRIPTION_TOKEN",
 		"secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN",
 		"readme-filepath: README.dockerhub.md",
@@ -75,9 +82,13 @@ func TestFriendlyReleaseAutomationContract(t *testing.T) {
 		`"type": "chore"`,
 		`"hidden": true`,
 	})
-	requireFragments(t, ".release-please-manifest.json", string(manifest), []string{
-		`".": "0.0.0"`,
-	})
+	var versions map[string]string
+	if err := json.Unmarshal(manifest, &versions); err != nil {
+		t.Fatalf("parse release-please manifest: %v", err)
+	}
+	if !regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(versions["."]) {
+		t.Errorf("release-please manifest root version is not semantic: %q", versions["."])
+	}
 	requireFragments(t, "CHANGELOG.md", string(changelog), []string{
 		"# 更新日志",
 		"用户可见变化",

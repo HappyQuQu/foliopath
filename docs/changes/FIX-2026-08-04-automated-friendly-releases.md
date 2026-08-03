@@ -19,8 +19,9 @@ Accepted / Implemented
 ## 决定
 
 - `main` push 继续自动发布 Docker `latest` 与 `sha-*`。
-- Release Please 根据 Conventional Commits 维护可审核的 Release PR。
-- 合并 Release PR 后自动创建语义化版本、GitHub Release 和对应 Docker 版本标签。
+- Release Please 根据 Conventional Commits 创建可审计的 Release PR，并由同一 workflow
+  自动 squash merge。
+- 自动合并后在同一轮创建语义化版本、GitHub Release 和对应 Docker 版本标签。
 - 用户日志固定使用带少量 Emoji 的“新功能、改进、修复、注意事项”分类；纯技术类型隐藏。
 - 不连接、不重启、不更新任何实际部署实例。
 

@@ -523,9 +523,10 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - Docker Hub 发布只允许由 `main` push、`vMAJOR.MINOR.PATCH` tag 或显式手动运行触发；
   PR 不得读取发布凭据或推送镜像。发布的 OCI index 必须同时包含 `linux/amd64`
   与 `linux/arm64`。
-- Release Please 只在 `main` push 上维护 Release PR；用户更新日志必须保留带 Emoji 的
-  “新功能、改进、修复、注意事项”分类，并隐藏纯技术提交。只有适用 Release Gate 通过后
-  才可合并 Release PR；自动化不替代 Go/No-Go 判断。
+- Release Please 只在 `main` push 上创建或更新 Release PR，并由同一 workflow 自动 squash
+  merge 后完成 GitHub Release；用户更新日志必须保留带 Emoji 的“新功能、改进、修复、
+  注意事项”分类，并隐藏纯技术提交。提交者必须在 push 前确认适用 Release Gate；自动化
+  不替代 Go/No-Go 判断。
 - 发布 workflow 不包含 SSH、实例地址或远程部署 action；版本和 Docker 发布不得隐式更新
   任何实际运行实例。
 - `make test-release-image` 必须在原生 linux/amd64 与 linux/arm64 runner 对同一提交
