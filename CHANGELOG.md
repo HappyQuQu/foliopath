@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/HappyQuQu/foliopath/compare/v1.0.0...v1.0.1) (2026-08-03)
+
+
+### 🐛 修复
+
+* Docker 镜像标签与应用版本保持一致 ([46ce9b6](https://github.com/HappyQuQu/foliopath/commit/46ce9b61fed2ec8dab9b45c98428acbd71ad5c42))
+
 ## 1.0.0 (2026-08-03)
 
 
