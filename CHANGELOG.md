@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/HappyQuQu/foliopath/compare/v1.1.0...v1.1.1) (2026-08-04)
+
+
+### 🐛 修复
+
+* 修正更新记录内容布局 ([718e4b4](https://github.com/HappyQuQu/foliopath/commit/718e4b4acfe179d1fd8a88d8e4559401918a094e))
+
 ## [1.1.0](https://github.com/HappyQuQu/foliopath/compare/v1.0.1...v1.1.0) (2026-08-04)
 
 
