@@ -24,7 +24,7 @@
 │   ├── thumbnail/             缩略图任务与缓存语义
 │   ├── media/                 媒体探测与原文件响应
 │   ├── jobs/                  有界、可恢复的后台任务
-│   ├── resourcecontrol/       实例级 NAS 资源预设与共享并发许可
+│   ├── resourcecontrol/       实例级资源数值限制与共享并发许可
 │   ├── pathpolicy/            不接触 I/O 的相对路径词法策略
 │   ├── files/                 `/library` 路径安全边界
 │   ├── store/sqlite/          SQLite 适配器和生成查询代码

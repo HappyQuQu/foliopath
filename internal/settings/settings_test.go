@@ -24,13 +24,13 @@ type wakerStub struct{ count int }
 func (stub *wakerStub) Wake() { stub.count++ }
 
 type resourceApplierStub struct {
-	count   int
-	profile resourcecontrol.Profile
+	count  int
+	limits resourcecontrol.Limits
 }
 
-func (stub *resourceApplierStub) ApplyResourceProfile(profile resourcecontrol.Profile) error {
+func (stub *resourceApplierStub) ApplyLimits(limits resourcecontrol.Limits) error {
 	stub.count++
-	stub.profile = profile
+	stub.limits = limits
 	return nil
 }
 
@@ -39,7 +39,8 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	repository := &repositoryStub{values: Values{
 		ScheduledScanIntervalHours: &hours,
 		ThumbnailCacheQuotaBytes:   10,
-		ResourceProfile:            resourcecontrol.ProfileBalanced,
+		BackgroundConcurrency:      2,
+		ContentReadConcurrency:     8,
 		Language:                   "browser",
 		Revision:                   1,
 	}}
@@ -98,14 +99,16 @@ func TestServiceWakesTheOwnerOfEachChangedSetting(t *testing.T) {
 	if discoveryWaker.count != 1 {
 		t.Fatalf("discovery wakes = %d, want 1", discoveryWaker.count)
 	}
-	profile := resourcecontrol.ProfileEco
+	background := int64(3)
+	content := int64(12)
 	if _, err := service.Update(context.Background(), 4, Update{
-		ResourceProfile: &profile,
+		BackgroundConcurrency:  &background,
+		ContentReadConcurrency: &content,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if resourceApplier.count != 1 || resourceApplier.profile != profile {
-		t.Fatalf("resource apply = count %d profile %q", resourceApplier.count, resourceApplier.profile)
+	if resourceApplier.count != 1 || resourceApplier.limits != (resourcecontrol.Limits{Background: 3, Content: 12}) {
+		t.Fatalf("resource apply = count %d limits %#v", resourceApplier.count, resourceApplier.limits)
 	}
 	disabled, err := service.Update(context.Background(), 5, Update{SetSchedule: true})
 	if err != nil {

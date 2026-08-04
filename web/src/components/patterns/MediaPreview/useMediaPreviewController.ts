@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  readPreviewAutoplayPreference,
   readPreviewPinnedPreference,
   readPreviewWidthPreference,
   writePreviewPinnedPreference,
@@ -21,6 +22,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
 }) {
   const [previewItem, setPreviewItem] = useState<T>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
+  const [autoPlayVideo] = useState(readPreviewAutoplayPreference);
   const [pinned, setPinned] = useState(readPreviewPinnedPreference);
   const [width, setWidthState] = useState(readPreviewWidthPreference);
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -71,7 +73,9 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     if (!item) return;
     setSelectedItemId(itemId);
     if (!pinned || activation === "double") {
+      const isOpeningPreview = !previewItem;
       setPreviewItem(item);
+      if (isOpeningPreview) restoreAfterLayout(itemId);
     }
   }
 
@@ -95,9 +99,13 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     setPinned(false);
     writePreviewPinnedPreference(false);
     if (!restoreItemId) return;
+    restoreAfterLayout(restoreItemId);
+  }
+
+  function restoreAfterLayout(itemId: string) {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        collectionRef.current?.restoreItem(restoreItemId);
+        collectionRef.current?.restoreItem(itemId);
       });
     });
   }
@@ -109,6 +117,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
 
   return {
     activate,
+    autoPlayVideo,
     close,
     collectionRef,
     maxWidth,

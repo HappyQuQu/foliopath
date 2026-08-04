@@ -12,15 +12,14 @@ export interface ReadyMediaStoryboard {
   url: string;
 }
 
-export function mediaAvailability(asset: Asset): MediaAvailabilityKind | undefined {
+export function mediaAvailability(
+  asset: Asset,
+): MediaAvailabilityKind | undefined {
   if (asset.sourceAvailability !== "available") {
     return asset.sourceAvailability;
   }
   if (asset.probeStatus === "failed") return "invalid";
   if (asset.probeStatus === "unsupported") return "unsupported";
-  if (asset.kind === "video" && asset.playbackStatus === "unsupported_codec") {
-    return "unsupportedCodec";
-  }
   return undefined;
 }
 

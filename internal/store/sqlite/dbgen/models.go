@@ -51,4 +51,6 @@ type Setting struct {
 	UpdatedAtMs                int64
 	AutomaticDiscoveryEnabled  int64
 	ResourceProfile            string
+	BackgroundConcurrency      int64
+	ContentReadConcurrency     int64
 }

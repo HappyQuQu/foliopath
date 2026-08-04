@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func TestEcoProfileSerializesBackgroundWorkAndCanExpandLive(t *testing.T) {
-	controller, err := NewController(ProfileEco)
+func TestBackgroundLimitSerializesWorkAndCanExpandLive(t *testing.T) {
+	controller, err := NewController(Limits{Background: 1, Content: 4})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,23 +27,23 @@ func TestEcoProfileSerializesBackgroundWorkAndCanExpandLive(t *testing.T) {
 	select {
 	case release := <-acquired:
 		release()
-		t.Fatal("eco profile allowed a second background operation")
+		t.Fatal("background limit allowed a second operation")
 	case <-time.After(20 * time.Millisecond):
 	}
 
-	if err := controller.ApplyResourceProfile(ProfileBalanced); err != nil {
+	if err := controller.ApplyLimits(Limits{Background: 2, Content: 8}); err != nil {
 		t.Fatal(err)
 	}
 	select {
 	case release := <-acquired:
 		release()
 	case <-time.After(time.Second):
-		t.Fatal("live profile expansion did not release a waiting operation")
+		t.Fatal("live limit expansion did not release a waiting operation")
 	}
 }
 
 func TestContentAdmissionIsBoundedAndLoweringDoesNotCancelHolders(t *testing.T) {
-	controller, err := NewController(ProfilePerformance)
+	controller, err := NewController(Limits{Background: 4, Content: 16})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,11 +51,11 @@ func TestContentAdmissionIsBoundedAndLoweringDoesNotCancelHolders(t *testing.T) 
 	for range 5 {
 		release, ok := controller.TryAcquireContent()
 		if !ok {
-			t.Fatal("performance content admission rejected within its limit")
+			t.Fatal("content admission rejected within its limit")
 		}
 		releases = append(releases, release)
 	}
-	if err := controller.ApplyResourceProfile(ProfileEco); err != nil {
+	if err := controller.ApplyLimits(Limits{Background: 1, Content: 4}); err != nil {
 		t.Fatal(err)
 	}
 	releases[0]()
@@ -74,7 +74,7 @@ func TestContentAdmissionIsBoundedAndLoweringDoesNotCancelHolders(t *testing.T) 
 }
 
 func TestAcquireBackgroundHonorsCancellation(t *testing.T) {
-	controller, err := NewController(ProfileEco)
+	controller, err := NewController(Limits{Background: 1, Content: 4})
 	if err != nil {
 		t.Fatal(err)
 	}

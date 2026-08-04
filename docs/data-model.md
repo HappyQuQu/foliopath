@@ -224,8 +224,10 @@ singleton 约束防止并发创建多个账号；应用重启后从数据库恢�
 
 使用固定 `singleton_key=1` 的 typed row，只保存 schema 已知的应用级配置，包括默认
 24 小时完整扫描周期（允许 1～8760 小时或 null 关闭）、默认 10 GiB 缩略图缓存配额，
-默认开启的 `automatic_discovery_enabled`、默认 `balanced` 且只允许
-`eco | balanced | performance` 的 `resource_profile`，以及默认跟随浏览器的中英语言偏好。
+默认开启的 `automatic_discovery_enabled`、默认 2 且限制 1～4 的
+`background_concurrency`、默认 8 且限制 1～16 的 `content_read_concurrency`，以及默认
+跟随浏览器的中英语言偏好。migration 16 的 `resource_profile` 仅为历史迁移兼容列，不再是
+运行时设置事实来源。
 `revision` 支持强 ETag/If-Match，提交后才唤醒对应 scheduler/watcher。秘密值不得以明文
 日志输出；设置不能成为任意键值存储。
 

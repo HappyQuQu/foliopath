@@ -20,6 +20,9 @@
 - [CR-2026-011：目录媒体计数](CR-2026-011-directory-media-counts.md)
 - [CR-2026-012：NAS 资源模式](CR-2026-012-nas-resource-profiles.md)
 - [CR-2026-013：root runtime 与零初始化 bind 数据目录](CR-2026-013-root-runtime-bind-data.md)
+- [CR-2026-016：视频预览自动播放偏好](CR-2026-016-video-preview-autoplay.md)
+- [CR-2026-017：默认排序与媒体布局](CR-2026-017-default-media-presentation.md)
+- [CR-2026-018：直接设置资源并发数](CR-2026-018-explicit-resource-limits.md)
 
 ### Post-MVP 与未来提案
 
@@ -40,6 +43,9 @@
 
 - [自动版本与用户友好更新日志](FIX-2026-08-04-automated-friendly-releases.md)
 - [关于页直接展示更新内容](FIX-2026-08-04-inline-release-notes.md)
+- [打开预览时保留媒体滚动锚点](FIX-2026-08-04-preview-open-scroll-anchor.md)
+- [预览详情长路径换行](FIX-2026-08-04-preview-detail-wrapping.md)
+- [浏览器拥有视频播放能力判断](FIX-2026-08-04-browser-owned-video-playback.md)
 
 ### 2026-07-29
 

@@ -3,12 +3,22 @@ const preferenceNamespace = "foliopath.preferences.v1";
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
 export type MediaLayoutPreference = "grid" | "masonry";
+export type MediaSortPreference =
+  | "contextual"
+  | "name:asc"
+  | "name:desc"
+  | "modifiedAt:asc"
+  | "modifiedAt:desc"
+  | "size:asc"
+  | "size:desc";
 
 interface Preferences {
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
+  mediaSort?: MediaSortPreference;
   dismissedCompletedNotifications?: string[];
   acknowledgedMediaFailureRevision?: string;
+  previewAutoplay?: boolean;
   previewPinned?: boolean;
   previewWidth?: number;
   sidebarWidth?: number;
@@ -69,12 +79,36 @@ export function writeMediaLayoutPreference(
   writePreferences({ ...readPreferences(), mediaLayout });
 }
 
+export function readMediaSortPreference(): MediaSortPreference {
+  const value = readPreferences().mediaSort;
+  return value === "name:asc" ||
+    value === "name:desc" ||
+    value === "modifiedAt:asc" ||
+    value === "modifiedAt:desc" ||
+    value === "size:asc" ||
+    value === "size:desc"
+    ? value
+    : "contextual";
+}
+
+export function writeMediaSortPreference(mediaSort: MediaSortPreference): void {
+  writePreferences({ ...readPreferences(), mediaSort });
+}
+
 export function readPreviewPinnedPreference(): boolean {
   return readPreferences().previewPinned === true;
 }
 
 export function writePreviewPinnedPreference(previewPinned: boolean): void {
   writePreferences({ ...readPreferences(), previewPinned });
+}
+
+export function readPreviewAutoplayPreference(): boolean {
+  return readPreferences().previewAutoplay !== false;
+}
+
+export function writePreviewAutoplayPreference(previewAutoplay: boolean): void {
+  writePreferences({ ...readPreferences(), previewAutoplay });
 }
 
 function readWidthPreference(

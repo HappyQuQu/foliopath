@@ -69,6 +69,7 @@ import {
 import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
   readMediaLayoutPreference,
+  readMediaSortPreference,
   writeMediaLayoutPreference,
 } from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
@@ -119,11 +120,12 @@ export function BrowsePage({
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
+  const [mediaSortPreference] = useState(readMediaSortPreference);
   const [directoryFilterDraft, setDirectoryFilterDraft] = useState("");
   const [manualRefreshPending, setManualRefreshPending] = useState(false);
   const browseState = useMemo(
-    () => parseBrowseUrlState(searchParams),
-    [searchParams],
+    () => parseBrowseUrlState(searchParams, mediaSortPreference),
+    [mediaSortPreference, searchParams],
   );
   const librariesQuery = useLibrariesQuery();
   const libraryQuery = useLibraryQuery(libraryId);
@@ -254,7 +256,11 @@ export function BrowsePage({
 
     const timer = window.setTimeout(() => {
       const scopeChanged = !q || !browseState.q;
-      const defaults = defaultBrowseUrlState(browseState.recursive, q);
+      const defaults = defaultBrowseUrlState(
+        browseState.recursive,
+        q,
+        mediaSortPreference,
+      );
       updateBrowseState({
         ...browseState,
         q,
@@ -262,7 +268,7 @@ export function BrowsePage({
       });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [browseState, directoryFilterDraft]);
+  }, [browseState, directoryFilterDraft, mediaSortPreference]);
 
   const refreshCurrentScope = useCallback(async () => {
     await Promise.all([
@@ -381,6 +387,7 @@ export function BrowsePage({
           browseState={browseState}
           directoryFilter={directoryFilterDraft}
           mediaLayout={mediaLayout}
+          mediaSortPreference={mediaSortPreference}
           onChange={updateBrowseState}
           onDirectoryFilterChange={setDirectoryFilterDraft}
           onLayoutChange={updateMediaLayout}
@@ -564,7 +571,11 @@ export function BrowsePage({
                           onClearQuery={() => setDirectoryFilterDraft("")}
                           onEnableRecursive={() =>
                             updateBrowseState({
-                              ...defaultBrowseUrlState(true, browseState.q),
+                              ...defaultBrowseUrlState(
+                                true,
+                                browseState.q,
+                                mediaSortPreference,
+                              ),
                               kind: browseState.kind,
                             })
                           }
@@ -625,6 +636,7 @@ export function BrowsePage({
           </div>
           {previewItem && (
             <MediaPreview
+              autoPlayVideo={preview.autoPlayVideo}
               availability={
                 previewAsset && mediaAvailability(previewAsset)
                   ? mediaAvailabilityPresentation(
@@ -698,6 +710,7 @@ function BrowseToolbar({
   counts,
   directoryFilter,
   mediaLayout,
+  mediaSortPreference,
   onChange,
   onDirectoryFilterChange,
   onLayoutChange,
@@ -708,6 +721,7 @@ function BrowseToolbar({
   counts?: AssetCounts | undefined;
   directoryFilter: string;
   mediaLayout: MediaCollectionLayout;
+  mediaSortPreference: ReturnType<typeof readMediaSortPreference>;
   onChange: (state: BrowseUrlState) => void;
   onDirectoryFilterChange: (query: string) => void;
   onLayoutChange: (layout: MediaCollectionLayout) => void;
@@ -717,7 +731,11 @@ function BrowseToolbar({
   const { locale, t } = useLocale();
   const sortValue = `${browseState.sort}:${browseState.order}`;
   const defaults = {
-    ...defaultBrowseUrlState(browseState.recursive, browseState.q),
+    ...defaultBrowseUrlState(
+      browseState.recursive,
+      browseState.q,
+      mediaSortPreference,
+    ),
     ...(browseState.allMedia ? { allMedia: true as const } : {}),
     kind: browseState.kind,
   };
@@ -735,7 +753,11 @@ function BrowseToolbar({
         className={styles.recursiveToggle}
         onClick={() =>
           onChange({
-            ...defaultBrowseUrlState(!browseState.recursive, browseState.q),
+            ...defaultBrowseUrlState(
+              !browseState.recursive,
+              browseState.q,
+              mediaSortPreference,
+            ),
             kind: browseState.kind,
           })
         }

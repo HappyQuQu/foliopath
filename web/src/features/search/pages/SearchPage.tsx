@@ -43,6 +43,7 @@ import {
 import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
   readMediaLayoutPreference,
+  readMediaSortPreference,
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
@@ -56,6 +57,7 @@ import {
   useSearchResultsQuery,
 } from "../queries";
 import {
+  defaultSearchUrlState,
   parseSearchUrlState,
   serializeSearchUrlState,
   type SearchDate,
@@ -81,9 +83,10 @@ export function SearchPage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [mediaSortPreference] = useState(readMediaSortPreference);
   const state = useMemo(
-    () => parseSearchUrlState(searchParams, libraryId),
-    [libraryId, searchParams],
+    () => parseSearchUrlState(searchParams, libraryId, mediaSortPreference),
+    [libraryId, mediaSortPreference, searchParams],
   );
   const [refreshPending, setRefreshPending] = useState(false);
   const layout = useState<MediaLayoutPreference>(
@@ -163,22 +166,32 @@ export function SearchPage({
   }
 
   function clearFilters() {
+    const defaults = defaultSearchUrlState(
+      libraryId,
+      undefined,
+      mediaSortPreference,
+    );
     updateState({
       ...state,
       date: "any",
       kind: "all",
-      order: "desc",
+      order: defaults.order,
       recursive: false,
-      sort: "modifiedAt",
+      sort: defaults.sort,
     });
   }
 
+  const defaultSort = defaultSearchUrlState(
+    libraryId,
+    undefined,
+    mediaSortPreference,
+  );
   const currentLibrary = libraryQuery.data?.library;
   const hasFilters =
     state.kind !== "all" ||
     state.date !== "any" ||
-    state.sort !== "modifiedAt" ||
-    state.order !== "desc" ||
+    state.sort !== defaultSort.sort ||
+    state.order !== defaultSort.order ||
     state.recursive;
 
   return (
@@ -368,6 +381,7 @@ export function SearchPage({
         </div>
         {previewItem && (
           <MediaPreview
+            autoPlayVideo={preview.autoPlayVideo}
             availability={
               previewAsset && mediaAvailability(previewAsset)
                 ? mediaAvailabilityPresentation(

@@ -2,7 +2,7 @@
 
 ## 状态与范围
 
-- 状态：Confirmed / Implemented locally
+- 状态：Superseded by [CR-2026-018](CR-2026-018-explicit-resource-limits.md)
 - 变更等级：C2（用户可见设置与实例级资源策略）
 - 目标版本：`POST-MVP-1` / `Post-MVP/1`
 - Scope revision：[POST-MVP-1 revision 4](../releases/POST-MVP-1-scope-r4.md)

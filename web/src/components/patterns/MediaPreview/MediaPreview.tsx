@@ -44,6 +44,7 @@ export interface MediaPreviewLabels {
 }
 
 export function MediaPreview({
+  autoPlayVideo = true,
   canGoNext,
   canGoPrevious,
   item,
@@ -60,6 +61,7 @@ export function MediaPreview({
   pinned,
   width,
 }: {
+  autoPlayVideo?: boolean;
   canGoNext: boolean;
   canGoPrevious: boolean;
   item: MediaPreviewItem;
@@ -153,9 +155,11 @@ export function MediaPreview({
         ) : item.kind === "video" ? (
           <video
             aria-label={item.name}
+            autoPlay={autoPlayVideo}
             controls
             key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
+            muted={autoPlayVideo}
             playsInline
             poster={item.posterUrl}
             preload="metadata"

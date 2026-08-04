@@ -29,6 +29,26 @@ describe("browse URL state", () => {
     );
   });
 
+  it("applies a configured default sort only when the URL does not specify one", () => {
+    expect(
+      parseBrowseUrlState(new URLSearchParams(), "size:desc"),
+    ).toMatchObject({ order: "desc", sort: "size" });
+    expect(
+      parseBrowseUrlState(new URLSearchParams(), "name:desc"),
+    ).toMatchObject({ order: "desc", sort: "name" });
+    expect(
+      parseBrowseUrlState(
+        new URLSearchParams("sort=name&order=asc"),
+        "size:desc",
+      ),
+    ).toMatchObject({ order: "asc", sort: "name" });
+    expect(
+      serializeBrowseUrlState(
+        parseBrowseUrlState(new URLSearchParams(), "size:desc"),
+      ),
+    ).toBe("sort=size&order=desc");
+  });
+
   it("normalizes invalid values and preserves an explicit non-default sort", () => {
     expect(
       parseBrowseUrlState(

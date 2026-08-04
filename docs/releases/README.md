@@ -33,6 +33,9 @@
 - [`POST-MVP-1` scope revision 5](POST-MVP-1-scope-r5.md)：继承 revision 4，并通过
   [CR-2026-014](../changes/CR-2026-014-derived-media-progress.md)追加扫描后缩略图与视频预览
   只读生成进度，替代 revision 4 作为当前范围。
+- [`POST-MVP-1` scope revision 8](POST-MVP-1-scope-r8.md)：继承 revision 7，并通过
+  [CR-2026-018](../changes/CR-2026-018-explicit-resource-limits.md)将三档资源模式简化为
+  受后端硬上限约束的两个直接并发数设置，替代 revision 7 作为当前范围。
 - [`POST-MVP-1` 发布说明草案](POST-MVP-1-release-notes.md)：只记录候选行为和证据，
   在 VSP-302～304 完成前不得改写为已发布。
 - [`POST-MVP-1` readiness 快照](POST-MVP-1-readiness.json)：机器校验 VSP Gate、

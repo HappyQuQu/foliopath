@@ -60,7 +60,7 @@ complete set—without re-uploading files, creating albums, or changing your arc
 - Multiple non-overlapping libraries retain their existing hierarchy, including empty directories.
 - If a library goes offline or a scan is interrupted, FolioPath preserves the last reliable index.
 - A single-container, single-process SQLite design fits NAS devices, home servers, and personal archives.
-- NAS-friendly, balanced, and performance resource modes bound combined background work and original-media reads.
+- Direct concurrency settings bound combined background work and original-media reads within safe server limits.
 
 ## Supported Media
 

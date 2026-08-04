@@ -161,7 +161,8 @@ UPDATE settings
 SET scheduled_scan_interval_hours = sqlc.narg(scheduled_scan_interval_hours),
     automatic_discovery_enabled = sqlc.arg(automatic_discovery_enabled),
     thumbnail_cache_quota_bytes = sqlc.arg(thumbnail_cache_quota_bytes),
-    resource_profile = sqlc.arg(resource_profile),
+    background_concurrency = sqlc.arg(background_concurrency),
+    content_read_concurrency = sqlc.arg(content_read_concurrency),
     language = sqlc.arg(language),
     revision = revision + 1,
     updated_at_ms = sqlc.arg(updated_at_ms)

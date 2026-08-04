@@ -131,7 +131,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	reconcileSignal := jobs.NewSignal()
 	mediaSignal := jobs.NewSignal()
 	cacheSignal := jobs.NewSignal()
-	resourceController, err := resourcecontrol.NewController(resourcecontrol.ProfileEco)
+	resourceController, err := resourcecontrol.NewController(resourcecontrol.Limits{Background: 1, Content: 1})
 	if err != nil {
 		return nil, fmt.Errorf("construct resource controller: %w", err)
 	}
@@ -177,7 +177,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct settings service: %w", err)
 	}
-	resourceProfileComponent, err := newResourceProfileComponent(
+	resourceLimitsComponent, err := newResourceLimitsComponent(
 		settingsService,
 		resourceController,
 	)
@@ -428,7 +428,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		[]component{
 			databaseComponent,
 			newSystemEventComponent(systemLogs),
-			resourceProfileComponent,
+			resourceLimitsComponent,
 			mediaRootComponent,
 			imageRuntimeComponent,
 			mediaComponent,

@@ -19,6 +19,35 @@ describe("search URL state", () => {
     );
   });
 
+  it("applies a configured default sort and keeps explicit URL state authoritative", () => {
+    expect(
+      parseSearchUrlState(new URLSearchParams(), "lib_family", "name:asc"),
+    ).toMatchObject({ order: "asc", sort: "name" });
+    expect(
+      parseSearchUrlState(
+        new URLSearchParams(),
+        "lib_family",
+        "modifiedAt:asc",
+      ),
+    ).toMatchObject({ order: "asc", sort: "modifiedAt" });
+    expect(
+      parseSearchUrlState(
+        new URLSearchParams("sort=size&order=desc"),
+        "lib_family",
+        "name:asc",
+      ),
+    ).toMatchObject({ order: "desc", sort: "size" });
+    expect(
+      serializeSearchUrlState(
+        parseSearchUrlState(
+          new URLSearchParams(),
+          "lib_family",
+          "name:asc",
+        ),
+      ),
+    ).toBe("sort=name&order=asc");
+  });
+
   it("restores directory scope, filters, and sorting from a copyable URL", () => {
     const state = parseSearchUrlState(
       new URLSearchParams(

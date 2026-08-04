@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
@@ -38,13 +37,14 @@ func TestSettingsUpdateAndDueLibrarySelection(t *testing.T) {
 	}
 	values.ScheduledScanIntervalHours = nil
 	values.Language = "en"
-	values.ResourceProfile = resourcecontrol.ProfileEco
+	values.BackgroundConcurrency = 3
+	values.ContentReadConcurrency = 12
 	updated, err := store.UpdateSettings(ctx, values.Revision, values)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.ScheduledScanIntervalHours != nil || updated.Language != "en" ||
-		updated.ResourceProfile != resourcecontrol.ProfileEco ||
+		updated.BackgroundConcurrency != 3 || updated.ContentReadConcurrency != 12 ||
 		updated.Revision != values.Revision+1 {
 		t.Fatalf("updated settings = %#v", updated)
 	}

@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => ({
   settings: {
     etag: '"settings-r1"',
     language: "browser" as const,
-    resourceProfile: "balanced" as const,
+    backgroundConcurrency: 2,
+    contentReadConcurrency: 8,
     scheduledScanIntervalHours: 24,
     thumbnailCacheQuotaBytes: 10 * 1024 ** 3,
     updatedAt: "2026-07-31T00:00:00Z",
@@ -69,7 +70,7 @@ beforeEach(() => {
   window.localStorage.setItem("foliopath.preferences.v1", '{"locale":"zh-CN"}');
 });
 
-it("saves the NAS-friendly resource profile with the existing settings validator", async () => {
+it("saves explicit resource concurrency limits with the existing settings validator", async () => {
   const user = userEvent.setup();
   render(
     <LocaleProvider>
@@ -93,13 +94,17 @@ it("saves the NAS-friendly resource profile with the existing settings validator
     </LocaleProvider>,
   );
 
-  await user.click(screen.getByRole("radio", { name: /NAS 友好/ }));
+  await user.clear(screen.getByRole("spinbutton", { name: "后台任务并发数" }));
+  await user.type(screen.getByRole("spinbutton", { name: "后台任务并发数" }), "3");
+  await user.clear(screen.getByRole("spinbutton", { name: "原图与视频读取并发数" }));
+  await user.type(screen.getByRole("spinbutton", { name: "原图与视频读取并发数" }), "12");
   await user.click(screen.getByRole("button", { name: "保存扫描与缓存设置" }));
 
   expect(mocks.update).toHaveBeenCalledWith(
     expect.objectContaining({
       etag: '"settings-r1"',
-      resourceProfile: "eco",
+      backgroundConcurrency: 3,
+      contentReadConcurrency: 12,
     }),
   );
 });

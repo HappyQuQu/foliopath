@@ -7,10 +7,15 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import {
   readMediaLayoutPreference,
+  readMediaSortPreference,
+  readPreviewAutoplayPreference,
   readPreviewPinnedPreference,
   writeMediaLayoutPreference,
+  writeMediaSortPreference,
+  writePreviewAutoplayPreference,
   writePreviewPinnedPreference,
   type MediaLayoutPreference,
+  type MediaSortPreference,
 } from "../../../lib/storage/preferences";
 import { useTheme } from "../../../lib/theme/ThemeProvider";
 import { paths } from "../../../routes/paths";
@@ -33,11 +38,21 @@ export function GeneralSettingsPage({
   const [layout, setLayout] = useState<MediaLayoutPreference>(
     readMediaLayoutPreference,
   );
+  const [mediaSort, setMediaSort] = useState<MediaSortPreference>(
+    readMediaSortPreference,
+  );
   const [previewPinned, setPreviewPinned] = useState(
     readPreviewPinnedPreference,
   );
+  const [previewAutoplay, setPreviewAutoplay] = useState(
+    readPreviewAutoplayPreference,
+  );
   const [savedLayout, setSavedLayout] = useState(layout);
+  const [savedMediaSort, setSavedMediaSort] = useState(mediaSort);
   const [savedPreviewPinned, setSavedPreviewPinned] = useState(previewPinned);
+  const [savedPreviewAutoplay, setSavedPreviewAutoplay] = useState(
+    previewAutoplay,
+  );
 
   useEffect(() => {
     setDraftLocale(localePreference);
@@ -47,6 +62,8 @@ export function GeneralSettingsPage({
     draftTheme !== preference ||
     draftLocale !== localePreference ||
     layout !== savedLayout ||
+    mediaSort !== savedMediaSort ||
+    previewAutoplay !== savedPreviewAutoplay ||
     previewPinned !== savedPreviewPinned;
 
   function save(event: FormEvent<HTMLFormElement>) {
@@ -54,8 +71,12 @@ export function GeneralSettingsPage({
     setPreference(draftTheme);
     setLocalePreference(draftLocale);
     writeMediaLayoutPreference(layout);
+    writeMediaSortPreference(mediaSort);
+    writePreviewAutoplayPreference(previewAutoplay);
     writePreviewPinnedPreference(previewPinned);
     setSavedLayout(layout);
+    setSavedMediaSort(mediaSort);
+    setSavedPreviewAutoplay(previewAutoplay);
     setSavedPreviewPinned(previewPinned);
   }
 
@@ -63,6 +84,8 @@ export function GeneralSettingsPage({
     setDraftTheme(preference);
     setDraftLocale(localePreference);
     setLayout(savedLayout);
+    setMediaSort(savedMediaSort);
+    setPreviewAutoplay(savedPreviewAutoplay);
     setPreviewPinned(savedPreviewPinned);
   }
 
@@ -172,6 +195,34 @@ export function GeneralSettingsPage({
             </label>
             <label className={styles.row}>
               <span>
+                <strong>{t("general.defaultSort")}</strong>
+                <small>{t("general.defaultSortDescription")}</small>
+              </span>
+              <select
+                onChange={(event) =>
+                  setMediaSort(
+                    event.currentTarget.value as MediaSortPreference,
+                  )
+                }
+                value={mediaSort}
+              >
+                <option value="contextual">
+                  {t("general.defaultSortContextual")}
+                </option>
+                <option value="name:asc">{t("browse.sortNameAscending")}</option>
+                <option value="name:desc">{t("browse.sortNameDescending")}</option>
+                <option value="modifiedAt:desc">
+                  {t("browse.sortModifiedDescending")}
+                </option>
+                <option value="modifiedAt:asc">
+                  {t("browse.sortModifiedAscending")}
+                </option>
+                <option value="size:desc">{t("browse.sortSizeDescending")}</option>
+                <option value="size:asc">{t("browse.sortSizeAscending")}</option>
+              </select>
+            </label>
+            <label className={styles.row}>
+              <span>
                 <strong>{t("general.defaultPreview")}</strong>
                 <small>{t("general.defaultPreviewDescription")}</small>
               </span>
@@ -179,6 +230,18 @@ export function GeneralSettingsPage({
                 checked={previewPinned}
                 onChange={(event) =>
                   setPreviewPinned(event.currentTarget.checked)
+                }
+              />
+            </label>
+            <label className={styles.row}>
+              <span>
+                <strong>{t("general.previewAutoplay")}</strong>
+                <small>{t("general.previewAutoplayDescription")}</small>
+              </span>
+              <Switch
+                checked={previewAutoplay}
+                onChange={(event) =>
+                  setPreviewAutoplay(event.currentTarget.checked)
                 }
               />
             </label>

@@ -50,13 +50,15 @@ describe("media availability policy", () => {
     expect(mediaAvailability({ ...asset, sourceAvailability: "missing" })).toBe(
       "missing",
     );
-    expect(mediaAvailability({ ...asset, sourceAvailability: "unreadable" })).toBe(
-      "unreadable",
-    );
+    expect(
+      mediaAvailability({ ...asset, sourceAvailability: "unreadable" }),
+    ).toBe("unreadable");
   });
 
-  it("maps corrupt, unsupported, and codec states without blocking ready GIFs", () => {
-    expect(mediaAvailability({ ...asset, probeStatus: "failed" })).toBe("invalid");
+  it("maps corrupt and unsupported media without preempting browser video playback", () => {
+    expect(mediaAvailability({ ...asset, probeStatus: "failed" })).toBe(
+      "invalid",
+    );
     expect(mediaAvailability({ ...asset, probeStatus: "unsupported" })).toBe(
       "unsupported",
     );
@@ -66,7 +68,7 @@ describe("media availability policy", () => {
         kind: "video",
         playbackStatus: "unsupported_codec",
       }),
-    ).toBe("unsupportedCodec");
+    ).toBeUndefined();
     expect(
       mediaAvailability({
         ...asset,
@@ -119,9 +121,7 @@ describe("media availability policy", () => {
       ...ready,
       storyboard: { ...ready.storyboard, frameCount: 9 },
     } as unknown as Asset;
-    expect(
-      mediaStoryboard(invalidFrameCount),
-    ).toBeUndefined();
+    expect(mediaStoryboard(invalidFrameCount)).toBeUndefined();
     expect(
       mediaDerivedStatePending({
         ...asset,

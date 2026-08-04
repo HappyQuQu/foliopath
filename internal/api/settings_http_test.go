@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
 
@@ -41,7 +40,8 @@ func TestSettingsRoutesGetAndDisableSchedule(t *testing.T) {
 		ScheduledScanIntervalHours: &hours,
 		AutomaticDiscoveryEnabled:  true,
 		ThumbnailCacheQuotaBytes:   10_737_418_240,
-		ResourceProfile:            resourcecontrol.ProfileBalanced,
+		BackgroundConcurrency:      2,
+		ContentReadConcurrency:     8,
 		Language:                   "browser",
 		Revision:                   1,
 		UpdatedAtMS:                1_000,
@@ -70,26 +70,29 @@ func TestSettingsRoutesGetAndDisableSchedule(t *testing.T) {
 	}
 }
 
-func TestSettingsRoutesUpdateResourceProfile(t *testing.T) {
+func TestSettingsRoutesUpdateResourceLimits(t *testing.T) {
 	service := &settingsServiceStub{values: appsettings.Values{
-		ResourceProfile: resourcecontrol.ProfileBalanced,
-		Revision:        1,
+		BackgroundConcurrency:  2,
+		ContentReadConcurrency: 8,
+		Revision:               1,
 	}}
 	mux := http.NewServeMux()
 	registerSettingsRoutes(mux, service)
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/settings",
-		strings.NewReader(`{"resourceProfile":"eco"}`),
+		strings.NewReader(`{"backgroundConcurrency":3,"contentReadConcurrency":12}`),
 	)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("If-Match", `"settings-r1"`)
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 	if response.Code != http.StatusOK ||
-		service.update.ResourceProfile == nil ||
-		*service.update.ResourceProfile != resourcecontrol.ProfileEco {
-		t.Fatalf("resource profile update = %d %#v", response.Code, service.update)
+		service.update.BackgroundConcurrency == nil ||
+		*service.update.BackgroundConcurrency != 3 ||
+		service.update.ContentReadConcurrency == nil ||
+		*service.update.ContentReadConcurrency != 12 {
+		t.Fatalf("resource limit update = %d %#v", response.Code, service.update)
 	}
 }
 

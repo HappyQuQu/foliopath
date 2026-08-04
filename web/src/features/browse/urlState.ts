@@ -1,4 +1,5 @@
 import type { AssetKind, AssetSort, SortOrder } from "../../lib/api/catalog";
+import type { MediaSortPreference } from "../../lib/storage/preferences";
 import { paths } from "../../routes/paths";
 
 export type BrowseKind = "all" | "image" | "video";
@@ -15,32 +16,40 @@ export interface BrowseUrlState {
 export function defaultBrowseUrlState(
   recursive = false,
   q = "",
+  mediaSort: MediaSortPreference = "contextual",
 ): BrowseUrlState {
-  return recursive || q
+  const contextual: BrowseUrlState = recursive || q
     ? { kind: "all", order: "desc", q, recursive, sort: "modifiedAt" }
     : { kind: "all", order: "asc", q, recursive: false, sort: "name" };
+  if (mediaSort === "contextual") return contextual;
+  const [sort, order] = mediaSort.split(":") as [AssetSort, SortOrder];
+  return { ...contextual, order, sort };
 }
 
-export function parseBrowseUrlState(search: URLSearchParams): BrowseUrlState {
+export function parseBrowseUrlState(
+  search: URLSearchParams,
+  mediaSort: MediaSortPreference = "contextual",
+): BrowseUrlState {
   const allMedia = search.get("view") === "all";
   const recursive = allMedia || search.get("recursive") === "1";
   const q = search.get("q")?.trim() ?? "";
-  const defaults = defaultBrowseUrlState(recursive, q);
+  const defaults = defaultBrowseUrlState(recursive, q, mediaSort);
   const kindValue = search.get("kind");
   const kind: BrowseKind =
     kindValue === "image" || kindValue === "video" ? kindValue : "all";
   const sortValue = search.get("sort");
-  const sort: AssetSort =
-    sortValue === "name" || sortValue === "modifiedAt" || sortValue === "size"
-      ? sortValue
-      : defaults.sort;
+  const hasExplicitSort =
+    sortValue === "name" || sortValue === "modifiedAt" || sortValue === "size";
+  const sort: AssetSort = hasExplicitSort ? sortValue : defaults.sort;
   const orderValue = search.get("order");
   const order: SortOrder =
     orderValue === "asc" || orderValue === "desc"
       ? orderValue
-      : sort === "name"
-        ? "asc"
-        : "desc";
+      : hasExplicitSort
+        ? sort === "name"
+          ? "asc"
+          : "desc"
+        : defaults.order;
   return {
     ...(allMedia ? { allMedia: true as const } : {}),
     kind,

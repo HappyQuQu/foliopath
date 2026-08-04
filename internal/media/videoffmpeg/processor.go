@@ -559,9 +559,12 @@ func playbackStatus(format media.Format, codec string) media.PlaybackStatus {
 		if format == media.FormatMP4 || format == media.FormatMOV {
 			return media.PlaybackPlayable
 		}
-		return media.PlaybackUnknown
 	}
-	return media.PlaybackUnsupportedCodec
+	// Codec support depends on the requesting browser, operating system, and
+	// installed media stack. The server records only the conservative H.264
+	// fast path; every other successfully probed video is left for the browser
+	// to attempt instead of being rejected before a media element is mounted.
+	return media.PlaybackUnknown
 }
 
 func boundedDimensions(width, height, maximumWidth, maximumHeight int) (int, int) {

@@ -16,7 +16,8 @@ type Values struct {
 	ScheduledScanIntervalHours *int64
 	AutomaticDiscoveryEnabled  bool
 	ThumbnailCacheQuotaBytes   int64
-	ResourceProfile            resourcecontrol.Profile
+	BackgroundConcurrency      int64
+	ContentReadConcurrency     int64
 	Language                   string
 	Revision                   int64
 	UpdatedAtMS                int64
@@ -26,7 +27,8 @@ type Update struct {
 	ScheduledScanIntervalHours *int64
 	AutomaticDiscoveryEnabled  *bool
 	ThumbnailCacheQuotaBytes   *int64
-	ResourceProfile            *resourcecontrol.Profile
+	BackgroundConcurrency      *int64
+	ContentReadConcurrency     *int64
 	Language                   *string
 	SetSchedule                bool
 }
@@ -40,8 +42,8 @@ type WakeNotifier interface {
 	Wake()
 }
 
-type ResourceProfileApplier interface {
-	ApplyResourceProfile(resourcecontrol.Profile) error
+type ResourceLimitApplier interface {
+	ApplyLimits(resourcecontrol.Limits) error
 }
 
 type Service struct {
@@ -49,7 +51,7 @@ type Service struct {
 	scheduleWaker   WakeNotifier
 	discoveryWaker  WakeNotifier
 	cacheWaker      WakeNotifier
-	resourceApplier ResourceProfileApplier
+	resourceApplier ResourceLimitApplier
 	validators      FieldValidators
 }
 
@@ -64,7 +66,7 @@ func NewService(
 	scheduleWaker WakeNotifier,
 	discoveryWaker WakeNotifier,
 	cacheWaker WakeNotifier,
-	resourceApplier ResourceProfileApplier,
+	resourceApplier ResourceLimitApplier,
 	validators FieldValidators,
 ) (*Service, error) {
 	if repository == nil || scheduleWaker == nil || discoveryWaker == nil || cacheWaker == nil ||
@@ -95,7 +97,8 @@ func (service *Service) Update(
 ) (Values, error) {
 	if expectedRevision <= 0 ||
 		(!update.SetSchedule && update.AutomaticDiscoveryEnabled == nil &&
-			update.ThumbnailCacheQuotaBytes == nil && update.ResourceProfile == nil &&
+			update.ThumbnailCacheQuotaBytes == nil && update.BackgroundConcurrency == nil &&
+			update.ContentReadConcurrency == nil &&
 			update.Language == nil) {
 		return Values{}, ErrInvalid
 	}
@@ -113,15 +116,21 @@ func (service *Service) Update(
 	if update.ThumbnailCacheQuotaBytes != nil {
 		next.ThumbnailCacheQuotaBytes = *update.ThumbnailCacheQuotaBytes
 	}
-	if update.ResourceProfile != nil {
-		next.ResourceProfile = *update.ResourceProfile
+	if update.BackgroundConcurrency != nil {
+		next.BackgroundConcurrency = *update.BackgroundConcurrency
+	}
+	if update.ContentReadConcurrency != nil {
+		next.ContentReadConcurrency = *update.ContentReadConcurrency
 	}
 	if update.Language != nil {
 		next.Language = *update.Language
 	}
 	if service.validators.Schedule(next.ScheduledScanIntervalHours) != nil ||
 		service.validators.CacheQuota(next.ThumbnailCacheQuotaBytes) != nil ||
-		resourcecontrol.ValidateProfile(next.ResourceProfile) != nil ||
+		resourcecontrol.ValidateLimits(resourcecontrol.Limits{
+			Background: int(next.BackgroundConcurrency),
+			Content:    int(next.ContentReadConcurrency),
+		}) != nil ||
 		service.validators.Language(next.Language) != nil {
 		return Values{}, ErrInvalid
 	}
@@ -138,8 +147,11 @@ func (service *Service) Update(
 	if update.ThumbnailCacheQuotaBytes != nil {
 		service.cacheWaker.Wake()
 	}
-	if update.ResourceProfile != nil {
-		if err := service.resourceApplier.ApplyResourceProfile(updated.ResourceProfile); err != nil {
+	if update.BackgroundConcurrency != nil || update.ContentReadConcurrency != nil {
+		if err := service.resourceApplier.ApplyLimits(resourcecontrol.Limits{
+			Background: int(updated.BackgroundConcurrency),
+			Content:    int(updated.ContentReadConcurrency),
+		}); err != nil {
 			return Values{}, err
 		}
 	}

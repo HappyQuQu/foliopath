@@ -3075,7 +3075,8 @@ components:
         - scheduledScanIntervalHours
         - automaticDiscoveryEnabled
         - thumbnailCacheQuotaBytes
-        - resourceProfile
+        - backgroundConcurrency
+        - contentReadConcurrency
         - language
         - updatedAt
       properties:
@@ -3100,8 +3101,20 @@ components:
           minimum: 1
           default: 10737418240
           description: Cache quota. Eviction also preserves the server's independent safe-free-space margin.
-        resourceProfile:
-          $ref: '#/components/schemas/ResourceProfile'
+        backgroundConcurrency:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 4
+          default: 2
+          description: Maximum shared concurrency for scans, reconciliation, and derived-media work.
+        contentReadConcurrency:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 16
+          default: 8
+          description: Maximum concurrent original-image and video content reads.
         language:
           $ref: '#/components/schemas/LanguagePreference'
         updatedAt:
@@ -3126,20 +3139,18 @@ components:
           type: integer
           format: int64
           minimum: 1
-        resourceProfile:
-          $ref: '#/components/schemas/ResourceProfile'
+        backgroundConcurrency:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 4
+        contentReadConcurrency:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 16
         language:
           $ref: '#/components/schemas/LanguagePreference'
-
-    ResourceProfile:
-      type: string
-      enum: [eco, balanced, performance]
-      default: balanced
-      description: |
-        Instance-wide NAS resource preset. Eco allows one background media-source
-        operation and four concurrent content reads; balanced allows two and
-        eight; performance allows four and sixteen. Existing work is not
-        cancelled when the limit is lowered.
 
     CacheSummary:
       type: object

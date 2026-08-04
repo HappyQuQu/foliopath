@@ -83,15 +83,6 @@ const zhCN = {
   "cache.pageDescription":
     "管理扫描计划和可重建派生缓存；失败不会清理最后可靠索引。",
   "cache.quota": "缓存配额",
-  "cache.resourceProfile": "NAS 资源模式",
-  "cache.resourceProfileDescription":
-    "限制扫描、媒体处理和原图读取的并发。调低后不会中断正在处理的任务。",
-  "cache.resourceProfile.eco": "NAS 友好",
-  "cache.resourceProfile.ecoDescription": "后台 1 路、原图与视频读取最多 4 路。",
-  "cache.resourceProfile.balanced": "均衡",
-  "cache.resourceProfile.balancedDescription": "后台 2 路、原图与视频读取最多 8 路。",
-  "cache.resourceProfile.performance": "性能",
-  "cache.resourceProfile.performanceDescription": "后台 4 路、原图与视频读取最多 16 路。",
   "cache.scanSchedule": "扫描计划",
   "cache.scanTasks": "媒体库扫描状态",
   "cache.noLibraries": "尚未添加媒体库。请先在“媒体库”页面创建一个。",
@@ -99,9 +90,16 @@ const zhCN = {
   "cache.usage": "缓存使用量",
   "general.browsePreferences": "浏览偏好",
   "general.defaultLayout": "默认布局",
-  "general.defaultLayoutDescription": "新打开目录时采用的媒体排列方式。",
+  "general.defaultLayoutDescription": "新打开浏览或搜索时采用的媒体排列方式。",
+  "general.defaultSort": "默认排序",
+  "general.defaultSortContextual": "按当前视图默认",
+  "general.defaultSortDescription":
+    "用于新打开的浏览和搜索；链接中明确指定的排序优先。",
   "general.defaultPreview": "默认固定预览",
   "general.defaultPreviewDescription": "在桌面浏览页打开时保持右侧预览面板。",
+  "general.previewAutoplay": "自动播放视频预览",
+  "general.previewAutoplayDescription":
+    "打开视频预览后静音自动播放；关闭后需手动播放。",
   "general.languageBrowser": "跟随浏览器",
   "general.description":
     "调整界面显示和浏览偏好。更改只影响当前 FolioPath 管理员。",
@@ -606,6 +604,13 @@ const zhCN = {
   "settings.saved": "扫描与缓存设置已保存。",
   "settings.saveFailed": "设置没有保存，请稍后重试。",
   "settings.scanCache": "扫描与缓存",
+  "settings.resourceLimits": "并发设置",
+  "settings.resourceLimitsDescription":
+    "直接设置同时处理的任务数量；调低后不会中断正在处理的任务。",
+  "settings.backgroundConcurrency": "后台任务并发数",
+  "settings.backgroundConcurrencyDescription": "允许 1～4；扫描、校准和媒体处理共享此上限。",
+  "settings.contentReadConcurrency": "原图与视频读取并发数",
+  "settings.contentReadConcurrencyDescription": "允许 1～16；限制同时读取原图和视频的数量。",
   "configuration.sections": "配置分类",
   "configuration.description": "集中管理界面偏好、扫描策略、资源使用和派生缓存。",
   "configuration.generalTab": "通用",
@@ -812,17 +817,6 @@ const en: Record<MessageKey, string> = {
   "cache.pageDescription":
     "Manage scan scheduling and reconstructible derived cache. Failures preserve the last reliable index.",
   "cache.quota": "Cache quota",
-  "cache.resourceProfile": "NAS resource mode",
-  "cache.resourceProfileDescription":
-    "Limits concurrent scanning, media processing, and original reads. Lowering it does not interrupt active work.",
-  "cache.resourceProfile.eco": "NAS friendly",
-  "cache.resourceProfile.ecoDescription": "1 background operation and up to 4 original or video reads.",
-  "cache.resourceProfile.balanced": "Balanced",
-  "cache.resourceProfile.balancedDescription":
-    "2 background operations and up to 8 original or video reads.",
-  "cache.resourceProfile.performance": "Performance",
-  "cache.resourceProfile.performanceDescription":
-    "4 background operations and up to 16 original or video reads.",
   "cache.scanSchedule": "Scan schedule",
   "cache.scanTasks": "Library scan status",
   "cache.noLibraries":
@@ -832,10 +826,17 @@ const en: Record<MessageKey, string> = {
   "general.browsePreferences": "Browse preferences",
   "general.defaultLayout": "Default layout",
   "general.defaultLayoutDescription":
-    "Choose the media arrangement used when opening a directory.",
+    "Choose the media arrangement used for newly opened browse and search views.",
+  "general.defaultSort": "Default sort",
+  "general.defaultSortContextual": "Use each view's default",
+  "general.defaultSortDescription":
+    "Used for newly opened browse and search views; an explicit sort in the URL takes priority.",
   "general.defaultPreview": "Pin preview by default",
   "general.defaultPreviewDescription":
     "Keep the right preview panel pinned when browsing on desktop.",
+  "general.previewAutoplay": "Autoplay video previews",
+  "general.previewAutoplayDescription":
+    "Start video previews automatically while muted; turn this off to play them manually.",
   "general.languageBrowser": "Browser language",
   "general.description":
     "Adjust interface and browsing preferences for the current FolioPath administrator.",
@@ -1389,6 +1390,15 @@ const en: Record<MessageKey, string> = {
   "settings.saved": "Scan and cache settings saved.",
   "settings.saveFailed": "Settings were not saved. Try again.",
   "settings.scanCache": "Scanning and cache",
+  "settings.resourceLimits": "Concurrency",
+  "settings.resourceLimitsDescription":
+    "Set the number of tasks that may run at once. Lowering a value does not interrupt active work.",
+  "settings.backgroundConcurrency": "Background task concurrency",
+  "settings.backgroundConcurrencyDescription":
+    "Use 1–4. Scanning, reconciliation, and media processing share this limit.",
+  "settings.contentReadConcurrency": "Original and video read concurrency",
+  "settings.contentReadConcurrencyDescription":
+    "Use 1–16. This limits simultaneous original-image and video reads.",
   "configuration.sections": "Configuration sections",
   "configuration.description": "Manage interface preferences, scan policy, resource use, and derived cache in one place.",
   "configuration.generalTab": "General",

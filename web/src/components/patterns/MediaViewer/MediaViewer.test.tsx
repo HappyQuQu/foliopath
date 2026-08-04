@@ -79,14 +79,23 @@ it("provides fit, 1:1, zoom, information, and close controls", async () => {
     "aria-pressed",
     "true",
   );
-  fireEvent.wheel(screen.getByRole("img", { name: "photo.jpg" }).parentElement!, {
-    deltaY: -1,
-  });
+  fireEvent.wheel(
+    screen.getByRole("img", { name: "photo.jpg" }).parentElement!,
+    {
+      deltaY: -1,
+    },
+  );
   expect(screen.getByText("125%")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Show basic information" }));
-  expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
+  await user.click(
+    screen.getByRole("button", { name: "Show basic information" }),
+  );
+  expect(
+    screen.getByRole("complementary", { name: "Basic information" }),
+  ).toBeVisible();
   expect(screen.getByText("Travel/Kyoto/photo.jpg")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Close information panel" }));
+  await user.click(
+    screen.getByRole("button", { name: "Close information panel" }),
+  );
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Close" }));
   expect(close).toHaveBeenCalledOnce();
@@ -123,7 +132,9 @@ it("supports keyboard navigation from viewer buttons without hijacking media con
   expect(next).toHaveBeenCalledTimes(2);
 
   fireEvent.keyDown(window, { key: "i" });
-  expect(screen.getByRole("complementary", { name: "Basic information" })).toBeVisible();
+  expect(
+    screen.getByRole("complementary", { name: "Basic information" }),
+  ).toBeVisible();
   fireEvent.keyDown(window, { key: "I" });
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
 
@@ -202,7 +213,13 @@ it("uses the fullscreen API and native video controls", async () => {
     "poster",
     "/api/v1/assets/clip/thumbnail",
   );
-  expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Zoom in" }),
+  ).not.toBeInTheDocument();
+
+  fireEvent.error(container.querySelector("video")!);
+  expect(screen.getByRole("status")).toHaveTextContent("Video failed");
+  expect(container.querySelector("video")).not.toBeInTheDocument();
 });
 
 it("keeps viewer navigation available while media is unavailable", () => {
@@ -228,7 +245,9 @@ it("keeps viewer navigation available while media is unavailable", () => {
   expect(screen.getByRole("status")).toHaveTextContent("Library is offline");
   screen.getByRole("button", { name: "Next item" }).click();
   expect(next).toHaveBeenCalledOnce();
-  expect(screen.queryByRole("img", { name: "photo.jpg" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("img", { name: "photo.jpg" }),
+  ).not.toBeInTheDocument();
 });
 
 it("starts with indexed information collapsed on a narrow viewport", () => {
@@ -250,8 +269,7 @@ it("starts with indexed information collapsed on a narrow viewport", () => {
   );
 
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Show basic information" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  expect(
+    screen.getByRole("button", { name: "Show basic information" }),
+  ).toHaveAttribute("aria-pressed", "false");
 });

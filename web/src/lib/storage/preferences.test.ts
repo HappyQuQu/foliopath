@@ -3,9 +3,13 @@ import { expect, it } from "vitest";
 import {
   readAcknowledgedMediaFailureRevision,
   readMediaLayoutPreference,
+  readMediaSortPreference,
+  readPreviewAutoplayPreference,
   readPreviewWidthPreference,
   readSidebarWidthPreference,
   writeMediaLayoutPreference,
+  writeMediaSortPreference,
+  writePreviewAutoplayPreference,
   writeAcknowledgedMediaFailureRevision,
   writePreviewWidthPreference,
   writeSidebarWidthPreference,
@@ -39,12 +43,28 @@ it("remembers the selected media layout without replacing other preferences", ()
     });
 });
 
+it("defaults sorting to the current view and remembers an explicit default", () => {
+  expect(readMediaSortPreference()).toBe("contextual");
+
+  writeMediaSortPreference("size:desc");
+
+  expect(readMediaSortPreference()).toBe("size:desc");
+});
+
 it("reads and writes remembered panel widths", () => {
   writeSidebarWidthPreference(320);
   writePreviewWidthPreference(520);
 
   expect(readSidebarWidthPreference()).toBe(320);
   expect(readPreviewWidthPreference()).toBe(520);
+});
+
+it("defaults video preview autoplay on and remembers when it is disabled", () => {
+  expect(readPreviewAutoplayPreference()).toBe(true);
+
+  writePreviewAutoplayPreference(false);
+
+  expect(readPreviewAutoplayPreference()).toBe(false);
 });
 
 it("stores only a valid acknowledged media failure watermark", () => {

@@ -7,28 +7,22 @@ import (
 	"sync"
 )
 
-type Profile string
-
 const (
-	ProfileEco         Profile = "eco"
-	ProfileBalanced    Profile = "balanced"
-	ProfilePerformance Profile = "performance"
+	MinBackgroundConcurrency = 1
+	MaxBackgroundConcurrency = 4
+	MinContentConcurrency    = 1
+	MaxContentConcurrency    = 16
 )
 
-type limits struct {
-	background int
-	content    int
+type Limits struct {
+	Background int
+	Content    int
 }
 
-var profileLimits = map[Profile]limits{
-	ProfileEco:         {background: 1, content: 4},
-	ProfileBalanced:    {background: 2, content: 8},
-	ProfilePerformance: {background: 4, content: 16},
-}
-
-func ValidateProfile(profile Profile) error {
-	if _, ok := profileLimits[profile]; !ok {
-		return errors.New("invalid resource profile")
+func ValidateLimits(limits Limits) error {
+	if limits.Background < MinBackgroundConcurrency || limits.Background > MaxBackgroundConcurrency ||
+		limits.Content < MinContentConcurrency || limits.Content > MaxContentConcurrency {
+		return errors.New("invalid resource limits")
 	}
 	return nil
 }
@@ -69,24 +63,22 @@ func (processor *BackgroundProcessor[T]) Process(ctx context.Context, item T) er
 	return processor.next.Process(ctx, item)
 }
 
-func NewController(profile Profile) (*Controller, error) {
-	selected, ok := profileLimits[profile]
-	if !ok {
-		return nil, errors.New("invalid resource profile")
+func NewController(limits Limits) (*Controller, error) {
+	if err := ValidateLimits(limits); err != nil {
+		return nil, err
 	}
 	return &Controller{
-		background: newLimiter(selected.background),
-		content:    newLimiter(selected.content),
+		background: newLimiter(limits.Background),
+		content:    newLimiter(limits.Content),
 	}, nil
 }
 
-func (controller *Controller) ApplyResourceProfile(profile Profile) error {
-	selected, ok := profileLimits[profile]
-	if !ok {
-		return errors.New("invalid resource profile")
+func (controller *Controller) ApplyLimits(limits Limits) error {
+	if err := ValidateLimits(limits); err != nil {
+		return err
 	}
-	controller.background.setLimit(selected.background)
-	controller.content.setLimit(selected.content)
+	controller.background.setLimit(limits.Background)
+	controller.content.setLimit(limits.Content)
 	return nil
 }
 

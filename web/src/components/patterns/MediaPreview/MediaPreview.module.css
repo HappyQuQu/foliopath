@@ -200,10 +200,9 @@
 
 .details dd {
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
   text-align: right;
   font-size: var(--font-size-2);
 }

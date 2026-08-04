@@ -3,6 +3,7 @@ import type {
   AssetSort,
   SortOrder,
 } from "../../lib/api/catalog";
+import type { MediaSortPreference } from "../../lib/storage/preferences";
 import { paths } from "../../routes/paths";
 
 export type SearchScope = "library" | "directory" | "all";
@@ -23,24 +24,30 @@ export interface SearchUrlState {
 export function defaultSearchUrlState(
   libraryId?: string,
   directoryId?: string,
+  mediaSort: MediaSortPreference = "contextual",
 ): SearchUrlState {
+  const [sort, order] =
+    mediaSort === "contextual"
+      ? (["modifiedAt", "desc"] as const)
+      : (mediaSort.split(":") as [AssetSort, SortOrder]);
   return {
     date: "any",
     ...(directoryId ? { directoryId } : {}),
     kind: "all",
-    order: "desc",
+    order,
     q: "",
     recursive: false,
     scope: libraryId ? "library" : "all",
-    sort: "modifiedAt",
+    sort,
   };
 }
 
 export function parseSearchUrlState(
   search: URLSearchParams,
   libraryId?: string,
+  mediaSort: MediaSortPreference = "contextual",
 ): SearchUrlState {
-  const defaults = defaultSearchUrlState(libraryId);
+  const defaults = defaultSearchUrlState(libraryId, undefined, mediaSort);
   const requestedScope = search.get("scope");
   const directoryId = search.get("directoryId")?.trim() || undefined;
   const scope: SearchScope =
@@ -62,17 +69,18 @@ export function parseSearchUrlState(
   const date: SearchDate =
     dateValue === "30d" || dateValue === "year" ? dateValue : "any";
   const sortValue = search.get("sort");
-  const sort: AssetSort =
-    sortValue === "name" || sortValue === "modifiedAt" || sortValue === "size"
-      ? sortValue
-      : defaults.sort;
+  const hasExplicitSort =
+    sortValue === "name" || sortValue === "modifiedAt" || sortValue === "size";
+  const sort: AssetSort = hasExplicitSort ? sortValue : defaults.sort;
   const orderValue = search.get("order");
   const order: SortOrder =
     orderValue === "asc" || orderValue === "desc"
       ? orderValue
-      : sort === "name"
-        ? "asc"
-        : "desc";
+      : hasExplicitSort
+        ? sort === "name"
+          ? "asc"
+          : "desc"
+        : defaults.order;
 
   return {
     date,

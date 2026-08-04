@@ -15,7 +15,6 @@ import {
   useToast,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
-import type { ResourceProfile } from "../../../lib/api/settings";
 import { createRequestKey } from "../../../lib/requestKey";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { paths } from "../../../routes/paths";
@@ -50,7 +49,8 @@ export function StorageSettingsPage({
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setInterval] = useState("24");
   const [quota, setQuota] = useState("10");
-  const [resourceProfile, setResourceProfile] = useState<ResourceProfile>("balanced");
+  const [backgroundConcurrency, setBackgroundConcurrency] = useState("2");
+  const [contentReadConcurrency, setContentReadConcurrency] = useState("8");
   const [confirmCleanup, setConfirmCleanup] = useState(false);
 
   useEffect(() => {
@@ -58,7 +58,8 @@ export function StorageSettingsPage({
     setScheduleEnabled(settingsQuery.data.scheduledScanIntervalHours !== null);
     setInterval(String(settingsQuery.data.scheduledScanIntervalHours ?? 24));
     setQuota(String(Math.round(settingsQuery.data.thumbnailCacheQuotaBytes / bytesPerGiB)));
-    setResourceProfile(settingsQuery.data.resourceProfile);
+    setBackgroundConcurrency(String(settingsQuery.data.backgroundConcurrency));
+    setContentReadConcurrency(String(settingsQuery.data.contentReadConcurrency));
   }, [settingsQuery.data]);
 
   const numberFormat = useMemo(
@@ -74,8 +75,12 @@ export function StorageSettingsPage({
     if (!settingsQuery.data || savePendingRef.current) return;
     const parsedInterval = Number(interval);
     const parsedQuota = Number(quota);
+    const parsedBackgroundConcurrency = Number(backgroundConcurrency);
+    const parsedContentReadConcurrency = Number(contentReadConcurrency);
     if (!Number.isInteger(parsedInterval) || parsedInterval < 1 || parsedInterval > 8760) return;
     if (!Number.isFinite(parsedQuota) || parsedQuota < 1 || parsedQuota > 1024) return;
+    if (!Number.isInteger(parsedBackgroundConcurrency) || parsedBackgroundConcurrency < 1 || parsedBackgroundConcurrency > 4) return;
+    if (!Number.isInteger(parsedContentReadConcurrency) || parsedContentReadConcurrency < 1 || parsedContentReadConcurrency > 16) return;
     savePendingRef.current = true;
     void updateSettings
       .mutateAsync({
@@ -83,7 +88,8 @@ export function StorageSettingsPage({
         etag: settingsQuery.data.etag,
         scheduledScanIntervalHours: scheduleEnabled ? parsedInterval : null,
         thumbnailCacheQuotaBytes: Math.round(parsedQuota * bytesPerGiB),
-        resourceProfile,
+        backgroundConcurrency: parsedBackgroundConcurrency,
+        contentReadConcurrency: parsedContentReadConcurrency,
       })
       .then(() =>
         toast.show({ message: t("settings.saved"), tone: "success" }),
@@ -192,25 +198,28 @@ export function StorageSettingsPage({
 
             <form onSubmit={saveSettings}>
               {section === "scan" && <section className={styles.section}>
-                <h2>{t("cache.resourceProfile")}</h2>
-                <div className={styles.card}>
-                  <p className={styles.caption}>{t("cache.resourceProfileDescription")}</p>
-                  <div className={styles.profileGrid}>
-                    {(["eco", "balanced", "performance"] as const).map((profile) => (
-                      <label className={styles.profileOption} key={profile}>
-                        <input
-                          checked={resourceProfile === profile}
-                          name="resourceProfile"
-                          onChange={() => setResourceProfile(profile)}
-                          type="radio"
-                          value={profile}
-                        />
-                        <span>
-                          <strong>{t(`cache.resourceProfile.${profile}`)}</strong>
-                          <span>{t(`cache.resourceProfile.${profile}Description`)}</span>
-                        </span>
-                      </label>
-                    ))}
+                <h2>{t("settings.resourceLimits")}</h2>
+                <div className={`${styles.card} ${styles.form}`}>
+                  <p className={styles.caption}>{t("settings.resourceLimitsDescription")}</p>
+                  <div className={styles.formGrid}>
+                    <FormField
+                      description={t("settings.backgroundConcurrencyDescription")}
+                      label={t("settings.backgroundConcurrency")}
+                      max={4}
+                      min={1}
+                      onChange={(event) => setBackgroundConcurrency(event.currentTarget.value)}
+                      type="number"
+                      value={backgroundConcurrency}
+                    />
+                    <FormField
+                      description={t("settings.contentReadConcurrencyDescription")}
+                      label={t("settings.contentReadConcurrency")}
+                      max={16}
+                      min={1}
+                      onChange={(event) => setContentReadConcurrency(event.currentTarget.value)}
+                      type="number"
+                      value={contentReadConcurrency}
+                    />
                   </div>
                 </div>
               </section>}

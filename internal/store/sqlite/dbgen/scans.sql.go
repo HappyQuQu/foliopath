@@ -216,7 +216,7 @@ func (q *Queries) GetScanContractRun(ctx context.Context, id int64) (ScanRun, er
 }
 
 const getSettings = `-- name: GetSettings :one
-SELECT singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled, resource_profile
+SELECT singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled, resource_profile, background_concurrency, content_read_concurrency
 FROM settings
 WHERE singleton_key = 1
 `
@@ -233,6 +233,8 @@ func (q *Queries) GetSettings(ctx context.Context) (Setting, error) {
 		&i.UpdatedAtMs,
 		&i.AutomaticDiscoveryEnabled,
 		&i.ResourceProfile,
+		&i.BackgroundConcurrency,
+		&i.ContentReadConcurrency,
 	)
 	return i, err
 }
@@ -633,20 +635,22 @@ UPDATE settings
 SET scheduled_scan_interval_hours = ?1,
     automatic_discovery_enabled = ?2,
     thumbnail_cache_quota_bytes = ?3,
-    resource_profile = ?4,
-    language = ?5,
+    background_concurrency = ?4,
+    content_read_concurrency = ?5,
+    language = ?6,
     revision = revision + 1,
-    updated_at_ms = ?6
+    updated_at_ms = ?7
 WHERE singleton_key = 1
-  AND revision = ?7
-RETURNING singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled, resource_profile
+  AND revision = ?8
+RETURNING singleton_key, scheduled_scan_interval_hours, thumbnail_cache_quota_bytes, language, revision, updated_at_ms, automatic_discovery_enabled, resource_profile, background_concurrency, content_read_concurrency
 `
 
 type UpdateSettingsParams struct {
 	ScheduledScanIntervalHours sql.NullInt64
 	AutomaticDiscoveryEnabled  int64
 	ThumbnailCacheQuotaBytes   int64
-	ResourceProfile            string
+	BackgroundConcurrency      int64
+	ContentReadConcurrency     int64
 	Language                   string
 	UpdatedAtMs                int64
 	ExpectedRevision           int64
@@ -657,7 +661,8 @@ func (q *Queries) UpdateSettings(ctx context.Context, arg UpdateSettingsParams) 
 		arg.ScheduledScanIntervalHours,
 		arg.AutomaticDiscoveryEnabled,
 		arg.ThumbnailCacheQuotaBytes,
-		arg.ResourceProfile,
+		arg.BackgroundConcurrency,
+		arg.ContentReadConcurrency,
 		arg.Language,
 		arg.UpdatedAtMs,
 		arg.ExpectedRevision,
@@ -672,6 +677,8 @@ func (q *Queries) UpdateSettings(ctx context.Context, arg UpdateSettingsParams) 
 		&i.UpdatedAtMs,
 		&i.AutomaticDiscoveryEnabled,
 		&i.ResourceProfile,
+		&i.BackgroundConcurrency,
+		&i.ContentReadConcurrency,
 	)
 	return i, err
 }

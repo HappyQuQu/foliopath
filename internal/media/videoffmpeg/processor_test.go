@@ -340,8 +340,11 @@ func TestDurationAndPlaybackClassification(t *testing.T) {
 	if got := playbackStatus(media.FormatMKV, "h264"); got != media.PlaybackUnknown {
 		t.Fatalf("MKV H.264 playback = %q", got)
 	}
-	if got := playbackStatus(media.FormatMKV, "ffv1"); got != media.PlaybackUnsupportedCodec {
+	if got := playbackStatus(media.FormatMKV, "ffv1"); got != media.PlaybackUnknown {
 		t.Fatalf("FFV1 playback = %q", got)
+	}
+	if got := playbackStatus(media.FormatMP4, "hevc"); got != media.PlaybackUnknown {
+		t.Fatalf("MP4 HEVC playback = %q", got)
 	}
 }
 

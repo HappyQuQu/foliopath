@@ -98,42 +98,6 @@
   line-height: var(--line-height-normal);
 }
 
-.profileGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-}
-
-.profileOption {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-3);
-  background: var(--color-surface-subtle);
-  cursor: pointer;
-}
-
-.profileOption:has(input:checked) {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-}
-
-.profileOption input {
-  margin-top: var(--space-1);
-  accent-color: var(--color-accent);
-}
-
-.profileOption span span {
-  display: block;
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: var(--line-height-normal);
-}
-
 .metricGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -234,8 +198,7 @@
   }
 
   .formGrid,
-  .metricGrid,
-  .profileGrid {
+  .metricGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 

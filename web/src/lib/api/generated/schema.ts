@@ -1494,15 +1494,6 @@ export interface components {
          */
         ResourceID: string;
         /**
-         * @description Instance-wide NAS resource preset. Eco allows one background media-source
-         *     operation and four concurrent content reads; balanced allows two and
-         *     eight; performance allows four and sixteen. Existing work is not
-         *     cancelled when the limit is lowered.
-         * @default balanced
-         * @enum {string}
-         */
-        ResourceProfile: "eco" | "balanced" | "performance";
-        /**
          * @description Sanitized terminal reason. Null for queued, running, succeeded, and user-cancelled runs.
          * @enum {string|null}
          */
@@ -1579,8 +1570,19 @@ export interface components {
              * @default true
              */
             automaticDiscoveryEnabled: boolean;
+            /**
+             * Format: int32
+             * @description Maximum shared concurrency for scans, reconciliation, and derived-media work.
+             * @default 2
+             */
+            backgroundConcurrency: number;
+            /**
+             * Format: int32
+             * @description Maximum concurrent original-image and video content reads.
+             * @default 8
+             */
+            contentReadConcurrency: number;
             language: components["schemas"]["LanguagePreference"];
-            resourceProfile: components["schemas"]["ResourceProfile"];
             /**
              * Format: int32
              * @description Full-scan interval in hours. Null disables scheduled scans.
@@ -1598,8 +1600,11 @@ export interface components {
         SettingsUpdate: {
             /** @description Enable or disable the automatic-discovery fast path. */
             automaticDiscoveryEnabled?: boolean;
+            /** Format: int32 */
+            backgroundConcurrency?: number;
+            /** Format: int32 */
+            contentReadConcurrency?: number;
             language?: components["schemas"]["LanguagePreference"];
-            resourceProfile?: components["schemas"]["ResourceProfile"];
             /**
              * Format: int32
              * @description Full-scan interval in hours. Null disables scheduled scans.

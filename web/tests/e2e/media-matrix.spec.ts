@@ -19,9 +19,7 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
     "chromium",
     "chrome-stable",
     "chrome-forced-colors",
-  ].includes(
-    testInfo.project.name,
-  );
+  ].includes(testInfo.project.name);
   test.skip(
     ![
       "chromium",
@@ -33,6 +31,14 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
   );
   const rangeRequests: string[] = [];
   await mockViewerBackend(page, rangeRequests);
+  let codecRequests = 0;
+  await page.route("**/api/v1/assets/video_codec/content", async (route) => {
+    codecRequests += 1;
+    await route.fulfill({
+      contentType: "video/x-matroska",
+      body: Buffer.from("not-a-playable-video"),
+    });
+  });
 
   await page.goto(
     `/libraries/${libraryId}/media/image_ready?from=%2Fsearch%3Fq%3Dmatrix`,
@@ -102,18 +108,21 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
       )
       .toBeGreaterThan(0);
     await expect.poll(() => rangeRequests.length).toBeGreaterThan(0);
-    expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(true);
+    expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(
+      true,
+    );
   }
 
   await page.goto(`/libraries/${libraryId}/media/video_codec`);
+  await expect.poll(() => codecRequests).toBeGreaterThan(0);
   await expect(
     page.getByRole("heading", {
-      name: "This browser cannot play the video",
+      name: "This video could not be played.",
     }),
   ).toBeVisible();
-  await expect(
-    page.locator('video[aria-label="video-codec.mkv"]'),
-  ).toHaveCount(0);
+  await expect(page.locator('video[aria-label="video-codec.mkv"]')).toHaveCount(
+    0,
+  );
   await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
 
   await page.goto(`/libraries/${libraryId}/media/offline`);
@@ -127,7 +136,9 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
   await expect(
     page.getByRole("heading", { name: "Media removed from the index" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Check again" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Check again" })).toHaveCount(
+    0,
+  );
   await expectNoPageOverflow(page);
 });
 
@@ -161,7 +172,9 @@ test("mobile touch controls keep the viewer and recovery action reachable", asyn
   await retry.tap();
   await expect(retry).toBeVisible();
   await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Previous item" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Previous item" }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Next item" })).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -287,7 +300,8 @@ async function mockViewerBackend(page: Page, rangeRequests: string[]) {
     });
   });
   await page.route(/\/api\/v1\/assets\/[^/]+$/, async (route) => {
-    const assetId = new URL(route.request().url()).pathname.split("/").at(-1) ?? "";
+    const assetId =
+      new URL(route.request().url()).pathname.split("/").at(-1) ?? "";
     if (assetId === "deleted") {
       await route.fulfill({
         status: 404,
@@ -313,9 +327,12 @@ async function mockViewerBackend(page: Page, rangeRequests: string[]) {
   await page.route("**/api/v1/assets/video_range/content", async (route) => {
     await fulfillRange(route, rangeRequests);
   });
-  await page.route(/\/api\/v1\/assets\/image_(?:ready|next)\/content$/, async (route) => {
-    await route.fulfill({ contentType: "image/png", body: imageBytes });
-  });
+  await page.route(
+    /\/api\/v1\/assets\/image_(?:ready|next)\/content$/,
+    async (route) => {
+      await route.fulfill({ contentType: "image/png", body: imageBytes });
+    },
+  );
 }
 
 function assetFixture(assetId: string) {
