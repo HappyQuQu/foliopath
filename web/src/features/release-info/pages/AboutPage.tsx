@@ -111,7 +111,7 @@ export function AboutPage({
           <div className={styles.releaseList}>
             {releases.data?.releases.map((release) => (
               <article className={styles.release} key={release.version}>
-                <div>
+                <div className={styles.releaseHeader}>
                   <strong>{release.name}</strong>
                   <span>{release.version} · {date.format(new Date(release.publishedAt))}</span>
                 </div>
