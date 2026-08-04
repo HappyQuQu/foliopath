@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowSquareOut, CheckCircle, DownloadSimple } from "@phosphor-icons/react";
+import { ArrowClockwise, CheckCircle, DownloadSimple } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
@@ -7,6 +7,7 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { getReleaseInformation } from "../../../lib/api/release-info";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { paths } from "../../../routes/paths";
+import { ReleaseNotes } from "../components/ReleaseNotes";
 import { useApplicationStatusQuery, useReleaseInformationQuery } from "../queries";
 import styles from "./AboutPage.module.css";
 
@@ -114,11 +115,13 @@ export function AboutPage({
                   <strong>{release.name}</strong>
                   <span>{release.version} · {date.format(new Date(release.publishedAt))}</span>
                 </div>
-                {release.summary && <p>{release.summary}</p>}
-                <a href={release.url} rel="noreferrer" target="_blank">
-                  {t("about.viewRelease")}
-                  <ArrowSquareOut aria-hidden="true" size={15} />
-                </a>
+                {release.notes ? (
+                  <div className={styles.releaseNotes}>
+                    <ReleaseNotes notes={release.notes} version={release.version} />
+                  </div>
+                ) : (
+                  release.summary && <p>{release.summary}</p>
+                )}
               </article>
             ))}
           </div>

@@ -29,6 +29,7 @@ func TestReleaseInfoHTTPReturnsVersionHistory(t *testing.T) {
 		CheckedAt: time.Date(2026, 8, 3, 0, 0, 0, 0, time.UTC),
 		Releases: []releaseinfo.Release{{
 			Version: "v1.1.0", Name: "FolioPath 1.1", Summary: "Safer logs",
+			Notes:       "### 🐛 Fixes\n\n* Safer logs",
 			PublishedAt: time.Date(2026, 8, 2, 0, 0, 0, 0, time.UTC),
 			URL:         "https://example.test/v1.1.0",
 		}},
@@ -46,6 +47,7 @@ func TestReleaseInfoHTTPReturnsVersionHistory(t *testing.T) {
 		"updateAvailable": true, "checkedAt": "2026-08-03T00:00:00Z",
 		"releases": []any{map[string]any{
 			"version": "v1.1.0", "name": "FolioPath 1.1", "summary": "Safer logs",
+			"notes":       "### 🐛 Fixes\n\n* Safer logs",
 			"publishedAt": "2026-08-02T00:00:00Z", "url": "https://example.test/v1.1.0",
 		}},
 	})

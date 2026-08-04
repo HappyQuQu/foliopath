@@ -16,6 +16,7 @@ type releaseResponse struct {
 	Version     string `json:"version"`
 	Name        string `json:"name"`
 	Summary     string `json:"summary"`
+	Notes       string `json:"notes"`
 	PublishedAt string `json:"publishedAt"`
 	URL         string `json:"url"`
 }
@@ -70,6 +71,7 @@ func releaseInfoWire(snapshot releaseinfo.Snapshot) releaseInfoResponse {
 	for _, release := range snapshot.Releases {
 		response.Releases = append(response.Releases, releaseResponse{
 			Version: release.Version, Name: release.Name, Summary: release.Summary,
+			Notes:       release.Notes,
 			PublishedAt: release.PublishedAt.UTC().Format(time.RFC3339Nano), URL: release.URL,
 		})
 	}

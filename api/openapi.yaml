@@ -3957,7 +3957,7 @@ components:
     ReleaseSummary:
       type: object
       additionalProperties: false
-      required: [version, name, summary, publishedAt, url]
+      required: [version, name, summary, notes, publishedAt, url]
       properties:
         version:
           type: string
@@ -3970,6 +3970,10 @@ components:
         summary:
           type: string
           maxLength: 500
+        notes:
+          type: string
+          description: Bounded Markdown release notes from the official stable GitHub Release.
+          maxLength: 20000
         publishedAt:
           type: string
           format: date-time

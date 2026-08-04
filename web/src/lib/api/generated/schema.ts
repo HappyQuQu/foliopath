@@ -1475,6 +1475,8 @@ export interface components {
         };
         ReleaseSummary: {
             name: string;
+            /** @description Bounded Markdown release notes from the official stable GitHub Release. */
+            notes: string;
             /** Format: date-time */
             publishedAt: string;
             summary: string;

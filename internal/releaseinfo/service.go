@@ -14,6 +14,7 @@ type Release struct {
 	Version     string
 	Name        string
 	Summary     string
+	Notes       string
 	PublishedAt time.Time
 	URL         string
 }

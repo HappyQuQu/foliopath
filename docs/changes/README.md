@@ -39,6 +39,7 @@
 ### 2026-08-04
 
 - [自动版本与用户友好更新日志](FIX-2026-08-04-automated-friendly-releases.md)
+- [关于页直接展示更新内容](FIX-2026-08-04-inline-release-notes.md)
 
 ### 2026-07-29
 

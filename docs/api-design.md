@@ -87,7 +87,8 @@ handler 存在替代对应证据。
   permanentFailures，但手动操作下固定为 0；
 - `GET /api/v1/system-logs` 使用 `sevt_` keyset cursor，按级别和模块筛选有界系统事件；只返回
   稳定事件码、route pattern、状态码、耗时和 request ID，不返回任意错误文本或请求参数；
-- `GET /api/v1/releases` 返回 build currentVersion、缓存的官方稳定历史和 updateAvailable；
+- `GET /api/v1/releases` 返回 build currentVersion、缓存的官方稳定历史、每版有界 Release
+  Markdown 正文和 updateAvailable；正文只供应用内安全文本渲染，不要求用户跳转外部链接；
   `refresh=true` 触发受 5 秒超时约束的检查。无缓存且上游失败返回安全 `503`，不改变 readiness。
 
 

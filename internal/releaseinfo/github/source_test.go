@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -30,7 +31,16 @@ func TestSourceReturnsOnlyStableBoundedReleaseFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(releases) != 1 || releases[0].Version != "v1.2.0" ||
-		releases[0].Summary != "Faster browsing" {
+		releases[0].Summary != "Faster browsing" ||
+		releases[0].Notes != "# Faster browsing\n\nDetails" {
 		t.Fatalf("releases = %#v", releases)
+	}
+}
+
+func TestReleaseNotesAreBoundedWithoutBreakingUnicode(t *testing.T) {
+	body := "  # 更新\r\n\r\n" + strings.Repeat("更", 20_001)
+	notes := releaseNotes(body)
+	if len([]rune(notes)) > 20_000 {
+		t.Fatalf("notes length = %d", len([]rune(notes)))
 	}
 }

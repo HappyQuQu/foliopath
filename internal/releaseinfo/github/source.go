@@ -76,8 +76,9 @@ func (source *Source) ListStableReleases(
 		}
 		releases = append(releases, releaseinfo.Release{
 			Version: item.TagName, Name: fallbackName(item.Name, item.TagName),
-			Summary: summary(item.Body), PublishedAt: item.PublishedAt.UTC(),
-			URL: item.HTMLURL,
+			Summary: summary(item.Body), Notes: releaseNotes(item.Body),
+			PublishedAt: item.PublishedAt.UTC(),
+			URL:         item.HTMLURL,
 		})
 	}
 	return releases, nil
@@ -88,6 +89,16 @@ func fallbackName(name, version string) string {
 		return version
 	}
 	return strings.TrimSpace(name)
+}
+
+func releaseNotes(body string) string {
+	const maximumRunes = 20_000
+	notes := strings.TrimSpace(strings.ReplaceAll(body, "\r\n", "\n"))
+	runes := []rune(notes)
+	if len(runes) > maximumRunes {
+		notes = strings.TrimSpace(string(runes[:maximumRunes]))
+	}
+	return notes
 }
 
 func summary(body string) string {
