@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/HappyQuQu/foliopath/compare/v1.0.1...v1.1.0) (2026-08-04)
+
+
+### ✨ 新功能
+
+* 更新记录直接展示实际内容 ([d41ac45](https://github.com/HappyQuQu/foliopath/commit/d41ac45792612279380603d26404d07f02cfc984))
+
 ## [1.0.1](https://github.com/HappyQuQu/foliopath/compare/v1.0.0...v1.0.1) (2026-08-03)
 
 
