@@ -126,4 +126,13 @@ func TestDockerHubReadmeUsesAbsoluteReferences(t *testing.T) {
 			t.Errorf("Docker Hub quick start must omit advanced Compose setting %q", advancedComposeSetting)
 		}
 	}
+
+	requireFragments(t, "README.dockerhub.md", string(content), []string{
+		"⭐ Enjoying FolioPath? Your stars help more people discover the project.",
+		"⭐ 喜欢 FolioPath？你的 Star 能帮助更多人发现这个项目。",
+		"https://github.com/HappyQuQu/foliopath",
+		"https://hub.docker.com/r/evanqu/foliopath",
+		"Star%20on%20GitHub",
+		"Star_on-Docker_Hub",
+	})
 }

@@ -24,6 +24,15 @@
   <img alt="Platforms: Linux amd64 and arm64" src="https://img.shields.io/badge/platform-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey.svg">
 </p>
 
+<p align="center">
+  <strong>⭐ Enjoying FolioPath? Your stars help more people discover the project.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/HappyQuQu/foliopath"><img alt="Star FolioPath on GitHub" src="https://img.shields.io/github/stars/HappyQuQu/foliopath?style=for-the-badge&amp;logo=github&amp;label=Star%20on%20GitHub"></a>
+  <a href="https://hub.docker.com/r/evanqu/foliopath"><img alt="Star FolioPath on Docker Hub" src="https://img.shields.io/badge/Star_on-Docker_Hub-2496ED?style=for-the-badge&amp;logo=docker&amp;logoColor=white"></a>
+</p>
+
 FolioPath directly reads an existing directory tree and lets you browse a folder and all its descendants as one set. It is designed for photography archives, family media, NAS libraries, and collections already organized by project, trip, event, person, or date.
 
 ![FolioPath home](https://raw.githubusercontent.com/HappyQuQu/foliopath/main/docs/screenshots/home-light.webp)
@@ -119,6 +128,15 @@ Direct HTTP is intended for an authenticated, trusted LAN. For public or otherwi
 FolioPath 是一款为整套照片和视频浏览而生的只读、自托管媒体浏览器。它直接读取现有目录树，让你把一个文件夹及其所有子目录作为完整内容集浏览，不需要重新上传、建立相册或改变原有归档方式。
 
 适合摄影归档、家庭影像、NAS 媒体库，以及已经按作品、旅行、活动、人物或日期整理好的收藏。
+
+<p align="center">
+  <strong>⭐ 喜欢 FolioPath？你的 Star 能帮助更多人发现这个项目。</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/HappyQuQu/foliopath"><img alt="在 GitHub 为 FolioPath 点 Star" src="https://img.shields.io/github/stars/HappyQuQu/foliopath?style=for-the-badge&amp;logo=github&amp;label=Star%20on%20GitHub"></a>
+  <a href="https://hub.docker.com/r/evanqu/foliopath"><img alt="在 Docker Hub 为 FolioPath 点 Star" src="https://img.shields.io/badge/Star_on-Docker_Hub-2496ED?style=for-the-badge&amp;logo=docker&amp;logoColor=white"></a>
+</p>
 
 ![FolioPath 主页](https://raw.githubusercontent.com/HappyQuQu/foliopath/main/docs/screenshots/home-light.webp)
 
