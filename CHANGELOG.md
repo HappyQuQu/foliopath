@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/HappyQuQu/foliopath/compare/v1.1.1...v1.2.0) (2026-08-04)
+
+
+### ✨ 新功能
+
+* 完善媒体预览与资源配置 ([263dfc9](https://github.com/HappyQuQu/foliopath/commit/263dfc9d25866045242a9a2225339e1a38135f26))
+
 ## [1.1.1](https://github.com/HappyQuQu/foliopath/compare/v1.1.0...v1.1.1) (2026-08-04)
 
 
