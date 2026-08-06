@@ -173,11 +173,16 @@ handler 不接收缓存路径、不访问 SQLite/文件系统，也不调用媒�
 `nosniff` 与限制型 CSP。缓存缺失或长度异常只撤销派生 ready 并重排 durable job；
 公开错误不包含 cache path，离线源返回稳定 `source_offline`。
 
-`S3-006` 已把 MVP 解析预算固定为：图片编码最大 256 MiB、视频最大 4 GiB、单边最大
+`S3-006` 初始解析预算为图片编码最大 256 MiB、视频最大 4 GiB；2026-08-06 的
+[大视频探测与失败诊断纠偏](changes/FIX-2026-08-06-large-video-probe-diagnostics.md)保留图片
+上限并把视频源上限提高到 1 TiB，使 4 GiB 以上视频仍进入 FFprobe。超过上限使用独立的
+`source_too_large` 诊断，不归为媒体损坏。其他边界为单边最大
 32,768 px、总解码像素最大 100 MP、工具 stdout 最大 8 MiB、stderr 最大 64 KiB。
+stderr 超限只截断诊断，不与 stdout 派生结果超限混为一类；分类只使用已保留的脱敏稳定模式，
+不持久化原始工具输出。
 应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；
 两个媒体 worker 是进程级唯一任务并发。FFmpeg/ffprobe 使用单 decoder/filter thread、
-15 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
+probe 与 poster 各自 60 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
 调用，不能承诺在任意 C 调用中间抢占或隔离 native crash；当前在求值前拒绝超限输入，并在
 返回后的第一个安全点重新检查取消。改变到进程隔离需要先接受 ADR。
 
@@ -193,7 +198,7 @@ seek/输出上限、峰值 RSS、worker 优先级和 backfill admission。它继
 发布、认证 delivery 和错误脱敏。不得用完整顺序解码长视频、API 线程现场生成、任意路径或
 更高无界并发实现故事板。
 
-`VSP-S2 Backend Evidence Ready` 已 Go；本节仍不改变 MVP 已验证的 15 秒 poster 预算，
+`VSP-S2 Backend Evidence Ready` 已 Go；故事板继续使用独立的自适应预算，
 完整 feature 发布继续由 `VSP-S4` 阻断。
 
 ## 容器和持久数据

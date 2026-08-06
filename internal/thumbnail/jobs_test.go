@@ -25,8 +25,20 @@ func TestJobResultClassificationSeparatesPermanentAndRetryableFailures(t *testin
 			outcome: JobPermanent, code: JobErrorUnsupportedMedia,
 		},
 		{
+			name: "source too large", err: media.ErrSourceTooLarge,
+			outcome: JobPermanent, code: JobErrorProcessing,
+		},
+		{
 			name: "timeout", err: context.DeadlineExceeded,
 			outcome: JobRetry, code: JobErrorTimeout,
+		},
+		{
+			name: "storyboard budget exhausted",
+			err: errors.Join(
+				ErrStoryboardBudgetExhausted,
+				context.DeadlineExceeded,
+			),
+			outcome: JobPermanent, code: JobErrorTimeout,
 		},
 		{
 			name: "source", err: ErrSourceUnavailable,

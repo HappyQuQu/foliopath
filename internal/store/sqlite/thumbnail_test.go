@@ -94,6 +94,60 @@ func TestThumbnailStateTransitionsAreFingerprintGuarded(t *testing.T) {
 	}
 }
 
+func TestVideoMetadataCanRemainReadyWhenPosterFails(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedStoryboardAsset(t, store.db)
+	duration := int64(10_000)
+	if err := store.CommitMetadataReadyFailure(
+		context.Background(),
+		thumbnail.MetadataReadyFailure{
+			AssetID:           1,
+			SourceFingerprint: media.SourceFingerprint("v1:42:100"),
+			Metadata: media.Metadata{
+				Width: 1920, Height: 1080, DurationMS: &duration,
+				PlaybackStatus: media.PlaybackUnknown,
+			},
+			Code: media.ErrorUnsupportedMedia,
+		},
+	); err != nil {
+		t.Fatal(err)
+	}
+	var probeStatus, playbackStatus, thumbnailStatus, thumbnailCode string
+	var width, height, storedDuration int64
+	if err := store.db.QueryRowContext(context.Background(), `
+        SELECT a.probe_status, a.playback_status, a.width, a.height,
+               a.duration_ms, t.status, t.error_code
+        FROM assets AS a
+        JOIN thumbnails AS t ON t.asset_id = a.id AND t.variant = 'grid'
+        WHERE a.id = 1`,
+	).Scan(
+		&probeStatus,
+		&playbackStatus,
+		&width,
+		&height,
+		&storedDuration,
+		&thumbnailStatus,
+		&thumbnailCode,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if probeStatus != "ready" || playbackStatus != "unknown" ||
+		width != 1920 || height != 1080 || storedDuration != 10_000 ||
+		thumbnailStatus != "failed" ||
+		thumbnailCode != string(media.ErrorUnsupportedMedia) {
+		t.Fatalf(
+			"metadata/thumbnail = %q %q %dx%d/%d %q/%q",
+			probeStatus,
+			playbackStatus,
+			width,
+			height,
+			storedDuration,
+			thumbnailStatus,
+			thumbnailCode,
+		)
+	}
+}
+
 func TestThumbnailDeliveryStateTouchOfflineAndMissingCacheRepair(t *testing.T) {
 	store, _ := openTestStore(t)
 	store.now = func() time.Time { return time.UnixMilli(2000) }

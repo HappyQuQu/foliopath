@@ -17,9 +17,10 @@ const (
 )
 
 var (
-	ErrStoryboardNotEligible   = errors.New("storyboard not eligible")
-	ErrInvalidStoryboardPlan   = errors.New("invalid storyboard plan")
-	ErrInvalidStoryboardLayout = errors.New("invalid storyboard layout")
+	ErrStoryboardNotEligible     = errors.New("storyboard not eligible")
+	ErrStoryboardBudgetExhausted = errors.New("storyboard processing budget exhausted")
+	ErrInvalidStoryboardPlan     = errors.New("invalid storyboard plan")
+	ErrInvalidStoryboardLayout   = errors.New("invalid storyboard layout")
 )
 
 type StoryboardPlan struct {
@@ -58,6 +59,15 @@ func NewStoryboardPlan(durationMS int64) (StoryboardPlan, error) {
 	frameCount := StoryboardShortFrameCount
 	if durationMS >= StoryboardTenFrameDurationMS {
 		frameCount = StoryboardLongFrameCount
+	}
+	return newStoryboardPlan(durationMS, frameCount)
+}
+
+func newStoryboardPlan(durationMS int64, frameCount int) (StoryboardPlan, error) {
+	if durationMS < StoryboardMinimumDurationMS ||
+		(frameCount != StoryboardShortFrameCount &&
+			frameCount != StoryboardLongFrameCount) {
+		return StoryboardPlan{}, ErrInvalidStoryboardPlan
 	}
 	columns := min(frameCount, StoryboardMaximumColumns)
 	plan := StoryboardPlan{

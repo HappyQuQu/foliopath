@@ -29,7 +29,7 @@ it("keeps the language setting in sync with the global quick switch", async () =
   expect(document.documentElement).toHaveAttribute("lang", "en");
 });
 
-it("defaults video preview autoplay on and saves an explicit opt-out", async () => {
+it("saves independent video preview autoplay and mute preferences", async () => {
   window.localStorage.setItem(
     "foliopath.preferences.v1",
     '{"locale":"zh-CN"}',
@@ -42,15 +42,20 @@ it("defaults video preview autoplay on and saves an explicit opt-out", async () 
     name: /自动播放视频预览/,
   });
   expect(autoplay).toBeChecked();
+  const muted = screen.getByRole("switch", {
+    name: /视频预览默认静音/,
+  });
+  expect(muted).toBeChecked();
 
   await user.click(autoplay);
+  await user.click(muted);
   await user.click(screen.getByRole("button", { name: "保存更改" }));
 
   expect(
     JSON.parse(
       window.localStorage.getItem("foliopath.preferences.v1") ?? "{}",
     ),
-  ).toMatchObject({ previewAutoplay: false });
+  ).toMatchObject({ previewAutoplay: false, previewMuted: false });
 });
 
 it("saves default sorting and grid or masonry layout together", async () => {

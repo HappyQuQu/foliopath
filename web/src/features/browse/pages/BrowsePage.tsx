@@ -637,6 +637,7 @@ export function BrowsePage({
           {previewItem && (
             <MediaPreview
               autoPlayVideo={preview.autoPlayVideo}
+              muteVideo={preview.muteVideo}
               availability={
                 previewAsset && mediaAvailability(previewAsset)
                   ? mediaAvailabilityPresentation(

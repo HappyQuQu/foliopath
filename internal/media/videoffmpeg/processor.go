@@ -47,14 +47,14 @@ func New(options Options) (*Processor, error) {
 	if options.Timeout == 0 {
 		options.Timeout = media.DefaultProbeTimeout
 	}
-	if options.Timeout < 100*time.Millisecond || options.Timeout > time.Minute {
+	if options.Timeout < 100*time.Millisecond || options.Timeout > 5*time.Minute {
 		return nil, errors.New("invalid FFmpeg processing timeout")
 	}
 	if options.StoryboardTimeout == 0 {
 		options.StoryboardTimeout = media.DefaultStoryboardTimeout
 	}
 	if options.StoryboardTimeout < 100*time.Millisecond ||
-		options.StoryboardTimeout > media.DefaultStoryboardTimeout {
+		options.StoryboardTimeout > media.MaxStoryboardAttemptTimeout {
 		return nil, errors.New("invalid FFmpeg storyboard timeout")
 	}
 	return &Processor{
@@ -101,34 +101,38 @@ func (processor *Processor) Process(
 	if err := media.ValidateSourceSize(format, info.Size()); err != nil {
 		return media.ProcessingResult{}, err
 	}
-	runCtx, cancel := context.WithTimeout(ctx, processor.timeout)
-	defer cancel()
-
-	document, err := processor.probe(runCtx, file)
+	probeCtx, cancelProbe := context.WithTimeout(ctx, processor.timeout)
+	document, err := processor.probe(probeCtx, file)
+	cancelProbe()
 	if err != nil {
 		return media.ProcessingResult{}, err
 	}
 	stream, ok := firstVideoStream(document)
 	if !ok || media.ValidateDimensions(stream.Width, stream.Height) != nil {
-		return media.ProcessingResult{}, media.ErrInvalidMedia
+		return media.ProcessingResult{}, media.WithFailureDiagnostic(
+			media.ErrInvalidMedia,
+			media.FailureDiagnostic{
+				Stage: media.StageProbe, Reason: media.ReasonInvalidData, Tool: "ffprobe",
+			},
+		)
 	}
-	durationMS, err := durationMilliseconds(stream.Duration, document.Format.Duration)
-	if err != nil {
-		return media.ProcessingResult{}, media.ErrInvalidMedia
+	durationMS := durationMilliseconds(stream.Duration, document.Format.Duration)
+	metadata := media.Metadata{
+		Width: stream.Width, Height: stream.Height, DurationMS: durationMS,
+		PlaybackStatus: playbackStatus(format, stream.CodecName),
 	}
-	poster, err := processor.poster(runCtx, file)
+	posterCtx, cancelPoster := context.WithTimeout(ctx, processor.timeout)
+	poster, err := processor.poster(posterCtx, file)
+	cancelPoster()
 	if err != nil {
-		return media.ProcessingResult{}, err
+		return media.ProcessingResult{Metadata: metadata}, err
 	}
 	thumbnailWidth, thumbnailHeight := boundedDimensions(
 		stream.Width, stream.Height,
 		media.GridThumbnailWidth, media.GridThumbnailHeight,
 	)
 	result := media.ProcessingResult{
-		Metadata: media.Metadata{
-			Width: stream.Width, Height: stream.Height, DurationMS: &durationMS,
-			PlaybackStatus: playbackStatus(format, stream.CodecName),
-		},
+		Metadata: metadata,
 		Thumbnail: media.Thumbnail{
 			Bytes: poster, Width: thumbnailWidth, Height: thumbnailHeight,
 		},
@@ -178,7 +182,11 @@ func (processor *Processor) Storyboard(
 	}
 	defer os.RemoveAll(tempDirectory)
 
-	runCtx, cancel := context.WithTimeout(ctx, processor.storyboardTimeout)
+	timeout := processor.storyboardTimeout
+	if request.Timeout > 0 {
+		timeout = request.Timeout
+	}
+	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	framePaths := make([]string, 0, len(request.TimestampsMS))
 	totalFrameBytes := 0
@@ -334,7 +342,12 @@ func (processor *Processor) probe(ctx context.Context, source *os.File) (probeDo
 	}
 	var document probeDocument
 	if err := json.Unmarshal(output, &document); err != nil {
-		return probeDocument{}, media.ErrInvalidMedia
+		return probeDocument{}, media.WithFailureDiagnostic(
+			media.ErrInvalidMedia,
+			media.FailureDiagnostic{
+				Stage: media.StageProbe, Reason: media.ReasonInvalidData, Tool: "ffprobe",
+			},
+		)
 	}
 	return document, nil
 }
@@ -419,13 +432,22 @@ func (processor *Processor) runCommand(
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		if stdout.exceeded || stderr.exceeded {
-			return nil, &commandExecutionError{cause: media.ErrProcessingFailed, outputExceeded: true}
+		if stdout.exceeded {
+			return nil, &commandExecutionError{
+				cause: media.ErrProcessingFailed, stderr: stderr.Bytes(), outputExceeded: true,
+			}
 		}
 		return nil, &commandExecutionError{cause: err, stderr: stderr.Bytes()}
 	}
-	if stdout.exceeded || stderr.exceeded {
-		return nil, &commandExecutionError{cause: media.ErrProcessingFailed, outputExceeded: true}
+	if stdout.exceeded {
+		return nil, &commandExecutionError{
+			cause: media.ErrProcessingFailed, stderr: stderr.Bytes(), outputExceeded: true,
+		}
+	}
+	if stderr.exceeded {
+		return nil, &commandExecutionError{
+			cause: media.ErrProcessingFailed, stderr: stderr.Bytes(),
+		}
 	}
 	return stdout.Bytes(), nil
 }
@@ -493,7 +515,17 @@ func classifyCommandError(
 	if errors.As(err, &exitError) {
 		exitCode := exitError.ExitCode()
 		diagnostic.ExitCode = &exitCode
-		return media.WithFailureDiagnostic(media.ErrInvalidMedia, diagnostic)
+		switch diagnostic.Reason {
+		case media.ReasonInvalidData,
+			media.ReasonMissingMoovAtom,
+			media.ReasonDecodeFailed,
+			media.ReasonNoFrame:
+			return media.WithFailureDiagnostic(media.ErrInvalidMedia, diagnostic)
+		case media.ReasonDecoderUnavailable:
+			return media.WithFailureDiagnostic(media.ErrUnsupportedMedia, diagnostic)
+		default:
+			return media.WithFailureDiagnostic(media.ErrProcessingFailed, diagnostic)
+		}
 	}
 	return media.WithFailureDiagnostic(media.ErrProcessingFailed, diagnostic)
 }
@@ -503,8 +535,13 @@ func classifyFFmpegReason(stderr string) media.FailureReason {
 	switch {
 	case strings.Contains(message, "moov atom not found"):
 		return media.ReasonMissingMoovAtom
+	case strings.Contains(message, "failed to get pixel format"),
+		strings.Contains(message, "doesn't support hardware accelerated"):
+		return media.ReasonDecoderUnavailable
 	case strings.Contains(message, "decoder") &&
-		(strings.Contains(message, "not found") || strings.Contains(message, "unknown")):
+		(strings.Contains(message, "not found") ||
+			strings.Contains(message, "unknown") ||
+			strings.Contains(message, "function not implemented")):
 		return media.ReasonDecoderUnavailable
 	case strings.Contains(message, "invalid data found"):
 		return media.ReasonInvalidData
@@ -540,7 +577,7 @@ func firstVideoStream(document probeDocument) (struct {
 	}{}, false
 }
 
-func durationMilliseconds(values ...string) (int64, error) {
+func durationMilliseconds(values ...string) *int64 {
 	for _, value := range values {
 		if value == "" || value == "N/A" {
 			continue
@@ -549,9 +586,10 @@ func durationMilliseconds(values ...string) (int64, error) {
 		if err != nil || seconds < 0 || math.IsNaN(seconds) || math.IsInf(seconds, 0) {
 			continue
 		}
-		return int64(math.Round(seconds * 1000)), nil
+		result := int64(math.Round(seconds * 1000))
+		return &result
 	}
-	return 0, errors.New("video duration is unavailable")
+	return nil
 }
 
 func playbackStatus(format media.Format, codec string) media.PlaybackStatus {

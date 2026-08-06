@@ -49,6 +49,7 @@ export function MediaPreview({
   canGoPrevious,
   item,
   labels,
+  muteVideo = true,
   availability,
   maxWidth = 620,
   minWidth = 360,
@@ -66,6 +67,7 @@ export function MediaPreview({
   canGoPrevious: boolean;
   item: MediaPreviewItem;
   labels: MediaPreviewLabels;
+  muteVideo?: boolean;
   availability?: MediaAvailabilityPresentation | undefined;
   maxWidth?: number;
   minWidth?: number;
@@ -159,7 +161,7 @@ export function MediaPreview({
             controls
             key={`${item.id}:${loadAttempt}`}
             onError={() => setLoadFailed(true)}
-            muted={autoPlayVideo}
+            muted={muteVideo}
             playsInline
             poster={item.posterUrl}
             preload="metadata"

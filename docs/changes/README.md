@@ -23,6 +23,7 @@
 - [CR-2026-016：视频预览自动播放偏好](CR-2026-016-video-preview-autoplay.md)
 - [CR-2026-017：默认排序与媒体布局](CR-2026-017-default-media-presentation.md)
 - [CR-2026-018：直接设置资源并发数](CR-2026-018-explicit-resource-limits.md)
+- [CR-2026-019：视频预览默认静音偏好](CR-2026-019-video-preview-default-mute.md)
 
 ### Post-MVP 与未来提案
 
@@ -34,6 +35,11 @@
 - [CR-2026-015：任务可恢复、日志中心、版本更新与消息中心](CR-2026-015-operations-observability-and-updates.md)
 
 ## Routine fixes
+
+### 2026-08-06
+
+- [自适应故事板处理预算与四帧降级](FIX-2026-08-06-adaptive-storyboard-budget.md)
+- [大视频探测与失败诊断纠偏](FIX-2026-08-06-large-video-probe-diagnostics.md)
 
 ### 2026-08-03
 

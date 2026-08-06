@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   readPreviewAutoplayPreference,
+  readPreviewMutedPreference,
   readPreviewPinnedPreference,
   readPreviewWidthPreference,
   writePreviewPinnedPreference,
@@ -23,6 +24,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
   const [previewItem, setPreviewItem] = useState<T>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
   const [autoPlayVideo] = useState(readPreviewAutoplayPreference);
+  const [muteVideo] = useState(readPreviewMutedPreference);
   const [pinned, setPinned] = useState(readPreviewPinnedPreference);
   const [width, setWidthState] = useState(readPreviewWidthPreference);
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -122,6 +124,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     collectionRef,
     maxWidth,
     moveTo,
+    muteVideo,
     pinned,
     previewIndex,
     previewItem,

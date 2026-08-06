@@ -72,14 +72,8 @@ func (service *StoryboardService) Process(
 	if err != nil {
 		return err
 	}
-	request := media.StoryboardRequest{
-		TimestampsMS: plan.TimestampsMS,
-		Columns:      plan.Columns,
-		Rows:         plan.Rows,
-		CellWidth:    cellWidth,
-		CellHeight:   cellHeight,
-	}
-	if media.ValidateStoryboardRequest(request) != nil {
+	request, err := storyboardRequest(asset, plan, cellWidth, cellHeight)
+	if err != nil {
 		return ErrInvalidState
 	}
 	derivation, err := StoryboardDerivation(
@@ -118,9 +112,43 @@ func (service *StoryboardService) Process(
 		asset.Format,
 		request,
 	)
+	if err != nil && ctx.Err() == nil && storyboardTimedOut(err) &&
+		len(request.TimestampsMS) == StoryboardLongFrameCount {
+		fallbackPlan, planErr := newStoryboardPlan(
+			*asset.DurationMS,
+			StoryboardShortFrameCount,
+		)
+		if planErr != nil {
+			return ErrInvalidState
+		}
+		fallbackRequest, requestErr := storyboardRequest(
+			asset,
+			fallbackPlan,
+			cellWidth,
+			cellHeight,
+		)
+		if requestErr != nil {
+			return ErrInvalidState
+		}
+		remainingBudget := media.MaxStoryboardTotalTimeout - request.Timeout
+		fallbackRequest.Timeout = min(fallbackRequest.Timeout, remainingBudget)
+		if media.ValidateStoryboardRequest(fallbackRequest) != nil {
+			return ErrInvalidState
+		}
+		request = fallbackRequest
+		result, err = service.processor.Storyboard(
+			ctx,
+			source,
+			asset.Format,
+			request,
+		)
+	}
 	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		if storyboardTimedOut(err) {
+			err = errors.Join(ErrStoryboardBudgetExhausted, err)
 		}
 		return service.commitFailure(ctx, asset, err)
 	}
@@ -169,6 +197,38 @@ func (service *StoryboardService) Process(
 			CreatedAtMS:       service.now().UnixMilli(),
 		},
 	)
+}
+
+func storyboardRequest(
+	asset Asset,
+	plan StoryboardPlan,
+	cellWidth, cellHeight int,
+) (media.StoryboardRequest, error) {
+	timeout, err := media.StoryboardProcessingTimeout(
+		asset.Width,
+		asset.Height,
+		len(plan.TimestampsMS),
+	)
+	if err != nil {
+		return media.StoryboardRequest{}, err
+	}
+	request := media.StoryboardRequest{
+		TimestampsMS: plan.TimestampsMS,
+		Columns:      plan.Columns,
+		Rows:         plan.Rows,
+		CellWidth:    cellWidth,
+		CellHeight:   cellHeight,
+		Timeout:      timeout,
+	}
+	if media.ValidateStoryboardRequest(request) != nil {
+		return media.StoryboardRequest{}, ErrInvalidState
+	}
+	return request, nil
+}
+
+func storyboardTimedOut(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, media.ErrProcessingTimedOut)
 }
 
 func (service *StoryboardService) commitFailure(

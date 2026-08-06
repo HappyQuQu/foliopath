@@ -681,7 +681,8 @@ func failMediaJobTx(
         SET width = NULL, height = NULL, duration_ms = NULL,
             probe_status = 'failed', probe_error_code = ?,
             playback_status = 'unknown'
-        WHERE id = ? AND source_fingerprint = ?`,
+        WHERE id = ? AND source_fingerprint = ?
+          AND probe_status <> 'ready'`,
 		string(processingCode), job.AssetID, job.SourceFingerprint.String(),
 	); err != nil {
 		return fmt.Errorf("mark exhausted media asset failed: %w", err)

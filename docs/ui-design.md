@@ -243,7 +243,9 @@ OpenAPI 与 Backend Ready 是功能真相；任何一方都不能静默覆盖另
 - 媒体库“处理结果”分页显示既有 `media_jobs` 终态失败，包含 library-relative path、
   variant、稳定错误码、尝试次数和用户建议；“查看原因”在原记录内展开最近 10 次尝试，
   不弹框、不跳页，并展示阶段、具体稳定原因、工具、退出码和耗时。失败通知直达该页签。“扫描记录”按时间
-  倒序组合各媒体库已有 `scan_runs` 历史。
+  倒序组合各媒体库已有 `scan_runs` 历史。源文件超限显示 `source_too_large`，不得显示成损坏；
+  `missing_moov_atom` 显示“MP4 索引缺失或文件未完整复制”。视频信息已识别但 poster 失败时，
+  媒体仍可打开并交给浏览器尝试播放，卡片只回退无封面状态。
 - “系统日志”展示日常应用事件，按错误/警告/信息和模块筛选；详情只展开稳定事件码、
   request ID、route pattern、状态码与耗时，不显示 host path、SQL、stack、请求内容或原始 stderr。
 - 关于页显示构建注入版本、API 版本、稳定 Release 历史和更新状态；每版卡片在日期下直接按
@@ -474,7 +476,8 @@ S3-105 将媒体卡片与唯一共享 `MediaPreview` 接通。未固定状态下
 360～620px，并提供可拖动、可聚焦的垂直 separator；方向键每次调整 24px，Home/End
 跳到边界。预览不使用 modal、scrim 或 `inert`，所以父列表仍可滚动和操作。窄于
 1024px 时 separator 隐藏，预览以全宽区块进入内容流。图片使用 `object-fit: contain`；
-视频使用浏览器原生 controls、playsInline 与 metadata preload。基本信息只展示索引已有
+视频使用浏览器原生 controls、playsInline 与 metadata preload；自动播放和默认静音由
+两个独立的当前浏览器偏好控制，带声音自动播放被浏览器阻止时保留手动播放。基本信息只展示索引已有
 的 library-relative 位置、MIME/类型、修改时间、尺寸、大小和可选时长，不暴露 host path；
 详情值在预览宽度内安全换行，长路径和无空格文本不得以省略号隐藏或制造横向滚动。
 S3-106 将上述状态机补齐：未固定时，单击同步选择与预览；固定后，单击只移动选择，

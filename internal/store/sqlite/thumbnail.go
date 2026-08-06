@@ -349,6 +349,74 @@ func (s *Store) CommitFailure(ctx context.Context, failure thumbnail.Failure) er
 	})
 }
 
+func (s *Store) CommitMetadataReadyFailure(
+	ctx context.Context,
+	failure thumbnail.MetadataReadyFailure,
+) error {
+	if failure.AssetID <= 0 || !failure.SourceFingerprint.Valid() ||
+		media.ValidateMetadata(media.KindVideo, failure.Metadata) != nil ||
+		(failure.Code != media.ErrorUnsupportedMedia &&
+			failure.Code != media.ErrorInvalidMedia &&
+			failure.Code != media.ErrorProcessingFailed &&
+			failure.Code != media.ErrorProcessingTimed) {
+		return thumbnail.ErrInvalidState
+	}
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+            UPDATE assets
+            SET width = ?, height = ?, duration_ms = ?,
+                probe_status = 'ready', probe_error_code = NULL,
+                playback_status = ?
+            WHERE id = ? AND source_fingerprint = ? AND kind = 'video'`,
+			failure.Metadata.Width,
+			failure.Metadata.Height,
+			failure.Metadata.DurationMS,
+			string(failure.Metadata.PlaybackStatus),
+			failure.AssetID,
+			failure.SourceFingerprint.String(),
+		)
+		if err != nil {
+			return fmt.Errorf("commit ready video metadata: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect ready video metadata update: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrSourceChanged
+		}
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO thumbnails(
+                library_id, asset_id, variant, source_fingerprint,
+                transform_version, status, error_code
+            )
+            SELECT library_id, id, 'grid', source_fingerprint,
+                   ?, 'failed', ?
+            FROM assets
+            WHERE id = ? AND source_fingerprint = ?
+            ON CONFLICT(asset_id, variant) DO UPDATE SET
+                library_id = excluded.library_id,
+                source_fingerprint = excluded.source_fingerprint,
+                transform_version = excluded.transform_version,
+                cache_rel_path = NULL,
+                status = 'failed',
+                error_code = excluded.error_code,
+                width = NULL,
+                height = NULL,
+                byte_size = NULL,
+                created_at_ms = NULL,
+                last_accessed_at_ms = NULL`,
+			thumbnail.GridTransformVersion,
+			string(failure.Code),
+			failure.AssetID,
+			failure.SourceFingerprint.String(),
+		); err != nil {
+			return fmt.Errorf("commit failed video thumbnail: %w", err)
+		}
+		return nil
+	})
+}
+
 func (s *Store) GetThumbnailDelivery(
 	ctx context.Context,
 	assetID int64,

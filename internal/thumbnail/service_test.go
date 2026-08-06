@@ -16,6 +16,7 @@ type repositoryStub struct {
 	asset             Asset
 	ready             *Ready
 	failure           *Failure
+	metadataFailure   *MetadataReadyFailure
 	storyboardReady   *StoryboardReady
 	storyboardFailure *StoryboardFailure
 	commitErr         error
@@ -32,6 +33,14 @@ func (stub *repositoryStub) CommitReady(_ context.Context, ready Ready) error {
 
 func (stub *repositoryStub) CommitFailure(_ context.Context, failure Failure) error {
 	stub.failure = &failure
+	return stub.commitErr
+}
+
+func (stub *repositoryStub) CommitMetadataReadyFailure(
+	_ context.Context,
+	failure MetadataReadyFailure,
+) error {
+	stub.metadataFailure = &failure
 	return stub.commitErr
 }
 
@@ -68,11 +77,12 @@ type processorStub struct {
 }
 
 type storyboardProcessorStub struct {
-	result  media.StoryboardResult
-	request media.StoryboardRequest
-	err     error
-	calls   int
-	run     func(
+	result   media.StoryboardResult
+	request  media.StoryboardRequest
+	requests []media.StoryboardRequest
+	err      error
+	calls    int
+	run      func(
 		context.Context,
 		media.StoryboardRequest,
 	) (media.StoryboardResult, error)
@@ -86,6 +96,7 @@ func (stub *storyboardProcessorStub) Storyboard(
 ) (media.StoryboardResult, error) {
 	stub.calls++
 	stub.request = request
+	stub.requests = append(stub.requests, request)
 	if stub.run != nil {
 		return stub.run(ctx, request)
 	}
@@ -204,6 +215,62 @@ func TestServicePublishesThenCommitsFingerprintBoundResult(t *testing.T) {
 	}
 }
 
+func TestServicePreservesVideoMetadataWhenPosterGenerationFails(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, err := media.NewSourceFingerprint(6, mtime.UnixNano())
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, LibraryRoot: "family", RelativePath: "clip.mp4",
+		Kind: media.KindVideo, Format: media.FormatMP4,
+		SizeBytes: 6, ModifiedAtNS: mtime.UnixNano(), SourceFingerprint: fingerprint,
+	}}
+	duration := int64(1_000)
+	video := &processorStub{
+		result: media.ProcessingResult{Metadata: media.Metadata{
+			Width: 1920, Height: 1080, DurationMS: &duration,
+			PlaybackStatus: media.PlaybackUnknown,
+		}},
+		err: media.WithFailureDiagnostic(
+			media.ErrUnsupportedMedia,
+			media.FailureDiagnostic{
+				Stage: media.StagePoster, Reason: media.ReasonDecoderUnavailable,
+				Tool: "ffmpeg",
+			},
+		),
+	}
+	service, err := NewService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader([]byte("source")),
+			info:   fileInfoStub{size: 6, mtime: mtime},
+		}},
+		&publisherStub{},
+		&capacityStub{},
+		&processorStub{},
+		video,
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(context.Background(), 9); !errors.Is(
+		err, media.ErrUnsupportedMedia,
+	) {
+		t.Fatalf("poster failure = %v", err)
+	}
+	if repository.metadataFailure == nil || repository.failure != nil ||
+		repository.metadataFailure.Metadata.Width != 1920 ||
+		repository.metadataFailure.Code != media.ErrorUnsupportedMedia {
+		t.Fatalf(
+			"metadata/failure = %#v / %#v",
+			repository.metadataFailure,
+			repository.failure,
+		)
+	}
+}
+
 func TestStoryboardServicePublishesAllFramesAndCommitsLayout(t *testing.T) {
 	mtime := time.Unix(0, 100)
 	fingerprint, err := media.NewSourceFingerprint(6, mtime.UnixNano())
@@ -269,6 +336,137 @@ func TestStoryboardServicePublishesAllFramesAndCommitsLayout(t *testing.T) {
 			processor.calls,
 			publisher.calls,
 			repository.storyboardReady,
+			repository.storyboardFailure,
+		)
+	}
+}
+
+func TestStoryboardServiceFallsBackToFourFramesAfterAdaptiveTimeout(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	duration := int64(68_000)
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, LibraryRoot: "family",
+		RelativePath: "4k60.mp4", Kind: media.KindVideo,
+		Format: media.FormatMP4, SourceFingerprint: fingerprint,
+		Width: 3840, Height: 2160, DurationMS: &duration,
+		ProbeStatus: media.ProbeReady, GridReady: true,
+	}}
+	source := sourceStub{file: sourceFileStub{
+		Reader: bytes.NewReader([]byte("source")),
+		info:   fileInfoStub{size: 6, mtime: mtime},
+	}}
+	processor := &storyboardProcessorStub{run: func(
+		_ context.Context,
+		request media.StoryboardRequest,
+	) (media.StoryboardResult, error) {
+		if len(request.TimestampsMS) == StoryboardLongFrameCount {
+			return media.StoryboardResult{}, media.WithFailureDiagnostic(
+				context.DeadlineExceeded,
+				media.FailureDiagnostic{
+					Stage:  media.StageFrameExtract,
+					Reason: media.ReasonTimedOut,
+					Tool:   "ffmpeg",
+				},
+			)
+		}
+		return media.StoryboardResult{
+			Bytes:      []byte("RIFF\x04\x00\x00\x00WEBP"),
+			FrameCount: len(request.TimestampsMS),
+			Columns:    request.Columns,
+			Rows:       request.Rows,
+			CellWidth:  request.CellWidth,
+			CellHeight: request.CellHeight,
+		}, nil
+	}}
+	derivation, err := StoryboardDerivation(7, 9, fingerprint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cachePath, err := derivation.CacheRelativePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := NewStoryboardService(
+		repository,
+		source,
+		&publisherStub{published: Published{CacheRelativePath: cachePath}},
+		&capacityStub{},
+		processor,
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Process(context.Background(), 9); err != nil {
+		t.Fatal(err)
+	}
+	if processor.calls != 2 || len(processor.requests) != 2 ||
+		len(processor.requests[0].TimestampsMS) != StoryboardLongFrameCount ||
+		processor.requests[0].Timeout != 3*time.Minute ||
+		len(processor.requests[1].TimestampsMS) != StoryboardShortFrameCount ||
+		processor.requests[1].Timeout != 90*time.Second ||
+		repository.storyboardReady == nil ||
+		repository.storyboardReady.Result.FrameCount != StoryboardShortFrameCount ||
+		repository.storyboardFailure != nil {
+		t.Fatalf(
+			"fallback calls/requests/ready/failure = %d/%#v/%#v/%#v",
+			processor.calls,
+			processor.requests,
+			repository.storyboardReady,
+			repository.storyboardFailure,
+		)
+	}
+}
+
+func TestStoryboardServiceMarksExhaustedBudgetAsDeterministicFailure(t *testing.T) {
+	mtime := time.Unix(0, 100)
+	fingerprint, _ := media.NewSourceFingerprint(6, mtime.UnixNano())
+	duration := int64(68_000)
+	repository := &repositoryStub{asset: Asset{
+		ID: 9, LibraryID: 7, LibraryRoot: "family",
+		RelativePath: "4k60.mp4", Kind: media.KindVideo,
+		Format: media.FormatMP4, SourceFingerprint: fingerprint,
+		Width: 3840, Height: 2160, DurationMS: &duration,
+		ProbeStatus: media.ProbeReady, GridReady: true,
+	}}
+	processor := &storyboardProcessorStub{run: func(
+		_ context.Context,
+		_ media.StoryboardRequest,
+	) (media.StoryboardResult, error) {
+		return media.StoryboardResult{}, media.WithFailureDiagnostic(
+			context.DeadlineExceeded,
+			media.FailureDiagnostic{
+				Stage:  media.StageFrameExtract,
+				Reason: media.ReasonTimedOut,
+				Tool:   "ffmpeg",
+			},
+		)
+	}}
+	service, err := NewStoryboardService(
+		repository,
+		sourceStub{file: sourceFileStub{
+			Reader: bytes.NewReader([]byte("source")),
+			info:   fileInfoStub{size: 6, mtime: mtime},
+		}},
+		&publisherStub{},
+		&capacityStub{},
+		processor,
+		ServiceOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = service.Process(context.Background(), 9)
+	if !errors.Is(err, ErrStoryboardBudgetExhausted) ||
+		!errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("exhausted storyboard error = %v", err)
+	}
+	if processor.calls != 2 || repository.storyboardFailure == nil ||
+		repository.storyboardFailure.Code != media.ErrorProcessingTimed {
+		t.Fatalf(
+			"exhausted calls/failure = %d/%#v",
+			processor.calls,
 			repository.storyboardFailure,
 		)
 	}
@@ -532,11 +730,11 @@ func TestServiceRejectsOversizedSourceBeforeNativeProcessor(t *testing.T) {
 	}
 	if err := service.Process(
 		context.Background(), 9,
-	); !errors.Is(err, media.ErrInvalidMedia) {
+	); !errors.Is(err, media.ErrSourceTooLarge) {
 		t.Fatalf("oversized source error = %v", err)
 	}
 	if image.calls != 0 || repository.failure == nil ||
-		repository.failure.Code != media.ErrorInvalidMedia {
+		repository.failure.Code != media.ErrorProcessingFailed {
 		t.Fatalf(
 			"native calls/failure = %d, %#v",
 			image.calls, repository.failure,

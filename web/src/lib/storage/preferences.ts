@@ -19,6 +19,7 @@ interface Preferences {
   dismissedCompletedNotifications?: string[];
   acknowledgedMediaFailureRevision?: string;
   previewAutoplay?: boolean;
+  previewMuted?: boolean;
   previewPinned?: boolean;
   previewWidth?: number;
   sidebarWidth?: number;
@@ -109,6 +110,14 @@ export function readPreviewAutoplayPreference(): boolean {
 
 export function writePreviewAutoplayPreference(previewAutoplay: boolean): void {
   writePreferences({ ...readPreferences(), previewAutoplay });
+}
+
+export function readPreviewMutedPreference(): boolean {
+  return readPreferences().previewMuted !== false;
+}
+
+export function writePreviewMutedPreference(previewMuted: boolean): void {
+  writePreferences({ ...readPreferences(), previewMuted });
 }
 
 function readWidthPreference(

@@ -3823,7 +3823,7 @@ components:
         reasonCode:
           type: string
           nullable: true
-          enum: [time_limit_exceeded, invalid_media_data, missing_moov_atom, decoder_unavailable, decode_failed, frame_unavailable, output_limit_exceeded, tool_failed, source_unavailable, cache_unavailable]
+          enum: [time_limit_exceeded, invalid_media_data, missing_moov_atom, decoder_unavailable, decode_failed, frame_unavailable, output_limit_exceeded, tool_failed, source_unavailable, source_too_large, cache_unavailable]
         tool:
           type: string
           nullable: true

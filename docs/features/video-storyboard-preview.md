@@ -120,11 +120,11 @@ Contract Ready 已根据 spike 将首版收敛为两个有界档位。设视频�
 ```text
 D < 2,000             → 不生成 storyboard
 2,000 <= D < 5,000    → 4 帧
-D >= 5,000            → 10 帧
+D >= 5,000            → 首选 10 帧；处理预算耗尽后降级为 4 帧
 ```
 
-首版 ready layout 的 `frameCount` 因此只能是 4 或 10。该规则已经写入
-OpenAPI、capability 和 transform version，不得在同一 transform version 中静默改变。
+ready layout 的 `frameCount` 因此只能是 4 或 10。长视频的降级结果仍满足首版
+OpenAPI、capability 和 transform version 允许的 4/10 帧合同；已有 ready 资源不重建。
 
 ### 时间点
 
@@ -136,6 +136,16 @@ t(i) = floor(D × (i + 1) / (N + 1)), i = 0..N-1
 
 规则不取 0% 和 100% 端点。实现必须 seek 到目标时间并解码目标
 附近画面，不能使用会从头到尾完整解码长视频的无界 `fps + tile` 流程。
+
+### 处理预算与降级
+
+- 处理预算由 `internal/media` 按源像素数和计划帧数计算；1080p/10 帧基线为 45 秒，
+  单次最多 3 分钟。
+- 10 帧耗尽预算时，`internal/thumbnail` 在同一 job 内以重新均匀采样的 4 帧计划重试
+  一次；两次预算合计不得超过 5 分钟。
+- 4 帧仍超时属于相同输入下的确定性预算耗尽，直接记录终态失败，不再原样自动重试；
+  管理员仍可显式重试。
+- 任何失败都只回退 poster，不阻断浏览、查看器或原视频播放。
 
 ### 输出
 
@@ -333,7 +343,7 @@ Architecture/Contract Ready 必须用可重复 spike 固定数值，至少记录
 
 | ID | 验收结果 |
 | --- | --- |
-| `VSP-AC-001` | 支持视频在 poster 可用后最终生成符合采样合同的 4 或 10 帧 WebP sprite；原视频字节、mtime 和路径不变。 |
+| `VSP-AC-001` | 支持视频在 poster 可用后最终生成符合采样合同的 4 或 10 帧 WebP sprite；10 帧超出自适应预算时允许在同一 job 内降级为 4 帧；原视频字节、mtime 和路径不变。 |
 | `VSP-AC-002` | grid/poster 优先于 storyboard；storyboard backfill、失败或重启不会阻塞扫描、浏览、搜索和原视频 Range 播放。 |
 | `VSP-AC-003` | 源指纹变化、取消、进程终止、缓存丢失和 ENOSPC 不会发布半成品或让旧任务覆盖新源，并能安全收敛。 |
 | `VSP-AC-004` | 认证 API 的 ready/pending/offline/failed/304 响应与 OpenAPI 一致，不暴露路径或工具输出，请求线程不运行 FFmpeg。 |

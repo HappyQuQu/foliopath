@@ -9,10 +9,12 @@ import {
   readMediaLayoutPreference,
   readMediaSortPreference,
   readPreviewAutoplayPreference,
+  readPreviewMutedPreference,
   readPreviewPinnedPreference,
   writeMediaLayoutPreference,
   writeMediaSortPreference,
   writePreviewAutoplayPreference,
+  writePreviewMutedPreference,
   writePreviewPinnedPreference,
   type MediaLayoutPreference,
   type MediaSortPreference,
@@ -47,12 +49,16 @@ export function GeneralSettingsPage({
   const [previewAutoplay, setPreviewAutoplay] = useState(
     readPreviewAutoplayPreference,
   );
+  const [previewMuted, setPreviewMuted] = useState(
+    readPreviewMutedPreference,
+  );
   const [savedLayout, setSavedLayout] = useState(layout);
   const [savedMediaSort, setSavedMediaSort] = useState(mediaSort);
   const [savedPreviewPinned, setSavedPreviewPinned] = useState(previewPinned);
   const [savedPreviewAutoplay, setSavedPreviewAutoplay] = useState(
     previewAutoplay,
   );
+  const [savedPreviewMuted, setSavedPreviewMuted] = useState(previewMuted);
 
   useEffect(() => {
     setDraftLocale(localePreference);
@@ -64,6 +70,7 @@ export function GeneralSettingsPage({
     layout !== savedLayout ||
     mediaSort !== savedMediaSort ||
     previewAutoplay !== savedPreviewAutoplay ||
+    previewMuted !== savedPreviewMuted ||
     previewPinned !== savedPreviewPinned;
 
   function save(event: FormEvent<HTMLFormElement>) {
@@ -73,10 +80,12 @@ export function GeneralSettingsPage({
     writeMediaLayoutPreference(layout);
     writeMediaSortPreference(mediaSort);
     writePreviewAutoplayPreference(previewAutoplay);
+    writePreviewMutedPreference(previewMuted);
     writePreviewPinnedPreference(previewPinned);
     setSavedLayout(layout);
     setSavedMediaSort(mediaSort);
     setSavedPreviewAutoplay(previewAutoplay);
+    setSavedPreviewMuted(previewMuted);
     setSavedPreviewPinned(previewPinned);
   }
 
@@ -86,6 +95,7 @@ export function GeneralSettingsPage({
     setLayout(savedLayout);
     setMediaSort(savedMediaSort);
     setPreviewAutoplay(savedPreviewAutoplay);
+    setPreviewMuted(savedPreviewMuted);
     setPreviewPinned(savedPreviewPinned);
   }
 
@@ -242,6 +252,18 @@ export function GeneralSettingsPage({
                 checked={previewAutoplay}
                 onChange={(event) =>
                   setPreviewAutoplay(event.currentTarget.checked)
+                }
+              />
+            </label>
+            <label className={styles.row}>
+              <span>
+                <strong>{t("general.previewMuted")}</strong>
+                <small>{t("general.previewMutedDescription")}</small>
+              </span>
+              <Switch
+                checked={previewMuted}
+                onChange={(event) =>
+                  setPreviewMuted(event.currentTarget.checked)
                 }
               />
             </label>

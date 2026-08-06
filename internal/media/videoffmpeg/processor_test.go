@@ -70,7 +70,7 @@ printf 'synthetic-webp'
 
 	writeExecutable(t, probe, "#!/bin/sh\necho '/library/private raw stderr' >&2\nexit 1\n")
 	_, err = processor.Process(context.Background(), source, media.FormatMP4)
-	if !errors.Is(err, media.ErrInvalidMedia) ||
+	if !errors.Is(err, media.ErrProcessingFailed) ||
 		errors.Is(err, exec.ErrNotFound) {
 		t.Fatalf("safe failure = %v", err)
 	}
@@ -82,6 +82,7 @@ func TestClassifyFFmpegReasonReturnsStableSafeReasons(t *testing.T) {
 		"Invalid data found when processing input":               media.ReasonInvalidData,
 		"Error while decoding stream #0:0":                       media.ReasonDecodeFailed,
 		"Decoder h265 not found":                                 media.ReasonDecoderUnavailable,
+		"Failed to get pixel format; Function not implemented":   media.ReasonDecoderUnavailable,
 		"unrecognized diagnostic containing /private/source.mp4": media.ReasonToolFailed,
 	}
 	for stderr, want := range tests {
@@ -131,7 +132,7 @@ func TestVideoProcessorPropagatesDeadlineAndRejectsWrongFormat(t *testing.T) {
 	}
 }
 
-func TestVideoProcessorRejectsOversizedSparseFileBeforeTools(t *testing.T) {
+func TestVideoProcessorRejectsOnlyExtremelyLargeSparseFileBeforeTools(t *testing.T) {
 	directory := t.TempDir()
 	called := filepath.Join(directory, "called")
 	tool := filepath.Join(directory, "tool")
@@ -153,11 +154,110 @@ func TestVideoProcessorRejectsOversizedSparseFileBeforeTools(t *testing.T) {
 	}
 	if _, err := processor.Process(
 		context.Background(), source, media.FormatMP4,
-	); !errors.Is(err, media.ErrInvalidMedia) {
+	); !errors.Is(err, media.ErrSourceTooLarge) {
 		t.Fatalf("oversized video error = %v", err)
 	}
 	if _, err := os.Stat(called); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("media tool was invoked: %v", err)
+	}
+}
+
+func TestVideoProcessorHandsFilesAboveFourGiBToMediaTools(t *testing.T) {
+	directory := t.TempDir()
+	probe := filepath.Join(directory, "ffprobe")
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	writeExecutable(t, probe, `#!/bin/sh
+printf '%s' '{"streams":[{"codec_type":"video","codec_name":"hevc","width":1920,"height":1080,"duration":"N/A"}],"format":{"duration":"N/A"}}'
+`)
+	writeExecutable(t, ffmpeg, "#!/bin/sh\nprintf 'synthetic-webp'\n")
+	sourcePath := filepath.Join(directory, "large.mp4")
+	source, err := os.Create(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	if err := source.Truncate((int64(4) << 30) + 1); err != nil {
+		t.Fatal(err)
+	}
+	processor, err := New(Options{
+		FFprobePath: probe, FFmpegPath: ffmpeg, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := processor.Process(context.Background(), source, media.FormatMP4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Metadata.DurationMS != nil ||
+		result.Metadata.PlaybackStatus != media.PlaybackUnknown {
+		t.Fatalf("large video metadata = %#v", result.Metadata)
+	}
+}
+
+func TestVideoProcessorGivesProbeAndPosterSeparateTimeouts(t *testing.T) {
+	directory := t.TempDir()
+	probe := filepath.Join(directory, "ffprobe")
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	writeExecutable(t, probe, `#!/bin/sh
+sleep 0.6
+printf '%s' '{"streams":[{"codec_type":"video","codec_name":"h264","width":96,"height":64,"duration":"1"}],"format":{"duration":"1"}}'
+`)
+	writeExecutable(t, ffmpeg, "#!/bin/sh\nsleep 0.6\nprintf 'synthetic-webp'\n")
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFprobePath: probe, FFmpegPath: ffmpeg, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.Process(context.Background(), source, media.FormatMP4); err != nil {
+		t.Fatalf("independent probe and poster budgets failed: %v", err)
+	}
+}
+
+func TestVideoProcessorSeparatesDamagedMediaFromTransientToolFailure(t *testing.T) {
+	directory := t.TempDir()
+	tool := filepath.Join(directory, "tool")
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFprobePath: tool, FFmpegPath: tool, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writeExecutable(t, tool, "#!/bin/sh\necho 'moov atom not found' >&2\nexit 1\n")
+	_, err = processor.Process(context.Background(), source, media.FormatMP4)
+	diagnostic, ok := media.DiagnoseFailure(err)
+	if !errors.Is(err, media.ErrInvalidMedia) || !ok ||
+		diagnostic.Reason != media.ReasonMissingMoovAtom {
+		t.Fatalf("missing moov classification = %v, %#v, %v", err, diagnostic, ok)
+	}
+
+	writeExecutable(t, tool, "#!/bin/sh\necho 'resource temporarily unavailable' >&2\nexit 1\n")
+	_, err = processor.Process(context.Background(), source, media.FormatMP4)
+	diagnostic, ok = media.DiagnoseFailure(err)
+	if !errors.Is(err, media.ErrProcessingFailed) ||
+		errors.Is(err, media.ErrInvalidMedia) || !ok ||
+		diagnostic.Reason != media.ReasonToolFailed {
+		t.Fatalf("transient tool classification = %v, %#v, %v", err, diagnostic, ok)
 	}
 }
 
@@ -220,6 +320,43 @@ dd if=/dev/zero bs=1048576 count=9 2>/dev/null
 		context.Background(), probe, source,
 	); !errors.Is(err, media.ErrProcessingFailed) {
 		t.Fatalf("oversized tool output error = %v", err)
+	}
+}
+
+func TestVideoProcessorKeepsDecoderReasonWhenStderrIsTruncated(t *testing.T) {
+	directory := t.TempDir()
+	tool := filepath.Join(directory, "ffmpeg")
+	writeExecutable(t, tool, `#!/bin/sh
+i=0
+while [ "$i" -lt 4000 ]; do
+  echo 'AV1 decoder failed to get pixel format: Function not implemented' >&2
+  i=$((i + 1))
+done
+exit 1
+`)
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFprobePath: tool, FFmpegPath: tool, Timeout: time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = processor.run(context.Background(), tool, source)
+	classified := classifyCommandError(
+		context.Background(), err, media.StagePoster, "ffmpeg",
+	)
+	diagnostic, ok := media.DiagnoseFailure(classified)
+	if !errors.Is(classified, media.ErrUnsupportedMedia) || !ok ||
+		diagnostic.Reason != media.ReasonDecoderUnavailable {
+		t.Fatalf("truncated stderr classification = %v, %#v, %v", classified, diagnostic, ok)
 	}
 }
 
@@ -330,12 +467,55 @@ esac
 	}
 }
 
-func TestDurationAndPlaybackClassification(t *testing.T) {
-	if value, err := durationMilliseconds("", "1.2345"); err != nil || value != 1235 {
-		t.Fatalf("duration = %d, %v", value, err)
+func TestStoryboardHonorsAdaptiveRequestTimeout(t *testing.T) {
+	directory := t.TempDir()
+	ffmpeg := filepath.Join(directory, "ffmpeg")
+	writeExecutable(t, ffmpeg, "#!/bin/sh\nsleep 0.4\n")
+	sourcePath := filepath.Join(directory, "source.mp4")
+	if err := os.WriteFile(sourcePath, []byte("source"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if _, err := durationMilliseconds("N/A", "-1"); err == nil {
-		t.Fatal("invalid durations unexpectedly accepted")
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	processor, err := New(Options{
+		FFmpegPath:         ffmpeg,
+		StoryboardTempRoot: filepath.Join(directory, "temp"),
+		StoryboardTimeout:  5 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := time.Now()
+	_, err = processor.Storyboard(
+		context.Background(),
+		source,
+		media.FormatMP4,
+		media.StoryboardRequest{
+			TimestampsMS: []int64{1000, 2000, 3000, 4000},
+			Columns:      4,
+			Rows:         1,
+			CellWidth:    320,
+			CellHeight:   180,
+			Timeout:      100 * time.Millisecond,
+		},
+	)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("storyboard timeout error = %v", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("adaptive timeout took %s", elapsed)
+	}
+}
+
+func TestDurationAndPlaybackClassification(t *testing.T) {
+	if value := durationMilliseconds("", "1.2345"); value == nil || *value != 1235 {
+		t.Fatalf("duration = %v", value)
+	}
+	if value := durationMilliseconds("N/A", "-1"); value != nil {
+		t.Fatalf("invalid duration = %v, want unknown", *value)
 	}
 	if got := playbackStatus(media.FormatMKV, "h264"); got != media.PlaybackUnknown {
 		t.Fatalf("MKV H.264 playback = %q", got)

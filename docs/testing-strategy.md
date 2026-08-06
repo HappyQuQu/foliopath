@@ -151,8 +151,10 @@ Backend Ready。媒体库的安全目录 cursor、生命周期、路径故障矩
 S3-004 已增加 production govips/FFmpeg adapter、派生键、原子缓存发布、SQLite 状态和
 真实 scanner→source→cache→database 组合测试；S3-005 已增加 durable lease/retry/
 公平领取、fingerprint 原子失效、90%→80% LRU、512 MiB 余量和真实 worker lifecycle；
-S3-006 已增加 256 MiB 图片/4 GiB 视频、100 MP/32,768 px、govips runtime、FFmpeg 单线程/
-进程组取消/工具输出 cap、取消安全点和真实 8 MiB tmpfs `ENOSPC` 矩阵。资产/缩略图 HTTP、
+S3-006 已增加 256 MiB 图片、100 MP/32,768 px、govips runtime、FFmpeg 单线程/
+进程组取消/工具输出 cap、取消安全点和真实 8 MiB tmpfs `ENOSPC` 矩阵；2026-08-06 回归将
+视频源上限从 4 GiB 提高到 1 TiB，覆盖 4 GiB 以上实际工具调用、`source_too_large`、
+probe/poster 独立 60 秒预算、未知 duration 以及损坏/缺少 moov/工具故障分类。资产/缩略图 HTTP、
 Stage 1 认证、Stage 2 媒体库/扫描、Stage 3 浏览/非模态预览和 Stage 4
 搜索/完整查看器浏览器流程已通过各自 Integrated Done Gate；发布网络、存储、最终
 浏览器/真机和候选镜像边界仍在 Stage 5。

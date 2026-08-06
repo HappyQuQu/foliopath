@@ -46,6 +46,13 @@ type Failure struct {
 	Code              media.ProcessingErrorCode
 }
 
+type MetadataReadyFailure struct {
+	AssetID           int64
+	SourceFingerprint media.SourceFingerprint
+	Metadata          media.Metadata
+	Code              media.ProcessingErrorCode
+}
+
 type StoryboardReady struct {
 	AssetID           int64
 	SourceFingerprint media.SourceFingerprint
@@ -69,6 +76,7 @@ type Repository interface {
 	AssetRepository
 	CommitReady(context.Context, Ready) error
 	CommitFailure(context.Context, Failure) error
+	CommitMetadataReadyFailure(context.Context, MetadataReadyFailure) error
 }
 
 type StoryboardRepository interface {

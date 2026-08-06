@@ -1361,7 +1361,7 @@ export interface components {
             /** @enum {string} */
             outcome: "succeeded" | "retry" | "permanent_failure";
             /** @enum {string|null} */
-            reasonCode: "time_limit_exceeded" | "invalid_media_data" | "missing_moov_atom" | "decoder_unavailable" | "decode_failed" | "frame_unavailable" | "output_limit_exceeded" | "tool_failed" | "source_unavailable" | "cache_unavailable" | null;
+            reasonCode: "time_limit_exceeded" | "invalid_media_data" | "missing_moov_atom" | "decoder_unavailable" | "decode_failed" | "frame_unavailable" | "output_limit_exceeded" | "tool_failed" | "source_unavailable" | "source_too_large" | "cache_unavailable" | null;
             /** @enum {string|null} */
             stage: "source_read" | "probe" | "poster_extract" | "frame_extract" | "storyboard_compose" | "output_validation" | "cache_publish" | null;
             /** @enum {string|null} */

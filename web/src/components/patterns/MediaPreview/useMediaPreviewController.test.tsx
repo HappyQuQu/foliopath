@@ -41,10 +41,10 @@ it("restores the activated virtual card after the preview opens and reflows the 
   expect(frames).toHaveLength(0);
 });
 
-it("reads an explicit video autoplay opt-out from the shared preference owner", () => {
+it("reads independent video autoplay and mute preferences from the shared owner", () => {
   window.localStorage.setItem(
     "foliopath.preferences.v1",
-    JSON.stringify({ previewAutoplay: false }),
+    JSON.stringify({ previewAutoplay: false, previewMuted: false }),
   );
 
   const { result } = renderHook(() =>
@@ -55,4 +55,5 @@ it("reads an explicit video autoplay opt-out from the shared preference owner", 
   );
 
   expect(result.current.autoPlayVideo).toBe(false);
+  expect(result.current.muteVideo).toBe(false);
 });

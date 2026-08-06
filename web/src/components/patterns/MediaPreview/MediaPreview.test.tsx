@@ -249,7 +249,7 @@ it("uses native inline controls for video content", () => {
   );
 });
 
-it("leaves video playback manual when preview autoplay is disabled", () => {
+it("keeps autoplay and default mute independent", () => {
   render(
     <MediaPreview
       autoPlayVideo={false}
@@ -276,5 +276,36 @@ it("leaves video playback manual when preview autoplay is disabled", () => {
 
   const video = screen.getByLabelText("clip.mp4");
   expect(video).toHaveProperty("autoplay", false);
+  expect(video).toHaveProperty("muted", true);
+});
+
+it("allows an audible video preview preference", () => {
+  render(
+    <MediaPreview
+      autoPlayVideo
+      canGoNext={false}
+      canGoPrevious={false}
+      item={{
+        ...item,
+        contentUrl: "/api/v1/assets/clip/content",
+        id: "clip",
+        kind: "video",
+        name: "clip.mp4",
+      }}
+      labels={labels}
+      muteVideo={false}
+      onClose={vi.fn()}
+      onNext={vi.fn()}
+      onOpenViewer={vi.fn()}
+      onPinnedChange={vi.fn()}
+      onPrevious={vi.fn()}
+      onWidthChange={vi.fn()}
+      pinned={false}
+      width={406}
+    />,
+  );
+
+  const video = screen.getByLabelText("clip.mp4");
+  expect(video).toHaveProperty("autoplay", true);
   expect(video).toHaveProperty("muted", false);
 });

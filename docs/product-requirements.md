@@ -138,7 +138,7 @@ MVP 不包含（稳定 ID 由 [scope manifest](releases/MVP-2026-07-23-scope.md)
 
 | ID | 需求 |
 | --- | --- |
-| FR-MED-001 | 系统必须为受支持图片生成合适尺寸的缩略图，为受支持视频抽取封面；失败项必须有占位和可诊断状态。 |
+| FR-MED-001 | 系统必须为受支持图片生成合适尺寸的缩略图，为受支持视频抽取封面；失败项必须有占位和可诊断状态。源文件超限、媒体结构损坏、处理器不具备解码能力、超时与暂时性工具故障必须使用不同稳定原因；视频元数据已成功探测时，封面失败不得抹除视频识别事实。 |
 | FR-MED-002 | 缩略图和封面是可重建缓存，必须按源指纹与变换版本失效，并以临时文件加原子替换方式落盘。 |
 | FR-MED-003 | 浏览和搜索中的媒体点击默认使用不遮挡父列表的非模态预览；未固定时单击其他媒体切换预览，固定后单击只选择、双击才切换预览。完整图片查看器作为显式操作和可直达路由，必须支持适应视口、缩放和平移、1:1、前后浏览、全屏，以及关闭后恢复触发位置与焦点。窄屏预览进入内容流，不使用遮罩阻断父页面。详见 [CR-2026-001](changes/CR-2026-001-non-modal-media-preview.md)。 |
 | FR-MED-004 | 视频必须先由当前浏览器通过原文件、条件请求和 HTTP Range 尝试直接播放；服务端不得用保守 codec 白名单预先阻断，MVP 不得自动转码。 |
@@ -159,6 +159,10 @@ Post-MVP/1 revision 6 通过
 Post-MVP/1 revision 7 通过
 [CR-2026-017](changes/CR-2026-017-default-media-presentation.md)追加 `FR-BRW-013`：通用
 设置允许配置新打开浏览/搜索的默认排序与网格/瀑布流布局；显式 URL 排序始终优先。
+Post-MVP/1 revision 9 通过
+[CR-2026-019](changes/CR-2026-019-video-preview-default-mute.md)追加 `FR-MED-015`：通用设置
+提供默认开启的视频预览静音偏好，并与自动播放独立保存；关闭静音后浏览器可能阻止带声音
+自动播放，此时保留原生手动播放，不改变完整查看器或原媒体内容。
 
 ### 界面与可访问性
 
@@ -202,11 +206,19 @@ Post-MVP/1 revision 7 通过
 属于 [`POST-MVP-1 revision 7`](releases/POST-MVP-1-scope-r7.md)，完整决定见
 [CR-2026-017](changes/CR-2026-017-default-media-presentation.md)。
 
+2026-08-06 用户确认 `FR-MED-015`：通用设置增加默认开启的“视频预览默认静音”，并与
+自动播放独立保存。关闭静音后仍可请求自动播放，但浏览器可以阻止带声音自动播放并要求
+用户使用原生 controls 手动开始。该能力属于
+[`POST-MVP-1 revision 9`](releases/POST-MVP-1-scope-r9.md)，完整决定见
+[CR-2026-019](changes/CR-2026-019-video-preview-default-mute.md)。
+
 2026-07-29 确认
 [FTR-VID-001 视频故事板悬停预览](features/video-storyboard-preview.md)，需求 ID 为
 `FR-MED-009～011` 与 `FR-UI-008`。它为已探测视频生成最多 10 帧均匀采样的可重建
 storyboard，并在桌面精细指针 hover 时播放；任务低于 poster 优先级，失败时回退现有
-poster，触摸、键盘焦点与 reduced-motion 不自动播放。
+poster，触摸、键盘焦点与 reduced-motion 不自动播放。故事板使用按源像素数与计划帧数
+计算的有界处理预算；10 帧耗尽预算后在同一任务内降级为均匀 4 帧，仍超时则终止该任务，
+不再原样自动重试。
 
 该 feature 明确属于 [`POST-MVP-1`](releases/POST-MVP-1-scope.md)，不属于本文件上方
 冻结的 MVP 范围，也不修改 `MVP-2026-07-23` scope manifest。生产实现必须依次通过

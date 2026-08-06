@@ -119,9 +119,22 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 			return ctx.Err()
 		}
 		code := media.ProcessingCode(err)
-		if commitErr := service.repository.CommitFailure(ctx, Failure{
-			AssetID: asset.ID, SourceFingerprint: asset.SourceFingerprint, Code: code,
-		}); commitErr != nil {
+		var commitErr error
+		if asset.Kind == media.KindVideo &&
+			media.ValidateMetadata(media.KindVideo, result.Metadata) == nil {
+			commitErr = service.repository.CommitMetadataReadyFailure(
+				ctx,
+				MetadataReadyFailure{
+					AssetID: asset.ID, SourceFingerprint: asset.SourceFingerprint,
+					Metadata: result.Metadata, Code: code,
+				},
+			)
+		} else {
+			commitErr = service.repository.CommitFailure(ctx, Failure{
+				AssetID: asset.ID, SourceFingerprint: asset.SourceFingerprint, Code: code,
+			})
+		}
+		if commitErr != nil {
 			return errors.Join(err, commitErr)
 		}
 		return err

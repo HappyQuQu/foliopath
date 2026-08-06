@@ -259,6 +259,18 @@ func (service *databaseService) CommitFailure(
 	return service.store.CommitFailure(ctx, failure)
 }
 
+func (service *databaseService) CommitMetadataReadyFailure(
+	ctx context.Context,
+	failure thumbnail.MetadataReadyFailure,
+) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.ErrRepositoryNotReady
+	}
+	return service.store.CommitMetadataReadyFailure(ctx, failure)
+}
+
 func (service *databaseService) GetThumbnailDelivery(
 	ctx context.Context,
 	assetID int64,

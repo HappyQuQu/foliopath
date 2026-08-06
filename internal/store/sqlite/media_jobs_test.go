@@ -295,6 +295,76 @@ func TestExhaustedStoryboardJobDoesNotFailVideoOrPosterMetadata(t *testing.T) {
 	}
 }
 
+func TestExhaustedGridPosterJobPreservesReadyVideoMetadata(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedStoryboardAsset(t, store.db)
+	ctx := context.Background()
+	if _, err := store.db.ExecContext(ctx, `
+		INSERT INTO media_jobs(
+			library_id, asset_id, variant, priority, transform_version,
+			source_fingerprint, status, available_at_ms, attempt_count,
+			created_at_ms
+		) VALUES (
+			1, 1, 'grid', 0, 1, 'v1:42:100', 'queued', 0, 2, 0
+		)
+	`); err != nil {
+		t.Fatal(err)
+	}
+	job, found, err := store.ClaimNextMediaJob(ctx, time.Minute)
+	if err != nil || !found || job.Variant != thumbnail.VariantGrid ||
+		job.Attempt != thumbnail.MaxJobAttempts {
+		t.Fatalf("claim = %#v, %t, %v", job, found, err)
+	}
+	duration := int64(25_000)
+	if err := store.CommitMetadataReadyFailure(ctx, thumbnail.MetadataReadyFailure{
+		AssetID:           1,
+		SourceFingerprint: media.SourceFingerprint("v1:42:100"),
+		Metadata: media.Metadata{
+			Width: 1080, Height: 1920, DurationMS: &duration,
+			PlaybackStatus: media.PlaybackUnknown,
+		},
+		Code: media.ErrorUnsupportedMedia,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.FinishMediaJob(ctx, job, thumbnail.JobResult{
+		Outcome:    thumbnail.JobRetry,
+		Code:       thumbnail.JobErrorProcessing,
+		RetryDelay: time.Second,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var probe, playback, thumbnailStatus, thumbnailError, jobStatus string
+	var width, height, durationMS int64
+	if err := store.db.QueryRowContext(ctx, `
+		SELECT a.probe_status, a.playback_status, a.width, a.height,
+		       a.duration_ms, t.status, t.error_code, j.status
+		FROM assets AS a
+		JOIN thumbnails AS t
+		  ON t.asset_id = a.id AND t.variant = 'grid'
+		JOIN media_jobs AS j
+		  ON j.asset_id = a.id AND j.variant = 'grid'
+		WHERE a.id = 1
+	`).Scan(
+		&probe, &playback, &width, &height, &durationMS,
+		&thumbnailStatus, &thumbnailError, &jobStatus,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if probe != "ready" || playback != "unknown" ||
+		width != 1080 || height != 1920 || durationMS != duration ||
+		thumbnailStatus != "failed" ||
+		thumbnailError != string(media.ErrorProcessingFailed) ||
+		jobStatus != "failed" {
+		t.Fatalf(
+			"state = %q %q %dx%d/%d thumbnail %q/%q job %q",
+			probe, playback, width, height, durationMS,
+			thumbnailStatus, thumbnailError, jobStatus,
+		)
+	}
+}
+
 func TestMediaJobRetriesAreLeasedBoundedAndTerminal(t *testing.T) {
 	store, _ := openTestStore(t)
 	now := time.UnixMilli(1000)

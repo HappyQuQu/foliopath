@@ -137,6 +137,10 @@ func classifyJobResult(err error) JobResult {
 		return JobResult{Outcome: JobPermanent, Code: JobErrorInvalidMedia}
 	case errors.Is(err, media.ErrUnsupportedMedia):
 		return JobResult{Outcome: JobPermanent, Code: JobErrorUnsupportedMedia}
+	case errors.Is(err, media.ErrSourceTooLarge):
+		return JobResult{Outcome: JobPermanent, Code: JobErrorProcessing}
+	case errors.Is(err, ErrStoryboardBudgetExhausted):
+		return JobResult{Outcome: JobPermanent, Code: JobErrorTimeout}
 	case errors.Is(err, context.DeadlineExceeded),
 		errors.Is(err, media.ErrProcessingTimedOut):
 		return JobResult{

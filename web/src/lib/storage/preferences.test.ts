@@ -5,11 +5,13 @@ import {
   readMediaLayoutPreference,
   readMediaSortPreference,
   readPreviewAutoplayPreference,
+  readPreviewMutedPreference,
   readPreviewWidthPreference,
   readSidebarWidthPreference,
   writeMediaLayoutPreference,
   writeMediaSortPreference,
   writePreviewAutoplayPreference,
+  writePreviewMutedPreference,
   writeAcknowledgedMediaFailureRevision,
   writePreviewWidthPreference,
   writeSidebarWidthPreference,
@@ -65,6 +67,14 @@ it("defaults video preview autoplay on and remembers when it is disabled", () =>
   writePreviewAutoplayPreference(false);
 
   expect(readPreviewAutoplayPreference()).toBe(false);
+});
+
+it("defaults video previews to muted and remembers an audible preference", () => {
+  expect(readPreviewMutedPreference()).toBe(true);
+
+  writePreviewMutedPreference(false);
+
+  expect(readPreviewMutedPreference()).toBe(false);
 });
 
 it("stores only a valid acknowledged media failure watermark", () => {

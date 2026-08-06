@@ -180,7 +180,7 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 | 目录遍历 | scanner 使用 app 注入的全局/每库预算 | 流式读取、固定 worker 数、有界结果队列；不为每个条目建 goroutine |
 | SQLite 写入 | SQLite adapter 的串行 writer 或等价单一写入策略 | busy timeout、短批次、无文件/网络/媒体 I/O；读请求不被长事务长期阻塞 |
 | 图片/libvips | `app` 生命周期 + media 资源策略 + 2-worker 全局 limiter | 256 MiB 输入、32,768 px/100 MP、native concurrency 1、64 MiB/32 entry cache；调用返回后取消不得发布 |
-| ffprobe/FFmpeg | media 资源策略 + 2-worker 全局 limiter | 4 GiB 输入、32,768 px/100 MP、参数数组、单 decoder/filter thread、进程组取消、15 秒超时和 8 MiB 输出上限 |
+| ffprobe/FFmpeg | media 资源策略 + 2-worker 全局 limiter | 1 TiB 视频源、32,768 px/100 MP、参数数组、单 decoder/filter thread、进程组取消、probe/poster 各 60 秒和 8 MiB 输出上限；超限与内容损坏分开诊断 |
 | 缓存写入与 GC | thumbnail/cache limiter | 临时与 DB 保留安全磁盘余量；GC 不删除原媒体、不与发布同一 key 竞争 |
 | 定时与重试 | jobs 调度器 | 跨库公平、退避带上限、启动风暴受控、同一逻辑任务不并发重复执行 |
 

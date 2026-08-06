@@ -9,25 +9,28 @@ import (
 )
 
 const (
-	GridThumbnailWidth         = 512
-	GridThumbnailHeight        = 512
-	GridWebPQuality            = 82
-	MaxToolOutputBytes         = 8 << 20
-	MaxImageSourceBytes        = 256 << 20
-	MaxVideoSourceBytes        = int64(4) << 30
-	MaxDecodedPixels           = 100_000_000
-	MaxMediaDimension          = 32_768
-	DefaultProbeTimeout        = 15 * time.Second
-	StoryboardMinFrames        = 4
-	StoryboardMaxFrames        = 10
-	StoryboardMaxColumns       = 5
-	StoryboardMaxRows          = 2
-	StoryboardMaxCellDimension = 320
-	StoryboardMaxPixels        = 1_024_000
-	StoryboardMaxFrameBytes    = 1 << 20
-	StoryboardMaxTempBytes     = 10 << 20
-	StoryboardMaxOutputBytes   = 8 << 20
-	DefaultStoryboardTimeout   = 45 * time.Second
+	GridThumbnailWidth          = 512
+	GridThumbnailHeight         = 512
+	GridWebPQuality             = 82
+	MaxToolOutputBytes          = 8 << 20
+	MaxImageSourceBytes         = 256 << 20
+	MaxVideoSourceBytes         = int64(1) << 40
+	MaxDecodedPixels            = 100_000_000
+	MaxMediaDimension           = 32_768
+	DefaultProbeTimeout         = 60 * time.Second
+	StoryboardMinFrames         = 4
+	StoryboardMaxFrames         = 10
+	StoryboardMaxColumns        = 5
+	StoryboardMaxRows           = 2
+	StoryboardMaxCellDimension  = 320
+	StoryboardMaxPixels         = 1_024_000
+	StoryboardMaxFrameBytes     = 1 << 20
+	StoryboardMaxTempBytes      = 10 << 20
+	StoryboardMaxOutputBytes    = 8 << 20
+	DefaultStoryboardTimeout    = 45 * time.Second
+	MaxStoryboardAttemptTimeout = 3 * time.Minute
+	MaxStoryboardTotalTimeout   = 5 * time.Minute
+	storyboardReferencePixels   = int64(1920 * 1080)
 )
 
 type ProbeStatus string
@@ -73,6 +76,7 @@ const (
 	ReasonOutputLimit        FailureReason = "output_limit_exceeded"
 	ReasonToolFailed         FailureReason = "tool_failed"
 	ReasonSourceUnavailable  FailureReason = "source_unavailable"
+	ReasonSourceTooLarge     FailureReason = "source_too_large"
 	ReasonCacheUnavailable   FailureReason = "cache_unavailable"
 )
 
@@ -115,6 +119,7 @@ const (
 
 var (
 	ErrInvalidMedia       = errors.New("invalid media")
+	ErrSourceTooLarge     = errors.New("media source is too large")
 	ErrUnsupportedMedia   = errors.New("unsupported media")
 	ErrProcessingFailed   = errors.New("media processing failed")
 	ErrProcessingTimedOut = errors.New("media processing timed out")
@@ -149,6 +154,7 @@ type StoryboardRequest struct {
 	Rows         int
 	CellWidth    int
 	CellHeight   int
+	Timeout      time.Duration
 }
 
 type StoryboardResult struct {
@@ -180,7 +186,10 @@ func ValidateStoryboardRequest(request StoryboardRequest) error {
 		request.CellHeight < 1 ||
 		request.CellHeight > StoryboardMaxCellDimension ||
 		request.Columns*request.CellWidth*request.Rows*request.CellHeight >
-			StoryboardMaxPixels {
+			StoryboardMaxPixels ||
+		(request.Timeout != 0 &&
+			(request.Timeout < 100*time.Millisecond ||
+				request.Timeout > MaxStoryboardAttemptTimeout)) {
 		return ErrInvalidResult
 	}
 	var previous int64
@@ -191,6 +200,18 @@ func ValidateStoryboardRequest(request StoryboardRequest) error {
 		previous = timestamp
 	}
 	return nil
+}
+
+func StoryboardProcessingTimeout(width, height, frameCount int) (time.Duration, error) {
+	if ValidateDimensions(width, height) != nil ||
+		(frameCount != StoryboardMinFrames && frameCount != StoryboardMaxFrames) {
+		return 0, ErrInvalidResult
+	}
+	work := int64(width) * int64(height) * int64(frameCount)
+	referenceWork := storyboardReferencePixels * int64(StoryboardMaxFrames)
+	workUnits := (work + referenceWork - 1) / referenceWork
+	timeout := time.Duration(max(int64(1), workUnits)) * DefaultStoryboardTimeout
+	return min(timeout, MaxStoryboardAttemptTimeout), nil
 }
 
 func ValidateStoryboardResult(
@@ -213,7 +234,7 @@ func ValidateStoryboardResult(
 }
 
 func ValidateProcessingResult(kind Kind, result ProcessingResult) error {
-	if ValidateDimensions(result.Metadata.Width, result.Metadata.Height) != nil ||
+	if ValidateMetadata(kind, result.Metadata) != nil ||
 		result.Thumbnail.Width < 1 || result.Thumbnail.Height < 1 ||
 		result.Thumbnail.Width > GridThumbnailWidth ||
 		result.Thumbnail.Height > GridThumbnailHeight ||
@@ -221,17 +242,24 @@ func ValidateProcessingResult(kind Kind, result ProcessingResult) error {
 		len(result.Thumbnail.Bytes) > MaxToolOutputBytes {
 		return ErrInvalidResult
 	}
+	return nil
+}
+
+func ValidateMetadata(kind Kind, metadata Metadata) error {
+	if ValidateDimensions(metadata.Width, metadata.Height) != nil {
+		return ErrInvalidResult
+	}
 	switch kind {
 	case KindImage, KindAnimated:
-		if result.Metadata.DurationMS != nil ||
-			result.Metadata.PlaybackStatus != PlaybackNotApplicable {
+		if metadata.DurationMS != nil ||
+			metadata.PlaybackStatus != PlaybackNotApplicable {
 			return ErrInvalidResult
 		}
 	case KindVideo:
-		if result.Metadata.DurationMS == nil || *result.Metadata.DurationMS < 0 ||
-			(result.Metadata.PlaybackStatus != PlaybackPlayable &&
-				result.Metadata.PlaybackStatus != PlaybackUnsupportedCodec &&
-				result.Metadata.PlaybackStatus != PlaybackUnknown) {
+		if (metadata.DurationMS != nil && *metadata.DurationMS < 0) ||
+			(metadata.PlaybackStatus != PlaybackPlayable &&
+				metadata.PlaybackStatus != PlaybackUnsupportedCodec &&
+				metadata.PlaybackStatus != PlaybackUnknown) {
 			return ErrInvalidResult
 		}
 	default:
@@ -247,11 +275,15 @@ func ValidateSourceSize(format Format, sizeBytes int64) error {
 	switch format {
 	case FormatJPEG, FormatPNG, FormatWebP, FormatGIF:
 		if sizeBytes > MaxImageSourceBytes {
-			return ErrInvalidMedia
+			return WithFailureDiagnostic(ErrSourceTooLarge, FailureDiagnostic{
+				Stage: StageSourceRead, Reason: ReasonSourceTooLarge, Tool: "filesystem",
+			})
 		}
 	case FormatMP4, FormatMOV, FormatMKV, FormatAVI:
 		if sizeBytes > MaxVideoSourceBytes {
-			return ErrInvalidMedia
+			return WithFailureDiagnostic(ErrSourceTooLarge, FailureDiagnostic{
+				Stage: StageSourceRead, Reason: ReasonSourceTooLarge, Tool: "filesystem",
+			})
 		}
 	default:
 		return ErrUnsupportedMedia
