@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/HappyQuQu/foliopath/compare/v1.2.0...v1.2.1) (2026-08-06)
+
+
+### 🐛 修复
+
+* improve large video processing reliability ([8a23d3d](https://github.com/HappyQuQu/foliopath/commit/8a23d3d7d0875e6fda9bfdf3615c4702e04682e6))
+
 ## [1.2.0](https://github.com/HappyQuQu/foliopath/compare/v1.1.1...v1.2.0) (2026-08-04)
 
 
