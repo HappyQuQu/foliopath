@@ -1,15 +1,14 @@
 # FolioPath Web
 
-This directory contains the production React/Vite application. The current implemented
-vertical slice includes the generated OpenAPI contract, single typed HTTP client
-boundary, application providers, global safe error boundary, theme/token system,
-shared UI primitives, component workbench, and the real administrator setup, login,
-session recovery, logout, and general account settings flow.
+This directory contains the production React/Vite application. Implemented vertical
+slices include authentication and administration, multi-library scan/status views,
+virtualized browse and search, non-modal preview and full viewer, video hover
+storyboards, notifications and processing diagnostics, plus favorites and manual tags.
 
-The remaining library, scan, browse, search, preview, and viewer routes are reserved in
-`src/routes/paths.ts` and are implemented only after their corresponding frontend slice
-starts. Product code must not introduce mock success paths: API behavior comes through
-the generated client and hand-written domain adapters under `src/lib/api`.
+All server behavior comes through the generated OpenAPI client and hand-written domain
+adapters under `src/lib/api`; product UI must not introduce mock success paths. Shared
+media cards, collections, preview/viewer primitives, URL state, query keys, localization,
+theme and preferences remain canonical owners rather than being copied into features.
 
 Install and verify:
 

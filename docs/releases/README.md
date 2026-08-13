@@ -53,6 +53,8 @@
 - [`POST-MVP-4` scope revision 1](POST-MVP-4-scope.md)：冻结
   [FTR-CUR-001 收藏与手动标签](../features/favorites-and-tags.md)；CUR-S3 UI 已 Go，CUR-S4
   当前为 Conditional Go；消费者 UI 已完成，Integrated Done 仍受发布证据阻断。
+- [2026-08-13 综合更新说明草案](2026-08-13-integrated-update-notes.md)：汇总收藏与标签、
+  通知/处理结果体验、媒体容错和 4K 大文件故事板适配；只描述已实现候选行为，不声明稳定发布。
 
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。

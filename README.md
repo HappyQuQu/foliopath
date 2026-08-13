@@ -51,12 +51,18 @@ complete set—without re-uploading files, creating albums, or changing your arc
 - **Pin the preview:** Keep one item visible while selecting and comparing similar shots.
 - **Grid and masonry layouts:** Adapt to mixed dimensions, orientations, and large libraries.
 - **Search and filter:** Find media by filename, path, type, date, and scope.
+- **Favorites and manual tags:** Keep cross-folder picks, reuse existing tags, and browse each
+  collection without changing media files.
+- **Video hover previews:** Scan a 4- or 10-frame timeline while the normal poster remains the
+  fallback; large 4K videos run in an isolated low-priority lane.
 - **Full viewer:** Zoom, pan, view at 1:1, move between items, enter fullscreen, and play video.
 
 ## 🛡️ Your Originals Stay Original
 
 - `/library` is read-only: FolioPath never moves, renames, edits, or deletes your media.
 - The filesystem is the source of truth; indexes, thumbnails, and video posters are rebuildable.
+- Favorites and tags live only in `/app/data`. Removing an indexed asset removes its favorite and
+  assignments, while reusable tag names remain available with a count of zero.
 - Multiple non-overlapping libraries retain their existing hierarchy, including empty directories.
 - If a library goes offline or a scan is interrupted, FolioPath preserves the last reliable index.
 - A single-container, single-process SQLite design fits NAS devices, home servers, and personal archives.
@@ -72,6 +78,20 @@ complete set—without re-uploading files, creating albums, or changing your arc
 Videos are never transcoded. Direct playback depends on the codecs supported by your browser.
 FolioPath still preserves posters and file information for incompatible media.
 SVG, HEIC/HEIF, AVIF, and RAW are not currently supported.
+
+Media processing is deliberately bounded. Large JPEG thumbnails use decoder-level shrink-on-load;
+recoverable truncated JPEGs may receive a tolerant preview without modifying the source. High-cost
+4K and multi-gigabyte videos keep 10-frame hover previews when they finish within the adaptive
+budget, while only one storyboard job can run at a time so normal thumbnails and posters continue.
+
+## 🧰 Operations and Diagnostics
+
+- Library status separates scanning, normal thumbnails/posters, and video hover-preview progress.
+- Structured processing results explain the stage, reason, tool, attempt cycle, and completion time.
+- **Fill missing** retries only missing or failed derived media; **Rebuild all** remains explicit.
+- Processed-result views can be cleared locally and restored later without deleting server history.
+- The notification center displays localized timestamps for completed scans, media failures, and
+  release checks.
 
 ## 🚀 Quick Start
 
@@ -127,6 +147,7 @@ or video transcoding.
 
 ## 📖 More Documentation
 
+- [2026-08-13 implemented update notes](docs/releases/2026-08-13-integrated-update-notes.md)
 - [Advanced deployment, `.env` overrides, upgrades, backup, and reverse proxy](docs/deployment.md)
 - [Security and filesystem boundaries](docs/security.md)
 - [Project documentation and development entry point](docs/README.md)

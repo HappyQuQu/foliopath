@@ -12,6 +12,7 @@ Contract Ready、Backend Evidence Ready、Consumer/UI Ready 和 Integrated Slice
 - [FTR-VID-001：视频故事板悬停预览](video-storyboard-preview.md)
 - [FTR-VID-001 开发任务清单](video-storyboard-preview-task-list.md)
 - [FTR-SCN-001：媒体库自动发现](automatic-library-discovery.md)
+- [FTR-CUR-001：收藏与手动标签](favorites-and-tags.md)
 - [FTR-OPS-001：后台任务中心](task-center.md)（`Post-MVP/3` scope proposed）
 - [FTR-OPS-001 开发任务清单](task-center-task-list.md)
 

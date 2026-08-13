@@ -3,9 +3,11 @@
 本目录保存 FolioPath 的产品基线、架构约束、交付计划和验收证据。文档按用途分层：
 先从本页找到当前权威入口，再进入专题索引；不要从文件数量或日期推断文档是否仍然有效。
 
-当前状态：MVP 功能切片与 `FTR-UIF-001` 已完成，Release Candidate 仍因物理设备辅助功能、
-供应链处置和最终不可变 digest 等 Gate 而处于 No-Go。当前冻结范围是
-[MVP scope revision 4](releases/MVP-2026-07-23-scope-r4.md)。
+当前状态：MVP 与后续视频预览、自动发现、运维可观测性、收藏/标签切片已有生产实现；各版本
+是否达到稳定发布仍分别由对应 Gate 决定，不能由实例部署替代。MVP 冻结范围是
+[MVP scope revision 4](releases/MVP-2026-07-23-scope-r4.md)，最新已实现公共合同基线为
+[`POST-MVP-4`](releases/POST-MVP-4-scope.md)。本轮综合更新见
+[2026-08-13 更新说明草案](releases/2026-08-13-integrated-update-notes.md)。
 
 ## 首先阅读
 

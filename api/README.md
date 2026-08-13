@@ -1,8 +1,9 @@
 # API contract
 
-`openapi.yaml` is the authoritative HTTP structure for the current frozen MVP
-revision. `openapi.sha256` is an exact revision lock, not a substitute for semantic
-compatibility analysis.
+`openapi.yaml` is the authoritative HTTP structure for the currently implemented
+contract baseline, including the frozen MVP and accepted Post-MVP slices through
+`POST-MVP-4`. `openapi.sha256` is an exact revision lock, not a substitute for
+semantic compatibility analysis.
 
 Changing the contract requires:
 
