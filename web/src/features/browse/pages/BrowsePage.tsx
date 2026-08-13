@@ -9,9 +9,11 @@ import {
   Folder,
   GridFour,
   House,
+  Heart,
   ImageSquare,
   MagnifyingGlass,
   Square,
+  Tag,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,6 +23,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import {
   Link,
@@ -82,6 +85,7 @@ import {
   useLibrariesQuery,
   useLibraryQuery,
 } from "../../libraries";
+import { AssetCurationControls, useFavoriteMutation } from "../../curation";
 import type { LibrarySummary } from "../../../lib/api/libraries";
 import {
   refreshCatalogScope,
@@ -123,6 +127,7 @@ export function BrowsePage({
   const [mediaSortPreference] = useState(readMediaSortPreference);
   const [directoryFilterDraft, setDirectoryFilterDraft] = useState("");
   const [manualRefreshPending, setManualRefreshPending] = useState(false);
+  const favoriteMutation = useFavoriteMutation();
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams, mediaSortPreference),
     [mediaSortPreference, searchParams],
@@ -170,6 +175,7 @@ export function BrowsePage({
     return assets.map((asset) => {
       const storyboard = mediaStoryboard(asset);
       return {
+        favorite: asset.favorite ?? false,
         height: asset.height,
         id: asset.id,
         kind: asset.kind,
@@ -595,6 +601,7 @@ export function BrowsePage({
                           activatePreview: preview.pinned
                             ? t("browse.selectPinnedPreview")
                             : t("browse.activatePreview"),
+                          addFavorite: t("curation.addFavorite"),
                           animated: t("browse.kindAnimated"),
                           failedThumbnail: t("browse.thumbnailFailed"),
                           image: t("browse.kindImage"),
@@ -604,12 +611,23 @@ export function BrowsePage({
                           pendingThumbnail: t("browse.thumbnailPending"),
                           previewing: t("browse.currentlyPreviewing"),
                           retryLoadMore: t("browse.retryLoadMoreMedia"),
+                          removeFavorite: t("curation.removeFavorite"),
                           unavailableThumbnail: t(
                             "browse.thumbnailUnavailable",
                           ),
                           video: t("browse.kindVideo"),
                         }}
                         layout={mediaLayout}
+                        {...(favoriteMutation.variables?.assetId
+                          ? { favoritePendingId: favoriteMutation.variables.assetId }
+                          : {})}
+                        onFavoriteToggle={(assetId, favorite) =>
+                          favoriteMutation.mutate({
+                            assetId,
+                            csrfToken: session.csrfToken,
+                            favorite,
+                          })
+                        }
                         onItemActivate={(assetId, activation) =>
                           preview.activate(assetId, activation)
                         }
@@ -652,6 +670,14 @@ export function BrowsePage({
                 preview.previewIndex < assets.length - 1
               }
               canGoPrevious={preview.previewIndex > 0}
+              curationContent={
+                previewAsset ? (
+                  <AssetCurationControls
+                    assetId={previewAsset.id}
+                    csrfToken={session.csrfToken}
+                  />
+                ) : undefined
+              }
               item={previewItem}
               labels={{
                 close: t("browse.closePreview"),
@@ -1021,20 +1047,28 @@ function Breadcrumbs({
   );
 }
 
-function DirectoryNavigation({
+export function DirectoryNavigation({
+  activeQuickAccess,
   browseState,
   currentLibraryName,
+  favoriteCount,
   libraries,
   libraryId,
+  hideDirectoryTree = false,
   onLibraryChange,
+  quickAccessDetail,
   selectedDirectoryId,
   selectedPathIds,
 }: {
+  activeQuickAccess?: "allMedia" | "favorites" | "tags";
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
+  favoriteCount?: number;
   libraries: LibrarySummary[];
   libraryId: string;
+  hideDirectoryTree?: boolean;
   onLibraryChange: (libraryId: string) => void;
+  quickAccessDetail?: ReactNode;
   selectedDirectoryId?: string | undefined;
   selectedPathIds: Set<string>;
 }) {
@@ -1044,9 +1078,12 @@ function DirectoryNavigation({
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const libraryOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const currentLibrary = libraries.find((library) => library.id === libraryId);
-  const allMediaSelected =
-    !selectedDirectoryId && browseState.allMedia === true;
-  const libraryRootSelected = !selectedDirectoryId && !allMediaSelected;
+  const allMediaSelected = activeQuickAccess === "allMedia" || (
+    !activeQuickAccess && !selectedDirectoryId && browseState.allMedia === true
+  );
+  const libraryRootSelected =
+    !activeQuickAccess && !selectedDirectoryId && !allMediaSelected;
+  const curationScope = `?${new URLSearchParams({ libraryId }).toString()}`;
 
   function statusLabel(library: LibrarySummary | undefined) {
     return library?.status === "ready"
@@ -1245,8 +1282,8 @@ function DirectoryNavigation({
           </div>
         )}
       </div>
-      <p className={styles.treeLabel}>{t("browse.directory")}</p>
-      <nav aria-label={t("browse.directoryNavigation")} className={styles.tree}>
+      <p className={styles.treeLabel}>{t("curation.quickAccess")}</p>
+      <nav aria-label={t("curation.quickAccess")} className={styles.tree}>
         <Link
           aria-current={allMediaSelected ? "page" : undefined}
           className={`${styles.treeLink} ${styles.treeAllMedia} ${allMediaSelected ? styles.treeLinkCurrent : ""}`}
@@ -1258,30 +1295,57 @@ function DirectoryNavigation({
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
         </Link>
-        <div
-          className={styles.treeRow}
-          style={{ "--tree-depth": 0 } as CSSProperties}
+        <Link
+          aria-current={activeQuickAccess === "favorites" ? "page" : undefined}
+          className={`${styles.treeLink} ${activeQuickAccess === "favorites" ? styles.treeLinkCurrent : ""}`}
+          to={`${paths.favorites}${curationScope}`}
         >
-          <span className={styles.treeToggleStatic}>
-            <CaretDown aria-hidden="true" size={15} />
-          </span>
-          <Link
-            aria-current={libraryRootSelected ? "page" : undefined}
-            className={`${styles.treeLink} ${libraryRootSelected ? styles.treeLinkCurrent : ""}`}
-            to={browseUrl(libraryId, undefined, defaultBrowseUrlState())}
-          >
-            <Folder aria-hidden="true" size={17} />
-            <span>{currentLibraryName ?? t("browse.libraryFallback")}</span>
-          </Link>
-        </div>
-        <DirectoryChildren
-          browseState={browseState}
-          depth={1}
-          libraryId={libraryId}
-          selectedDirectoryId={selectedDirectoryId}
-          selectedPathIds={selectedPathIds}
-        />
+          <Heart aria-hidden="true" size={18} />
+          <span>{t("curation.favorites")}</span>
+          {favoriteCount !== undefined && (
+            <small className={styles.treeLinkCount}>{favoriteCount}</small>
+          )}
+        </Link>
+        <Link
+          aria-current={activeQuickAccess === "tags" ? "page" : undefined}
+          className={`${styles.treeLink} ${activeQuickAccess === "tags" ? styles.treeLinkCurrent : ""}`}
+          to={`${paths.tags}${curationScope}`}
+        >
+          <Tag aria-hidden="true" size={18} />
+          <span>{t("curation.tags")}</span>
+        </Link>
       </nav>
+      {quickAccessDetail}
+      {!hideDirectoryTree && (
+        <>
+          <p className={styles.treeLabel}>{t("browse.directory")}</p>
+          <nav aria-label={t("browse.directoryNavigation")} className={styles.tree}>
+            <div
+              className={styles.treeRow}
+              style={{ "--tree-depth": 0 } as CSSProperties}
+            >
+              <span className={styles.treeToggleStatic}>
+                <CaretDown aria-hidden="true" size={15} />
+              </span>
+              <Link
+                aria-current={libraryRootSelected ? "page" : undefined}
+                className={`${styles.treeLink} ${libraryRootSelected ? styles.treeLinkCurrent : ""}`}
+                to={browseUrl(libraryId, undefined, defaultBrowseUrlState())}
+              >
+                <Folder aria-hidden="true" size={17} />
+                <span>{currentLibraryName ?? t("browse.libraryFallback")}</span>
+              </Link>
+            </div>
+            <DirectoryChildren
+              browseState={browseState}
+              depth={1}
+              libraryId={libraryId}
+              selectedDirectoryId={selectedDirectoryId}
+              selectedPathIds={selectedPathIds}
+            />
+          </nav>
+        </>
+      )}
     </div>
   );
 }

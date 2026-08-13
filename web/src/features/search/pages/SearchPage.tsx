@@ -52,6 +52,7 @@ import {
   readViewerReturnState,
 } from "../../../lib/navigation/viewer";
 import { useLibraryQuery } from "../../libraries";
+import { AssetCurationControls, useFavoriteMutation } from "../../curation";
 import {
   refreshSearchResults,
   useSearchResultsQuery,
@@ -89,6 +90,7 @@ export function SearchPage({
     [libraryId, mediaSortPreference, searchParams],
   );
   const [refreshPending, setRefreshPending] = useState(false);
+  const favoriteMutation = useFavoriteMutation();
   const layout = useState<MediaLayoutPreference>(
     readMediaLayoutPreference,
   )[0];
@@ -344,6 +346,7 @@ export function SearchPage({
                   activatePreview: preview.pinned
                     ? t("browse.selectPinnedPreview")
                     : t("browse.activatePreview"),
+                  addFavorite: t("curation.addFavorite"),
                   animated: t("browse.kindAnimated"),
                   failedThumbnail: t("browse.thumbnailFailed"),
                   image: t("browse.kindImage"),
@@ -352,11 +355,22 @@ export function SearchPage({
                   loadingMore: t("search.loadingMore"),
                   pendingThumbnail: t("browse.thumbnailPending"),
                   previewing: t("browse.currentlyPreviewing"),
+                  removeFavorite: t("curation.removeFavorite"),
                   retryLoadMore: t("search.retryLoadMore"),
                   unavailableThumbnail: t("browse.thumbnailUnavailable"),
                   video: t("browse.kindVideo"),
                 }}
                 layout={layout}
+                {...(favoriteMutation.variables?.assetId
+                  ? { favoritePendingId: favoriteMutation.variables.assetId }
+                  : {})}
+                onFavoriteToggle={(assetId, favorite) =>
+                  favoriteMutation.mutate({
+                    assetId,
+                    csrfToken: session.csrfToken,
+                    favorite,
+                  })
+                }
                 onItemActivate={(assetId, activation) =>
                   preview.activate(assetId, activation)
                 }
@@ -397,6 +411,14 @@ export function SearchPage({
               preview.previewIndex < assets.length - 1
             }
             canGoPrevious={preview.previewIndex > 0}
+            curationContent={
+              previewAsset ? (
+                <AssetCurationControls
+                  assetId={previewAsset.id}
+                  csrfToken={session.csrfToken}
+                />
+              ) : undefined
+            }
             item={previewItem}
             labels={{
               close: t("browse.closePreview"),
@@ -572,6 +594,7 @@ function mapSearchItems(
   return assets.map((asset) => {
     const storyboard = mediaStoryboard(asset);
     return {
+      favorite: asset.favorite ?? false,
       height: asset.height,
       id: asset.id,
       kind: asset.kind,

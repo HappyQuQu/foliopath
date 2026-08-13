@@ -37,7 +37,7 @@ it("accepts valid viewer and focus state and rejects malformed input", () => {
   expect(readViewerReturnState({ restoreFocusAssetId: 1 })).toBeUndefined();
 });
 
-it("allows only same-origin browse and search returns", () => {
+it("allows only same-origin media workspace returns", () => {
   expect(
     safeViewerReturnPath(
       "/libraries/lib_family/browse/dir_kyoto?recursive=1",
@@ -53,6 +53,12 @@ it("allows only same-origin browse and search returns", () => {
       "lib_family",
     ),
   ).toBe("/libraries/lib_other/search?q=kyoto&scope=all");
+  expect(safeViewerReturnPath("/favorites?kind=image", "lib_family")).toBe(
+    "/favorites?kind=image",
+  );
+  expect(safeViewerReturnPath("/tags/tag_travel", "lib_family")).toBe(
+    "/tags/tag_travel",
+  );
   expect(
     safeViewerReturnPath("//evil.example/search", "lib_family"),
   ).toBe("/libraries/lib_family/browse");

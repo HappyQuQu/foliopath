@@ -176,10 +176,27 @@ handler 不接收缓存路径、不访问 SQLite/文件系统，也不调用媒�
 `S3-006` 初始解析预算为图片编码最大 256 MiB、视频最大 4 GiB；2026-08-06 的
 [大视频探测与失败诊断纠偏](changes/FIX-2026-08-06-large-video-probe-diagnostics.md)保留图片
 上限并把视频源上限提高到 1 TiB，使 4 GiB 以上视频仍进入 FFprobe。超过上限使用独立的
-`source_too_large` 诊断，不归为媒体损坏。其他边界为单边最大
-32,768 px、总解码像素最大 100 MP、工具 stdout 最大 8 MiB、stderr 最大 64 KiB。
-stderr 超限只截断诊断，不与 stdout 派生结果超限混为一类；分类只使用已保留的脱敏稳定模式，
-不持久化原始工具输出。
+`source_too_large` 诊断，不归为媒体损坏。2026-08-12 的
+[媒体处理韧性与诊断纠偏](changes/FIX-2026-08-12-media-processing-resilience.md)进一步要求
+先核验真实图片格式：非 JPEG 仍最多 100 MP；只有处理器识别为真实 JPEG 时才允许最多
+180 MP，并在超过 100 MP 后使用 shrink-on-load，不超过 100 MP 的真实 JPEG 保留原变换路径。
+单边最大 32,768 px、工具 stdout 最大 8 MiB、stderr 诊断最多保留 64 KiB。工具退出 0 且
+有界产物验证有效时，stderr 超过保留上限不得反向改写成功；非零退出和无效/超限产物仍失败。
+分类只使用已保留的脱敏稳定模式，不持久化原始工具输出。0 字节和像素超限分别记录为既有
+`source_read / invalid_media_data / filesystem` 与 `probe / source_too_large / libvips`，
+不与截断解码或未知工具故障混淆。
+
+[JPEG 有界容错与 MPEG-TS 派生兼容](changes/FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)
+不放宽输入或输出资源上限。JPEG 容错前必须已严格核验真实格式、尺寸不超过
+100 MP，且严格错误命中窄 allowlist；容错只执行一次，产物仍须通过 WebP、字节、
+尺寸、容量与原子发布校验。成功仅记录有界的稳定 attempt warning，不保存 libvips
+原始输出；当前也不通过 API/UI 暴露 warning/degraded 状态。伪装格式、0 字节、超限和其他
+损坏不进入容错。
+
+MPEG-TS 兼容仅向已由 scanner 按现有视频扩展名索引的候选提供有界服务端派生。
+它继续使用 `internal/files` 锚定的只读 FD，不新增任意路径、上传、网络输入、remux、
+转码或原文件写入。`.ts/.mts/.m2ts` 不进入支持合同，服务端成功也不推断浏览器
+可播放。
 应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；
 两个媒体 worker 是进程级唯一任务并发。FFmpeg/ffprobe 使用单 decoder/filter thread、
 probe 与 poster 各自 60 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
@@ -200,6 +217,12 @@ seek/输出上限、峰值 RSS、worker 优先级和 backfill admission。它继
 
 `VSP-S2 Backend Evidence Ready` 已 Go；故事板继续使用独立的自适应预算，
 完整 feature 发布继续由 `VSP-S4` 阻断。
+
+2026-08-12 的修复为无帧时间点增加最多 `±1s` 的有界邻帧恢复，随后才沿用 10→4 帧降级；
+四帧无帧耗尽记录永久 `media_processing_failed`，预算耗尽记录永久
+`media_processing_timeout`，均不进入自动重试循环。1080p/10 帧仍为 45 秒，4K
+四帧 fallback 为 120 秒，主计划与 fallback 合计不超过 5 分钟。生产 FFmpeg 使用 external
+libdav1d 处理 AV1 派生资源，但该服务端能力不替浏览器决定原视频能否播放。
 
 ## 容器和持久数据
 

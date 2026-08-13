@@ -28,7 +28,9 @@ func (s *Store) ListMediaFailures(
         LEFT JOIN media_job_attempts AS attempt
           ON attempt.id = (
             SELECT recent.id FROM media_job_attempts AS recent
-            WHERE recent.job_id = job.id ORDER BY recent.id DESC LIMIT 1
+            WHERE recent.job_id = job.id
+              AND recent.finished_at_ms >= job.created_at_ms
+            ORDER BY recent.id DESC LIMIT 1
           )
         WHERE job.status = 'failed'
           AND (? = 0 OR job.library_id = ?)
@@ -112,10 +114,11 @@ func (s *Store) GetMediaFailure(
 	var failure thumbnail.MediaFailure
 	var variant, code string
 	var finished sql.NullInt64
+	var currentRunStartedAtMS int64
 	err := s.db.QueryRowContext(ctx, `
         SELECT job.id, job.library_id, job.asset_id, library.name,
                asset.relative_path, job.variant, job.last_error_code,
-               job.attempt_count, job.finished_at_ms
+               job.attempt_count, job.finished_at_ms, job.created_at_ms
         FROM media_jobs AS job
         JOIN libraries AS library ON library.id = job.library_id
         JOIN assets AS asset
@@ -124,7 +127,7 @@ func (s *Store) GetMediaFailure(
 	).Scan(
 		&failure.JobID, &failure.LibraryID, &failure.AssetID,
 		&failure.LibraryName, &failure.RelativePath, &variant, &code,
-		&failure.AttemptCount, &finished,
+		&failure.AttemptCount, &finished, &currentRunStartedAtMS,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return thumbnail.MediaFailure{}, thumbnail.ErrDiagnosticsFailureNotFound
@@ -139,7 +142,8 @@ func (s *Store) GetMediaFailure(
         SELECT attempt_number, outcome, stage, reason_code, tool,
                exit_code, duration_ms, finished_at_ms
         FROM media_job_attempts
-        WHERE job_id = ? ORDER BY id DESC LIMIT 10`, jobID)
+		WHERE job_id = ? AND finished_at_ms >= ?
+		ORDER BY id DESC LIMIT 10`, jobID, currentRunStartedAtMS)
 	if err != nil {
 		return thumbnail.MediaFailure{}, fmt.Errorf("list media failure attempts: %w", err)
 	}

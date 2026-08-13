@@ -189,7 +189,9 @@ RC Gate。它不改变单容器架构，也不把任务中心、系统维护或 
   批次。当前只允许 S0 scope、owner 和 100k admission spike；Contract Ready 前不修改
   OpenAPI、migration 或生产代码。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
-- 收藏、评分、历史、时间线、地图与重复检测。
+- [FTR-CUR-001 收藏与手动标签](features/favorites-and-tags.md)已进入 `POST-MVP-4` revision 1；
+  CUR-S3 Consumer UI Ready 已 Go，CUR-S4 因 Docker E2E 与既有依赖 advisory 为 Conditional Go。评分、历史、时间线、
+  地图与重复检测仍未排期。
 - 分享链接、多用户和细粒度授权。
 - [FTR-INT-001 智能媒体发现候选能力](features/intelligent-media-discovery.md)：OCR、AI
   语义搜索和人脸识别保留为未排期的未来 feature。建议先评估 OCR，再评估语义搜索，最后

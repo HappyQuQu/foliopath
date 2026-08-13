@@ -157,6 +157,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/curation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one asset's favorite and tag state */
+        get: operations["getAssetCuration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{assetId}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Idempotently set an asset's favorite state
+         * @description Updates only application data. Repeating `favorite=true` preserves the
+         *     original favorite timestamp and does not advance the curation revision;
+         *     repeating `favorite=false` is likewise a no-op.
+         */
+        put: operations["setAssetFavorite"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{assetId}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Atomically replace one asset's manual tags
+         * @description The complete set contains at most 20 unique tag IDs. `If-Match` must
+         *     contain the ETag returned by the latest asset-curation read or write;
+         *     stale state fails with `precondition_failed` and no partial update.
+         */
+        put: operations["replaceAssetTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/{assetId}/thumbnail": {
         parameters: {
             query?: never;
@@ -439,6 +500,32 @@ export interface paths {
          *     operation never checks or traverses the filesystem.
          */
         get: operations["getDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse favorited media across one or all libraries
+         * @description Returns only indexed assets with an application favorite relation.
+         *     Omitting `libraryId` selects all libraries. The default order is
+         *     `favoritedAt` descending. Cursors bind the normalized scope, media
+         *     kinds, sort/order and global curation revision; any curation change
+         *     makes an old cursor fail with `invalid_cursor`. Offline libraries keep
+         *     their preserved assets and report offline source availability. This
+         *     operation never reads or modifies original media.
+         */
+        get: operations["listFavoriteAssets"];
         put?: never;
         post?: never;
         delete?: never;
@@ -915,6 +1002,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List manual tags in stable name order */
+        get: operations["listTags"];
+        put?: never;
+        /**
+         * Create or resolve a normalized manual tag
+         * @description If a Unicode-normalized case-folded equivalent already exists, returns
+         *     that tag with `200`; otherwise creates it and returns `201`.
+         */
+        post: operations["createTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a manual tag and its application-only associations */
+        delete: operations["deleteTag"];
+        options?: never;
+        head?: never;
+        /** Rename a manual tag */
+        patch: operations["renameTag"];
+        trace?: never;
+    };
+    "/api/v1/tags/{tagId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse media carrying one manual tag */
+        get: operations["listTaggedAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -1005,6 +1149,8 @@ export interface components {
             directoryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
             durationMs: number | null;
+            /** @description Application-only favorite projection; the original media is never modified. */
+            favorite: boolean;
             /** Format: int32 */
             height: number | null;
             id: components["schemas"]["ResourceID"];
@@ -1038,6 +1184,15 @@ export interface components {
             images: number;
             /** Format: int64 */
             videos: number;
+        };
+        AssetCuration: {
+            assetId: components["schemas"]["ResourceID"];
+            favorite: boolean;
+            /** Format: date-time */
+            favoritedAt: string | null;
+            /** Format: int64 */
+            revision: number;
+            tags: components["schemas"]["Tag"][];
         };
         /** @enum {string} */
         AssetKind: "image" | "animated" | "video";
@@ -1140,6 +1295,15 @@ export interface components {
             library: components["schemas"]["Library"];
             scan: components["schemas"]["ScanRun"];
         };
+        CuratedAsset: {
+            asset: components["schemas"]["Asset"];
+            curation: components["schemas"]["AssetCuration"];
+        };
+        CuratedAssetPage: {
+            counts: components["schemas"]["AssetCounts"];
+            items: components["schemas"]["CuratedAsset"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
         /**
          * @description Opaque, integrity-protected, query-bound keyset cursor. It contains no
          *     plaintext media-library or filesystem path and must not be parsed by a client.
@@ -1211,9 +1375,12 @@ export interface components {
          * @description Stable machine-readable code. New public codes require a contract change.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "scan_not_found" | "removal_not_found" | "library_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
         ErrorResponse: {
             error: components["schemas"]["Error"];
+        };
+        FavoriteUpdate: {
+            favorite: boolean;
         };
         /**
          * @default browser
@@ -1361,7 +1528,7 @@ export interface components {
             /** @enum {string} */
             outcome: "succeeded" | "retry" | "permanent_failure";
             /** @enum {string|null} */
-            reasonCode: "time_limit_exceeded" | "invalid_media_data" | "missing_moov_atom" | "decoder_unavailable" | "decode_failed" | "frame_unavailable" | "output_limit_exceeded" | "tool_failed" | "source_unavailable" | "source_too_large" | "cache_unavailable" | null;
+            reasonCode: "time_limit_exceeded" | "invalid_media_data" | "missing_moov_atom" | "container_mismatch" | "decoder_unavailable" | "decode_failed" | "frame_unavailable" | "output_limit_exceeded" | "tool_failed" | "source_unavailable" | "source_too_large" | "cache_unavailable" | null;
             /** @enum {string|null} */
             stage: "source_read" | "probe" | "poster_extract" | "frame_extract" | "storyboard_compose" | "output_validation" | "cache_publish" | null;
             /** @enum {string|null} */
@@ -1487,6 +1654,9 @@ export interface components {
         RenameLibraryRequest: {
             /** @description New instance-unique name. A root path is deliberately not accepted. */
             name: string;
+        };
+        ReplaceAssetTagsRequest: {
+            tagIds: components["schemas"]["ResourceID"][];
         };
         /**
          * @description Opaque stable resource identifier with no client-visible encoding semantics.
@@ -1696,6 +1866,22 @@ export interface components {
             supportedMedia: components["schemas"]["SupportedMedia"];
             /** @example 0.1.0 */
             version: string;
+        };
+        Tag: {
+            /** Format: int64 */
+            assetCount: number;
+            createdAt: components["schemas"]["Timestamp"];
+            id: components["schemas"]["ResourceID"];
+            name: string;
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        TagNameRequest: {
+            /** @description Raw input before server-owned Unicode normalization; normalized display length is at most 32 code points. */
+            name: string;
+        };
+        TagPage: {
+            items: components["schemas"]["Tag"][];
+            nextCursor: components["schemas"]["NullableCursor"];
         };
         ThumbnailPending: {
             assetId: components["schemas"]["ResourceID"];
@@ -1924,6 +2110,10 @@ export interface components {
     parameters: {
         /** @description Opaque indexed-media ID. It contains no path information. */
         AssetIDParameter: components["schemas"]["ResourceID"];
+        /** @description Tagged-media pages default to filesystem modification time descending. */
+        CuratedAssetSortParameter: "modifiedAt" | "name" | "size";
+        /** @description Favorite pages default to `favoritedAt` descending. */
+        CurationSortParameter: "favoritedAt" | "modifiedAt" | "name" | "size";
         /**
          * @description Opaque, versioned, integrity-protected keyset cursor containing a query
          *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
@@ -1982,6 +2172,8 @@ export interface components {
          *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
          */
         ModifiedFromParameter: components["schemas"]["Timestamp"];
+        /** @description Opaque media-library scope. Omit it to include all libraries. */
+        OptionalLibraryIDParameter: components["schemas"]["ResourceID"];
         /**
          * @description Explicit sort direction. When omitted, `name` uses ascending and
          *     `modifiedAt` and `size` use descending.
@@ -2024,6 +2216,10 @@ export interface components {
          *     recursive browse and every search use `modifiedAt`.
          */
         SortParameter: "name" | "modifiedAt" | "size";
+        /** @description Opaque application tag ID. It contains no media path information. */
+        TagIDParameter: components["schemas"]["ResourceID"];
+        /** @description Optional normalized literal substring filter over tag display names. */
+        TagSearchParameter: string;
         /**
          * @description Bounded, server-defined transform variant. `grid` is the static image
          *     thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame
@@ -2343,6 +2539,108 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAssetCuration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current asset curation state. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCuration"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    setAssetFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FavoriteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current asset curation state. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCuration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    replaceAssetTags: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceAssetTagsRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated asset curation state. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCuration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };
@@ -2787,6 +3085,54 @@ export interface operations {
                     "application/json": components["schemas"]["DirectoryDetail"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listFavoriteAssets: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /**
+                 * @description Explicit sort direction. When omitted, `name` uses ascending and
+                 *     `modifiedAt` and `size` use descending.
+                 */
+                order?: components["parameters"]["OrderParameter"];
+                /** @description Favorite pages default to `favoritedAt` descending. */
+                sort?: components["parameters"]["CurationSortParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable favorite asset page. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuratedAssetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
@@ -3561,6 +3907,188 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTags: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /** @description Optional normalized literal substring filter over tag display names. */
+                q?: components["parameters"]["TagSearchParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable tag page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Existing equivalent tag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Newly created tag. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque application tag ID. It contains no media path information. */
+                tagId: components["parameters"]["TagIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag and associations deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    renameTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque application tag ID. It contains no media path information. */
+                tagId: components["parameters"]["TagIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed tag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listTaggedAssets: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /**
+                 * @description Explicit sort direction. When omitted, `name` uses ascending and
+                 *     `modifiedAt` and `size` use descending.
+                 */
+                order?: components["parameters"]["OrderParameter"];
+                /** @description Tagged-media pages default to filesystem modification time descending. */
+                sort?: components["parameters"]["CuratedAssetSortParameter"];
+            };
+            header?: never;
+            path: {
+                /** @description Opaque application tag ID. It contains no media path information. */
+                tagId: components["parameters"]["TagIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable tagged-asset page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuratedAssetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

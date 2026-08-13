@@ -18,6 +18,7 @@ interface Preferences {
   mediaSort?: MediaSortPreference;
   dismissedCompletedNotifications?: string[];
   acknowledgedMediaFailureRevision?: string;
+  clearedMediaFailureRevision?: string;
   previewAutoplay?: boolean;
   previewMuted?: boolean;
   previewPinned?: boolean;
@@ -176,4 +177,21 @@ export function readAcknowledgedMediaFailureRevision(): string | undefined {
 export function writeAcknowledgedMediaFailureRevision(value: string): void {
   if (!/^mfailrev_[1-9][0-9]*_[1-9][0-9]*$/.test(value)) return;
   writePreferences({ ...readPreferences(), acknowledgedMediaFailureRevision: value });
+}
+
+export function readClearedMediaFailureRevision(): string | undefined {
+  const value = readPreferences().clearedMediaFailureRevision;
+  return typeof value === "string" && /^mfailrev_[1-9][0-9]*_[1-9][0-9]*$/.test(value)
+    ? value
+    : undefined;
+}
+
+export function writeClearedMediaFailureRevision(value: string): void {
+  if (!/^mfailrev_[1-9][0-9]*_[1-9][0-9]*$/.test(value)) return;
+  writePreferences({ ...readPreferences(), clearedMediaFailureRevision: value });
+}
+
+export function clearClearedMediaFailureRevision(): void {
+  const { clearedMediaFailureRevision: _revision, ...preferences } = readPreferences();
+  writePreferences(preferences);
 }

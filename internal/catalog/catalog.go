@@ -176,6 +176,7 @@ type Asset struct {
 	StoryboardRows       *int64
 	StoryboardCellWidth  *int64
 	StoryboardCellHeight *int64
+	Favorite             bool
 }
 
 type DirectoryPosition struct {

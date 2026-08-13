@@ -311,7 +311,7 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
   );
 });
 
-it("separates all media from the library root in directory navigation", async () => {
+it("separates quick-access all media from the library root directory", async () => {
   const user = userEvent.setup();
 
   renderRootBrowse();
@@ -319,7 +319,8 @@ it("separates all media from the library root in directory navigation", async ()
   const tree = await screen.findByRole("navigation", {
     name: "媒体库目录",
   });
-  const allMedia = within(tree).getByRole("link", { name: "全部媒体" });
+  const quickAccess = screen.getByRole("navigation", { name: "快速访问" });
+  const allMedia = within(quickAccess).getByRole("link", { name: "全部媒体" });
   const libraryRoot = await within(tree).findByRole("link", {
     name: "家庭影像",
   });
@@ -348,7 +349,8 @@ it("keeps the library root current when recursion is enabled there", async () =>
   const tree = await screen.findByRole("navigation", {
     name: "媒体库目录",
   });
-  const allMedia = within(tree).getByRole("link", { name: "全部媒体" });
+  const quickAccess = screen.getByRole("navigation", { name: "快速访问" });
+  const allMedia = within(quickAccess).getByRole("link", { name: "全部媒体" });
   const libraryRoot = await within(tree).findByRole("link", {
     name: "家庭影像",
   });

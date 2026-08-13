@@ -26,7 +26,11 @@ export function mediaPreviewDetails(
   asset: MediaPreviewDetailAsset,
   locale: string,
   labels: MediaPreviewDetailLabels,
-): Array<{ label: string; value: string }> {
+): Array<{
+  label: string;
+  layout?: "default" | "path";
+  value: string;
+}> {
   const number = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 1,
   });
@@ -46,7 +50,7 @@ export function mediaPreviewDetails(
         : labels.image;
   const details = [
     { label: labels.type, value: `${kind} · ${asset.mimeType}` },
-    { label: labels.path, value: asset.relativePath },
+    { label: labels.path, layout: "path" as const, value: asset.relativePath },
     { label: labels.modified, value: modified },
     { label: labels.dimensions, value: dimensions },
     { label: labels.size, value: formatBytes(asset.sizeBytes, locale) },

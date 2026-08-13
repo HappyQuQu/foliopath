@@ -4,7 +4,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-libvips test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -92,6 +92,9 @@ test:
 
 test-race:
 	$(GO) test -race ./...
+
+test-libvips:
+	docker build --target libvips-test --progress plain .
 
 test-integration:
 	$(GO) test ./tests/integration/...

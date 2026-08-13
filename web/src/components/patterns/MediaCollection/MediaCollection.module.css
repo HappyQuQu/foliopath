@@ -157,6 +157,20 @@
   pointer-events: none;
 }
 
+.favoriteButton {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-2);
+  right: var(--space-2);
+  color: var(--color-on-scrim);
+  background: var(--color-scrim);
+}
+
+.favoriteButton[aria-pressed="true"] {
+  color: var(--color-danger);
+  background: var(--color-surface);
+}
+
 .identity {
   height: 3.25rem;
   display: grid;

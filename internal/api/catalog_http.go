@@ -84,6 +84,7 @@ type assetResponse struct {
 	ProbeStatus        media.ProbeStatus           `json:"probeStatus"`
 	PlaybackStatus     media.PlaybackStatus        `json:"playbackStatus"`
 	SourceAvailability catalog.SourceAvailability  `json:"sourceAvailability"`
+	Favorite           bool                        `json:"favorite"`
 	Thumbnail          thumbnailReferenceResponse  `json:"thumbnail"`
 	Storyboard         storyboardReferenceResponse `json:"storyboard"`
 }
@@ -433,6 +434,7 @@ func assetWire(item catalog.Asset) assetResponse {
 		ModifiedAt:  time.Unix(0, item.ModifiedAtNS).UTC().Format(time.RFC3339Nano),
 		ProbeStatus: item.ProbeStatus, PlaybackStatus: item.PlaybackStatus,
 		SourceAvailability: item.Availability,
+		Favorite:           item.Favorite,
 		Thumbnail:          thumbnailReferenceWire(item),
 		Storyboard:         storyboardReferenceWire(item),
 	}

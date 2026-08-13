@@ -135,15 +135,22 @@ t(i) = floor(D × (i + 1) / (N + 1)), i = 0..N-1
 ```
 
 规则不取 0% 和 100% 端点。实现必须 seek 到目标时间并解码目标
-附近画面，不能使用会从头到尾完整解码长视频的无界 `fps + tile` 流程。
+附近画面，不能使用会从头到尾完整解码长视频的无界 `fps + tile` 流程。目标时间点没有帧时，
+只允许在该点前后最多 `±1s` 内尝试有界邻帧，并以相邻计划点的中线收窄窗口以保持时间顺序；
+不能扩大成顺序扫描整段视频。
 
 ### 处理预算与降级
 
-- 处理预算由 `internal/media` 按源像素数和计划帧数计算；1080p/10 帧基线为 45 秒，
-  单次最多 3 分钟。
-- 10 帧耗尽预算时，`internal/thumbnail` 在同一 job 内以重新均匀采样的 4 帧计划重试
-  一次；两次预算合计不得超过 5 分钟。
-- 4 帧仍超时属于相同输入下的确定性预算耗尽，直接记录终态失败，不再原样自动重试；
+- 处理预算由 `internal/media` 按源像素数和计划帧数计算；1080p/10 帧基线仍为 45 秒。
+- 4K 和大文件仍首选 10 帧，不按分辨率或文件大小预先降低质量；全局同时最多运行一个
+  storyboard，使另一个媒体 worker 能继续处理图片缩略图和视频 poster。
+- 10 帧普通 4K 预算最多 3 分钟；不小于 8 GiB 的源提高到 4 分钟。其 4 帧 fallback
+  最多 2 分钟，单个大文件的两阶段总预算不得超过 6 分钟。
+- 10 帧耗尽预算或有界邻帧仍不能完成计划时，`internal/thumbnail` 在同一 job 内以重新均匀
+  采样的 4 帧计划重试一次；4K 的四帧 fallback 为 120 秒，主计划与 fallback 合计不得超过
+  5 分钟。
+- 4 帧仍耗尽有界邻帧时记录永久 `media_processing_failed`；4 帧仍超时时记录永久
+  `media_processing_timeout`。两者都不再原样自动重试；
   管理员仍可显式重试。
 - 任何失败都只回退 poster，不阻断浏览、查看器或原视频播放。
 
@@ -218,6 +225,10 @@ Contract Ready 前必须用短、中、长视频 fixture 比较至少两种实�
 
 首版采用 all-or-nothing：计划帧中的任一帧失败时整体失败并继续使用 poster，不发布残缺
 sprite。该规则由 capability 拥有，adapter 不得自行接受部分成功。
+
+生产 FFmpeg 通过 external libdav1d 解码 AV1 poster/storyboard 等派生资源。这个构建能力
+不改变原内容合同：FolioPath 不转码，浏览器是否能直接播放 AV1 原视频仍只由当前浏览器和
+平台的原生播放结果决定。
 
 ## 数据模型与 migration 计划
 
@@ -379,6 +390,16 @@ client、唯一 availability adapter 和共享 hover/sprite controller 已实现
 [VSP-301](../gates/POST-MVP-1/vsp-301-product-vertical.md) 又在真实生产镜像中贯通登录、
 扫描、浏览/搜索 hover、预览/焦点恢复与 cache repair。下一步必须完成 `VSP-302～304`
 的目标平台复验和版本收敛，只有 `VSP-S4` Go 才能宣称 feature 完成。
+
+2026-08-12 的[媒体处理韧性与诊断纠偏](../changes/FIX-2026-08-12-media-processing-resilience.md)
+在既有 VSP-301 纵向链内固定 `±1s` 邻帧、10→4 帧、4K fallback 120 秒和 external
+libdav1d；不改变 OpenAPI、schema、migration、transform version 或已有 ready 资源。
+
+同日的 [JPEG 有界容错与 MPEG-TS 派生兼容](../changes/FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)
+仅让已按现有 `.mp4/.mov/.mkv/.avi` 扩展名索引、且 FFprobe 确认实际为
+`mpegts` 的视频候选复用同一有界 storyboard 链。它不新增 `.ts/.mts/.m2ts` 索引或
+MIME 合同，不 remux/转码/改写原文件，不从派生成功推断浏览器可播放。该类媒体的
+playback 保持 `unknown`，并继续由浏览器原生成功/失败事件决定。
 
 ## 文档同步矩阵
 

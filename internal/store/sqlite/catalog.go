@@ -330,7 +330,8 @@ func (s *Store) ListAssetPage(
                storyboard.frame_count, storyboard.sprite_columns,
                storyboard.sprite_rows, storyboard.cell_width,
                storyboard.cell_height,
-               l.status
+               l.status,
+               EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
@@ -411,6 +412,7 @@ func (s *Store) ListAssetPage(
 		var storyboardCellWidth, storyboardCellHeight sql.NullInt64
 		var probeError, thumbnailStatus, thumbnailError sql.NullString
 		var storyboardStatus, storyboardError sql.NullString
+		var favorite int64
 		if err := rows.Scan(
 			&item.ID, &item.LibraryID, &item.LibraryName,
 			&item.DirectoryID, &item.RelativePath,
@@ -422,7 +424,7 @@ func (s *Store) ListAssetPage(
 			&storyboardStatus, &storyboardError,
 			&storyboardFrameCount, &storyboardColumns, &storyboardRows,
 			&storyboardCellWidth, &storyboardCellHeight,
-			&libraryStatus,
+			&libraryStatus, &favorite,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog asset: %w", err)
 		}
@@ -433,6 +435,7 @@ func (s *Store) ListAssetPage(
 		}
 		item.ProbeStatus = media.ProbeStatus(probeStatus)
 		item.PlaybackStatus = media.PlaybackStatus(playbackStatus)
+		item.Favorite = favorite != 0
 		if width.Valid {
 			item.Width = &width.Int64
 		}
@@ -573,6 +576,7 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
 	var probeError, thumbnailStatus, thumbnailError sql.NullString
 	var storyboardStatus, storyboardError sql.NullString
+	var favorite int64
 	err := s.db.QueryRowContext(ctx, `
         SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
                a.natural_name_key, a.kind, a.media_format, a.mime_type,
@@ -584,7 +588,8 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
                storyboard.frame_count, storyboard.sprite_columns,
                storyboard.sprite_rows, storyboard.cell_width,
                storyboard.cell_height,
-               l.status
+               l.status,
+               EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
@@ -603,7 +608,7 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 		&storyboardStatus, &storyboardError,
 		&storyboardFrameCount, &storyboardColumns, &storyboardRows,
 		&storyboardCellWidth, &storyboardCellHeight,
-		&libraryStatus,
+		&libraryStatus, &favorite,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return catalog.Asset{}, catalog.ErrAssetNotFound
@@ -618,6 +623,7 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 	}
 	item.ProbeStatus = media.ProbeStatus(probeStatus)
 	item.PlaybackStatus = media.PlaybackStatus(playbackStatus)
+	item.Favorite = favorite != 0
 	if width.Valid {
 		item.Width = &width.Int64
 	}

@@ -8,7 +8,8 @@ them.
 
 - Treat original media as read-only. Never move, rename, edit, or delete it.
 - Treat the filesystem as the source of truth for media existence and hierarchy;
-  SQLite and thumbnails are derived state.
+  the SQLite catalog and thumbnails are derived state. User curation such as
+  favorites and manual tags is application state under `/app/data`, never media truth.
 - Support multiple libraries configured in the UI. A library is a named directory at
   or below the container's allowed media root (`/library`) and includes descendants by
   default. The empty allowed-root-relative value represents `/library` itself and then
@@ -20,7 +21,8 @@ them.
 - Require non-empty, instance-unique library names. Allow renaming, but keep the
   library root immutable in the MVP; changing it requires removal and recreation.
 - Reject overlapping library roots to prevent duplicate indexing.
-- Removing a library removes only its configuration, index, jobs, and cache.
+- Removing a library removes only its configuration, index, curation assignments,
+  jobs, and cache; it never modifies original media.
 - Mark an unavailable or unreadable library as offline. Do not interpret it as empty
   and do not purge its index.
 - Store a library root relative to `/library`; store asset/directory paths relative to

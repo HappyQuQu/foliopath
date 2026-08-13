@@ -196,7 +196,22 @@ Stage 1 认证、Stage 2 媒体库/扫描、Stage 3 浏览/非模态预览和 St
 - 所有可读目录的直接/递归计数，以及隐藏项、系统派生目录和回收站的跳过清单/统计。
 - HTTP 条件请求、`HEAD`、合法/非法 Range、`416`、客户端取消。
 - libvips/FFprobe/FFmpeg 的输入大小、像素炸弹、超时、进程树取消、工具输出和并发限制；
-  与 CLI 的调用使用参数数组而非 shell，Linux tmpfs 注入真实 `ENOSPC`。
+  与 CLI 的调用使用参数数组而非 shell，Linux tmpfs 注入真实 `ENOSPC`。图片矩阵还要用
+  探测到的真实格式而非扩展名分支，分别覆盖非 JPEG 100 MP、真实 JPEG ≤100 MP 原路径、
+  100～180 MP shrink-on-load、超过 180 MP、0 字节、截断数据和未知工具故障；诊断断言复用
+  既有 error/stage/reason/tool，不要求 API、schema、migration 或 transform version 变化。
+- JPEG 容错增量矩阵必须覆盖：正常 JPEG 严格路径输出不变；真实且≤100 MP 的
+  `premature end` / `incomplete scan` / `corrupt JPEG data` 输入只在严格失败后
+  单次容错，有效 WebP 进入 ready/succeeded 并在成功 attempt 中记录内部
+  `output_validation / decode_recovered / libvips` warning；伪装 JPG、0 字节、超过
+  100 MP、未知错误和容错无效产物仍失败。验证原文件 hash/mtime 不变、warning 不会
+  出现在 failed-only 列表，且前端只把计数描述为“本轮尝试”，不声称具有全部终身历史。
+- MPEG-TS 增量矩阵必须用最终镜像验证：已按 `.mp4/.mov/.mkv/.avi` 收录、真实容器
+  为 `mpegts` 的受控 fixture 可完成 probe/poster/storyboard，`playback_status=unknown`；
+  `.ts/.mts/.m2ts` 仍不进入索引合同。未允许容器、无效 TS、无视频流和解码器缺失
+  仍失败，并证明原文件不变、不从派生成功推断浏览器可播放。
+- 工具输出矩阵必须证明退出 0 且 stdout 产物有效时，超过 64 KiB 的 stderr 只被截断而不
+  误判失败；同时保留非零退出、无效/超限 stdout、脱敏日志与 attempt 不含原始 stderr 的反例。
 - 数据库迁移从每个已发布版本前进，并验证失败时不部分就绪。
 - `POST-MVP-3` 诊断/恢复覆盖 newest-first 有界列表、library-relative path、transient/
   permanent 重试策略、每 job 最近 10 次 attempt 保留、FFmpeg 输出到稳定原因的脱敏分类、
@@ -440,6 +455,10 @@ stale cleanup 级联删除另一媒体库或当前代次条目。
 ### Post-MVP 视频故事板验证计划
 
 [FTR-VID-001](features/video-storyboard-preview.md)在 `VSP-S0/S1` 先通过 spike 固定预算，
+并以 service 测试固定普通视频及 4K/大文件均优先走 10 帧路径、超时后才降级 4 帧；
+SQLite claim 测试固定全局最多一个 storyboard 运行且另一 worker 仍可领取 grid，fallback
+再次超时必须终态结束而非原样重试。预算测试固定普通 4K 的 3 分钟、8 GiB 边界的
+4 分钟、fallback 的 2 分钟与大文件总计 6 分钟硬上限。
 再进入后端。后端证据必须覆盖采样纯函数、真实 FFmpeg、只追加 migration 升级、job
 优先级/公平/重启、source fingerprint CAS、原子发布、ENOSPC、cache missing、认证 HTTP、
 原件 hash/mtime 不变和目标容量 backfill。
@@ -461,6 +480,14 @@ workflow run/attempt、fixture、5×2/10 帧布局、decoded pixel hash、cache 
 限制漂移，并要求数字 run ID 与 RFC3339 生成时间。成功后 workflow 还上传聚合 image
 digest 和全部检查结果的 paired summary；
 Gate 必须等同一提交的原生 workflow 实际成功后才能签署。
+
+2026-08-12 回归在该纵向链上追加：计划点无帧后的 `±1s` 且不跨相邻采样中线的有界邻帧、邻帧耗尽后的同 job
+10→4 帧、四帧无帧耗尽永久 `media_processing_failed`、预算耗尽永久
+`media_processing_timeout`、1080p/10 帧 45 秒、4K fallback
+120 秒和两次合计不超过 5 分钟。候选镜像还必须证明 FFmpeg 实际链接/启用 external
+libdav1d 并成功处理合成 AV1 派生资源；浏览器测试仍以原生 `loadeddata`/`error` 结果判定
+播放能力，不从 poster/storyboard 成功推断直放。升级恢复测试通过“补齐缺失”重排受影响失败，
+同时验证既有 ready 派生、schema/transform version 与原媒体 hash/mtime 不变，真实损坏仍失败。
 
 `docs/releases/POST-MVP-1-readiness.json` 进一步汇总 VSP Gate、`VSP-AC-001～008` 和
 R-018。`make storyboard-readiness-check` 不只检查证据路径存在，还要求每个验收项的
@@ -562,6 +589,8 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - `make lint`
 - `make test`
 - `make test-race`
+- `make test-libvips`（在 Dockerfile 固定的 libvips 8.16.1 构建环境中运行带
+  `libvips` tag 的真实格式、超大 JPEG shrink-on-load、方向与资源泄漏回归）
 - `make test-integration`
 - `make test-e2e`（真实后端进程的测试专用容器 smoke；不是浏览器或发布镜像验收）
 - `make test-web-e2e`（一次性真实后端的 Stage 1～4 Chromium 产品 E2E 与媒体矩阵）

@@ -63,6 +63,7 @@ export type StoryboardReference = components["schemas"]["StoryboardReference"];
 export interface Asset {
   directoryId: string;
   durationMs: number | null;
+  favorite?: boolean;
   height: number | null;
   id: string;
   kind: AssetKind;

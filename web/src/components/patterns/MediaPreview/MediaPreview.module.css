@@ -118,31 +118,46 @@
   gap: var(--space-2);
 }
 
-.details {
+.content {
   min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.details {
   display: grid;
   align-content: start;
-  flex: 1;
-  gap: var(--space-3);
-  max-height: none;
-  overflow: auto;
+  gap: var(--space-4);
   margin: 0;
-  padding: var(--space-4);
+  padding: var(--space-5);
 }
 
 .details > .fileIdentity {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: var(--space-2);
   padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.fileIdentity dt,
+.fileIdentity dd {
+  min-width: 0;
 }
 
 .fileIdentity strong {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--color-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   font-size: var(--font-size-4);
+  line-height: 1.35;
 }
 
 .fileIdentity span {
@@ -159,7 +174,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-5);
   color: var(--color-text-muted);
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface-subtle);
@@ -207,6 +222,20 @@
   font-size: var(--font-size-2);
 }
 
+.details > div[data-layout="path"] {
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.details > div[data-layout="path"] dd {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-1);
+  background: var(--color-surface-subtle);
+  text-align: left;
+  line-height: 1.5;
+}
+
 @container (max-width: 30rem) {
   .navigation {
     grid-template-columns: minmax(0, 1fr);
@@ -236,5 +265,9 @@
   .stage {
     min-height: min(56vw, 28rem);
     max-height: 34rem;
+  }
+
+  .content {
+    overflow: visible;
   }
 }

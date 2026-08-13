@@ -27,7 +27,7 @@ import { useReleaseInformationQuery } from "../release-info";
 import styles from "./NotificationCenter.module.css";
 
 export function NotificationCenter() {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(readDismissed);
   const [acknowledgedFailureRevision, setAcknowledgedFailureRevision] = useState(
@@ -69,6 +69,10 @@ export function NotificationCenter() {
     ...activeMedia.map(({ library }) => library.id),
   ]);
   const badge = activeLibraryIds.size + (hasNewFailures ? 1 : 0) + (releasesQuery.data?.updateAvailable ? 1 : 0);
+  const date = useMemo(
+    () => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }),
+    [locale],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -115,7 +119,10 @@ export function NotificationCenter() {
         aria-expanded={open}
         aria-haspopup="dialog"
         label={t("notifications.title")}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setAcknowledgedFailureRevision(readAcknowledgedMediaFailureRevision());
+          setOpen((value) => !value);
+        }}
         ref={triggerRef}
       >
         <Bell aria-hidden="true" size={20} />
@@ -138,6 +145,9 @@ export function NotificationCenter() {
               <span>
                 <strong>{t("notifications.updateAvailable")}</strong>
                 <small>{releasesQuery.data.latestVersion}</small>
+                <time dateTime={releasesQuery.data.checkedAt}>
+                  {date.format(new Date(releasesQuery.data.checkedAt))}
+                </time>
               </span>
             </Link>
           )}
@@ -208,6 +218,11 @@ export function NotificationCenter() {
                 <span>
                   <strong>{t("notifications.failures")}</strong>
                   <small>{t("notifications.failureCount").replace("{count}", String(failures.length))}</small>
+                  {failures[0]?.finishedAt && (
+                    <time dateTime={failures[0].finishedAt}>
+                      {date.format(new Date(failures[0].finishedAt))}
+                    </time>
+                  )}
                 </span>
               </Link>
               <Button onClick={acknowledgeFailures} size="small" variant="quiet">
@@ -227,6 +242,11 @@ export function NotificationCenter() {
               <span>
                 <strong>{t("notifications.scanCompleted")}</strong>
                 <small>{library.name}</small>
+                {library.lastSuccessfulScanAt && (
+                  <time dateTime={library.lastSuccessfulScanAt}>
+                    {date.format(new Date(library.lastSuccessfulScanAt))}
+                  </time>
+                )}
               </span>
             </Link>
           ))}

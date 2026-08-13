@@ -37,6 +37,12 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 
 当前记录：
 
+- [CUR-S0：收藏与手动标签 Architecture Ready](POST-MVP-4/cur-s0-architecture-ready.md)
+- [CUR-S1：收藏与手动标签 Contract Ready](POST-MVP-4/cur-s1-contract-ready.md)
+- [CUR-S2：收藏与手动标签 Backend Evidence Ready](POST-MVP-4/cur-s2-backend-evidence-ready.md)
+- [CUR-S3：收藏与手动标签 Consumer UI Ready](POST-MVP-4/cur-s3-consumer-ui-ready.md)
+- [CUR-S4：收藏与手动标签 Integrated Slice Current](POST-MVP-4/cur-s4-integrated-slice-current.md)
+
 - [UIF-S0：生产前端原型一致性 Architecture Ready](MVP-2026-07-23/uif-s0-architecture-ready.md)
 - [UIF-S1：生产前端原型一致性 Contract Ready](MVP-2026-07-23/uif-s1-contract-ready.md)
 - [UIF-S2：生产前端原型一致性 Backend Evidence Ready](MVP-2026-07-23/uif-s2-backend-evidence-ready.md)

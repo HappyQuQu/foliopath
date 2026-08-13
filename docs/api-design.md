@@ -486,6 +486,18 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
 
 ## 第一版已固定决策与剩余实现参数
 
+## Post-MVP/4 收藏与标签合同
+
+权威结构以 `api/openapi.yaml` 为准。`internal/curation` 提供收藏、标签词表、单资产标签集合及
+收藏/标签媒体列表；全部端点认证，写操作沿用 CSRF/同源防护。公开资源只使用 `ast_`、`tag_`
+和可选 `lib_` ID，不接受媒体路径。
+
+收藏写入幂等且保留首次收藏时间。标签显示名经 NFC、Unicode 空白与 case-fold 规范化，创建
+等价名称返回既有 tag，改名冲突返回 `tag_name_conflict`。单资产标签替换要求最新
+`"curation-rN"` ETag；缺失返回 428，过期返回 412，事务不会部分提交。所有列表默认 50、
+最大 200，cursor 绑定 scope、kind、sort/order 和全局 curation revision；变更后旧 cursor
+返回 `invalid_cursor`。
+
 OpenAPI 第一版已经固定：
 
 1. 业务端点使用 Cookie 会话；状态修改同时要求 CSRF，setup/login 使用同源 `Origin`。

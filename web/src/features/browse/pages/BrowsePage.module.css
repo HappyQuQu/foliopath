@@ -587,6 +587,18 @@
   white-space: nowrap;
 }
 
+.treeLinkCount {
+  min-width: 1.5rem;
+  margin-left: auto;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-round);
+  background: var(--color-surface);
+  text-align: center;
+  font-size: var(--font-size-1);
+  font-variant-numeric: tabular-nums;
+}
+
 .treeLink:hover,
 .treeLinkCurrent {
   color: var(--color-text);

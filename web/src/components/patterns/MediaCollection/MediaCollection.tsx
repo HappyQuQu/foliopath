@@ -3,6 +3,7 @@ import {
   FileImage,
   FilmSlate,
   HourglassMedium,
+  Heart,
   Play,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -17,12 +18,13 @@ import {
   type CSSProperties,
 } from "react";
 
-import { Button, InlineStatus } from "../../ui";
+import { Button, IconButton, InlineStatus } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
 export type MediaCollectionLayout = "grid" | "masonry";
 
 export interface MediaCollectionItem {
+  favorite?: boolean;
   height: number | null;
   id: string;
   kind: "image" | "animated" | "video";
@@ -47,6 +49,7 @@ export interface MediaCollectionStoryboard {
 
 export interface MediaCollectionLabels {
   activatePreview: string;
+  addFavorite?: string;
   animated: string;
   failedThumbnail: string;
   image: string;
@@ -56,6 +59,7 @@ export interface MediaCollectionLabels {
   pendingThumbnail: string;
   previewing: string;
   retryLoadMore: string;
+  removeFavorite?: string;
   unavailableThumbnail: string;
   video: string;
 }
@@ -113,10 +117,12 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     activation: "single" | "double",
     trigger: HTMLButtonElement,
   ) => void;
+  onFavoriteToggle?: (id: string, favorite: boolean) => void;
   onLoadMore: () => void;
   onRetryLoadMore?: () => void;
   paginationError?: boolean;
   previewItemId?: string;
+  favoritePendingId?: string;
   selectedItemId?: string;
 }>(function MediaCollection(
   {
@@ -126,10 +132,12 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     labels,
     layout,
     onItemActivate,
+    onFavoriteToggle,
     onLoadMore,
     onRetryLoadMore,
     paginationError = false,
     previewItemId,
+    favoritePendingId,
     selectedItemId,
   },
   ref,
@@ -305,6 +313,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
                 onStoryboardEnter={storyboard.start}
                 onStoryboardLeave={storyboard.stop}
                 {...(onItemActivate ? { onActivate: onItemActivate } : {})}
+                {...(onFavoriteToggle ? { onFavoriteToggle } : {})}
+                favoritePending={item.id === favoritePendingId}
                 previewing={item.id === previewItemId}
                 selected={item.id === selectedItemId}
                 {...(storyboard.playback?.itemId === item.id
@@ -372,6 +382,8 @@ function MediaCard({
   onStoryboardEnter,
   onStoryboardLeave,
   previewing,
+  favoritePending,
+  onFavoriteToggle,
   selected,
   storyboardFrame,
 }: {
@@ -383,6 +395,8 @@ function MediaCard({
     activation: "single" | "double",
     trigger: HTMLButtonElement,
   ) => void;
+  favoritePending: boolean;
+  onFavoriteToggle?: (id: string, favorite: boolean) => void;
   onStoryboardEnter: (item: MediaCollectionItem) => void;
   onStoryboardLeave: (itemId?: string) => void;
   previewing: boolean;
@@ -505,6 +519,22 @@ function MediaCard({
             <Eye aria-hidden="true" size={14} weight="fill" />
             <span className={styles.visuallyHidden}>{labels.previewing}</span>
           </span>
+        )}
+        {onFavoriteToggle && (
+          <IconButton
+            className={styles.favoriteButton}
+            disabled={favoritePending}
+            label={(item.favorite
+              ? labels.removeFavorite ?? "Remove {name} from favorites"
+              : labels.addFavorite ?? "Favorite {name}").replace(
+              "{name}",
+              item.name,
+            )}
+            onClick={() => onFavoriteToggle(item.id, !item.favorite)}
+            pressed={item.favorite ?? false}
+          >
+            <Heart aria-hidden="true" size={18} weight={item.favorite ? "fill" : "bold"} />
+          </IconButton>
         )}
       </div>
       <div className={styles.identity}>

@@ -339,4 +339,16 @@ library/global content revision 与任务水位。文件系统 I/O、媒体探�
 
 ## 迁移与备份
 
+## Post-MVP/4 收藏与标签持久化
+
+migration 21 追加 `curation_state`、`asset_favorites`、`tags` 与 `asset_tags`。收藏和资产标签
+使用 `(library_id, asset_id)` 复合外键指向 catalog asset，并在可靠资产删除或媒体库移除时
+级联清理；offline、失败、取消和部分扫描不删除可靠 asset，因此也不删除整理数据。
+
+`tags.normalized_name` 使用 `internal/curation` 生成的 NFC、Unicode case-fold 唯一键；显示名
+保留规范化大小写。每资产最多 20 个关联，由 capability 与单事务替换共同约束。
+`curation_state.revision` 是全局单调失效令牌，触发器覆盖正常写入与 FK cascade；它不是事件
+数量。收藏按 `(created_at_ms, asset_id)`、标签名按 `(normalized_name, id)`、标签资产按稳定
+媒体 tuple 使用 keyset，不使用 OFFSET。
+
 数据库迁移只向前自动执行，已发布迁移不得修改。备份 SQLite WAL 数据库时必须使用 SQLite 认可的在线备份或先完成安全 checkpoint/停机流程，不能只复制主数据库文件而忽略相关状态。缩略图缓存可重建，可以与不可丢的配置、管理员凭据和应用设置采用不同备份策略。

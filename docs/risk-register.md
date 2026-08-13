@@ -30,12 +30,28 @@
 | R-020 | 任务中心全量重建造成无界 admission、队列饥饿、磁盘耗尽，或先清缓存导致可用预览丢失 | 中 | 高 | rebuild 一次登记全部资产；日常 poster/grid 或浏览延迟持续恶化；取消后队列继续增长；ENOSPC 后旧 ready 不可用 | [FTR-OPS-001](features/task-center.md)要求 parent run、asset keyset 小批 admission、最低后台优先级、active coalesce、磁盘安全余量、停止 admission 的协作取消和新文件成功后才替换旧缓存；OPS-003 必须在 100k/10k 档冻结上限 | 只保留 missing backfill，禁用 all rebuild；必要时完全隐藏批量入口并继续现有按需 self-heal | 媒体处理与性能负责人 | 开放 |
 | R-021 | 原型、共享 token、生产页面和视觉基线各自演进，导致跨页漂移或为追求像素一致破坏真实功能、可访问性和大列表能力 | 高 | 高 | 同一控件出现多份样式；批量接受截图变化；页面只在 1440px 正常；为匹配原型改用 mock、全量客户端过滤或嵌套滚动 | [FTR-UIF-001](features/frontend-prototype-fidelity.md)固定视觉/功能双真相与唯一 shared owner；[UIF-S4](gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md)已接受 12 页共同 1280、12 页 × 4 断点、Linux 基线、真实 API、三浏览器/axe/输入、100k/10k 和跨文档收敛证据；没有以 mock、无界加载或嵌套滚动换取截图一致 | 保留已验证生产页面和机器 reference manifest；任何基线变化须解释来源并重跑真实链，不能以静态原型、mock 或批量 snapshot 更新替代 | 前端、设计系统与 QA 负责人 | 已关闭 |
 | R-022 | root runtime 扩大应用或媒体解析漏洞的容器内影响 | 中 | 严重 | 进程可写非持久根、获得默认 capabilities、访问未授权挂载或修改宿主 bind 内容 | [ADR-0012](adr/0012-root-runtime-bind-data.md)只为零初始化 `/app/data` 接受 root；继续强制 `/library:ro`、锚定 `openat2`、认证、输入上限和有界媒体工具；权威 Compose 保留只读根、cap-drop 与 `no-new-privileges` | 收窄到受信 LAN，使用权威 Compose；若出现越界写或媒体工具逃逸则停止发布并恢复非 root/降权启动器方案 | 安全与发布负责人 | 已接受 |
+| R-023 | 大规模标签关联或频繁收藏写入导致查询放大、分页漂移、丢失更新或原媒体边界混淆 | 中 | 高 | tag join 随集合增长退化；旧 cursor 混入新 revision；多标签替换部分提交；界面把标签表现成目录 | [FTR-CUR-001](features/favorites-and-tags.md)固定复合索引、稳定 keyset、全局 curation revision、ETag、20 标签上限、单事务替换和独立快速访问；CUR-S2 已通过 migration/SQLite/HTTP/真实 composition 与原媒体 hash/mtime 不变证据 | 暂停标签写入并保留只读收藏列表；若容量不达标则缩小筛选组合或延后标签 UI，不修改原媒体 | Curation、前端与性能负责人 | 缓解中 |
 
 Stage 4 媒体内容风险更新：S4-005B 已用真实认证 composition、poisoned catalog path、
 source fingerprint 变化、missing/offline、Range/取消/有界 admission 和 Linux arm64
 `openat2` nested-mount fixture 缓解 R-002/R-006/R-012/R-016。amd64 QEMU 因缺少所需
 `openat2` 能力按设计失败关闭；这不是 native amd64 通过证据，仓库 billing 恢复后必须重跑
 PR native job，Stage 5 仍阻断正式只读 volume、运行期 unmount、浏览器与发布镜像。
+
+2026-08-12 的[媒体处理韧性与诊断纠偏](changes/FIX-2026-08-12-media-processing-resilience.md)
+继续缓解 R-006/R-018：按真实格式限制非 JPEG 100 MP，真实 JPEG 只在 100～180 MP 使用
+shrink-on-load；空文件、像素超限、截断数据和未知工具故障保持不同稳定诊断；退出 0 的有效
+产物不再被超长 stderr 误判。故事板无帧只搜索 `±1s` 邻帧，再执行 10→4 帧，4K fallback
+120 秒且全流程不超过 5 分钟，耗尽后永久失败，防止相同输入循环占用队列。external libdav1d
+只用于 AV1 派生解码，不扩大浏览器播放承诺。该修复不关闭两项风险；最终候选镜像、代表性
+存储/媒体矩阵和 VSP-302/S4 证据仍适用。
+
+同日的 [JPEG 有界容错与 MPEG-TS 派生兼容](changes/FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)
+继续缓解 `R-006/R-018`，但也扩大 `R-008/R-014` 的候选复验面：JPEG 容错只对
+真实、≤100 MP 且命中窄错误 allowlist 的输入执行一次，有效产物以 ready/succeeded
+交付并只保留内部 attempt warning；其他损坏仍失败。MPEG-TS 仅对既有视频候选派生，
+不新增 `.ts` 或播放承诺。最小 FFmpeg `7.1.5-4` 的 mpegts demuxer 必须进入最终双架构
+SBOM、notice、漏洞复扫、实际派生 smoke 和不可变 digest 证据；未完成前不降低相关风险等级。
 
 ## 发布阻断风险
 

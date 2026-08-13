@@ -61,6 +61,20 @@ digest Trivy、双架构第三方许可证 notices 与 artifact 接入 CI；S5-0
 7.1.5-2 在原视频 probe/poster allowlist 上追加 storyboard 所需的 PNG 编解码、`image2`
 demuxer、`setsar` 与 `xstack`，并显式链接 PNG 编解码所需的 zlib；它仍禁用网络和
 自动探测，不扩大支持的原媒体格式。
+
+2026-08-12 的媒体处理韧性修复把自制包推进为 `foliopath-ffmpeg` 7.1.5-3：构建阶段固定
+`libdav1d-dev` 并显式启用 external `libdav1d` AV1 decoder，包元数据和最终 distroless
+rootfs 同步纳入 `libdav1d7`。发布 smoke 必须从最终镜像的 `/opt/ffmpeg/bin/ffmpeg` 实际
+解码合成 AV1 fixture，不能只验证带开发依赖的 FFmpeg builder 层；该变更仍不扩大对外
+声明的容器格式，也不承诺浏览器可直放 AV1。
+
+[JPEG 有界容错与 MPEG-TS 派生兼容](changes/FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)
+又将自制包推进为 `foliopath-ffmpeg 7.1.5-4`，在 `7.1.5-3` 的 external libdav1d 闭包上
+只新增 `mpegts` demuxer。decoder、parser、filter、PNG/WebP encoder、protocol 与禁用网络的约束
+不变；因此这是已索引视频候选的 derive-only 兼容，不是 `.ts` 格式、MIME 或浏览器
+直放支持声明。最终双架构候选必须从 distroless rootfs 的实际 `/opt/ffmpeg` 闭包执行
+MPEG-TS probe/poster/storyboard smoke，并重新生成 SPDX、notices、provenance、漏洞扫描和不可变
+digest 证据。本文不因局部包变更预先通过 Stage 5 安全/合规签署。
 最终 FFmpeg 构建关闭 GPL/x264 和网络，许可证为 LGPL 2.1+；内建 readiness probe
 同时替换了生产 curl 闭包；固定 digest 的无 shell distroless final stage 保留实际运行
 包的 `status.d` 元数据。候选流程还会生成绑定不可变镜像 digest、干净 Git commit、

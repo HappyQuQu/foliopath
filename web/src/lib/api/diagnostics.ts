@@ -4,6 +4,8 @@ import { apiClient } from "./client";
 import { createApiError } from "./errors";
 
 export type MediaFailure = components["schemas"]["MediaFailure"];
+export type MediaFailureVariant = MediaFailure["variant"];
+export type MediaFailureErrorCode = MediaFailure["errorCode"];
 export type MediaFailurePage = components["schemas"]["MediaFailurePage"];
 export type MediaFailureDetail = components["schemas"]["MediaFailureDetail"];
 export type MediaFailureRetrySummary =
@@ -11,12 +13,16 @@ export type MediaFailureRetrySummary =
 
 export async function listMediaFailures({
   cursor,
+  errorCode,
   libraryId,
   limit = 50,
+  variant,
 }: {
   cursor?: string | undefined;
+  errorCode?: MediaFailureErrorCode | undefined;
   libraryId?: string | undefined;
   limit?: number | undefined;
+  variant?: MediaFailureVariant | undefined;
 } = {}): Promise<MediaFailurePage> {
   try {
     const { data, error, response } = await apiClient.GET(
@@ -26,7 +32,9 @@ export async function listMediaFailures({
           query: {
             limit,
             ...(cursor ? { cursor } : {}),
+            ...(errorCode ? { errorCode } : {}),
             ...(libraryId ? { libraryId } : {}),
+            ...(variant ? { variant } : {}),
           },
         },
       },

@@ -1,0 +1,125 @@
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading h3 {
+  margin: 0;
+  font-size: var(--font-size-2);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.emptyTags {
+  min-height: var(--size-control-sm);
+  display: inline-flex;
+  align-items: center;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-round);
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.tag button {
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+}
+
+.availableSection {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.availableSection h4 {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
+
+.availableTags {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.availableTags li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.availableTag {
+  max-width: 100%;
+  border-radius: var(--radius-round);
+}
+
+.availableTag > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.loadMoreTags {
+  justify-self: start;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.newTagHint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.addTagButton {
+  white-space: nowrap;
+}
+
+@container (max-width: 26rem) {
+  .panel {
+    padding-inline: var(--space-4);
+  }
+
+  .addTagButton {
+    width: var(--size-control-md);
+    padding-inline: 0;
+    font-size: 0;
+  }
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-1);
+}

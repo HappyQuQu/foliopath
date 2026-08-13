@@ -1,4 +1,6 @@
 import {
+  ArrowCounterClockwise,
+  Broom,
   CaretDown,
   CaretUp,
   CircleNotch,
@@ -20,6 +22,12 @@ import type { MediaFailure } from "../../../lib/api/diagnostics";
 import type { LibrarySummary } from "../../../lib/api/libraries";
 import type { ScanStatus } from "../../../lib/api/scans";
 import { useLocale, type MessageKey } from "../../../lib/i18n/LocaleProvider";
+import {
+  clearClearedMediaFailureRevision,
+  readClearedMediaFailureRevision,
+  writeAcknowledgedMediaFailureRevision,
+  writeClearedMediaFailureRevision,
+} from "../../../lib/storage/preferences";
 import { useMediaFailureQuery, useMediaFailuresQuery } from "../../diagnostics";
 import {
   mergeLibraryScanRecords,
@@ -118,6 +126,9 @@ export function LibraryProcessingResults({
   libraries: LibrarySummary[];
 }) {
   const { locale, t } = useLocale();
+  const [clearedRevision, setClearedRevision] = useState(
+    readClearedMediaFailureRevision,
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const libraryId = searchParams.get("libraryId") ?? "all";
   const rawVariant = searchParams.get("variant");
@@ -129,7 +140,12 @@ export function LibraryProcessingResults({
     ...(variant === "all" ? {} : { variant }),
     ...(errorCode === "all" ? {} : { errorCode }),
   });
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const globalQuery = useMediaFailuresQuery();
+  const globalRevision = globalQuery.data?.pages[0]?.revision ?? undefined;
+  const allItems = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = clearedRevision
+    ? allItems.filter((failure) => mediaFailureIsAfterRevision(failure, clearedRevision))
+    : allItems;
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }),
     [locale],
@@ -137,6 +153,35 @@ export function LibraryProcessingResults({
 
   return (
     <div role="tabpanel">
+      <div className={styles.resultActions}>
+        <Button
+          disabled={!globalRevision || globalRevision === clearedRevision}
+          onClick={() => {
+            if (!globalRevision) return;
+            setClearedRevision(globalRevision);
+            writeClearedMediaFailureRevision(globalRevision);
+            writeAcknowledgedMediaFailureRevision(globalRevision);
+          }}
+          size="small"
+          variant="secondary"
+        >
+          <Broom aria-hidden="true" size={16} />
+          {t("libraryRecords.clearResults")}
+        </Button>
+        {clearedRevision && (
+          <Button
+            onClick={() => {
+              setClearedRevision(undefined);
+              clearClearedMediaFailureRevision();
+            }}
+            size="small"
+            variant="quiet"
+          >
+            <ArrowCounterClockwise aria-hidden="true" size={16} />
+            {t("libraryRecords.restoreResults")}
+          </Button>
+        )}
+      </div>
       <RecordFilters
         libraries={libraries}
         onChange={(key, value) => updateParam(searchParams, setSearchParams, key, value)}
@@ -152,8 +197,12 @@ export function LibraryProcessingResults({
       )}
       {query.isSuccess && items.length === 0 && (
         <EmptyState
-          description={t("libraryRecords.resultsEmptyDescription")}
-          title={t("libraryRecords.resultsEmpty")}
+          description={t(clearedRevision && allItems.length > 0
+            ? "libraryRecords.resultsClearedDescription"
+            : "libraryRecords.resultsEmptyDescription")}
+          title={t(clearedRevision && allItems.length > 0
+            ? "libraryRecords.resultsCleared"
+            : "libraryRecords.resultsEmpty")}
         />
       )}
       {items.length > 0 && (
@@ -310,6 +359,20 @@ const failureCodes = [
 
 function isFailureCode(value: string | null): value is (typeof failureCodes)[number] {
   return failureCodes.some((code) => code === value);
+}
+
+function mediaFailureIsAfterRevision(
+  failure: MediaFailure,
+  revision: string,
+): boolean {
+  const revisionMatch = /^mfailrev_([1-9][0-9]*)_([1-9][0-9]*)$/.exec(revision);
+  const jobMatch = /^mjob_([1-9][0-9]*)$/.exec(failure.id);
+  const finishedAt = Date.parse(failure.finishedAt);
+  if (!revisionMatch || !jobMatch || !Number.isFinite(finishedAt)) return true;
+
+  const clearedAt = Number(revisionMatch[1]);
+  if (finishedAt !== clearedAt) return finishedAt > clearedAt;
+  return Number(jobMatch[1]) > Number(revisionMatch[2]);
 }
 
 function updateParam(

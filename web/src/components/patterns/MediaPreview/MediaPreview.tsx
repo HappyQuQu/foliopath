@@ -5,7 +5,7 @@ import {
   PushPin,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Button, IconButton, PanelResizer } from "../../ui";
 import {
@@ -16,7 +16,11 @@ import styles from "./MediaPreview.module.css";
 
 export interface MediaPreviewItem {
   contentUrl: string;
-  details: Array<{ label: string; value: string }>;
+  details: Array<{
+    label: string;
+    layout?: "default" | "path";
+    value: string;
+  }>;
   id: string;
   kind: "image" | "animated" | "video";
   name: string;
@@ -60,6 +64,7 @@ export function MediaPreview({
   onPrevious,
   onWidthChange,
   pinned,
+  curationContent,
   width,
 }: {
   autoPlayVideo?: boolean;
@@ -78,6 +83,7 @@ export function MediaPreview({
   onPrevious: () => void;
   onWidthChange: (width: number) => void;
   pinned: boolean;
+  curationContent?: ReactNode;
   width: number;
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
@@ -210,35 +216,38 @@ export function MediaPreview({
         </Button>
       </div>
 
-      <dl className={styles.details}>
-        <div className={styles.fileIdentity}>
-          <dt>
-            <strong title={item.name}>{item.name}</strong>
-          </dt>
-          <dd>
-            <span>
-              {item.kind === "video"
-                ? "VIDEO"
-                : item.kind === "animated"
-                  ? "GIF"
-                  : "JPG"}
-            </span>
-          </dd>
-        </div>
-        {item.details.map((detail) => (
-          <div key={detail.label}>
-            <dt>{detail.label}</dt>
-            <dd title={detail.value}>{detail.value}</dd>
+      <div className={styles.content}>
+        <dl className={styles.details}>
+          <div className={styles.fileIdentity}>
+            <dt>
+              <strong title={item.name}>{item.name}</strong>
+            </dt>
+            <dd>
+              <span>
+                {item.kind === "video"
+                  ? "VIDEO"
+                  : item.kind === "animated"
+                    ? "GIF"
+                    : "JPG"}
+              </span>
+            </dd>
           </div>
-        ))}
-      </dl>
-      <div className={styles.pinStatus} role="status">
-        <PushPin aria-hidden="true" size={18} weight={pinned ? "fill" : "regular"} />
-        <div>
-          <strong>{pinned ? labels.pinnedTitle : labels.followingTitle}</strong>
-          <span>
-            {pinned ? labels.pinnedDescription : labels.followingDescription}
-          </span>
+          {item.details.map((detail) => (
+            <div data-layout={detail.layout} key={detail.label}>
+              <dt>{detail.label}</dt>
+              <dd title={detail.value}>{detail.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {curationContent}
+        <div className={styles.pinStatus} role="status">
+          <PushPin aria-hidden="true" size={18} weight={pinned ? "fill" : "regular"} />
+          <div>
+            <strong>{pinned ? labels.pinnedTitle : labels.followingTitle}</strong>
+            <span>
+              {pinned ? labels.pinnedDescription : labels.followingDescription}
+            </span>
+          </div>
         </div>
       </div>
     </aside>

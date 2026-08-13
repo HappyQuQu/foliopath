@@ -85,7 +85,8 @@
 
 .item span,
 .item strong,
-.item small {
+.item small,
+.item time {
   min-width: 0;
   display: block;
 }
@@ -103,13 +104,20 @@
   white-space: normal;
 }
 
-.item small {
+.item small,
+.item time {
   overflow: hidden;
   margin-top: 0.15rem;
   color: var(--color-text-muted);
   font-size: var(--font-size-1);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.item time {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
 }
 
 .empty {

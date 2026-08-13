@@ -36,9 +36,19 @@
 
 ## Routine fixes
 
+### 2026-08-13
+
+- [通知时间与处理结果清除](FIX-2026-08-13-notification-time-result-clear.md)
+
+### 2026-08-12
+
+- [JPEG 有界容错与 MPEG-TS 派生兼容](FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)
+- [媒体处理韧性与诊断纠偏](FIX-2026-08-12-media-processing-resilience.md)
+
 ### 2026-08-06
 
 - [自适应故事板处理预算与四帧降级](FIX-2026-08-06-adaptive-storyboard-budget.md)
+- [高负载视频故事板任务隔离](FIX-2026-08-13-high-cost-storyboard-planning.md)
 - [大视频探测与失败诊断纠偏](FIX-2026-08-06-large-video-probe-diagnostics.md)
 
 ### 2026-08-03

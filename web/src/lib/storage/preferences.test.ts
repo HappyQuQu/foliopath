@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 
 import {
   readAcknowledgedMediaFailureRevision,
+  readClearedMediaFailureRevision,
   readMediaLayoutPreference,
   readMediaSortPreference,
   readPreviewAutoplayPreference,
@@ -13,6 +14,8 @@ import {
   writePreviewAutoplayPreference,
   writePreviewMutedPreference,
   writeAcknowledgedMediaFailureRevision,
+  writeClearedMediaFailureRevision,
+  clearClearedMediaFailureRevision,
   writePreviewWidthPreference,
   writeSidebarWidthPreference,
 } from "./preferences";
@@ -83,4 +86,11 @@ it("stores only a valid acknowledged media failure watermark", () => {
 
   writeAcknowledgedMediaFailureRevision("../../42");
   expect(readAcknowledgedMediaFailureRevision()).toBe("mfailrev_1000_42");
+
+  writeClearedMediaFailureRevision("mfailrev_2000_43");
+  expect(readClearedMediaFailureRevision()).toBe("mfailrev_2000_43");
+  writeClearedMediaFailureRevision("not-a-revision");
+  expect(readClearedMediaFailureRevision()).toBe("mfailrev_2000_43");
+  clearClearedMediaFailureRevision();
+  expect(readClearedMediaFailureRevision()).toBeUndefined();
 });

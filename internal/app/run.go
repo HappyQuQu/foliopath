@@ -15,6 +15,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
+	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -187,6 +188,10 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	catalogService, err := catalog.NewService(database, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct catalog service: %w", err)
+	}
+	curationService, err := curation.NewService(database, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct curation service: %w", err)
 	}
 	contentService, err := media.NewContentService(database, directorySource)
 	if err != nil {
@@ -404,6 +409,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		ReleaseInfo:      releaseInformation,
 		Settings:         settingsService,
 		Catalog:          catalogService,
+		Curation:         curationService,
 		Thumbnails:       thumbnailDelivery,
 		Content:          contentService,
 		ContentAdmission: resourceController,

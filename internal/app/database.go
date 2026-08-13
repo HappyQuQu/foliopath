@@ -12,6 +12,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
+	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -28,6 +29,7 @@ type databaseStore interface {
 	auth.Repository
 	auth.AccountRepository
 	catalog.Repository
+	curation.Repository
 	library.Repository
 	library.LifecycleRepository
 	library.RemovalRepository
@@ -53,6 +55,114 @@ type databaseStore interface {
 	reconcileQueueStore
 	mediaQueueStore
 	Close() error
+}
+
+func (service *databaseService) Revision(ctx context.Context) (int64, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return 0, errors.New("curation repository is not ready")
+	}
+	return service.store.Revision(ctx)
+}
+
+func (service *databaseService) GetAssetState(ctx context.Context, assetID int64) (curation.AssetState, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return curation.AssetState{}, errors.New("curation repository is not ready")
+	}
+	return service.store.GetAssetState(ctx, assetID)
+}
+
+func (service *databaseService) SetFavorite(ctx context.Context, assetID int64, favorite bool, now time.Time) (bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return false, errors.New("curation repository is not ready")
+	}
+	return service.store.SetFavorite(ctx, assetID, favorite, now)
+}
+
+func (service *databaseService) CreateTag(ctx context.Context, name, normalizedName string, now time.Time) (curation.Tag, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return curation.Tag{}, false, errors.New("curation repository is not ready")
+	}
+	return service.store.CreateTag(ctx, name, normalizedName, now)
+}
+
+func (service *databaseService) RenameTag(ctx context.Context, tagID int64, name, normalizedName string, now time.Time) (curation.Tag, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return curation.Tag{}, errors.New("curation repository is not ready")
+	}
+	return service.store.RenameTag(ctx, tagID, name, normalizedName, now)
+}
+
+func (service *databaseService) DeleteTag(ctx context.Context, tagID int64) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return errors.New("curation repository is not ready")
+	}
+	return service.store.DeleteTag(ctx, tagID)
+}
+
+func (service *databaseService) ReplaceAssetTags(ctx context.Context, assetID, revision int64, tagIDs []int64, now time.Time) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return errors.New("curation repository is not ready")
+	}
+	return service.store.ReplaceAssetTags(ctx, assetID, revision, tagIDs, now)
+}
+
+func (service *databaseService) ListTagPage(ctx context.Context, params curation.TagListParams) ([]curation.Tag, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, errors.New("curation repository is not ready")
+	}
+	return service.store.ListTagPage(ctx, params)
+}
+
+func (service *databaseService) ListCuratedAssetPage(ctx context.Context, params curation.AssetListParams) ([]curation.CuratedAsset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, errors.New("curation repository is not ready")
+	}
+	return service.store.ListCuratedAssetPage(ctx, params)
+}
+
+func (service *databaseService) CountCuratedAssets(ctx context.Context, query curation.AssetQuery) (catalog.AssetCounts, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return catalog.AssetCounts{}, errors.New("curation repository is not ready")
+	}
+	return service.store.CountCuratedAssets(ctx, query)
+}
+
+func (service *databaseService) ResolveLibrary(ctx context.Context, libraryID int64) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return errors.New("curation repository is not ready")
+	}
+	return service.store.ResolveLibrary(ctx, libraryID)
+}
+
+func (service *databaseService) ResolveTag(ctx context.Context, tagID int64) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return errors.New("curation repository is not ready")
+	}
+	return service.store.ResolveTag(ctx, tagID)
 }
 
 func (service *databaseService) EnqueueReconcile(

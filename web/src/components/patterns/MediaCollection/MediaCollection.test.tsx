@@ -13,6 +13,7 @@ import {
 
 const labels = {
   activatePreview: "Preview {name}",
+  addFavorite: "Favorite {name}",
   animated: "Animated",
   failedThumbnail: "Thumbnail failed",
   image: "Image",
@@ -22,9 +23,32 @@ const labels = {
   pendingThumbnail: "Preparing thumbnail",
   previewing: "Currently previewing",
   retryLoadMore: "Retry loading more",
+  removeFavorite: "Remove {name} from favorites",
   unavailableThumbnail: "Thumbnail unavailable",
   video: "Video",
 };
+
+it("exposes an independent accessible favorite action with pressed state", () => {
+  const toggleFavorite = vi.fn();
+  render(
+    <MediaCollection
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={[{ ...storyboardItem, favorite: true }]}
+      labels={labels}
+      layout="grid"
+      onFavoriteToggle={toggleFavorite}
+      onLoadMore={vi.fn()}
+    />,
+  );
+
+  const button = screen.getByRole("button", {
+    name: "Remove video-storyboard.mp4 from favorites",
+  });
+  expect(button).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(button);
+  expect(toggleFavorite).toHaveBeenCalledWith("video-storyboard", false);
+});
 
 const storyboardItem: MediaCollectionItem = {
   height: 1080,

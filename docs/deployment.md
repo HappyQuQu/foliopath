@@ -333,6 +333,19 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 4. 以相同 `/library` 与 `/app/data` 映射启动新版本。
 5. 检查迁移、readiness、媒体库离线状态和抽样浏览，再清理旧镜像。
 
+升级到包含 2026-08-12
+[媒体处理韧性修复](changes/FIX-2026-08-12-media-processing-resilience.md)的镜像后，在确认
+readiness 正常后对受影响媒体库执行一次“补齐缺失”。它只以既有有界 admission 重排缺失、
+缓存丢失和失败的派生项；无需重新扫描文件树或执行“全部重建”。本次修复没有 API/schema/
+migration/transform bump，已有 ready 资源保留；真实损坏文件重新处理后仍会失败。
+
+若镜像同时包含 [JPEG 有界容错与 MPEG-TS 派生兼容](changes/FIX-2026-08-12-tolerant-jpeg-mpegts-derivation.md)，
+同一次“补齐缺失”会让符合窄 allowlist 的≤100 MP 真实 JPEG 以容错产物恢复
+ready/succeeded，并让已索引但实际为 MPEG-TS 的现有视频候选重试服务端派生。
+这不改变原文件、schema 或 transform version，不新增 `.ts` 支持；其他 0 字节、伪装、超限
+或无法容错的媒体仍失败。JPEG 成功容错的 warning 当前只保留在有界 attempt 审计中，
+不是 API/UI 可见的 degraded 状态。
+
 数据库只做向前迁移。升级后直接运行旧镜像可能不安全，因此“回滚”必须同时恢复升级前数据备份，除非版本说明明确保证 schema 向后兼容。迁移失败时服务应停止进入业务就绪，而不是带着部分 schema 继续运行。
 
 当前仓库尚无已发布的稳定 digest，因此本阶段使用两个不同的不可变候选 image ID 验证
@@ -349,6 +362,15 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 
 扩展名匹配不区分大小写。MVP 不转码，也不生成兼容播放副本；支持视频容器不等于支持其中
 任意 codec。SVG、HEIC/HEIF、AVIF 与 RAW 不进入 MVP 索引/缩略图契约。
+
+图片扩展名只决定候选分类，处理器还会核验真实格式。非 JPEG 总源像素仍上限 100 MP；
+只有真实 JPEG 才有独立 180 MP 上限，并在超过 100 MP 后使用 shrink-on-load，≤100 MP
+继续原变换。生产 FFmpeg 使用 external libdav1d 处理 AV1 poster/storyboard 等派生资源；
+这不代表浏览器能直接播放 AV1，也不新增兼容播放副本。
+真实、≤100 MP 的 JPEG 若在严格路径命中窄截断 allowlist，可单次容错生成经验证的
+WebP；原件不会被修复或改写。最小 FFmpeg 包额外包含 mpegts demuxer，但它只处理已被
+现有扩展名合同收录、实际为 MPEG-TS 的候选派生；`.ts/.mts/.m2ts` 仍不在支持列表。
+这类候选的 `playback_status` 保持 `unknown`，服务端派生成功不是浏览器可直放的承诺。
 
 `POST-MVP-1` 的视频故事板候选复用同一 FFmpeg runtime，为成功探测且至少 2 秒的视频生成
 4 或 10 帧 WebP sprite。它不新增端口、环境变量、volume、服务或媒体写权限，仍只写入
@@ -387,6 +409,8 @@ linux/arm64 同提交候选证据仍由
 | 磁盘不足 | 停止派生任务并保护数据库；不能删除原媒体或静默损坏索引 |
 | 扫描中容器退出 | 下次启动标记任务中断，新完整扫描负责收敛 |
 | 缩略图缓存损坏 | 标记派生数据待重建，保留媒体索引 |
+| 媒体派生旧失败 | 部署修复后执行一次“补齐缺失”有界重排；不重新扫描、不预先删除 ready 缓存 |
+| 0 字节、像素超限或真实损坏 | 显示对应稳定原因；永久失败不自动循环重试，原媒体保持只读 |
 | 数据库迁移失败 | 不进入业务就绪，提示从备份恢复或修复环境 |
 
 ## 发布前部署门槛

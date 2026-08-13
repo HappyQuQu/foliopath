@@ -75,9 +75,19 @@ type probeDocument struct {
 		Duration  string `json:"duration"`
 	} `json:"streams"`
 	Format struct {
+		Name     string `json:"format_name"`
 		Duration string `json:"duration"`
 	} `json:"format"`
 }
+
+type videoContainer string
+
+const (
+	videoContainerISOBaseMedia videoContainer = "iso_base_media"
+	videoContainerMatroska     videoContainer = "matroska"
+	videoContainerAVI          videoContainer = "avi"
+	videoContainerMPEGTS       videoContainer = "mpegts"
+)
 
 func (processor *Processor) Process(
 	ctx context.Context,
@@ -107,8 +117,12 @@ func (processor *Processor) Process(
 	if err != nil {
 		return media.ProcessingResult{}, err
 	}
+	container, err := validateDerivationContainer(format, document.Format.Name)
+	if err != nil {
+		return media.ProcessingResult{}, err
+	}
 	stream, ok := firstVideoStream(document)
-	if !ok || media.ValidateDimensions(stream.Width, stream.Height) != nil {
+	if !ok {
 		return media.ProcessingResult{}, media.WithFailureDiagnostic(
 			media.ErrInvalidMedia,
 			media.FailureDiagnostic{
@@ -116,10 +130,26 @@ func (processor *Processor) Process(
 			},
 		)
 	}
+	if stream.Width < 1 || stream.Height < 1 {
+		return media.ProcessingResult{}, media.WithFailureDiagnostic(
+			media.ErrInvalidMedia,
+			media.FailureDiagnostic{
+				Stage: media.StageProbe, Reason: media.ReasonInvalidData, Tool: "ffprobe",
+			},
+		)
+	}
+	if media.ValidateDimensions(stream.Width, stream.Height) != nil {
+		return media.ProcessingResult{}, media.WithFailureDiagnostic(
+			media.ErrSourceTooLarge,
+			media.FailureDiagnostic{
+				Stage: media.StageProbe, Reason: media.ReasonSourceTooLarge, Tool: "ffprobe",
+			},
+		)
+	}
 	durationMS := durationMilliseconds(stream.Duration, document.Format.Duration)
 	metadata := media.Metadata{
 		Width: stream.Width, Height: stream.Height, DurationMS: durationMS,
-		PlaybackStatus: playbackStatus(format, stream.CodecName),
+		PlaybackStatus: playbackStatus(format, container, stream.CodecName),
 	}
 	posterCtx, cancelPoster := context.WithTimeout(ctx, processor.timeout)
 	poster, err := processor.poster(posterCtx, file)
@@ -137,7 +167,7 @@ func (processor *Processor) Process(
 			Bytes: poster, Width: thumbnailWidth, Height: thumbnailHeight,
 		},
 	}
-	if err := media.ValidateProcessingResult(media.KindVideo, result); err != nil {
+	if err := media.ValidateProcessingResult(media.KindVideo, format, result); err != nil {
 		return media.ProcessingResult{}, media.ErrProcessingFailed
 	}
 	return result, nil
@@ -191,10 +221,16 @@ func (processor *Processor) Storyboard(
 	framePaths := make([]string, 0, len(request.TimestampsMS))
 	totalFrameBytes := 0
 	for index, timestampMS := range request.TimestampsMS {
+		backwardMS, forwardMS := storyboardNeighborOffsets(
+			request.TimestampsMS,
+			index,
+		)
 		frame, err := processor.storyboardFrame(
 			runCtx,
 			file,
 			timestampMS,
+			backwardMS,
+			forwardMS,
 			request.CellWidth,
 			request.CellHeight,
 		)
@@ -236,6 +272,66 @@ func (processor *Processor) storyboardFrame(
 	ctx context.Context,
 	source *os.File,
 	timestampMS int64,
+	backwardMS int64,
+	forwardMS int64,
+	width, height int,
+) ([]byte, error) {
+	var firstFailure error
+	offsetsMS := []int64{0}
+	if backwardMS > 0 {
+		offsetsMS = append(offsetsMS, -backwardMS)
+	}
+	if forwardMS > 0 {
+		offsetsMS = append(offsetsMS, forwardMS)
+	}
+	for _, offsetMS := range offsetsMS {
+		candidateMS := timestampMS + offsetMS
+		frame, err := processor.storyboardFrameAt(
+			ctx,
+			source,
+			candidateMS,
+			width,
+			height,
+		)
+		if err == nil {
+			return frame, nil
+		}
+		if firstFailure == nil {
+			firstFailure = err
+		}
+		if !recoverableFrameFailure(err) {
+			return nil, err
+		}
+	}
+	return nil, firstFailure
+}
+
+func storyboardNeighborOffsets(timestampsMS []int64, index int) (int64, int64) {
+	const maximumOffsetMS int64 = 1_000
+	timestampMS := timestampsMS[index]
+	backwardMS := min(max(timestampMS-1, int64(0)), maximumOffsetMS)
+	if index > 0 {
+		// Stay strictly on this timestamp's side of the midpoint so adjacent
+		// samples can never recover to the same frame or reverse chronology.
+		backwardMS = min(
+			backwardMS,
+			max((timestampMS-timestampsMS[index-1]-1)/2, int64(0)),
+		)
+	}
+	forwardMS := maximumOffsetMS
+	if index+1 < len(timestampsMS) {
+		forwardMS = min(
+			forwardMS,
+			max((timestampsMS[index+1]-timestampMS-1)/2, int64(0)),
+		)
+	}
+	return backwardMS, forwardMS
+}
+
+func (processor *Processor) storyboardFrameAt(
+	ctx context.Context,
+	source *os.File,
+	timestampMS int64,
 	width, height int,
 ) ([]byte, error) {
 	output, err := processor.runWithLimit(
@@ -249,6 +345,7 @@ func (processor *Processor) storyboardFrame(
 		"-filter_threads", "1",
 		"-ss", strconv.FormatFloat(float64(timestampMS)/1000, 'f', 3, 64),
 		"-i", inheritedFilePath(),
+		"-map", "0:v:0",
 		"-frames:v", "1",
 		"-vf", fmt.Sprintf(
 			"scale=%d:%d:flags=lanczos,setsar=1",
@@ -266,11 +363,19 @@ func (processor *Processor) storyboardFrame(
 	pngSignature := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
 	if len(output) < len(pngSignature) ||
 		!bytes.Equal(output[:len(pngSignature)], pngSignature) {
-		return nil, media.WithFailureDiagnostic(media.ErrProcessingFailed, media.FailureDiagnostic{
+		return nil, media.WithFailureDiagnostic(media.ErrFrameUnavailable, media.FailureDiagnostic{
 			Stage: media.StageValidation, Reason: media.ReasonNoFrame, Tool: "ffmpeg",
 		})
 	}
 	return output, nil
+}
+
+func recoverableFrameFailure(err error) bool {
+	diagnostic, ok := media.DiagnoseFailure(err)
+	if !ok {
+		return false
+	}
+	return diagnostic.Reason == media.ReasonNoFrame
 }
 
 func (processor *Processor) composeStoryboard(
@@ -359,6 +464,7 @@ func (processor *Processor) poster(ctx context.Context, source *os.File) ([]byte
 		"-threads", "1",
 		"-filter_threads", "1",
 		"-i", inheritedFilePath(),
+		"-map", "0:v:0",
 		"-frames:v", "1",
 		"-vf", fmt.Sprintf(
 			"scale='min(%d,iw)':'min(%d,ih)':force_original_aspect_ratio=decrease",
@@ -374,11 +480,21 @@ func (processor *Processor) poster(ctx context.Context, source *os.File) ([]byte
 		return nil, classifyCommandError(ctx, err, media.StagePoster, "ffmpeg")
 	}
 	if len(output) == 0 {
-		return nil, media.WithFailureDiagnostic(media.ErrInvalidMedia, media.FailureDiagnostic{
+		return nil, media.WithFailureDiagnostic(media.ErrFrameUnavailable, media.FailureDiagnostic{
 			Stage: media.StageValidation, Reason: media.ReasonNoFrame, Tool: "ffmpeg",
 		})
 	}
+	if !isWebP(output) {
+		return nil, media.WithFailureDiagnostic(media.ErrProcessingFailed, media.FailureDiagnostic{
+			Stage: media.StageValidation, Reason: media.ReasonToolFailed, Tool: "ffmpeg",
+		})
+	}
 	return output, nil
+}
+
+func isWebP(output []byte) bool {
+	return len(output) >= 12 && string(output[:4]) == "RIFF" &&
+		string(output[8:12]) == "WEBP"
 }
 
 func (processor *Processor) run(
@@ -442,11 +558,6 @@ func (processor *Processor) runCommand(
 	if stdout.exceeded {
 		return nil, &commandExecutionError{
 			cause: media.ErrProcessingFailed, stderr: stderr.Bytes(), outputExceeded: true,
-		}
-	}
-	if stderr.exceeded {
-		return nil, &commandExecutionError{
-			cause: media.ErrProcessingFailed, stderr: stderr.Bytes(),
 		}
 	}
 	return stdout.Bytes(), nil
@@ -518,9 +629,10 @@ func classifyCommandError(
 		switch diagnostic.Reason {
 		case media.ReasonInvalidData,
 			media.ReasonMissingMoovAtom,
-			media.ReasonDecodeFailed,
-			media.ReasonNoFrame:
+			media.ReasonDecodeFailed:
 			return media.WithFailureDiagnostic(media.ErrInvalidMedia, diagnostic)
+		case media.ReasonNoFrame:
+			return media.WithFailureDiagnostic(media.ErrFrameUnavailable, diagnostic)
 		case media.ReasonDecoderUnavailable:
 			return media.WithFailureDiagnostic(media.ErrUnsupportedMedia, diagnostic)
 		default:
@@ -548,8 +660,9 @@ func classifyFFmpegReason(stderr string) media.FailureReason {
 	case strings.Contains(message, "error while decoding"),
 		strings.Contains(message, "decode_slice_header error"):
 		return media.ReasonDecodeFailed
-	case strings.Contains(message, "output file is empty"),
-		strings.Contains(message, "could not find codec parameters"):
+	case strings.Contains(message, "could not find codec parameters"):
+		return media.ReasonInvalidData
+	case strings.Contains(message, "output file is empty"):
 		return media.ReasonNoFrame
 	default:
 		return media.ReasonToolFailed
@@ -592,11 +705,70 @@ func durationMilliseconds(values ...string) *int64 {
 	return nil
 }
 
-func playbackStatus(format media.Format, codec string) media.PlaybackStatus {
-	if codec == "h264" {
-		if format == media.FormatMP4 || format == media.FormatMOV {
-			return media.PlaybackPlayable
+func canonicalVideoContainer(formatNames string) (videoContainer, bool) {
+	var canonical videoContainer
+	for _, rawName := range strings.Split(strings.ToLower(formatNames), ",") {
+		name := strings.TrimSpace(rawName)
+		var candidate videoContainer
+		switch name {
+		case "mov", "mp4", "m4a", "3gp", "3g2", "mj2":
+			candidate = videoContainerISOBaseMedia
+		case "matroska", "webm":
+			candidate = videoContainerMatroska
+		case "avi":
+			candidate = videoContainerAVI
+		case "mpegts":
+			candidate = videoContainerMPEGTS
+		default:
+			return "", false
 		}
+		if canonical != "" && canonical != candidate {
+			return "", false
+		}
+		canonical = candidate
+	}
+	return canonical, canonical != ""
+}
+
+func declaredVideoContainer(format media.Format) (videoContainer, bool) {
+	switch format {
+	case media.FormatMP4, media.FormatMOV:
+		return videoContainerISOBaseMedia, true
+	case media.FormatMKV:
+		return videoContainerMatroska, true
+	case media.FormatAVI:
+		return videoContainerAVI, true
+	default:
+		return "", false
+	}
+}
+
+func validateDerivationContainer(
+	format media.Format,
+	formatNames string,
+) (videoContainer, error) {
+	actual, actualOK := canonicalVideoContainer(formatNames)
+	declared, declaredOK := declaredVideoContainer(format)
+	if actualOK && declaredOK &&
+		(actual == declared || actual == videoContainerMPEGTS) {
+		return actual, nil
+	}
+	return "", media.WithFailureDiagnostic(
+		media.ErrUnsupportedMedia,
+		media.FailureDiagnostic{
+			Stage: media.StageProbe, Reason: media.ReasonContainerMismatch, Tool: "ffprobe",
+		},
+	)
+}
+
+func playbackStatus(
+	format media.Format,
+	container videoContainer,
+	codec string,
+) media.PlaybackStatus {
+	if codec == "h264" && container == videoContainerISOBaseMedia &&
+		(format == media.FormatMP4 || format == media.FormatMOV) {
+		return media.PlaybackPlayable
 	}
 	// Codec support depends on the requesting browser, operating system, and
 	// installed media stack. The server records only the conservative H.264

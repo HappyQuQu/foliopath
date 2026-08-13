@@ -11,7 +11,7 @@ const meta = {
       contentUrl: "/storybook-preview-photo.jpg",
       details: [
         { label: "类型", value: "图片 · image/jpeg" },
-        { label: "位置", value: "旅行/京都/清水寺.jpg" },
+        { label: "位置", layout: "path", value: "旅行/京都/清水寺.jpg" },
         { label: "修改时间", value: "2026年7月28日 10:32" },
         { label: "尺寸", value: "4,032 × 3,024 px" },
         { label: "大小", value: "4.8 MB" },
@@ -80,7 +80,7 @@ export const Video: Story = {
       contentUrl: "/test-media/range-video.mp4",
       details: [
         { label: "类型", value: "视频 · video/mp4" },
-        { label: "位置", value: "旅行/京都/散步.mp4" },
+        { label: "位置", layout: "path", value: "旅行/京都/散步.mp4" },
         { label: "尺寸", value: "1,920 × 1,080 px" },
         { label: "时长", value: "0:42" },
       ],

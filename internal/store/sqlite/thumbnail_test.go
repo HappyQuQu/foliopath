@@ -94,6 +94,51 @@ func TestThumbnailStateTransitionsAreFingerprintGuarded(t *testing.T) {
 	}
 }
 
+func TestCommitReadyAppliesTheAssetFormatsImagePixelPolicy(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	ctx := context.Background()
+	var assetID int64
+	if err := store.db.QueryRowContext(ctx, `
+        SELECT id FROM assets
+        WHERE library_id = ? AND relative_path = 'photo-2.jpg'`,
+		libraryID,
+	).Scan(&assetID); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := store.GetAssetForDerivation(ctx, assetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := media.ProcessingResult{
+		Metadata: media.Metadata{
+			Width: 11_520, Height: 15_360,
+			PlaybackStatus: media.PlaybackNotApplicable,
+		},
+		Thumbnail: media.Thumbnail{
+			Bytes: []byte("webp"), Width: 384, Height: 512,
+		},
+	}
+	ready := thumbnail.Ready{
+		AssetID: asset.ID, SourceFingerprint: asset.SourceFingerprint,
+		Result: result, CacheRelativePath: "libraries/lib_1/aa/large.webp",
+		ByteSize: 4, CreatedAtMS: 1000,
+	}
+	if err := store.CommitReady(ctx, ready); err != nil {
+		t.Fatalf("large JPEG ready result rejected: %v", err)
+	}
+	if _, err := store.db.ExecContext(
+		ctx,
+		"UPDATE assets SET media_format = 'png' WHERE id = ?",
+		asset.ID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CommitReady(ctx, ready); !errors.Is(err, thumbnail.ErrInvalidState) {
+		t.Fatalf("large PNG ready result error = %v", err)
+	}
+}
+
 func TestVideoMetadataCanRemainReadyWhenPosterFails(t *testing.T) {
 	store, _ := openTestStore(t)
 	seedStoryboardAsset(t, store.db)

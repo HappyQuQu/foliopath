@@ -20,9 +20,9 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
 x-foliopath-contract:
   status: authoritative
-  targetVersion: POST-MVP-3
+  targetVersion: POST-MVP-4
   scopeRevision: 1
-  baselineEvent: CR-2026-015
+  baselineEvent: CR-2026-020
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -62,6 +62,8 @@ tags:
     description: Bounded indexed directory browsing and media search.
   - name: Media
     description: Indexed media metadata, thumbnails, and read-only original content.
+  - name: Curation
+    description: Application-only favorites and manual tags that never modify original media.
 paths:
   /health/live:
     get:
@@ -1913,6 +1915,346 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/favorites:
+    get:
+      tags: [Curation]
+      operationId: listFavoriteAssets
+      summary: Browse favorited media across one or all libraries
+      description: |
+        Returns only indexed assets with an application favorite relation.
+        Omitting `libraryId` selects all libraries. The default order is
+        `favoritedAt` descending. Cursors bind the normalized scope, media
+        kinds, sort/order and global curation revision; any curation change
+        makes an old cursor fail with `invalid_cursor`. Offline libraries keep
+        their preserved assets and report offline source availability. This
+        operation never reads or modifies original media.
+      x-requirements: [FR-CUR-001, FR-CUR-002, NFR-CUR-001, NFR-CUR-003]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/OptionalLibraryIDParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/CurationSortParameter'
+        - $ref: '#/components/parameters/OrderParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable favorite asset page.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuratedAssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/favorite:
+    put:
+      tags: [Curation]
+      operationId: setAssetFavorite
+      summary: Idempotently set an asset's favorite state
+      description: |
+        Updates only application data. Repeating `favorite=true` preserves the
+        original favorite timestamp and does not advance the curation revision;
+        repeating `favorite=false` is likewise a no-op.
+      x-requirements: [FR-CUR-001, NFR-CUR-002, NFR-CUR-003]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteUpdate'
+      responses:
+        '200':
+          description: Current asset curation state.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetCuration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/curation:
+    get:
+      tags: [Curation]
+      operationId: getAssetCuration
+      summary: Get one asset's favorite and tag state
+      x-requirements: [FR-CUR-001, FR-CUR-005]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+      responses:
+        '200':
+          description: Current asset curation state.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetCuration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/tags:
+    put:
+      tags: [Curation]
+      operationId: replaceAssetTags
+      summary: Atomically replace one asset's manual tags
+      description: |
+        The complete set contains at most 20 unique tag IDs. `If-Match` must
+        contain the ETag returned by the latest asset-curation read or write;
+        stale state fails with `precondition_failed` and no partial update.
+      x-requirements: [FR-CUR-005, NFR-CUR-002, NFR-CUR-003]
+      x-error-codes:
+        '400': [invalid_request, validation_failed]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found, tag_not_found]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceAssetTagsRequest'
+      responses:
+        '200':
+          description: Updated asset curation state.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetCuration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/tags:
+    get:
+      tags: [Curation]
+      operationId: listTags
+      summary: List manual tags in stable name order
+      x-requirements: [FR-CUR-003, NFR-CUR-001]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/TagSearchParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable tag page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Curation]
+      operationId: createTag
+      summary: Create or resolve a normalized manual tag
+      description: |
+        If a Unicode-normalized case-folded equivalent already exists, returns
+        that tag with `200`; otherwise creates it and returns `201`.
+      x-requirements: [FR-CUR-003, NFR-CUR-003]
+      x-error-codes:
+        '400': [invalid_request, validation_failed]
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagNameRequest'
+      responses:
+        '200':
+          description: Existing equivalent tag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '201':
+          description: Newly created tag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/tags/{tagId}:
+    patch:
+      tags: [Curation]
+      operationId: renameTag
+      summary: Rename a manual tag
+      x-requirements: [FR-CUR-004, NFR-CUR-003]
+      x-error-codes:
+        '400': [invalid_request, validation_failed]
+        '401': [authentication_required, session_expired]
+        '404': [tag_not_found]
+        '409': [tag_name_conflict]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/TagIDParameter'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagNameRequest'
+      responses:
+        '200':
+          description: Renamed tag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Curation]
+      operationId: deleteTag
+      summary: Delete a manual tag and its application-only associations
+      x-requirements: [FR-CUR-004, NFR-CUR-002, NFR-CUR-003]
+      parameters:
+        - $ref: '#/components/parameters/TagIDParameter'
+      responses:
+        '204':
+          description: Tag and associations deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/tags/{tagId}/assets:
+    get:
+      tags: [Curation]
+      operationId: listTaggedAssets
+      summary: Browse media carrying one manual tag
+      x-requirements: [FR-CUR-006, NFR-CUR-001, NFR-CUR-003]
+      parameters:
+        - $ref: '#/components/parameters/TagIDParameter'
+        - $ref: '#/components/parameters/OptionalLibraryIDParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/CuratedAssetSortParameter'
+        - $ref: '#/components/parameters/OrderParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable tagged-asset page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuratedAssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/assets/{assetId}/thumbnail:
     get:
       tags: [Media]
@@ -2151,6 +2493,20 @@ components:
       description: Opaque indexed-media ID. It contains no path information.
       schema:
         $ref: '#/components/schemas/ResourceID'
+    TagIDParameter:
+      name: tagId
+      in: path
+      required: true
+      description: Opaque application tag ID. It contains no media path information.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
+    OptionalLibraryIDParameter:
+      name: libraryId
+      in: query
+      required: false
+      description: Opaque media-library scope. Omit it to include all libraries.
+      schema:
+        $ref: '#/components/schemas/ResourceID'
     ScanIDParameter:
       name: scanId
       in: path
@@ -2272,6 +2628,15 @@ components:
         maxItems: 3
         items:
           $ref: '#/components/schemas/AssetKind'
+    TagSearchParameter:
+      name: q
+      in: query
+      required: false
+      description: Optional normalized literal substring filter over tag display names.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 32
     ModifiedFromParameter:
       name: modifiedFrom
       in: query
@@ -2300,6 +2665,24 @@ components:
       schema:
         type: string
         enum: [name, modifiedAt, size]
+    CurationSortParameter:
+      name: sort
+      in: query
+      required: false
+      description: Favorite pages default to `favoritedAt` descending.
+      schema:
+        type: string
+        enum: [favoritedAt, modifiedAt, name, size]
+        default: favoritedAt
+    CuratedAssetSortParameter:
+      name: sort
+      in: query
+      required: false
+      description: Tagged-media pages default to filesystem modification time descending.
+      schema:
+        type: string
+        enum: [modifiedAt, name, size]
+        default: modifiedAt
     OrderParameter:
       name: order
       in: query
@@ -3823,7 +4206,7 @@ components:
         reasonCode:
           type: string
           nullable: true
-          enum: [time_limit_exceeded, invalid_media_data, missing_moov_atom, decoder_unavailable, decode_failed, frame_unavailable, output_limit_exceeded, tool_failed, source_unavailable, source_too_large, cache_unavailable]
+          enum: [time_limit_exceeded, invalid_media_data, missing_moov_atom, container_mismatch, decoder_unavailable, decode_failed, frame_unavailable, output_limit_exceeded, tool_failed, source_unavailable, source_too_large, cache_unavailable]
         tool:
           type: string
           nullable: true
@@ -4257,6 +4640,118 @@ components:
           maximum: 320
           nullable: true
 
+    Tag:
+      type: object
+      additionalProperties: false
+      required: [id, name, assetCount, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+        assetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    TagPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Tag'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
+    TagNameRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Raw input before server-owned Unicode normalization; normalized display length is at most 32 code points.
+
+    FavoriteUpdate:
+      type: object
+      additionalProperties: false
+      required: [favorite]
+      properties:
+        favorite:
+          type: boolean
+
+    ReplaceAssetTagsRequest:
+      type: object
+      additionalProperties: false
+      required: [tagIds]
+      properties:
+        tagIds:
+          type: array
+          uniqueItems: true
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/ResourceID'
+
+    AssetCuration:
+      type: object
+      additionalProperties: false
+      required: [assetId, favorite, favoritedAt, tags, revision]
+      properties:
+        assetId:
+          $ref: '#/components/schemas/ResourceID'
+        favorite:
+          type: boolean
+        favoritedAt:
+          type: string
+          format: date-time
+          nullable: true
+        tags:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/Tag'
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+
+    CuratedAsset:
+      type: object
+      additionalProperties: false
+      required: [asset, curation]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        curation:
+          $ref: '#/components/schemas/AssetCuration'
+
+    CuratedAssetPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, counts]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CuratedAsset'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+        counts:
+          $ref: '#/components/schemas/AssetCounts'
+
     Asset:
       type: object
       additionalProperties: false
@@ -4281,6 +4776,7 @@ components:
         - probeStatus
         - playbackStatus
         - sourceAvailability
+        - favorite
         - thumbnail
         - storyboard
       properties:
@@ -4341,6 +4837,9 @@ components:
           $ref: '#/components/schemas/PlaybackStatus'
         sourceAvailability:
           $ref: '#/components/schemas/SourceAvailability'
+        favorite:
+          type: boolean
+          description: Application-only favorite projection; the original media is never modified.
         thumbnail:
           $ref: '#/components/schemas/ThumbnailReference'
         storyboard:
@@ -4453,9 +4952,11 @@ components:
         - library_not_found
         - directory_not_found
         - asset_not_found
+        - tag_not_found
         - scan_not_found
         - removal_not_found
         - library_name_conflict
+        - tag_name_conflict
         - library_path_overlap
         - library_root_unavailable
         - library_root_outside_allowed

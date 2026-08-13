@@ -82,10 +82,11 @@ func NewClaimedProcessor(
 func (processor *ClaimedProcessor) Process(ctx context.Context, job Job) error {
 	startedAt := time.Now()
 	var err error
+	var warning *media.FailureDiagnostic
 	switch {
 	case job.Variant == VariantGrid &&
 		job.TransformVersion == GridTransformVersion:
-		err = processor.service.Process(ctx, job.AssetID)
+		err = processor.service.process(ctx, job.AssetID, &warning)
 	case job.Variant == VariantStoryboard &&
 		job.TransformVersion == StoryboardTransformVersion:
 		err = processor.storyboard.Process(ctx, job.AssetID)
@@ -101,6 +102,8 @@ func (processor *ClaimedProcessor) Process(ctx context.Context, job Job) error {
 	result.Duration = time.Since(startedAt)
 	if diagnostic, ok := media.DiagnoseFailure(err); ok {
 		result.Diagnostic = diagnostic
+	} else if warning != nil {
+		result.Diagnostic = *warning
 	} else {
 		result.Diagnostic = fallbackDiagnostic(result.Code)
 	}
@@ -133,6 +136,8 @@ func classifyJobResult(err error) JobResult {
 		return JobResult{Outcome: JobStale}
 	case errors.Is(err, ErrStoryboardNotEligible):
 		return JobResult{Outcome: JobStale}
+	case errors.Is(err, media.ErrFrameUnavailable):
+		return JobResult{Outcome: JobPermanent, Code: JobErrorProcessing}
 	case errors.Is(err, media.ErrInvalidMedia):
 		return JobResult{Outcome: JobPermanent, Code: JobErrorInvalidMedia}
 	case errors.Is(err, media.ErrUnsupportedMedia):

@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
   type PointerEvent,
+  type ReactNode,
   type WheelEvent,
 } from "react";
 
@@ -67,6 +68,7 @@ export function MediaViewer({
   onNext,
   onPrevious,
   position,
+  curationContent,
 }: {
   canGoNext: boolean;
   canGoPrevious: boolean;
@@ -77,6 +79,7 @@ export function MediaViewer({
   onNext: () => void;
   onPrevious: () => void;
   position: string;
+  curationContent?: ReactNode;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const dragRef = useRef({ originX: 0, originY: 0, pointerX: 0, pointerY: 0 });
@@ -385,6 +388,7 @@ export function MediaViewer({
               </div>
             ))}
           </dl>
+          {curationContent}
         </aside>
       )}
 

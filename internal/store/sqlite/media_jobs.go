@@ -277,16 +277,18 @@ func (s *Store) ClaimNextMediaJob(
 		now := s.nowMS()
 		var fingerprint, variant string
 		err := tx.QueryRowContext(ctx, `
+            -- Keep one of the two media workers available for grid/poster work.
+            -- This is owned by the variant contract rather than numeric priority.
             WITH eligible_priority AS (
                 SELECT MIN(priority) AS priority
                 FROM media_jobs
                 WHERE status = 'queued' AND available_at_ms <= ?
                   AND (
-                      priority = 0
+                      variant = 'grid'
                       OR NOT EXISTS (
                           SELECT 1 FROM media_jobs AS active_storyboard
                           WHERE active_storyboard.status = 'running'
-                            AND active_storyboard.priority = 100
+                            AND active_storyboard.variant = 'storyboard'
                       )
                   )
             ),
@@ -297,11 +299,11 @@ func (s *Store) ClaimNextMediaJob(
                   ON eligible_priority.priority = jobs.priority
                 WHERE jobs.status = 'queued' AND jobs.available_at_ms <= ?
                   AND (
-                      jobs.priority = 0
+                      jobs.variant = 'grid'
                       OR NOT EXISTS (
                           SELECT 1 FROM media_jobs AS active_storyboard
                           WHERE active_storyboard.status = 'running'
-                            AND active_storyboard.priority = 100
+                            AND active_storyboard.variant = 'storyboard'
                       )
                   )
                 GROUP BY jobs.library_id, jobs.priority

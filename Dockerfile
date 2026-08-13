@@ -184,7 +184,7 @@ RUN mkdir -p /src/vips \
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS ffmpeg
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       build-essential libwebp-dev nasm pkg-config zlib1g-dev \
+       build-essential libdav1d-dev libwebp-dev nasm pkg-config zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 ADD --checksum=sha256:e3963a50831c985933e1a625ed566ec4c7adb5c012c34fa9f84438e1d61bdacc \
     https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.5.tar.gz \
@@ -202,11 +202,12 @@ RUN mkdir -p /src/ffmpeg \
        --disable-network \
        --enable-ffmpeg \
        --enable-ffprobe \
+       --enable-libdav1d \
        --enable-libwebp \
        --enable-zlib \
        --enable-protocol=file,pipe \
-       --enable-demuxer=mov,matroska,avi,image2 \
-       --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png,gif,ffv1,vp8,vp9,av1,prores,mpeg1video,mpeg2video,theora,vc1 \
+       --enable-demuxer=mov,matroska,avi,mpegts,image2 \
+       --enable-decoder=h264,hevc,mpeg4,mjpeg,webp,png,gif,ffv1,vp8,vp9,libdav1d,prores,mpeg1video,mpeg2video,theora,vc1 \
        --enable-parser=h264,hevc,mpeg4video,mpegvideo,vp8,vp9,av1 \
        --enable-filter=scale,setsar,xstack \
        --enable-encoder=libwebp,png \
@@ -227,16 +228,16 @@ RUN mkdir -p /src/ffmpeg \
     && architecture=$(dpkg --print-architecture) \
     && printf '%s\n' \
        'Package: foliopath-ffmpeg' \
-       'Version: 7.1.5-2' \
+       'Version: 7.1.5-4' \
        "Architecture: ${architecture}" \
        'Maintainer: FolioPath release tooling' \
        'Homepage: https://ffmpeg.org/' \
-       'Depends: libc6, libwebp7, zlib1g' \
+       'Depends: libc6, libdav1d7, libwebp7, zlib1g' \
        'Description: FolioPath minimal FFmpeg runtime' \
        ' Fixed-source FFmpeg build limited to the MVP video processing contract.' \
        >/pkg/DEBIAN/control \
     && dpkg-deb --build --root-owner-group \
-       /pkg /foliopath-ffmpeg_7.1.5-2.deb
+       /pkg /foliopath-ffmpeg_7.1.5-4.deb
 
 FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
 ARG VERSION=stage5-candidate
@@ -265,15 +266,24 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -ldflags="-s -w -X main.version=${VERSION}" \
       -o /out/foliopath ./cmd/foliopath
 
+FROM build AS libvips-test
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go test -count=1 -tags=libvips \
+      ./internal/media/imagevips
+
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS runtime-assemble
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       libatomic1 libexpat1 libexif12 libffi8 \
+       libatomic1 libdav1d7 libexpat1 libexif12 libffi8 \
        libjpeg62-turbo libpng16-16t64 libwebp7 libwebpdemux2 \
        libwebpmux3 libpcre2-8-0 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=vips /foliopath-libvips_8.16.1-1.deb /tmp/foliopath-libvips.deb
-COPY --from=ffmpeg /foliopath-ffmpeg_7.1.5-2.deb /tmp/foliopath-ffmpeg.deb
+COPY --from=ffmpeg /foliopath-ffmpeg_7.1.5-4.deb /tmp/foliopath-ffmpeg.deb
 COPY --from=expat /foliopath-expat_2.8.2-1.deb /tmp/foliopath-expat.deb
 COPY --from=glib /foliopath-glib_2.88.3-1.deb /tmp/foliopath-glib.deb
 RUN dpkg --auto-deconfigure --install \
@@ -289,6 +299,7 @@ RUN set -eu; \
       /rootfs/usr/local/bin /rootfs/var/lib/dpkg/status.d; \
     for package in \
       libatomic1 \
+      libdav1d7 \
       libexif12 \
       libffi8 \
       libjpeg62-turbo \

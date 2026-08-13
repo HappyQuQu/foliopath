@@ -9,28 +9,32 @@ import (
 )
 
 const (
-	GridThumbnailWidth          = 512
-	GridThumbnailHeight         = 512
-	GridWebPQuality             = 82
-	MaxToolOutputBytes          = 8 << 20
-	MaxImageSourceBytes         = 256 << 20
-	MaxVideoSourceBytes         = int64(1) << 40
-	MaxDecodedPixels            = 100_000_000
-	MaxMediaDimension           = 32_768
-	DefaultProbeTimeout         = 60 * time.Second
-	StoryboardMinFrames         = 4
-	StoryboardMaxFrames         = 10
-	StoryboardMaxColumns        = 5
-	StoryboardMaxRows           = 2
-	StoryboardMaxCellDimension  = 320
-	StoryboardMaxPixels         = 1_024_000
-	StoryboardMaxFrameBytes     = 1 << 20
-	StoryboardMaxTempBytes      = 10 << 20
-	StoryboardMaxOutputBytes    = 8 << 20
-	DefaultStoryboardTimeout    = 45 * time.Second
-	MaxStoryboardAttemptTimeout = 3 * time.Minute
-	MaxStoryboardTotalTimeout   = 5 * time.Minute
-	storyboardReferencePixels   = int64(1920 * 1080)
+	GridThumbnailWidth           = 512
+	GridThumbnailHeight          = 512
+	GridWebPQuality              = 82
+	MaxToolOutputBytes           = 8 << 20
+	MaxImageSourceBytes          = 256 << 20
+	MaxVideoSourceBytes          = int64(1) << 40
+	MaxDecodedPixels             = 100_000_000
+	MaxJPEGSourcePixels          = 180_000_000
+	MaxMediaDimension            = 32_768
+	DefaultProbeTimeout          = 60 * time.Second
+	StoryboardMinFrames          = 4
+	StoryboardMaxFrames          = 10
+	StoryboardMaxColumns         = 5
+	StoryboardMaxRows            = 2
+	StoryboardMaxCellDimension   = 320
+	StoryboardMaxPixels          = 1_024_000
+	StoryboardMaxFrameBytes      = 1 << 20
+	StoryboardMaxTempBytes       = 10 << 20
+	StoryboardMaxOutputBytes     = 8 << 20
+	DefaultStoryboardTimeout     = 45 * time.Second
+	LargeStoryboardTimeout       = 4 * time.Minute
+	MaxStoryboardAttemptTimeout  = LargeStoryboardTimeout
+	MaxStoryboardFallbackTimeout = 2 * time.Minute
+	MaxStoryboardTotalTimeout    = 6 * time.Minute
+	StoryboardLargeSourceBytes   = int64(8) << 30
+	storyboardReferencePixels    = int64(1920 * 1080)
 )
 
 type ProbeStatus string
@@ -70,8 +74,10 @@ const (
 	ReasonTimedOut           FailureReason = "time_limit_exceeded"
 	ReasonInvalidData        FailureReason = "invalid_media_data"
 	ReasonMissingMoovAtom    FailureReason = "missing_moov_atom"
+	ReasonContainerMismatch  FailureReason = "container_mismatch"
 	ReasonDecoderUnavailable FailureReason = "decoder_unavailable"
 	ReasonDecodeFailed       FailureReason = "decode_failed"
+	ReasonDecodeRecovered    FailureReason = "decode_recovered"
 	ReasonNoFrame            FailureReason = "frame_unavailable"
 	ReasonOutputLimit        FailureReason = "output_limit_exceeded"
 	ReasonToolFailed         FailureReason = "tool_failed"
@@ -119,6 +125,7 @@ const (
 
 var (
 	ErrInvalidMedia       = errors.New("invalid media")
+	ErrFrameUnavailable   = errors.New("video frame unavailable")
 	ErrSourceTooLarge     = errors.New("media source is too large")
 	ErrUnsupportedMedia   = errors.New("unsupported media")
 	ErrProcessingFailed   = errors.New("media processing failed")
@@ -142,6 +149,7 @@ type Thumbnail struct {
 type ProcessingResult struct {
 	Metadata  Metadata
 	Thumbnail Thumbnail
+	Warning   *FailureDiagnostic
 }
 
 type Processor interface {
@@ -211,7 +219,28 @@ func StoryboardProcessingTimeout(width, height, frameCount int) (time.Duration, 
 	referenceWork := storyboardReferencePixels * int64(StoryboardMaxFrames)
 	workUnits := (work + referenceWork - 1) / referenceWork
 	timeout := time.Duration(max(int64(1), workUnits)) * DefaultStoryboardTimeout
-	return min(timeout, MaxStoryboardAttemptTimeout), nil
+	return min(timeout, 3*time.Minute), nil
+}
+
+// StoryboardProcessingTimeoutForSource extends only the long-frame plan for a
+// very large video. File size is a conservative proxy for expensive remote
+// seeks and high-bitrate decode work that dimensions alone cannot describe.
+func StoryboardProcessingTimeoutForSource(
+	width, height, frameCount int,
+	sourceBytes int64,
+) (time.Duration, error) {
+	timeout, err := StoryboardProcessingTimeout(width, height, frameCount)
+	if err != nil || sourceBytes < 1 || sourceBytes > MaxVideoSourceBytes {
+		if err != nil {
+			return 0, err
+		}
+		return 0, ErrInvalidResult
+	}
+	if frameCount == StoryboardMaxFrames &&
+		sourceBytes >= StoryboardLargeSourceBytes {
+		return max(timeout, LargeStoryboardTimeout), nil
+	}
+	return timeout, nil
 }
 
 func ValidateStoryboardResult(
@@ -233,16 +262,33 @@ func ValidateStoryboardResult(
 	return nil
 }
 
-func ValidateProcessingResult(kind Kind, result ProcessingResult) error {
-	if ValidateMetadata(kind, result.Metadata) != nil ||
+func ValidateProcessingResult(
+	kind Kind,
+	format Format,
+	result ProcessingResult,
+) error {
+	if validateProcessingMetadata(kind, format, result.Metadata) != nil ||
 		result.Thumbnail.Width < 1 || result.Thumbnail.Height < 1 ||
 		result.Thumbnail.Width > GridThumbnailWidth ||
 		result.Thumbnail.Height > GridThumbnailHeight ||
 		len(result.Thumbnail.Bytes) == 0 ||
-		len(result.Thumbnail.Bytes) > MaxToolOutputBytes {
+		len(result.Thumbnail.Bytes) > MaxToolOutputBytes ||
+		!validProcessingWarning(kind, format, result) {
 		return ErrInvalidResult
 	}
 	return nil
+}
+
+func validProcessingWarning(kind Kind, format Format, result ProcessingResult) bool {
+	if result.Warning == nil {
+		return true
+	}
+	warning := result.Warning
+	return kind == KindImage && format == FormatJPEG &&
+		ValidateDimensions(result.Metadata.Width, result.Metadata.Height) == nil &&
+		warning.Stage == StageValidation &&
+		warning.Reason == ReasonDecodeRecovered &&
+		warning.Tool == "libvips" && warning.ExitCode == nil
 }
 
 func ValidateMetadata(kind Kind, metadata Metadata) error {
@@ -268,9 +314,40 @@ func ValidateMetadata(kind Kind, metadata Metadata) error {
 	return nil
 }
 
+func validateProcessingMetadata(kind Kind, format Format, metadata Metadata) error {
+	if !processingKindMatchesFormat(kind, format) {
+		return ErrInvalidResult
+	}
+	if kind == KindVideo {
+		return ValidateMetadata(kind, metadata)
+	}
+	if ValidateImageDimensions(format, metadata.Width, metadata.Height) != nil ||
+		metadata.DurationMS != nil ||
+		metadata.PlaybackStatus != PlaybackNotApplicable {
+		return ErrInvalidResult
+	}
+	return nil
+}
+
+func processingKindMatchesFormat(kind Kind, format Format) bool {
+	switch kind {
+	case KindImage:
+		return format == FormatJPEG || format == FormatPNG || format == FormatWebP
+	case KindAnimated:
+		return format == FormatGIF
+	case KindVideo:
+		return format == FormatMP4 || format == FormatMOV ||
+			format == FormatMKV || format == FormatAVI
+	default:
+		return false
+	}
+}
+
 func ValidateSourceSize(format Format, sizeBytes int64) error {
 	if sizeBytes < 1 {
-		return ErrInvalidMedia
+		return WithFailureDiagnostic(ErrInvalidMedia, FailureDiagnostic{
+			Stage: StageSourceRead, Reason: ReasonInvalidData, Tool: "filesystem",
+		})
 	}
 	switch format {
 	case FormatJPEG, FormatPNG, FormatWebP, FormatGIF:
@@ -292,9 +369,34 @@ func ValidateSourceSize(format Format, sizeBytes int64) error {
 }
 
 func ValidateDimensions(width, height int) error {
+	return validateDimensions(width, height, MaxDecodedPixels)
+}
+
+// ValidateImageDimensions keeps full-resolution decode limits for formats that
+// cannot shrink while loading. JPEG may exceed that working-pixel limit because
+// the libvips adapter uses decoder-level shrink-on-load before evaluating pixels.
+func ValidateImageDimensions(format Format, width, height int) error {
+	if width < 1 || height < 1 {
+		return WithFailureDiagnostic(ErrInvalidMedia, FailureDiagnostic{
+			Stage: StageProbe, Reason: ReasonInvalidData, Tool: "libvips",
+		})
+	}
+	maximumPixels := int64(MaxDecodedPixels)
+	if format == FormatJPEG {
+		maximumPixels = MaxJPEGSourcePixels
+	}
+	if err := validateDimensions(width, height, maximumPixels); err != nil {
+		return WithFailureDiagnostic(ErrSourceTooLarge, FailureDiagnostic{
+			Stage: StageProbe, Reason: ReasonSourceTooLarge, Tool: "libvips",
+		})
+	}
+	return nil
+}
+
+func validateDimensions(width, height int, maximumPixels int64) error {
 	if width < 1 || height < 1 ||
 		width > MaxMediaDimension || height > MaxMediaDimension ||
-		int64(width)*int64(height) > MaxDecodedPixels {
+		int64(width)*int64(height) > maximumPixels {
 		return ErrInvalidMedia
 	}
 	return nil

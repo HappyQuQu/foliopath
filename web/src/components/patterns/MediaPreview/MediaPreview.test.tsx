@@ -29,6 +29,7 @@ const item = {
     { label: "Type", value: "Image · image/jpeg" },
     {
       label: "Location",
+      layout: "path" as const,
       value:
         "2026年7月精品园子视频合集5/黑长发学生妹格外长且没有空格的文件路径/photo.jpg",
     },
@@ -70,6 +71,7 @@ it("renders non-modal media, metadata, navigation, and close controls", () => {
   );
   expect(screen.getByText("2.4 MB")).toBeVisible();
   const location = screen.getByText(/2026年7月精品园子视频合集5/);
+  expect(location.parentElement).toHaveAttribute("data-layout", "path");
   expect(location).toHaveStyle({
     overflowWrap: "anywhere",
     whiteSpace: "normal",

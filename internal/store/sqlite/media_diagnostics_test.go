@@ -107,15 +107,18 @@ func TestMediaDiagnosticsReturnsBoundedStructuredAttemptHistory(t *testing.T) {
 	}
 	if _, err := store.db.ExecContext(ctx, `
         UPDATE media_jobs SET status = 'failed', last_error_code = 'media_processing_timeout',
-            attempt_count = 3, finished_at_ms = 300 WHERE id = ?`, jobID); err != nil {
+			attempt_count = 3, created_at_ms = 200, finished_at_ms = 300 WHERE id = ?`, jobID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.db.ExecContext(ctx, `
         INSERT INTO media_job_attempts(
             job_id, attempt_number, outcome, stage, reason_code, tool,
             exit_code, duration_ms, finished_at_ms
-        ) VALUES (?, 3, 'permanent_failure', 'frame_extract',
-                  'time_limit_exceeded', 'ffmpeg', 124, 45000, 300)`, jobID); err != nil {
+		) VALUES
+			(?, 1, 'permanent_failure', 'probe',
+			 'invalid_media_data', 'ffprobe', 1, 10, 100),
+			(?, 3, 'permanent_failure', 'frame_extract',
+			 'time_limit_exceeded', 'ffmpeg', 124, 45000, 300)`, jobID, jobID); err != nil {
 		t.Fatal(err)
 	}
 	failure, err := store.GetMediaFailure(ctx, jobID)

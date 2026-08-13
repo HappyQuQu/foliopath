@@ -75,6 +75,14 @@ func NewService(
 }
 
 func (service *Service) Process(ctx context.Context, assetID int64) error {
+	return service.process(ctx, assetID, nil)
+}
+
+func (service *Service) process(
+	ctx context.Context,
+	assetID int64,
+	warning **media.FailureDiagnostic,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -142,7 +150,7 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := media.ValidateProcessingResult(asset.Kind, result); err != nil {
+	if err := media.ValidateProcessingResult(asset.Kind, asset.Format, result); err != nil {
 		return ErrInvalidState
 	}
 	reservation, err := service.capacity.Reserve(
@@ -167,6 +175,9 @@ func (service *Service) Process(ctx context.Context, assetID int64) error {
 		ByteSize: published.ByteSize, CreatedAtMS: service.now().UnixMilli(),
 	}); err != nil {
 		return err
+	}
+	if warning != nil {
+		*warning = result.Warning
 	}
 	return nil
 }

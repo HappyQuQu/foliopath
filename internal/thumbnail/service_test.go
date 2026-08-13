@@ -405,7 +405,7 @@ func TestStoryboardServiceFallsBackToFourFramesAfterAdaptiveTimeout(t *testing.T
 		len(processor.requests[0].TimestampsMS) != StoryboardLongFrameCount ||
 		processor.requests[0].Timeout != 3*time.Minute ||
 		len(processor.requests[1].TimestampsMS) != StoryboardShortFrameCount ||
-		processor.requests[1].Timeout != 90*time.Second ||
+		processor.requests[1].Timeout != 2*time.Minute ||
 		repository.storyboardReady == nil ||
 		repository.storyboardReady.Result.FrameCount != StoryboardShortFrameCount ||
 		repository.storyboardFailure != nil {
@@ -416,6 +416,61 @@ func TestStoryboardServiceFallsBackToFourFramesAfterAdaptiveTimeout(t *testing.T
 			repository.storyboardReady,
 			repository.storyboardFailure,
 		)
+	}
+}
+
+func TestStoryboardFallbackIsLimitedToTimeoutAndUnavailableFrame(t *testing.T) {
+	noFrame := media.WithFailureDiagnostic(
+		media.ErrFrameUnavailable,
+		media.FailureDiagnostic{
+			Stage: media.StageFrameExtract, Reason: media.ReasonNoFrame, Tool: "ffmpeg",
+		},
+	)
+	if !storyboardShouldFallback(noFrame) {
+		t.Fatal("unavailable frame did not enable the four-frame fallback")
+	}
+	toolFailure := media.WithFailureDiagnostic(
+		media.ErrProcessingFailed,
+		media.FailureDiagnostic{
+			Stage: media.StageFrameExtract, Reason: media.ReasonToolFailed, Tool: "ffmpeg",
+		},
+	)
+	if storyboardShouldFallback(toolFailure) {
+		t.Fatal("unknown tool failure unexpectedly enabled fallback")
+	}
+}
+
+func TestStoryboardFallbackTimeoutUsesOnlyNeededRemainingBudget(t *testing.T) {
+	if got := storyboardFallbackTimeout(45*time.Second, 45*time.Second); got != 45*time.Second {
+		t.Fatalf("1080p fallback timeout = %s", got)
+	}
+	if got := storyboardFallbackTimeout(3*time.Minute, 90*time.Second); got != 2*time.Minute {
+		t.Fatalf("4K fallback timeout = %s", got)
+	}
+	if got := storyboardFallbackTimeout(4*time.Minute, 90*time.Second); got != 2*time.Minute {
+		t.Fatalf("large 4K fallback timeout = %s", got)
+	}
+}
+
+func TestStoryboardRequestExtendsTenFrameBudgetForLargeSource(t *testing.T) {
+	duration := int64(68_000)
+	plan, err := NewStoryboardPlan(duration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := storyboardRequest(
+		Asset{Width: 3840, Height: 2160},
+		plan,
+		320,
+		180,
+		media.StoryboardLargeSourceBytes,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(request.TimestampsMS) != StoryboardLongFrameCount ||
+		request.Timeout != media.LargeStoryboardTimeout {
+		t.Fatalf("large request = %#v", request)
 	}
 }
 

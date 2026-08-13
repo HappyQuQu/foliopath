@@ -63,11 +63,16 @@ export function safeViewerReturnPath(
     const isCurrentLibraryBrowse =
       url.pathname === `${libraryPrefix}browse` ||
       url.pathname.startsWith(`${libraryPrefix}browse/`);
+    const curationSegments = url.pathname.split("/").filter(Boolean);
+    const isCurationView =
+      url.pathname === "/favorites" ||
+      (curationSegments[0] === "tags" && curationSegments.length <= 2);
     const allowed =
       url.origin === "https://foliopath.invalid" &&
       (url.pathname === "/search" ||
         isLibrarySearch ||
-        isCurrentLibraryBrowse);
+        isCurrentLibraryBrowse ||
+        isCurationView);
     return allowed ? `${url.pathname}${url.search}${url.hash}` : fallback;
   } catch {
     return fallback;

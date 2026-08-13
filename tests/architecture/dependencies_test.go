@@ -1024,7 +1024,9 @@ func TestMediaProcessingAndThumbnailDerivationHaveCanonicalOwners(t *testing.T) 
 			contents: []string{
 				`"github.com/davidbyttow/govips/v2/vips"`,
 				"vips.LoadImageFromBuffer",
-				"media.ValidateDimensions",
+				"probe.OriginalFormat()",
+				"vips.LoadThumbnailFromBuffer",
+				"media.ValidateImageDimensions",
 				"image.ExportWebp",
 			},
 		},

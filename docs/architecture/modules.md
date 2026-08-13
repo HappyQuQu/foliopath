@@ -29,7 +29,7 @@
 | `internal/catalog` | `Directory`/`Asset` 领域模型、indexed root 公开映射、库/目录/递归 scope normalization、目录计数语义、浏览/搜索/排序、keyset cursor payload 与查询指纹 | catalog repository、媒体可用性/派生状态的窄读接口、`internal/cursor` codec | 请求时递归文件系统、HTTP 查询参数 DTO、SQLite FTS 语句 |
 | `internal/scanner` | 完整/增量校准、generation 状态机、遍历批次、成功清理资格、取消与跳过统计 | walker、scan repository、媒体分类器、派生任务发布端口、时钟 | 无界 goroutine、媒体解码、HTTP 轮询、失败扫描的陈旧清理 |
 | `internal/thumbnail` | 缩略图/封面 variant、源失效、transform version、缓存键、派生状态、配额与 LRU 业务语义 | asset reader、processor、cache、thumbnail repository、job handler | 原媒体写入、SQLite BLOB、shell 命令、HTTP 占位响应决定 |
-| `internal/media` | MVP 媒体格式注册表、魔数/类型验证策略、编码大小/解码维度/像素限制、元数据探测、原媒体内容服务语义、媒体工具限制 | safe opener、probe/poster processor、catalog reader | HTTP handler、任意客户端路径、视频转码、无界子进程 |
+| `internal/media` | MVP 媒体格式注册表、真实格式/魔数验证策略、编码大小/按格式解码像素限制、元数据探测、原媒体内容服务语义、媒体工具产物验证与限制 | safe opener、probe/poster processor、catalog reader | HTTP handler、任意客户端路径、视频转码、无界子进程 |
 | `internal/jobs` | durable job 的领取/租约、幂等、重试退避、取消、恢复、公平调度与全局 admission | job repository、注册的 capability handler、时钟、并发门 | 具体缩略图/扫描业务、文件路径解析、无限内存队列 |
 | `internal/pathpolicy` | 不接触 I/O 的相对路径词法规范、编码歧义和 dot/separator/NUL 拒绝 | 纯值函数，供 library、scanner 与 files 使用 | OS 文件访问、真实路径身份、HTTP、数据库或业务状态 |
 | `internal/cursor` | 加密认证的 opaque token 编解码机制 | 纯 codec，供拥有资源查询语义的 capability 使用 | cursor payload、查询指纹、排序、分页规则、HTTP 参数 |
@@ -179,8 +179,8 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 | HTTP 交互请求 | API 中间件 + `internal/app` 全局限制 | 后台扫描不能饿死健康、认证、目录首屏和取消请求；流式响应传播客户端取消 |
 | 目录遍历 | scanner 使用 app 注入的全局/每库预算 | 流式读取、固定 worker 数、有界结果队列；不为每个条目建 goroutine |
 | SQLite 写入 | SQLite adapter 的串行 writer 或等价单一写入策略 | busy timeout、短批次、无文件/网络/媒体 I/O；读请求不被长事务长期阻塞 |
-| 图片/libvips | `app` 生命周期 + media 资源策略 + 2-worker 全局 limiter | 256 MiB 输入、32,768 px/100 MP、native concurrency 1、64 MiB/32 entry cache；调用返回后取消不得发布 |
-| ffprobe/FFmpeg | media 资源策略 + 2-worker 全局 limiter | 1 TiB 视频源、32,768 px/100 MP、参数数组、单 decoder/filter thread、进程组取消、probe/poster 各 60 秒和 8 MiB 输出上限；超限与内容损坏分开诊断 |
+| 图片/libvips | `app` 生命周期 + media 资源策略 + 2-worker 全局 limiter | 256 MiB 输入、32,768 px；非 JPEG 100 MP，真实 JPEG 独立 180 MP 且超过 100 MP 使用 shrink-on-load；native concurrency 1、64 MiB/32 entry cache；调用返回后取消不得发布 |
+| ffprobe/FFmpeg | media 资源策略 + 2-worker 全局 limiter | 1 TiB 视频源、32,768 px/100 MP、参数数组、单 decoder/filter thread、进程组取消、probe/poster 各 60 秒、storyboard 自适应总预算和 8 MiB 输出上限；超限与内容损坏分开诊断，external libdav1d 只扩展服务端 AV1 派生解码 |
 | 缓存写入与 GC | thumbnail/cache limiter | 临时与 DB 保留安全磁盘余量；GC 不删除原媒体、不与发布同一 key 竞争 |
 | 定时与重试 | jobs 调度器 | 跨库公平、退避带上限、启动风暴受控、同一逻辑任务不并发重复执行 |
 
@@ -188,9 +188,15 @@ SQLite 写入串行化、批次有界，任何事务都不得覆盖目录遍历�
 
 `Post-MVP/1` 的 [FTR-VID-001](../features/video-storyboard-preview.md)沿用上述所有权：
 `internal/thumbnail` 拥有 storyboard variant、采样计划、派生键、发布和 LRU；
-`internal/media` adapter 只实现有界 seek/解码；`internal/jobs` 唯一拥有 grid 高于
+`internal/media` adapter 只实现有界 seek/解码，包括无帧时最多 `±1s` 的邻帧恢复；
+`internal/jobs` 唯一拥有 grid 高于
 storyboard 的 claim 优先级和跨库公平；共享 `MediaCollection` 唯一拥有 hover 生命周期。
 这项计划不授权建立第二个媒体队列、独立 worker 服务或 feature-local MediaCard。
+
+2026-08-12 的[媒体处理韧性修复](../changes/FIX-2026-08-12-media-processing-resilience.md)
+只调整 `internal/media` 的既有资源/工具机制和 `internal/thumbnail` 的既有 10→4 终态语义。
+它复用当前 API error code、attempt stage/reason/tool、schema、migration 和 transform version，
+不改变模块依赖、事务所有权或任务一致性边界。
 
 ## 明确禁止项
 

@@ -27,7 +27,7 @@ type operation struct {
 
 var (
 	pathLine      = regexp.MustCompile(`^  (/[^:]+):$`)
-	methodLine    = regexp.MustCompile(`^    (get|post|patch|delete|head):$`)
+	methodLine    = regexp.MustCompile(`^    (get|post|put|patch|delete|head):$`)
 	operationID   = regexp.MustCompile(`(?m)^      operationId: ([A-Za-z][A-Za-z0-9]+)$`)
 	componentRef  = regexp.MustCompile(`\$ref: '#/components/([A-Za-z]+)/([A-Za-z0-9]+)'`)
 	componentKind = regexp.MustCompile(`^  (securitySchemes|parameters|headers|responses|schemas):$`)
@@ -71,9 +71,9 @@ func TestOpenAPIDeclaresRepositoryLicenseAndFrozenBaseline(t *testing.T) {
 	for _, required := range []string{
 		"name: AGPL-3.0-or-later",
 		"status: authoritative",
-		"targetVersion: POST-MVP-3",
+		"targetVersion: POST-MVP-4",
 		"scopeRevision: 1",
-		"baselineEvent: CR-2026-015",
+		"baselineEvent: CR-2026-020",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("OpenAPI metadata is missing %q", required)
@@ -142,6 +142,15 @@ func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 		"GET /api/v1/libraries/{libraryId}/assets",
 		"GET /api/v1/assets",
 		"GET /api/v1/assets/{assetId}",
+		"GET /api/v1/favorites",
+		"PUT /api/v1/assets/{assetId}/favorite",
+		"GET /api/v1/assets/{assetId}/curation",
+		"PUT /api/v1/assets/{assetId}/tags",
+		"GET /api/v1/tags",
+		"POST /api/v1/tags",
+		"PATCH /api/v1/tags/{tagId}",
+		"DELETE /api/v1/tags/{tagId}",
+		"GET /api/v1/tags/{tagId}/assets",
 		"GET /api/v1/assets/{assetId}/thumbnail",
 		"GET /api/v1/assets/{assetId}/content",
 		"HEAD /api/v1/assets/{assetId}/content",
@@ -154,7 +163,7 @@ func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 	sort.Strings(got)
 	sort.Strings(want)
 	if diff := sliceDiff(want, got); diff != "" {
-		t.Fatalf("MVP operation set differs (-want +got):\n%s", diff)
+		t.Fatalf("authoritative operation set differs (-want +got):\n%s", diff)
 	}
 }
 

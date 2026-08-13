@@ -40,6 +40,7 @@ import { SearchPage, searchKeys } from "../features/search";
 import { MediaViewerPage } from "../features/media";
 import { LogsPage } from "../features/diagnostics";
 import { AboutPage } from "../features/release-info";
+import { CurationPage, curationKeys } from "../features/curation";
 import {
   messageForReadiness,
   useSystemReadinessQuery,
@@ -73,6 +74,9 @@ export function AppRoutes() {
         <Route path={paths.browsePattern} element={<ProtectedBrowseRoute />} />
         <Route path={paths.mediaPattern} element={<ProtectedMediaRoute />} />
         <Route path={paths.search} element={<ProtectedSearchRoute />} />
+        <Route path={paths.favorites} element={<ProtectedCurationRoute />} />
+        <Route path={paths.tags} element={<ProtectedCurationRoute />} />
+        <Route path={paths.tagPattern} element={<ProtectedCurationRoute />} />
         <Route
           path={paths.librarySearchPattern}
           element={<ProtectedSearchRoute />}
@@ -98,6 +102,8 @@ function CatalogRevisionMonitor() {
   const enabled = session.isSuccess && (
     location.pathname === paths.libraries ||
     location.pathname === paths.search ||
+    location.pathname === paths.favorites ||
+    location.pathname.startsWith(paths.tags) ||
     location.pathname.includes("/browse") ||
     location.pathname.includes("/search")
   );
@@ -116,6 +122,7 @@ function CatalogRevisionMonitor() {
     void refreshChangedCatalogQueries(queryClient, [
       catalogKeys.all,
       searchKeys.all,
+      curationKeys.all,
       libraryKeys.all,
     ]);
   }, [queryClient, state.data?.contentRevision]);
@@ -369,6 +376,28 @@ function ProtectedSearchRoute() {
   return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
 }
 
+function ProtectedCurationRoute() {
+  const { tagId } = useParams<{ tagId?: string }>();
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return (
+      <CurationPage
+        {...logout}
+        session={sessionQuery.data}
+        {...(tagId ? { tagId } : {})}
+      />
+    );
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
 function ProtectedMediaRoute() {
   const { assetId, libraryId } = useParams<{
     assetId: string;
@@ -381,7 +410,13 @@ function ProtectedMediaRoute() {
   }
   if (sessionQuery.isPending) return <RouteLoading />;
   if (sessionQuery.isSuccess) {
-    return <MediaViewerPage assetId={assetId} libraryId={libraryId} />;
+    return (
+      <MediaViewerPage
+        assetId={assetId}
+        libraryId={libraryId}
+        session={sessionQuery.data}
+      />
+    );
   }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;

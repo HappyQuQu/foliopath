@@ -227,19 +227,21 @@ func (s *Store) CommitReady(ctx context.Context, ready thumbnail.Ready) error {
 		return thumbnail.ErrInvalidState
 	}
 	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
-		var kind string
+		var kind, format string
 		result := ready.Result
 		if err := tx.QueryRowContext(ctx, `
-            SELECT kind FROM assets
+            SELECT kind, media_format FROM assets
             WHERE id = ? AND source_fingerprint = ?`,
 			ready.AssetID, ready.SourceFingerprint.String(),
-		).Scan(&kind); err != nil {
+		).Scan(&kind, &format); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return thumbnail.ErrSourceChanged
 			}
 			return fmt.Errorf("verify ready thumbnail source: %w", err)
 		}
-		if err := media.ValidateProcessingResult(media.Kind(kind), result); err != nil {
+		if err := media.ValidateProcessingResult(
+			media.Kind(kind), media.Format(format), result,
+		); err != nil {
 			return thumbnail.ErrInvalidState
 		}
 		if _, err := tx.ExecContext(ctx, `

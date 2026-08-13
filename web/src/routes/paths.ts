@@ -24,6 +24,10 @@ export const paths = {
     }`,
   browsePattern: "/libraries/:libraryId/browse/:directoryId?",
   search: "/search",
+  favorites: "/favorites",
+  tags: "/tags",
+  tag: (tagId: string) => `/tags/${encodeURIComponent(tagId)}`,
+  tagPattern: "/tags/:tagId",
   librarySearch: (libraryId: string) =>
     `/libraries/${encodeURIComponent(libraryId)}/search`,
   librarySearchPattern: "/libraries/:libraryId/search",

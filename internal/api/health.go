@@ -54,6 +54,7 @@ type RouteDependencies struct {
 	ReleaseInfo      ReleaseInfoService
 	Settings         SettingsService
 	Catalog          CatalogService
+	Curation         CurationService
 	Thumbnails       ThumbnailService
 	Content          ContentService
 	ContentAdmission ContentAdmission
@@ -111,6 +112,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Catalog != nil {
 		registerCatalogRoutes(mux, dependencies.Catalog)
+	}
+	if dependencies.Curation != nil {
+		registerCurationRoutes(mux, dependencies.Curation)
 	}
 	if dependencies.Thumbnails != nil {
 		registerThumbnailRoute(mux, dependencies.Thumbnails)

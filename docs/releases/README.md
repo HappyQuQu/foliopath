@@ -50,6 +50,9 @@
   WCH-S0 当前只对 Linux watcher spike 与 ADR 评审 Conditional Go。
 - [`POST-MVP-3` scope revision 1](POST-MVP-3-scope.md)：冻结后台任务恢复、结构化日志、
   关于/版本更新与全局消息中心；按失败诊断、发布信息、消费者 UI 和统一任务历史分片交付。
+- [`POST-MVP-4` scope revision 1](POST-MVP-4-scope.md)：冻结
+  [FTR-CUR-001 收藏与手动标签](../features/favorites-and-tags.md)；CUR-S3 UI 已 Go，CUR-S4
+  当前为 Conditional Go；消费者 UI 已完成，Integrated Done 仍受发布证据阻断。
 
 已合入的 manifest 不原地改写。范围变化先创建 Change Record；获批后新增 revision 文件或下一版本
 manifest，并在新旧文件中链接替代关系。安全不变量不能通过 scope-budget exception 移除。

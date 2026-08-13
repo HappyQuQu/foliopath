@@ -12,6 +12,7 @@ import {
 import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
 import { LoadingState } from "../../../components/ui";
 import { assetContentUrl } from "../../../lib/api/catalog";
+import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/errors";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import {
@@ -26,14 +27,17 @@ import {
 } from "../../../lib/navigation/viewer";
 import { paths } from "../../../routes/paths";
 import { useAssetQuery } from "../queries";
+import { AssetCurationControls } from "../../curation";
 import styles from "./MediaViewerPage.module.css";
 
 export function MediaViewerPage({
   assetId,
   libraryId,
+  session,
 }: {
   assetId: string;
   libraryId: string;
+  session?: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
   const location = useLocation();
@@ -142,6 +146,11 @@ export function MediaViewerPage({
       availability={availability}
       canGoNext={Boolean(next)}
       canGoPrevious={Boolean(previous)}
+      curationContent={
+        asset && asset.libraryId === libraryId && session ? (
+          <AssetCurationControls assetId={asset.id} csrfToken={session.csrfToken} />
+        ) : undefined
+      }
       item={usableViewerItem}
       labels={{
         close: t("viewer.close"),
