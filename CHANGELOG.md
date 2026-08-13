@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/HappyQuQu/foliopath/compare/v1.2.1...v1.3.0) (2026-08-13)
+
+
+### ✨ 新功能
+
+* add curation and resilient media processing ([f520c37](https://github.com/HappyQuQu/foliopath/commit/f520c37ba1c38d9044df1d1e0e2c0b56bcfc237a))
+
 ## [1.2.1](https://github.com/HappyQuQu/foliopath/compare/v1.2.0...v1.2.1) (2026-08-06)
 
 
