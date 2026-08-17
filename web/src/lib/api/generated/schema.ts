@@ -2226,6 +2226,13 @@ export interface components {
          *     video sprite and returns `unsupported_media` when it does not apply.
          */
         ThumbnailVariantParameter: "grid" | "storyboard";
+        /**
+         * @description Opaque source-bound cache version emitted by asset responses. Clients
+         *     must preserve it when present so immutable browser entries cannot be
+         *     reused after an asset ID is reassigned or its source changes. It is
+         *     optional only for compatibility with previously emitted URLs.
+         */
+        ThumbnailVersionParameter: string;
     };
     requestBodies: never;
     headers: {
@@ -2648,6 +2655,13 @@ export interface operations {
     getAssetThumbnail: {
         parameters: {
             query?: {
+                /**
+                 * @description Opaque source-bound cache version emitted by asset responses. Clients
+                 *     must preserve it when present so immutable browser entries cannot be
+                 *     reused after an asset ID is reassigned or its source changes. It is
+                 *     optional only for compatibility with previously emitted URLs.
+                 */
+                v?: components["parameters"]["ThumbnailVersionParameter"];
                 /**
                  * @description Bounded, server-defined transform variant. `grid` is the static image
                  *     thumbnail or video poster. `storyboard` is an all-or-nothing 4–10 frame

@@ -83,7 +83,7 @@ func TestThumbnailHTTPMapsPendingFailedOfflineAndInvalidQuery(t *testing.T) {
 			delivery: thumbnail.Delivery{
 				Status: thumbnail.DeliveryRunning, RetryAfterMS: 1000,
 			},
-			target:     "/api/v1/assets/ast_7/thumbnail",
+			target:     "/api/v1/assets/ast_7/thumbnail?v=0123456789abcdef0123456789abcdef",
 			wantStatus: http.StatusAccepted,
 		},
 		{
@@ -107,6 +107,12 @@ func TestThumbnailHTTPMapsPendingFailedOfflineAndInvalidQuery(t *testing.T) {
 			name:       "invalid variant",
 			delivery:   thumbnail.Delivery{Status: thumbnail.DeliveryQueued},
 			target:     "/api/v1/assets/ast_7/thumbnail?variant=viewer",
+			wantStatus: http.StatusBadRequest, wantCode: codeInvalidRequest,
+		},
+		{
+			name:       "invalid cache version",
+			delivery:   thumbnail.Delivery{Status: thumbnail.DeliveryQueued},
+			target:     "/api/v1/assets/ast_7/thumbnail?v=old",
 			wantStatus: http.StatusBadRequest, wantCode: codeInvalidRequest,
 		},
 	}

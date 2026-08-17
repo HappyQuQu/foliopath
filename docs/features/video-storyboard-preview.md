@@ -261,7 +261,7 @@ sprite。该规则由 capability 拥有，adapter 不得自行接受部分成功
 schema 为 [`api/openapi.yaml`](../../api/openapi.yaml)。
 
 ```http
-GET /api/v1/assets/{assetId}/thumbnail?variant=storyboard
+GET /api/v1/assets/{assetId}/thumbnail?variant=storyboard&v={opaqueSourceVersion}
 ```
 
 列表与详情中的资产派生状态增加：
@@ -270,7 +270,7 @@ GET /api/v1/assets/{assetId}/thumbnail?variant=storyboard
 {
   "storyboard": {
     "status": "ready",
-    "url": "/api/v1/assets/ast_example/thumbnail?variant=storyboard",
+    "url": "/api/v1/assets/ast_example/thumbnail?variant=storyboard&v=0123456789abcdef0123456789abcdef",
     "frameCount": 10,
     "columns": 5,
     "rows": 2,
@@ -283,7 +283,9 @@ GET /api/v1/assets/{assetId}/thumbnail?variant=storyboard
 
 状态语义：
 
-- `200 image/webp`：ready sprite，带强 ETag、private immutable cache 和 nosniff；
+- `200 image/webp`：ready sprite，带强 ETag、private immutable cache 和 nosniff；资产响应
+  发出的 URL 必须包含绑定媒体库、相对路径、源指纹、variant 和 transform version 的不透明 `v`，防止资产 ID
+  复用或源变化后命中旧的 immutable 浏览器缓存；
 - `202 application/json`：queued/running/backfill 尚未 admission，带有界 `Retry-After`；
 - `304`：条件请求命中；
 - `404`：资产不存在或资产不是适用视频；

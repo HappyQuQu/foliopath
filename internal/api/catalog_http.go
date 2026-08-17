@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/url"
@@ -449,7 +451,7 @@ func thumbnailReferenceWire(item catalog.Asset) thumbnailReferenceResponse {
 	}
 	switch item.ThumbnailStatus {
 	case "ready":
-		value := "/api/v1/assets/" + assetIDString(item.ID) + "/thumbnail?variant=grid"
+		value := derivedMediaURL(item, thumbnail.VariantGrid)
 		return thumbnailReferenceResponse{Status: "ready", URL: &value}
 	case "failed":
 		var code *string
@@ -498,8 +500,7 @@ func storyboardReferenceWire(item catalog.Asset) storyboardReferenceResponse {
 			item.StoryboardCellHeight == nil {
 			return response
 		}
-		url := "/api/v1/assets/" + assetIDString(item.ID) +
-			"/thumbnail?variant=storyboard"
+		url := derivedMediaURL(item, thumbnail.VariantStoryboard)
 		response.Status = "ready"
 		response.URL = &url
 		response.FrameCount = item.StoryboardFrameCount
@@ -515,6 +516,26 @@ func storyboardReferenceWire(item catalog.Asset) storyboardReferenceResponse {
 		}
 	}
 	return response
+}
+
+func derivedMediaURL(item catalog.Asset, variant thumbnail.Variant) string {
+	hash := sha256.New()
+	_, _ = hash.Write([]byte(strconv.FormatInt(item.LibraryID, 10)))
+	_, _ = hash.Write([]byte{'\x00'})
+	_, _ = hash.Write([]byte(item.RelativePath))
+	_, _ = hash.Write([]byte{'\x00'})
+	_, _ = hash.Write([]byte(item.SourceFingerprint))
+	_, _ = hash.Write([]byte{'\x00'})
+	_, _ = hash.Write([]byte(variant))
+	_, _ = hash.Write([]byte{'\x00'})
+	transformVersion := thumbnail.GridTransformVersion
+	if variant == thumbnail.VariantStoryboard {
+		transformVersion = thumbnail.StoryboardTransformVersion
+	}
+	_, _ = hash.Write([]byte(strconv.Itoa(transformVersion)))
+	version := hex.EncodeToString(hash.Sum(nil)[:16])
+	return "/api/v1/assets/" + assetIDString(item.ID) +
+		"/thumbnail?variant=" + string(variant) + "&v=" + version
 }
 
 func publicThumbnailErrorCode(code media.ProcessingErrorCode) string {

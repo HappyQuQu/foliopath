@@ -2283,6 +2283,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AssetIDParameter'
         - $ref: '#/components/parameters/ThumbnailVariantParameter'
+        - $ref: '#/components/parameters/ThumbnailVersionParameter'
         - $ref: '#/components/parameters/IfNoneMatchHeader'
       responses:
         '200':
@@ -2705,6 +2706,18 @@ components:
         type: string
         enum: [grid, storyboard]
         default: grid
+    ThumbnailVersionParameter:
+      name: v
+      in: query
+      required: false
+      description: |
+        Opaque source-bound cache version emitted by asset responses. Clients
+        must preserve it when present so immutable browser entries cannot be
+        reused after an asset ID is reassigned or its source changes. It is
+        optional only for compatibility with previously emitted URLs.
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
     IdempotencyKeyHeader:
       name: Idempotency-Key
       in: header

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -78,16 +79,33 @@ func parseThumbnailVariant(raw string) (thumbnail.Variant, error) {
 	}
 	variant := thumbnail.VariantGrid
 	for key, entries := range values {
-		if key != "variant" || len(entries) != 1 {
+		if len(entries) != 1 {
 			return "", errors.New("invalid thumbnail query")
 		}
-		variant = thumbnail.Variant(entries[0])
+		switch key {
+		case "variant":
+			variant = thumbnail.Variant(entries[0])
+		case "v":
+			if !validThumbnailVersion(entries[0]) {
+				return "", errors.New("invalid thumbnail query")
+			}
+		default:
+			return "", errors.New("invalid thumbnail query")
+		}
 	}
 	if variant != thumbnail.VariantGrid &&
 		variant != thumbnail.VariantStoryboard {
 		return "", errors.New("invalid thumbnail query")
 	}
 	return variant, nil
+}
+
+func validThumbnailVersion(value string) bool {
+	if len(value) != 32 {
+		return false
+	}
+	decoded, err := hex.DecodeString(value)
+	return err == nil && len(decoded) == 16
 }
 
 func writeReadyThumbnail(

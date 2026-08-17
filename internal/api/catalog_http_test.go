@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -153,10 +154,10 @@ func TestCatalogAssetRoutesTranslateBrowseAndDetailContract(t *testing.T) {
 	}
 	if len(page.Items) != 1 || page.Items[0].ID != "ast_9" ||
 		page.Items[0].Thumbnail.URL == nil ||
-		*page.Items[0].Thumbnail.URL != "/api/v1/assets/ast_9/thumbnail?variant=grid" ||
 		page.NextCursor == nil || *page.NextCursor != "next" {
 		t.Fatalf("asset page = %#v", page)
 	}
+	assertDerivedMediaURL(t, *page.Items[0].Thumbnail.URL, "ast_9", "grid")
 
 	detail := httptest.NewRecorder()
 	mux.ServeHTTP(detail, httptest.NewRequest(
@@ -181,18 +182,20 @@ func TestStoryboardReferenceWireReadyAndNotApplicable(t *testing.T) {
 	frameCount, columns, rows := int64(10), int64(5), int64(2)
 	cellWidth, cellHeight := int64(320), int64(180)
 	ready := storyboardReferenceWire(catalog.Asset{
-		ID: 9, Kind: catalog.KindVideo, DurationMS: &duration,
+		ID: 9, LibraryID: 7, RelativePath: "videos/example.mp4",
+		SourceFingerprint: "v1:123:1700000000123000000",
+		Kind:              catalog.KindVideo, DurationMS: &duration,
 		Availability: catalog.SourceAvailable, StoryboardStatus: "ready",
 		StoryboardFrameCount: &frameCount, StoryboardColumns: &columns,
 		StoryboardRows: &rows, StoryboardCellWidth: &cellWidth,
 		StoryboardCellHeight: &cellHeight,
 	})
 	if ready.Status != "ready" || ready.URL == nil ||
-		*ready.URL != "/api/v1/assets/ast_9/thumbnail?variant=storyboard" ||
 		ready.FrameCount == nil || *ready.FrameCount != 10 ||
 		ready.ErrorCode != nil {
 		t.Fatalf("ready storyboard = %#v", ready)
 	}
+	assertDerivedMediaURL(t, *ready.URL, "ast_9", "storyboard")
 	notApplicable := storyboardReferenceWire(catalog.Asset{
 		ID: 10, Kind: catalog.KindImage, Availability: catalog.SourceAvailable,
 	})
@@ -200,6 +203,40 @@ func TestStoryboardReferenceWireReadyAndNotApplicable(t *testing.T) {
 		notApplicable.URL != nil ||
 		notApplicable.FrameCount != nil {
 		t.Fatalf("not-applicable storyboard = %#v", notApplicable)
+	}
+}
+
+func assertDerivedMediaURL(t *testing.T, raw, assetID, variant string) {
+	t.Helper()
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Path != "/api/v1/assets/"+assetID+"/thumbnail" ||
+		parsed.Query().Get("variant") != variant ||
+		!validThumbnailVersion(parsed.Query().Get("v")) {
+		t.Fatalf("derived media URL = %q", raw)
+	}
+}
+
+func TestDerivedMediaURLChangesWithSourceIdentityAndVariant(t *testing.T) {
+	base := catalog.Asset{
+		ID: 9, LibraryID: 7, RelativePath: "videos/example.mp4",
+		SourceFingerprint: "v1:123:1700000000123000000",
+	}
+	grid := derivedMediaURL(base, "grid")
+	changedPath := base
+	changedPath.RelativePath = "videos/other.mp4"
+	changedFingerprint := base
+	changedFingerprint.SourceFingerprint = "v1:124:1700000000123000001"
+	for name, candidate := range map[string]string{
+		"path":        derivedMediaURL(changedPath, "grid"),
+		"fingerprint": derivedMediaURL(changedFingerprint, "grid"),
+		"variant":     derivedMediaURL(base, "storyboard"),
+	} {
+		if candidate == grid {
+			t.Fatalf("%s change retained URL %q", name, grid)
+		}
 	}
 }
 

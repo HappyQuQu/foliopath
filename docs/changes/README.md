@@ -37,6 +37,10 @@
 
 ## Routine fixes
 
+### 2026-08-17
+
+- [派生媒体浏览器缓存版本](FIX-2026-08-17-derived-media-cache-version.md)
+
 ### 2026-08-13
 
 - [通知时间与处理结果清除](FIX-2026-08-13-notification-time-result-clear.md)
