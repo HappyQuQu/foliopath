@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/HappyQuQu/foliopath/compare/v1.3.0...v1.3.1) (2026-08-18)
+
+
+### 🐛 修复
+
+* version derived media cache URLs ([bfded12](https://github.com/HappyQuQu/foliopath/commit/bfded12b30d47f55c4a0694cf108fb8026fac24d))
+
 ## [1.3.0](https://github.com/HappyQuQu/foliopath/compare/v1.2.1...v1.3.0) (2026-08-13)
 
 
