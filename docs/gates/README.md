@@ -37,6 +37,8 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 
 当前记录：
 
+- [INT-S0：本地智能媒体发现 Architecture Ready](POST-MVP-5/int-s0-architecture-ready.md)（No-Go）
+
 - [CUR-S0：收藏与手动标签 Architecture Ready](POST-MVP-4/cur-s0-architecture-ready.md)
 - [CUR-S1：收藏与手动标签 Contract Ready](POST-MVP-4/cur-s1-contract-ready.md)
 - [CUR-S2：收藏与手动标签 Backend Evidence Ready](POST-MVP-4/cur-s2-backend-evidence-ready.md)

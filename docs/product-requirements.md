@@ -297,16 +297,23 @@ OpenAPI、migration 与生产代码必须等待 `OPS-S0/S1`，完整决定见
 仍在右侧共享非模态预览中显示详情并完成收藏与标签整理。当前切片状态见
 [CUR-S4 Integrated Slice Current](gates/POST-MVP-4/cur-s4-integrated-slice-current.md)。
 
-## 未排期的未来候选能力
+## `POST-MVP-5` 智能媒体发现提案（未冻结）
 
-OCR、AI 语义搜索和人脸识别仍受 `MVP-NG-004` 排除，不属于任何已冻结版本，但并非永久
-拒绝。产品决定是在 FolioPath 稳定上线后根据真实用户需求分别评估，当前建议顺序为 OCR、
-AI 语义搜索、人脸识别。
+图片语义搜索、受控 AI 标签建议、视频故事板代表帧搜索，以及“后台匿名人脸聚类 → 用户建立
+人物库 → 整组或单个人脸人工归类/纠错”已形成 [FTR-INT-001](features/intelligent-media-discovery.md)
+提案。它们仍受 `MVP-NG-004` 排除，不属于任何已冻结版本；当前
+[INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md)为 No-Go，只授权文档、合法 fixture 和
+隔离可行性 spike，不授权 OpenAPI、migration 或生产实现。
 
-三项能力必须默认关闭、按媒体库独立启用，只生成可删除和可重建的派生状态，不修改原始
-媒体，并通过统一有界任务队列执行。模型/provider、向量持久化、生物特征隐私、备份恢复、
-资源预算和生产 owner 尚未接受，因此本段不授权 spike 或实现。完整候选范围和 Gate 见
-[FTR-INT-001](features/intelligent-media-discovery.md)。
+该提案不包含 OCR，也不自动识别 Coser、模特、公众人物、真实身份或动漫角色姓名。人脸模型
+只形成匿名相似组和候选关系，名称与最终归类由用户建立。模型/runtime、向量索引、权重许可、
+生物特征隐私、备份恢复、4 CPU/4 GiB/100k 资源预算和 production owner 均须先由
+[INT-001](spikes/int-001-ai-feasibility.md)验证；未通过时必须删减对应范围或保持 No-Go。
+
+模型获取同属该未冻结提案：管理员可从签名发行清单中的审核源下载，或扫描固定只读 `/models`
+离线目录；默认校验后复制到 `/app/data/models`，也可在固定哈希和只读条件下直接使用。系统不接受
+任意 URL、任意路径或兼容清单外模型。国内镜像只有在项目/部署者真实提供并通过供应链 Gate 后才可
+承诺；当前原型和文档不构成镜像已经上线的证据。
 
 ## 非功能需求
 

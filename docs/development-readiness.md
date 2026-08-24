@@ -2,6 +2,14 @@
 
 ## 当前结论
 
+[FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)是独立的
+`POST-MVP-5` 提案，不继承 MVP 的 Stage 0 结论。其
+[INT-S0 Architecture Ready](gates/POST-MVP-5/int-s0-architecture-ready.md)当前为 **No-Go**；
+只允许 `INT-001～023` 文档、fixture、隔离 spike 和评审，不允许修改生产 OpenAPI、migration、
+后端、前端菜单或发布镜像。只有模型/权重许可、双架构运行时、100k 向量索引、4 GiB 资源和
+人脸聚类/隐私证据，以及审核下载源、`/models:ro`、托管复制/直接读取与 `R-030` 供应链证据通过，
+才可另行冻结 scope 并进入 S1。没有真实国内镜像 owner 和运行证据时不得把镜像选项纳入冻结范围。
+
 当前首要切片 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)已通过
 [UIF-S0 Architecture Ready](gates/MVP-2026-07-23/uif-s0-architecture-ready.md)与
 [UIF-S2 Backend Evidence Ready](gates/MVP-2026-07-23/uif-s2-backend-evidence-ready.md)、

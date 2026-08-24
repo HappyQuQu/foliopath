@@ -15,7 +15,9 @@ Contract Ready、Backend Evidence Ready、Consumer/UI Ready 和 Integrated Slice
 - [FTR-CUR-001：收藏与手动标签](favorites-and-tags.md)
 - [FTR-OPS-001：后台任务中心](task-center.md)（`Post-MVP/3` scope proposed）
 - [FTR-OPS-001 开发任务清单](task-center-task-list.md)
+- [FTR-INT-001：本地智能媒体发现](intelligent-media-discovery.md)（`POST-MVP-5` 提案，S0 No-Go）
+- [FTR-INT-001 开发任务清单](intelligent-media-discovery-task-list.md)
 
 未来候选（未排期，不授权实现）：
 
-- [FTR-INT-001：OCR、AI 语义搜索与人脸识别](intelligent-media-discovery.md)
+- 评分、时间线、地图、重复检测、OCR、自由 caption 和内容审核仍未排期。

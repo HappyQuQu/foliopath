@@ -34,6 +34,7 @@
 - [CR-2026-014：扫描后派生媒体进度](CR-2026-014-derived-media-progress.md)
 - [CR-2026-015：任务可恢复、日志中心、版本更新与消息中心](CR-2026-015-operations-observability-and-updates.md)
 - [CR-2026-020：收藏与手动标签](CR-2026-020-favorites-and-tags.md)
+- [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5` 提案）
 
 ## Routine fixes
 

@@ -1,604 +1,125 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>京都 — 家庭影像 — FolioPath</title>
-  <meta name="description" content="FolioPath 媒体浏览器 — 浏览京都照片和视频">
   <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=20260730-14">
-  <script src="theme.js?v=20260730-8"></script>
+  <link rel="stylesheet" href="styles.css?v=20260730-14"><link rel="stylesheet" href="browse-current.css?v=20260824-1">
+  <script src="theme.js?v=20260730-8"></script><script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script><script src="browse-current.js?v=20260824-1" defer></script>
 </head>
-<body>
-  <a href="#browse-heading" class="skip-link">跳到主要内容</a>
+<body class="current-browse">
+<a class="skip-link" href="#browse-main">跳到主要内容</a>
+<header class="current-header">
+  <a class="current-brand" href="03-browse.html" aria-label="FolioPath"><img src="assets/foliopath-mark-tree.svg" alt=""><span>FolioPath</span></a>
+  <form class="current-global-search" action="04-search.html" role="search"><i class="ph ph-magnifying-glass"></i><label class="sr-only" for="global-query">搜索文件名或路径</label><input id="global-query" name="q" type="search" placeholder="搜索全部照片和视频"><button type="submit">搜索</button></form>
+  <div class="current-header-actions"><a class="ai-header-entry" href="12-ai-features.html#search"><i class="ph ph-sparkle"></i><span>智能搜索</span></a><button type="button" class="current-icon" aria-label="切换到 English"><i class="ph ph-translate"></i></button><button type="button" class="current-icon" onclick="toggleTheme()" aria-label="切换主题"><i class="ph ph-sun"></i></button><button class="current-account" type="button"><span>管</span><strong>管理员</strong><i class="ph ph-caret-down"></i></button></div>
+</header>
 
-  <header class="global-header" data-global-header>
-    <a href="03-browse.html" class="brand" aria-label="FolioPath 首页">
-      <img class="brand-mark" src="assets/foliopath-mark-tree.svg" alt="" aria-hidden="true">
-      <span class="brand-wordmark">FolioPath</span>
-    </a>
+<aside class="current-sidebar" id="directory-sidebar" aria-label="媒体库和目录">
+  <div class="sidebar-drawer-head"><strong id="drawer-panel-title">目录</strong><button type="button" id="close-sidebar" aria-label="关闭侧栏"><i class="ph ph-x"></i></button></div>
+  <div class="sidebar-section"><label>媒体库</label><button class="library-button" type="button"><strong>家庭影像</strong><i class="ph ph-caret-down"></i></button><span class="library-state"><i></i>扫描中 · 12480 项</span><a class="ai-library-state" href="12-ai-features.html#search"><i class="ph ph-sparkle"></i><span>智能分析 · 4286 / 4978</span><em>86%</em></a></div>
+  <div class="sidebar-section quick-section"><p>快速访问</p><nav aria-label="快速访问"><button class="active" type="button" data-sidebar-mode="directories" aria-pressed="true"><i class="ph ph-image"></i>全部媒体</button><a href="#"><i class="ph ph-heart"></i>收藏</a><button type="button" data-sidebar-mode="tags" aria-pressed="false"><i class="ph ph-tag"></i>标签</button><button type="button" data-sidebar-mode="people" aria-pressed="false" class="ai-quick-link"><i class="ph ph-users-three"></i>人物归类<em>7</em></button></nav></div>
+  <div class="sidebar-section tree-section"><div class="sidebar-panel-heading"><p id="sidebar-panel-title">目录</p><button id="manage-context" type="button" hidden><i class="ph ph-sliders-horizontal"></i>管理</button></div><nav class="current-tree sidebar-context-panel" data-sidebar-panel="directories" aria-label="媒体库目录">
+    <div class="tree-row depth-0"><button type="button" data-tree-toggle aria-label="收起目录 家庭影像"><i class="ph ph-caret-down"></i></button><a href="#"><i class="ph ph-folder"></i><span>家庭影像</span></a></div>
+    <div class="tree-row depth-1"><button type="button" data-tree-toggle aria-label="展开目录 按年份"><i class="ph ph-caret-right"></i></button><a href="#"><i class="ph ph-folder"></i><span>按年份</span></a></div>
+    <div class="tree-row depth-1"><button type="button" data-tree-toggle aria-label="收起目录 旅行"><i class="ph ph-caret-down"></i></button><a href="#"><i class="ph ph-folder"></i><span>旅行</span></a></div>
+    <div class="tree-row depth-2"><button type="button" data-tree-toggle aria-label="收起目录 日本"><i class="ph ph-caret-down"></i></button><a href="#"><i class="ph ph-folder"></i><span>日本</span></a></div>
+    <div class="tree-row depth-3"><span></span><a href="#"><i class="ph ph-folder"></i><span>东京</span></a></div>
+    <div class="tree-row depth-3 selected"><button type="button" data-tree-toggle aria-label="收起目录 京都"><i class="ph ph-caret-down"></i></button><a href="#"><i class="ph ph-folder"></i><span>京都</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>清水寺</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>伏见稻荷大社</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>金阁寺</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>岚山</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>祇园</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>二条城</span></a></div>
+    <div class="tree-row depth-4"><span></span><a href="#"><i class="ph ph-folder"></i><span>其他</span></a></div>
+    <div class="tree-row depth-2"><span></span><a href="#"><i class="ph ph-folder"></i><span>大阪</span></a></div>
+    <div class="tree-row depth-2"><span></span><a href="#"><i class="ph ph-folder"></i><span>北海道</span></a></div>
+  </nav>
+  <nav class="sidebar-context-panel sidebar-collection-list" data-sidebar-panel="tags" aria-label="标签列表" hidden>
+    <button class="collection-row active" type="button" aria-pressed="true"><span class="collection-icon tag-icon"><i class="ph ph-tag"></i></span><span><strong>人物特写</strong><small>86 项媒体</small></span><em>86</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><span class="collection-icon tag-icon"><i class="ph ph-tag"></i></span><span><strong>室内棚拍</strong><small>64 项媒体</small></span><em>64</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><span class="collection-icon tag-icon"><i class="ph ph-tag"></i></span><span><strong>蓝白配色</strong><small>31 项媒体</small></span><em>31</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><span class="collection-icon tag-icon"><i class="ph ph-tag"></i></span><span><strong>和服</strong><small>28 项媒体</small></span><em>28</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><span class="collection-icon tag-icon"><i class="ph ph-tag"></i></span><span><strong>外景</strong><small>19 项媒体</small></span><em>19</em></button>
+  </nav>
+  <nav class="sidebar-context-panel sidebar-collection-list people-list" data-sidebar-panel="people" aria-label="人物列表" hidden>
+    <div class="collection-group-label"><span>已建立人物</span><small>3</small></div>
+    <button class="collection-row" type="button" aria-pressed="false"><img src="assets/ai-media/azure-01.png" alt=""><span><strong>常用模特 A</strong><small>26 张图片</small></span><em>26</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><img src="assets/ai-media/crimson-01.png" alt=""><span><strong>人物 02</strong><small>14 张图片</small></span><em>14</em></button>
+    <button class="collection-row" type="button" aria-pressed="false"><img src="assets/ai-media/forest-01.png" alt=""><span><strong>人物 03</strong><small>9 张图片</small></span><em>9</em></button>
+    <div class="collection-group-label review-label"><span>待命名归类</span><small>4</small></div>
+    <button class="collection-row review-row" type="button" aria-pressed="false"><img src="assets/ai-media/azure-02.png" alt=""><span><strong>未命名组 12</strong><small>18 张 · 高可信</small></span><em><i class="ph ph-caret-right"></i></em></button>
+    <button class="collection-row review-row" type="button" aria-pressed="false"><img src="assets/ai-media/crimson-02.png" alt=""><span><strong>未命名组 31</strong><small>11 张 · 高可信</small></span><em><i class="ph ph-caret-right"></i></em></button>
+    <button class="collection-row review-row" type="button" aria-pressed="false"><img src="assets/ai-media/forest-02.png" alt=""><span><strong>未命名组 44</strong><small>9 张 · 需复核</small></span><em><i class="ph ph-caret-right"></i></em></button>
+  </nav></div>
+</aside>
+<button class="sidebar-scrim" id="sidebar-scrim" type="button" aria-label="关闭目录"></button>
 
-    <form class="global-search" action="04-search.html" role="search" data-global-search>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" name="q" placeholder="搜索全部照片和视频" aria-label="全局搜索" data-global-search-input>
-    </form>
-
-    <div class="global-header-right">
-      <button class="admin-badge" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleAccountMenu()" data-account-trigger>
-        <span class="admin-label">管理员</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="account-menu" role="menu" hidden data-account-menu>
-        <div class="account-menu-header"><strong>管理员</strong><span>admin</span></div>
-        <a href="06-settings-libraries.html" role="menuitem">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-          媒体库
-        </a>
-        <a href="07-settings-general.html" role="menuitem">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          设置
-        </a>
-        <a href="01-auth.html" class="danger" role="menuitem">退出登录</a>
-      </div>
-    </div>
-  </header>
-  <div class="app-layout">
-  <div class="app-shell">
-    <!-- ========== SIDEBAR ========== -->
-            <aside class="sidebar" id="sidebar">
-      <!-- Library Picker (Top) -->
-      <div class="library-picker" style="margin-bottom: 24px;">
-        <span class="library-picker-label">当前位置</span>
-        <select class="library-picker-select" aria-label="媒体库">
-          <option selected>家庭影像</option>
-          <option>旅行摄影</option>
-          <option>工作素材</option>
-        </select>
-        <div class="library-picker-status">
-          <span class="dot scanning"></span>
-          <span>正在扫描 · 已发现 12,480 项</span>
-        </div>
-      </div>
-
-      <!-- Directory Tree -->
-      <span class="tree-label">目录</span>
-      <nav class="directory-tree" aria-label="目录导航">
-        <div class="tree-item">
-          <span class="tree-spacer"></span>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <span>全部媒体</span>
-          </a>
-        </div>
-        <div class="tree-item">
-          <button class="tree-toggle open" aria-label="收起 家庭影像">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>家庭影像</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 1;">
-          <button class="tree-toggle" aria-label="展开 按年份">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>按年份</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 1;">
-          <button class="tree-toggle open" aria-label="收起 旅行">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>旅行</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 2;">
-          <button class="tree-toggle open" aria-label="收起 日本">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>日本</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 3;">
-          <span class="tree-spacer"></span>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>东京</span>
-            <span class="count">186</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 3;">
-          <button class="tree-toggle open" aria-label="收起 京都">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link active">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>京都</span>
-            <span class="count">312</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 3;">
-          <span class="tree-spacer"></span>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>大阪</span>
-            <span class="count">124</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 3;">
-          <span class="tree-spacer"></span>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>北海道</span>
-            <span class="count">98</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 1;">
-          <button class="tree-toggle" aria-label="展开 欧洲">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>欧洲</span>
-          </a>
-        </div>
-        <div class="tree-item" style="--depth: 1;">
-          <button class="tree-toggle" aria-label="展开 美洲">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>美洲</span>
-          </a>
-        </div>
-        <div class="tree-item">
-          <button class="tree-toggle" aria-label="展开 活动">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L16 12L10 18z"/></svg>
-          </button>
-          <a href="#" class="tree-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            <span>活动</span>
-          </a>
-        </div>
-      </nav>
-
-      <!-- Bottom Nav -->
-      <nav class="sidebar-nav" aria-label="应用导航" hidden>
-        <a href="04-search.html">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          搜索
-        </a>
-        <a href="06-settings-libraries.html">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-          媒体库
-        </a>
-        <a href="07-settings-general.html">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          设置
-        </a>
-      </nav>
-    </aside>
-
-    <!-- Scrim for mobile -->
-    <div class="scrim" id="scrim" onclick="closeSidebar()"></div>
-
-    <!-- ========== MAIN ========== -->
-    <div class="main-content">
-      <!-- Topbar -->
-      <div class="page-header">
-        <button class="icon-btn menu-button" onclick="openSidebar()" aria-label="打开目录">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-
-        <!-- Breadcrumbs -->
-        <nav class="breadcrumbs" aria-label="面包屑导航">
-          <a href="#">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-          </a>
-          <span class="separator">›</span>
-          <a href="#">旅行</a>
-          <span class="separator">›</span>
-          <a href="#" class="truncated">日本</a>
-          <span class="separator truncated">›</span>
-          <span class="current">京都</span>
-        </nav>
-
-        <!-- Search -->
-        <div class="page-header-search" hidden>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="search" placeholder="搜索当前文件夹" aria-label="搜索">
-        </div>
-
-      </div>
-      <!-- Toolbar -->
-      <div class="toolbar" role="region" aria-label="浏览工具">
-        <div class="toolbar-filter-group">
-          <button class="toggle-btn" aria-pressed="false" data-recursive-toggle>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-            包含子目录
-          </button>
-
-          <div class="segmented-control media-type-filter" role="group" aria-label="媒体类型">
-            <button class="active" aria-pressed="true" data-media-filter="all">全部</button>
-            <button aria-pressed="false" data-media-filter="image">图片</button>
-            <button aria-pressed="false" data-media-filter="video">视频</button>
-          </div>
-        </div>
-
-        <div class="toolbar-view-group">
-          <label class="directory-filter">
-            <span class="sr-only">筛选当前目录</span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="search" placeholder="筛选当前目录" autocomplete="off" data-directory-filter>
-          </label>
-
-          <div class="segmented-control" role="group" aria-label="布局">
-            <button class="active" aria-label="网格">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button aria-label="瀑布流">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="7"/><rect x="14" y="4" width="6" height="5"/><rect x="4" y="13" width="6" height="7"/><rect x="14" y="11" width="6" height="9"/></svg>
-            </button>
-          </div>
-
-          <label class="sort-select">
-            <span>排序</span>
-            <select>
-              <option>拍摄日期（从新到旧）</option>
-              <option>拍摄日期（从旧到新）</option>
-              <option>文件名 A→Z</option>
-              <option>文件名 Z→A</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <!-- Content Area -->
-      <main id="browse-heading" class="workspace has-preview">
-        <div class="browse-content">
-          <!-- Scan Banner -->
-          <div class="scan-banner">
-            <svg class="scan-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-            <span>正在扫描媒体库"家庭影像"。您可以浏览已索引的内容。</span>
-            <span class="scan-stats">已发现 12,480 项 · 跳过 38 项</span>
-            <button class="close-banner" aria-label="关闭">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-
-          <!-- Folder Grid -->
-          <h2 class="section-title">子目录</h2>
-          <p class="section-subtitle" data-folder-count>8 个子目录 · 312 项媒体</p>
-
-          <div class="folder-grid">
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">清水寺</span>
-              <span class="folder-count">312 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">伏见稻荷大社</span>
-              <span class="folder-count">268 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">金阁寺</span>
-              <span class="folder-count">189 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">岚山</span>
-              <span class="folder-count">245 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">祇园</span>
-              <span class="folder-count">176 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">二条城</span>
-              <span class="folder-count">132 项</span>
-            </a>
-            <a href="#" class="folder-card">
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" opacity="0.25"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-              <span class="folder-name">其他</span>
-              <span class="folder-count">98 项</span>
-            </a>
-          </div>
-
-          <!-- Media Grid -->
-          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4);">
-            <h2 class="section-title" style="margin-bottom: 0;">媒体</h2>
-            <span style="font: var(--text-footnote); color: var(--text-tertiary);" aria-live="polite" data-media-count>已加载 312 项</span>
-          </div>
-
-          <div class="media-grid">
-            <!-- Card 1 - Selected -->
-            <div class="media-card selected" tabindex="0">
-              <div class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div class="thumb-placeholder grad-1"></div>
-              <div class="meta">
-                <div class="name">2026-07-21 19-12-43.jpg</div>
-                <div class="date">2026-07-21 19:12</div>
-              </div>
-            </div>
-
-            <!-- Card 2 - Video -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-2"></div>
-              <span class="badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </span>
-              <span class="duration">0:18</span>
-              <div class="meta">
-                <div class="name">2026-07-21 16-45-10.mp4</div>
-                <div class="date">2026-07-21 16:45</div>
-              </div>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-3"></div>
-              <div class="meta">
-                <div class="name">2026-07-20 10-22-31.jpg</div>
-                <div class="date">2026-07-20 10:22</div>
-              </div>
-            </div>
-
-            <!-- Card 4 - Video -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-4"></div>
-              <span class="badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </span>
-              <span class="duration">0:27</span>
-              <div class="meta">
-                <div class="name">2026-07-19 09-11-05.mp4</div>
-                <div class="date">2026-07-19 09:11</div>
-              </div>
-            </div>
-
-            <!-- Card 5 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-5"></div>
-              <div class="meta">
-                <div class="name">2026-07-18 18-33-27.jpg</div>
-                <div class="date">2026-07-18 18:33</div>
-              </div>
-            </div>
-
-            <!-- Card 6 - Video -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-6"></div>
-              <span class="badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </span>
-              <span class="duration">0:15</span>
-              <div class="meta">
-                <div class="name">2026-07-18 09-02-14.mp4</div>
-                <div class="date">2026-07-18 09:02</div>
-              </div>
-            </div>
-
-            <!-- Card 7 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-7"></div>
-              <div class="meta">
-                <div class="name">2026-07-17 19-47-56.jpg</div>
-                <div class="date">2026-07-17 19:47</div>
-              </div>
-            </div>
-
-            <!-- Card 8 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-8"></div>
-              <div class="meta">
-                <div class="name">2026-07-17 11-08-32.jpg</div>
-                <div class="date">2026-07-17 11:08</div>
-              </div>
-            </div>
-
-            <!-- Card 9 - Video -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-9"></div>
-              <span class="badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </span>
-              <span class="duration">0:22</span>
-              <div class="meta">
-                <div class="name">2026-07-16 20-15-09.mp4</div>
-                <div class="date">2026-07-16 20:15</div>
-              </div>
-            </div>
-
-            <!-- Card 10 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-10"></div>
-              <div class="meta">
-                <div class="name">2026-07-16 08-40-21.jpg</div>
-                <div class="date">2026-07-16 08:40</div>
-              </div>
-            </div>
-
-            <!-- Card 11 -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-11"></div>
-              <div class="meta">
-                <div class="name">2026-07-15 17-30-11.jpg</div>
-                <div class="date">2026-07-15 17:30</div>
-              </div>
-            </div>
-
-            <!-- Card 12 - Video -->
-            <div class="media-card" tabindex="0">
-              <div class="check"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="thumb-placeholder grad-12"></div>
-              <span class="badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </span>
-              <span class="duration">0:19</span>
-              <div class="meta">
-                <div class="name">2026-07-15 12-05-33.mp4</div>
-                <div class="date">2026-07-15 12:05</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ========== PREVIEW PANEL ========== -->
-        <aside class="preview-panel" aria-label="媒体预览">
-          <div class="preview-header">
-            <h3>预览</h3>
-            <div class="preview-header-actions">
-              <button class="toggle-btn active btn-sm" style="font-size: 11px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
-                固定预览
-              </button>
-              <button class="icon-btn" aria-label="关闭预览">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="preview-media">
-            <div class="thumb-placeholder grad-1" style="width: 100%; height: 300px; aspect-ratio: auto;"></div>
-          </div>
-
-          <div class="preview-controls">
-            <div class="nav-group">
-              <button class="btn btn-secondary btn-sm">‹ 上一项</button>
-              <span class="position">1 / 312</span>
-              <button class="btn btn-secondary btn-sm">下一项 ›</button>
-            </div>
-            <a href="05-viewer.html" class="btn btn-ghost btn-sm" style="gap: 4px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-              打开查看器
-            </a>
-          </div>
-
-          <div class="preview-info">
-            <div class="file-name">2026-07-21 19-12-43.jpg</div>
-            <span class="file-type">图像 · JPG</span>
-
-            <table class="info-table">
-              <tr><td>拍摄日期</td><td>2026-07-21 19:12:43</td></tr>
-              <tr><td>文件位置</td><td>旅行 / 日本 / 京都 / 清水寺</td></tr>
-              <tr><td>分辨率</td><td>6000 × 3376 (20.3MP)</td></tr>
-              <tr><td>文件大小</td><td>8.4 MB</td></tr>
-              <tr><td>时长</td><td>—</td></tr>
-            </table>
-
-            <div class="preview-pin-hint">
-              <strong style="color: var(--accent);">已固定预览</strong><br>
-              预览将保持当前媒体不变。点击其他缩略图不会更换播放内容。
-            </div>
-          </div>
-        </aside>
-      </main>
-    </div>
+<div class="current-content" id="content-shell">
+  <div class="current-context"><button class="mobile-menu" id="open-sidebar" type="button" aria-label="打开目录"><i class="ph ph-list"></i></button><nav id="browse-context-nav" aria-label="面包屑"><a href="#"><i class="ph ph-house"></i></a><i class="ph ph-caret-right"></i><a href="#">旅行</a><i class="ph ph-caret-right"></i><a href="#">日本</a><i class="ph ph-caret-right"></i><strong>京都</strong></nav></div>
+  <div class="current-toolbar" id="browse-toolbar" aria-label="浏览工具">
+    <div class="toolbar-left"><button type="button" class="check-button" id="recursive"><span class="check-box"></span>包含子目录</button><div class="segmented" data-single-choice><button class="active" type="button" data-kind="all">全部</button><button type="button" data-kind="image">图片</button><button type="button" data-kind="video">视频</button></div></div>
+    <div class="toolbar-right"><label class="directory-search"><i class="ph ph-magnifying-glass"></i><input id="directory-filter" type="search" placeholder="筛选当前目录"></label><div class="segmented icon-segment" data-single-choice><button class="active" type="button" aria-label="网格"><i class="ph ph-squares-four"></i></button><button type="button" aria-label="瀑布流"><i class="ph ph-columns"></i></button></div><label class="sort-field"><span>排序</span><select><option>文件名（自然顺序）</option><option>修改时间（从新到旧）</option></select></label><button class="refresh-button" type="button" aria-label="刷新"><i class="ph ph-arrow-clockwise"></i></button></div>
   </div>
+  <main class="browse-main" id="browse-main">
+    <div class="scan-banner"><span class="scan-ring"></span><span>正在扫描媒体库“家庭影像”。您可以浏览已索引的内容。</span><strong>12480 项</strong></div>
+    <section aria-labelledby="folders-title"><div class="content-heading"><div><h1 id="folders-title">子目录</h1><p><span id="folder-count">7</span> 个子目录 · 312 项媒体</p></div></div><div class="current-folder-grid">
+      <a class="current-folder" href="#" data-filter-name="清水寺"><i class="ph-fill ph-folder"></i><strong>清水寺</strong><span>42 项</span></a><a class="current-folder" href="#" data-filter-name="伏见稻荷大社"><i class="ph-fill ph-folder"></i><strong>伏见稻荷大社</strong><span>36 项</span></a><a class="current-folder" href="#" data-filter-name="金阁寺"><i class="ph-fill ph-folder"></i><strong>金阁寺</strong><span>31 项</span></a><a class="current-folder" href="#" data-filter-name="岚山"><i class="ph-fill ph-folder"></i><strong>岚山</strong><span>28 项</span></a><a class="current-folder" href="#" data-filter-name="祇园"><i class="ph-fill ph-folder"></i><strong>祇园</strong><span>26 项</span></a><a class="current-folder" href="#" data-filter-name="二条城"><i class="ph-fill ph-folder"></i><strong>二条城</strong><span>24 项</span></a><a class="current-folder" href="#" data-filter-name="其他"><i class="ph-fill ph-folder"></i><strong>其他</strong><span>18 项</span></a>
+    </div></section>
+    <section aria-labelledby="media-title"><div class="content-heading media-heading"><div><h2 id="media-title">媒体</h2><p>只显示当前目录中的媒体。</p></div><span id="media-count">已载入 12 项</span></div><div class="current-media-grid">
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-21 19-12-43.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-21 19-12-43.jpg</strong><small>2026年7月22日 03:12</small></button>
+      <button class="current-media" type="button" data-kind-item="video" data-name="2026-07-20 17-33-28.mp4"><span class="unavailable"><i class="ph ph-clapperboard"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span><span class="play"><i class="ph-fill ph-play"></i></span></span><strong>2026-07-20 17-33-28.mp4</strong><small>2026年7月21日 02:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-19 16-33-29.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-19 16-33-29.jpg</strong><small>2026年7月20日 01:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-18 15-33-30.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-18 15-33-30.jpg</strong><small>2026年7月19日 00:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-17 14-33-31.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-17 14-33-31.jpg</strong><small>2026年7月17日 23:12</small></button>
+      <button class="current-media" type="button" data-kind-item="video" data-name="2026-07-16 13-33-32.mp4"><span class="unavailable"><i class="ph ph-clapperboard"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span><span class="play"><i class="ph-fill ph-play"></i></span></span><strong>2026-07-16 13-33-32.mp4</strong><small>2026年7月16日 22:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-15 12-33-33.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-15 12-33-33.jpg</strong><small>2026年7月15日 21:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-14 11-33-34.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-14 11-33-34.jpg</strong><small>2026年7月14日 20:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-13 18-33-35.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-13 18-33-35.jpg</strong><small>2026年7月13日 19:12</small></button>
+      <button class="current-media" type="button" data-kind-item="video" data-name="2026-07-12 17-33-36.mp4"><span class="unavailable"><i class="ph ph-clapperboard"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span><span class="play"><i class="ph-fill ph-play"></i></span></span><strong>2026-07-12 17-33-36.mp4</strong><small>2026年7月13日 03:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-11 16-33-37.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-11 16-33-37.jpg</strong><small>2026年7月12日 02:12</small></button>
+      <button class="current-media" type="button" data-kind-item="image" data-name="2026-07-10 15-33-38.jpg"><span class="unavailable"><i class="ph ph-file-image"></i><em>缩略图不可用</em><span class="heart"><i class="ph ph-heart"></i></span></span><strong>2026-07-10 15-33-38.jpg</strong><small>2026年7月11日 01:12</small></button>
+    </div></section>
+  </main>
+  <main class="curation-manager" id="curation-manager" hidden>
+    <header class="manager-hero">
+      <div><span>内容整理</span><h1 id="manager-title">管理标签</h1><p id="manager-description">统一维护标签名称和媒体关系，不会修改或删除原始媒体。</p></div>
+      <button class="manager-done" id="close-manager" type="button"><i class="ph ph-check"></i>完成</button>
+    </header>
 
-  <script>
-    function openSidebar() {
-      document.getElementById('sidebar').classList.add('open');
-      document.getElementById('scrim').classList.add('open');
-    }
-    function closeSidebar() {
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('scrim').classList.remove('open');
-    }
+    <section class="manager-panel" data-manager-panel="tags" aria-labelledby="tag-manager-heading">
+      <div class="manager-overview"><div><strong>5</strong><span>个标签</span></div><div><strong>228</strong><span>项标签关系</span></div><div><strong>37</strong><span>项由 AI 建议后确认</span></div></div>
+      <div class="manager-tools"><label><i class="ph ph-magnifying-glass"></i><input id="tag-manager-filter" type="search" placeholder="搜索标签"></label><button class="manager-primary" id="new-tag" type="button"><i class="ph ph-plus"></i>新建标签</button></div>
+      <form class="manager-create" id="new-tag-form" hidden><label for="new-tag-name">标签名称</label><input id="new-tag-name" maxlength="128" placeholder="例如：舞台外景"><div><button type="button" id="cancel-new-tag">取消</button><button class="manager-primary" type="submit">创建</button></div></form>
+      <div class="manager-section-title"><div><h2 id="tag-manager-heading">全部标签</h2><p>确认过的 AI 建议与人工标签使用同一套管理方式。</p></div><span>按媒体数量排序</span></div>
+      <div class="tag-management-list">
+        <article class="tag-management-row" data-manage-name="人物特写"><span class="management-tag-icon"><i class="ph ph-tag"></i></span><div class="tag-name-editor"><input value="人物特写" readonly aria-label="标签名称 人物特写"><small>86 项媒体 · 14 项来自已确认建议</small></div><span class="source-badge mixed">人工 + AI 确认</span><div class="row-actions"><button type="button" data-rename-tag>重命名</button><button type="button" data-merge-tag>合并</button><button class="danger-action" type="button" data-delete-tag>删除</button></div></article>
+        <article class="tag-management-row" data-manage-name="室内棚拍"><span class="management-tag-icon"><i class="ph ph-tag"></i></span><div class="tag-name-editor"><input value="室内棚拍" readonly aria-label="标签名称 室内棚拍"><small>64 项媒体 · 11 项来自已确认建议</small></div><span class="source-badge mixed">人工 + AI 确认</span><div class="row-actions"><button type="button" data-rename-tag>重命名</button><button type="button" data-merge-tag>合并</button><button class="danger-action" type="button" data-delete-tag>删除</button></div></article>
+        <article class="tag-management-row" data-manage-name="蓝白配色"><span class="management-tag-icon"><i class="ph ph-tag"></i></span><div class="tag-name-editor"><input value="蓝白配色" readonly aria-label="标签名称 蓝白配色"><small>31 项媒体 · 12 项来自已确认建议</small></div><span class="source-badge ai-confirmed">AI 建议后确认</span><div class="row-actions"><button type="button" data-rename-tag>重命名</button><button type="button" data-merge-tag>合并</button><button class="danger-action" type="button" data-delete-tag>删除</button></div></article>
+        <article class="tag-management-row" data-manage-name="和服"><span class="management-tag-icon"><i class="ph ph-tag"></i></span><div class="tag-name-editor"><input value="和服" readonly aria-label="标签名称 和服"><small>28 项媒体 · 人工建立</small></div><span class="source-badge">人工标签</span><div class="row-actions"><button type="button" data-rename-tag>重命名</button><button type="button" data-merge-tag>合并</button><button class="danger-action" type="button" data-delete-tag>删除</button></div></article>
+        <article class="tag-management-row" data-manage-name="外景"><span class="management-tag-icon"><i class="ph ph-tag"></i></span><div class="tag-name-editor"><input value="外景" readonly aria-label="标签名称 外景"><small>19 项媒体 · 人工建立</small></div><span class="source-badge">人工标签</span><div class="row-actions"><button type="button" data-rename-tag>重命名</button><button type="button" data-merge-tag>合并</button><button class="danger-action" type="button" data-delete-tag>删除</button></div></article>
+      </div>
+      <p class="manager-safety"><i class="ph ph-shield-check"></i>删除标签只会解除标签关系，不会删除任何图片或视频。</p>
+    </section>
 
-    document.addEventListener('DOMContentLoaded', function () {
-      const filterInput = document.querySelector('[data-directory-filter]');
-      const typeButtons = document.querySelectorAll('[data-media-filter]');
-      const folderCards = document.querySelectorAll('.folder-card');
-      const mediaCards = document.querySelectorAll('.media-card');
-      const folderCount = document.querySelector('[data-folder-count]');
-      const mediaCount = document.querySelector('[data-media-count]');
-      const recursiveToggle = document.querySelector('[data-recursive-toggle]');
-      let mediaType = new URLSearchParams(window.location.search).get('type') || 'all';
+    <section class="manager-panel" data-manager-panel="people" aria-labelledby="people-manager-heading" hidden>
+      <div class="manager-overview"><div><strong>3</strong><span>个已建立人物</span></div><div><strong>7</strong><span>个待命名归类</span></div><div><strong>46</strong><span>张待复核图片</span></div></div>
+      <div class="manager-tools"><label><i class="ph ph-magnifying-glass"></i><input id="people-manager-filter" type="search" placeholder="搜索人物或未命名组"></label><div class="manager-segment" role="group" aria-label="人物管理筛选"><button class="active" type="button" data-people-filter="all">全部</button><button type="button" data-people-filter="named">已建立</button><button type="button" data-people-filter="review">待命名</button></div></div>
+      <div class="manager-section-title"><div><h2 id="people-manager-heading">人物与归类</h2><p>模型只建立相似人脸组，人物名称和合并关系由用户决定。</p></div><span>仅本机处理</span></div>
+      <div class="people-management-grid">
+        <article class="person-management-card" data-person-kind="named" data-manage-name="常用模特 A"><img src="assets/ai-media/azure-01.png" alt="常用模特 A 的代表头像"><div class="person-card-copy"><span class="person-state named">已建立人物</span><h3>常用模特 A</h3><p>26 张图片 · 31 个人脸</p></div><div class="person-card-actions"><button type="button" data-person-action="rename"><i class="ph ph-pencil-simple"></i>重命名</button><button type="button" data-person-action="merge"><i class="ph ph-arrows-merge"></i>合并</button><button type="button" data-person-action="cover"><i class="ph ph-image-square"></i>代表头像</button></div></article>
+        <article class="person-management-card" data-person-kind="named" data-manage-name="人物 02"><img src="assets/ai-media/crimson-01.png" alt="人物 02 的代表头像"><div class="person-card-copy"><span class="person-state named">已建立人物</span><h3>人物 02</h3><p>14 张图片 · 16 个人脸</p></div><div class="person-card-actions"><button type="button" data-person-action="rename"><i class="ph ph-pencil-simple"></i>重命名</button><button type="button" data-person-action="merge"><i class="ph ph-arrows-merge"></i>合并</button><button type="button" data-person-action="cover"><i class="ph ph-image-square"></i>代表头像</button></div></article>
+        <article class="person-management-card" data-person-kind="named" data-manage-name="人物 03"><img src="assets/ai-media/forest-01.png" alt="人物 03 的代表头像"><div class="person-card-copy"><span class="person-state named">已建立人物</span><h3>人物 03</h3><p>9 张图片 · 12 个人脸</p></div><div class="person-card-actions"><button type="button" data-person-action="rename"><i class="ph ph-pencil-simple"></i>重命名</button><button type="button" data-person-action="merge"><i class="ph ph-arrows-merge"></i>合并</button><button type="button" data-person-action="cover"><i class="ph ph-image-square"></i>代表头像</button></div></article>
+        <article class="person-management-card review-card" data-person-kind="review" data-manage-name="未命名组 12"><div class="face-stack"><img src="assets/ai-media/azure-01.png" alt=""><img src="assets/ai-media/azure-02.png" alt=""><img src="assets/ai-media/azure-03.png" alt=""></div><div class="person-card-copy"><span class="person-state review">待命名归类</span><h3>未命名组 12</h3><p>18 张图片 · 高可信核心组</p></div><div class="person-card-actions review-actions"><button class="manager-primary" type="button" data-person-action="create"><i class="ph ph-user-plus"></i>建立人物</button><button type="button" data-person-action="assign"><i class="ph ph-arrow-bend-down-right"></i>并入已有</button><button type="button" data-person-action="inspect"><i class="ph ph-eye"></i>复核样本</button></div></article>
+        <article class="person-management-card review-card" data-person-kind="review" data-manage-name="未命名组 31"><div class="face-stack"><img src="assets/ai-media/crimson-01.png" alt=""><img src="assets/ai-media/crimson-02.png" alt=""><img src="assets/ai-media/crimson-03.png" alt=""></div><div class="person-card-copy"><span class="person-state review">待命名归类</span><h3>未命名组 31</h3><p>11 张图片 · 高可信核心组</p></div><div class="person-card-actions review-actions"><button class="manager-primary" type="button" data-person-action="create"><i class="ph ph-user-plus"></i>建立人物</button><button type="button" data-person-action="assign"><i class="ph ph-arrow-bend-down-right"></i>并入已有</button><button type="button" data-person-action="inspect"><i class="ph ph-eye"></i>复核样本</button></div></article>
+        <article class="person-management-card review-card" data-person-kind="review" data-manage-name="未命名组 44"><div class="face-stack"><img src="assets/ai-media/forest-01.png" alt=""><img src="assets/ai-media/forest-02.png" alt=""><img src="assets/ai-media/forest-03.png" alt=""></div><div class="person-card-copy"><span class="person-state caution">需要复核</span><h3>未命名组 44</h3><p>9 张图片 · 3 张边缘样本</p></div><div class="person-card-actions review-actions"><button class="manager-primary" type="button" data-person-action="create"><i class="ph ph-user-plus"></i>建立人物</button><button type="button" data-person-action="assign"><i class="ph ph-arrow-bend-down-right"></i>并入已有</button><button type="button" data-person-action="inspect"><i class="ph ph-eye"></i>复核样本</button></div></article>
+      </div>
+      <p class="manager-safety"><i class="ph ph-shield-check"></i>移出、合并或重命名人物只会改变应用内归类，不会修改原始媒体。</p>
+    </section>
+  </main>
+</div>
 
-      function applyFilters() {
-        const query = filterInput.value.trim().toLocaleLowerCase();
-        let visibleFolders = 0;
-        let visibleMedia = 0;
-
-        folderCards.forEach(function (card) {
-          const matches = !query || card.textContent.toLocaleLowerCase().includes(query);
-          card.hidden = !matches;
-          if (matches) visibleFolders += 1;
-        });
-
-        mediaCards.forEach(function (card) {
-          const kind = card.querySelector('.duration') ? 'video' : 'image';
-          const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
-          const matchesType = mediaType === 'all' || mediaType === kind;
-          card.hidden = !(matchesQuery && matchesType);
-          if (matchesQuery && matchesType) visibleMedia += 1;
-        });
-
-        folderCount.textContent = query
-          ? '显示 ' + visibleFolders + ' 个子目录 · 当前目录内匹配'
-          : '8 个子目录 · 312 项媒体';
-        mediaCount.textContent = query || mediaType !== 'all'
-          ? '显示 ' + visibleMedia + ' 项'
-          : '已加载 312 项';
-
-        const url = new URL(window.location.href);
-        if (query) url.searchParams.set('filter', filterInput.value.trim());
-        else url.searchParams.delete('filter');
-        if (mediaType !== 'all') url.searchParams.set('type', mediaType);
-        else url.searchParams.delete('type');
-        window.history.replaceState({}, '', url);
-      }
-
-      const params = new URLSearchParams(window.location.search);
-      filterInput.value = params.get('filter') || '';
-      if (!['all', 'image', 'video'].includes(mediaType)) mediaType = 'all';
-      typeButtons.forEach(function (button) {
-        const active = button.dataset.mediaFilter === mediaType;
-        button.classList.toggle('active', active);
-        button.setAttribute('aria-pressed', String(active));
-        button.addEventListener('click', function () {
-          mediaType = button.dataset.mediaFilter;
-          typeButtons.forEach(function (item) {
-            const selected = item === button;
-            item.classList.toggle('active', selected);
-            item.setAttribute('aria-pressed', String(selected));
-          });
-          applyFilters();
-        });
-      });
-      filterInput.addEventListener('input', applyFilters);
-      recursiveToggle.addEventListener('click', function () {
-        const active = recursiveToggle.getAttribute('aria-pressed') !== 'true';
-        recursiveToggle.setAttribute('aria-pressed', String(active));
-        recursiveToggle.classList.toggle('active', active);
-      });
-      applyFilters();
-    });
-  </script>
-  </div>
-</body>
-</html>
+<aside class="current-preview" id="media-preview" aria-label="媒体预览" hidden><div class="preview-top"><strong>预览</strong><div><button type="button"><i class="ph ph-push-pin"></i>固定预览</button><button id="close-preview" type="button" aria-label="关闭预览"><i class="ph ph-x"></i></button></div></div><div class="preview-scroll"><div class="preview-unavailable"><i class="ph ph-warning-diamond"></i><strong>无法显示此图片。</strong><span>原始文件没有被修改。</span><button type="button">重新检查</button></div><div class="preview-nav"><button type="button"><i class="ph ph-caret-left"></i>上一项</button><span>第 1 / 12 项</span><button type="button">下一项<i class="ph ph-caret-right"></i></button></div><button class="open-viewer" type="button"><i class="ph ph-arrows-out"></i>进入完整查看器</button><div class="preview-details"><div><strong id="preview-name">2026-07-21 19-12-43.jpg</strong><span>JPG</span></div><dl><dt>类型</dt><dd>图片 · image/jpeg</dd><dt>位置</dt><dd>旅行/日本/京都</dd><dt>尺寸</dt><dd>6,000 × 3,376 px</dd><dt>大小</dt><dd>8.4 MB</dd></dl></div><section class="browse-ai-inspector" aria-labelledby="browse-ai-title"><div class="browse-ai-title"><div><i class="ph ph-sparkle"></i><strong id="browse-ai-title">智能分析</strong></div><span>仅本机</span></div><div class="browse-face-suggestion"><span class="anonymous-face"><i class="ph ph-user-circle-dashed"></i></span><div><strong>检测到 1 个人脸</strong><small>可能属于“未命名组 12”</small></div><a href="12-ai-features.html#people">归类</a></div><div class="browse-tag-suggestions"><div><strong>标签建议</strong><small>确认后才加入人工标签</small></div><div><button type="button" data-ai-tag>人物特写 <i class="ph ph-plus"></i></button><button type="button" data-ai-tag>室内棚拍 <i class="ph ph-plus"></i></button><button type="button" data-ai-tag>蓝白配色 <i class="ph ph-plus"></i></button></div></div><p class="ai-boundary-copy">不识别姓名或角色，不修改原媒体。</p></section></div></aside>
+<div class="current-toast" id="browse-toast" role="status" hidden></div>
+</body></html>

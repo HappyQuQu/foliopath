@@ -33,6 +33,11 @@ MVP/RC，执行见[专用任务清单](features/video-storyboard-preview-task-li
 [FTR-OPS-001 开发任务清单](features/task-center-task-list.md)。当前只允许 S0 scope、
 owner 与容量 spike，不得从本清单顺带修改 OpenAPI、migration、后端或前端。
 
+`POST-MVP-5` 另有 [FTR-INT-001 本地智能媒体发现提案](features/intelligent-media-discovery.md)，
+执行见[专用任务清单](features/intelligent-media-discovery-task-list.md)。它不进入当前 MVP/RC，
+`INT-S0` 为 No-Go；当前只允许 `INT-001～023` 的文档、fixture、隔离 spike 和评审，新增模型获取
+工作只验证签名审核源、`/models:ro`、托管复制/直接读取和失败关闭，不授权生产下载入口。
+
 | 阶段 | 用普通话解释 | 状态 | 完成后能看到什么 |
 | --- | --- | --- | --- |
 | 0. 开工准备 | 定需求、定架构、验证 Docker/SQLite/媒体处理是否可行 | ✅ 已完成 | 确认方案能做，风险有人负责 |

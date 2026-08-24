@@ -161,6 +161,12 @@
       icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/>'
     },
     {
+      id: 'intelligence',
+      label: '智能功能',
+      href: '13-settings-ai.html',
+      icon: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="5"/><path d="M8.5 5.5 6.4 3.4M17.6 20.6l-2.1-2.1M18.5 5.5l2.1-2.1M3.4 20.6l2.1-2.1"/>'
+    },
+    {
       id: 'maintenance',
       label: '系统维护',
       href: '10-settings-maintenance.html',

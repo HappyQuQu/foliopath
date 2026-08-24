@@ -193,10 +193,10 @@ RC Gate。它不改变单容器架构，也不把任务中心、系统维护或 
   CUR-S3 Consumer UI Ready 已 Go，CUR-S4 因 Docker E2E 与既有依赖 advisory 为 Conditional Go。评分、历史、时间线、
   地图与重复检测仍未排期。
 - 分享链接、多用户和细粒度授权。
-- [FTR-INT-001 智能媒体发现候选能力](features/intelligent-media-discovery.md)：OCR、AI
-  语义搜索和人脸识别保留为未排期的未来 feature。建议先评估 OCR，再评估语义搜索，最后
-  评估隐私风险最高的人脸识别；实际顺序由上线后的用户需求证据决定。三项能力默认关闭、
-  按媒体库启用、只生成可删除/可重建的派生状态，并且必须独立通过需求验证和 S0～S4 Gate。
+- [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)已形成 `POST-MVP-5`
+  提案：图片语义搜索 → 受控 AI 标签建议/视频代表帧搜索 → 人脸匿名聚类与用户人物库。OCR、
+  自动姓名/角色识别和云推理不在范围。当前 [INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md)
+  为 No-Go，只允许模型许可、双架构、100k 向量与人脸聚类 spike；scope 冻结前不改生产合同或代码。
 - 上传、备份、文件整理或任何写入原媒体的能力。
 - 多实例、外部数据库、独立 worker 或分布式队列。
 

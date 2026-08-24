@@ -36,6 +36,11 @@
 | 验收证据 | [evidence/](evidence/README.md) | 可复核的视觉、浏览器和容量证据 |
 | Spike | [spikes/](spikes/README.md) | 可行性实验；不能代替生产 Gate |
 
+当前另有一套不影响冻结 MVP 的 [FTR-INT-001 本地智能媒体发现提案](features/intelligent-media-discovery.md)：
+已形成[技术架构](architecture/intelligent-media-discovery.md)、[spike 计划](spikes/int-001-ai-feasibility.md)
+和[任务清单](features/intelligent-media-discovery-task-list.md)，并补充审核下载源与 `/models:ro` 离线
+模型获取方案；但 `POST-MVP-5` 尚未冻结且 S0 为 No-Go，国内镜像也尚无运营证据。
+
 ## 当前权威文档
 
 ### 产品与体验

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>智能媒体发现 — FolioPath</title>
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-14"><link rel="stylesheet" href="ai-features.css?v=20260820-2">
+  <script src="theme.js?v=20260730-8"></script><script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script><script src="ai-features.js?v=20260820-2" defer></script>
+</head>
+<body class="ai-prototype">
+<a href="#main" class="skip-link">跳到主要内容</a>
+<header class="global-header production-header">
+  <a href="03-browse.html" class="brand" aria-label="FolioPath"><img class="brand-mark" src="assets/foliopath-mark-tree.svg" alt=""><span class="brand-wordmark">FolioPath</span></a>
+  <form class="global-search" id="global-search-form" role="search"><i class="ph ph-magnifying-glass"></i><label class="sr-only" for="global-query">搜索全部照片和视频</label><input id="global-query" type="search" value="白蓝色服装，明亮室内，人像特写" placeholder="搜索全部照片和视频"><button type="submit">搜索</button></form>
+  <div class="header-actions"><button class="icon-btn" type="button" aria-label="切换语言"><i class="ph ph-translate"></i></button><button class="icon-btn" type="button" onclick="toggleTheme()" aria-label="切换主题"><i class="ph ph-sun"></i></button><button class="account-trigger" type="button"><span class="admin-avatar">管</span><span>管理员</span><i class="ph ph-caret-down"></i></button></div>
+</header>
+
+<main class="workspace" id="main">
+  <section class="page-view" data-view="search" aria-labelledby="search-title">
+    <div class="page-heading"><div><span class="eyebrow">全部套图</span><h1 id="search-title" tabindex="-1">搜索媒体</h1><p>语义模式按画面内容匹配，不推断姓名或角色。</p></div><button class="secondary-button" type="button" data-view-target="people"><i class="ph ph-users-three"></i>人物归类 <span class="badge">7</span></button></div>
+    <div class="command-bar">
+      <div class="search-mode"><button type="button" data-mode="filename">文件名</button><button class="active" type="button" data-mode="semantic"><i class="ph ph-sparkle"></i>画面语义</button></div>
+      <div class="choice-group scope-group"><button class="active" type="button">全部媒体库</button><button type="button">当前目录</button></div>
+      <div class="choice-group kind-group"><button class="active" type="button">全部</button><button type="button">图片</button><button type="button">视频</button></div>
+      <button class="square-button" type="button" aria-label="刷新"><i class="ph ph-arrow-clockwise"></i></button>
+    </div>
+    <div class="index-status"><span class="spinner"></span><span>智能索引覆盖 4,286 / 4,978 项；仍可搜索已完成内容。</span><span>86%</span></div>
+    <div class="section-title"><div><h2 id="results-title">与描述最接近</h2><p>相似度只表示画面匹配程度。</p></div><span>18 项</span></div>
+    <div class="media-grid">
+      <button class="media-card selected" type="button" data-image="azure-02.png" data-name="Azure_Set_024.jpg" data-score="92"><span class="media-thumb"><img src="assets/ai-media/azure-02.png" alt="白蓝色服装的室内人物特写"><span class="match-score">92%</span><span class="favorite"><i class="ph ph-heart"></i></span></span><span class="media-copy"><strong>Azure_Set_024.jpg</strong><small>2026 夏季套图 / Azure</small></span></button>
+      <button class="media-card" type="button" data-image="azure-01.png" data-name="Azure_Set_019.jpg" data-score="89"><span class="media-thumb"><img src="assets/ai-media/azure-01.png" alt="白蓝色服装的侧身人物照"><span class="match-score">89%</span><span class="favorite"><i class="ph ph-heart"></i></span></span><span class="media-copy"><strong>Azure_Set_019.jpg</strong><small>2026 夏季套图 / Azure</small></span></button>
+      <button class="media-card" type="button" data-image="azure-03.png" data-name="Azure_BTS_03.mp4" data-score="84"><span class="media-thumb"><img src="assets/ai-media/azure-03.png" alt="白蓝色服装的室内全身人物照"><span class="match-score">84%</span><span class="video-mark"><i class="ph-fill ph-play"></i> 00:18</span><span class="favorite"><i class="ph ph-heart"></i></span></span><span class="media-copy"><strong>Azure_BTS_03.mp4</strong><small>命中故事板第 4 帧</small></span></button>
+      <button class="media-card" type="button" data-image="forest-02.png" data-name="Forest_Set_041.jpg" data-score="63"><span class="media-thumb"><img src="assets/ai-media/forest-02.png" alt="绿色服装的温室人物照"><span class="match-score">63%</span><span class="favorite"><i class="ph ph-heart"></i></span></span><span class="media-copy"><strong>Forest_Set_041.jpg</strong><small>2026 夏季套图 / Forest</small></span></button>
+      <button class="media-card" type="button" data-image="crimson-02.png" data-name="Crimson_Set_016.jpg" data-score="58"><span class="media-thumb"><img src="assets/ai-media/crimson-02.png" alt="红黑服装的室内人物照"><span class="match-score">58%</span><span class="favorite"><i class="ph ph-heart"></i></span></span><span class="media-copy"><strong>Crimson_Set_016.jpg</strong><small>舞台与展会 / Crimson</small></span></button>
+    </div>
+  </section>
+
+  <section class="page-view" data-view="people" aria-labelledby="people-title" hidden>
+    <div class="page-heading"><div><span class="eyebrow">全部套图</span><h1 id="people-title" tabindex="-1">人物归类</h1><p>后台先聚合相似人脸；名称、合并和排除都由用户确认。</p></div><button class="secondary-button" type="button" data-view-target="search"><i class="ph ph-arrow-left"></i>返回搜索</button></div>
+    <div class="people-command"><div class="choice-group"><button class="active" type="button">未命名组 7</button><button type="button">已建立人物 3</button></div><label class="inline-search"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="搜索人物名称"></label><span class="coverage">已分析 4,286 项 · 86%</span></div>
+    <div class="section-title"><div><h2>等待复核</h2><p>低可信或多人画面不会自动合并。</p></div><span>按样本数排序</span></div>
+    <div class="cluster-grid">
+      <button class="cluster-card selected" type="button" data-cluster="12" data-images="azure-01.png,azure-02.png,azure-03.png" data-count="18"><span class="cluster-images"><img src="assets/ai-media/azure-01.png" alt="组 12 样本一"><img src="assets/ai-media/azure-02.png" alt="组 12 样本二"><img src="assets/ai-media/azure-03.png" alt="组 12 样本三"></span><span class="cluster-meta"><span><strong>未命名组 12</strong><small>18 张图片</small></span><em>高可信</em></span></button>
+      <button class="cluster-card" type="button" data-cluster="31" data-images="crimson-01.png,crimson-02.png,crimson-03.png" data-count="11"><span class="cluster-images"><img src="assets/ai-media/crimson-01.png" alt="组 31 样本一"><img src="assets/ai-media/crimson-02.png" alt="组 31 样本二"><img src="assets/ai-media/crimson-03.png" alt="组 31 样本三"></span><span class="cluster-meta"><span><strong>未命名组 31</strong><small>11 张图片</small></span><em>高可信</em></span></button>
+      <button class="cluster-card" type="button" data-cluster="44" data-images="forest-01.png,forest-02.png,forest-03.png" data-count="9"><span class="cluster-images"><img src="assets/ai-media/forest-01.png" alt="组 44 样本一"><img src="assets/ai-media/forest-02.png" alt="组 44 样本二"><img src="assets/ai-media/forest-03.png" alt="组 44 样本三"></span><span class="cluster-meta"><span><strong>未命名组 44</strong><small>9 张图片 · 3 张边缘样本</small></span><em class="review">需复核</em></span></button>
+    </div>
+  </section>
+</main>
+
+<aside class="media-preview open" id="media-preview" aria-label="媒体预览">
+  <div class="preview-head"><strong>预览</strong><div><button type="button"><i class="ph ph-push-pin"></i>固定预览</button><button id="close-preview" type="button" aria-label="关闭预览"><i class="ph ph-x"></i></button></div></div>
+  <div class="preview-image"><img id="preview-image" src="assets/ai-media/azure-02.png" alt="当前选择的媒体"></div>
+  <div class="preview-nav"><button type="button"><i class="ph ph-caret-left"></i>上一项</button><span>第 1 / 18 项</span><button type="button">下一项<i class="ph ph-caret-right"></i></button></div>
+  <button class="viewer-link" type="button"><i class="ph ph-arrows-out"></i>进入完整查看器</button>
+  <div class="preview-scroll"><div class="file-summary"><div><strong id="preview-name">Azure_Set_024.jpg</strong><span>JPG</span></div><dl><dt>位置</dt><dd>2026 夏季套图 / Azure</dd><dt>相似度</dt><dd id="preview-score">92% · 画面匹配</dd></dl></div>
+    <section class="ai-inspector"><div class="inspector-title"><div><i class="ph ph-sparkle"></i><strong>智能分析</strong></div><span>仅本机</span></div><div class="face-row"><span class="face-crop"><img id="face-image" src="assets/ai-media/azure-02.png" alt="检测到的人脸"></span><div><strong>检测到 1 个人脸</strong><small>可能属于“未命名组 12”</small></div><button type="button" id="assign-face">归类</button></div><div class="suggestion-block"><div><strong>标签建议</strong><small>确认后才加入人工标签</small></div><div class="tag-list"><button type="button" data-tag>人物特写 <i class="ph ph-plus"></i></button><button type="button" data-tag>室内棚拍 <i class="ph ph-plus"></i></button><button type="button" data-tag>白蓝配色 <i class="ph ph-plus"></i></button></div></div></section>
+  </div>
+</aside>
+
+<aside class="media-preview people-preview" id="people-preview" aria-label="人物归类详情" hidden>
+  <div class="preview-head"><strong>人物归类详情</strong><button id="close-people-preview" type="button" aria-label="关闭"><i class="ph ph-x"></i></button></div>
+  <div class="cluster-detail-images" id="cluster-detail-images"><img src="assets/ai-media/azure-01.png" alt="样本一"><img src="assets/ai-media/azure-02.png" alt="样本二"><img src="assets/ai-media/azure-03.png" alt="样本三"></div>
+  <div class="preview-scroll"><div class="detail-heading"><span>高可信核心组</span><h2 id="cluster-detail-title">未命名组 12</h2><p id="cluster-detail-copy">18 张图片。系统只判断相似，不知道她是谁。</p></div><div class="action-panel"><h3>由用户决定归属</h3><div class="action-tabs"><button class="active" type="button" data-person-mode="create">建立人物</button><button type="button" data-person-mode="merge">并入已有</button></div><div data-person-panel="create"><label for="person-name">人物名称</label><input id="person-name" type="text" placeholder="例如：常用模特 A"><button class="primary-button" id="confirm-person" type="button">建立人物</button></div><div data-person-panel="merge" hidden><label for="existing-person">选择人物</label><select id="existing-person"><option>人物 01 · 26 张</option><option>人物 02 · 14 张</option><option>人物 03 · 9 张</option></select><button class="primary-button" id="confirm-merge" type="button">确认并入</button></div></div><button class="text-danger" type="button" id="exclude-edge"><i class="ph ph-prohibit"></i>排除选中的边缘人脸</button></div>
+</aside>
+<div class="toast" id="ai-toast" role="status" aria-live="polite" hidden></div>
+</body></html>
