@@ -35,6 +35,22 @@ type catalogServiceStub struct {
 	listAssets      func(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
 	searchAssets    func(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
 	getAsset        func(context.Context, int64) (catalog.Asset, error)
+	getAssetsByIDs  func(context.Context, []int64) ([]catalog.Asset, error)
+}
+
+func (stub catalogServiceStub) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]catalog.Asset, error) {
+	if stub.getAssetsByIDs != nil {
+		return stub.getAssetsByIDs(ctx, assetIDs)
+	}
+	items := make([]catalog.Asset, 0, len(assetIDs))
+	for _, assetID := range assetIDs {
+		item, err := stub.GetAsset(ctx, assetID)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func (stub catalogServiceStub) ContentRevision(ctx context.Context) (int64, error) {

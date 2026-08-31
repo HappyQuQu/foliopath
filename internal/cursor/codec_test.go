@@ -1,6 +1,8 @@
 package cursor
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"strings"
 	"testing"
@@ -61,4 +63,55 @@ func TestCodecRejectsTamperingAndInvalidKey(t *testing.T) {
 	if err := codec.Decode(tampered, "resource", &decoded); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("tampered token error = %v, want ErrInvalid", err)
 	}
+}
+
+func TestCodecRejectsNonCanonicalBase64Alias(t *testing.T) {
+	t.Parallel()
+
+	codec, err := New([]byte("0123456789abcdef0123456789abcdef"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var encoded string
+	for padding := 0; ; padding++ {
+		encoded, err = codec.Encode(testPayload{Version: 1, Value: strings.Repeat("x", padding)}, "resource")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(encoded)%4 == 2 || len(encoded)%4 == 3 {
+			break
+		}
+	}
+	alias := nonCanonicalRawURLAlias(t, encoded)
+	canonicalBytes, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aliasBytes, err := base64.RawURLEncoding.DecodeString(alias)
+	if err != nil || !bytes.Equal(aliasBytes, canonicalBytes) {
+		t.Fatalf("test alias did not decode to canonical bytes: %v", err)
+	}
+	var decoded testPayload
+	if err := codec.Decode(alias, "resource", &decoded); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("non-canonical alias error = %v, want ErrInvalid", err)
+	}
+}
+
+func nonCanonicalRawURLAlias(t *testing.T, encoded string) string {
+	t.Helper()
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	last := strings.IndexByte(alphabet, encoded[len(encoded)-1])
+	if last < 0 {
+		t.Fatal("encoded cursor ended in a non-base64url character")
+	}
+	var aliasIndex int
+	switch len(encoded) % 4 {
+	case 2:
+		aliasIndex = last&0x30 | (last+1)&0x0f
+	case 3:
+		aliasIndex = last&0x3c | (last+1)&0x03
+	default:
+		t.Fatal("encoded cursor has no unused trailing base64 bits")
+	}
+	return encoded[:len(encoded)-1] + string(alphabet[aliasIndex])
 }

@@ -53,6 +53,16 @@
 - [`POST-MVP-4` scope revision 1](POST-MVP-4-scope.md)：冻结
   [FTR-CUR-001 收藏与手动标签](../features/favorites-and-tags.md)；CUR-S3 UI 已 Go，CUR-S4
   当前为 Conditional Go；消费者 UI 已完成，Integrated Done 仍受发布证据阻断。
+- [`POST-MVP-5` scope revision 1](POST-MVP-5-scope.md)：冻结模型基础 + 图片语义搜索 A+B、
+  `/models:ro` 离线基线和 16 工程周停损；C 标签、D 视频、E 人脸不在 revision 1。INT-S0 对 A+B
+  为 Go；[INT-S1 Contract Ready](../gates/POST-MVP-5/int-s1-contract-ready.md)已 Go并曾授权 S2 后端；
+  [INT-S2A Backend Evidence Ready](../gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)现为 No-Go，
+  不授权生产 UI。
+- [`POST-MVP-5` scope revision 2](POST-MVP-5-scope-r2.md)：替代 revision 1，并按产品用户 2026-08-29
+  的明确决定纳入 C 受控标签建议、D 视频代表帧语义搜索与 E 匿名人脸聚类/人物库；接受 32 工程周
+  scope-budget exception。C/D/E 当前只授权 S1 extension 合同工作，外部 Gate 与安全门槛不降低。
+- [`POST-MVP-5` scope manifest proposal draft 1](POST-MVP-5-scope-proposal.md)：已被 revision 1 替代，
+  保留 A～E 完整提议、替代项和收口历史。
 - [2026-08-13 综合更新说明草案](2026-08-13-integrated-update-notes.md)：汇总收藏与标签、
   通知/处理结果体验、媒体容错和 4K 大文件故事板适配；只描述已实现候选行为，不声明稳定发布。
 

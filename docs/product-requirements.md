@@ -297,23 +297,57 @@ OpenAPI、migration 与生产代码必须等待 `OPS-S0/S1`，完整决定见
 仍在右侧共享非模态预览中显示详情并完成收藏与标签整理。当前切片状态见
 [CUR-S4 Integrated Slice Current](gates/POST-MVP-4/cur-s4-integrated-slice-current.md)。
 
-## `POST-MVP-5` 智能媒体发现提案（未冻结）
+## `POST-MVP-5` revision 1：本地模型与图片语义搜索（已冻结）
 
-图片语义搜索、受控 AI 标签建议、视频故事板代表帧搜索，以及“后台匿名人脸聚类 → 用户建立
-人物库 → 整组或单个人脸人工归类/纠错”已形成 [FTR-INT-001](features/intelligent-media-discovery.md)
-提案。它们仍受 `MVP-NG-004` 排除，不属于任何已冻结版本；当前
-[INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md)为 No-Go，只授权文档、合法 fixture 和
-隔离可行性 spike，不授权 OpenAPI、migration 或生产实现。
+[`POST-MVP-5 revision 1`](releases/POST-MVP-5-scope.md)只冻结模型基础与图片语义搜索，仍不属于
+当前 MVP/RC。受控 AI 标签建议、视频语义搜索和人脸聚类/人物库均不在本 revision；它们只有通过
+新的 scope revision 和独立 Gate 后才可进入生产合同。`MVP-NG-004` 对当前 MVP 继续有效。
 
-该提案不包含 OCR，也不自动识别 Coser、模特、公众人物、真实身份或动漫角色姓名。人脸模型
-只形成匿名相似组和候选关系，名称与最终归类由用户建立。模型/runtime、向量索引、权重许可、
-生物特征隐私、备份恢复、4 CPU/4 GiB/100k 资源预算和 production owner 均须先由
-[INT-001](spikes/int-001-ai-feasibility.md)验证；未通过时必须删减对应范围或保持 No-Go。
+冻结需求如下：
 
-模型获取同属该未冻结提案：管理员可从签名发行清单中的审核源下载，或扫描固定只读 `/models`
-离线目录；默认校验后复制到 `/app/data/models`，也可在固定哈希和只读条件下直接使用。系统不接受
-任意 URL、任意路径或兼容清单外模型。国内镜像只有在项目/部署者真实提供并通过供应链 Gate 后才可
-承诺；当前原型和文档不构成镜像已经上线的证据。
+| ID | 需求 |
+| --- | --- |
+| `FR-INT-001` | 管理员可按媒体库启用或停用图片语义分析，默认关闭；停用不影响普通浏览、字面搜索或查看器。 |
+| `FR-INT-002` | 系统为受支持图片生成绑定模型、变换、输出 schema 与源指纹的版本化视觉 embedding，并支持中文、英文自然语言查询。 |
+| `FR-INT-003` | 语义查询支持当前媒体库、当前目录（可递归）和全部媒体库，以及图片媒体类型；语义模式与文件名模式明确分开。 |
+| `FR-INT-005` | 模型升级、索引损坏或源媒体变化时可重建新 generation；验证并原子激活前保留最后可靠 generation。 |
+| `FR-INT-015` | 管理中心显示兼容模型、来源模式、可用状态、当前 generation、图片覆盖率、任务进度与脱敏失败原因。 |
+| `FR-INT-016` | 媒体库离线、模型缺失、任务取消或部分失败时保留最后可靠派生数据；依赖模型的查询明确失败，核心流程继续可用。 |
+| `FR-INT-017` | 首版只接受产品内建兼容清单声明的离线模型包；启用前校验用途、版本、架构、许可证标识、大小、文件清单和 SHA-256。 |
+| `FR-INT-018` | 系统只扫描固定只读容器目录 `/models`，以 opaque candidate ID 展示匹配包；API 不接受 URL、宿主机路径或任意模型 ID。 |
+| `FR-INT-019` | 管理员可将匹配包复制到 `/app/data/models` 托管，或显式选择从持续只读且哈希匹配的 `/models` 直接读取；两种方式均不修改来源。 |
+| `FR-INT-020` | 管理员可选择已验证的兼容版本；变更先建立并验证新 generation，再原子切换，失败时保持旧 active generation。 |
+
+`FR-INT-004`（视频代表帧搜索）与 `FR-INT-006～014`（标签、人脸）保留为未来需求编号，不属于
+revision 1，也不得被 A+B 的 API、migration 或 UI 顺带实现。
+
+## `POST-MVP-5` revision 2：标签、视频与匿名人物能力（已冻结，合同扩展中）
+
+[`POST-MVP-5 revision 2`](releases/POST-MVP-5-scope-r2.md)替代 revision 1 并正式纳入
+`FR-INT-004`、`FR-INT-006～014`；A+B 的原合同保持不变。产品纳入不跳过交付 Gate：C/D/E 当前只授权
+`INT-114～120` S1R2 合同，生产 migration/backend/UI 必须等待
+[INT-S1R2 Contract Ready](gates/POST-MVP-5/int-s1r2-contract-ready.md)转为 Go。
+
+- `FR-INT-004`：视频只消费现有完整 10-frame 或 4-frame fallback 故事板；按最高分代表帧返回视频和
+  命中帧，部分 plan 不进入 ready 搜索结果。
+- `FR-INT-006～008`：建议只来自受控 tag snapshot；pending suggestion 是派生状态，接受必须通过
+  curation，dismiss decision 是保留的应用状态且不参与训练。
+- `FR-INT-009～014`：后台只形成匿名 core/edge；名称由用户输入，人工 assignment/exclusion/
+  cannot-link 优先，已命名人物不自动合并；默认清除派生 face 数据，人物应用状态需独立二次确认。
+
+状态机、owner、排序、失效、删除与失败语义以
+[C+D+E capability contract](architecture/intelligent-media-s1r2-contract.md)为权威。E 在隐私签署、合法
+ground truth、core precision ≥99.5% 和可商业分发模型/runtime 到位前必须保持 Backend No-Go。
+
+冻结非功能要求：全部推理本地执行且不自动联网；任务有界、可取消、可恢复并低于核心派生任务优先级；
+禁用后不产生新派生结果且模型 session 可回收；不同 generation 不混用；API/日志/诊断不暴露原始
+embedding、查询文本、绝对路径、内部模型错误或任意下载地址；模型包视为不可信输入，只接受固定
+allowlist 中不含代码、插件、动态库、脚本或 ONNX external-data 的纯数据包；直接来源缺失、变化或
+可写时失败关闭；复制、校验、激活使用有界空间、并发 1、临时文件与原子发布。在 4 CPU、4 GiB、
+10 万媒体目标档是否达到质量、资源与双架构门槛，由 Backend/Release Gate 证明，本文不预先宣称通过。
+
+revision 1 不自动识别或猜测 Coser、模特、公众人物、真人身份、动漫角色或敏感属性，不提供 OCR、
+自由 caption、内容审核、云推理、GPU、在线下载、国内镜像、任意模型市场或新部署单元。
 
 ## 非功能需求
 

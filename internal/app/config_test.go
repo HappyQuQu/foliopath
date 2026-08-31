@@ -16,6 +16,7 @@ func TestLoadConfigurationDefaultsToFixedRuntimeBoundaries(t *testing.T) {
 		listenAddress: "127.0.0.1:8080",
 		mediaRoot:     "/library",
 		dataRoot:      "/app/data",
+		modelRoot:     "/models",
 	}
 	if got != want {
 		t.Fatalf("loadConfiguration() = %#v, want %#v", got, want)
@@ -209,7 +210,7 @@ func TestComposeOwnsValidatedConfiguration(t *testing.T) {
 	for _, candidate := range application.components {
 		componentNames = append(componentNames, candidate.name)
 	}
-	if got, want := strings.Join(componentNames, ","), "database,system-events,resource-limits,media-root,image-runtime,media-worker,scan-worker,automatic-discovery,library-removal-worker,http,readiness"; got != want {
+	if got, want := strings.Join(componentNames, ","), "database,system-events,resource-limits,media-root,ai-model-source,managed-ai-model-store,ai-model-availability,image-runtime,ai-model-workers,media-worker,scan-worker,automatic-discovery,library-removal-worker,http,readiness"; got != want {
 		t.Fatalf("composed components = %q, want %q", got, want)
 	}
 

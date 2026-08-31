@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "status": "direct_import_found_vex_not_made",
+  "scope": "external non-glibc ELF closure of the exact text-runtime images",
+  "tool": "spikes/int001-sentencepiece-capi/analyze_glibc_reachability.py",
+  "authoritative_issue_sources": {
+    "CVE-2026-5450": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+    "CVE-2026-5928": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+    "CVE-2026-5435": "https://security-tracker.debian.org/tracker/CVE-2026-5435"
+  },
+  "architectures": [
+    {
+      "architecture": "arm64",
+      "binary_count": 5,
+      "combined_unique_undefined_symbol_count": 575,
+      "combined_undefined_symbols_sha256": "827349589704edfec6dd83f96961004fad9d6f346dc6f7a7acb2a6e0d43543fe",
+      "raw_result_sha256": "1bcce9c379d3f606dcbd6dfef1c95fb860f167de54ccab62a9f3f5367fcb97dd",
+      "libstdcpp_sha256": "fff1f0050a33ddf29c44634c7639ac16e2573a61e3daab4fcc4c007b432ccf19"
+    },
+    {
+      "architecture": "amd64",
+      "binary_count": 5,
+      "combined_unique_undefined_symbol_count": 573,
+      "combined_undefined_symbols_sha256": "f557ea4195faef230b9b60ceaf4572fc9e36d4f4c8370b293ceac99e0a9cf805",
+      "raw_result_sha256": "4ac4131ba9b5e6e5c8fe2985a919edf2dc1e8c8effdee944861b1f03a0648779",
+      "libstdcpp_sha256": "972bb2a18b71140dab0240f8a1f68ab3fb1d56bcd4c4f824a91b70888faf5a00"
+    }
+  ],
+  "direct_imports": {
+    "CVE-2026-5450": [],
+    "CVE-2026-5928": [
+      {
+        "component": "libstdc++.so.6.0.33",
+        "symbol": "ungetwc",
+        "architectures": [
+          "arm64",
+          "amd64"
+        ],
+        "observed_callers": [
+          "__gnu_cxx::stdio_sync_filebuf<wchar_t, std::char_traits<wchar_t>>::underflow()",
+          "__gnu_cxx::stdio_sync_filebuf<wchar_t, std::char_traits<wchar_t>>::pbackfail(unsigned int)"
+        ]
+      }
+    ],
+    "CVE-2026-5435": []
+  },
+  "dynamic_ungetwc_tripwire": {
+    "source_sha256": "d4feb6c9d185355087d95af98b05f4f0b1186ac73824c5bffa0eef1465954f41",
+    "probe_source_sha256": "11aa4d9200ceae87bd1728ec984cee96619ad36e46f6aa475886952eaee5bc0d",
+    "dockerfile_sha256": "387f90952ffd190b01991dfe36df511bf16f019e10bf1001e676a547a1980c65",
+    "architectures": [
+      {
+        "architecture": "arm64",
+        "tripwire_sha256": "ec0a727afc54ed9f8b81eeed5de1f8ff35022164ea0277df2f86c6199e9943e5",
+        "probe_sha256": "24f1c10aac83b189d3761069693f17023aa70f36e4be15abcda8e5176ef9fa7a",
+        "control_probe_exit": 86,
+        "control_probe_message_observed": true,
+        "parity_cases": 31,
+        "parity_maximum_absolute_difference": 0.00001811981201171875,
+        "parity_elapsed_seconds": 2.26,
+        "tripwire_triggered_during_parity": false,
+        "parity_result": "passed"
+      },
+      {
+        "architecture": "amd64",
+        "tripwire_sha256": "bfae8327644cdf65a9e0399e047db38f8e6f55067c35158008652e5dfa167a0b",
+        "probe_sha256": "6cbe9cfcf1308e426ab39f903f69bc6d93530b58068945767908eb3072d583ec",
+        "control_probe_exit": 86,
+        "control_probe_message_observed": true,
+        "parity_cases": 31,
+        "parity_maximum_absolute_difference": 0.0000209808349609375,
+        "parity_elapsed_seconds": 5.26,
+        "tripwire_triggered_during_parity": false,
+        "parity_result": "passed_emulated"
+      }
+    ],
+    "runtime_profile": {
+      "cpus": 4,
+      "memory_bytes": 4294967296,
+      "pids": 64,
+      "network": "none",
+      "root_filesystem": "read_only",
+      "capabilities": "all_dropped",
+      "no_new_privileges": true,
+      "models": "read_only_bind_mounts"
+    },
+    "interpretation": "the fixed 31-case tokenizer-to-text-encoder path did not invoke ungetwc"
+  },
+  "vex_decision": "not_made",
+  "release_gate": "failed",
+  "limitations": [
+    "a direct import does not by itself prove that FolioPath invokes the affected wide-stream path",
+    "the dynamic tripwire covers only the fixed 31-case text path and default container locale",
+    "absence of other direct imports does not exclude glibc-internal reachability or dynamic lookup",
+    "future production composition requires a new analysis",
+    "the amd64 image remains QEMU package evidence rather than native runtime evidence"
+  ]
+}

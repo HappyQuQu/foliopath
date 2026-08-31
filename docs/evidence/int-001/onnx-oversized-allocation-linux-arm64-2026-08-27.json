@@ -1,0 +1,57 @@
+{
+  "status": "bounded Linux/arm64 oversized-allocation subproof passed; INT-008 remains open",
+  "fixture": {
+    "requested_output_elements": 1500000000,
+    "requested_output_bytes": 6000000000,
+    "model_bytes": 112,
+    "model_sha256": "58a15ced5a01a702ab630e9089d2aded43ae60b2a74e0f143c37492690718bea"
+  },
+  "environment": {
+    "platform": "native Linux/arm64 container",
+    "onnxruntime": "1.28.0",
+    "container_cpus": 4,
+    "container_memory_bytes": 4294967296,
+    "container_network": "none",
+    "container_rootfs": "read-only",
+    "child_timeout_seconds": 15
+  },
+  "valid_runs": [
+    {
+      "child_address_space_bytes": 1073741824,
+      "control_outcome": "finite",
+      "oversized_outcome": "rejected",
+      "oversized_error_type": "RuntimeException",
+      "timeouts": 0,
+      "signal_terminations": 0,
+      "passed": true
+    },
+    {
+      "child_address_space_bytes": 1610612736,
+      "control_outcome": "finite",
+      "oversized_outcome": "rejected",
+      "oversized_error_type": "RuntimeException",
+      "timeouts": 0,
+      "signal_terminations": 0,
+      "passed": true
+    },
+    {
+      "child_address_space_bytes": 2147483648,
+      "control_outcome": "finite",
+      "oversized_outcome": "rejected",
+      "oversized_error_type": "RuntimeException",
+      "timeouts": 0,
+      "signal_terminations": 0,
+      "passed": true
+    }
+  ],
+  "invalid_configuration": {
+    "child_address_space_bytes": 536870912,
+    "reason": "the safe control graph also failed, so this bound cannot distinguish hostile rejection",
+    "counted_as_evidence": false
+  },
+  "limitations": [
+    "RLIMIT_AS is a disposable child-process test boundary, not an approved process-wide control for the Go monolith.",
+    "The production boundary must rely on approved exact graph hashes, fixed input shapes and release-time graph validation rather than runtime allocation failure.",
+    "Native Linux/amd64 and the production C/Go adapter remain untested."
+  ]
+}

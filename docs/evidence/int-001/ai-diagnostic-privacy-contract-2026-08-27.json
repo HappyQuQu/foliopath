@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "evidence_id": "INT-015A",
+  "recorded_at": "2026-08-27",
+  "environment": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "go_version": "go1.26.5"
+  },
+  "implementation": {
+    "contract_sha256": "7e84b8daa96ada9391958c36f0e1314e8b0090f87cec279978cee08743365ccc",
+    "test_sha256": "df63b97bb3af1347fa3e05bbf0c1ad9b2d3372fab15a4745dc57b37c8400c2b0"
+  },
+  "allowed_categories": [
+    "model id, version and digest",
+    "stable component state and error code",
+    "fixed aggregate counters",
+    "fixed resource totals"
+  ],
+  "absent_categories": [
+    "query text",
+    "person names",
+    "media paths",
+    "face crops",
+    "embeddings or vectors",
+    "raw runtime errors"
+  ],
+  "negative_cases": [
+    "raw error string in error_code",
+    "path-like model id",
+    "unbounded model version",
+    "invalid model digest",
+    "unknown state",
+    "negative counter"
+  ],
+  "verification": {
+    "command": "make spike-ai",
+    "result": "pass"
+  },
+  "limitations": [
+    "this is an isolated candidate contract and is not connected to production logging or diagnostics",
+    "production DTOs, log calls, diagnostic bundles and API responses do not yet exist for AI",
+    "S2 and S4 must add repository-wide forbidden-field and sentinel leak tests before release",
+    "INT-015, INT-406 and INT-S0 remain open"
+  ]
+}

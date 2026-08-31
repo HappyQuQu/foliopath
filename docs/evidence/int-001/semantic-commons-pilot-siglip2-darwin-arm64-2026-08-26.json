@@ -1,0 +1,536 @@
+{
+  "schema_version": 1,
+  "evidence_class": "public-license-pilot",
+  "input_pipeline": "original-public-file-direct-decode-diagnostic",
+  "environment": {
+    "os": "darwin",
+    "machine": "arm64",
+    "python": "3.12.13",
+    "torch": "2.8.0",
+    "transformers": "4.56.2",
+    "threads": 4,
+    "network_mode": "offline/local_files_only"
+  },
+  "model": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "license": "Apache-2.0",
+    "weight_bytes": 1500800904,
+    "weight_sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b",
+    "embedding_dimensions": 768
+  },
+  "load_ms": 780.38,
+  "image_inference_p50_ms": 31.683,
+  "image_inference_p95_ms": 58.244,
+  "text_batch_queries": 24,
+  "text_batch_ms": 166.759,
+  "rss_before_bytes": 311738368,
+  "rss_after_load_bytes": 789839872,
+  "rss_after_images_bytes": 1709178880,
+  "metrics": {
+    "zh-CN": {
+      "queries": 12,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "mean_relevant_recall_at_3": 0.9444444444444445,
+      "mrr": 1.0
+    },
+    "en": {
+      "queries": 12,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "mean_relevant_recall_at_3": 0.9305555555555555,
+      "mrr": 1.0
+    },
+    "paired_top1_agreement": 0.9166666666666666
+  },
+  "results": [
+    {
+      "id": "group-zh",
+      "pair_id": "group",
+      "language": "zh-CN",
+      "text": "室内五个穿蓝色黄色动物服装的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "colorful-five-person-group",
+        "yellow-dress-photographed",
+        "black-bat-stage"
+      ],
+      "top3_scores": [
+        0.092071,
+        0.066428,
+        0.049378
+      ]
+    },
+    {
+      "id": "group-en",
+      "pair_id": "group",
+      "language": "en",
+      "text": "five people in blue and yellow animal costumes indoors",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "colorful-five-person-group",
+        "yellow-dress-photographed",
+        "blue-pink-masked-pair"
+      ],
+      "top3_scores": [
+        0.171864,
+        0.05393,
+        0.037713
+      ]
+    },
+    {
+      "id": "pair-zh",
+      "pair_id": "pair",
+      "language": "zh-CN",
+      "text": "戴面罩拿扇子的蓝色和粉色服装两人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "blue-pink-masked-pair",
+        "yellow-dress-photographed",
+        "pink-hair-blue-uniform"
+      ],
+      "top3_scores": [
+        0.103364,
+        0.087548,
+        0.078488
+      ]
+    },
+    {
+      "id": "pair-en",
+      "pair_id": "pair",
+      "language": "en",
+      "text": "two masked people in blue and pink costumes holding fans",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "blue-pink-masked-pair",
+        "yellow-dress-photographed",
+        "pink-hair-blue-uniform"
+      ],
+      "top3_scores": [
+        0.157775,
+        0.06487,
+        0.059397
+      ]
+    },
+    {
+      "id": "elf-zh",
+      "pair_id": "elf",
+      "language": "zh-CN",
+      "text": "黑色背景下白色短发尖耳朵的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "white-hair-pointed-ears",
+        "white-hair-sword-closeup",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.098595,
+        0.096776,
+        0.060064
+      ]
+    },
+    {
+      "id": "elf-en",
+      "pair_id": "elf",
+      "language": "en",
+      "text": "person with short white hair and pointed ears on a black background",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "white-hair-pointed-ears",
+        "white-hair-sword-closeup",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.12842,
+        0.117486,
+        0.065493
+      ]
+    },
+    {
+      "id": "bat-zh",
+      "pair_id": "bat",
+      "language": "zh-CN",
+      "text": "舞台上穿黑色蝙蝠服装和面罩的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "black-bat-stage",
+        "red-gold-armor",
+        "yellow-dress-photographed"
+      ],
+      "top3_scores": [
+        0.160142,
+        0.078519,
+        0.068449
+      ]
+    },
+    {
+      "id": "bat-en",
+      "pair_id": "bat",
+      "language": "en",
+      "text": "person in a black bat costume and mask on a stage",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "black-bat-stage",
+        "white-hair-pointed-ears",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.182943,
+        0.032218,
+        0.029555
+      ]
+    },
+    {
+      "id": "armor-zh",
+      "pair_id": "armor",
+      "language": "zh-CN",
+      "text": "黑色长发穿红色金色盔甲的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "red-gold-armor",
+        "white-hair-pointed-ears",
+        "black-bat-stage"
+      ],
+      "top3_scores": [
+        0.118778,
+        0.080522,
+        0.058131
+      ]
+    },
+    {
+      "id": "armor-en",
+      "pair_id": "armor",
+      "language": "en",
+      "text": "person with long black hair wearing red and gold armor",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "red-gold-armor",
+        "white-hair-pointed-ears",
+        "black-bat-stage"
+      ],
+      "top3_scores": [
+        0.144977,
+        0.09166,
+        0.041744
+      ]
+    },
+    {
+      "id": "uniform-zh",
+      "pair_id": "uniform",
+      "language": "zh-CN",
+      "text": "粉色头发戴蓝色帽子和墨镜的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "pink-hair-blue-uniform",
+        "pink-twintail-hand-gesture",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.1229,
+        0.076835,
+        0.06793
+      ]
+    },
+    {
+      "id": "uniform-en",
+      "pair_id": "uniform",
+      "language": "en",
+      "text": "person with pink hair wearing a blue cap and sunglasses",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "pink-hair-blue-uniform",
+        "purple-hair-colorful-wings",
+        "blue-pink-masked-pair"
+      ],
+      "top3_scores": [
+        0.141035,
+        0.065086,
+        -0.003381
+      ]
+    },
+    {
+      "id": "sword-zh",
+      "pair_id": "sword",
+      "language": "zh-CN",
+      "text": "白色短发、绿色眼睛、身后有剑的人物特写",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "white-hair-sword-closeup",
+        "white-hair-pointed-ears",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.149497,
+        0.103542,
+        0.073415
+      ]
+    },
+    {
+      "id": "sword-en",
+      "pair_id": "sword",
+      "language": "en",
+      "text": "close-up person with short white hair green eyes and a sword behind",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "white-hair-sword-closeup",
+        "white-hair-pointed-ears",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.204284,
+        0.128594,
+        0.045503
+      ]
+    },
+    {
+      "id": "yellow-zh",
+      "pair_id": "yellow",
+      "language": "zh-CN",
+      "text": "户外坐在地上穿黄色长裙并被拍照的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "yellow-dress-photographed",
+        "white-hair-pointed-ears",
+        "colorful-five-person-group"
+      ],
+      "top3_scores": [
+        0.140028,
+        0.049852,
+        0.038004
+      ]
+    },
+    {
+      "id": "yellow-en",
+      "pair_id": "yellow",
+      "language": "en",
+      "text": "person in a long yellow dress sitting outdoors while being photographed",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "yellow-dress-photographed",
+        "white-hair-pointed-ears",
+        "purple-hair-colorful-wings"
+      ],
+      "top3_scores": [
+        0.140496,
+        0.00524,
+        -0.000738
+      ]
+    },
+    {
+      "id": "twintail-zh",
+      "pair_id": "twintail",
+      "language": "zh-CN",
+      "text": "粉色双马尾并伸舌头做手势的人物特写",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "pink-twintail-hand-gesture",
+        "purple-hair-colorful-wings",
+        "yellow-dress-photographed"
+      ],
+      "top3_scores": [
+        0.121495,
+        0.055655,
+        0.044922
+      ]
+    },
+    {
+      "id": "twintail-en",
+      "pair_id": "twintail",
+      "language": "en",
+      "text": "close-up person with pink twin tails sticking out their tongue and making a hand gesture",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "pink-twintail-hand-gesture",
+        "purple-hair-colorful-wings",
+        "pink-hair-blue-uniform"
+      ],
+      "top3_scores": [
+        0.198601,
+        0.110911,
+        0.059474
+      ]
+    },
+    {
+      "id": "wings-zh",
+      "pair_id": "wings",
+      "language": "zh-CN",
+      "text": "紫色头发、条纹上衣、身后有彩色翅膀的人",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "purple-hair-colorful-wings",
+        "pink-hair-blue-uniform",
+        "black-bat-stage"
+      ],
+      "top3_scores": [
+        0.143726,
+        0.073418,
+        0.070141
+      ]
+    },
+    {
+      "id": "wings-en",
+      "pair_id": "wings",
+      "language": "en",
+      "text": "person with purple hair and striped shirt in front of colorful wings",
+      "first_relevant_rank": 1,
+      "relevant_count": 1,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "purple-hair-colorful-wings",
+        "black-bat-stage",
+        "white-hair-sword-closeup"
+      ],
+      "top3_scores": [
+        0.202742,
+        0.048791,
+        0.029204
+      ]
+    },
+    {
+      "id": "masks-zh",
+      "pair_id": "masks",
+      "language": "zh-CN",
+      "text": "戴面罩的角色扮演者",
+      "first_relevant_rank": 1,
+      "relevant_count": 2,
+      "relevant_in_top3": 2,
+      "relevant_recall_at_3": 1.0,
+      "top3": [
+        "black-bat-stage",
+        "blue-pink-masked-pair",
+        "red-gold-armor"
+      ],
+      "top3_scores": [
+        0.096838,
+        0.087451,
+        0.086864
+      ]
+    },
+    {
+      "id": "masks-en",
+      "pair_id": "masks",
+      "language": "en",
+      "text": "cosplayers wearing face masks",
+      "first_relevant_rank": 1,
+      "relevant_count": 2,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 0.5,
+      "top3": [
+        "blue-pink-masked-pair",
+        "colorful-five-person-group",
+        "yellow-dress-photographed"
+      ],
+      "top3_scores": [
+        0.151487,
+        0.114363,
+        0.105607
+      ]
+    },
+    {
+      "id": "color-hair-zh",
+      "pair_id": "color-hair",
+      "language": "zh-CN",
+      "text": "彩色头发的人物近景",
+      "first_relevant_rank": 1,
+      "relevant_count": 3,
+      "relevant_in_top3": 1,
+      "relevant_recall_at_3": 0.3333333333333333,
+      "top3": [
+        "purple-hair-colorful-wings",
+        "white-hair-sword-closeup",
+        "yellow-dress-photographed"
+      ],
+      "top3_scores": [
+        0.096283,
+        0.07255,
+        0.065481
+      ]
+    },
+    {
+      "id": "color-hair-en",
+      "pair_id": "color-hair",
+      "language": "en",
+      "text": "close-up portrait of a person with colorful hair",
+      "first_relevant_rank": 1,
+      "relevant_count": 3,
+      "relevant_in_top3": 2,
+      "relevant_recall_at_3": 0.6666666666666666,
+      "top3": [
+        "purple-hair-colorful-wings",
+        "white-hair-sword-closeup",
+        "pink-hair-blue-uniform"
+      ],
+      "top3_scores": [
+        0.106498,
+        0.079191,
+        0.037918
+      ]
+    }
+  ],
+  "caveats": [
+    "Ten public-license photographs are a pilot for scorer/model discrimination, not the 1,000-image acceptance set.",
+    "Visual relevance judgments were made for observable attributes only; character or person identity is intentionally not evaluated.",
+    "Several images carry Wikimedia Commons personality-rights warnings; files remain temporary and are not redistributed in Git.",
+    "PyTorch macOS evidence does not approve an ONNX Linux runtime.",
+    "Model resource acceptance requires the complete FolioPath process under a 4 GiB limit with concurrent browsing."
+  ]
+}

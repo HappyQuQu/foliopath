@@ -72,6 +72,20 @@ func seedBrowseCatalog(t *testing.T, store *Store) int64 {
 	return record.ID
 }
 
+func TestCatalogAssetBatchProjectionPreservesRequestedOrder(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedBrowseCatalog(t, store)
+	firstID := catalogAssetID(t, store, "photo-10.jpg")
+	secondID := catalogAssetID(t, store, "photo-2.jpg")
+	items, err := store.GetAssetsByIDs(context.Background(), []int64{secondID, firstID})
+	if err != nil || len(items) != 2 || items[0].ID != secondID || items[1].ID != firstID {
+		t.Fatalf("items=%#v err=%v", items, err)
+	}
+	if _, err := store.GetAssetsByIDs(context.Background(), []int64{firstID, 999999}); !errors.Is(err, catalog.ErrAssetNotFound) {
+		t.Fatalf("missing batch error = %v", err)
+	}
+}
+
 func seedSearchCatalog(
 	t *testing.T,
 	store *Store,

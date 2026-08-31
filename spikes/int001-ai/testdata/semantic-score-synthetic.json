@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-person-scenes-v1",
+  "legal_basis": "synthetic",
+  "license": {"id":"CC0-1.0","url":"https://creativecommons.org/publicdomain/zero/1.0/"},
+  "generator": "semantic_fixture_generate.py:v1",
+  "items": [
+    {"id":"red-stage","filename":"red-stage.png"},
+    {"id":"blue-outdoor","filename":"blue-outdoor.png"},
+    {"id":"group-stage","filename":"group-stage.png"},
+    {"id":"pink-hair-closeup","filename":"pink-hair-closeup.png"},
+    {"id":"white-indoor","filename":"white-indoor.png"},
+    {"id":"black-night","filename":"black-night.png"},
+    {"id":"green-landscape","filename":"green-landscape.png"},
+    {"id":"orange-cat","filename":"orange-cat.png"}
+  ],
+  "queries": [
+    {"id":"red-zh","pair_id":"red","language":"zh-CN","text":"舞台上穿红色裙子的人","relevant":["red-stage"]},
+    {"id":"red-en","pair_id":"red","language":"en","text":"a person in a red dress on a stage","relevant":["red-stage"]},
+    {"id":"blue-zh","pair_id":"blue","language":"zh-CN","text":"户外穿蓝色衣服的人","relevant":["blue-outdoor"]},
+    {"id":"blue-en","pair_id":"blue","language":"en","text":"a person wearing blue clothes outdoors","relevant":["blue-outdoor"]},
+    {"id":"group-zh","pair_id":"group","language":"zh-CN","text":"舞台上的两个人","relevant":["group-stage"]},
+    {"id":"group-en","pair_id":"group","language":"en","text":"two people standing on a stage","relevant":["group-stage"]},
+    {"id":"pink-zh","pair_id":"pink","language":"zh-CN","text":"粉色头发的人物特写","relevant":["pink-hair-closeup"]},
+    {"id":"pink-en","pair_id":"pink","language":"en","text":"close-up portrait of a person with pink hair","relevant":["pink-hair-closeup"]},
+    {"id":"white-zh","pair_id":"white","language":"zh-CN","text":"室内穿白色裙子的人","relevant":["white-indoor"]},
+    {"id":"white-en","pair_id":"white","language":"en","text":"a person in a white dress indoors","relevant":["white-indoor"]},
+    {"id":"night-zh","pair_id":"night","language":"zh-CN","text":"夜晚穿黑色服装的人","relevant":["black-night"]},
+    {"id":"night-en","pair_id":"night","language":"en","text":"a person in a black costume at night","relevant":["black-night"]},
+    {"id":"landscape-zh","pair_id":"landscape","language":"zh-CN","text":"没有人物的绿色风景","relevant":["green-landscape"]},
+    {"id":"landscape-en","pair_id":"landscape","language":"en","text":"a green landscape without people","relevant":["green-landscape"]},
+    {"id":"cat-zh","pair_id":"cat","language":"zh-CN","text":"橙色的猫","relevant":["orange-cat"]},
+    {"id":"cat-en","pair_id":"cat","language":"en","text":"an orange cat","relevant":["orange-cat"]}
+  ],
+  "videos": [
+    {"id":"video-red","frame_item_ids":["green-landscape","red-stage","red-stage","black-night"]},
+    {"id":"video-blue","frame_item_ids":["green-landscape","blue-outdoor","blue-outdoor","white-indoor"]},
+    {"id":"video-group","frame_item_ids":["black-night","group-stage","group-stage","red-stage"]},
+    {"id":"video-cat","frame_item_ids":["orange-cat","orange-cat","green-landscape","white-indoor"]}
+  ],
+  "video_queries": [
+    {"id":"video-red-zh","pair_id":"video-red","language":"zh-CN","text":"舞台上穿红色裙子的人","relevant":["video-red"]},
+    {"id":"video-red-en","pair_id":"video-red","language":"en","text":"a person in a red dress on a stage","relevant":["video-red"]},
+    {"id":"video-blue-zh","pair_id":"video-blue","language":"zh-CN","text":"户外穿蓝色衣服的人","relevant":["video-blue"]},
+    {"id":"video-blue-en","pair_id":"video-blue","language":"en","text":"a person wearing blue clothes outdoors","relevant":["video-blue"]},
+    {"id":"video-group-zh","pair_id":"video-group","language":"zh-CN","text":"舞台上的两个人","relevant":["video-group"]},
+    {"id":"video-group-en","pair_id":"video-group","language":"en","text":"two people standing on a stage","relevant":["video-group"]},
+    {"id":"video-cat-zh","pair_id":"video-cat","language":"zh-CN","text":"橙色的猫","relevant":["video-cat"]},
+    {"id":"video-cat-en","pair_id":"video-cat","language":"en","text":"an orange cat","relevant":["video-cat"]}
+  ]
+}

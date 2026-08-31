@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "dataset_id": "authorized-face-evaluation-template-v1",
+  "purpose": "schema validation template only; this file is not evidence that authorization or review exists",
+  "legal_basis": "written-authorization",
+  "license": {
+    "id": "PRIVATE-EVALUATION-ONLY",
+    "url": "https://example.invalid/compliance/replace-with-approved-evidence"
+  },
+  "redistributable": false,
+  "governance": {
+    "data_class": "biometric-ground-truth",
+    "allowed_uses": [
+      "face-detection-evaluation",
+      "face-verification-evaluation",
+      "face-clustering-evaluation"
+    ],
+    "authorized_roles": [
+      "evaluation-team",
+      "privacy-reviewer"
+    ],
+    "retention_until": "2099-12-31",
+    "deletion_procedure": "delete-fixtures-and-derived-evidence",
+    "consent_or_authority_ref": "AUTHORIZATION-REQUIRED",
+    "privacy_review_ref": "PRIVACY-REVIEW-REQUIRED",
+    "redistribution": "prohibited"
+  },
+  "items": [
+    {
+      "id": "placeholder-face-image-001",
+      "relative_path": "private/placeholder-face-image-001.jpg",
+      "media_type": "image",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "identity_id": "opaque-subject-001"
+    }
+  ]
+}

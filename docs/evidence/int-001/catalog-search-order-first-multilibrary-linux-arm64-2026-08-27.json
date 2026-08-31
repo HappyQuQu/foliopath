@@ -1,0 +1,78 @@
+{
+  "status": "two-library global order-first correctness matrix passes; production fix remains unselected",
+  "date": "2026-08-27",
+  "platform": {
+    "os": "linux",
+    "architecture": "arm64",
+    "cpus": 4,
+    "memoryBytes": 4294967296,
+    "network": "none",
+    "rootfs": "read-only",
+    "runtimeBaseArm64ManifestDigest": "sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d"
+  },
+  "diagnosticBinary": {
+    "goBuild": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c ./tests/performance",
+    "sha256": "40a3725410f09888340a87607fcafed4d9238bb88ca24b97d49b3dbc11efa7ca"
+  },
+  "fixture": {
+    "libraries": 2,
+    "directoriesPerLibrary": 5000,
+    "assetsPerLibrary": 50000,
+    "totalDirectories": 10000,
+    "totalAssets": 100000,
+    "libraryRootsOverlap": false,
+    "mediaAtMatrixRun": {
+      "images": 70417,
+      "videos": 18333,
+      "animated": 11250
+    }
+  },
+  "matrix": {
+    "sorts": ["name", "modifiedAt", "size"],
+    "orders": ["asc", "desc"],
+    "filters": ["video", "animated", "image+video", "selective-date", "sparse-term"],
+    "firstPageCases": 11,
+    "secondPageCases": 11,
+    "orderedIDsEqual": true,
+    "candidateFirstPageMicroseconds": {
+      "kind-animated/name/asc": 25207,
+      "kind-image-video/name/desc": 25547,
+      "kind-video/name/asc": 82253,
+      "modifiedAt/asc": 25075,
+      "modifiedAt/desc": 35351,
+      "name/asc": 17010,
+      "name/desc": 16610,
+      "selective-date/modifiedAt/asc": 24994,
+      "size/asc": 21873,
+      "size/desc": 41525,
+      "sparse/name/asc": 71315
+    },
+    "candidateSecondPageMicroseconds": {
+      "kind-animated/name/asc": 25645,
+      "kind-image-video/name/desc": 25708,
+      "kind-video/name/asc": 49137,
+      "modifiedAt/asc": 25475,
+      "modifiedAt/desc": 29890,
+      "name/asc": 16886,
+      "name/desc": 25099,
+      "selective-date/modifiedAt/asc": 25559,
+      "size/asc": 22210,
+      "size/desc": 40539,
+      "sparse/name/asc": 74475
+    }
+  },
+  "budget": {
+    "isolatedPageMicrosecondsMaximum": 250000,
+    "candidateWorstPageMicroseconds": 82253,
+    "allCandidatePagesWithinBudget": true,
+    "productionBudgetChanged": false
+  },
+  "limitations": [
+    "Both libraries use synthetic naming and deterministic, test-only media-kind distributions.",
+    "Mixed media, a middle-50-percent modification window and a roughly two-percent filename band are covered, but real-world selectivity remains untested.",
+    "Each candidate latency is one observation, not a P95 distribution.",
+    "Full hydration fields were not compared across the matrix.",
+    "Native Linux/amd64 remains untested.",
+    "No production SQL, schema, API, cursor, planner threshold or budget changed."
+  ]
+}

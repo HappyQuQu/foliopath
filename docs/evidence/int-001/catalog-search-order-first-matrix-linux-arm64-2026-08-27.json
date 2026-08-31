@@ -1,0 +1,192 @@
+{
+  "status": "order-first matrix preserves repository ordering and stays below the isolated page budget; production SQL remains unchanged",
+  "date": "2026-08-27",
+  "platform": {
+    "os": "linux",
+    "architecture": "arm64",
+    "cpus": 4,
+    "memoryBytes": 4294967296,
+    "network": "none",
+    "rootfs": "read-only",
+    "runtimeBaseArm64ManifestDigest": "sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d"
+  },
+  "fixture": {
+    "libraries": 1,
+    "directories": 10000,
+    "assets": 100000,
+    "pageLimitIncludingSentinel": 101,
+    "mediaAtMatrixRun": {
+      "images": 80000,
+      "videos": 10000,
+      "animated": 10000
+    }
+  },
+  "diagnosticBinary": {
+    "goBuild": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c ./tests/performance",
+    "matrixTimingSha256": "2cdbd6a7b3a7579ea45cfe3a1b668f5738ea4a7d833cff95f78f937badaa5347",
+    "filteredPlanSha256": "b842ce526f50b736d3f4ae3833b478edf8414597783d277669bcbf9563a827fb",
+    "mixedMediaSha256": "9adeb9eaa9d6c432b40138c8bed5d650c4b7b6bba590fad1dde5b024a99fefa2",
+    "animatedKindsSha256": "3e2a8844c9af83039d80a1fd9809246748b8fc74f1350e27a6d06b56a41c57c8",
+    "representativeP95Sha256": "0d8a1b1c284b3d8ef783957bfeaafa320c5767fe5f693554d4d674ee114e014a"
+  },
+  "matrix": {
+    "firstPageCases": 26,
+    "secondPageCases": 22,
+    "orderedIDsEqual": true,
+    "candidateFirstPageMicroseconds": {
+      "directory-direct/modifiedAt/desc": 2504,
+      "directory-direct/name/asc": 109648,
+      "directory-direct/name/desc": 33196,
+      "directory-direct/size/asc": 2539,
+      "directory-recursive/modifiedAt/desc": 155344,
+      "directory-recursive/name/asc": 146553,
+      "directory-recursive/size/asc": 105624,
+      "directory-root/recursive/name/asc": 20783,
+      "global/modifiedAt/asc": 13846,
+      "global/modifiedAt/desc": 17340,
+      "global/name/asc": 38382,
+      "global/name/desc": 12067,
+      "global/size/asc": 12013,
+      "global/size/desc": 21034,
+      "library/kind-animated": 183256,
+      "library/kind-image": 20744,
+      "library/kind-image-video": 36408,
+      "library/kind-video": 202268,
+      "library/modified-window": 20425,
+      "library/modifiedAt/asc": 13507,
+      "library/modifiedAt/desc": 16647,
+      "library/name/asc": 20958,
+      "library/name/desc": 12190,
+      "library/short-unanchored": 2822,
+      "library/size/asc": 11970,
+      "library/size/desc": 21001
+    },
+    "candidateSecondPageMicroseconds": {
+      "directory-recursive/modifiedAt/desc": 155230,
+      "directory-recursive/name/asc": 146451,
+      "directory-recursive/size/asc": 98766,
+      "directory-root/recursive/name/asc": 19949,
+      "global/modifiedAt/asc": 16276,
+      "global/modifiedAt/desc": 15217,
+      "global/name/asc": 36830,
+      "global/name/desc": 12684,
+      "global/size/asc": 12488,
+      "global/size/desc": 20022,
+      "library/kind-animated": 66295,
+      "library/kind-image": 35082,
+      "library/kind-image-video": 35216,
+      "library/kind-video": 71973,
+      "library/modified-window": 36197,
+      "library/modifiedAt/asc": 16174,
+      "library/modifiedAt/desc": 15059,
+      "library/name/asc": 20454,
+      "library/name/desc": 12403,
+      "library/short-unanchored": 3761,
+      "library/size/asc": 12472,
+      "library/size/desc": 19977
+    },
+    "repositoryFirstPageMicroseconds": {
+      "directory-direct/modifiedAt/desc": 79750,
+      "directory-direct/name/asc": 44971,
+      "directory-direct/name/desc": 80145,
+      "directory-direct/size/asc": 79540,
+      "directory-recursive/modifiedAt/desc": 200104,
+      "directory-recursive/name/asc": 205369,
+      "directory-recursive/size/asc": 120095,
+      "directory-root/recursive/name/asc": 363773,
+      "global/modifiedAt/asc": 74226,
+      "global/modifiedAt/desc": 74421,
+      "global/name/asc": 718285,
+      "global/name/desc": 103704,
+      "global/size/asc": 71528,
+      "global/size/desc": 301679,
+      "library/kind-image": 347636,
+      "library/kind-video": 52658,
+      "library/modified-window": 9442822,
+      "library/modifiedAt/asc": 73567,
+      "library/modifiedAt/desc": 73987,
+      "library/name/asc": 349452,
+      "library/name/desc": 103189,
+      "library/short-unanchored": 1877,
+      "library/size/asc": 70864,
+      "library/size/desc": 301391
+    },
+    "repositorySecondPageMicroseconds": {
+      "directory-recursive/modifiedAt/desc": 200371,
+      "directory-recursive/name/asc": 202968,
+      "directory-recursive/size/asc": 120183,
+      "directory-root/recursive/name/asc": 377362,
+      "global/modifiedAt/asc": 75005,
+      "global/modifiedAt/desc": 75869,
+      "global/name/asc": 759027,
+      "global/name/desc": 132421,
+      "global/size/asc": 76044,
+      "global/size/desc": 306885,
+      "library/kind-image": 378930,
+      "library/modified-window": 9545305,
+      "library/modifiedAt/asc": 75340,
+      "library/modifiedAt/desc": 75412,
+      "library/name/asc": 374917,
+      "library/name/desc": 126532,
+      "library/short-unanchored": 2542,
+      "library/size/asc": 74819,
+      "library/size/desc": 301512
+    }
+  },
+  "budget": {
+    "isolatedPageMicrosecondsMaximum": 250000,
+    "candidateWorstFirstPageMicroseconds": 202268,
+    "candidateWorstSecondPageMicroseconds": 155230,
+    "allCandidatePagesWithinBudget": true,
+    "productionSearchKeysetP95Microseconds": 843561,
+    "productionBudgetChanged": false
+  },
+  "representativeRepeatedSamples": {
+    "samplesPerPage": 20,
+    "candidateFirstPageP95Microseconds": {
+      "directory-recursive/name/asc": 137113,
+      "library/kind-video": 174591,
+      "library/modified-window": 36540
+    },
+    "candidateSecondPageP95Microseconds": {
+      "directory-recursive/name/asc": 135115,
+      "library/kind-video": 45269,
+      "library/modified-window": 34950
+    },
+    "allRepresentativeCandidatePagesWithinBudget": true
+  },
+  "notableCounterexample": {
+    "case": "library/modified-window",
+    "twoRunCandidateFirstPageMicroseconds": [20425, 36262],
+    "twoRunCandidateSecondPageMicroseconds": [36197, 33806],
+    "threeRunRepositoryFirstPageMicroseconds": [9442822, 18138948, 18996267],
+    "threeRunRepositorySecondPageMicroseconds": [9545305, 18233176, 19002296],
+    "repositoryFirstAndSecondPlan": [
+      "SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+      "SEARCH a USING INDEX assets_modified (library_id=? AND mtime_ns>? AND mtime_ns<?)",
+      "SEARCH t USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "SEARCH storyboard USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "SCAN asset_search VIRTUAL TABLE INDEX 0:=M2",
+      "CORRELATED SCALAR SUBQUERY 1",
+      "SEARCH favorite USING INTEGER PRIMARY KEY (rowid=?)",
+      "USE TEMP B-TREE FOR ORDER BY"
+    ],
+    "candidatePlan": [
+      "SEARCH a USING INDEX assets_browse_folder_name_v2 (library_id=?)",
+      "SCAN asset_search EXISTS VIRTUAL TABLE INDEX 0:=M2"
+    ],
+    "rootCauseProven": true,
+    "rootCause": "the broad time range makes assets_modified drive the scan, then FTS membership is repeatedly evaluated and the surviving rows are sorted in a temporary B-tree"
+  },
+  "limitations": [
+    "Only one synthetic library was present, so global ordering was not tested across multiple library IDs.",
+    "Image, video, animated and the combined image-plus-video filter were non-empty; other combined kind sets remain untested.",
+    "The modification window covered the full synthetic range rather than selective real-world windows.",
+    "Only synthetic filename terms were used; semantic-vector or hybrid lexical/vector retrieval was not tested.",
+    "Full thumbnail/storyboard/favorite hydration remains measured only for broad library name ascending.",
+    "Three representative first/second-page cases have 20-sample P95 measurements; the remaining matrix latencies are one observation each.",
+    "The broad modification-window planner failure is proven, but selective date distributions and a production-safe planner rule remain untested.",
+    "Native Linux/amd64 remains untested.",
+    "No production SQL, schema, API, planner threshold or budget changed."
+  ]
+}

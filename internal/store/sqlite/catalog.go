@@ -569,15 +569,58 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 	if assetID <= 0 {
 		return catalog.Asset{}, catalog.ErrAssetNotFound
 	}
-	var item catalog.Asset
-	var kind, probeStatus, playbackStatus, libraryStatus string
-	var width, height, durationMS sql.NullInt64
-	var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
-	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
-	var probeError, thumbnailStatus, thumbnailError sql.NullString
-	var storyboardStatus, storyboardError sql.NullString
-	var favorite int64
-	err := s.db.QueryRowContext(ctx, `
+	items, err := s.GetAssetsByIDs(ctx, []int64{assetID})
+	if err != nil {
+		return catalog.Asset{}, err
+	}
+	return items[0], nil
+}
+
+func (s *Store) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]catalog.Asset, error) {
+	if len(assetIDs) < 1 || len(assetIDs) > catalog.MaxPageSize {
+		return nil, catalog.ErrInvalidQuery
+	}
+	arguments := make([]any, len(assetIDs))
+	placeholders := make([]string, len(assetIDs))
+	seen := make(map[int64]struct{}, len(assetIDs))
+	for index, assetID := range assetIDs {
+		if assetID < 1 {
+			return nil, catalog.ErrInvalidQuery
+		}
+		if _, exists := seen[assetID]; exists {
+			return nil, catalog.ErrInvalidQuery
+		}
+		seen[assetID] = struct{}{}
+		arguments[index], placeholders[index] = assetID, "?"
+	}
+	rows, err := s.db.QueryContext(ctx, catalogAssetProjectionSQL+` WHERE a.id IN (`+strings.Join(placeholders, ",")+`)`, arguments...)
+	if err != nil {
+		return nil, fmt.Errorf("get catalog asset batch: %w", err)
+	}
+	defer rows.Close()
+	byID := make(map[int64]catalog.Asset, len(assetIDs))
+	for rows.Next() {
+		item, err := scanCatalogAsset(rows)
+		if err != nil {
+			return nil, err
+		}
+		byID[item.ID] = item
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate catalog asset batch: %w", err)
+	}
+	items := make([]catalog.Asset, 0, len(assetIDs))
+	for _, assetID := range assetIDs {
+		item, found := byID[assetID]
+		if !found {
+			return nil, catalog.ErrAssetNotFound
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+const catalogAssetProjectionSQL = `
         SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
                a.natural_name_key, a.kind, a.media_format, a.mime_type,
                a.size_bytes, a.mtime_ns, a.source_fingerprint,
@@ -595,10 +638,18 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard
           ON storyboard.asset_id = a.id
-         AND storyboard.variant = 'storyboard'
-        WHERE a.id = ?`,
-		assetID,
-	).Scan(
+         AND storyboard.variant = 'storyboard'`
+
+func scanCatalogAsset(row interface{ Scan(...any) error }) (catalog.Asset, error) {
+	var item catalog.Asset
+	var kind, probeStatus, playbackStatus, libraryStatus string
+	var width, height, durationMS sql.NullInt64
+	var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
+	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
+	var probeError, thumbnailStatus, thumbnailError sql.NullString
+	var storyboardStatus, storyboardError sql.NullString
+	var favorite int64
+	err := row.Scan(
 		&item.ID, &item.LibraryID, &item.LibraryName,
 		&item.DirectoryID, &item.RelativePath, &item.Name,
 		&item.NaturalNameKey, &kind, &item.MediaFormat, &item.MIMEType,

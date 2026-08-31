@@ -111,6 +111,21 @@ func (stub *repositoryStub) GetAsset(ctx context.Context, _ int64) (Asset, error
 	return stub.getAsset, stub.getAssetErr
 }
 
+func (stub *repositoryStub) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]Asset, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if stub.getAssetErr != nil {
+		return nil, stub.getAssetErr
+	}
+	items := make([]Asset, len(assetIDs))
+	for index, assetID := range assetIDs {
+		items[index] = stub.getAsset
+		items[index].ID = assetID
+	}
+	return items, nil
+}
+
 func (stub *repositoryStub) GetDirectoryLineage(
 	ctx context.Context,
 	_ int64,

@@ -230,6 +230,7 @@ type Repository interface {
 	ListAssetPage(context.Context, AssetListParams) ([]Asset, error)
 	CountAssets(context.Context, AssetQuery) (AssetCounts, error)
 	GetAsset(context.Context, int64) (Asset, error)
+	GetAssetsByIDs(context.Context, []int64) ([]Asset, error)
 	GetDirectoryLineage(context.Context, int64, int) (DirectoryLineage, error)
 }
 
@@ -569,6 +570,51 @@ func (service *Service) GetAsset(ctx context.Context, assetID int64) (Asset, err
 		return Asset{}, err
 	}
 	return item, nil
+}
+
+func (service *Service) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]Asset, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if len(assetIDs) < 1 || len(assetIDs) > MaxPageSize {
+		return nil, ErrInvalidQuery
+	}
+	seen := make(map[int64]struct{}, len(assetIDs))
+	for _, assetID := range assetIDs {
+		if assetID < 1 {
+			return nil, ErrInvalidQuery
+		}
+		if _, exists := seen[assetID]; exists {
+			return nil, ErrInvalidQuery
+		}
+		seen[assetID] = struct{}{}
+	}
+	items, err := service.repository.GetAssetsByIDs(ctx, assetIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) != len(assetIDs) {
+		return nil, ErrAssetNotFound
+	}
+	byID := make(map[int64]Asset, len(items))
+	for _, item := range items {
+		if err := validateAsset(item); err != nil {
+			return nil, err
+		}
+		if _, exists := byID[item.ID]; exists {
+			return nil, ErrInvalidQuery
+		}
+		byID[item.ID] = item
+	}
+	ordered := make([]Asset, 0, len(assetIDs))
+	for _, assetID := range assetIDs {
+		item, found := byID[assetID]
+		if !found {
+			return nil, ErrAssetNotFound
+		}
+		ordered = append(ordered, item)
+	}
+	return ordered, nil
 }
 
 func validateAsset(item Asset) error {

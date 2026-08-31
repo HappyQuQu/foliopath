@@ -39,7 +39,7 @@ S1-101 Contract Ready，但当前仍没有可用的业务 handler。认证 servi
 | 范围与交付治理 | [交付与架构治理](delivery-governance.md) | 什么进入版本、如何变更、为何后端优先、何时能进入下一 Gate |
 | 需求到实现 | [需求—架构追踪](traceability.md) | FR/NFR 落到哪个 capability、契约、数据、风险与验证 |
 | 前端子系统 | [前端架构](frontend.md) | 组件、样式、状态、API、列表和测试如何保持唯一所有权 |
-| 智能媒体发现提案 | [智能媒体发现技术架构](intelligent-media-discovery.md) | 本地语义检索、人脸聚类、模型下载/离线映射、派生向量与人工人物库如何分层；当前 S0 No-Go |
+| 智能媒体发现 A+B | [智能媒体发现技术架构](intelligent-media-discovery.md)、[S1 capability/事务合同](intelligent-media-s1-contract.md)、[离线模型包合同](ai-model-package-contract.md) | revision 1 只含离线模型基础与图片语义搜索；S1 Go，S2A 已复审为 No-Go且不授权生产 UI；标签、视频、人脸仍为未来提案 |
 | 自动约束 | [架构适配度检查](fitness-functions.md) | 哪些架构不变量由本地/CI/发布检查执行，当前是否真的落地 |
 | 决策历史 | [ADR 索引](../adr/README.md) | 为什么选择当前结构，如何替代已有决定 |
 

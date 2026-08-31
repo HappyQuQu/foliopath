@@ -1,0 +1,87 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:a8e7d9b5-8092-4c0c-a3e8-75bf96b05217",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-28T00:00:00Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "properties": [
+      {
+        "name": "foliopath:int001:scope",
+        "value": "isolated linux/arm64 spike; not a production or release SBOM"
+      },
+      {
+        "name": "foliopath:int001:source-origin-status",
+        "value": "archive bytes pinned; all files verified equivalent to the official v0.2.1 Git tree; distribution URL not independently attested"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:github/google/sentencepiece@0.2.1?arch=arm64&os=linux",
+      "supplier": {
+        "name": "Google"
+      },
+      "name": "sentencepiece",
+      "version": "0.2.1",
+      "description": "SentencePiece C++ runtime built from the digest-pinned source archive for the isolated INT-001 text-runtime spike",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4606acd764ba8ec2ad4d80901b5ae8ddaabc4439cb54ea85d7e85f4eb20ab9d8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:github/google/sentencepiece@0.2.1?arch=arm64&os=linux",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/sentencepiece/tree/31646a467d2051eb904e0b45de3a73e91fe1c1e3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "foliopath:int001:archive-sha256",
+          "value": "c1a59e9259c9653ad0ade653dadff074cd31f0a6ff2a11316f67bee4189a8f1b"
+        },
+        {
+          "name": "foliopath:int001:library-sha256",
+          "value": "4606acd764ba8ec2ad4d80901b5ae8ddaabc4439cb54ea85d7e85f4eb20ab9d8"
+        },
+        {
+          "name": "foliopath:int001:git-tag-commit",
+          "value": "31646a467d2051eb904e0b45de3a73e91fe1c1e3"
+        },
+        {
+          "name": "foliopath:int001:license-sha256",
+          "value": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "name": "foliopath:int001:artifact",
+          "value": "lib/libsentencepiece.so.0.0.0"
+        }
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "incomplete",
+      "assemblies": [
+        "pkg:github/google/sentencepiece@0.2.1?arch=arm64&os=linux"
+      ]
+    }
+  ]
+}

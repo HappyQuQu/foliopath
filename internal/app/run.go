@@ -9,13 +9,16 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/aimodel"
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -25,6 +28,7 @@ import (
 	releasegithub "github.com/HappyQuQu/foliopath/internal/releaseinfo/github"
 	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/semantic"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/systemlog"
 	"github.com/HappyQuQu/foliopath/internal/thumbnail"
@@ -132,6 +136,12 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	reconcileSignal := jobs.NewSignal()
 	mediaSignal := jobs.NewSignal()
 	cacheSignal := jobs.NewSignal()
+	aiInstallSignal := jobs.NewSignal()
+	aiActivationSignal := jobs.NewSignal()
+	semanticSignal := jobs.NewSignal()
+	semanticClearSignal := jobs.NewSignal()
+	tagReviewClearSignal := jobs.NewSignal()
+	videoSemanticSignal := jobs.NewSignal()
 	resourceController, err := resourcecontrol.NewController(resourcecontrol.Limits{Background: 1, Content: 1})
 	if err != nil {
 		return nil, fmt.Errorf("construct resource controller: %w", err)
@@ -393,6 +403,194 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct library lifecycle service: %w", err)
 	}
+	aiSource, aiSourceComponent := newAIModelSource(configuration.modelRoot)
+	aiCatalog, err := aimodel.NewCatalog(nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct reviewed AI model catalog: %w", err)
+	}
+	aiScanner, err := aimodel.NewScanner(aiSource, aiCatalog, runtime.GOARCH, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model scanner: %w", err)
+	}
+	aiModels, err := aimodel.NewService(database, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model service: %w", err)
+	}
+	aiOperations, err := aimodel.NewOperationService(database, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI operation service: %w", err)
+	}
+	managedModels, managedModelsComponent, err := newManagedAIModelStore(filepath.Join(configuration.dataRoot, "models"))
+	if err != nil {
+		return nil, fmt.Errorf("construct managed AI model store: %w", err)
+	}
+	aiInstaller, err := aimodel.NewInstaller(aiModels, aiSource, managedModels)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model installer: %w", err)
+	}
+	aiAdmission, err := aimodel.NewInstallAdmissionService(database, aiInstallSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model install admission: %w", err)
+	}
+	aiInstallWorker, err := aimodel.NewInstallWorker(database, aiInstaller, aiOperations, aiInstallSignal.Notifications(), 0)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model install worker: %w", err)
+	}
+	aiActivationSource, err := aimodel.NewActivationSourceRouter(aiSource, managedModels)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model activation source: %w", err)
+	}
+	aiAvailability, err := aimodel.NewAvailabilityService(aiModels, aiCatalog, aiActivationSource)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model availability service: %w", err)
+	}
+	aiAvailabilityComponent, err := newAIAvailabilityComponent(aiAvailability)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model availability lifecycle: %w", err)
+	}
+	aiActivationWorker, err := aimodel.NewActivationWorker(
+		database, aiModels, aiOperations, aiCatalog, aiActivationSource, onnx.New(),
+		aiAvailability, aiActivationSignal.Notifications(), 0, nil, nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model activation worker: %w", err)
+	}
+	aiActivationAdmission, err := aimodel.NewActivationAdmissionService(database, aiActivationSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model activation admission: %w", err)
+	}
+	semanticSessions, err := newSemanticSessionOwner(semanticProductionSessionFactory{
+		generations: database, models: aiModels, catalog: aiCatalog,
+		source: aiActivationSource, availability: aiAvailability, runtime: onnx.New(),
+	}, 0, 0, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic inference sessions: %w", err)
+	}
+	semanticProcessor, err := semantic.NewBackfillProcessor(
+		database, semanticContentSource{content: contentService}, imagevips.New(), semanticSessions,
+		database, database, nil, 0,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic backfill processor: %w", err)
+	}
+	limitedSemanticProcessor, err := resourcecontrol.LimitBackground(resourceController, semanticProcessor)
+	if err != nil {
+		return nil, fmt.Errorf("limit semantic backfill processor: %w", err)
+	}
+	semanticWorker, err := jobs.NewWorkerPool(
+		semanticJobQueue{database: database}, limitedSemanticProcessor, semanticSignal,
+		jobs.WorkerOptions{Workers: 1},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic backfill worker: %w", err)
+	}
+	semanticSettings, err := semantic.NewSettingsService(database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic settings service: %w", err)
+	}
+	semanticAdmission, err := semantic.NewBackfillService(database, database, semanticSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic backfill admission: %w", err)
+	}
+	semanticClearProcessor, err := semantic.NewClearProcessor(database, nil, 0)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic clear processor: %w", err)
+	}
+	limitedSemanticClearProcessor, err := resourcecontrol.LimitBackground(resourceController, semanticClearProcessor)
+	if err != nil {
+		return nil, fmt.Errorf("limit semantic clear processor: %w", err)
+	}
+	semanticClearWorker, err := jobs.NewWorkerPool(
+		semanticClearQueue{database: database}, limitedSemanticClearProcessor, semanticClearSignal,
+		jobs.WorkerOptions{Workers: 1},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic clear worker: %w", err)
+	}
+	semanticClearAdmission, err := semantic.NewClearService(database, semanticClearSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic clear admission: %w", err)
+	}
+	semanticService, err := semantic.NewService(semanticSettings, semanticAdmission, aiOperations, semanticClearAdmission)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic service: %w", err)
+	}
+	tagReviewClearProcessor, err := semantic.NewTagReviewClearProcessor(database, nil, 0)
+	if err != nil {
+		return nil, fmt.Errorf("construct tag review clear processor: %w", err)
+	}
+	limitedTagReviewClearProcessor, err := resourcecontrol.LimitBackground(resourceController, tagReviewClearProcessor)
+	if err != nil {
+		return nil, fmt.Errorf("limit tag review clear processor: %w", err)
+	}
+	tagReviewClearWorker, err := jobs.NewWorkerPool(tagReviewClearQueue{database: database}, limitedTagReviewClearProcessor,
+		tagReviewClearSignal, jobs.WorkerOptions{Workers: 1})
+	if err != nil {
+		return nil, fmt.Errorf("construct tag review clear worker: %w", err)
+	}
+	tagReviewClearService, err := semantic.NewTagReviewClearService(database, tagReviewClearSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct tag review clear service: %w", err)
+	}
+	if err := semanticService.EnableTagReviewClear(tagReviewClearService); err != nil {
+		return nil, fmt.Errorf("compose tag review clear service: %w", err)
+	}
+	videoSemanticProcessor, err := semantic.NewVideoProcessor(semanticStoryboardSource{
+		repository: database, cache: cachePublisher, splitter: imagevips.New(), waker: mediaSignal,
+	}, imagevips.New(), semanticSessions, database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct video semantic processor: %w", err)
+	}
+	videoSemanticJobProcessor, err := semantic.NewVideoJobProcessor(database, database, videoSemanticProcessor, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct video semantic job processor: %w", err)
+	}
+	limitedVideoSemanticProcessor, err := resourcecontrol.LimitBackground(resourceController, videoSemanticJobProcessor)
+	if err != nil {
+		return nil, fmt.Errorf("limit video semantic processor: %w", err)
+	}
+	videoSemanticWorker, err := jobs.NewWorkerPool(videoJobQueue{database: database}, limitedVideoSemanticProcessor,
+		videoSemanticSignal, jobs.WorkerOptions{Workers: 1})
+	if err != nil {
+		return nil, fmt.Errorf("construct video semantic worker: %w", err)
+	}
+	videoSemanticJobs, err := semantic.NewVideoJobService(database, database, videoSemanticSignal, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct video semantic job service: %w", err)
+	}
+	if err := semanticService.EnableVideoJobs(videoSemanticJobs); err != nil {
+		return nil, fmt.Errorf("compose video semantic job service: %w", err)
+	}
+	tagVocabulary, err := semantic.NewTagVocabularyService(database, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct tag vocabulary service: %w", err)
+	}
+	tagSuggestionList, err := semantic.NewTagSuggestionListService(database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct tag suggestion list service: %w", err)
+	}
+	tagReviews, err := semantic.NewTagReviewService(database, curationService, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct tag review service: %w", err)
+	}
+	idempotentTagReviews, err := semantic.NewIdempotentTagReviewService(tagReviews, database, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct idempotent tag review service: %w", err)
+	}
+	aiOrphans, err := aimodel.NewManagedOrphanService(aiModels, aiCatalog, managedModels, runtime.GOARCH)
+	if err != nil {
+		return nil, fmt.Errorf("construct managed AI model orphan service: %w", err)
+	}
+	aiWorkerComponent, err := newAIWorkerComponent(
+		[]aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker}, aiOperations, aiOrphans, managedModels,
+	)
+	if err != nil {
+		return nil, err
+	}
+	aiManagement, err := aimodel.NewManagementService(aiModels, aiScanner, aiOperations, aiAdmission, aiActivationAdmission, aiAvailability, semanticService)
+	if err != nil {
+		return nil, fmt.Errorf("construct AI model management service: %w", err)
+	}
 	routes, err := api.NewRoutes(api.RouteDependencies{
 		Readiness:        readiness.snapshot,
 		Authentication:   authentication,
@@ -413,6 +611,14 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Thumbnails:       thumbnailDelivery,
 		Content:          contentService,
 		ContentAdmission: resourceController,
+		AIModels:         aiManagement,
+		Semantic:         semanticService,
+
+		AITagVocabulary:   tagVocabulary,
+		AITagSuggestions:  tagSuggestionList,
+		AITagReviews:      idempotentTagReviews,
+		AITagReviewClear:  semanticService,
+		VideoSemanticJobs: semanticService,
 	})
 	if err != nil {
 		return nil, err
@@ -436,7 +642,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 			newSystemEventComponent(systemLogs),
 			resourceLimitsComponent,
 			mediaRootComponent,
+			aiSourceComponent,
+			managedModelsComponent,
+			aiAvailabilityComponent,
 			imageRuntimeComponent,
+			aiWorkerComponent,
 			mediaComponent,
 			scanComponent,
 			automaticDiscoveryComponent,

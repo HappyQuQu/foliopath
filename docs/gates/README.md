@@ -1,5 +1,14 @@
 # FolioPath Gate 记录
 
+- [MVP 搜索 keyset 容量回归复审](MVP-2026-07-23/s4-search-capacity-regression-2026-08-31.md)：
+  当前 production query-plan change No-Go；100k 候选证据工作已授权。
+- [POST-MVP-5 C+D+E S1R2 Contract Ready](POST-MVP-5/int-s1r2-contract-ready.md)：revision 2 已冻结，
+  当前 Go；授权 S2B 后端实现，S2C 仍受独立隐私准入 No-Go 阻断。
+- [POST-MVP-5 S2B Backend Evidence Ready](POST-MVP-5/int-s2b-backend-evidence-ready.md)：当前
+  No-Go / Implementation Authorized。
+- [POST-MVP-5 S2C 人脸隐私与模型准入](POST-MVP-5/int-s2c-privacy-ready.md)：当前 No-Go，等待隐私、
+  合法数据、候选许可与冻结质量协议。
+
 Gate 记录保存 Architecture、Contract、Backend、Frontend、阶段和 Release 判断的可审计证据。
 规范见[交付与架构治理](../architecture/delivery-governance.md)。
 
@@ -37,7 +46,13 @@ cursor 首页面裁剪的本地实现和前端证据，当前为 Conditional Go�
 
 当前记录：
 
-- [INT-S0：本地智能媒体发现 Architecture Ready](POST-MVP-5/int-s0-architecture-ready.md)（No-Go）
+- [INT-S0：本地智能媒体发现 Architecture Ready](POST-MVP-5/int-s0-architecture-ready.md)（A+B Go；
+  [本地探索已收口](POST-MVP-5/int-s0-closeout-and-blockers.md)）
+- [INT-S1：模型基础与图片语义搜索 Contract Ready](POST-MVP-5/int-s1-contract-ready.md)（A+B Go；
+  已授权并完成当前边界内的 S2 后端实现，生产 UI 未授权）
+- [INT-S2A：模型基础与图片语义搜索 Backend Evidence Ready](POST-MVP-5/int-s2a-backend-evidence-ready.md)
+  （复审完成，当前 No-Go；[ADR-0014 2026-08-29 接受审计保持提议](POST-MVP-5/adr-0014-acceptance-audit-2026-08-29.md)；
+  不授权生产 UI）
 
 - [CUR-S0：收藏与手动标签 Architecture Ready](POST-MVP-4/cur-s0-architecture-ready.md)
 - [CUR-S1：收藏与手动标签 Contract Ready](POST-MVP-4/cur-s1-contract-ready.md)

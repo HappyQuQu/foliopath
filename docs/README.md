@@ -39,7 +39,13 @@
 当前另有一套不影响冻结 MVP 的 [FTR-INT-001 本地智能媒体发现提案](features/intelligent-media-discovery.md)：
 已形成[技术架构](architecture/intelligent-media-discovery.md)、[spike 计划](spikes/int-001-ai-feasibility.md)
 和[任务清单](features/intelligent-media-discovery-task-list.md)，并补充审核下载源与 `/models:ro` 离线
-模型获取方案；但 `POST-MVP-5` 尚未冻结且 S0 为 No-Go，国内镜像也尚无运营证据。
+模型获取方案；`POST-MVP-5` [revision 2](releases/POST-MVP-5-scope-r2.md) 已冻结 A～E 完整范围；
+INT-S0 与 [INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md)仍只对 A+B 为 Go；
+[INT-S2A Backend Evidence Ready](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md) 已复审但为 No-Go，
+其中 [ADR-0014 接受审计](gates/POST-MVP-5/adr-0014-acceptance-audit-2026-08-29.md) 仍为 Blocked；
+不授权生产 UI。C 标签、D 视频、E 人脸当前进入 S1R2 合同扩展，Contract Ready 前不写生产后端；国内
+镜像仍没有承诺。S0 本地技术探索已经[收口](gates/POST-MVP-5/int-s0-closeout-and-blockers.md)，不再
+追加同类合成测试；真实质量、原生 amd64 与合规条件由后续 Backend/Release Gate 持有。
 
 ## 当前权威文档
 

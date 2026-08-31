@@ -352,3 +352,157 @@ migration 21 追加 `curation_state`、`asset_favorites`、`tags` 与 `asset_tag
 媒体 tuple 使用 keyset，不使用 OFFSET。
 
 数据库迁移只向前自动执行，已发布迁移不得修改。备份 SQLite WAL 数据库时必须使用 SQLite 认可的在线备份或先完成安全 checkpoint/停机流程，不能只复制主数据库文件而忽略相关状态。缩略图缓存可重建，可以与不可丢的配置、管理员凭据和应用设置采用不同备份策略。
+
+## POST-MVP-5 revision 1：模型与图片语义数据合同
+
+S1 冻结 schema 语义；S2 已以只追加 migration 22/23/24
+建立模型、generation、setting、embedding、progress、backfill/clear job 基础表与 durable semantic request/attempt 状态，
+禁止修改此前已提交 migration。
+
+| 表 | 身份与关键约束 | 数据分类与删除 |
+| --- | --- | --- |
+| `ai_models` | opaque ID；`purpose=semantic_image_text`；package/version/arch/content hash 唯一；state、storage mode、availability revision | 模型配置/运行状态；备份；删除不能触碰 direct source |
+| `ai_model_operations` | opaque operation ID；kind、state、progress、stable error、lease、revision；不保存路径/URL；Get/create/transition 返回时均由 operation owner 校验 identity/owner/revision 绑定及 queued/active/terminal phase、finished time、error-code 一致性 | 可清理运维状态；保留最近终态由配额策略控制；不一致或串单的持久化结果失败关闭 |
+
+不经过 `OperationService` 的安装/激活 admission 结果必须在 `ManagementService` 出口执行相同 operation
+校验，并绑定正确 kind、激活 model ID、Created/Replayed 语义和新建 revision-1 queued 状态。
+具体 install/activation admission 还必须在发出 worker wake signal 前验证 queue 返回的
+idempotency/request、candidate/model owner、availability revision 和 operation；失败不得唤醒 worker。
+| `ai_library_settings` | `library_id` PK/FK；enabled、revision、active generation ID、coverage revision | 应用设置；库删除 cascade；禁用默认不删除 embedding |
+| `semantic_generations` | opaque ID；model ID、transform/output/index version、state、created/activated time；最多一个 active | 可重建派生元数据；旧代延迟清理 |
+| `semantic_embeddings` | `(generation_id, library_id, asset_id)`；固定 dimension/blob length；source fingerprint | 可重建派生；asset/library/generation 删除 cascade |
+| `semantic_library_progress` | `(generation_id, library_id)`；eligible/completed/failed/stale counts、checkpoint、revision | 可重建聚合状态；不得用失败数伪装完整覆盖 |
+| `semantic_jobs` | opaque batch ID；library、generation、mode、state、lease/checkpoint、attempt、stable error、requested/claimed revision | restart-safe 派生任务；最多 claim 3 次，不保存 query 文本或逐资产错误原文 |
+| `semantic_job_requests` | SHA-256 idempotency-key digest、固定 request digest、job ID、创建时间 | 幂等回放/主动同模式合并；不保存明文 key、请求体、路径或 query 文本 |
+| `semantic_clear_jobs` | opaque clear ID；library、operation、state、lease、attempt、requested/claimed revision | restart-safe 有界清除 tombstone；不依赖 active model/generation，不删除原媒体或用户策展数据 |
+| `semantic_clear_requests` | SHA-256 idempotency-key digest、request digest、expected settings revision、clear job ID | 强 ETag 清除意图的幂等回放；不保存明文 key 或确认请求体 |
+
+复合 FK 必须延续 catalog 的 `(library_id, asset_id)` 边界，避免跨库引用。active generation 使用数据库
+唯一约束加 compare-and-swap revision 保证单例；模型记录不能通过 cascade 意外删除仍被 active 或
+recovery generation 引用的包。embedding blob 只能由 semantic repository 读写，API 和诊断查询不得
+选择该列。revision 1 的 embedding blob 是固定维度、IEEE-754 binary16 little-endian；写入前先以
+float64 累加平方和并 L2 normalize，读取 binary16 后必须再次 L2 normalize 再参与评分。NaN、Inf、
+零向量、维度或 blob 长度不匹配均拒绝，不得把损坏行当作零分结果继续查询。
+
+backfill 页提交必须在同一短事务写入 embedding、推进 `semantic_library_progress` 计数/revision/checkpoint、
+推进 `semantic_jobs.checkpoint_id` 和公开 operation progress。提交同时匹配 claimed revision、progress
+revision 与旧 checkpoint；任一不匹配、FK 或计数约束失败均整体回滚。解码和推理不在事务内执行。
+
+回填入队从 `assets` 计算 image/animated eligible 数；`missing` 用 generation/library/asset 左连接同时
+筛选缺失 embedding 和 source fingerprint 不一致，worker 用 `asset_id ASC` keyset 而非 OFFSET。每库只
+运行一个 semantic job；lease 过期在 3 次上限内重排并更新 claim revision，达到上限才以稳定
+`operation_interrupted` 失败。通用 model-operation 启动恢复不得抢先终结这些 restart-safe operation。
+每批 progress 提交同时推进 enabled `ai_library_settings.coverage_revision`；未收敛保持 `building`，全部
+eligible 已计入且无 failed/stale 才为 `ready`，否则终态为 `degraded`。禁用只改变设置状态与 revision，
+不删除 embedding。
+
+清除与 backfill 在同一媒体库上互斥。接纳 clear 时以 settings revision 做 compare-and-swap，立即把
+`enabled=0,state=clearing` 与 durable clear job/operation 同事务写入；因此部分删除永远不会被搜索当成
+完整索引。worker 每个短事务最多删除 1,000 行 embedding，成功终态再同事务删除该库全部 generation
+progress、切换为 `disabled` 并完成 operation。失败或取消保留尚存派生行但状态为 `degraded`，允许显式
+重试；模型、原媒体、收藏和人工标签均不在清除事务范围内。
+
+搜索 cursor 绑定 query fingerprint、scope/filter fingerprint、catalog revision、model generation、
+semantic progress/index revision 与最后 `(score, asset_id)`；query 原文不进入 token。任一绑定值变化
+返回 stale conflict，不跨代拼页。
+
+备份必须包含 SQLite 中的模型登记、媒体库 AI 设置、generation/progress/job 状态；managed model bytes
+与可重建 embedding/index 可选择不备份，但恢复文档必须明确恢复后能力为 unavailable/rebuild required，
+不能把缺失字节解释成完整。`/models` direct source永不属于 FolioPath 备份。
+
+该 migration 的完整验证矩阵为：fresh install、21→22 upgrade、重复启动幂等、每个 DDL/回填故障点
+事务回滚、外键检查、`integrity_check`、库/资产 cascade、active generation 唯一性，以及升级后与升级前
+数据库备份配对恢复。当前只完成 fresh schema/约束与 repository 定向测试；升级、故障注入和恢复证据
+仍属于 S2，不能因 migration 已存在而视为通过。
+
+## POST-MVP-5 revision 2：C+D+E 数据与事务合同
+
+本节源自 `INT-117` 的 schema 语义；[INT-S1R2 Contract Ready](gates/POST-MVP-5/int-s1r2-contract-ready.md)
+转为 Go 后，C/D 已由只追加 migration 25～32 实现，migration 21～24 未修改。E 仍受独立隐私 Gate
+失败关闭，不存在 production face migration。状态机与 owner 以
+[C+D+E capability contract](architecture/intelligent-media-s1r2-contract.md)为准。
+
+### C：受控标签建议
+
+| 计划表 | 身份与约束 | 分类/删除 |
+| --- | --- | --- |
+| `ai_tag_vocabulary_snapshots` | opaque snapshot ID、单调 revision、state；同一时刻最多一个 active | migration 25 已实现；管理配置；备份；只有管理员显式发布新 snapshot |
+| `ai_tag_vocabulary_entries` | `(snapshot_id, tag_id)`；tag FK 指向现有 `tags`；删除/改名触发新 snapshot，不原地改历史 | migration 25 已实现；配置快照；备份；不保存自由文本副本或 embedding |
+| `ai_tag_suggestions` | opaque ID；唯一 `(generation_id, library_id, asset_id, vocabulary_snapshot_id, tag_id)`；finite `[0,1]` confidence、source fingerprint、pending/invalidated | migration 25 已实现；可重建派生；generation/asset/library cascade；不得 cascade review decision |
+| `ai_tag_reviews` | 唯一 `(library_id, asset_id, tag_id)`；accepted/dismissed、revision、reviewed_at、可空 source suggestion ID、accepted curation revision | migration 25 已实现；用户应用状态；备份；普通 AI disable/clear/rebuild 保留；独立二次确认才删除 |
+| `ai_tag_review_state`、`ai_tag_review_clear_jobs/requests` | 每库单调 review revision；强 ETag clear、hashed idempotency、lease/attempt、删除计数 | migration 31 已实现；只删除 review audit，不删除 `asset_tags`、收藏、媒体或模型 |
+| `semantic_tag_asset_progress`、`semantic_tag_library_progress` | generation/library/vocabulary/source 绑定；显式记录 ready（含零建议）、degraded/failed/stale 与 checkpoint/revision | migration 32 已实现；可重建覆盖率，不能以 suggestion 行数冒充处理数 |
+| `semantic_tag_jobs/requests` | missing/all、同库单 active、lease/retry/cancel、hashed idempotency、operation FK | migration 32 已实现；建议、覆盖率、job checkpoint 与 operation progress 在同一短事务提交 |
+
+词表发布是短事务：创建完整 immutable snapshot、复核 entry 上限/唯一 tag、CAS 切 active revision；文本
+embedding 在事务外生成并按 snapshot 重建。suggestion batch 最多 100，先在事务外验证排序/finite/
+generation/source，再短事务 upsert pending；不能覆盖 accepted/dismissed review。
+
+接受单条 suggestion 的事务 owner 必须锁定/复核 pending suggestion 和 `ai_tag_reviews` revision，再通过
+curation capability 的同一 database composition 写 `asset_tags`。若跨 capability 无法共享一个短事务，
+必须先保持 suggestion pending，curation 成功后以其返回 revision CAS 写 accepted；任何冲突返回可重试，
+绝不记录 accepted 却没有人工 tag。批量 API 是最多 100 个独立有界 use case 的结果集合，不持有跨资产
+大事务。
+
+### D：视频代表帧 embedding
+
+| 计划表 | 身份与约束 | 分类/删除 |
+| --- | --- | --- |
+| `semantic_video_frames` | 唯一 `(generation_id, library_id, asset_id, storyboard_fingerprint, plan_size, ordinal)`；plan size 仅 4/10；ordinal 范围受检；timestamp 非负；固定 binary16 dimension；source/storyboard fingerprint | 可重建敏感度低的派生向量；asset/library/generation cascade；不保存帧路径或 sprite bytes |
+| `semantic_video_progress` | `(generation_id, library_id)`；eligible/ready/degraded/failed/stale、checkpoint、coverage revision | 可重建聚合；不得把部分 plan 计 ready |
+| `semantic_video_jobs/requests` | 复用 semantic queue 语义但使用独立 kind、lease/checkpoint/attempt 和 hashed idempotency | restart-safe 派生任务；不保存 FFmpeg stderr/path/query |
+
+同一视频只有完整 10-frame plan 或完整 4-frame fallback 能进入查询。每个 frame batch 与 job checkpoint/
+progress 在一个短事务提交；解码/推理不持事务。单帧失败可保存已完成 frame 进度但视频计 degraded，查询
+按 `GROUP BY asset` 的受界候选逐视频选择 `score DESC, ordinal ASC`，最终 keyset 为
+`video_score DESC, asset_id ASC`。改变 max/best-frame 规则必须新 transform version，不原地复用行。
+
+storyboard cache eviction 不直接删除 frame embedding；下一次来源复核发现 storyboard fingerprint 不可用
+时将结果 stale。可靠 asset 删除和库删除 cascade；offline 保留。备份可排除 frame embedding/jobs，但恢复
+后必须显示 rebuild required。
+
+### E：face 派生与人物应用状态
+
+| 计划表 | 身份与约束 | 分类/删除 |
+| --- | --- | --- |
+| `face_library_settings` | library PK/FK、enabled/state/revision、active face/cluster generation、coverage revision | 应用设置；备份；默认关闭 |
+| `face_generations` | opaque ID、detector/embedder/cluster contract、model IDs、dimension、threshold profile、state | 可重建代次元数据；最多一个 active profile |
+| `face_observations` | opaque face ID；`generation_id + library_id + asset_id + source_fingerprint`；受检 normalized bbox/quality；固定 binary16 embedding | 高敏感可重建派生；asset/library/generation cascade；不保存 crop/path |
+| `face_clusters` / `face_cluster_members` | generation-bound anonymous cluster；member role 仅 core/edge；同 observation 每代最多一个 cluster | 高敏感可重建派生；generation cascade；不引用 person name |
+| `people` | instance-level opaque person ID；NFC display name 1～100 code points、revision、created/updated、可空 tombstone；名称不唯一 | 不可重建应用状态；必须备份；删除只由 person owner |
+| `person_face_anchors` | opaque anchor ID；person、library/asset、exact source fingerprint、受检 quantized bbox anchor、revision、state；不保存 embedding/crop | 高敏感应用状态；必须备份；可靠 asset/library 删除 cascade，普通 derived clear 保留 |
+| `face_exclusions` | anchor/observation lineage、library/asset、source fingerprint、revision | 用户应用状态；优先于 cluster；必须备份 |
+| `face_cannot_links` | 两个不同 anchor ID 的规范有序 pair 唯一；revision、created_at | 用户应用状态；必须备份；任一 anchor 删除 cascade |
+| `face_audit_events` | opaque event ID、actor=administrator、closed action code、目标 opaque ID、前后 revision、时间；不存名称、bbox、路径、embedding | 有界应用审计；备份；按 retention 清理但不充当当前状态 |
+| `face_jobs/requests/clear_jobs` | detection/cluster/reconcile/derived-clear/manual-clear 各自 durable kind；hashed idempotency、lease/checkpoint/attempt | 派生任务可恢复；manual clear 是危险操作且不得和 derived clear 混用 |
+
+`person_face_anchors` 是人工关系跨派生重建所需的最小敏感应用状态：只保留 exact source fingerprint 与量化
+bbox anchor，不保留 embedding/crop。相同 source 下新 observation 只有在 capability owner 的唯一匹配
+规则通过时才可重新绑定；模型升级出现零个或多个候选时标记 `needs_review`，不得按 bbox 顺序或最近向量
+静默猜测。人物搜索只使用 bound/confirmed anchor，不使用匿名 cluster 推断。
+
+人物 create/assign/move/exclude/cannot-link/merge/split/undo 都是短事务并匹配相关 person/anchor/cluster
+revision。person merge 先在事务外生成 bounded plan，事务内重新验证全部 revisions/cannot-link，迁移成员、
+写审计并 tombstone source person；任一冲突整体回滚。undo 只应用于没有后续 revision 的最近事件。
+
+derived clear 删除 observation、cluster、crop cache 和可重建进度，设置进入 disabled/degraded，但保留
+people、anchors、exclusion、cannot-link 和 audit。manual clear 必须先写带影响计数/范围 digest 的 durable
+intent，二次确认后按 bounded transaction 删除应用状态；两种 clear 永不删除 `assets` 或原媒体。
+
+### Retention、cascade 与备份
+
+- offline、失败、取消或部分不可读不触发任何 C/D/E stale purge；只有可靠 catalog 删除/成功 generation
+  reconciliation 获得 asset cascade 资格。
+- 删除媒体库会删除该库 suggestion/review、video/face 派生及 anchors/constraints；instance-level person
+  可以保留为空人物，只有用户显式删除 person 才移除。不得因库删除影响其他库的同一 person。
+- SQLite 备份必须包含 vocabulary/review、people/anchors/constraints/audit 和全部 settings/operation intents。
+  可排除可重建 suggestion/frame/observation/cluster/embedding，但恢复时必须进入 rebuild required，不能
+  显示完整 coverage。
+- face crop 若未来缓存，只能位于 `/app/data` 的独立配额目录，key 绑定 observation identity/transform；
+  不进入备份、API 或通用 thumbnail route，clear/eviction 原子且可重建。
+
+### Migration 验收矩阵
+
+未来只追加 migration 必须覆盖 fresh、24→新版本 upgrade、重复启动、每个 DDL/回填故障点回滚、FK/
+`integrity_check`、active snapshot/generation 唯一、可靠 asset/library cascade、offline 保留、derived/manual
+clear 分离、person 跨库隔离、cannot-link merge rollback，以及升级前数据库与对应应用版本的配对恢复。

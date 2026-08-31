@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "status": "technical_measurement_complete_gate_not_met",
+  "environment": {
+    "goos": "linux",
+    "goarch": "arm64",
+    "go_version": "go1.26.4",
+    "gomaxprocs": 4,
+    "container_cpus": 4,
+    "container_memory_bytes": 4294967296,
+    "network": "none"
+  },
+  "configuration": {
+    "items": 100000,
+    "dimensions": 512,
+    "batch_size": 256,
+    "batch_delay_ms": 20,
+    "browse_queries": 100,
+    "search_queries": 10,
+    "seed": 20260826
+  },
+  "float32_runs": [
+    {
+      "baseline_browse_p95_ms": 0.018,
+      "concurrent_browse_p95_ms": 0.436,
+      "browse_p95_degradation_rate": 23.22222222222222,
+      "concurrent_search_p95_ms": 245.607,
+      "rows_after_cancellation": 65536,
+      "rows_after_restart": 100000,
+      "database_bytes": 410619904,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 11763712,
+      "peak_rss_bytes": 29286400
+    },
+    {
+      "baseline_browse_p95_ms": 0.023,
+      "concurrent_browse_p95_ms": 0.424,
+      "browse_p95_degradation_rate": 17.434782608695652,
+      "concurrent_search_p95_ms": 258.371,
+      "rows_after_cancellation": 68352,
+      "rows_after_restart": 100000,
+      "database_bytes": 410619904,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 11665408,
+      "peak_rss_bytes": 28684288
+    },
+    {
+      "baseline_browse_p95_ms": 0.024,
+      "concurrent_browse_p95_ms": 0.414,
+      "browse_p95_degradation_rate": 16.249999999999996,
+      "concurrent_search_p95_ms": 229.843,
+      "rows_after_cancellation": 65024,
+      "rows_after_restart": 100000,
+      "database_bytes": 410619904,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 11665408,
+      "peak_rss_bytes": 26120192
+    }
+  ],
+  "float16_runs": [
+    {
+      "baseline_browse_p95_ms": 0.024,
+      "concurrent_browse_p95_ms": 0.451,
+      "browse_p95_degradation_rate": 17.791666666666664,
+      "concurrent_search_p95_ms": 138.854,
+      "rows_after_cancellation": 60672,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 11796480,
+      "peak_rss_bytes": 27467776
+    },
+    {
+      "baseline_browse_p95_ms": 0.021,
+      "concurrent_browse_p95_ms": 0.201,
+      "browse_p95_degradation_rate": 8.571428571428571,
+      "concurrent_search_p95_ms": 155.949,
+      "rows_after_cancellation": 61952,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 7438336,
+      "peak_rss_bytes": 25264128
+    },
+    {
+      "baseline_browse_p95_ms": 0.025,
+      "concurrent_browse_p95_ms": 0.182,
+      "browse_p95_degradation_rate": 6.279999999999999,
+      "concurrent_search_p95_ms": 156.912,
+      "rows_after_cancellation": 61440,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "wal_bytes_after_checkpoint": 0,
+      "heap_sys_bytes": 7536640,
+      "peak_rss_bytes": 25202688
+    }
+  ],
+  "assessment": {
+    "search_p95_budget_ms": 750,
+    "search_p95_budget_met": true,
+    "browse_relative_degradation_budget": 0.2,
+    "browse_relative_degradation_budget_met": false,
+    "storage_budget_bytes": 524288000,
+    "float32_combined_scope_storage_viable": false,
+    "float16_capacity_path_promising": true,
+    "float16_real_embedding_quality_proven": false,
+    "cancellation_and_restart_completed": true
+  },
+  "caveats": [
+    "Vectors are synthetic and provide no semantic recall evidence.",
+    "The browse query is a SQLite keyset proxy, not the production browse request path.",
+    "The sub-millisecond baseline makes the relative degradation metric ill-conditioned, but the configured 20 percent gate was not changed or waived.",
+    "Only native Linux arm64 was measured; Linux amd64 remains required.",
+    "The run excludes ONNX inference, video-frame vectors and face vectors."
+  ]
+}

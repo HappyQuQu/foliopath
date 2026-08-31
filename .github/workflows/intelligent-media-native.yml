@@ -1,0 +1,213 @@
+name: Intelligent media native evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intelligent-media-native-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-evidence:
+    name: Native ${{ matrix.goarch }} evidence
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            goarch: amd64
+            machine: x86_64
+            dockerarch: x86_64
+          - runner: ubuntu-24.04-arm
+            goarch: arm64
+            machine: aarch64
+            dockerarch: aarch64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      EVIDENCE_DIR: build/intelligent-media-native
+      EXPECTED_GOARCH: ${{ matrix.goarch }}
+      EXPECTED_MACHINE: ${{ matrix.machine }}
+      EXPECTED_DOCKER_ARCH: ${{ matrix.dockerarch }}
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Prove native runner identity
+        id: identity
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUNNER_LABEL: ${{ matrix.runner }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}"
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = "${EXPECTED_MACHINE}"
+          test "$(go env GOOS)" = linux
+          test "$(go env GOARCH)" = "${EXPECTED_GOARCH}"
+          test -z "${DOCKER_DEFAULT_PLATFORM:-}"
+          docker info --format '{{.OSType}}/{{.Architecture}}' | grep -Fx "linux/${EXPECTED_DOCKER_ARCH}"
+          jq -n \
+            --arg schemaVersion "1" \
+            --arg sourceCommit "${SOURCE_COMMIT}" \
+            --arg workflowRunId "${WORKFLOW_RUN_ID}" \
+            --arg workflowRunAttempt "${WORKFLOW_RUN_ATTEMPT}" \
+            --arg runnerLabel "${RUNNER_LABEL}" \
+            --arg machine "$(uname -m)" \
+            --arg goos "$(go env GOOS)" \
+            --arg goarch "$(go env GOARCH)" \
+            --arg docker "$(docker info --format '{{.OSType}}/{{.Architecture}}')" \
+            --arg createdAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            '{
+              schemaVersion: ($schemaVersion | tonumber),
+              sourceCommit: $sourceCommit,
+              workflowRunId: $workflowRunId,
+              workflowRunAttempt: ($workflowRunAttempt | tonumber),
+              runnerLabel: $runnerLabel,
+              machine: $machine,
+              goos: $goos,
+              goarch: $goarch,
+              docker: $docker,
+              qemuAllowed: false,
+              createdAt: $createdAt
+            }' >"${EVIDENCE_DIR}/identity.json"
+
+      - name: Install locked web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Run contracts and repository tests
+        id: repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          make fmt-check arch-check generate-check lint test test-integration test-e2e \
+            2>&1 | tee "${EVIDENCE_DIR}/repository.log"
+
+      - name: Run production libvips adapter test
+        id: libvips
+        shell: bash
+        run: |
+          set -euo pipefail
+          make test-libvips 2>&1 | tee "${EVIDENCE_DIR}/libvips.log"
+
+      - name: Run two-library order-first evidence matrix
+        id: search_matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          FOLIOPATH_SEARCH_MATRIX_MULTILIB=1 GOMAXPROCS=4 \
+            go test -timeout=20m -count=1 \
+              -run '^TestOrderFirstMultiLibraryGlobalMatrix$' \
+              -v ./tests/performance \
+            2>&1 | tee "${EVIDENCE_DIR}/search-matrix.log"
+
+      - name: Run enforced 10k/100k capacity baseline
+        id: capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          make spike-capacity 2>&1 | tee "${EVIDENCE_DIR}/capacity.log"
+
+      - name: Record step outcomes
+        if: always()
+        shell: bash
+        env:
+          IDENTITY_OUTCOME: ${{ steps.identity.outcome }}
+          REPOSITORY_OUTCOME: ${{ steps.repository.outcome }}
+          LIBVIPS_OUTCOME: ${{ steps.libvips.outcome }}
+          SEARCH_MATRIX_OUTCOME: ${{ steps.search_matrix.outcome }}
+          CAPACITY_OUTCOME: ${{ steps.capacity.outcome }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}"
+          jq -n \
+            --arg identity "${IDENTITY_OUTCOME}" \
+            --arg repository "${REPOSITORY_OUTCOME}" \
+            --arg libvips "${LIBVIPS_OUTCOME}" \
+            --arg searchMatrix "${SEARCH_MATRIX_OUTCOME}" \
+            --arg capacity "${CAPACITY_OUTCOME}" \
+            '{
+              identity: $identity,
+              repository: $repository,
+              libvips: $libvips,
+              searchMatrix: $searchMatrix,
+              capacity: $capacity,
+              complete: ([ $identity, $repository, $libvips, $searchMatrix, $capacity ] | all(. == "success"))
+            }' >"${EVIDENCE_DIR}/outcomes.json"
+
+      - name: Upload bounded native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intelligent-media-native-${{ matrix.goarch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/intelligent-media-native/
+          if-no-files-found: error
+          retention-days: 14
+
+  paired-evidence:
+    name: Verify paired native evidence
+    if: always()
+    needs: native-evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+
+      - name: Download both native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: intelligent-media-native-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/intelligent-media-native-downloaded
+          merge-multiple: false
+
+      - name: Verify paired native evidence
+        if: always()
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          make verify-intelligent-media-native-evidence \
+            EVIDENCE_DIR=build/intelligent-media-native-downloaded \
+            RELEASE_SHA="${SOURCE_COMMIT}" \
+            WORKFLOW_RUN_ID="${WORKFLOW_RUN_ID}" \
+            WORKFLOW_RUN_ATTEMPT="${WORKFLOW_RUN_ATTEMPT}" \
+            SUMMARY_FILE=build/intelligent-media-native-paired/summary.json
+
+      - name: Upload paired verification summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intelligent-media-native-paired-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/intelligent-media-native-paired/
+          if-no-files-found: warn
+          retention-days: 14

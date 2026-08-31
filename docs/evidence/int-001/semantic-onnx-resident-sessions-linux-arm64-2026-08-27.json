@@ -1,0 +1,57 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "onnxruntime": "1.28.0",
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "configuration": {
+    "cycles": 100,
+    "threads": 2,
+    "cpu_mem_arena": false,
+    "memory_pattern": true,
+    "maximum_cgroup_peak_bytes": 3435973836
+  },
+  "result": {
+    "all_outputs_finite": true,
+    "image_load_seconds": 0.222603,
+    "text_load_seconds": 0.545761,
+    "image_inference_p50_ms": 166.414,
+    "image_inference_p95_ms": 169.769,
+    "text_inference_p50_ms": 53.154,
+    "text_inference_p95_ms": 54.288,
+    "after_both_load": {
+      "process_rss_kib": 1874132,
+      "process_peak_rss_kib": 2319760,
+      "cgroup_current_bytes": 3551387648,
+      "cgroup_peak_bytes": 4008951808,
+      "cgroup_anon_bytes": 1884942336,
+      "cgroup_file_bytes": 1648783360
+    },
+    "after_cycle_100": {
+      "process_rss_kib": 1887404,
+      "process_peak_rss_kib": 2319760,
+      "cgroup_current_bytes": 3563499520,
+      "cgroup_peak_bytes": 4008951808,
+      "cgroup_anon_bytes": 1898336256,
+      "cgroup_file_bytes": 1648783360
+    },
+    "cgroup_peak_passed": false,
+    "resident_session_strategy_accepted": false
+  },
+  "decision": {
+    "keep_both_siglip2_split_sessions_resident": false,
+    "next_required_direction": "smaller model or a lifecycle that does not require both large encoders to coexist",
+    "int_008_complete": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "This is a Python ONNX Runtime measurement, not the production Go or C adapter.",
+    "The run alternates one image and one text inference and does not include SQLite, HTTP browsing or the face runtime.",
+    "Native linux/amd64 remains unverified."
+  ]
+}

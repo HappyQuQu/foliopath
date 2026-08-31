@@ -1,0 +1,100 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "onnxruntime": "1.28.0",
+    "go_version": "go1.26.4",
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "inputs": {
+    "image_encoder_bytes": 371682125,
+    "image_encoder_sha256": "7fc85e0e8a0f4e5fce7be45c7830e7473c81f010633b7d31bc1613dafc734ab0",
+    "prepared_tensor_sha256": "759555d0de3d5b2b96947f1eae6b7230ea729ac6eda217ab1d7e864eeef94498",
+    "vector_spike_binary_sha256": "9e40e3e12402bc332edaa6cd3086e6883e5a623fee464a5de7567349e53321da"
+  },
+  "configuration": {
+    "runs": 3,
+    "seeds": [20260827, 20260828, 20260829],
+    "image_threads": 2,
+    "image_sleep_ms": 20,
+    "cpu_mem_arena": false,
+    "memory_pattern": true,
+    "vector_items": 100000,
+    "vector_dimensions": 512,
+    "vector_storage_format": "float16",
+    "vector_batch_size": 256,
+    "vector_batch_delay_ms": 20,
+    "browse_queries": 100,
+    "search_queries": 10
+  },
+  "runs": [
+    {
+      "seed": 20260827,
+      "image_inferences": 39,
+      "image_inference_p95_ms": 182.043,
+      "image_inference_max_ms": 183.813,
+      "image_outputs_finite": true,
+      "baseline_browse_p95_ms": 0.021,
+      "concurrent_browse_p95_ms": 0.167,
+      "browse_p95_degradation_rate": 6.952381,
+      "concurrent_search_p95_ms": 165.443,
+      "rows_after_cancellation": 63232,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "cgroup_peak_bytes": 1327558656
+    },
+    {
+      "seed": 20260828,
+      "image_inferences": 40,
+      "image_inference_p95_ms": 179.171,
+      "image_inference_max_ms": 180.205,
+      "image_outputs_finite": true,
+      "baseline_browse_p95_ms": 0.019,
+      "concurrent_browse_p95_ms": 0.261,
+      "browse_p95_degradation_rate": 12.736842,
+      "concurrent_search_p95_ms": 186.532,
+      "rows_after_cancellation": 63232,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "cgroup_peak_bytes": 1292042240
+    },
+    {
+      "seed": 20260829,
+      "image_inferences": 43,
+      "image_inference_p95_ms": 182.391,
+      "image_inference_max_ms": 183.629,
+      "image_outputs_finite": true,
+      "baseline_browse_p95_ms": 0.028,
+      "concurrent_browse_p95_ms": 0.177,
+      "browse_p95_degradation_rate": 5.321429,
+      "concurrent_search_p95_ms": 184.357,
+      "rows_after_cancellation": 63488,
+      "rows_after_restart": 100000,
+      "database_bytes": 136880128,
+      "cgroup_peak_bytes": 1314099200
+    }
+  ],
+  "assessment": {
+    "no_oom_or_process_failure": true,
+    "all_image_outputs_finite": true,
+    "restart_reached_all_rows": true,
+    "search_p95_limit_ms": 750,
+    "search_latency_passed": true,
+    "memory_peak_limit_bytes": 3435973836,
+    "memory_peak_passed": true,
+    "browse_relative_degradation_limit": 0.2,
+    "browse_relative_degradation_passed": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "The image encoder consumes ten prepared production-govips pilot tensors repeatedly; it is not a 100,000-image decode and inference backfill.",
+    "The vector writer uses deterministic synthetic vectors and an isolated SQLite schema, not real SigLIP embeddings or the production catalog.",
+    "The browse query is a microsecond-level keyset proxy, so its relative degradation is noisy; the unchanged relative gate nevertheless failed in every run.",
+    "This is not the complete FolioPath HTTP process and does not include the face runtime, thumbnail workers or media cache.",
+    "Native linux/amd64 and long-duration operation remain unverified."
+  ]
+}

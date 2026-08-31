@@ -3,9 +3,11 @@ package videoffmpeg
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -85,7 +87,7 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 		})
 	}
 
-	t.Run("ten-frame storyboard", func(t *testing.T) {
+	t.Run("four and ten frame storyboards", func(t *testing.T) {
 		filename := filepath.Join(t.TempDir(), "storyboard.mp4")
 		command := exec.Command(
 			ffmpeg,
@@ -105,24 +107,47 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer source.Close()
-		request := media.StoryboardRequest{
-			TimestampsMS: []int64{
-				909, 1818, 2727, 3636, 4545,
-				5454, 6363, 7272, 8181, 9090,
-			},
-			Columns: 5, Rows: 2, CellWidth: 96, CellHeight: 64,
-		}
-		result, err := processor.Storyboard(
-			context.Background(),
-			source,
-			media.FormatMP4,
-			request,
-		)
+		sourceBefore, err := os.ReadFile(filename)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := media.ValidateStoryboardResult(request, result); err != nil {
-			t.Fatalf("storyboard result = %#v: %v", result, err)
+		beforeHash := sha256.Sum256(sourceBefore)
+		for _, request := range []media.StoryboardRequest{
+			{
+				TimestampsMS: []int64{2000, 4000, 6000, 8000},
+				Columns:      4, Rows: 1, CellWidth: 96, CellHeight: 64,
+			},
+			{
+				TimestampsMS: []int64{
+					909, 1818, 2727, 3636, 4545,
+					5454, 6363, 7272, 8181, 9090,
+				},
+				Columns: 5, Rows: 2, CellWidth: 96, CellHeight: 64,
+			},
+		} {
+			if _, err := source.Seek(0, 0); err != nil {
+				t.Fatal(err)
+			}
+			result, err := processor.Storyboard(
+				context.Background(),
+				source,
+				media.FormatMP4,
+				request,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := media.ValidateStoryboardResult(request, result); err != nil {
+				t.Fatalf("storyboard result = %#v: %v", result, err)
+			}
+		}
+		sourceAfter, err := os.ReadFile(filename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		afterHash := sha256.Sum256(sourceAfter)
+		if !slices.Equal(beforeHash[:], afterHash[:]) {
+			t.Fatal("storyboard processing modified the source video")
 		}
 	})
 
@@ -139,5 +164,71 @@ func TestSyntheticVideoMatrixThroughProductionAdapter(t *testing.T) {
 		context.Background(), source, media.FormatMP4,
 	); err == nil {
 		t.Fatal("corrupt video unexpectedly processed")
+	}
+}
+
+func TestPinnedFixtureFourAndTenFrameStoryboards(t *testing.T) {
+	fixture := os.Getenv("FOLIOPATH_TEST_STORYBOARD_FIXTURE")
+	ffmpeg := os.Getenv("FOLIOPATH_TEST_FFMPEG")
+	if fixture == "" || ffmpeg == "" {
+		t.Skip("pinned fixture and production FFmpeg paths are required")
+	}
+	encoders, err := exec.Command(ffmpeg, "-hide_banner", "-encoders").CombinedOutput()
+	if err != nil || !bytes.Contains(encoders, []byte("libwebp")) {
+		t.Fatal("production FFmpeg does not provide the required libwebp encoder")
+	}
+	sourceBefore, err := os.ReadFile(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeHash := sha256.Sum256(sourceBefore)
+	processor, err := New(Options{
+		FFmpegPath: ffmpeg,
+		Timeout:    10 * time.Second,
+		StoryboardTempRoot: filepath.Join(
+			t.TempDir(), "storyboard",
+		),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, request := range []media.StoryboardRequest{
+		{
+			TimestampsMS: []int64{2000, 4000, 6000, 8000},
+			Columns:      4, Rows: 1, CellWidth: 96, CellHeight: 64,
+		},
+		{
+			TimestampsMS: []int64{
+				909, 1818, 2727, 3636, 4545,
+				5454, 6363, 7272, 8181, 9090,
+			},
+			Columns: 5, Rows: 2, CellWidth: 96, CellHeight: 64,
+		},
+	} {
+		source, err := os.Open(fixture)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, processErr := processor.Storyboard(
+			context.Background(), source, media.FormatMP4, request,
+		)
+		closeErr := source.Close()
+		if processErr != nil {
+			t.Fatal(processErr)
+		}
+		if closeErr != nil {
+			t.Fatal(closeErr)
+		}
+		if err := media.ValidateStoryboardResult(request, result); err != nil {
+			t.Fatalf("storyboard result = %#v: %v", result, err)
+		}
+	}
+	sourceAfter, err := os.ReadFile(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterHash := sha256.Sum256(sourceAfter)
+	if beforeHash != afterHash {
+		t.Fatal("storyboard processing modified the source video")
 	}
 }

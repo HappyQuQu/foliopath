@@ -34,9 +34,40 @@
 - [CR-2026-014：扫描后派生媒体进度](CR-2026-014-derived-media-progress.md)
 - [CR-2026-015：任务可恢复、日志中心、版本更新与消息中心](CR-2026-015-operations-observability-and-updates.md)
 - [CR-2026-020：收藏与手动标签](CR-2026-020-favorites-and-tags.md)
-- [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5` 提案）
+- [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5`
+  revision 2 已批准，A～E 全部纳入）
 
 ## Routine fixes
+
+### 2026-08-31
+
+- [POST-MVP-5 原生双架构证据入口](FIX-2026-08-31-native-ai-evidence-entry.md)
+- [S2B 合法质量评分入口](FIX-2026-08-31-s2b-quality-verifier.md)
+- [智能媒体最终供应链证据校验入口](FIX-2026-08-31-intelligent-media-supply-chain-verifier.md)
+- [POST-MVP-5 S2 最终证据交叉绑定](FIX-2026-08-31-s2-evidence-binding.md)
+
+### 2026-08-29
+
+- [AI worker 终态 CAS 竞态收敛](FIX-2026-08-29-ai-worker-terminal-cas-convergence.md)
+- [AI worker claim 返回值失败关闭](FIX-2026-08-29-ai-worker-claim-validation.md)
+- [AI admission 唤醒前校验](FIX-2026-08-29-ai-admission-prewake-validation.md)
+
+### 2026-08-28
+
+- [AI operation 持久化状态校验](FIX-2026-08-28-ai-operation-state-validation.md)
+- [AI 强 ETag 规范匹配](FIX-2026-08-28-canonical-ai-etag.md)
+- [AI JSON 请求体硬上限](FIX-2026-08-28-ai-json-body-limit.md)
+- [限流时钟回拨恢复](FIX-2026-08-28-rate-limit-clock-rollback.md)
+- [Cursor 规范编码与语义 snapshot 失败关闭](FIX-2026-08-28-canonical-cursor-decoding.md)
+- [语义搜索边界失败关闭](FIX-2026-08-28-semantic-search-result-validation.md)
+- [INT-S2A No-Go 生产组合 fitness check](FIX-2026-08-28-int-s2a-no-go-fitness.md)
+- [真实浏览器 E2E harness 与当前界面合同同步](FIX-2026-08-28-browser-e2e-harness.md)
+- [语义推理 session 资源计数](FIX-2026-08-28-semantic-session-resource-accounting.md)
+- [Web 依赖高危 advisory 修复](FIX-2026-08-28-web-dependency-advisories.md)
+
+### 2026-08-27
+
+- [10 万媒体搜索 keyset 查询计划维护提案](FIX-2026-08-27-search-keyset-query-plan.md)（Proposal，未授权生产修改）
 
 ### 2026-08-17
 

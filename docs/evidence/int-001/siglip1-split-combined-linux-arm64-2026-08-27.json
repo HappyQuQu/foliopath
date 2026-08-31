@@ -1,0 +1,109 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "native_architecture": "linux/arm64",
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "macos_onnxruntime": "1.29.0",
+    "linux_onnxruntime": "1.28.0",
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "source": {
+    "model_id": "google/siglip-base-patch16-224",
+    "revision": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+    "weight_bytes": 812672320,
+    "weight_sha256": "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8"
+  },
+  "split_export": {
+    "exports_compared": 2,
+    "byte_identical": true,
+    "opset": 18,
+    "fixed_image_shape": [1, 3, 224, 224],
+    "fixed_text_shape": [1, 64],
+    "image_encoder_bytes": 371682125,
+    "image_encoder_sha256": "2d25894079820ae3a8a28f0e8c5b664932aabb93361d578bed357dd14d580a37",
+    "image_max_abs_error": 0.000003814697265625,
+    "text_encoder_bytes": 441217411,
+    "text_encoder_sha256": "16eef12730b862a0c4f75926213d86749d9c6a5ec79b37b6feebc20f826fd664",
+    "text_max_abs_error": 0.0000069141387939453125,
+    "allclose_1e_4": true
+  },
+  "public_pilot": {
+    "prepared_tensor_sha256": "ab5905ebcfdcc5a17271f4f345419e68b472a20ef70da5b4a67293524821db11",
+    "images": 10,
+    "queries": 24,
+    "macos_linux_float32_top3_identical": true,
+    "macos_linux_float16_top3_identical": true,
+    "float16_top3_identical_queries": 24,
+    "zh_recall_at_1": 0.9166666666666666,
+    "zh_recall_at_3": 1.0,
+    "en_recall_at_1": 1.0,
+    "en_recall_at_3": 1.0,
+    "linux_image_p95_ms": 89.971,
+    "linux_text_p95_ms": 29.386,
+    "linux_process_peak_rss_kib": 781736,
+    "linux_cgroup_peak_bytes": 1740464128
+  },
+  "resident_100_cycles": {
+    "all_outputs_finite": true,
+    "image_p95_ms": 169.683,
+    "text_p95_ms": 53.916,
+    "cgroup_current_after_cycle_100_bytes": 2177310720,
+    "cgroup_peak_bytes": 2181382144,
+    "cgroup_anon_after_cycle_100_bytes": 1203150848,
+    "cgroup_file_after_cycle_100_bytes": 960655360,
+    "cgroup_peak_passed": true
+  },
+  "combined_runs": [
+    {
+      "seed": 20260830,
+      "cgroup_peak_bytes": 2363904000,
+      "image_p95_ms": 176.596,
+      "text_p95_ms": 56.375,
+      "search_p95_ms": 169.017,
+      "browse_degradation_rate": 8.703704,
+      "rows_after_cancellation": 62720,
+      "rows_after_restart": 100000
+    },
+    {
+      "seed": 20260831,
+      "cgroup_peak_bytes": 2363527168,
+      "image_p95_ms": 176.834,
+      "text_p95_ms": 55.964,
+      "search_p95_ms": 171.009,
+      "browse_degradation_rate": 4.758621,
+      "rows_after_cancellation": 62208,
+      "rows_after_restart": 100000
+    },
+    {
+      "seed": 20260901,
+      "cgroup_peak_bytes": 2369597440,
+      "image_p95_ms": 176.13,
+      "text_p95_ms": 56.142,
+      "search_p95_ms": 162.977,
+      "browse_degradation_rate": 7.925926,
+      "rows_after_cancellation": 62208,
+      "rows_after_restart": 100000
+    }
+  ],
+  "assessment": {
+    "memory_peak_limit_bytes": 3435973836,
+    "combined_memory_passed": true,
+    "search_p95_limit_ms": 750,
+    "combined_search_passed": true,
+    "restart_recovery_passed": true,
+    "browse_relative_degradation_limit": 0.2,
+    "browse_relative_degradation_passed": false,
+    "model_selected": false,
+    "int_006_complete": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "The ten-image public pilot is too small and easy to select a model; SigLIP 1 had one Chinese Top-1 miss that SigLIP 2 did not have.",
+    "The vector workload uses synthetic vectors and an isolated SQLite schema rather than real embeddings and the production catalog.",
+    "The browse proxy has a microsecond baseline and failed the unchanged relative gate in every combined run.",
+    "The complete FolioPath process, face runtime, 100,000 real image backfill and native linux/amd64 remain unverified.",
+    "SBOM, notices, redistribution and production runtime integration remain open."
+  ]
+}

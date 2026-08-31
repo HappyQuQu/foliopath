@@ -1,0 +1,227 @@
+{
+  "status": "preliminary-development-evidence",
+  "source": {
+    "model_id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "weight_bytes": 1500800904,
+    "weight_sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b"
+  },
+  "export": {
+    "runs": 3,
+    "identical_across_runs": true,
+    "onnx_bytes": 1501208026,
+    "onnx_sha256": "18a16d73759d3760a664596660e5bb8f4800635bbec39775bafe88a85cf57226",
+    "reference_sha256": "020887ad3ef9397e9e3a9c0520600c2564abcf8e3b5fca7bf17a5a8bf160a137",
+    "ir_version": 8,
+    "opset": 18,
+    "nodes": 2168,
+    "initializers": 408,
+    "inputs": {
+      "input_ids": ["text_batch_size", "sequence_length"],
+      "pixel_values": ["image_batch_size", "num_channels", "height", "width"]
+    },
+    "outputs": {
+      "logits_per_image": ["image_batch_size", "text_batch_size"],
+      "logits_per_text": ["text_batch_size", "image_batch_size"],
+      "text_embeds": ["text_batch_size", 768],
+      "image_embeds": ["image_batch_size", 768]
+    },
+    "toolchain": {
+      "python": "3.12",
+      "torch": "2.13.0",
+      "transformers": "4.57.6",
+      "optimum": "2.1.0",
+      "optimum_onnx": "0.1.0",
+      "accelerate": "1.14.0",
+      "onnx": "1.20.1",
+      "onnxruntime_validation": "1.29.0"
+    }
+  },
+  "darwin_arm64": {
+    "onnxruntime": "1.29.0",
+    "session_load_seconds": 0.598665,
+    "inference_seconds": 0.051656,
+    "maximum_absolute_error": 0.0000095367431640625,
+    "all_outputs_finite": true,
+    "all_outputs_within_atol_rtol_1e_4": true
+  },
+  "linux_arm64": {
+    "native": true,
+    "network": "none",
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502",
+    "python": "3.13.5",
+    "onnxruntime": "1.28.0",
+    "runs": [
+      {
+        "session_load_seconds": 0.925073,
+        "inference_seconds": 0.144247,
+        "peak_rss_kib": 2295264,
+        "maximum_absolute_error": 0.00001049041748046875,
+        "passed": true
+      },
+      {
+        "session_load_seconds": 0.858052,
+        "inference_seconds": 0.143836,
+        "peak_rss_kib": 2295720,
+        "maximum_absolute_error": 0.00001049041748046875,
+        "passed": true
+      },
+      {
+        "session_load_seconds": 0.846629,
+        "inference_seconds": 0.144114,
+        "peak_rss_kib": 2295292,
+        "maximum_absolute_error": 0.00001049041748046875,
+        "passed": true
+      }
+    ],
+    "all_outputs_finite": true,
+    "all_outputs_within_atol_rtol_1e_4": true
+  },
+  "runtime_stress": {
+    "darwin_arm64": {
+      "onnxruntime": "1.29.0",
+      "iterations": 100,
+      "loop_seconds": 4.477702,
+      "malformed_cases_rejected": 4,
+      "in_flight_cancellation_reported": true,
+      "subsequent_inference_finite": true,
+      "passed": true
+    },
+    "linux_arm64": {
+      "onnxruntime": "1.28.0",
+      "network": "none",
+      "runs": [
+        {
+          "iterations": 100,
+          "loop_seconds": 14.671915,
+          "rss_growth_kib": 9740,
+          "peak_rss_kib": 2295172,
+          "passed": true
+        },
+        {
+          "iterations": 100,
+          "loop_seconds": 14.624220,
+          "rss_growth_kib": 10508,
+          "peak_rss_kib": 2295316,
+          "passed": true
+        },
+        {
+          "iterations": 100,
+          "loop_seconds": 14.573869,
+          "rss_growth_kib": 10248,
+          "peak_rss_kib": 2294932,
+          "passed": true
+        }
+      ],
+      "rss_growth_limit_kib": 65536,
+      "malformed_cases_rejected_each_run": 4,
+      "in_flight_cancellation_reported_each_run": true,
+      "subsequent_inference_finite_each_run": true
+    }
+  },
+  "public_pilot_production_input": {
+    "fixture": "10 licensed Commons cosplay/person images, 24 Chinese/English queries",
+    "input_pipeline": "FolioPath production govips grid transform, native Linux arm64",
+    "prepared_tensor_sha256": "759555d0de3d5b2b96947f1eae6b7230ea729ac6eda217ab1d7e864eeef94498",
+    "cross_runtime_rank_result_sha256": "b7a32969fc653e4c08ee7b2b0d92f9e439ac71fa7082038e96006772fb64f68a",
+    "darwin_arm64": {
+      "onnxruntime": "1.29.0",
+      "image_p95_seconds": 0.037963,
+      "text_batch_seconds": 0.192102
+    },
+    "linux_arm64": {
+      "onnxruntime": "1.28.0",
+      "image_p95_seconds": 0.128092,
+      "text_batch_seconds": 0.763130
+    },
+    "float32": {
+      "zh_cn_recall_at_1": 1.0,
+      "en_recall_at_1": 1.0,
+      "zh_cn_mean_relevant_recall_at_3": 0.9722222222222222,
+      "en_mean_relevant_recall_at_3": 0.9305555555555555
+    },
+    "float16_image_storage": {
+      "top3_identical_queries": 24,
+      "queries": 24,
+      "metrics_identical_to_float32": true
+    },
+    "monolithic_graph_executes_both_branches_per_call": true
+  },
+  "split_fixed_shape_candidate": {
+    "exports": 2,
+    "identical_across_exports": true,
+    "image_encoder": {
+      "bytes": 371682125,
+      "sha256": "7fc85e0e8a0f4e5fce7be45c7830e7473c81f010633b7d31bc1613dafc734ab0",
+      "max_absolute_error_vs_pytorch": 0.00000527501106262207
+    },
+    "text_encoder": {
+      "bytes": 1129345413,
+      "sha256": "ef9451f51568152758e53ebca85cec4d84d2462c45e1611b42f49a42bd1be953",
+      "max_absolute_error_vs_pytorch": 0.000003814697265625
+    },
+    "fixed_shapes": {
+      "pixel_values": [1, 3, 224, 224],
+      "input_ids": [1, 64]
+    },
+    "linux_arm64_public_pilot_runs": [
+      {
+        "image_p95_seconds": 0.093806,
+        "text_p95_seconds": 0.028930,
+        "rss_after_image_kib": 598388,
+        "rss_after_image_close_kib": 539948,
+        "rss_after_text_kib": 1455284,
+        "peak_rss_kib": 2076444
+      },
+      {
+        "image_p95_seconds": 0.097475,
+        "text_p95_seconds": 0.036958,
+        "rss_after_image_kib": 625868,
+        "rss_after_image_close_kib": 543116,
+        "rss_after_text_kib": 1467668,
+        "peak_rss_kib": 2079848
+      },
+      {
+        "image_p95_seconds": 0.090248,
+        "text_p95_seconds": 0.029493,
+        "rss_after_image_kib": 624960,
+        "rss_after_image_close_kib": 541184,
+        "rss_after_text_kib": 1456520,
+        "peak_rss_kib": 2077664
+      }
+    ],
+    "comparison_to_monolith_linux_arm64_single_query": {
+      "same_rank_result_sha256": "b7a32969fc653e4c08ee7b2b0d92f9e439ac71fa7082038e96006772fb64f68a",
+      "monolith_image_p95_seconds": 0.118223,
+      "monolith_text_p95_seconds": 0.131852,
+      "split_image_p95_reduction": 0.206534,
+      "split_text_p95_reduction": 0.780590
+    },
+    "repeated_session_switch": {
+      "cycles": 30,
+      "rss_after_cycle_1_kib": 537752,
+      "rss_after_cycle_10_kib": 758944,
+      "rss_after_cycle_30_kib": 750756,
+      "rss_growth_after_cycle_1_kib": 213004,
+      "maximum_allowed_growth_kib": 131072,
+      "peak_rss_kib": 2305768,
+      "all_outputs_finite": true,
+      "passed": false,
+      "interpretation": "RSS jumped after early cycles and then fluctuated around a higher plateau; session close did not return to the first-cycle baseline."
+    }
+  },
+  "limitations": [
+    "Linux arm64 used ONNX Runtime 1.28.0 because a CPython 3.13 arm64 wheel for 1.29.0 was not available in the queried index.",
+    "The deterministic random-tensor comparison is compatibility evidence, not semantic retrieval quality evidence.",
+    "The public pilot has only 10 images and easy explicit queries; unchanged float16 ranking is not representative Recall evidence.",
+    "Only the fixed production shape of 224x224 pixels and maximum text length 64 was validated; tracer warnings make other dynamic sizes unapproved.",
+    "The Python wrapper is not a selected production Go or C API adapter.",
+    "The monolithic ONNX graph executes both image and text encoders on every call and is rejected as the final backfill/query layout.",
+    "The fixed-shape split graph is retained for further study, but its legacy TorchScript exporter, sequential unload/load behavior and 2.0 GiB process high-water mark are not a production runtime selection.",
+    "Thirty image/text session switches failed the provisional 128 MiB post-first-cycle RSS-growth limit by retaining about 208 MiB; the split scheduler cannot assume that close releases all runtime memory.",
+    "Native Linux amd64, C or Go adapter cancellation, hostile model graphs, long-duration leak testing, production browse concurrency and the complete 4 GiB process envelope remain open.",
+    "Large weights, ONNX files, tokenizer files and reference NPZ files remained in a temporary directory and were not committed."
+  ]
+}

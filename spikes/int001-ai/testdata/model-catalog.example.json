@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "example-not-approved",
+	  "status": "candidate",
+      "purpose": "schema validation only",
+      "version": "0",
+      "filename": "example.onnx",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1,
+      "source_url": "https://example.invalid/example.onnx",
+      "code_license": {
+        "id": "EXAMPLE-ONLY",
+        "url": "https://example.invalid/code-license"
+      },
+      "weight_license": {
+        "id": "EXAMPLE-ONLY",
+        "url": "https://example.invalid/weight-license"
+      },
+      "architectures": ["linux/amd64", "linux/arm64"]
+    }
+  ]
+}

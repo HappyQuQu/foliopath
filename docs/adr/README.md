@@ -30,4 +30,5 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0010：经认证的局域网 HTTP 与可选外部 TLS](0010-authenticated-lan-http.md)
 - [ADR-0011：Linux 文件事件只触发锚定的定向校准](0011-linux-inotify-hints-and-anchored-reconciliation.md)
 - [ADR-0012：默认 root 运行与免初始化 bind 数据目录](0012-root-runtime-bind-data.md)
-- [ADR-0013：本地 AI 运行时与可重建向量索引](0013-local-ai-runtime-and-derived-vector-index.md)（提议）
+- [ADR-0013：本地 AI 运行时与可重建向量索引](0013-local-ai-runtime-and-derived-vector-index.md)（A+B 已接受）
+- [ADR-0014：SigLIP SentencePiece tokenizer runtime 与模型包 v2](0014-siglip-sentencepiece-tokenizer-runtime.md)（提议；[2026-08-29 接受审计仍阻断](../gates/POST-MVP-5/adr-0014-acceptance-audit-2026-08-29.md)）

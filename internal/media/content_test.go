@@ -44,6 +44,7 @@ func TestContentServiceOpensVerifiedSupportedSource(t *testing.T) {
 	}
 	service, err := NewContentService(contentRepositoryStub{asset: ContentAsset{
 		ID:                9,
+		LibraryID:         1,
 		LibraryRoot:       "family",
 		RelativePath:      "2026/photo.jpg",
 		Format:            FormatJPEG,
@@ -76,6 +77,7 @@ func TestContentServiceRejectsOfflineChangedAndInvalidAssets(t *testing.T) {
 	}
 	base := ContentAsset{
 		ID:                1,
+		LibraryID:         1,
 		RelativePath:      "photo.jpg",
 		Format:            FormatJPEG,
 		MIMEType:          "image/jpeg",

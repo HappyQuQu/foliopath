@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "evidence_class": "synthetic-development-only",
+  "environment": {
+    "os": "darwin",
+    "machine": "arm64",
+    "python": "3.12.13",
+    "onnxruntime": "1.22.1",
+    "numpy": "2.2.6",
+    "provider": "CPUExecutionProvider",
+    "intra_op_threads": 1,
+    "inter_op_threads": 1
+  },
+  "iterations": 1000,
+  "models": [
+    {
+      "id": "opencv-zoo-yunet-2023mar",
+      "status": "candidate",
+      "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+      "size_bytes": 232589,
+      "load_ms": 3.349,
+      "inference_p50_ms": 14.519,
+      "inference_p95_ms": 15.780,
+      "inference_p99_ms": 17.403,
+      "rss_before_bytes": 46465024,
+      "rss_after_load_bytes": 53379072,
+      "rss_after_warmup_bytes": 80576512,
+      "rss_after_loop_bytes": 97845248,
+      "rss_loop_delta_bytes": 17268736,
+      "rss_samples_bytes_at_100_step": [97632256, 97632256, 97632256, 97632256, 97648640, 97665024, 97665024, 97665024, 97665024, 97714176]
+    },
+    {
+      "id": "opencv-zoo-sface-2021dec",
+      "status": "candidate",
+      "sha256": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
+      "size_bytes": 38696353,
+      "load_ms": 8.831,
+      "inference_p50_ms": 14.949,
+      "inference_p95_ms": 16.261,
+      "inference_p99_ms": 17.739,
+      "rss_before_bytes": 99991552,
+      "rss_after_load_bytes": 173408256,
+      "rss_after_warmup_bytes": 180142080,
+      "rss_after_loop_bytes": 180731904,
+      "rss_loop_delta_bytes": 589824,
+      "rss_samples_bytes_at_100_step": [180256768, 180305920, 180355072, 180404224, 180453376, 180518912, 180584448, 180633600, 180682752, 180731904]
+    }
+  ],
+  "caveats": [
+    "Random tensors prove load/inference compatibility and capacity only.",
+    "No detector recall, embedding ROC, clustering precision, or demographic quality was measured.",
+    "SFace RSS was monotonically increasing by about 0.56 MiB during the measured loop; Python allocator versus native leak is unresolved.",
+    "macOS Python wheels are not evidence for the planned Go/C API Linux runtime."
+  ]
+}

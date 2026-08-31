@@ -6,7 +6,6 @@ e2e_root=$(mktemp -d "${TMPDIR:-/tmp}/foliopath-web-e2e.XXXXXX")
 image=${FOLIOPATH_BROWSER_E2E_IMAGE:-"foliopath-browser-e2e:local-$$"}
 application_container="foliopath-browser-e2e-application-$$"
 proxy_container="foliopath-browser-e2e-proxy-$$"
-proxy_image=${FOLIOPATH_SOCAT_IMAGE:-"alpine/socat@sha256:f134cb7ebb983f971f5deb44e92bc62c1385b0a3b525393f32dd0722acc30315"}
 backend_port=${FOLIOPATH_BROWSER_BACKEND_PORT:-18080}
 web_port=${FOLIOPATH_BROWSER_WEB_PORT:-4174}
 e2e_suite=${FOLIOPATH_E2E_SUITE:-chromium}
@@ -94,7 +93,8 @@ docker run --detach \
 docker run --detach \
 	--name "${proxy_container}" \
 	--network "container:${application_container}" \
-	"${proxy_image}" \
+	--entrypoint /usr/bin/socat \
+	"${image}" \
 	"TCP-LISTEN:8081,fork,reuseaddr" \
 	"TCP:127.0.0.1:8080" >/dev/null
 

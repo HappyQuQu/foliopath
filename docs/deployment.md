@@ -32,7 +32,11 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 负责版本准备和 Docker 发布。推送到 `main` 后，Release Please 根据 Conventional Commits
 创建或更新 Release PR；workflow 随即 squash merge 该 PR，在同一轮创建
 `vMAJOR.MINOR.PATCH` GitHub Release，并构建包含 `linux/amd64` 与 `linux/arm64` 的
-Docker Hub image index。自动测试 CI 已关闭，测试与候选证据仍由发布者在本地完成。
+Docker Hub image index。自动测试 CI 已关闭，测试与候选证据通常仍由发布者在本地完成。
+POST-MVP-5 另有只允许手动触发、只读权限的
+[`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) 验证入口；它不发布镜像、
+不修改部署，也不替代 Docker Hub workflow。只有同一 source SHA 的原生 amd64/arm64 实际成功运行才是
+候选证据；workflow 文件存在或失败后上传诊断 artifact 均不算通过。
 该流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
 
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
@@ -424,3 +428,64 @@ linux/arm64 同提交候选证据仍由
 - 明确支持的宿主机、CPU/内存建议和目标库规模，不用未验证的数字宣传。
 - 以约 10 万媒体、1 万目录、4 GiB 内存的四核 NAS/家庭服务器完成主要容量验收；具体吞吐与延迟只能引用可重复 benchmark。
 - 单管理员初始化、登录、会话、退出和 CSRF 测试通过；无认证开发构建不会被文档引导直接暴露到互联网。
+
+## POST-MVP-5 revision 1 模型部署合同
+
+该 revision 保持单容器、单 Go 进程，不增加 worker、GPU、Redis、数据库或网络端口。生产能力尚未
+实现；以下 Compose 片段是 S2/S4 必须验证的目标配置，不应加入当前 Quick Start：
+
+```yaml
+services:
+  foliopath:
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
+      - /srv/foliopath-models:/models:ro
+```
+
+- `/models` 可省略；省略或为空时应用核心 readiness 保持正常，智能能力显示 model unavailable。
+- `/models` 必须是单个只读挂载，其后代不得再含 mount。应用不创建、修改或删除其中任何内容。
+- `/app/data/models` 保存 managed package；`/app/data/ai-indexes` 如后续存在，只能保存可重建索引。
+  SQLite、staging 与 managed final 必须处于支持原子 rename/fsync 的本地文件系统。
+- revision 1 不增加模型源、镜像、代理、凭据或下载环境变量，也不依赖外网。部署者负责通过其可用
+  渠道取得与产品内建兼容清单完全匹配的包。
+- 发布镜像必须以显式 `onnxruntime` Go build tag 构建，包含精确 ORT 1.28.0 runtime、其
+  `libonnxruntime.so.1` SONAME 链接、MIT license、third-party notices 和补充 SBOM component。未带该
+  tag 或 runtime 版本不匹配时，核心浏览仍可启动，但模型激活稳定失败为 runtime unavailable；不得
+  自动回退到另一 ORT 版本。
+- 镜像体积预算不包含模型权重，因为权重不内置。发布说明必须分别列出 runtime 增量、每个审核模型
+  包大小、managed copy 临时峰值、embedding/index 目标档以及数据库/临时写安全余量。
+- 默认 AI worker 并发为 1，受全局后台 admission 约束；4 CPU/4 GiB 档要求整进程 RSS ≤ 3.2 GiB，
+  ordinary browse P95 退化 ≤ 20%。这些是发布门槛，不是当前已经证明的产品承诺。
+- 备份优先保存 SQLite。若不备份 `/app/data/models` 和 AI 可重建数据，恢复后必须重新提供 `/models`
+  并重建；direct `/models` 从不进入 FolioPath 备份。升级不得在新 generation 可用前删除旧包/索引。
+- linux/amd64 与 linux/arm64 必须对同一最终 digest 验证 runtime load、数值容差、取消、盘满、强杀恢复、
+  只读来源失效和 100k 完整进程。缺一架构即不发布智能能力。
+
+若 ADR-0014 后续接受，发布构建不得把实时访问 GitHub 作为 SentencePiece/ORT 编译的必要条件。受控
+获取步骤先固定来源、hash、许可证和签名材料，编译阶段只消费本地或内部镜像提供的 reviewed archive，
+并在解包前重新校验 SHA-256。该规则只约束发布供应链，不增加产品运行时网络、模型下载源或代理配置。
+
+## POST-MVP-5 revision 2 C+D+E 部署与恢复合同
+
+Revision 2 不增加 deployable service、网络模型源或媒体 mount。C/D/E 继续在同一 Go 进程、同一 SQLite
+和 `/app/data` 下的可重建 cache 中运行；`/library:ro` 与可选 `/models:ro` 拓扑不变。face 与 semantic
+native session 延迟加载、空闲卸载、全局后台并发默认 1，interactive browse 始终优先。
+
+- C 的 vocabulary/review application state 与人工 tag 一并进入 SQLite 备份；pending suggestion 可重建。
+- D 不复制原视频或抽第二套帧；只消费已存在的完整 storyboard cache。storyboard 被逐出时 video semantic
+  标为 stale/degraded，保留旧可靠 generation，等待 owner 重建。
+- E 的 person/manual constraint/audit 必须随 SQLite 备份；observation/embedding/crop/anonymous cluster 默认
+  不要求备份。恢复时先恢复应用状态，再以 exact source fingerprint + quantized anchor 重连；歧义进入
+  `needs_review`，不得按 bbox 顺序猜测。备份和恢复报告不得输出 biometric payload。
+- 管理员关闭 E 时停止新任务并卸载 session，但不隐式删除人工人物状态。派生清除和人工关系清除分别
+  演练；后者是不可恢复操作，必须明确备份点与删除审计。
+- 最终同一版本的 linux/amd64 与 linux/arm64 镜像必须分别在 native 主机验证 C/D/E runtime load、数值
+  容差、取消、强杀、ENOSPC、offline、backup/restore 与清除。QEMU、交叉编译或单架构证据不能代替。
+- 4 CPU/4 GiB、100k media/10k directories 的联合档同时包含普通 browse、图片 semantic、tag generation、
+  完整 storyboard video semantic 和 face job；整进程 RSS ≤3.2 GiB，browse P95 退化 ≤20%。超过门槛先
+  降后台调度/关闭对应 slice，不扩大内存承诺或破坏核心浏览。
+
+发布物必须为最终双架构 digest 产出 SPDX/CycloneDX SBOM、VEX、third-party notices、可验证 provenance
+和 model/runtime 再分发签署。缺少 face 模型许可、隐私 intake、合法质量数据或任一 native 架构证据时，
+S2C 保持 No-Go；核心浏览和已经可安全发布的较小 slice 不被伪装成全范围通过。

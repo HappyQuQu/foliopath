@@ -1,0 +1,255 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:96a3be8f-30cd-43d5-b67a-d2cf1890d137",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-27T00:00:00Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "properties": [
+      {
+        "name": "foliopath:int001:scope",
+        "value": "isolated candidate inventory; no redistribution approval and not a release SBOM"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+      "supplier": {
+        "name": "Google"
+      },
+      "name": "google-siglip-base-patch16-224",
+      "version": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+      "description": "Pinned source weight for the retained resource-priority semantic candidate",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://huggingface.co/google/siglip-base-patch16-224/tree/7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+        }
+      ],
+      "properties": [
+        {
+          "name": "foliopath:int001:artifact",
+          "value": "model.safetensors"
+        },
+        {
+          "name": "foliopath:int001:package-sha256",
+          "value": "1df799c0e73a3ac453a8ac5159069f19ee586e45e4494d561d39603185dcaf17"
+        },
+        {
+          "name": "foliopath:int001:disposition",
+          "value": "retained-resource-candidate; compliance-signoff-pending"
+        },
+        {
+          "name": "foliopath:int001:license-evidence",
+          "value": "upstream model-page declaration; redistribution and notices not approved"
+        }
+      ]
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "pkg:generic/foliopath-siglip1-image-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "name": "foliopath-siglip1-image-encoder",
+      "version": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed-float16",
+      "description": "Deterministic fixed-shape ONNX image graph derived by the isolated spike",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4d4260477eaf57ce263d8f65656b030384fd6854513896254b9cae9566432b3d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:generic/foliopath-siglip1-image-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "properties": [
+        {
+          "name": "foliopath:int001:derived-from",
+          "value": "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+        },
+        {
+          "name": "foliopath:int001:disposition",
+          "value": "retained-resource-candidate; compliance-signoff-pending"
+        }
+      ]
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "pkg:generic/foliopath-siglip1-text-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "name": "foliopath-siglip1-text-encoder",
+      "version": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed-float16",
+      "description": "Deterministic fixed-shape ONNX text graph derived by the isolated spike",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "19f28e2bdb2e1bfb51ec1733b371899784ae0eb4af14d22980e7a6b89a15ef4f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:generic/foliopath-siglip1-text-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "properties": [
+        {
+          "name": "foliopath:int001:derived-from",
+          "value": "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+        },
+        {
+          "name": "foliopath:int001:disposition",
+          "value": "retained-resource-candidate; compliance-signoff-pending"
+        }
+      ]
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "pkg:generic/opencv-zoo-yunet@2023mar?revision=47534e27c9851bb1128ccc0102f1145e27f23f98",
+      "supplier": {
+        "name": "OpenCV Zoo"
+      },
+      "name": "face_detection_yunet_2023mar.onnx",
+      "version": "2023mar",
+      "description": "Pinned face-detector candidate; real-data quality and compliance signoff remain open",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:generic/opencv-zoo-yunet@2023mar?revision=47534e27c9851bb1128ccc0102f1145e27f23f98",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/opencv/opencv_zoo/raw/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "foliopath:int001:source-revision",
+          "value": "47534e27c9851bb1128ccc0102f1145e27f23f98"
+        },
+        {
+          "name": "foliopath:int001:disposition",
+          "value": "face-detector-candidate; compliance-signoff-pending"
+        }
+      ]
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "pkg:generic/opencv-zoo-sface@2021dec?revision=47534e27c9851bb1128ccc0102f1145e27f23f98",
+      "supplier": {
+        "name": "OpenCV Zoo"
+      },
+      "name": "face_recognition_sface_2021dec.onnx",
+      "version": "2021dec",
+      "description": "Pinned face-embedding candidate held from production pending training provenance and redistribution review",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:generic/opencv-zoo-sface@2021dec?revision=47534e27c9851bb1128ccc0102f1145e27f23f98",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/opencv/opencv_zoo/raw/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_recognition_sface/face_recognition_sface_2021dec.onnx",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "foliopath:int001:source-revision",
+          "value": "47534e27c9851bb1128ccc0102f1145e27f23f98"
+        },
+        {
+          "name": "foliopath:int001:disposition",
+          "value": "production-hold; training provenance and commercial redistribution clarification unresolved"
+        },
+        {
+          "name": "foliopath:int001:license-evidence",
+          "value": "upstream directory declaration only; not FolioPath compliance approval"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:generic/foliopath-siglip1-image-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "dependsOn": [
+        "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+      ]
+    },
+    {
+      "ref": "pkg:generic/foliopath-siglip1-text-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+      "dependsOn": [
+        "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "incomplete",
+      "assemblies": [
+        "pkg:generic/google-siglip-base-patch16-224@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+        "pkg:generic/foliopath-siglip1-image-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+        "pkg:generic/foliopath-siglip1-text-encoder@7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed?precision=float16",
+        "pkg:generic/opencv-zoo-yunet@2023mar?revision=47534e27c9851bb1128ccc0102f1145e27f23f98",
+        "pkg:generic/opencv-zoo-sface@2021dec?revision=47534e27c9851bb1128ccc0102f1145e27f23f98"
+      ]
+    }
+  ]
+}

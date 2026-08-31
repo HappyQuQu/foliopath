@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "models": [
+    {
+      "id": "google-siglip2-base-patch16-224",
+      "status": "candidate",
+      "purpose": "multilingual semantic image-text embedding",
+      "version": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+      "source_url": "https://huggingface.co/google/siglip2-base-patch16-224",
+      "code_license": {
+        "id": "Apache-2.0",
+        "url": "https://github.com/huggingface/transformers/blob/v4.56.2/LICENSE"
+      },
+      "weight_license": {
+        "id": "Apache-2.0-candidate-review",
+        "url": "https://huggingface.co/google/siglip2-base-patch16-224"
+      },
+      "architectures": ["PyTorch macOS/arm64 development evidence; production pending"],
+      "directory": "google-siglip2-base-patch16-224",
+      "package_sha256": "893e402ededfebd586372883e0d3e1c02acefa962ce7f763a3191c172d08562a",
+      "artifacts": [
+        {"filename":"config.json","sha256":"fe8b5fe6d5734360678fd71c11c21e1ea3364bd8598d34295d9206335973ffd7","size_bytes":253},
+        {"filename":"model.safetensors","sha256":"612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b","size_bytes":1500800904},
+        {"filename":"preprocessor_config.json","sha256":"9b36b57ebaf20f09bf4c22100ccc21877ea6bfe5aead0c00c59f8af8ccefacfc","size_bytes":394},
+        {"filename":"special_tokens_map.json","sha256":"baec30ea10906f16adb8c18af7a34023002c1746542612b8b41c9f09e1351351","size_bytes":636},
+        {"filename":"tokenizer.json","sha256":"cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322","size_bytes":34363039},
+        {"filename":"tokenizer.model","sha256":"61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2","size_bytes":4241003},
+        {"filename":"tokenizer_config.json","sha256":"14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8","size_bytes":47164}
+      ]
+    },
+    {
+      "id": "google-siglip-base-patch16-224",
+      "status": "candidate",
+      "purpose": "smaller semantic image-text embedding comparison",
+      "version": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+      "source_url": "https://huggingface.co/google/siglip-base-patch16-224",
+      "code_license": {
+        "id": "Apache-2.0",
+        "url": "https://github.com/huggingface/transformers/blob/v4.56.2/LICENSE"
+      },
+      "weight_license": {
+        "id": "Apache-2.0-candidate-review",
+        "url": "https://huggingface.co/google/siglip-base-patch16-224"
+      },
+      "architectures": ["PyTorch macOS/arm64 development evidence; production pending"],
+      "directory": "google-siglip-base-patch16-224",
+      "package_sha256": "1df799c0e73a3ac453a8ac5159069f19ee586e45e4494d561d39603185dcaf17",
+      "artifacts": [
+        {"filename":"config.json","sha256":"cd85b3d28829722820bcb89a2cfbb4160e55fd359249a3044da724166a8d9688","size_bytes":432},
+        {"filename":"model.safetensors","sha256":"2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8","size_bytes":812672320},
+        {"filename":"preprocessor_config.json","sha256":"d11ccb80f15d358a11bdb070e92e2d889005874b7db15823d5f10d9b2533b14a","size_bytes":368},
+        {"filename":"special_tokens_map.json","sha256":"2b6a1ff67a27e0df9ac0c7d93250fc0d87431c7b366b3d5669217104f9088a26","size_bytes":409},
+        {"filename":"spiece.model","sha256":"1e5036bed065526c3c212dfbe288752391797c4bb1a284aa18c9a0b23fcaf8ec","size_bytes":798330},
+        {"filename":"tokenizer.json","sha256":"c6e405cb7c670d56636a9402c81023a55bc6c3c53d89cf02b92f5c5005bfe920","size_bytes":2399357},
+        {"filename":"tokenizer_config.json","sha256":"d6423dae508cc3a129d22ea443841c111832a1a73125b8f25ea8736951698bcb","size_bytes":711}
+      ]
+    }
+  ]
+}

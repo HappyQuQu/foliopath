@@ -33,10 +33,40 @@ MVP/RC，执行见[专用任务清单](features/video-storyboard-preview-task-li
 [FTR-OPS-001 开发任务清单](features/task-center-task-list.md)。当前只允许 S0 scope、
 owner 与容量 spike，不得从本清单顺带修改 OpenAPI、migration、后端或前端。
 
-`POST-MVP-5` 另有 [FTR-INT-001 本地智能媒体发现提案](features/intelligent-media-discovery.md)，
-执行见[专用任务清单](features/intelligent-media-discovery-task-list.md)。它不进入当前 MVP/RC，
-`INT-S0` 为 No-Go；当前只允许 `INT-001～023` 的文档、fixture、隔离 spike 和评审，新增模型获取
-工作只验证签名审核源、`/models:ro`、托管复制/直接读取和失败关闭，不授权生产下载入口。
+`POST-MVP-5` 另有 [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)，
+执行见[专用任务清单](features/intelligent-media-discovery-task-list.md)。它不进入当前 MVP/RC；
+`POST-MVP-5` revision 2 已冻结 A～E；A+B 的 `INT-S0`、`INT-S1` 与 C/D/E 的 `INT-S1R2`
+均已完成相应合同 Gate。`INT-S2A` 与 `INT-S2B` 已复审为 No-Go，不授权生产 UI；S2C 按产品用户
+决定暂缓人脸实现与测试，但仍保留在最终范围和验收分母中。当前已完成
+两套语义候选固定、公开许可 10 图/24 查询 pilot、有界输入复测、exact/量化/HNSW 基线、YuNet/SFace
+兼容性 smoke、multi-file catalog/scanner、原子 package publish、生产 govips 原生 arm64 测试及
+与 amd64 QEMU byte-identical 对照、SigLIP 2 固定自导出及 macOS/原生 Linux arm64 ONNX 数值容差
+等 S0 子证据；arena-off split image encoder 与 synthetic 100k float16 联合负载三次未 OOM且恢复完整，
+但 SigLIP 2 reload/resident 分别因 3.72/4.01 GB peak 被拒绝。较小 SigLIP 1 双 encoder + synthetic
+100k float16 三次 peak 2.364～2.370 GB且恢复完整；生产 float32 peak 3.590 GB 被拒，dynamic-QInt8
+质量被拒。float16-internal 生产 peak 2.906 GB且 ordinary browse +14.5%，转为资源优先候选，但 global
+search 单次异常追加两轮未复现；三次 peak 2.860～2.951 GB、ordinary browse 均通过，但一轮 storyboard
+browse 略超 20%且既有 keyset 基线持续失败。无 AI 基线已把两页 P95 358.623 ms 拆为每页重复
+count（66.987 ms）与 list（106.750/130.316 ms），两者均为实质成本。
+后续 plan capture 已证明 FTS candidate scan/rowid 回表和 first/second list 临时 B-tree 排序，第二页
+keyset 不改变执行形态；benchmark-only order-first SQL 在 arm64 100k 的 scope/filter/sort/cursor
+矩阵、代表场景 P95 和双库 mixed-media/date/sparse 对照均保持生产 ID 顺序且无临时排序，但 amd64、
+真实分布和生产修复 Gate 未证，
+仍属于独立维护 Gate，未改生产 SQL/schema/API。
+ORT/SigLIP 1/YuNet/SFace 的固定许可记录已复核，但 Docker Scout 未产出、Grype 裸包扫描
+0 match/0 component；随后 arm64 distroless 最终闭包实扫已完成，no-SSL 最小闭包通过受限运行并
+把 OpenSSL High 从 7 项移除，但仍有 glibc 1 Critical/2 High；扫描器漏识别的裸 ORT `.so` 已补
+通过官方 Schema 结构校验的 arm64 显式 component，但仍需安全 VEX/修复基座、最终 SBOM 合并与
+双架构 provenance。SFace 精确权重训练数据及
+商业/再分发澄清未通过，保持 production hold。1,000 图/100 视频、合法人脸 ground truth、原生
+amd64/统一 runtime、真实
+全进程容量和合规签署仍阻断。完成/未完成子项
+以[专项清单证据台账](features/intelligent-media-discovery-task-list.md#s0-已完成证据子项)为准。
+`POST-MVP-5` scope manifest proposal draft 1 已整理 A～E 可删减切片、32 单人工程周停损和 Frozen
+条件；历史 revision 1 先冻结 A+B、离线模型基线和停损方案，随后产品用户以
+[revision 2](releases/POST-MVP-5-scope-r2.md) 正式纳入 C/D/E。S0 本地技术探索现已
+[收口](gates/POST-MVP-5/int-s0-closeout-and-blockers.md)：不再增加同类合成测试；S1/S1R2 合同已冻结，
+S2A/S2B 均完成后端实现范围内的复审但保持 No-Go，等待清单中列明的真实外部证据。
 
 | 阶段 | 用普通话解释 | 状态 | 完成后能看到什么 |
 | --- | --- | --- | --- |

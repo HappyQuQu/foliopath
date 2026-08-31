@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "evidence_id": "INT-005B1",
+  "recorded_at": "2026-08-27",
+  "environment": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "go_version": "go1.26.5"
+  },
+  "implementation": {
+    "validator_sha256": "c5ff2ed455e6dfe526549ba3cee0ff3c5dd0459e3962ec4c98eb77445650e1b6",
+    "test_sha256": "4a710e4c5be324b439043b6828a20d9cbe60cf7e532c4d0a5b70c563b72641c3",
+    "synthetic_v1_template_sha256": "5e8bef20356495d14f64ee27d8c39d5888e3f1189b5267cd245ba0cae84297a6",
+    "authorized_face_v2_template_sha256": "ed3eb22a1a5e7b709717fa7cda50c518c4b531bfdbf2090ab81d62b2a992a934"
+  },
+  "accepted_rules": [
+    "schema v1 is restricted to synthetic fixtures",
+    "every non-synthetic dataset requires schema v2 governance",
+    "allowed evaluation uses and authorized roles use closed enumerations",
+    "retention date and deterministic deletion procedure are mandatory",
+    "redistributable agrees with the redistribution policy",
+    "public media licensing is rejected as authority for biometric ground truth",
+    "biometric ground truth requires prohibited redistribution, a privacy review reference and privacy-reviewer role",
+    "written authorization requires an opaque authority reference",
+    "face verification and clustering items require opaque identity IDs"
+  ],
+  "negative_cases": [
+    "v2 without governance",
+    "non-synthetic v1",
+    "public-license biometric data",
+    "missing authority reference",
+    "missing privacy review reference",
+    "missing or invalid retention",
+    "unknown data class",
+    "unknown deletion procedure",
+    "redistribution field disagreement",
+    "redistributable biometric data",
+    "unknown allowed use",
+    "unknown access role",
+    "unsafe identity reference",
+    "missing clustering identity",
+    "identity outside biometric ground truth",
+    "unsafe relative path"
+  ],
+  "verification": {
+    "command": "make spike-ai",
+    "result": "pass"
+  },
+  "limitations": [
+    "the checked-in face manifest is a placeholder template, not an authorization or privacy approval",
+    "no real face images, consent records or identity ground truth were used",
+    "the validator cannot determine whether an opaque reference points to a genuine signed record",
+    "controlled storage, access audit and deletion rehearsal remain unproven",
+    "INT-005B, INT-007B, INT-015 and INT-S0 remain open"
+  ]
+}

@@ -57,6 +57,9 @@ func (codec *Codec) Decode(encoded, associatedData string, target any) error {
 	if err != nil || len(sealed) <= codec.aead.NonceSize() {
 		return ErrInvalid
 	}
+	if base64.RawURLEncoding.EncodeToString(sealed) != encoded {
+		return ErrInvalid
+	}
 	nonce := sealed[:codec.aead.NonceSize()]
 	plaintext, err := codec.aead.Open(
 		nil, nonce, sealed[codec.aead.NonceSize():], []byte(associatedData),

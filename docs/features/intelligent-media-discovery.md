@@ -2,31 +2,37 @@
 
 ## 状态与归属
 
-- 状态：**方案提议 / S0 No-Go**；本文可评审，但不授权生产实现
-- 目标版本：`POST-MVP-5` 提案；尚未冻结 scope，不进入当前 MVP/RC
+- 状态：**POST-MVP-5 revision 2 Frozen**；S1/S1R2 Contract Ready，S2A/S2B Backend Gate No-Go，
+  S2C 等待隐私准入
+- 目标版本：`POST-MVP-5` revision 2；不进入当前 MVP/RC
 - Change Record：[CR-2026-021](../changes/CR-2026-021-intelligent-media-discovery.md)
 - 技术方案：[智能媒体发现技术架构](../architecture/intelligent-media-discovery.md)
 - 可行性验证：[INT-001 spike 计划](../spikes/int-001-ai-feasibility.md)
 - 开发执行：[FTR-INT-001 任务清单](intelligent-media-discovery-task-list.md)
+- Frozen scope：[POST-MVP-5 scope revision 2](../releases/POST-MVP-5-scope-r2.md)
+- 被替代范围：[POST-MVP-5 scope revision 1](../releases/POST-MVP-5-scope.md)
+- 历史草案：[POST-MVP-5 scope manifest proposal draft 1](../releases/POST-MVP-5-scope-proposal.md)
 - 静态交互原型：[浏览页集成入口](../../prototypes/apple-redesign/03-browse.html)、
   [智能搜索与人物复核](../../prototypes/apple-redesign/12-ai-features.html)、
   [智能功能与模型管理](../../prototypes/apple-redesign/13-settings-ai.html)
 - 产品负责人：产品用户
-- Capability Owners：模型管理负责人、语义检索负责人、人脸与人物库负责人、推理运行时负责人、前端负责人；
-  人选须在 INT-S0 签署前落定
+- A+B capability owners：`internal/aimodel`、`internal/semantic` 及其 ports、`internal/jobs`、
+  `internal/catalog`、`internal/files`、`internal/api`、SQLite adapter 与 `internal/app` composition；
+  详见 [S1 capability 合同](../architecture/intelligent-media-s1-contract.md)
 
 ## 结论
 
-FolioPath 可以在保持单容器、原媒体只读和本地处理的前提下实现以下四项能力：
+完整方向在保持单容器、原媒体只读和本地处理的前提下存在以下四项可独立能力：
 
 1. 图片自然语言语义搜索；
 2. 从受控词表生成 AI 标签建议，由用户确认后才写入手动标签；
 3. 用既有视频故事板代表帧做近似内容搜索；
 4. 后台检测人脸并先做匿名聚类，用户再建立人物、命名、合并、拆分或把单个人脸归入人物。
 
-但“可以实现”不等于当前方案已经具备发布条件。最大不确定性是本地 CPU 推理吞吐、4 GiB
-内存预算、10 万媒体的向量索引、人物聚类误合并以及模型权重的再分发许可。只有 INT-001
-spike 达到本文门槛，S0 才能转为 Go。
+revision 2 已冻结上述四项及模型基础，但交付授权仍按 Gate 分离：A+B 的 S2A 当前为 No-Go；第 2～4 项
+的 `INT-114～120` S1R2 权威合同已经完成，C/D 已完成获授权的生产后端范围但 S2B Gate 仍为 No-Go，
+E 必须先通过独立隐私准入才能开始生产实现。“纳入范围”不等于已经具备发布条件；
+真实质量、隐私、native amd64、4 GiB 完整进程和模型再分发仍由对应 Backend/Release Gate 持有。
 
 ## 产品问题与目标用户
 
@@ -74,8 +80,8 @@ FolioPath 的主要内容是以人物为主的套图集。目录仍是套图和�
 
 ### 模型获取与存储
 
-- `FR-INT-017`：管理员可从项目审核并由签名发行清单声明的下载源获取兼容模型包；下载必须可取消、
-  可续传并在启用前完成版本、架构、许可证标识、大小和 SHA-256 校验。
+- `FR-INT-017`：revision 1 只接受产品内建兼容清单声明的离线模型包；启用前完成用途、版本、架构、
+  许可证标识、大小、文件清单和 SHA-256 校验。在线获取保留为未来 scope，不属于本合同。
 - `FR-INT-018`：系统可扫描固定只读容器目录 `/models`，区分已安装、可用和不兼容文件；不接受
   UI 提交宿主机路径，也不加载兼容清单以外的任意 ONNX 或其他模型。
 - `FR-INT-019`：管理员可把已验证包复制到 `/app/data/models` 托管，或在明确风险后从只读
@@ -92,13 +98,14 @@ FolioPath 的主要内容是以人物为主的套图集。目录仍是套图和�
 - `NFR-INT-005`：公开 API 不返回原始 embedding，不接受绝对路径或任意模型 URL。
 - `NFR-INT-006`：在 4 CPU、4 GiB、10 万媒体目标档满足经 S0 冻结的资源和延迟门槛。
 - `NFR-INT-007`：模型包一律视为不可信输入；只有内建 allowlist/manifest 与哈希完全匹配的纯权重
-  文件可进入运行时，模型附带代码、插件、动态库和脚本永不执行。
-- `NFR-INT-008`：公开 API 不接受下载 URL、绝对路径或任意模型 ID。下载源来自发行清单或部署者
-  预先配置的镜像基址，响应和日志不得泄露凭据、宿主机路径或内部下载地址。
+  文件可进入运行时，模型附带代码、插件、动态库和脚本永不执行。首个发布切片的 ONNX graph 必须
+  内嵌全部 initializer，external-data 不受支持；发行校验拒绝引用，运行时再以固定 size/hash 约束图。
+- `NFR-INT-008`：公开 API 不接受下载 URL、绝对路径或任意模型 ID；只接受服务端本轮扫描签发的
+  opaque candidate ID，响应和日志不得泄露宿主机路径或模型内部位置。
 - `NFR-INT-009`：直接使用的 `/models` 文件缺失、变更或变为可写时必须失败关闭并把模型标记为
   unavailable；保留最后可靠派生索引和人工状态，普通浏览/字面搜索继续可用。
-- `NFR-INT-010`：模型下载不得自动后台联网；只能由已认证管理员明确触发，使用有界临时空间、
-  超时、并发 1、磁盘安全余量、临时文件和校验后原子发布。
+- `NFR-INT-010`：模型扫描、复制、校验和激活只能由已认证管理员明确触发，使用有界临时空间、
+  超时、并发 1、磁盘安全余量、临时文件和校验后原子发布；revision 1 不主动联网。
 
 ## 明确不做
 
@@ -113,14 +120,16 @@ FolioPath 的主要内容是以人物为主的套图集。目录仍是套图和�
 
 ## 用户流程
 
-### 图片和视频语义搜索
+### 图片语义搜索（revision 1）
 
 1. 管理员为媒体库启用智能分析并看到模型/空间预计值。
-2. 后台按有界批次生成图片 embedding；视频只消费既有故事板帧，没有故事板时登记依赖，
-   不重复启动另一套抽帧流程。
+2. 后台按有界批次生成图片 embedding；视频不进入本 revision。
 3. 用户在搜索页明确选择“文件名”或“画面语义”，输入中文或英文描述。
-4. 结果按相似度排序，并保留库、目录和类型筛选；视频显示命中的代表帧，但首版不跳转时间点。
+4. 结果按相似度排序，并保留库、目录和图片类型筛选。
 5. 索引不完整时界面显示覆盖率，不把“未处理”误报为“无结果”。
+
+查询文本不得包含 tokenizer 注册控制字符串 `</s>` 或 `<unk>`（大小写不敏感）；服务端在推理前以
+普通无回显校验错误拒绝，不能把它们作为模型控制 token 执行。
 
 ### AI 标签建议
 
@@ -140,17 +149,17 @@ FolioPath 的主要内容是以人物为主的套图集。目录仍是套图和�
 
 ### 模型获取与启用
 
-1. 模型缺失时，管理员在“管理中心 → 智能功能 → 获取模型”选择在线下载或映射目录。
-2. 在线下载只显示签名发行清单或部署配置中存在的源。系统先检查空间，写入临时文件，支持取消/
-   续传，完成后校验 manifest、许可证标识、架构、大小和 SHA-256，再原子发布到
-   `/app/data/models`。
-3. 离线用户把模型包放到宿主机目录，并以只读方式映射为容器 `/models`。扫描只列出兼容清单中
+1. 模型缺失时，管理员在“管理中心 → 智能功能 → 模型”查看 `/models` 离线目录状态。
+2. 部署者把模型包放到宿主机目录，并以只读方式映射为容器 `/models`。管理员明确触发扫描；
+   扫描只列出兼容清单中
    的包；未知文件显示“不兼容”，不解析为可执行扩展，也不交给推理运行时。
-4. 默认选择“复制到托管目录”；复制成功后即使移除 `/models` 仍可运行。空间紧张时可明确选择
+3. 默认选择“复制到托管目录”；复制成功后即使移除 `/models` 仍可运行。空间紧张时可明确选择
    “直接使用”，但必须持续保持只读、文件存在且哈希匹配。
-5. 若直接使用的文件消失或变更，能力进入 unavailable，查询返回可解释错误；系统不删除现有索引、
+4. 若直接使用的文件消失或变更，能力进入 unavailable，查询返回可解释错误；系统不删除现有索引、
    人物关系或人工标签。恢复相同哈希文件后可重新启用。
-6. 选择另一兼容版本不会原地覆盖当前 generation；系统先并行建立并验证新索引，再切换激活版本。
+5. 选择另一兼容版本不会原地覆盖当前 generation；系统先并行建立并验证新索引，再切换激活版本。
+6. revision 1 不显示在线下载或国内镜像入口；未来只有真实来源、运营与签名生命周期合同获批后
+   才能新增。
 
 ## 关键产品规则
 
@@ -187,10 +196,10 @@ FolioPath 的主要内容是以人物为主的套图集。目录仍是套图和�
 ## 交付顺序与 Gate
 
 1. `INT-S0 Architecture Ready`：完成三个 spike、许可证审查、模型/索引/资源选择和隐私评审。
-2. `INT-S1 Contract Ready`：冻结 scope、需求 ID、OpenAPI、migration、错误、删除和升级语义。
-3. `INT-S2 Backend Evidence Ready`：先交付模型管理和图片语义检索，再交付标签建议、视频搜索，
-   最后交付人脸聚类；每个子切片独立通过后端证据。
+2. `INT-S1 Contract Ready`：冻结 A+B 的需求、OpenAPI、data/migration、错误、删除和升级语义。
+3. `INT-S2 Backend Evidence Ready`：只交付 A+B 模型管理和图片语义检索；C/D/E 必须先有新的 Frozen
+   scope revision 与独立 Gate。
 4. `INT-S3 Consumer/UI Ready`：生产前端只消费已通过 S2 的合同；完成状态、纠错、双语、键盘和隐私说明。
 5. `INT-S4 Integrated Slice Done`：真实单容器、目标容量、备份恢复、升级/回滚和原媒体不变证据齐全。
 
-当前判断见 [INT-S0 Gate](../gates/POST-MVP-5/int-s0-architecture-ready.md)：**No-Go**。
+当前判断见 [INT-S0 Gate](../gates/POST-MVP-5/int-s0-architecture-ready.md)：**A+B Go，进入 S1**。

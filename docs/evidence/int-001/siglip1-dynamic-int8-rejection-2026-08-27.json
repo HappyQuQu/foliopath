@@ -1,0 +1,61 @@
+{
+  "status": "rejected-development-candidate",
+  "source": {
+    "model_id": "google/siglip-base-patch16-224",
+    "revision": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+    "image_encoder_bytes": 371682125,
+    "image_encoder_sha256": "2d25894079820ae3a8a28f0e8c5b664932aabb93361d578bed357dd14d580a37",
+    "text_encoder_bytes": 441217411,
+    "text_encoder_sha256": "16eef12730b862a0c4f75926213d86749d9c6a5ec79b37b6feebc20f826fd664"
+  },
+  "quantization": {
+    "method": "ONNX Runtime dynamic QInt8 weights",
+    "op_types": ["MatMul", "Gemm"],
+    "per_channel": false,
+    "reduce_range": false,
+    "runs": 2,
+    "byte_identical": true,
+    "image_encoder_bytes": 95795926,
+    "image_encoder_sha256": "f0193117cb96dd73469ea5f0d0cd741df1f2a2a47a37da49186a6023c184a982",
+    "text_encoder_bytes": 184782951,
+    "text_encoder_sha256": "1e9daffb218e43936e09a29cae089620d8118023a514f8c02a712b06b968f4e6"
+  },
+  "macos_arm64_ort_1_29": {
+    "zh_recall_at_1": 0.9166666666666666,
+    "zh_recall_at_3": 1.0,
+    "en_recall_at_1": 0.9166666666666666,
+    "en_recall_at_3": 1.0,
+    "image_p95_ms": 31.23,
+    "text_p95_ms": 9.885
+  },
+  "linux_arm64_ort_1_28": {
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "zh_recall_at_1": 0.25,
+    "zh_recall_at_3": 0.5,
+    "en_recall_at_1": 0.9166666666666666,
+    "en_recall_at_3": 1.0,
+    "image_p95_ms": 35.135,
+    "text_p95_ms": 10.74,
+    "process_peak_rss_kib": 395596,
+    "cgroup_peak_bytes": 811450368
+  },
+  "ranking_comparison": {
+    "queries": 24,
+    "macos_linux_int8_top3_identical": 8,
+    "linux_float32_int8_top3_identical": 6,
+    "macos_float32_int8_top3_identical": 16
+  },
+  "decision": {
+    "candidate_accepted": false,
+    "reason": "severe native Linux Chinese retrieval regression and cross-runtime ranking divergence",
+    "capacity_test_authorized": false
+  },
+  "limitations": [
+    "The public pilot has only ten images and twenty-four queries, but the observed regression is already too large to continue this configuration.",
+    "macOS and Linux used different ONNX Runtime minor versions; production requires one frozen version, but that does not make the current artifact acceptable.",
+    "Only one dynamic QInt8 configuration was evaluated; other precision schemes require separate provenance and quality evidence."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "onnxruntime": "1.28.0",
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "models": {
+    "image_encoder_sha256": "7fc85e0e8a0f4e5fce7be45c7830e7473c81f010633b7d31bc1613dafc734ab0",
+    "text_encoder_sha256": "ef9451f51568152758e53ebca85cec4d84d2462c45e1611b42f49a42bd1be953",
+    "prepared_tensor_sha256": "759555d0de3d5b2b96947f1eae6b7230ea729ac6eda217ab1d7e864eeef94498"
+  },
+  "baseline_cpu_mem_arena_enabled": {
+    "cycles": 30,
+    "rss_after_cycle_1_kib": 537752,
+    "rss_after_cycle_30_kib": 750756,
+    "rss_growth_after_cycle_1_kib": 213004,
+    "peak_rss_kib": 2305768,
+    "maximum_allowed_growth_kib": 131072,
+    "passed": false
+  },
+  "cpu_mem_arena_disabled": {
+    "memory_pattern_enabled": true,
+    "cycles": 30,
+    "rss_after_cycle_1_kib": 509360,
+    "rss_after_cycle_30_kib": 509360,
+    "rss_growth_after_cycle_1_kib": 0,
+    "peak_rss_kib": 2046084,
+    "maximum_allowed_growth_kib": 131072,
+    "all_outputs_finite": true,
+    "passed": true,
+    "image_load_seconds_range": [0.198013, 0.237469],
+    "text_load_seconds_range": [0.478819, 0.516434],
+    "image_inference_seconds_range": [0.089499, 0.103325],
+    "text_inference_seconds_range": [0.029123, 0.041580]
+  },
+  "public_pilot_cpu_mem_arena_disabled": {
+    "runs": 3,
+    "image_p95_seconds_range": [0.092792, 0.099572],
+    "text_p95_seconds_range": [0.029833, 0.032868],
+    "rss_after_image_kib_range": [620828, 642980],
+    "rss_after_image_close_kib_range": [500176, 528792],
+    "rss_after_text_kib_range": [1403956, 1424732],
+    "peak_rss_kib_range": [2036696, 2065276],
+    "float16_top3_identical_queries_each_run": 24,
+    "queries_each_run": 24,
+    "metrics_identical_to_arena_enabled": true
+  },
+  "decision": {
+    "required_spike_configuration": "enable_cpu_mem_arena=false; enable_mem_pattern=true",
+    "threshold_changed": false,
+    "baseline_failure_preserved": true,
+    "production_runtime_selected": false
+  },
+  "limitations": [
+    "This is Python ONNX Runtime evidence, not the production Go or C adapter.",
+    "Native linux/amd64 and a single cross-architecture runtime version remain unverified.",
+    "Thirty cycles are not a long-duration leak proof.",
+    "The public pilot has only ten images and twenty-four easy queries.",
+    "The complete FolioPath process, SQLite backfill, browsing, face runtime and cache were not loaded concurrently."
+  ]
+}

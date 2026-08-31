@@ -525,7 +525,9 @@ make test-e2e
 
 当前 `Makefile` 已存在 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`lint`、`test`、
 `test-race`、`test-integration` 和显式 `spike-capacity`；`arch-check` 验证 Go 依赖方向与
-禁止的通用包。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
+禁止的通用包。它还在 ADR-0014 为提议、INT-S2A 为 No-Go 时强制 production reviewed AI catalog
+为空且不组合 semantic search route，同时保留已批准的 semantic 管理/回填/清理边界；Gate 转换必须
+同步更新该检查。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
 pattern 编译器，每次禁用 Go test 缓存，强制完整解析 YAML、解析本地引用、执行 OpenAPI
 结构/pattern 验证，并用 AST/Schema 与跨源检查固定认证、错误、健康状态、分页、路径、
 Range，以及 scanner/migration 的 durable admission、phase/counters、issues、cancel、
@@ -604,6 +606,44 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
+POST-MVP-5 另提供手动
+[`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) workflow，使用
+GitHub-hosted 原生 linux/amd64 与 linux/arm64 runner 执行同一 source SHA 的常规仓库检查、production
+libvips、两库 order-first 等价矩阵和强制 10k/100k 容量基线。它不在 `push`/`pull_request` 上自动运行，
+不使用 QEMU，也不上传模型、媒体、数据库或 `/library`、`/app/data` 内容。任一检查失败时 job 保持失败，
+仅通过 `if: always()` 上传有界诊断 artifact；不得用 artifact 已上传冒充检查成功。
+
+workflow 文件和架构测试存在只证明“原生执行入口可审计”。只有两个目标架构在同一 source SHA 上实际
+成功运行，且 artifact 中 identity、step outcomes、质量/RSS/数值、索引重建和容量结果满足对应 Gate，
+才能作为 `INT-403` 或 S2 Backend/Release 证据。当前尚无该远程运行，因此双架构状态仍为未完成；已知
+`make spike-capacity` production keyset 超预算会使工作流失败关闭，而不是被候选查询矩阵掩盖。
+
+下载两个 artifact 后必须执行：
+
+```sh
+make verify-intelligent-media-native-evidence \
+  EVIDENCE_DIR=... RELEASE_SHA=... \
+  WORKFLOW_RUN_ID=... WORKFLOW_RUN_ATTEMPT=... \
+  SUMMARY_FILE=...
+```
+
+workflow 的 paired job 已自动调用该入口。verifier 拒绝缺失/重复架构、不同 commit/run/attempt、非原生
+runner identity、QEMU 及任一步骤非 success，并仅在全通过时发布 paired summary。它不读取日志猜测
+质量结论。最终模型获准并在两个原生 job 真实生成 `model-evidence.json` 后，必须改用：
+
+```sh
+make verify-intelligent-media-native-model-evidence \
+  EVIDENCE_DIR=... RELEASE_SHA=... \
+  WORKFLOW_RUN_ID=... WORKFLOW_RUN_ATTEMPT=... \
+  SUMMARY_FILE=...
+```
+
+严格模式额外验证同一 model package/质量集/fixture、跨架构 Top-20 集合、`1e-3` 数值容差、最终容量/RSS/
+延迟/空间预算、索引重建/重启与 runtime failure matrix。baseline workflow 当前不运行未获准最终模型，
+因此默认 paired summary 不能关闭 `INT-403`；只有严格模式的真实双架构结果才可进入 Gate 复审。严格
+模式还会实际读取并哈希 quality summary、Top-20、numeric、runtime、index 报告，拒绝路径逃逸、symlink、
+非普通文件和内容篡改；合法审核数据本体不进入 artifact，只由 governed manifest hash 绑定。
+
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
 只读发布 volume/运行期 unmount、最终 Safari/物理辅助功能与移动设备发布签署、代表性客户端性能、
@@ -612,3 +652,98 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
 的完整状态与最晚落地阶段见[架构适配度检查](architecture/fitness-functions.md)。
+
+## POST-MVP-5 revision 1 验证合同
+
+S1 冻结测试判定，不把现有隔离 spike 冒充生产证据：
+
+- 合同：OpenAPI 结构/语义兼容、错误枚举、ETag/幂等/CSRF、生成客户端确定性及中英文 fixture。
+- 数据：fresh/upgrade/restart/故障回滚、FK/cascade、active generation 唯一、cursor 跨代拒绝、bounded
+  transaction、库移除和源 fingerprint 失效。
+- 模型边界：未知/篡改/错架构/错大小/external-data、symlink/hardlink/special file/nested mount、来源
+  可写、TOCTOU、取消、ENOSPC、强杀和 direct 消失/同 hash 恢复。
+- runtime adapter：默认构建稳定 unavailable；显式 `onnxruntime` 构建只接受 1.28.0，验证两张 split
+  graph 的名称、dtype、固定 shape、线程/arena 配置、错误脱敏和所有失败路径资源释放。分别记录
+  session load 前/后的协作取消与不可中断 `CreateSession` 的实际上界，不把 goroutine timeout 当作
+  native 取消证据；native amd64/arm64 均为发布门槛。
+- 质量集：由产品/QA/ML 提供合法、代表项目人物套图分布且不进入仓库的图片与中英文查询标注；冻结
+  指标为 Top-20 query success ≥ 85%，并分别报告中文/英文、近景/全身、室内/室外与小样本置信区间。
+  低于门槛删除 Slice B，不用合成向量、公开抓取人脸图片或调低指标替代。
+- 性能：4 CPU/4 GiB、10k 目录/100k 媒体；整进程 RSS ≤ 3.2 GiB，语义查询 P95 ≤ 750 ms、
+  P99 ≤ 1.5 s，ordinary browse P95 退化 ≤ 20%，可重建 AI 派生增量 ≤ 500 MiB（不含模型）。
+- 跨架构：同一审核模型与 fixture 在 native linux/amd64、linux/arm64 的 ranking Top-20 集合一致；
+  score 允许绝对误差 ≤ 1e-3，若排序在 cutoff 附近受误差影响则以冻结 tie fixture 单独裁决。QEMU
+  结果不能替代 native release evidence。
+- 可靠性：旧 active generation 在 activation/cancel/crash/盘满失败后仍可查询；模型 unavailable 只
+  阻断语义请求；clear/rebuild/library removal 前后原媒体 sentinel 完全不变。
+- UI：五种语义空/错误状态、覆盖率、stale cursor refresh、模型 managed/direct 选择、双语双主题、
+  390/768/1265/1440、键盘与屏幕阅读器。静态原型只作设计输入，不算生产验收。
+
+所有质量 fixture 必须记录来源、授权、用途、保留期限和删除责任人；不得提交真人生物特征 ground
+truth。S1 不新增重复合成 benchmark，只有能改变候选或合同的测试才可重新打开 spike。
+
+## POST-MVP-5 revision 2 C+D+E 验证合同
+
+`INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
+
+- C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、
+  人工 tag 优先、100 项批量上限、逐项 conflict、accept 原子性、dismiss 跨重建保留及独立 review clear。
+  合法代表性词表集冻结每 tag precision/recall、宏平均与人工接受率；产品/ML/QA 在 S2B Gate 前签署阈值，
+  未签署或未达阈值时只保留手工标签，不展示模型建议。
+- D 使用至少 100 个合法代表性 MP4/MOV/MKV，覆盖 2 秒～2 小时、4/10 帧、运动/静态、室内/室外及
+  中英文查询。冻结 Top-20 success ≥80%，验证 max-frame、ordinal/asset tie、partial/mixed plan 排除、
+  fallback coverage、storyboard eviction/source change/cancel/crash；不得重新抽帧或用合成向量代替质量集。
+
+S2B 审核集到位后必须执行：
+
+```sh
+make verify-intelligent-media-quality \
+  QUALITY_INPUT=... DATASET_MANIFEST=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口核对 governed manifest 实际 hash、非 synthetic ordinary-media 准入、100-video 覆盖、三方批准引用，
+并从 counts/result IDs 重算 tag 与 video 指标；不能直接信任输入中的 pass 标志。真实媒体/标注和批准材料
+不进仓库，验证报告只记录有界 ID、hash、计数和聚合指标。
+
+最终供应链材料到位后还必须执行：
+
+```sh
+make verify-intelligent-media-supply-chain \
+  SUPPLY_CHAIN_INPUT=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口实际读取并哈希 catalog、最终 model package、component notices、native amd64/arm64 SBOM、
+provenance、signature-verification、vulnerability report 与可选 VEX；拒绝路径逃逸/symlink、不完整 SBOM、
+未验证签名、缺再分发批准，或存在 Critical/High 却没有 VEX 和 security approval 的输入。通过只证明
+证据文件与 manifest 一致；security、compliance、release、inference owner 仍须审阅并签署。
+
+三个入口各自产生真实 summary 后，最终 S2 复审前还必须执行：
+
+```sh
+make verify-intelligent-media-s2-evidence \
+  QUALITY_SUMMARY=... NATIVE_SUMMARY=... SUPPLY_CHAIN_SUMMARY=... \
+  RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+聚合器要求同一 source commit、同一 model package，并逐架构匹配 strict native 与 supply-chain 的最终
+image digest；baseline native summary 的 `finalModelEvidence=false` 会被拒绝。聚合 summary 记录三个
+输入文件的实际 SHA-256，但不替代任何 owner 的签署或原始 verifier。
+
+- E 的真实 ground truth 由隐私 owner 批准且不进仓库/普通 CI。冻结 anonymous core precision ≥99.5%，
+  分开报告 recall、edge、肤色/年龄呈现/光照/遮挡/多人图片切片与置信区间；不达 precision 时整组操作
+  失败关闭并降为逐脸/小组，仍不达安全可用性则删除 E。禁止从公开网页抓取真人图片补数。
+- E 集成覆盖默认关闭/告知、多人逐 face、manual assignment/exclusion/cannot-link、named person 不自动合并、
+  merge 原子冲突、split、guarded undo、generation reconciliation/needs_review、derived/manual clear 分离、
+  backup/restore、日志/诊断/错误脱敏和 `/library` sentinel SHA-256/mtime 不变。
+- native linux/amd64 与 arm64 对同一审核模型/fixture 比较 C/D ranking Top-20 集合、E detection/cluster
+  decision 与 score 绝对误差 ≤1e-3；cutoff tie 使用冻结 fixture。两架构都必须执行 runtime load、取消、
+  强杀、ENOSPC、source offline、session unload 与长周期泄漏；QEMU 不算 release evidence。
+- 联合容量档为 4 CPU/4 GiB、100k media/10k directories，混合 ordinary browse、A/B image semantic、C tag、
+  D video 与 E face。整进程 RSS ≤3.2 GiB、ordinary browse P95 退化 ≤20%，队列有界且 browsing 优先；
+  每 slice 另报告吞吐、DB/WAL/cache 增量与恢复时间，不用平均值隐藏长尾。
+- 最终双架构 digest 校验 model/runtime hash/license、SBOM、VEX、notices、provenance、漏洞处置、只读 volume、
+  非 root、backup/restore/upgrade/rollback。任何外部 evidence 缺失均保持对应 S2 Gate No-Go。
+
+本阶段可由 contract/architecture test 验证 OpenAPI、生成确定性和生产 composition fail-closed；production
+migration/handler/worker 测试只有 S1R2 Gate Go 后才允许出现。测试报告必须逐条写已执行/未执行和环境，
+不得把 static prototype、synthetic face state machine 或 arm64 单机数据描述为发布证明。

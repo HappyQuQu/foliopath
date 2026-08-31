@@ -235,6 +235,55 @@ func (s *Store) ReplaceAssetTags(ctx context.Context, assetID, expectedRevision 
 	})
 }
 
+func (s *Store) AddAssetTag(ctx context.Context, assetID, expectedRevision, tagID int64, now time.Time) error {
+	if assetID < 1 || expectedRevision < 1 || tagID < 1 || now.IsZero() {
+		return curation.ErrInvalidRequest
+	}
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		var revision int64
+		if err := tx.QueryRowContext(ctx, `SELECT revision FROM curation_state WHERE singleton_key = 1`).Scan(&revision); err != nil {
+			return fmt.Errorf("read suggested tag precondition: %w", err)
+		}
+		var libraryID int64
+		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return curation.ErrAssetNotFound
+			}
+			return fmt.Errorf("resolve suggested-tag asset: %w", err)
+		}
+		var tagExists int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tags WHERE id = ?`, tagID).Scan(&tagExists); err != nil {
+			return fmt.Errorf("resolve suggested tag: %w", err)
+		}
+		if tagExists != 1 {
+			return curation.ErrTagNotFound
+		}
+		var currentCount int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM asset_tags WHERE asset_id = ?`, assetID).Scan(&currentCount); err != nil {
+			return fmt.Errorf("count current asset tags: %w", err)
+		}
+		var alreadyAttached int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM asset_tags WHERE asset_id = ? AND tag_id = ?`, assetID, tagID).Scan(&alreadyAttached); err != nil {
+			return fmt.Errorf("resolve existing suggested tag: %w", err)
+		}
+		if alreadyAttached == 1 {
+			return nil
+		}
+		if revision != expectedRevision {
+			return curation.ErrPreconditionFailed
+		}
+		if currentCount >= curation.MaxTagsPerAsset {
+			return curation.ErrInvalidRequest
+		}
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO asset_tags(asset_id, library_id, tag_id, created_at_ms)
+            VALUES(?, ?, ?, ?)`, assetID, libraryID, tagID, now.UTC().UnixMilli()); err != nil {
+			return fmt.Errorf("attach suggested tag: %w", err)
+		}
+		return nil
+	})
+}
+
 func listAssetTagIDs(ctx context.Context, tx *sql.Tx, assetID int64) ([]int64, error) {
 	rows, err := tx.QueryContext(ctx, `SELECT tag_id FROM asset_tags WHERE asset_id = ? ORDER BY tag_id`, assetID)
 	if err != nil {

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "evidence_class": "development-only",
+  "environment": {
+    "goos": "darwin",
+    "goarch": "arm64",
+    "go_version": "go1.26.4",
+    "gomaxprocs": 4
+  },
+  "command_template": "GOMAXPROCS=4 go run . vector -backend BACKEND -items ITEMS -dims DIMS -queries QUERIES -topk 20 -seed 20260825",
+  "runs": [
+    {"backend":"memory","items":10000,"dimensions":256,"queries":10,"build_ms":10.936,"query_p50_ms":1.519,"query_p95_ms":1.648,"query_p99_ms":1.648,"heap_alloc_bytes":22426936,"heap_sys_bytes":24870912},
+    {"backend":"sqlite","items":10000,"dimensions":256,"queries":10,"build_ms":47.482,"query_p50_ms":10.038,"query_p95_ms":10.518,"query_p99_ms":10.518,"heap_alloc_bytes":4077248,"heap_sys_bytes":12255232,"database_bytes":13697024},
+    {"backend":"memory","items":50000,"dimensions":512,"queries":20,"build_ms":97.339,"query_p50_ms":17.032,"query_p95_ms":17.064,"query_p99_ms":17.092,"heap_alloc_bytes":106391992,"heap_sys_bytes":209420288},
+    {"backend":"sqlite","items":50000,"dimensions":512,"queries":20,"build_ms":635.610,"query_p50_ms":101.153,"query_p95_ms":102.500,"query_p99_ms":103.768,"heap_alloc_bytes":2087080,"heap_sys_bytes":12222464,"database_bytes":205303808},
+    {"backend":"memory","items":100000,"dimensions":512,"queries":20,"build_ms":195.812,"query_p50_ms":34.032,"query_p95_ms":34.365,"query_p99_ms":36.519,"heap_alloc_bytes":208793416,"heap_sys_bytes":414941184},
+    {"backend":"sqlite","items":100000,"dimensions":512,"queries":20,"build_ms":1133.109,"query_p50_ms":199.877,"query_p95_ms":202.204,"query_p99_ms":203.128,"heap_alloc_bytes":2642568,"heap_sys_bytes":12222464,"database_bytes":410619904}
+  ],
+  "caveats": [
+    "Random vectors measure exact-scan capacity and latency only, not semantic quality or recall.",
+    "The 10k run used 256 dimensions; the 50k and 100k runs used 512 dimensions.",
+    "Database bytes exclude a retained WAL after clean shutdown and exclude video-frame and face vectors.",
+    "Stable tie-breaking exists in the spike, but filtered-query refill and concurrent browsing were not measured.",
+    "Native constrained Linux evidence is pending."
+  ]
+}

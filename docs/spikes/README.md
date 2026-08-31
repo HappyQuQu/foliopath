@@ -16,7 +16,7 @@ Architecture、Contract、Backend、UI 或 Release Gate。
 
 - [VSP-002：视频故事板](vsp-002-video-storyboard.md)
 - [WCH-001：Linux 文件事件](wch-001-linux-watcher.md)
-- [INT-001：本地智能检索与人脸聚类](int-001-ai-feasibility.md)（Planned）
+- [INT-001：本地智能检索与人脸聚类](int-001-ai-feasibility.md)（本地探索已收口；A+B S0 Go）
 
 实现状态、适用平台和剩余阻断以对应 [Feature](../features/README.md)、
 [Gate](../gates/README.md) 和 [版本记录](../releases/README.md) 为准。

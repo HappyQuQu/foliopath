@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/semantic"
 )
 
 // Processor keeps development and contract builds independent of the native
@@ -23,4 +24,20 @@ func (*Processor) Process(
 	media.Format,
 ) (media.ProcessingResult, error) {
 	return media.ProcessingResult{}, media.ErrProcessingFailed
+}
+
+func (*Processor) PrepareSemanticImage(
+	context.Context,
+	io.ReadSeeker,
+	media.Format,
+) ([]float32, error) {
+	return nil, semantic.ErrImagePreprocessUnavailable
+}
+
+func (*Processor) SplitSemanticStoryboard(
+	context.Context,
+	io.ReadSeeker,
+	int, int, int, int,
+) ([][]byte, error) {
+	return nil, semantic.ErrImagePreprocessUnavailable
 }

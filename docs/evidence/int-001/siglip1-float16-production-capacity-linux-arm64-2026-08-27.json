@@ -1,0 +1,89 @@
+{
+  "status": "preliminary-development-evidence",
+  "conversion": {
+    "method": "ONNX Runtime float16 internal tensors with float32 I/O",
+    "runs": 2,
+    "byte_identical": true,
+    "image_encoder_bytes": 185966808,
+    "image_encoder_sha256": "4d4260477eaf57ce263d8f65656b030384fd6854513896254b9cae9566432b3d",
+    "text_encoder_bytes": 220719548,
+    "text_encoder_sha256": "19f28e2bdb2e1bfb51ec1733b371899784ae0eb4af14d22980e7a6b89a15ef4f",
+    "image_conversion_required_deterministic_topological_sort": true,
+    "keep_io_types_float32": true
+  },
+  "public_pilot": {
+    "images": 10,
+    "queries": 24,
+    "macos_linux_top3_identical": 24,
+    "linux_float32_float16_model_top3_identical": 24,
+    "macos_float32_float16_model_top3_identical": 24,
+    "zh_recall_at_1": 0.9166666666666666,
+    "zh_recall_at_3": 1.0,
+    "en_recall_at_1": 1.0,
+    "en_recall_at_3": 1.0,
+    "linux_image_p95_ms": 112.989,
+    "linux_text_p95_ms": 45.305,
+    "linux_cgroup_peak_bytes": 1220300800
+  },
+  "resident_100_cycles": {
+    "all_outputs_finite": true,
+    "cgroup_peak_bytes": 1613815808,
+    "cgroup_current_after_cycle_100_bytes": 1612627968,
+    "image_p95_ms": 211.614,
+    "text_p95_ms": 69.474,
+    "stable_from_cycle_30_to_100": true
+  },
+  "production_capacity": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "directories": 10000,
+    "assets": 100000,
+    "completed_ai_cycles": 295,
+    "cgroup_peak_bytes": 2905825280,
+    "scan_duration_ms": 72746,
+    "concurrent_read_p95_us": 702,
+    "concurrent_search_p95_us": 39216,
+    "directory_list_p95_us": 121,
+    "asset_list_p95_us": 179,
+    "recursive_browse_p95_us": 32369,
+    "fts_search_p95_us": 23365,
+    "short_search_p95_us": 37772,
+    "global_search_p95_us": 26631,
+    "search_keyset_p95_us": 377880,
+    "storyboard_browse_p95_us": 40065,
+    "budget_violations": ["searchKeysetP95Us > 250000"]
+  },
+  "paired_baseline_relative_change_percent": {
+    "scan_duration": 4.713,
+    "concurrent_read_p95": 6.849,
+    "concurrent_search_p95": 1.791,
+    "directory_list_p95": 137.255,
+    "asset_list_p95": 10.494,
+    "recursive_browse_p95": 14.512,
+    "fts_search_p95": 12.499,
+    "short_search_p95": 5.036,
+    "global_search_p95": 41.571,
+    "search_keyset_p95": 6.263,
+    "storyboard_browse_p95": 1.763
+  },
+  "assessment": {
+    "memory_peak_limit_bytes": 3435973836,
+    "combined_memory_passed": true,
+    "ordinary_recursive_browse_relative_limit": 0.2,
+    "ordinary_recursive_browse_passed": true,
+    "all_observed_query_paths_under_relative_limit": false,
+    "baseline_itself_passed_existing_budgets": false,
+    "model_selected": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "Only one production-capacity run was paired with one collect-only baseline, so latency variance is not bounded.",
+    "The existing search-keyset budget failed without AI and with both float32 and float16 AI candidates.",
+    "The public quality pilot has only ten images and cannot approve float16 model conversion.",
+    "macOS and Linux used different ONNX Runtime minor versions; one frozen runtime and native linux/amd64 remain required.",
+    "The test does not include real 100,000-image embedding backfill, authenticated HTTP, browser rendering or face inference."
+  ]
+}

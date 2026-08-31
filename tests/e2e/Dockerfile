@@ -23,7 +23,7 @@ LABEL org.opencontainers.image.title="FolioPath application smoke" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.description="Stage 1 test evidence only; not a release image"
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates curl libvips42 \
+    && apt-get install --yes --no-install-recommends ca-certificates curl libvips42 socat \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -m 0750 /app/data \
     && install -d -m 0555 /library

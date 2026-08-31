@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/aimodel"
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
@@ -17,6 +18,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/semantic"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
 	"github.com/HappyQuQu/foliopath/internal/systemlog"
@@ -26,6 +28,33 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	aimodel.Repository
+	aimodel.OperationRepository
+	aimodel.InstallQueue
+	aimodel.ActivationRepository
+	semantic.BackfillQueue
+	semantic.ClearQueue
+	semantic.TagReviewClearQueue
+	semantic.TagJobQueue
+	semantic.TagJobCatalog
+	semantic.TagSuggestionInputSource
+	semantic.TagEmbeddingInputRepository
+	semantic.BackfillCatalog
+	semantic.EmbeddingRepository
+	semantic.GenerationRuntimeRepository
+	semantic.LibrarySettingsRepository
+	semantic.VectorSearchRepository
+	semantic.SearchSnapshotRepository
+	semantic.TagSuggestionRepository
+	semantic.TagReviewRepository
+	semantic.TagReviewRequestRepository
+	semantic.TagVocabularyRepository
+	semantic.TagSuggestionListRepository
+	semantic.VideoEmbeddingRepository
+	semantic.VideoJobQueue
+	semantic.VideoJobCatalog
+	semantic.VideoVectorSearchRepository
+	semantic.VideoSearchSnapshotRepository
 	auth.Repository
 	auth.AccountRepository
 	catalog.Repository
@@ -50,6 +79,7 @@ type databaseStore interface {
 	thumbnail.ProgressRepository
 	thumbnail.DiagnosticsRepository
 	thumbnail.DeliveryRepository
+	thumbnail.SemanticStoryboardRepository
 	media.ContentRepository
 	scanQueueStore
 	reconcileQueueStore
@@ -73,6 +103,15 @@ func (service *databaseService) GetAssetState(ctx context.Context, assetID int64
 		return curation.AssetState{}, errors.New("curation repository is not ready")
 	}
 	return service.store.GetAssetState(ctx, assetID)
+}
+
+func (service *databaseService) GetCompleteSemanticStoryboard(ctx context.Context, libraryID, assetID int64) (thumbnail.SemanticStoryboardState, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return thumbnail.SemanticStoryboardState{}, errors.New("semantic storyboard repository is not ready")
+	}
+	return service.store.GetCompleteSemanticStoryboard(ctx, libraryID, assetID)
 }
 
 func (service *databaseService) SetFavorite(ctx context.Context, assetID int64, favorite bool, now time.Time) (bool, error) {
@@ -118,6 +157,15 @@ func (service *databaseService) ReplaceAssetTags(ctx context.Context, assetID, r
 		return errors.New("curation repository is not ready")
 	}
 	return service.store.ReplaceAssetTags(ctx, assetID, revision, tagIDs, now)
+}
+
+func (service *databaseService) AddAssetTag(ctx context.Context, assetID, revision, tagID int64, now time.Time) error {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return errors.New("curation repository is not ready")
+	}
+	return service.store.AddAssetTag(ctx, assetID, revision, tagID, now)
 }
 
 func (service *databaseService) ListTagPage(ctx context.Context, params curation.TagListParams) ([]curation.Tag, error) {
@@ -318,6 +366,15 @@ func (service *databaseService) GetAsset(
 		return catalog.Asset{}, catalog.ErrRepositoryNotReady
 	}
 	return service.store.GetAsset(ctx, assetID)
+}
+
+func (service *databaseService) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]catalog.Asset, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return nil, catalog.ErrRepositoryNotReady
+	}
+	return service.store.GetAssetsByIDs(ctx, assetIDs)
 }
 
 func (service *databaseService) GetDirectoryLineage(

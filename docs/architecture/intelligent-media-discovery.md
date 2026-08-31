@@ -1,11 +1,15 @@
-# 智能媒体发现技术架构（提案）
+# 智能媒体发现技术架构
 
 ## 文档状态
 
 - 对应 feature：`FTR-INT-001`
-- 目标：`POST-MVP-5` 提案
-- 状态：S0 评审草案；[ADR-0013](../adr/0013-local-ai-runtime-and-derived-vector-index.md)尚未接受
-- 权威边界：本文不修改当前 OpenAPI、migration、生产模块或冻结 scope
+- 目标：`POST-MVP-5` revision 2（A～E）
+- 状态：A+B S0/S1 为 Go、S2A 为 No-Go；C/D/E 已纳入 scope，S1R2 Contract Ready，
+  S2B 已完成获授权后端实现但 Gate 为 No-Go，S2C 等待隐私准入
+- 权威边界：[Frozen scope](../releases/POST-MVP-5-scope-r2.md)；
+  [INT-S1](../gates/POST-MVP-5/int-s1-contract-ready.md)授权 A+B，
+  [INT-S1R2](../gates/POST-MVP-5/int-s1r2-contract-ready.md)授权 C/D 后端；E 仍须先通过独立隐私 Gate。
+- S1 capability/事务合同：[A+B S1 contract](intelligent-media-s1-contract.md)
 
 ## 设计结论
 
@@ -14,22 +18,20 @@ embedding 和加速索引放在 `/app/data`；可选只读 `/models` 只作为�
 直接来源；原媒体仍只经 `internal/files` 安全打开。SQLite 保存可重建
 embedding 与任务状态的权威派生记录，独立索引文件只作为可删除、可重建的查询加速层。
 
-这不是最终技术选型。ONNX Runtime、具体视觉/人脸模型和 ANN 引擎必须通过 INT-001 spike 的
-许可证、双架构、资源和准确性门槛后才能写入已接受 ADR。
+revision 1 已接受 ORT C API + SigLIP 1 float16-internal + SQLite float16 exact + CPU-only 作为 A+B
+唯一候选路径；真实质量、双架构、完整资源和供应链仍须在 Backend/Release Gate 通过。人脸模型和
+ANN 未被该决定接受；revision 2 的 C/D/E runtime、存储和事务合同已由 S1R2 冻结，E 的生产实现仍
+由隐私/合法数据/候选许可准入失败关闭。
 
 ## 组件与所有权
 
 ```text
 HTTP / API
-  ├─ AI model service ─ signed catalog / configured mirror / fixed /models:ro
+  ├─ AI model service ─ built-in compatibility catalog / fixed /models:ro
   │      └─ managed model store ─────────── /app/data/models
   ├─ semantic service ── inference port ── local ONNX adapter
   │      ├─ embedding repository
-  │      ├─ vector search port ── exact/ANN adapter
-  │      └─ controlled tag suggestion
-  ├─ face service ───── inference port
-  │      ├─ observations / clusters
-  │      └─ people / assignments / exclusions
+  │      └─ vector search port ── SQLite exact adapter
   └─ jobs service ───── bounded admission / lease / retry
              │
              ├─ internal/files ── /library (read-only)
@@ -39,20 +41,18 @@ HTTP / API
 
 建议源码边界：
 
-- `internal/semantic`：文本/图像向量语义、查询绑定、排名、模型 generation、标签建议；
-- `internal/face`：人脸检测结果、聚类、人物、人工 assignment/exclusion 和合并事务；
-- `internal/aimodel`：唯一拥有兼容清单、下载源选择、续传、映射目录扫描、manifest/hash/license/
+- `internal/semantic`：文本/图像向量语义、查询绑定、排名和模型 generation，并拥有 inference/index ports；
+- `internal/aimodel`：唯一拥有兼容清单、映射目录扫描、manifest/hash/license/
   architecture 校验、托管发布、直接来源状态与 model generation；
 - `internal/inference`：capability-owned port 的适配实现；候选子目录 `onnx`，不能反向拥有业务规则；
 - `internal/jobs`：复用持久任务生命周期、公平性、取消和恢复，但不拥有语义/人脸状态机；
 - `internal/store/sqlite`：实现上述 capability 定义的 repository；
 - `internal/api`：只做认证、DTO、错误映射和 service 调用；
 - `internal/app`：唯一组合模型、索引、任务和生命周期；
-- `web/src/features/semantic-search`、`web/src/features/people`：各自消费已冻结合同；人工标签仍由
-  既有 `curation` feature 拥有。
+- `web/src/features/semantic-search` 消费已冻结合同；人工标签仍由既有 `curation` feature 拥有。
 
-禁止：handler 直接读 SQLite/媒体/模型；semantic 与 face 相互导入私有实现；为 AI 新建独立
-worker 服务；把任意本地路径或模型下载地址暴露给 API；让 inference adapter 自行下载或寻找模型。
+禁止：handler 直接读 SQLite/媒体/模型；为 AI 新建独立 worker 服务；把任意本地路径或模型下载
+地址暴露给 API；让 inference adapter 自行下载、寻找或激活模型。
 
 ## 推理与模型生命周期
 
@@ -99,6 +99,10 @@ content hash 和 model generation；每次启动/加载前重新校验。源缺�
 容器；若使用归档，解析器必须限制总展开大小、文件数、压缩比和路径深度，拒绝绝对路径、`..`、
 symlink/hardlink、device、重复文件名和附带可执行内容，并在隔离临时目录完成验证。签名算法、密钥轮换、
 撤回清单、离线清单分发和过期策略同样必须由 S0/S1 冻结，不能只写“已签名”而没有可执行合同。
+首个发布切片不支持 ONNX external-data：模型包可以包含 image/text graph、tokenizer 和声明文件等多个
+独立清单文件，但每个 ONNX graph 必须内嵌全部 initializer。发行流水线负责解析并拒绝任何
+external-data 引用，运行时只接受签名 allowlist 中固定 size/hash 的已审核 graph；runtime 自身的路径
+检查只作纵深防御。若未来确需外置 tensor，必须以新的安全/格式决策重新打开，不能顺带放宽。
 
 ### 获取与激活状态机
 
@@ -278,6 +282,9 @@ library/asset/kind/model generation/source fingerprint；模型任务幂等键�
   内网镜像必须由明确配置和威胁模型冻结，不能由请求参数绕过，防止 SSRF/凭据泄露。
 - 模型代码、运行时、向量引擎与权重分别审查许可证；代码许可不代表权重可再分发。
 - ONNX 等模型文件视为不可信输入，只装载内建 allowlist/hash；解析崩溃与 OOM 是发布阻断风险。
+- native runtime 的最终镜像必须显式保留 ELF SONAME 闭包、包元数据、许可证/notices 和独立 SBOM
+  component；不得把“builder 可链接”当作 final-stage 可加载证明。若最小闭包仍有 Critical/High，只有
+  修复基座或安全 owner 审批的 VEX/可达性结论可以处置，发行脚本不得仅按发行版 `no-dsa` 自动忽略。
 - 人物删除、人脸数据清除、库移除、备份/恢复和模型升级必须有真实集成测试。
 
 ## 部署影响
@@ -295,7 +302,8 @@ library/asset/kind/model generation/source fingerprint；模型任务幂等键�
 
 - 单元：向量规范化/排序、cursor 绑定、阈值、人工约束、合并事务、generation 和错误映射；
 - 集成：SQLite migration/FK/cascade、任务重启/取消、索引损坏重建、模型缺失、源变化、offline；
-- 安全：路径越界、恶意模型、畸形图片、OOM/超时、CSRF、API 脱敏、AI 数据清除和原媒体 hash 不变；
+- 安全：路径越界、external-data 拒绝、恶意模型、畸形图片、OOM/超时、CSRF、API
+  脱敏、AI 数据清除和原媒体 hash 不变；
 - 获取：下载取消/续传/重定向/来源变化/错哈希/磁盘满；`/models:ro` symlink/嵌套 mount/可写/
   源消失/替换；托管复制和直接使用在重启、升级、备份恢复后的失败关闭；
 - 质量：授权的项目代表性套图评测集，人物身份按 ground truth 分组；结果只提交汇总和 fixture 生成说明；

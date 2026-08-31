@@ -10,13 +10,60 @@ import (
 	"image/color"
 	"image/gif"
 	"image/jpeg"
+	"image/png"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/semantic"
 	"github.com/davidbyttow/govips/v2/vips"
 )
+
+func TestPrepareSemanticImageDropsAlphaBeforeResizeAndUsesCHW(t *testing.T) {
+	t.Cleanup(func() { vips.AssertNoLeaks(t) })
+	source := image.NewNRGBA(image.Rect(0, 0, semantic.SigLIPImageWidth, semantic.SigLIPImageHeight))
+	for offset := 0; offset < len(source.Pix); offset += 4 {
+		source.Pix[offset] = 255
+		source.Pix[offset+1] = 128
+		source.Pix[offset+2] = 0
+		source.Pix[offset+3] = 0
+	}
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, source); err != nil {
+		t.Fatal(err)
+	}
+	tensor, err := New().PrepareSemanticImage(context.Background(), bytes.NewReader(encoded.Bytes()), media.FormatPNG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tensor) != semantic.SigLIPImageValues || tensor[0] != 1 ||
+		tensor[semantic.SigLIPImagePixels] <= 0 || tensor[2*semantic.SigLIPImagePixels] != -1 {
+		t.Fatalf("unexpected tensor channels: len=%d rgb=%v", len(tensor), []float32{
+			tensor[0], tensor[semantic.SigLIPImagePixels], tensor[2*semantic.SigLIPImagePixels],
+		})
+	}
+}
+
+func TestPrepareSemanticImageResizesBothAxesAndFailsClosed(t *testing.T) {
+	t.Cleanup(func() { vips.AssertNoLeaks(t) })
+	var encoded bytes.Buffer
+	if err := jpeg.Encode(&encoded, syntheticImage(640, 240), nil); err != nil {
+		t.Fatal(err)
+	}
+	tensor, err := New().PrepareSemanticImage(context.Background(), bytes.NewReader(encoded.Bytes()), media.FormatJPEG)
+	if err != nil || len(tensor) != semantic.SigLIPImageValues {
+		t.Fatalf("tensor len=%d error=%v", len(tensor), err)
+	}
+	if _, err := New().PrepareSemanticImage(context.Background(), bytes.NewReader(encoded.Bytes()), media.FormatPNG); !errors.Is(err, semantic.ErrInvalidImageInput) {
+		t.Fatalf("format mismatch error = %v", err)
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := New().PrepareSemanticImage(cancelled, bytes.NewReader(encoded.Bytes()), media.FormatJPEG); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled error = %v", err)
+	}
+}
 
 func TestMain(main *testing.M) {
 	runtime := NewRuntime()

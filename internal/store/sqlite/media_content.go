@@ -19,7 +19,7 @@ func (s *Store) GetContentAsset(
 	var asset media.ContentAsset
 	var format, fingerprint, libraryStatus string
 	err := s.db.QueryRowContext(ctx, `
-        SELECT a.id, l.root_rel_path, a.relative_path, a.media_format,
+		SELECT a.id, a.library_id, l.root_rel_path, a.relative_path, a.media_format,
                a.mime_type, a.size_bytes, a.mtime_ns, a.source_fingerprint,
                l.status
         FROM assets a
@@ -27,7 +27,7 @@ func (s *Store) GetContentAsset(
         WHERE a.id = ?`,
 		assetID,
 	).Scan(
-		&asset.ID, &asset.LibraryRoot, &asset.RelativePath, &format,
+		&asset.ID, &asset.LibraryID, &asset.LibraryRoot, &asset.RelativePath, &format,
 		&asset.MIMEType, &asset.SizeBytes, &asset.ModifiedAtNS, &fingerprint,
 		&libraryStatus,
 	)

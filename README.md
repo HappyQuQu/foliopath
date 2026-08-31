@@ -145,6 +145,14 @@ anyone who does not want an application to take ownership of original files.
 **Not a fit:** photo backup and phone sync, multi-user albums, AI face recognition, image editing,
 or video transcoding.
 
+### Planned, not yet available
+
+`POST-MVP-5 revision 1` has frozen a local, opt-in image semantic-search design. It will use only
+reviewed offline model packages supplied through a read-only `/models` mount; it does not promise
+online model downloads, cloud inference, automatic person/character naming, AI tags, video semantic
+search, or face grouping in that revision. See the
+[frozen scope](docs/releases/POST-MVP-5-scope.md) for its implementation and release gates.
+
 ## 📖 More Documentation
 
 - [2026-08-13 implemented update notes](docs/releases/2026-08-13-integrated-update-notes.md)

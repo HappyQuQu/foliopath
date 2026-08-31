@@ -294,3 +294,90 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
 - 管理员初始化竞态、未认证访问、登录限流、会话过期/撤销、退出、CSRF 和反向代理配置。
 - root runtime、单一只读媒体根挂载、无 mount capability、真实 tmpfs 磁盘已满和数据库恢复的
   Docker 集成测试；非 Linux 结果不能代替 Linux mount-boundary 证据。
+
+## POST-MVP-5 revision 1 AI 安全边界
+
+- revision 1 不联网下载模型、不上传媒体或查询；容器不新增出站网络要求。API 拒绝 URL、绝对路径、
+  相对路径和任意模型名，只接受服务端扫描产生且绑定 scan revision 的 opaque candidate ID。
+- `/models` 是可选独立只读来源，不能位于 `/library` 下。扫描和直接读取必须经 `internal/files` 的
+  专用 anchored boundary，拒绝 symlink、hardlink、特殊文件、后代 mount、可写来源、目录层级逃逸、
+  文件替换竞态和非 allowlist 文件；不得执行包内代码、脚本、动态库或 ONNX external-data。
+- managed copy 先做空间安全余量检查，在 `/app/data/models` 同文件系统 staging 中逐文件验证固定大小
+  与 SHA-256，再 no-replace 原子发布并 fsync parent。验证失败、取消、盘满或重启不能改变 active pointer。
+- direct 模型每次进程启动、session load 和显式刷新前重验来源身份、只读状态与 hash；变化后标记
+  unavailable，不自动选择别的包。已有派生数据可保留，但依赖文本 encoder 的查询失败关闭。
+- 查询原文属于敏感临时输入：不写请求日志、系统事件、任务、metrics 标签、trace、诊断包或 cursor；
+  只允许内存中有界处理。embedding 和 query fingerprint 不通过 API 返回。
+- 日志仅允许 opaque library/model/generation/operation/request ID、稳定阶段、计数、耗时与稳定错误码；
+  不记录媒体路径、模型文件名、容器/宿主路径、tokenizer 内容、runtime 原错、向量或相似查询样本。
+- activation runtime 只接收来源 owner 已打开的 Linux 文件句柄和 `/proc/self/fd/<fd>` 临时引用；不接收
+  `/models`、`/app/data/models` 或宿主路径，不把完整 ONNX 图复制进 Go heap 或二次临时包。句柄在
+  session load 完成前保持打开，非 Linux 生产边界失败关闭。
+- ORT adapter 只在显式 `onnxruntime` build tag 下启用并要求精确 1.28.0；默认构建返回稳定 unavailable。
+  adapter 不读取或传播 ORT 原始错误消息，只保留稳定操作名与数值错误码。`CreateSession` 不能由 ORT
+  1.28 C API 中断，因此取消只在 native load 前后生效；不得用泄漏 native session 的孤儿 goroutine
+  伪造 hard timeout。若硬超时成为发布要求，必须先用 ADR 接受进程隔离及其生命周期边界。
+- 管理模型、开关、重建、取消与清除均要求管理员 session、CSRF、请求体上限、操作限流、幂等键和
+  revision/ETag 并发控制；强 `If-Match` 只接受服务端签发的 canonical positive-decimal revision，
+  不把 `r01`、`r+1` 等文本别名解释为同一 validator。语义查询按验证后客户端地址独立限制为每分钟 30 次，不与目录浏览或文件名
+  搜索共享 operation key；进程内 interactive admission 容量为 1，已占用时立即返回 `semantic_busy`，
+  不在 native inference/session 前累计等待请求。
+- AI/semantic mutation JSON 只允许一个严格 value 且硬上限为 4 KiB；decoder 必须观察第 4,097 个字节，
+  不能把 `LimitReader` 截断造成的 EOF 当成合法结束，也不能用超长尾随空白绕过 admission；
+  `Content-Type` 按媒体类型解析，接受 `application/json` 的合法参数但拒绝其他或畸形媒体类型。
+- AI operation 的 Get/create/transition repository 返回值必须由状态机 owner 校验 state、phase、
+  finished time 和稳定 error code 的合法组合，并绑定请求的 operation identity、owner 与单步 revision；
+  不一致状态或另一条合法 operation 均不得进入 worker/API，外部只返回脱敏内部错误。
+- 安装/激活 admission 即使不经过 OperationService，也必须在 ManagementService 出口校验 operation
+  kind、激活 model 绑定、Created/Replayed 语义及新建 queued/revision-1 状态，才可生成 Location/ETag。
+- install/activation admission 必须在 worker wake 前验证 queue 返回的 idempotency/request、
+  candidate/source 或 model/availability owner 及 operation；失败不得发出 wake signal。
+- 固定窗口 limiter 遇到 wall-clock 回拨时必须保留已消耗额度并把未来 bucket 起点重基准到当前时间；
+  不因回拨恢复登录或 semantic 配额，`Retry-After` 不越过窗口，4,096 bucket 满载也须在一个窗口后恢复。
+- semantic cursor 必须在 snapshot 或解码前满足 8～2,048 bytes；搜索 HTTP request-target 的 raw query
+  在 `url.ParseQuery` 前受 16 KiB 硬上限约束。repository page 必须有界、有限、唯一、有序且属于当前
+  snapshot/scope；catalog hydration 还须逐项匹配 asset/library ID 并保持 online，否则按损坏、stale 或
+  not-ready 失败关闭，不能利用畸形 token、异常 adapter 或 ID 复用放大资源或返回跨库资产。
+- 所有共享 cursor 只接受 canonical Raw URL Base64；解码后重编码必须与输入逐字节相同，禁止利用末尾
+  未使用 bit 为同一 AEAD bytes 制造多个 token 表示。semantic snapshot 的 generation、coverage、成员与
+  排除集合也必须由 capability owner 复核，多库 coverage 聚合必须拒绝整数溢出；内部损坏不得映射成
+  客户端输入错误或返回回绕计数。
+- transport 日志只记录 method、status、request ID 与 duration，不记录 URL/query string；即使 tokenizer、
+  encoder 或 vector adapter 返回包含查询正文的内部错误，public error 与结构化日志仍必须由 HTTP owner
+  收敛为稳定代码，禁止透传 runtime message。
+- semantic canonical owner 在 native tokenizer 前以大小写不敏感方式拒绝 literal `</s>` 和 `<unk>`；
+  禁止用户查询注入注册 control token，拒绝结果统一映射为不回显原文的 `invalid_request`。
+- 清除只覆盖所选库可重建语义状态；原媒体、收藏、人工标签和全局模型不在删除端口能力内。安全测试
+  必须比较操作前后 synthetic `/library` sentinel 的路径、mtime 和 SHA-256。
+- runtime/权重在 Release Gate 前必须有双架构 SBOM、许可证/再分发、notices、provenance、漏洞与 VEX
+  签署。签名发行 catalog 与在线镜像不是 revision 1 安全边界，未来增加时必须重新评审。
+
+人脸和人物数据不在 revision 1，因此本 migration/API 不得创建或暴露 biometric 表、裁剪、endpoint
+或诊断字段。未来 Slice E 必须先通过独立隐私 Gate。
+
+## POST-MVP-5 revision 2 C+D+E 安全与隐私合同
+
+Revision 2 已把 C/D/E 纳入冻结范围；上一段只描述 revision 1 历史边界。`INT-S1R2` 通过前仅允许
+OpenAPI/data 合同，E 的 production migration、handler、worker 与 `internal/face` 仍失败关闭。S2C 开始
+还要求 `INT-015` 隐私 owner 与合法数据 intake 签署，不因 S1 合同完成而自动放行。
+
+- C 的词表只引用管理员现有 tag ID；模型不能写自由文本。接受 suggestion 必须原子复核 generation、
+  vocabulary、source fingerprint、suggestion revision 和 curation revision。dismiss/accepted 是应用状态，
+  不作训练输入；普通 disable/derived clear 不删除它。
+- D 只读消费 thumbnail/media owner 发布的完整 active storyboard，不接受 API 路径或直接调用 FFmpeg。
+  query 正文仍不得写日志/cursor；返回只含 asset ID、有限 score 和命中帧 ordinal/timestamp/plan size。
+- E 默认关闭且按库明确告知。embedding、observation、crop cache、anonymous cluster 归为高敏感可重建
+  数据；person name、manual assignment/exclusion/cannot-link/audit 归为不可重建应用状态。SQLite、API、日志、
+  诊断和支持包均不得包含 embedding、crop bytes/path、精确 bbox、原始模型错误或推测身份属性。
+- face runtime 只能产生匿名 core/edge，不能创建姓名或自动合并 named person。只有合法真实 ground truth
+  证明 core precision ≥99.5% 时才开放整组操作，否则强制逐脸或小组确认；edge 永远逐项确认。
+- manual constraint 在换代/重聚类前优先应用；cannot-link 冲突、stale revision、ambiguous lineage 均失败
+  关闭。人物 merge 全事务，不能自动或部分合并；undo 仅允许最近且未被后续 revision 修改的事件。
+- derived clear 与 manual relationship clear 是两个权限相同但危险度不同的操作；后者必须显示范围与影响
+  计数、精确二次确认、CSRF、If-Match 和 idempotency。两者均不得触碰 `/library`。
+- E 的 fixture intake 必须记录来源、授权、purpose、最小保留期、访问 owner 和删除证明；真实 biometric
+  ground truth 不进入 git、普通 CI artifact、日志或公共对象存储。访问与导出失败关闭并有审计。
+
+所有 C/D/E transport 使用独立固定窗口 bucket，并共享有界总 bucket；后台 admission 低于浏览任务且全局
+有界。原模型/runtime、双架构最终镜像必须具备审核 hash/license、SBOM、VEX、notices、provenance 和安全
+签署；缺签、漏洞无处置或来源失效时能力 unavailable，保留最后可靠派生状态与人工应用状态。

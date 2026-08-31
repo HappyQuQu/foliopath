@@ -190,13 +190,17 @@ RC Gate。它不改变单容器架构，也不把任务中心、系统维护或 
   OpenAPI、migration 或生产代码。
 - SVG、HEIC/HEIF、AVIF、RAW 等扩展格式、视频转码和更丰富 EXIF。
 - [FTR-CUR-001 收藏与手动标签](features/favorites-and-tags.md)已进入 `POST-MVP-4` revision 1；
-  CUR-S3 Consumer UI Ready 已 Go，CUR-S4 因 Docker E2E 与既有依赖 advisory 为 Conditional Go。评分、历史、时间线、
-  地图与重复检测仍未排期。
+  CUR-S3 Consumer UI Ready 已 Go；Docker E2E 与依赖 advisory 已于 2026-08-28 解除，CUR-S4 仍因目标
+  浏览器/真实触摸人工签署缺失而为 Conditional Go。评分、历史、时间线、地图与重复检测仍未排期。
 - 分享链接、多用户和细粒度授权。
-- [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)已形成 `POST-MVP-5`
-  提案：图片语义搜索 → 受控 AI 标签建议/视频代表帧搜索 → 人脸匿名聚类与用户人物库。OCR、
-  自动姓名/角色识别和云推理不在范围。当前 [INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md)
-  为 No-Go，只允许模型许可、双架构、100k 向量与人脸聚类 spike；scope 冻结前不改生产合同或代码。
+- [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)已冻结
+  [`POST-MVP-5` revision 2](releases/POST-MVP-5-scope-r2.md)：纳入 A 模型基础、B 图片语义搜索、C 受控
+  标签建议、D 视频代表帧搜索与 E 匿名人脸聚类/人物库。OCR、自动姓名/角色识别和云推理继续是非目标。
+  [INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md) 与
+  [INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md) 对 A+B 为 Go；
+  [INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md) 已复审为 No-Go，不授权生产 UI。
+  C/D/E 当前只授权 S1R2 合同工作；真实质量、隐私、native amd64、完整进程和最终供应链仍由各自
+  Backend/Release Gate 持有。
 - 上传、备份、文件整理或任何写入原媒体的能力。
 - 多实例、外部数据库、独立 worker 或分布式队列。
 

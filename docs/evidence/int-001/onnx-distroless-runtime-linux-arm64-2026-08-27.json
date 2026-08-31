@@ -1,0 +1,188 @@
+{
+  "status": "native Linux/arm64 ABI and restricted-runtime subproof passed; release security and INT-008 remain open",
+  "scope": "isolated spike image only; production image and dependency graph unchanged",
+  "runtime": {
+    "name": "onnxruntime",
+    "version": "1.28.0",
+    "archive_sha256": "e15ff8b5d85afe6c144d97c6fd432254bf76a219daaf17658087d6ecb3e8f0bb",
+    "git_commit": "da9b5e364c465de65c49d91e696cd6485270757f"
+  },
+  "initial_abi_failure": {
+    "observed": true,
+    "exit_code": 127,
+    "cause": "libonnxruntime.so.1 ELF SONAME link absent from the final image",
+    "resolution": "copy the archive-provided libonnxruntime.so.1 symlink alongside libonnxruntime.so.1.28.0"
+  },
+  "restricted_environment": {
+    "platform": "native Linux/arm64 container",
+    "cpus": 4,
+    "memory_bytes": 4294967296,
+    "pids_limit": 64,
+    "network": "none",
+    "rootfs": "read-only",
+    "capabilities": "all dropped",
+    "no_new_privileges": true,
+    "uid_gid": "65532:65532",
+    "fixtures_read_only": true
+  },
+  "cc_runtime": {
+    "base_index_digest": "sha256:a77defd6fedbb3392b175ba8ea3d1c22be963c1597c248c3ba987ddd80bfb512",
+    "base_arm64_manifest_digest": "sha256:b5c859c8f9538074fa248ea12aad3552d29fb437d2b546ea65504b4af125e59f",
+    "image_manifest_list_digest": "sha256:6fed58ce5c886ed493e933fa15976d57423c02354fa6cb7609769baa6344ef24",
+    "image_size_bytes": 28315519,
+    "run": {
+      "cycles": 100,
+      "passed": true,
+      "all_cancellations_reported_error": true,
+      "all_recovery_inferences_finite": true,
+      "cancel_p50_milliseconds": 6.29,
+      "cancel_p95_milliseconds": 6.572,
+      "rss_after_warmup_kib": 465376,
+      "rss_after_cycles_kib": 482644,
+      "rss_growth_kib": 17268,
+      "raw_runtime_message_mentioned_model_path": true,
+      "raw_runtime_message_exposed_by_harness": false
+    },
+    "scan": {
+      "scanner": "grype 0.116.1",
+      "database_schema": "v6.1.9",
+      "database_built": "2026-08-26T06:18:26Z",
+      "matches": 25,
+      "severity_counts": {
+        "Critical": 1,
+        "High": 9,
+        "Medium": 4,
+        "Low": 1,
+        "Negligible": 7,
+        "Unknown": 3
+      },
+      "json_report_sha256": "0948c58126fa4fd264ea9aa060e5572b8e6d31e9c07327d8ba813ed73251133d",
+      "cyclonedx_report_sha256": "f2b0f24bb49cb0335622fb6f40724c73ee779a6f42cf9b0f6e72fe79a1a65b36",
+      "cyclonedx_components": 1284,
+      "onnxruntime_package_component_detected": false
+    }
+  },
+  "nossl_runtime": {
+    "base_index_digest": "sha256:5cab74e7f8a5e7c5f1c8a9e6268b1f352f053c36c656f493308340bcecbc636c",
+    "base_arm64_manifest_digest": "sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d",
+    "image_manifest_list_digest": "sha256:3db1780cfa1a33811e83cbbeb60ca2dd3a5558f66733343221b62e1eb320aca0",
+    "image_size_bytes": 25803506,
+    "copied_debian_packages": [
+      "gcc-14-base",
+      "libgcc-s1",
+      "libgomp1",
+      "libstdc++6",
+      "zlib1g"
+    ],
+    "openssl_copied": false,
+    "run": {
+      "cycles": 100,
+      "passed": true,
+      "all_cancellations_reported_error": true,
+      "all_recovery_inferences_finite": true,
+      "cancel_p50_milliseconds": 6.272,
+      "cancel_p95_milliseconds": 6.59,
+      "rss_after_warmup_kib": 480240,
+      "rss_after_cycles_kib": 497624,
+      "rss_growth_kib": 17384,
+      "raw_runtime_message_mentioned_model_path": true,
+      "raw_runtime_message_exposed_by_harness": false
+    },
+    "scan": {
+      "scanner": "grype 0.116.1",
+      "database_schema": "v6.1.9",
+      "database_built": "2026-08-26T06:18:26Z",
+      "matches": 15,
+      "severity_counts": {
+        "Critical": 1,
+        "High": 2,
+        "Medium": 3,
+        "Low": 1,
+        "Negligible": 7,
+        "Unknown": 1
+      },
+      "critical_high": [
+        {
+          "id": "CVE-2026-5450",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "scanner_severity": "Critical",
+          "scanner_fix_state": "wont-fix",
+          "debian_status": "vulnerable; trixie no-dsa minor issue"
+        },
+        {
+          "id": "CVE-2026-5435",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "scanner_severity": "High",
+          "scanner_fix_state": "wont-fix",
+          "debian_status": "vulnerable; trixie no-dsa minor issue"
+        },
+        {
+          "id": "CVE-2026-5928",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "scanner_severity": "High",
+          "scanner_fix_state": "wont-fix",
+          "debian_status": "vulnerable; trixie no-dsa minor issue"
+        }
+      ],
+      "json_report_sha256": "7c783f3ee446e694abce57bb142bacd5104f5231349efff0d5442f400bfebc92",
+      "cyclonedx_report_sha256": "ac9d88bf424422e1b6661fe6e4961e1346087cc671dcaa8a442ec3dbdb00ae94",
+      "cyclonedx_components": 1264,
+      "onnxruntime_package_component_detected": false
+    }
+  },
+  "preliminary_reachability": {
+    "tool": "Apple objdump dynamic symbol table plus exact-name strings scan",
+    "harness_undefined_symbols": 52,
+    "onnxruntime_undefined_symbols": 386,
+    "affected_direct_imports_found": [],
+    "affected_exact_name_strings_found": [],
+    "affected_symbols_checked": [
+      "scanf family",
+      "ungetwc",
+      "ns_printrrf",
+      "ns_printrr",
+      "fp_nquery"
+    ],
+    "harness_symbols_sha256": "1c13d25330306ea40e0d8060623f50c87620448d48a78a5961c1a244a0602d27",
+    "onnxruntime_symbols_sha256": "096a5df73da0b898fc05010489547fad58b0f5d2a792017978ad724a9f76198b",
+    "vex_decision": "not made",
+    "limitation": "Direct-import absence does not exclude indirect glibc-internal reachability, runtime lookup or future production composition."
+  },
+  "supplemental_onnxruntime_component": {
+    "path": "spikes/int001-ort-capi/onnxruntime-component.cdx.json",
+    "format": "CycloneDX JSON",
+    "spec_version": "1.6",
+    "sha256": "72d6ef2c0983991a85a8f80827ad2d03b0d08310539c82420e6d3a692ef40673",
+    "official_schema_sha256": "18f57f7482593bad9f21b4feed09084640cbeff419d62ad5090c5ceccca5b37d",
+    "schema_validation": "passed with ajv-cli 5.0.0 against the official CycloneDX 1.6 JSON Schema and its official JSF/SPDX references; ajv format plugins were not enabled",
+    "identity_fields": [
+      "runtime version and linux/arm64 purl",
+      "libonnxruntime.so.1.28.0 SHA-256",
+      "official archive URL and SHA-256",
+      "source commit",
+      "MIT license declaration and license-file SHA-256",
+      "third-party-notices SHA-256"
+    ],
+    "composition": "incomplete",
+    "limitation": "This explicit component corrects the arm64 spike inventory gap only. It has not been merged into a final-image SBOM, generated for amd64, vulnerability-correlated, signed or attached to release provenance."
+  },
+  "security_interpretation": {
+    "release_gate_passed": false,
+    "reason": "unresolved Critical/High findings require a fixed base or reviewed VEX/reachability decision; the explicit arm64 ORT component is not yet merged into a final dual-architecture image SBOM or signed provenance",
+    "debian_tracker_urls": [
+      "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "https://security-tracker.debian.org/tracker/CVE-2026-5435",
+      "https://security-tracker.debian.org/tracker/CVE-2026-5928"
+    ]
+  },
+  "limitations": [
+    "Native Linux/amd64 is not covered.",
+    "The image is an isolated spike and is not the FolioPath production image.",
+    "Production adapter ownership, admission, concurrency and complete application composition are not covered.",
+    "Merged final-image SBOM, amd64 component, signed provenance, security and compliance approval remain open.",
+    "Face-model licensing and real-data quality/privacy gates remain open."
+  ]
+}

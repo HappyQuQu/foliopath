@@ -2,11 +2,14 @@
 
 ## 状态
 
-- 状态：Proposed；尚未批准、未冻结 scope、未授权生产实现
+- 状态：Approved for frozen revision 2（Slice A～E）；A+B S2A No-Go，C/D/E S1 extension pending
 - 变更等级：C3（新用户能力、native 模型运行时、敏感人脸数据、派生向量持久化）
-- 目标版本：`POST-MVP-5` 提案
+- 目标版本：`POST-MVP-5` revision 2 Frozen
 - 日期：2026-08-18；模型获取补充：2026-08-24
 - 分支：`aifeature`
+- Scope：[POST-MVP-5 scope revision 2](../releases/POST-MVP-5-scope-r2.md)
+- 被替代范围：[POST-MVP-5 scope revision 1](../releases/POST-MVP-5-scope.md)
+- 历史草案：[POST-MVP-5 scope manifest proposal draft 1](../releases/POST-MVP-5-scope-proposal.md)
 
 ## 变更事件与负责人
 
@@ -29,6 +32,9 @@
 - 保持目录、原媒体和普通搜索在 AI 不可用时继续工作。
 
 ## 提议范围
+
+以下是最初完整提议。2026-08-27 冻结的 revision 1 只纳入模型基础与图片语义搜索；标签建议、视频
+语义和人脸人物库不在 revision 1，必须分别通过后续 scope revision 才能开工。
 
 - 图片中英文语义搜索；
 - 视频既有故事板代表帧的近似语义搜索；
@@ -72,12 +78,23 @@
 
 风险见 `R-024～R-030`；任务与证据见 [执行清单](../features/intelligent-media-discovery-task-list.md)。
 
-## 批准条件
+## 批准结果
 
-1. 用户复核并接受范围、非目标、资源成本和人脸隐私边界；
-2. INT-001 三个 workstream 有可复现证据；
-3. ADR-0013 接受并明确模型/runtime/vector 引擎；
-4. INT-S0 为 Go，随后新增 `POST-MVP-5` scope manifest；
-5. 若范围包含在线/国内镜像，必须指定真实镜像运营 owner、签名/撤回机制、成本与可用性 Gate；否则
-   scope manifest 只能保留发行源或 `/models:ro`；
-6. 才能进入 OpenAPI、migration 和生产实现。
+1. 产品用户在 2026-08-27 对推荐方案回复“继续”，据此接受 A+B 首版、C/D/E 后续独立切片、实例级
+   人物默认、按库独立开关、派生数据默认清除、`/models:ro` 基线和 16/32 工程周停损。
+2. ADR-0013 只对 A+B 接受 ORT C API、SigLIP 1 float16-internal、SQLite float16 exact 和单进程
+   CPU-only 候选；最终质量、双架构和供应链仍由 S2/Release Gate 持有。
+3. revision 1 不包含在线/国内镜像，因此不需要伪造运营 owner；新增在线源必须创建新 scope revision。
+4. INT-S0 只对 A+B 为 Go并授权 S1 合同设计；生产 OpenAPI/migration/backend 必须等待 S1 接受，UI
+   必须等待 Backend Evidence Ready。
+
+## Revision 2 批准补充（2026-08-29）
+
+1. 产品用户在要求“S2 都完成再汇报”后，对 A～E 是否全部纳入的确认问题明确回复“都纳入”；据此
+   冻结 revision 2，并替代仅 A+B 的 revision 1。
+2. 显式接受 scope-budget exception：S0 后工程上限由 16 周恢复为完整范围最多 32 单人工程周；没有
+   用延后既有 A+B 换预算，也不允许削弱只读、安全、隐私、质量、双架构或供应链 Gate。
+3. A+B 保持当前 S2A No-Go。C/D/E 只获得 S1 extension 合同授权；必须先冻结需求、数据、OpenAPI、
+   安全/隐私、部署、测试和 traceability 并通过独立 Contract Ready，才能开始对应生产后端。
+4. E 的产品纳入不构成隐私/合规批准。合法真实 face ground truth、core precision ≥99.5%、可商业分发
+   模型/runtime 和具名隐私签署缺一时保持 No-Go；不得用合成数据或用户自行下载绕过。

@@ -122,6 +122,7 @@ type Repository interface {
 	RenameTag(context.Context, int64, string, string, time.Time) (Tag, error)
 	DeleteTag(context.Context, int64) error
 	ReplaceAssetTags(context.Context, int64, int64, []int64, time.Time) error
+	AddAssetTag(context.Context, int64, int64, int64, time.Time) error
 	ListTagPage(context.Context, TagListParams) ([]Tag, error)
 	ListCuratedAssetPage(context.Context, AssetListParams) ([]CuratedAsset, error)
 	CountCuratedAssets(context.Context, AssetQuery) (catalog.AssetCounts, error)
@@ -242,6 +243,18 @@ func (service *Service) ReplaceAssetTags(ctx context.Context, assetID, revision 
 		}
 	}
 	if err := service.repository.ReplaceAssetTags(ctx, assetID, revision, ids, service.now().UTC()); err != nil {
+		return AssetState{}, err
+	}
+	return service.GetAssetState(ctx, assetID)
+}
+
+// AddAssetTag is the curation-owned narrow port used by controlled AI
+// suggestion acceptance. It never replaces or removes existing manual tags.
+func (service *Service) AddAssetTag(ctx context.Context, assetID, revision, tagID int64) (AssetState, error) {
+	if assetID < 1 || revision < 1 || tagID < 1 {
+		return AssetState{}, ErrInvalidRequest
+	}
+	if err := service.repository.AddAssetTag(ctx, assetID, revision, tagID, service.now().UTC()); err != nil {
 		return AssetState{}, err
 	}
 	return service.GetAssetState(ctx, assetID)

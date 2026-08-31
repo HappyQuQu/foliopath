@@ -1,0 +1,166 @@
+{
+  "status": "root execution shape proven; broad-query order-first candidate passes isolated ID-selection budget, production search still fails",
+  "date": "2026-08-27",
+  "scope": "production catalog capacity baseline without AI runtime; benchmark-only plan capture",
+  "sourceCommit": "6c2a9b21beff24fc2e7fae44eba01743379e7c9e",
+  "worktreeModified": true,
+  "platform": {
+    "os": "linux",
+    "architecture": "arm64",
+    "cpus": 4,
+    "memoryBytes": 4294967296,
+    "network": "none",
+    "rootfs": "read-only",
+    "runtimeBaseArm64ManifestDigest": "sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d"
+  },
+  "fixture": {
+    "directories": 10000,
+    "assets": 100000,
+    "searchQuery": "asset",
+    "ftsAnchor": "\"asset\"",
+    "sort": "name-ascending",
+    "pageSize": 100,
+    "samplesPerMeasurement": 20
+  },
+  "diagnosticBinary": {
+    "goBuild": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c ./tests/performance",
+    "sha256": "294cd8250a130819325b3c0265f16494f18055fc907c97b5bd6818477f3b025c"
+  },
+  "orderFirstDiagnosticBinary": {
+    "goBuild": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c ./tests/performance",
+    "sha256": "374fa4380f6a9bac3b58f76c3145a1adea02c04edf617b88af8850eed2f494c0",
+    "priorExtendedBinarySha256": "8b55d647cc38d98992e31c3bc327162e4c7ff2393cbcf46ad97c2da0fca8ed06"
+  },
+  "queryPlans": {
+    "count": [
+      "SCAN asset_search VIRTUAL TABLE INDEX 0:M2",
+      "SEARCH a USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    "listFirstPage": [
+      "SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+      "SCAN asset_search VIRTUAL TABLE INDEX 0:M2",
+      "SEARCH a USING INTEGER PRIMARY KEY (rowid=?)",
+      "SEARCH t USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "SEARCH storyboard USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "CORRELATED SCALAR SUBQUERY 1",
+      "SEARCH favorite USING INTEGER PRIMARY KEY (rowid=?)",
+      "USE TEMP B-TREE FOR ORDER BY"
+    ],
+    "listSecondPage": [
+      "SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+      "SCAN asset_search VIRTUAL TABLE INDEX 0:M2",
+      "SEARCH a USING INTEGER PRIMARY KEY (rowid=?)",
+      "SEARCH t USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "SEARCH storyboard USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+      "CORRELATED SCALAR SUBQUERY 1",
+      "SEARCH favorite USING INTEGER PRIMARY KEY (rowid=?)",
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  },
+  "latencyP95Microseconds": {
+    "serviceFirstPage": 409111,
+    "serviceSecondPage": 443540,
+    "serviceFirstThenSecond": 847735,
+    "repositoryCount": 61370,
+    "repositoryListFirstPage": 348923,
+    "repositoryListSecondPage": 377920
+  },
+  "otherMetrics": {
+    "fixtureDurationMilliseconds": 325,
+    "scanDurationMilliseconds": 63868,
+    "ftsSearchP95Microseconds": 18466,
+    "shortSearchP95Microseconds": 36219,
+    "globalSearchP95Microseconds": 18654,
+    "storyboardBrowseP95Microseconds": 38712,
+    "peakRssBytes": 48070656,
+    "databaseAndWalSizeBytes": 172216320
+  },
+  "budget": {
+    "profile": "s4-search-v1",
+    "searchKeysetP95MicrosecondsMaximum": 250000,
+    "changed": false,
+    "violations": [
+      "searchKeysetP95Us > 250000"
+    ]
+  },
+  "orderFirstExperiment": {
+    "scope": "benchmark-only broad-query ID selection; production repository and service unchanged",
+    "sameRunProductionP95Microseconds": {
+      "count": 60867,
+      "listFirstPage": 353682,
+      "listSecondPage": 380495,
+      "serviceFirstPage": 416047,
+      "serviceSecondPage": 439289,
+      "serviceFirstThenSecond": 849441
+    },
+    "candidateP95Microseconds": {
+      "idSelectionFirstPage": 16843,
+      "idSelectionSecondPage": 16037,
+      "fullHydrationFirstPage": 16988,
+      "sparseIdSelectionFirstPage": 53767,
+      "activeCancellation": 2332
+    },
+    "twoExtendedRunWorstP95Microseconds": {
+      "idSelectionFirstPage": 33990,
+      "idSelectionSecondPage": 32451,
+      "fullHydrationFirstPage": 33668,
+      "sparseIdSelectionFirstPage": 110061,
+      "activeCancellation": 2332
+    },
+    "resultEquality": {
+      "firstPageComparedIDs": 101,
+      "secondPageComparedIDs": 101,
+      "hydratedFirstPageComparedIDs": 101,
+      "sparseFirstPageComparedIDs": 101,
+      "orderedIDsEqual": true,
+      "hydratedOrderedIDsEqual": true,
+      "sparseOrderedIDsEqual": true
+    },
+    "queryPlans": {
+      "firstPage": [
+        "SEARCH a USING INDEX assets_browse_folder_name_v2 (library_id=?)",
+        "SCAN asset_search EXISTS VIRTUAL TABLE INDEX 0:=M2"
+      ],
+      "secondPage": [
+        "SEARCH a USING INDEX assets_browse_folder_name_v2 (library_id=?)",
+        "SCAN asset_search EXISTS VIRTUAL TABLE INDEX 0:=M2"
+      ],
+      "hydratedFirstPage": [
+        "SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH a USING INDEX assets_browse_folder_name_v2 (library_id=?)",
+        "SEARCH t USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+        "SCAN asset_search EXISTS VIRTUAL TABLE INDEX 0:=M2",
+        "SEARCH storyboard USING INDEX sqlite_autoindex_thumbnails_1 (asset_id=? AND variant=?) LEFT-JOIN",
+        "CORRELATED SCALAR SUBQUERY 1",
+        "SEARCH favorite USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "sparseFirstPage": [
+        "SEARCH a USING INDEX assets_browse_folder_name_v2 (library_id=?)",
+        "SCAN asset_search EXISTS VIRTUAL TABLE INDEX 0:=M2"
+      ]
+    },
+    "temporaryOrderBTreePresent": false,
+    "candidateSelectedForProduction": false,
+    "limitations": [
+      "Only name-ascending library scope was measured; filtered/global/modified/size/descending sort paths remain untested.",
+      "Only one broad and one sparse synthetic term were measured, so a count-driven hybrid threshold is not selected.",
+      "The existing service/repository contract does not pass the completed count as a list-planning hint.",
+      "Production SQL, schema, API and the 250 ms threshold remain unchanged."
+    ]
+  },
+  "interpretation": {
+    "ftsCandidateScanProven": true,
+    "temporaryOrderBTreeProven": true,
+    "browseExpressionIndexProducesSearchOrder": false,
+    "secondPageChangesExecutionShape": false,
+    "ordinaryAdditionalIndexAloneIsSufficient": false,
+    "productionFixSelected": false,
+    "broadOrderFirstCandidateRetained": true,
+    "nextIsolatedComparisons": [
+      "index-ordered FTS membership query",
+      "bounded or materialized candidate strategy",
+      "count revision cache or first-page-only count semantics"
+    ]
+  },
+  "comparisonLimitation": "Absolute latency is not compared with the earlier run because the diagnostic binary and runtime harness differ; query-plan shape is the authoritative result."
+}

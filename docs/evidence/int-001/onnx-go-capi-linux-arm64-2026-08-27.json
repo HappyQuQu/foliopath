@@ -1,0 +1,69 @@
+{
+  "status": "isolated native Linux/arm64 Go/C API subproof passed; INT-008 remains open",
+  "official_runtime_package": {
+    "source": "https://github.com/microsoft/onnxruntime/releases/download/v1.28.0/onnxruntime-linux-aarch64-1.28.0.tgz",
+    "archive_bytes": 8116278,
+    "archive_sha256": "e15ff8b5d85afe6c144d97c6fd432254bf76a219daaf17658087d6ecb3e8f0bb",
+    "git_commit": "da9b5e364c465de65c49d91e696cd6485270757f",
+    "version": "1.28.0",
+    "libonnxruntime_sha256": "f1ec1a08eb99bd6e5401340f0a2b101381bf4694415480291dc13bcaa30f9ec7",
+    "c_api_header_sha256": "b69a133143c0da61782b2b02cc8a620d21ac139231fd211719776d10385135c1",
+    "license_sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "third_party_notices_sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+  },
+  "environment": {
+    "platform": "native Linux/arm64 container",
+    "go": "go1.26.5",
+    "onnxruntime": "1.28.0",
+    "container_cpus": 4,
+    "container_memory_bytes": 4294967296,
+    "container_network": "none",
+    "container_rootfs": "read-only",
+    "cpu_mem_arena": false
+  },
+  "normal_build": {
+    "cycles": 100,
+    "control_inference_finite": true,
+    "invalid_graph_rejected": true,
+    "invalid_graph_error_code": 1,
+    "runtime_raw_message_mentioned_model_path": true,
+    "raw_runtime_message_exposed_by_harness": false,
+    "cancellations_reporting_error": 100,
+    "recoveries_with_finite_output": 100,
+    "cancel_error_code": 1,
+    "cancel_p50_milliseconds": 6.263,
+    "cancel_p95_milliseconds": 6.56,
+    "rss_after_warmup_kib": 472784,
+    "rss_after_cycles_kib": 490188,
+    "rss_growth_kib": 17404,
+    "max_rss_growth_kib": 131072,
+    "passed": true
+  },
+  "race_build": {
+    "cycles": 30,
+    "go_race_reported": false,
+    "cancellations_reporting_error": 30,
+    "recoveries_with_finite_output": 30,
+    "cancel_p95_milliseconds": 6.691,
+    "rss_growth_kib": 80364,
+    "max_rss_growth_kib": 131072,
+    "passed": true
+  },
+  "observed_dynamic_dependencies": [
+    "libonnxruntime.so.1",
+    "libc.so.6",
+    "libdl.so.2",
+    "librt.so.1",
+    "libpthread.so.0",
+    "libstdc++.so.6",
+    "libm.so.6",
+    "libgcc_s.so.1",
+    "ld-linux-aarch64.so.1"
+  ],
+  "limitations": [
+    "The harness is an isolated nested module and is not wired into the production process.",
+    "Native Linux/amd64, final image ABI/linkage, distroless loading and vulnerability scanning remain open.",
+    "The production capability must own context cancellation, concurrency admission and stable error mapping.",
+    "The runtime raw error contained a model path; production code must never expose that message."
+  ]
+}

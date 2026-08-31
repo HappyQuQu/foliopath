@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-smoke-v1",
+  "purpose": "manifest validation only; not a quality dataset",
+  "legal_basis": "synthetic",
+  "license": {
+    "id": "CC0-1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "redistributable": true,
+  "items": [
+    {
+      "id": "synthetic-image-001",
+      "relative_path": "images/person-stage-001.png",
+      "media_type": "image",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "queries": {
+        "zh-CN": ["舞台上的人物"],
+        "en": ["person on a stage"]
+      },
+      "identity_id": "synthetic-person-a"
+    }
+  ]
+}

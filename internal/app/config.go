@@ -13,6 +13,7 @@ import (
 const (
 	allowedMediaRoot     = "/library"
 	persistentDataRoot   = "/app/data"
+	allowedModelRoot     = "/models"
 	defaultListen        = "127.0.0.1:8080"
 	listenEnvironment    = "FOLIOPATH_LISTEN"
 	proxiesEnvironment   = "FOLIOPATH_TRUSTED_PROXIES"
@@ -26,6 +27,7 @@ type configuration struct {
 	listenAddress  string
 	mediaRoot      string
 	dataRoot       string
+	modelRoot      string
 	trustedProxies string
 	requireProxy   bool
 }
@@ -62,6 +64,7 @@ func loadConfiguration(input Input) (configuration, error) {
 		listenAddress:  listen,
 		mediaRoot:      allowedMediaRoot,
 		dataRoot:       persistentDataRoot,
+		modelRoot:      allowedModelRoot,
 		trustedProxies: trustedProxies,
 		requireProxy:   requireProxy,
 	}, nil
