@@ -1,7 +1,7 @@
 # POST-MVP-5 原生容量回归收敛
 
 - 日期：2026-09-02
-- 状态：**Implemented and locally verified / native rerun pending**
+- 状态：**Implemented / paired native baseline verified**
 - 类型：已批准 S4 容量切片内的例行修复
 - Requirement：`NFR-INT-002`、`NFR-INT-003`、`NFR-INT-005`、`INT-403`、`INT-407`
 - 目标版本与阶段：`POST-MVP-5` revision 2，S4 Release evidence
@@ -45,7 +45,13 @@ amd64/arm64 keyset P95 降至 `120,714us / 235,581us`，但扫描仍为 `190,135
 后续 source `26977c7` 的原生 run
 [`33613627441`](https://github.com/HappyQuQu/foliopath/actions/runs/33613627441) 在只完成状态预取和 job
 批量接纳时，扫描进一步降至 amd64/arm64 `167,428ms / 156,717ms`，仍超过冻结预算，paired verifier
-继续失败关闭。当前资产本体批量 UPSERT 是基于该实测继续收敛，仍须在新 source SHA 上复跑。
+继续失败关闭。当前资产本体批量 UPSERT 是基于该实测继续收敛。
 
-本机结果只证明修复候选满足本地门槛。`INT-403` 仍须同一 source SHA 的真实原生 amd64/arm64 rerun；
-最终模型、质量、供应链与 owner 批准仍不得由本记录推断。
+最终 source `5af4da0…` 的原生 run
+[`33616238888`](https://github.com/HappyQuQu/foliopath/actions/runs/33616238888) 在 amd64/arm64 分别得到
+扫描 `51,738ms / 45,441ms`、keyset P95 `182,299us / 247,994us`，两端均无预算违规；native jobs 与
+paired verifier 全部通过，发布 jobs 均跳过。完整解释见
+[S4 原生配对 baseline 证据](../evidence/int-001/int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)。
+
+该结果关闭同 source SHA 的原生 baseline 缺口，但 paired summary 明确 `finalModelEvidence=false`；
+最终模型、质量、final image、供应链与 owner 批准仍不得由本记录推断。

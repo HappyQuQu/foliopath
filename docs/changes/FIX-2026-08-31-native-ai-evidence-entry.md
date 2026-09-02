@@ -1,7 +1,7 @@
 # POST-MVP-5 原生双架构证据入口
 
 - 日期：2026-08-31
-- 状态：**Implemented locally / remote evidence pending**
+- 状态：**Implemented / paired native baseline verified**
 - 类型：已批准 POST-MVP-5 S2 证据入口与失败关闭维护
 - Requirement：`FR-INT-001～010`、`NFR-INT-001～010`、`INT-403`
 - 目标版本与阶段：`POST-MVP-5` revision 2，S2 Backend Evidence / S4 Release evidence
@@ -70,10 +70,15 @@ source SHA 的 amd64/arm64 两份实际成功 artifact 经对应 Gate 复核，�
 该桥接只解决“workflow 未注册因而无法调度”的入口问题；baseline 运行仍不产生最终 model evidence，
 也不会把候选质量、供应链或批准标成通过。
 
-同日只读
+当日只读
 [远端就绪审计](../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)确认：`origin/aifeature`
 仍停在现有 HEAD，当前工作树有 213 个 modified/untracked path，GitHub 远端只有 Docker 发布 workflow，
 没有智能媒体 workflow 或匹配 artifact。故当前不是“待触发”，而是尚无可运行的远端候选提交。
+
+该历史阻塞随后由 branch-ref bridge 与 clean-runner 修复解除。2026-09-02 的 run
+[`33616238888`](https://github.com/HappyQuQu/foliopath/actions/runs/33616238888) 在 source
+`5af4da0ea79a8ebfcf1042b83ad737d576343090` 上取得原生 amd64/arm64 两份 complete artifact，paired
+verifier 通过；两个发布 job 均跳过。该结果只证明 baseline，summary 明确 `finalModelEvidence=false`。
 
 ## 验证
 

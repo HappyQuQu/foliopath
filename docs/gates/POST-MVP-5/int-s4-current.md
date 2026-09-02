@@ -74,12 +74,22 @@ derived/manual clear 仍保持分类边界和原媒体不变。详见
 [隐私工程证据](../../evidence/int-001/int-s4-privacy-engineering-darwin-arm64-2026-09-02.md)。该结果不替代
 privacy/compliance/security owner 的最终发布批准，因此不增加 S4 完成分子。
 
+同一 source commit `5af4da0…` 的 GitHub Actions run
+[`33616238888`](https://github.com/HappyQuQu/foliopath/actions/runs/33616238888) 随后在原生
+`ubuntu-24.04` x86_64 与 `ubuntu-24.04-arm` aarch64 runner 上全部通过。两个 publish job 均跳过；repository、
+production libvips、候选 face pipeline、100k×512 synthetic face、两库 order-first matrix 和强制 10k/100k
+容量均成功，paired verifier 也通过。扫描为 `51,738 / 45,441 ms`，production keyset P95 为
+`182,299 / 247,994 µs`，两端零预算违规。详见
+[原生配对 baseline 证据](../../evidence/int-001/int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)。
+summary 明确 `finalModelEvidence=false`，因此不增加 S4 主任务完成分子。
+
 ## 尚未关闭的任务与精确阻塞
 
 - `INT-401`：缺最终审核 semantic/face package，因而不能完成真实 inference、人物创建、升级/回滚和
   来源损坏的完整产品纵向。
-- `INT-402～403`：缺同一 source SHA、model package 与 final image digest 的原生 amd64/arm64 配对
-  artifact，也缺最终模型联合 100k/10k 容量和 governed semantic/tag/video/face 质量报告。
+- `INT-402～403`：同一 source SHA 的原生 amd64/arm64 baseline artifact 已配对通过；仍缺同一最终 model
+  package/final image digest 的严格 artifact、最终模型联合 100k/10k 容量和 governed semantic/tag/video/face
+  质量报告。
 - `INT-404`：缺最终双架构 SBOM、签名 provenance、license/notices、漏洞/VEX 和模型权重再分发签署。
 - `INT-406`：日志/API/诊断、活动 SQLite 删除残留和无 face crop cache 的工程边界通过，但最终
   privacy/compliance/security 发布批准缺失。
@@ -89,9 +99,9 @@ privacy/compliance/security owner 的最终发布批准，因此不增加 S4 完
 - `INT-411`：五个 final verifier 的真实 summary 和 product/ML/QA/privacy/compliance/security/release
   批准没有同时存在，不能签署 Integrated Slice Done。
 
-GitHub 上的 intelligent-media native workflow 只存在于 `aifeature`，不在默认分支；2026-09-02 对
-`aifeature` 发起 `workflow_dispatch` 返回 HTTP 404。未经明确授权不得把功能分支合入默认分支来绕过该
-限制。即使运行 baseline workflow，它也不会产生严格 final model/quality/supply-chain 证据。
+默认分支已注册的 Docker workflow 通过精确 evidence-only sentinel 在 `aifeature` 的同一 commit 复用
+native workflow，并由互斥条件跳过所有发布 job；run `33616238888` 已成功。该路径仍只生成 baseline
+artifact，不产生严格 final model/quality/supply-chain 证据。
 
 ## Gate 结论
 

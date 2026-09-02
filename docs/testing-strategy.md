@@ -618,10 +618,9 @@ hash、candidate count 和单向量化指纹；它明确不提供最终模型、
 
 workflow 文件和架构测试存在只证明“原生执行入口可审计”。只有两个目标架构在同一 source SHA 上实际
 成功运行，且 artifact 中 identity、step outcomes、质量/RSS/数值、索引重建和容量结果满足对应 Gate，
-才能作为 `INT-403` 或 S2 Backend/Release 证据。当前尚无该远程运行，因此双架构状态仍为未完成；已知
-`make spike-capacity` 的 production keyset 超预算会使工作流失败关闭，而不是被候选查询矩阵掩盖。
-2026-09-01 本机 production 有序扫描已以 133.637 ms 通过冻结的 250 ms 预算；该本机结果不替代 workflow
-要求的同 SHA 原生双架构实际运行。资产搜索游标从 v2 起携带经 HMAC 认证、同时绑定规范化查询与
+才能作为 `INT-403` 或 S2 Backend/Release 证据。2026-09-02 的 run `33616238888` 已在同一 source SHA
+通过原生双架构 baseline 与 paired verifier；其 summary 明确 `finalModelEvidence=false`，所以不替代
+最终模型/质量/镜像证据。资产搜索游标从 v2 起携带经 HMAC 认证、同时绑定规范化查询与
 catalog revision/generation 的分类计数；后续页复用该计数，避免为同一稳定快照重复执行全量 FTS count。
 
 下载两个 artifact 后必须执行：

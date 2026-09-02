@@ -17,7 +17,7 @@
 | S2B 标签与视频搜索 | 8 / 8 | 100% | **Backend Ready / Release No-Go** | C/D repository、worker、HTTP、ranking/scorer 和失败矩阵完成；governed 质量与最终模型归 S4 |
 | S2C 人脸与人物库 | 11 / 11 | 100% | **Backend Ready / Release No-Go** | fail-closed backend、授权 `coser` 功能矩阵、100k×512 与隐私边界完成；最终质量/合规/native 归 S4 |
 | S3 消费者与 UI | 11 / 11 | 100% | **Consumer/UI Ready / Release No-Go** | `INT-301～311` 完成；最终模型、质量、双架构、供应链与批准仍归 S4 |
-| S4 纵向、容量与发布 | 3 / 11 | 27% | **In Progress / Release No-Go** | 恢复、原件只读与发布文档完成；最终模型、双架构、质量、联合容量、浏览器/真机及签署仍阻塞 |
+| S4 纵向、容量与发布 | 3 / 11 | 27% | **In Progress / Release No-Go** | 恢复、原件只读、发布文档及原生 baseline 完成；最终模型、质量、联合容量、浏览器/真机及签署仍阻塞 |
 
 汇总口径：
 
@@ -1315,8 +1315,9 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     [emulated Linux/amd64 preflight](../evidence/int-001/auraface-production-boundary-emulated-amd64-2026-09-01.md)。
   - 2026-09-02：把上述候选 pipeline 固化进原生双架构 workflow：按 runner 架构锁定 ORT archive SHA，
     固定 YuNet/AuraFace/公开 fixture SHA，拒绝 machine/Go/Docker arch 不一致，并在断网只读有界容器执行。
-    paired verifier 还严格校验每侧 candidate record、相同输入和显式非批准 flags。workflow 尚未在当前
-    source SHA 上远端运行，且候选仍缺质量/合规，因此 `INT-241` 不勾选。记录见
+    paired verifier 还严格校验每侧 candidate record、相同输入和显式非批准 flags。后续 run
+    `33616238888` 已在同一 source SHA 原生运行并通过该 candidate preflight，但候选仍明确缺质量/合规，
+    因此 `INT-241` 不勾选。记录见
     [人脸候选原生工作流预检](../changes/FIX-2026-09-02-face-native-workflow-preflight.md)。
   - 2026-09-01：确认现有 model catalog/activation 只拥有 semantic singleton，不能用测试 seed 或复用
     semantic commit 创建 face generation。新增
@@ -1528,16 +1529,21 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     随后完整重扫并发期间 10 次 hydrated 对照和扫描发布后复核也通过，最慢 candidate ID 页
     67,471 µs。2026-09-01 已把该策略纳入 production repository，旧 cursor/完整矩阵继续通过；强制
     `make spike-capacity` 得到 production keyset P95 `133,637 µs`、零预算违规。本地查询容量子项已关闭，
-    但最终模型联合负载、最终镜像和 native 双架构仍缺，所以 `INT-402` 仍未完成。
+    但当时最终模型联合负载、最终镜像和 native 双架构仍缺，所以 `INT-402` 未完成。
+  - 2026-09-02：同一 source `5af4da0…` 的真实原生 linux/amd64 与 linux/arm64 workflow 均通过 4 CPU、
+    10k 目录/100k 资产 baseline；扫描为 `51,738 / 45,441 ms`，production keyset P95 为
+    `182,299 / 247,994 µs`，RSS 为 `60,002,304 / 48,594,944 bytes`，两端均零预算违规，paired verifier
+    通过。该结果关闭基础 catalog/native 容量子证据；最终模型联合负载和 final image digest 仍缺，主项
+    保持未勾选。见 [paired native baseline evidence](../evidence/int-001/int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)。
 - [ ] `INT-403` 原生 amd64/arm64 最终 digest 的模型质量、RSS、索引重建和数值容差。
   - 根据 CR-2026-022，本项持有 governed semantic/tag/video/face 最终结果、50×20 face 与五维偏差、
     tag precision/video Top-20、99.5% core precision，以及同一 final package/image digest 的双架构结果。
   - 2026-08-31：新增手动
     [Intelligent media native evidence](../../.github/workflows/intelligent-media-native.yml) 入口，分别锁定
     GitHub-hosted `ubuntu-24.04` x64 与 `ubuntu-24.04-arm` ARM64 runner，拒绝 QEMU/平台覆盖，并在两端
-    执行仓库检查、production libvips、两库查询矩阵和强制 10k/100k 容量基线。该 workflow 尚未在目标
-    source SHA 上实际运行，且当前容量基线预计保持失败关闭；“入口存在”不算原生证据，`INT-403`
-    继续未勾选。只有同一 source SHA 的两份成功 artifact 经 Gate 复核后才可计入。
+    执行仓库检查、production libvips、两库查询矩阵和强制 10k/100k 容量基线。该入口建立时尚未在目标
+    source SHA 上实际运行；后续成功执行见下方记录。只有同一 source SHA 的两份成功 artifact 经 Gate
+    复核后才可计入。
   - 同日补齐 `make verify-intelligent-media-native-evidence` 与 workflow paired job：严格拒绝单架构、跨
     commit/run/attempt、QEMU/错误 runner identity 以及 repository/libvips/search/capacity 任一步骤失败。
   - 后续新增 `make verify-intelligent-media-native-model-evidence` 严格模式，要求两架构额外提供最终 model
@@ -1546,6 +1552,11 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     baseline workflow 也不会伪造它们，所以入口完成仍不改变 `INT-403` 状态。
   - 严格模式随后改为实际读取并复算 quality summary、Top-20、numeric、runtime、index 五份报告的
     SHA-256，拒绝路径逃逸、symlink、非普通文件和篡改；审核数据本体仍不上传，只绑定 governed hash。
+  - 2026-09-02：run `33616238888` 首次在同一 source `5af4da0…` 获得原生 x86_64/aarch64 两份 complete
+    baseline artifact，且 paired verifier 通过 native identity、同 commit/run/attempt、QEMU 拒绝、仓库、
+    libvips、候选 pipeline、100k×512 synthetic face、搜索矩阵和容量检查。summary 明确
+    `finalModelEvidence=false`，候选也明确 `productionApproved/qualityGate/complianceGate=false`，所以只关闭
+    baseline 缺口，不满足 final model/image/quality/numeric 条件，`INT-403` 保持未勾选。证据同上。
   - 2026-09-01 只读复核确认本地 HEAD 与 `origin/aifeature` 均为 `fdede8c…`，远端基线提交已含智能媒体
     baseline workflow；但当前 S2 增量仍有 96 个 modified/untracked path，不属于该 SHA，最近运行也没有
     paired artifact。baseline workflow 不生成严格模式需要的最终 `model-evidence.json`。证据见
