@@ -72,6 +72,11 @@ retail Safari/物理键盘子项，但没有开启或代替物理触控设备。
 [CR-2026-024](../../changes/CR-2026-024-int-s4-screen-reader-waiver.md)从 `INT-408` 删除真实屏幕阅读器人工验收，
 但不把未执行的测试写成通过，并保留语义、键盘和 axe 门槛。该决定不补足仍缺的物理触控/目标设备证据。
 
+实体设备只读预检随后确认：已配对 iPhone 17 Pro（iOS 26.5）仍为 `unavailable`，developer tunnel 与
+DDI service 均不可用，USB 也未连接。详见
+[physical-device readiness evidence](../../evidence/int-001/int-s4-physical-device-readiness-darwin-arm64-2026-09-02.md)。
+没有执行触控路径，因此这份阻塞证据不增加 S4 分子。
+
 `INT-406` 的工程隐私入口随后通过：敏感日志属性 canary 全部脱敏，face/semantic/diagnostic HTTP 投影保持
 封闭，所有 SQLite 连接强制 `secure_delete=ON`，删除 canary 经 WAL truncate 后不再存在于活动 DB/WAL/SHM；
 derived/manual clear 仍保持分类边界和原媒体不变。详见

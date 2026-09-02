@@ -70,6 +70,7 @@ permutations are not an active work queue; see the
 - [AI diagnostic closed-field privacy contract](ai-diagnostic-privacy-contract-2026-08-27.md)
 - [S4 application privacy and live SQLite deletion evidence](int-s4-privacy-engineering-darwin-arm64-2026-09-02.md)
 - [S4 paired native amd64/arm64 baseline evidence](int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)
+- [S4 physical touch device readiness](int-s4-physical-device-readiness-darwin-arm64-2026-09-02.md)
 - [Activation final availability-revision CAS](activation-availability-cas-2026-08-28.md)
 - [Managed install worker process-kill recovery](managed-install-worker-sigkill-recovery-2026-08-28.md)
 - [Direct model nested-mount boundary on Linux/arm64](direct-model-nested-mount-linux-arm64-2026-08-28.md)
