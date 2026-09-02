@@ -2,6 +2,8 @@
 
 - [POST-MVP-5 INT-S3 Consumer/UI Ready](POST-MVP-5/int-s3-consumer-ui-ready.md)：消费者与 UI
   完成；最终模型、质量、双架构、供应链和批准仍使发布保持 No-Go。
+- [POST-MVP-5 INT-S4 Integrated Slice Current](POST-MVP-5/int-s4-current.md)：`INT-405/407/409`
+  完成，当前 3/11；最终模型、质量、双架构、联合容量、浏览器/真机、供应链及批准仍使发布 No-Go。
 
 - [MVP 搜索 keyset 容量回归复审](MVP-2026-07-23/s4-search-capacity-regression-2026-08-31.md)：
   当前 production query-plan change No-Go；100k 候选证据工作已授权。

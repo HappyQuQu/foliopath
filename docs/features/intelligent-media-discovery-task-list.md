@@ -17,16 +17,17 @@
 | S2B 标签与视频搜索 | 8 / 8 | 100% | **Backend Ready / Release No-Go** | C/D repository、worker、HTTP、ranking/scorer 和失败矩阵完成；governed 质量与最终模型归 S4 |
 | S2C 人脸与人物库 | 11 / 11 | 100% | **Backend Ready / Release No-Go** | fail-closed backend、授权 `coser` 功能矩阵、100k×512 与隐私边界完成；最终质量/合规/native 归 S4 |
 | S3 消费者与 UI | 11 / 11 | 100% | **Consumer/UI Ready / Release No-Go** | `INT-301～311` 完成；最终模型、质量、双架构、供应链与批准仍归 S4 |
-| S4 纵向、容量与发布 | 0 / 11 | 0% | 未开始 | 等最终模型、双架构、质量、容量、供应链和完整纵向输入 |
+| S4 纵向、容量与发布 | 3 / 11 | 27% | **In Progress / Release No-Go** | 恢复、原件只读与发布文档完成；最终模型、双架构、质量、联合容量、浏览器/真机及签署仍阻塞 |
 
 汇总口径：
 
-- 当前工作阶段：**S3 Consumer/UI Ready；S2A/S2B/S2C 保持 Backend Ready**。按
+- 当前工作阶段：**S4 In Progress / Release No-Go；S2A/S2B/S2C 保持 Backend Ready，S3 保持
+  Consumer/UI Ready**。按
   [CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终审核模型、governed
   semantic/tag/video/face 质量、native 双架构、联合容量、供应链和发布签署仍由 S4 失败关闭。
 - revision 2 全 S2 主线台账（S0 + S1 + S1R2 + S2A + S2B + S2C）：**65 / 78（83%）**。
   S0 的未完成项被有意保留，所以该比例不能解释为“产品完成 45%”。
-- 全路线主任务（含 S3/S4）：**76 / 100（76%）**。
+- 全路线主任务（含 S3/S4）：**79 / 100（79%）**。
 - 静态交互原型 `INT-000P`：**1 / 1**，只证明产品复核覆盖，不计入生产进度。
 - 当前发布判断：**不能发布 AI 功能，也不授权未经 S4 Gate 的发行 UI**。S2 Backend Ready 只允许继续
   S3 合同消费者实现；reviewed catalog 保持为空，face route/runtime 继续缺席。
@@ -1556,17 +1557,34 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
   - `make verify-intelligent-media-s2-evidence` 进一步要求 quality、strict native、supply-chain 三份已验证
     summary 使用同一 source commit/model package，并逐架构匹配 final image digest；baseline native
     summary 会失败。当前三份真实 summary 均不存在，交叉绑定工具完成不等于 `INT-404` 完成。
-- [ ] `INT-405` 备份/恢复人物应用状态；索引缺失自动重建；损坏模型/DB/磁盘满失败关闭。
+- [x] `INT-405` 备份/恢复人物应用状态；索引缺失自动重建；损坏模型/DB/磁盘满失败关闭。
+  - 2026-09-02：SQLite 一致性备份/重开保留 person、anchor 与人工关系并通过 integrity check；catalog
+    FTS 缺失/不一致由数据库打开自动修复，missing/stale semantic 派生行由有界 `missing` backfill 重算，
+    且进程强杀后从 durable checkpoint 恢复。真实 linux/arm64
+    候选容器又通过离线备份/恢复、SIGKILL/WAL 恢复、数据卷写满与损坏数据库启动失败；managed model
+    的实际 ENOSPC、损坏/变化来源和 unavailable 路径均失败关闭。该任务不包含最终模型质量或双架构
+    发行签署，后者仍由 `INT-401～404/410/411` 持有。
 - [ ] `INT-406` 人脸/向量/查询/姓名不进入日志和诊断，API/缓存/删除后残留检查通过。
   - 本项还持有最终 privacy/compliance/security 发布复审；S2C Backend Ready 签署不替代 release approval。
-- [ ] `INT-407` 原媒体只读 hash/mtime/mount 证据和路径攻击矩阵通过。
+- [x] `INT-407` 原媒体只读 hash/mtime/mount 证据和路径攻击矩阵通过。
+  - 2026-09-02：真实 linux/arm64 候选以只读 rootfs、`/library:ro`、capabilities 全丢弃运行，媒体矩阵、
+    Compose、可信代理与恢复演练前后 sentinel SHA-256 一致；face clear 回归同时比较 source
+    fingerprint/size/mtime。`internal/files`、`internal/pathpolicy` 和 integration 全包测试覆盖 traversal、
+    duplicate encoding、NUL、symlink/hardlink、跨设备/nested mount、目录替换竞态和 poisoned catalog path。
 - [ ] `INT-408` 三浏览器、物理输入、移动断点、键盘、读屏和大集合虚拟化证据通过。
-- [ ] `INT-409` 更新用户 README、部署、升级、隐私、限制、故障排除和模型来源文档。
+- [x] `INT-409` 更新用户 README、部署、升级、隐私、限制、故障排除和模型来源文档。
+  - 2026-09-02：中英文 README 已从历史 revision 1 “planned”更新为 revision 2 “已实现、发行 No-Go”，
+    明确匿名分组不等于现实身份识别；部署文档集中说明 reviewed catalog 精确来源、离线 `/models:ro`、
+    升级/配对回滚、人物状态恢复、容量限制、稳定错误排查、隐私诊断字段和两类清除。当前没有最终获准
+    模型包或在线/国内镜像，文档不向用户展示虚构下载路径。
 - [ ] `INT-410` 在无外网、发行源、真实部署镜像和 `/models:ro` 四种拓扑验证安装/升级/恢复；没有
   真实镜像证据时从发布范围和 UI 删除镜像选项。
 - [ ] `INT-411` 复审 INT-S4 Integrated Slice Done；未签署不得宣称功能发布完成。
   - 必须同时复核五个 intelligent-media final verifier 及 product/ML/QA/privacy/compliance/security/release
     批准引用；任一缺失时 reviewed catalog/face composition/UI release 继续失败关闭。
+
+当前 S4 可审计结论见 [INT-S4 current](../gates/POST-MVP-5/int-s4-current.md)：`3 / 11` 完成，
+**Release No-Go**。本机恢复和只读边界通过不替代最终审核模型、governed 质量、native 双架构或角色签署。
 
 ## 强制验证入口
 

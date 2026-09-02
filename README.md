@@ -142,16 +142,25 @@ directories to browse under **Administration → Libraries**.
 **A good fit:** folder-based photo sets, photography archives, family media, NAS libraries, and
 anyone who does not want an application to take ownership of original files.
 
-**Not a fit:** photo backup and phone sync, multi-user albums, AI face recognition, image editing,
-or video transcoding.
+**Not a fit:** photo backup and phone sync, multi-user albums, real-world identity recognition,
+image editing, or video transcoding.
 
-### Planned, not yet available
+### Local intelligent discovery: implemented, not released
 
-`POST-MVP-5 revision 1` has frozen a local, opt-in image semantic-search design. It will use only
-reviewed offline model packages supplied through a read-only `/models` mount; it does not promise
-online model downloads, cloud inference, automatic person/character naming, AI tags, video semantic
-search, or face grouping in that revision. See the
-[frozen scope](docs/releases/POST-MVP-5-scope.md) for its implementation and release gates.
+`POST-MVP-5 revision 2` implements opt-in local image/video semantic search, controlled tag
+suggestions, anonymous face grouping, and administrator-named people. It does **not** identify a
+real person, search the internet for a face, train a model, upload media or queries, or modify
+original media.
+
+These capabilities remain disabled for release until the final reviewed model packages, governed
+quality results, native `linux/amd64` and `linux/arm64` evidence, joint 4 CPU/4 GiB capacity,
+supply-chain evidence, and required approvals pass the S4 gate. FolioPath has no model-download or
+mirror UI: operators must obtain a package whose exact digest is in the reviewed catalog and expose
+it through an optional read-only `/models:ro` mount. Missing, changed, corrupt, incompatible, or
+unreviewed packages make only the dependent intelligent capability unavailable; normal browsing
+continues. See the [frozen revision 2 scope](docs/releases/POST-MVP-5-scope-r2.md),
+[deployment contract](docs/deployment.md#post-mvp-5-revision-2-cde-deployment-and-recovery-contract),
+and [security and privacy contract](docs/security.md#post-mvp-5-revision-2-cde-security-and-privacy-contract).
 
 ## 📖 More Documentation
 

@@ -431,8 +431,9 @@ linux/arm64 同提交候选证据仍由
 
 ## POST-MVP-5 revision 1 模型部署合同
 
-该 revision 保持单容器、单 Go 进程，不增加 worker、GPU、Redis、数据库或网络端口。生产能力尚未
-实现；以下 Compose 片段是 S2/S4 必须验证的目标配置，不应加入当前 Quick Start：
+该 revision 保持单容器、单 Go 进程，不增加 worker、GPU、Redis、数据库或网络端口。后端和消费者
+已实现，但最终审核模型、双架构、联合容量、供应链与批准尚未通过 S4，因此发行构建仍失败关闭；
+以下 Compose 片段是 S4 必须以最终镜像验证的目标配置，不应加入当前 Quick Start：
 
 ```yaml
 services:
@@ -489,3 +490,28 @@ native session 延迟加载、空闲卸载、全局后台并发默认 1，intera
 发布物必须为最终双架构 digest 产出 SPDX/CycloneDX SBOM、VEX、third-party notices、可验证 provenance
 和 model/runtime 再分发签署。缺少 face 模型许可、隐私 intake、合法质量数据或任一 native 架构证据时，
 S2C 已 Backend Ready，但 Release 保持 No-Go；核心浏览和已经可安全发布的较小 slice 不被伪装成全范围通过。
+
+### 智能能力安装、升级与故障排查
+
+- 模型来源：产品只接受内建 reviewed catalog 中的精确 package ID、版本、文件大小、SHA-256、许可、
+  架构和 runtime 合同。公开仓库、文件名、下载成功或“同系列模型”都不能替代精确匹配；当前没有获准
+  发行的最终模型包，也没有产品内下载、国内镜像、URL、代理或凭据设置。
+- 离线安装：在宿主机准备独立模型目录，以 `/models:ro` 单次挂载启动；该目录不能位于媒体根下，
+  后代不能再有 mount。管理员只能扫描服务端批准目录并选择 opaque candidate；应用不写该来源。
+- 升级：先停止服务并备份完整 SQLite family 和人物、人工 assignment/exclusion/cannot-link/audit 等
+  应用状态，再替换镜像。新 generation 完整验证并可用前保留旧 generation。回滚必须使用“旧镜像＋
+  升级前备份”配对，不能让旧镜像直接打开已前向迁移的数据。
+- 恢复：人物与人工关系随 SQLite 恢复；catalog FTS 缺失或不一致时在数据库打开阶段自动修复；
+  semantic/tag/video/face embedding、匿名 cluster 和派生 cache 可缺省，并通过有界“补齐缺失”任务重建。
+  重连有歧义时进入 `needs_review`，不得按路径、bbox 顺序或近似姓名猜测。
+- 限制：目标验收档为 4 CPU、4 GiB、约 100,000 媒体和 10,000 目录；整进程 RSS ≤3.2 GiB、普通
+  browse P95 退化 ≤20% 是未通过最终双架构联合验证前的 Gate，不是当前性能承诺。后台智能任务默认
+  全局并发 1；禁用能力必须停止 admission 并卸载对应 session。
+- 故障排查：`model_unavailable` 先检查 `/models` 是否存在、只读、无 symlink/hardlink/后代 mount，
+  再核对 catalog 中的精确 digest、大小、架构和 runtime；`model_source_changed` 要求恢复原精确来源或
+  重新走审核安装，不能自动换模型；`model_corrupt`、`runtime_unavailable`、磁盘安全余量不足或数据库
+  损坏都必须保持智能能力或整个 readiness 失败关闭。日志和诊断只能记录 opaque ID、稳定错误码、计数
+  与耗时，不得包含查询、姓名、向量、crop、bbox、媒体/模型路径或 native 原始错误。
+- 清除：派生数据清除可重建；人物和人工关系清除不可恢复，必须先建立备份点并做精确二次确认。两种
+  清除都不得修改 `/library` 原件。模型来源、隐私、许可证或发布证据缺失时，不要绕过 reviewed catalog
+  或启用未签署能力；普通文件夹浏览应继续可用。
