@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "fixture": "Patterns/MediaCollection/Capacity100k",
+  "itemCount": 100000,
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "budgets": {
+    "minimumFramesPerSecond": 45,
+    "maximumP95FrameIntervalMs": 34,
+    "maximumPeakRssBytes": 1610612736,
+    "maximumMountedItems": 64
+  },
+  "results": [
+    {
+      "browser": "chromium",
+      "framesPerSecond": 60.002,
+      "p95FrameIntervalMs": 16.7,
+      "longFrames": 0,
+      "mountedItems": 60,
+      "peakRssBytes": 719028224,
+      "usedJsHeapBytes": 76428768,
+      "scrollY": 295829,
+      "scrollHeight": 3638324
+    },
+    {
+      "browser": "firefox",
+      "framesPerSecond": 59.203,
+      "p95FrameIntervalMs": 17.92,
+      "longFrames": 0,
+      "mountedItems": 60,
+      "peakRssBytes": 1330135040,
+      "usedJsHeapBytes": 0,
+      "scrollY": 294391,
+      "scrollHeight": 3639719
+    },
+    {
+      "browser": "webkit",
+      "framesPerSecond": 59.988,
+      "p95FrameIntervalMs": 21,
+      "longFrames": 0,
+      "mountedItems": 60,
+      "peakRssBytes": 117948416,
+      "usedJsHeapBytes": 0,
+      "scrollY": 295832,
+      "scrollHeight": 3638324
+    }
+  ]
+}

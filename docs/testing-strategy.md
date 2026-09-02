@@ -703,6 +703,11 @@ native 双架构、联合容量、供应链和 owner 批准门禁。
 namespace，不创建可出站网络。该检查证明无模型时核心服务可用且不写模型/媒体来源，但它是单一
 linux/arm64 本地候选，不替代最终发行源、最终模型或 native 双架构的安装/升级/恢复验收。
 
+S4 浏览器自动化使用 `make test-web-release-e2e` 与 `make test-browser-capacity`。前者覆盖 Firefox/WebKit
+的键盘、焦点、降级、重排和 storyboard 行为，后者对 Chromium/Firefox/WebKit 的 100k 虚拟集合强制
+FPS、P95 frame interval、process-tree RSS 与 mounted-item 上限。Playwright WebKit、viewport/touch 模拟和
+axe 分别不能替代 retail Safari、物理输入与真实读屏验收；报告必须明确保留这些人工 Gate。
+
 `INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
 
 - C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、

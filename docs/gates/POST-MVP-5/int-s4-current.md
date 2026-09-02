@@ -41,6 +41,8 @@ make test
 make test-integration
 make test-e2e
 make test-intelligent-media-offline
+make test-web-release-e2e
+make test-browser-capacity
 ```
 
 最后一项在本机原生 `linux/arm64` Docker 上完成镜像构建、认证媒体矩阵、Compose、可信代理和
@@ -54,6 +56,12 @@ sentinel SHA-256 不变；本次临时候选 digest 为
 `sha256:680d3ba0740fc2f449ed9a3d7da995e37f8cd5b00bd0cc729ac1a8531fa24b91`。该结果只推进
 `INT-410` 的无外网与只读模型拓扑子项，不是最终发行镜像或双架构验收。
 
+本机随后安装锁定 Playwright 1.61.1 所需的 Firefox 151 与 WebKit 26.5，release E2E 的键盘/焦点、降级、
+200% 等效重排与 storyboard 行为通过。100k 虚拟集合在 Chromium/Firefox/WebKit 均只挂载 60 项，超过
+59 FPS，P95 不高于 21 ms，且低于 1.5 GiB RSS。详见
+[浏览器自动化证据](../../evidence/int-001/int-s4-browser-automation-darwin-arm64-2026-09-02.md)。该证据推进
+`INT-408` 的多引擎自动化和大集合子项，但不替代 retail Safari、物理触控或读屏验收。
+
 ## 尚未关闭的任务与精确阻塞
 
 - `INT-401`：缺最终审核 semantic/face package，因而不能完成真实 inference、人物创建、升级/回滚和
@@ -62,7 +70,7 @@ sentinel SHA-256 不变；本次临时候选 digest 为
   artifact，也缺最终模型联合 100k/10k 容量和 governed semantic/tag/video/face 质量报告。
 - `INT-404`：缺最终双架构 SBOM、签名 provenance、license/notices、漏洞/VEX 和模型权重再分发签署。
 - `INT-406`：代码级日志/API/诊断隐私边界通过，但最终 privacy/compliance/security 发布批准缺失。
-- `INT-408`：现有自动化不替代三浏览器、物理触摸、读屏和大集合虚拟化的最终人工/目标设备签署。
+- `INT-408`：三引擎自动化与 100k 虚拟化预算通过，但仍缺 retail Safari、物理触摸、读屏和目标设备签署。
 - `INT-410`：当前没有最终发行源和真实部署镜像；在线/国内镜像入口已从范围和 UI 删除，只保留离线
   `/models:ro` 合同。
 - `INT-411`：五个 final verifier 的真实 summary 和 product/ML/QA/privacy/compliance/security/release
