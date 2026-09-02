@@ -45,7 +45,9 @@ INT-S0 与 [INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md)仍只对 A+B 为 
 [INT-S2B](gates/POST-MVP-5/int-s2b-backend-evidence-ready.md) 与
 [INT-S2C](gates/POST-MVP-5/int-s2c-privacy-ready.md) 均为 Backend Ready / Release No-Go；
 [INT-S3](gates/POST-MVP-5/int-s3-consumer-ui-ready.md) 已为 Consumer/UI Ready / Release No-Go；
-[INT-S4 current](gates/POST-MVP-5/int-s4-current.md) 已完成恢复、原件只读与发布文档 3/11；按
+[INT-S4 current](gates/POST-MVP-5/int-s4-current.md) 已验证完成恢复、原件只读与发布文档 3/11；产品用户按
+[CR-2026-025](changes/CR-2026-025-int-s4-unverified-closure.md)将其余 8/11 未验证关闭，S4 终态为
+Closed Unverified / Release No-Go。按
 [CR-2026-022](changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终真实质量、native 双架构、
 联合容量、供应链与隐私/合规签署由 S4 持有。国内镜像仍没有承诺；S4 Go 前 reviewed catalog、face
 composition 与发行 UI 继续失败关闭。

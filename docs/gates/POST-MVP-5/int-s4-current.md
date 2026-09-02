@@ -3,8 +3,8 @@
 - 日期：2026-09-02
 - 目标版本：`POST-MVP-5` revision 2
 - 范围：`INT-401～411`
-- 进度：**3 / 11（27%）**
-- 判断：**In Progress / Release No-Go**
+- 进度：**3 / 11 已验证完成（27%）；8 / 11 未验证关闭；0 / 11 继续执行**
+- 判断：**Closed Unverified / Release No-Go**
 - 已完成：`INT-405`、`INT-407`、`INT-409`
 
 ## 本次关闭的任务
@@ -92,7 +92,11 @@ production libvips、候选 face pipeline、100k×512 synthetic face、两库 or
 [原生配对 baseline 证据](../../evidence/int-001/int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)。
 summary 明确 `finalModelEvidence=false`，因此不增加 S4 主任务完成分子。
 
-## 尚未关闭的任务与精确阻塞
+## 未验证关闭的任务与缺失证据
+
+2026-09-02 产品用户要求忽略全部剩余 S4 阻塞。按
+[CR-2026-025](../../changes/CR-2026-025-int-s4-unverified-closure.md)，以下八项停止继续取证，统一作为
+**未验证关闭**保留；它们没有通过、不计入完成分子，也不解除 Release No-Go。
 
 - `INT-401`：缺最终审核 semantic/face package，因而不能完成真实 inference、人物创建、升级/回滚和
   来源损坏的完整产品纵向。
@@ -115,5 +119,6 @@ artifact，不产生严格 final model/quality/supply-chain 证据。
 
 ## Gate 结论
 
-S4 可以继续接收真实最终产物，但当前不得发布或宣称 A～E 全范围完成。reviewed catalog 保持空，face
-production composition 和未签署发行 UI 继续失败关闭；普通只读媒体浏览不受影响。
+S4 已按产品决定停止继续验证，终态为 **Closed Unverified / Release No-Go**，不得发布或宣称 A～E
+全范围完成。reviewed catalog 保持空，face production composition 和未签署发行 UI 继续失败关闭；
+普通只读媒体浏览不受影响。若未来恢复发行目标，必须重新打开对应任务并补齐原 Gate 证据。

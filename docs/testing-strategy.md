@@ -697,6 +697,12 @@ S3 消费者验证在后端合同测试之上增加：生成客户端 adapter �
 390/768/1265/1440、light/dark、zh-CN/en 和 reduced-motion 矩阵复核；通过 S3 不解除 S4 的模型、质量、
 native 双架构、联合容量、供应链和 owner 批准门禁。
 
+产品用户随后通过
+[CR-2026-025](changes/CR-2026-025-int-s4-unverified-closure.md)要求停止全部剩余 S4 验证。
+`INT-401～404/406/408/410～411` 因此记录为未验证关闭，不再主动取证或重复运行不能改变决定的测试；
+已有回归入口继续保留，但未运行结果不得写成通过。该决定不构成质量、安全、隐私、合规或发布批准，
+S4 保持 Release No-Go；未来若恢复发行目标，必须重新打开对应任务并按本节原合同补证。
+
 `make test-intelligent-media-offline` 提供 `INT-410` 的本地拓扑回归：真实候选容器使用
 `--network none`、只读 rootfs、`/library:ro` 与 `/models:ro`，完成管理员初始化、空 reviewed catalog/
 空 candidate scan、重启及两个来源 sentinel hash 对照。HTTP 辅助容器只加入应用的无外网 network

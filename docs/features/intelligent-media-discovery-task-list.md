@@ -17,11 +17,11 @@
 | S2B 标签与视频搜索 | 8 / 8 | 100% | **Backend Ready / Release No-Go** | C/D repository、worker、HTTP、ranking/scorer 和失败矩阵完成；governed 质量与最终模型归 S4 |
 | S2C 人脸与人物库 | 11 / 11 | 100% | **Backend Ready / Release No-Go** | fail-closed backend、授权 `coser` 功能矩阵、100k×512 与隐私边界完成；最终质量/合规/native 归 S4 |
 | S3 消费者与 UI | 11 / 11 | 100% | **Consumer/UI Ready / Release No-Go** | `INT-301～311` 完成；最终模型、质量、双架构、供应链与批准仍归 S4 |
-| S4 纵向、容量与发布 | 3 / 11 | 27% | **In Progress / Release No-Go** | 恢复、原件只读、发布文档及原生 baseline 完成；最终模型、质量、联合容量、浏览器/真机及签署仍阻塞 |
+| S4 纵向、容量与发布 | 3 / 11 | 27% | **Closed Unverified / Release No-Go** | 已验证 3 项、未验证关闭 8 项、继续执行 0 项；未执行项不计为通过 |
 
 汇总口径：
 
-- 当前工作阶段：**S4 In Progress / Release No-Go；S2A/S2B/S2C 保持 Backend Ready，S3 保持
+- 当前工作阶段：**S4 Closed Unverified / Release No-Go；S2A/S2B/S2C 保持 Backend Ready，S3 保持
   Consumer/UI Ready**。按
   [CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终审核模型、governed
   semantic/tag/video/face 质量、native 双架构、联合容量、供应链和发布签署仍由 S4 失败关闭。
@@ -31,6 +31,10 @@
 - 静态交互原型 `INT-000P`：**1 / 1**，只证明产品复核覆盖，不计入生产进度。
 - 当前发布判断：**不能发布 AI 功能，也不授权未经 S4 Gate 的发行 UI**。S2 Backend Ready 只允许继续
   S3 合同消费者实现；reviewed catalog 保持为空，face route/runtime 继续缺席。
+- 2026-09-02 产品用户要求忽略全部剩余 S4 阻塞。按
+  [CR-2026-025](../changes/CR-2026-025-int-s4-unverified-closure.md)，`INT-401～404/406/408/410～411`
+  统一转为**未验证关闭**，停止继续取证；它们保持未勾选且不计入完成分子。S4 当前为已验证完成
+  `3 / 11`、未验证关闭 `8 / 11`、继续执行 `0 / 11`，终态 **Closed Unverified / Release No-Go**。
 - 2026-09-01 最终逐项复核完成全部 S2 后端任务；真实模型/数据/native/供应链/签署输入已按 CR-2026-022
   归入 S4，五个最终 verifier 继续对缺失输入失败关闭发布，详见
   [S2 最终阻塞审计](../gates/POST-MVP-5/int-s2-final-blocker-audit-2026-09-01.md)。
@@ -1515,10 +1519,10 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
 
 ## S4：纵向、容量与发布
 
-- [ ] `INT-401` 真实容器纵向：启用→backfill→搜索/建人物→重启→升级→回滚配对→清除。
+- [ ] `INT-401` **未验证关闭**：真实容器纵向：启用→backfill→搜索/建人物→重启→升级→回滚配对→清除。
   - 根据 CR-2026-022，本项同时持有最终审核 semantic/face package 的完整 app inference 强杀、来源损坏、
     lease recovery 与旧 generation/原媒体不变纵向；S2 synthetic/candidate 证据不能替代。
-- [ ] `INT-402` 100k/10k 最终镜像容量与并发浏览；验证禁用时零模型常驻和零后台 admission。
+- [ ] `INT-402` **未验证关闭**：100k/10k 最终镜像容量与并发浏览；验证禁用时零模型常驻和零后台 admission。
   - 2026-08-31：darwin/arm64 强制基线实际失败，production `searchKeysetP95Us=296212` 超过
     250,000 µs；不得登记为通过。benchmark-only order-first 候选在两库 10k/100k 的 11×2 scope/filter/
     sort 页面及 0/1/10/100/>100 cardinality 页面与 production 逐 ID 等价，最慢候选页 49,073 µs。
@@ -1535,7 +1539,7 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     `182,299 / 247,994 µs`，RSS 为 `60,002,304 / 48,594,944 bytes`，两端均零预算违规，paired verifier
     通过。该结果关闭基础 catalog/native 容量子证据；最终模型联合负载和 final image digest 仍缺，主项
     保持未勾选。见 [paired native baseline evidence](../evidence/int-001/int-s4-native-baseline-linux-amd64-arm64-2026-09-02.md)。
-- [ ] `INT-403` 原生 amd64/arm64 最终 digest 的模型质量、RSS、索引重建和数值容差。
+- [ ] `INT-403` **未验证关闭**：原生 amd64/arm64 最终 digest 的模型质量、RSS、索引重建和数值容差。
   - 根据 CR-2026-022，本项持有 governed semantic/tag/video/face 最终结果、50×20 face 与五维偏差、
     tag precision/video Top-20、99.5% core precision，以及同一 final package/image digest 的双架构结果。
   - 2026-08-31：新增手动
@@ -1562,7 +1566,7 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     paired artifact。baseline workflow 不生成严格模式需要的最终 `model-evidence.json`。证据见
     [远端就绪审计](../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)；未经明确授权不提交、不推送、
     不触发任务，`INT-403` 保持未完成。
-- [ ] `INT-404` 最终 SBOM/provenance/license/notices/vulnerability 及模型权重清单签署。
+- [ ] `INT-404` **未验证关闭**：最终 SBOM/provenance/license/notices/vulnerability 及模型权重清单签署。
   - `make verify-intelligent-media-supply-chain` 已建立失败关闭的真实文件/哈希/批准绑定入口；只有最终
     source SHA 的实际 manifest 成功通过并经 Gate 人工复审后才能勾选，本地 verifier 测试不能替代证据。
   - `make verify-intelligent-media-s2-evidence` 进一步要求 quality、strict native、supply-chain 三份已验证
@@ -1575,7 +1579,7 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     候选容器又通过离线备份/恢复、SIGKILL/WAL 恢复、数据卷写满与损坏数据库启动失败；managed model
     的实际 ENOSPC、损坏/变化来源和 unavailable 路径均失败关闭。该任务不包含最终模型质量或双架构
     发行签署，后者仍由 `INT-401～404/410/411` 持有。
-- [ ] `INT-406` 人脸/向量/查询/姓名不进入日志和诊断，API/缓存/删除后残留检查通过。
+- [ ] `INT-406` **未验证关闭**：人脸/向量/查询/姓名不进入日志和诊断，API/缓存/删除后残留检查通过。
   - 本项还持有最终 privacy/compliance/security 发布复审；S2C Backend Ready 签署不替代 release approval。
   - 2026-09-02：新增 `make test-intelligent-media-privacy`，对 face/person/name/vector/score/bbox/crop 等日志
     属性执行 canary 脱敏，复核 face/semantic/diagnostic 安全 DTO，并把 `secure_delete=ON` 固化到每个 SQLite
@@ -1588,7 +1592,7 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     Compose、可信代理与恢复演练前后 sentinel SHA-256 一致；face clear 回归同时比较 source
     fingerprint/size/mtime。`internal/files`、`internal/pathpolicy` 和 integration 全包测试覆盖 traversal、
     duplicate encoding、NUL、symlink/hardlink、跨设备/nested mount、目录替换竞态和 poisoned catalog path。
-- [ ] `INT-408` 三浏览器、物理输入、移动断点、键盘和大集合虚拟化证据通过。
+- [ ] `INT-408` **未验证关闭**：三浏览器、物理输入、移动断点、键盘和大集合虚拟化证据通过。
   - 2026-09-02：锁定 Playwright 1.61.1 的 Chromium、Firefox 151、WebKit 26.5 已通过桌面键盘/焦点/
     降级、200% 等效重排和 storyboard 行为；100k 虚拟集合三引擎均为 60 个 mounted item、超过 59 FPS、
     P95 不高于 21 ms 且低于 1.5 GiB RSS。原始 JSON 与边界见
@@ -1609,18 +1613,19 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     明确匿名分组不等于现实身份识别；部署文档集中说明 reviewed catalog 精确来源、离线 `/models:ro`、
     升级/配对回滚、人物状态恢复、容量限制、稳定错误排查、隐私诊断字段和两类清除。当前没有最终获准
     模型包或在线/国内镜像，文档不向用户展示虚构下载路径。
-- [ ] `INT-410` 在无外网、发行源、真实部署镜像和 `/models:ro` 四种拓扑验证安装/升级/恢复；没有
+- [ ] `INT-410` **未验证关闭**：在无外网、发行源、真实部署镜像和 `/models:ro` 四种拓扑验证安装/升级/恢复；没有
   真实镜像证据时从发布范围和 UI 删除镜像选项。
   - 2026-09-02：新增 `make test-intelligent-media-offline`，本机原生 linux/arm64 候选以
     `--network none`、只读 rootfs、`/library:ro`、`/models:ro` 完成管理员初始化、空 reviewed catalog/
     candidate scan、重启和双 sentinel hash 不变，证明无模型时核心服务可用且不写来源。在线/镜像入口
     已删除；最终发行源、最终模型和同 digest native amd64/arm64 的安装/升级/恢复仍缺，故本项不勾选。
-- [ ] `INT-411` 复审 INT-S4 Integrated Slice Done；未签署不得宣称功能发布完成。
+- [ ] `INT-411` **未验证关闭**：复审 INT-S4 Integrated Slice Done；未签署不得宣称功能发布完成。
   - 必须同时复核五个 intelligent-media final verifier 及 product/ML/QA/privacy/compliance/security/release
     批准引用；任一缺失时 reviewed catalog/face composition/UI release 继续失败关闭。
 
-当前 S4 可审计结论见 [INT-S4 current](../gates/POST-MVP-5/int-s4-current.md)：`3 / 11` 完成，
-**Release No-Go**。本机恢复和只读边界通过不替代最终审核模型、governed 质量、native 双架构或角色签署。
+当前 S4 可审计结论见 [INT-S4 current](../gates/POST-MVP-5/int-s4-current.md)：`3 / 11` 已验证完成、
+`8 / 11` 未验证关闭、`0 / 11` 继续执行，**Closed Unverified / Release No-Go**。本机恢复和只读边界
+通过不替代最终审核模型、governed 质量、native 双架构或角色签署。
 
 ## 强制验证入口
 

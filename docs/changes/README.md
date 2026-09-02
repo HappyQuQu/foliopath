@@ -40,6 +40,7 @@
   revision 2 已批准，A～E 全部纳入）
 - [CR-2026-022：S2 后端完成与最终发布 Gate 分离](CR-2026-022-s2-backend-release-gate-separation.md)
 - [CR-2026-024：INT-S4 屏幕阅读器验收豁免](CR-2026-024-int-s4-screen-reader-waiver.md)
+- [CR-2026-025：INT-S4 剩余验收未验证关闭](CR-2026-025-int-s4-unverified-closure.md)
 
 ## Routine fixes
 
