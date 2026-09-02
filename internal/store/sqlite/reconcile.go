@@ -429,15 +429,23 @@ func (s *Store) CommitDirectoryReconcile(
 			}
 			delete(existingDirectories, entry.RelativePath)
 		}
+		mediaAdmissions := make([]mediaJobAdmission, 0, len(assets))
 		for _, entry := range assets {
 			previous, exists := existingAssets[entry.RelativePath]
 			if !exists || !previous.matches(entry) {
 				committed.Changed = true
 			}
-			if _, err := upsertAsset(ctx, tx, run, entry); err != nil {
+			_, admission, err := upsertAsset(ctx, tx, run, entry)
+			if err != nil {
 				return err
 			}
+			if admission != nil {
+				mediaAdmissions = append(mediaAdmissions, *admission)
+			}
 			delete(existingAssets, entry.RelativePath)
+		}
+		if err := admitMediaJobsBatch(ctx, tx, run, mediaAdmissions); err != nil {
+			return err
 		}
 
 		for _, stale := range existingAssets {
