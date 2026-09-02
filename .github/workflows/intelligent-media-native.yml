@@ -50,6 +50,13 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      - name: Install runner prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ripgrep
+
       - name: Prove native runner identity
         id: identity
         shell: bash

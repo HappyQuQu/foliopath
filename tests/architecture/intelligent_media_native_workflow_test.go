@@ -19,6 +19,7 @@ func TestIntelligentMediaNativeEvidenceWorkflowFailsClosed(t *testing.T) {
 		"workflow_dispatch:",
 		"workflow_call:",
 		"permissions:\n  contents: read",
+		"sudo apt-get install --yes --no-install-recommends ripgrep",
 		"runner: ubuntu-24.04\n            goarch: amd64\n            machine: x86_64",
 		"runner: ubuntu-24.04-arm\n            goarch: arm64\n            machine: aarch64",
 		`test "$(uname -m)" = "${EXPECTED_MACHINE}"`,
