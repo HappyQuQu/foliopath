@@ -37,6 +37,10 @@ POST-MVP-5 另有只允许手动触发、只读权限的
 [`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) 验证入口；它不发布镜像、
 不修改部署，也不替代 Docker Hub workflow。只有同一 source SHA 的原生 amd64/arm64 实际成功运行才是
 候选证据；workflow 文件存在或失败后上传诊断 artifact 均不算通过。
+当该文件尚未合入默认分支时，发布者可对已注册的 `dockerhub.yml` 选择待测 branch/ref，并把手动
+`image_tag` 精确设为 `intelligent-media-native-evidence`；该 sentinel 在同一 commit 的 workflow 中互斥跳过
+Docker 发布，只调用只读 native evidence workflow。任何其他 `image_tag` 仍属于真实发布路径，不得用于
+测试。该桥接不改变最终模型、质量、供应链与批准 Gate。
 该流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
 
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：

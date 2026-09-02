@@ -22,8 +22,8 @@ linux/arm64 执行入口。矩阵固定 GitHub-hosted `ubuntu-24.04` x64 和 `ub
 - 两库 order-first 查询正确性/性能证据矩阵；
 - 强制 4 CPU、10k 目录/100k 媒体容量基线。
 
-workflow 只有 `contents: read`，仅支持 `workflow_dispatch`，不配置 QEMU、Docker platform override、
-push/pull_request 自动触发或写权限。失败时仍上传 identity、step outcome 和有界日志，保留 14 天；
+workflow 只有 `contents: read`，支持直接 `workflow_dispatch` 和同仓只读 `workflow_call`，不配置 QEMU、
+Docker platform override、push/pull_request 自动触发或写权限。失败时仍上传 identity、step outcome 和有界日志，保留 14 天；
 `outcomes.complete` 只有全部步骤成功才为 true。
 
 同一 workflow 现在还以 `paired-evidence` job 下载当次两份 artifact，并调用
@@ -59,8 +59,16 @@ workflow 文件和本地 architecture test 只证明入口没有明显漂移，*
 source SHA 的 amd64/arm64 两份实际成功 artifact 经对应 Gate 复核，才能用于 `INT-403`。失败后 artifact
 只用于诊断，不能因为“上传成功”升级为通过。
 
-当前没有远程 run；已知 production keyset 100k 容量回归也会使 `make spike-capacity` 失败。该入口因此
-不改变 S2A/S2B No-Go，不完成 `INT-403`，不授权生产 UI、模型发布、提交、push 或部署。
+2026-09-02 在不合并默认分支的前提下，为默认分支已经注册的 `dockerhub.yml` 增加 branch-ref bridge：
+手动输入精确 sentinel `intelligent-media-native-evidence` 时，发布 job 由互斥条件强制跳过，只以
+`contents: read` 调用同一 commit 的 native workflow。GitHub 官方的
+[手动运行合同](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow?tool=cli)
+允许 `workflow_dispatch --ref` 选择非默认分支，[复用工作流合同](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)
+规定同仓 `./.github/workflows/...` 使用调用者相同 commit。architecture test 和
+`actionlint v1.7.7` 同时锁定“不发布”条件与 reusable workflow 关系。
+
+该桥接只解决“workflow 未注册因而无法调度”的入口问题；baseline 运行仍不产生最终 model evidence，
+也不会把候选质量、供应链或批准标成通过。
 
 同日只读
 [远端就绪审计](../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)确认：`origin/aifeature`
@@ -71,6 +79,6 @@ source SHA 的 amd64/arm64 两份实际成功 artifact 经对应 Gate 复核，�
 
 - `go test ./tests/architecture/...`：通过；
 - `go test ./tests/release/intelligent_media_native_evidence ./tests/architecture -count=1`：通过；
-- Ruby `YAML.safe_load` 解析 workflow：通过。
+- `actionlint v1.7.7` 校验两个 workflow：通过。
 
 完整仓库验证在本记录落地后执行并单独如实报告。

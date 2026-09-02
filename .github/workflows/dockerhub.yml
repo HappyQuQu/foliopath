@@ -122,7 +122,8 @@ jobs:
       - release
     if: >-
       always() &&
-      (needs.release.result == 'success' || needs.release.result == 'skipped')
+      (needs.release.result == 'success' || needs.release.result == 'skipped') &&
+      !(github.event_name == 'workflow_dispatch' && inputs.image_tag == 'intelligent-media-native-evidence')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -202,3 +203,12 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: README.dockerhub.md
           short-description: Read-only self-hosted photo and video browser for NAS libraries.
+
+  intelligent-media-native-evidence:
+    name: Run intelligent media native evidence without publishing
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.image_tag == 'intelligent-media-native-evidence'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/intelligent-media-native.yml

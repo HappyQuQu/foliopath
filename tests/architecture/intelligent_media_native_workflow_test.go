@@ -17,6 +17,7 @@ func TestIntelligentMediaNativeEvidenceWorkflowFailsClosed(t *testing.T) {
 	workflow := string(content)
 	requireFragments(t, ".github/workflows/intelligent-media-native.yml", workflow, []string{
 		"workflow_dispatch:",
+		"workflow_call:",
 		"permissions:\n  contents: read",
 		"runner: ubuntu-24.04\n            goarch: amd64\n            machine: x86_64",
 		"runner: ubuntu-24.04-arm\n            goarch: arm64\n            machine: aarch64",

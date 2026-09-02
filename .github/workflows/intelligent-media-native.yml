@@ -2,6 +2,7 @@ name: Intelligent media native evidence
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read

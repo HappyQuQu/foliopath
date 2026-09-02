@@ -57,6 +57,23 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 	}
 }
 
+func TestDockerHubManualNativeEvidenceBridgeCannotPublish(t *testing.T) {
+	root := repositoryRoot(t)
+	content, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "dockerhub.yml"))
+	if err != nil {
+		t.Fatalf("read Docker Hub workflow: %v", err)
+	}
+	workflow := string(content)
+
+	requireFragments(t, ".github/workflows/dockerhub.yml", workflow, []string{
+		"inputs.image_tag == 'intelligent-media-native-evidence'",
+		"!(github.event_name == 'workflow_dispatch' && inputs.image_tag == 'intelligent-media-native-evidence')",
+		"name: Run intelligent media native evidence without publishing",
+		"permissions:\n      contents: read",
+		"uses: ./.github/workflows/intelligent-media-native.yml",
+	})
+}
+
 func TestFriendlyReleaseAutomationContract(t *testing.T) {
 	root := repositoryRoot(t)
 	config, err := os.ReadFile(filepath.Join(root, "release-please-config.json"))
