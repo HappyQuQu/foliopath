@@ -708,6 +708,10 @@ S4 浏览器自动化使用 `make test-web-release-e2e` 与 `make test-browser-c
 FPS、P95 frame interval、process-tree RSS 与 mounted-item 上限。Playwright WebKit、viewport/touch 模拟和
 axe 分别不能替代 retail Safari、物理输入与真实读屏验收；报告必须明确保留这些人工 Gate。
 
+Retail Safari 必须另用实际 Safari 应用复核 DOM 键盘顺序、预览/查看器快捷键、退出焦点恢复与浏览器
+真实缩放；Playwright WebKit 不替代该步骤。macOS 在“按下 Tab 键高亮显示网页上的每一项”关闭时使用
+`Option+Tab` 是 Safari 的等价完整键盘遍历路径。该检查仍不能替代触屏设备或真实读屏操作。
+
 `INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
 
 - C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、

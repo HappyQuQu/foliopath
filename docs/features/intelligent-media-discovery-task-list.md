@@ -1577,6 +1577,10 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     P95 不高于 21 ms 且低于 1.5 GiB RSS。原始 JSON 与边界见
     [darwin/arm64 browser automation evidence](../evidence/int-001/int-s4-browser-automation-darwin-arm64-2026-09-02.md)。
     Playwright WebKit 不冒充 retail Safari，模拟 viewport/touch 和 axe 不冒充物理触控或读屏签署，故不勾选。
+  - 同日又在 macOS 26.6.2 的 retail Safari 26.6.2 上，以临时只读 fixture 库验证完整键盘顺序、预览、
+    完整查看器、`I` 信息、`Escape` 焦点恢复和真实 200% 页面缩放；媒体 hash 前后相同。证据见
+    [retail Safari evidence](../evidence/int-001/int-s4-retail-safari-darwin-arm64-2026-09-02.md)。现仅剩物理
+    触控设备与真实读屏签署，仍不勾选。
 - [x] `INT-409` 更新用户 README、部署、升级、隐私、限制、故障排除和模型来源文档。
   - 2026-09-02：中英文 README 已从历史 revision 1 “planned”更新为 revision 2 “已实现、发行 No-Go”，
     明确匿名分组不等于现实身份识别；部署文档集中说明 reviewed catalog 精确来源、离线 `/models:ro`、

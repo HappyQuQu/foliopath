@@ -62,6 +62,11 @@ sentinel SHA-256 不变；本次临时候选 digest 为
 [浏览器自动化证据](../../evidence/int-001/int-s4-browser-automation-darwin-arm64-2026-09-02.md)。该证据推进
 `INT-408` 的多引擎自动化和大集合子项，但不替代 retail Safari、物理触控或读屏验收。
 
+随后在同一 Mac 的 retail Safari 26.6.2 上以只读临时 fixture 库通过完整键盘顺序、预览、查看器、`I`
+信息、`Escape` 焦点恢复与真实 200% 页面缩放；媒体 SHA-256 前后相同。详见
+[retail Safari evidence](../../evidence/int-001/int-s4-retail-safari-darwin-arm64-2026-09-02.md)。该结果关闭
+retail Safari/物理键盘子项，但没有开启或代替物理触控设备和真实读屏。
+
 ## 尚未关闭的任务与精确阻塞
 
 - `INT-401`：缺最终审核 semantic/face package，因而不能完成真实 inference、人物创建、升级/回滚和
@@ -70,7 +75,7 @@ sentinel SHA-256 不变；本次临时候选 digest 为
   artifact，也缺最终模型联合 100k/10k 容量和 governed semantic/tag/video/face 质量报告。
 - `INT-404`：缺最终双架构 SBOM、签名 provenance、license/notices、漏洞/VEX 和模型权重再分发签署。
 - `INT-406`：代码级日志/API/诊断隐私边界通过，但最终 privacy/compliance/security 发布批准缺失。
-- `INT-408`：三引擎自动化与 100k 虚拟化预算通过，但仍缺 retail Safari、物理触摸、读屏和目标设备签署。
+- `INT-408`：三引擎自动化、100k 虚拟化、retail Safari 与物理键盘通过，但仍缺物理触摸、读屏和目标设备签署。
 - `INT-410`：当前没有最终发行源和真实部署镜像；在线/国内镜像入口已从范围和 UI 删除，只保留离线
   `/models:ro` 合同。
 - `INT-411`：五个 final verifier 的真实 summary 和 product/ML/QA/privacy/compliance/security/release
