@@ -40,12 +40,19 @@ make lint
 make test
 make test-integration
 make test-e2e
+make test-intelligent-media-offline
 ```
 
 最后一项在本机原生 `linux/arm64` Docker 上完成镜像构建、认证媒体矩阵、Compose、可信代理和
 `recovery_smoke.sh`，结果为 `Stage 5 candidate image smoke passed`；候选 manifest-list digest 为
 `sha256:b4393613bad42cb6c96e6b71c9a76ea0ec90cd8c90d12b6f48ce54ad5500caea`。这是本地候选证据，
 不是最终双架构发行 digest。
+
+新增的离线拓扑检查也在本机原生 `linux/arm64` 通过：候选容器使用 `--network none`、只读 rootfs、
+`/library:ro` 和 `/models:ro`，完成管理员初始化、空 reviewed catalog/candidate scan、重启以及媒体/模型
+sentinel SHA-256 不变；本次临时候选 digest 为
+`sha256:680d3ba0740fc2f449ed9a3d7da995e37f8cd5b00bd0cc729ac1a8531fa24b91`。该结果只推进
+`INT-410` 的无外网与只读模型拓扑子项，不是最终发行镜像或双架构验收。
 
 ## 尚未关闭的任务与精确阻塞
 

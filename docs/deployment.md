@@ -498,6 +498,8 @@ S2C 已 Backend Ready，但 Release 保持 No-Go；核心浏览和已经可安�
   发行的最终模型包，也没有产品内下载、国内镜像、URL、代理或凭据设置。
 - 离线安装：在宿主机准备独立模型目录，以 `/models:ro` 单次挂载启动；该目录不能位于媒体根下，
   后代不能再有 mount。管理员只能扫描服务端批准目录并选择 opaque candidate；应用不写该来源。
+  维护者可用 `make test-intelligent-media-offline` 复验无外网、空 catalog、只读来源和重启边界；该本地
+  候选检查不能替代最终双架构发行证据。
 - 升级：先停止服务并备份完整 SQLite family 和人物、人工 assignment/exclusion/cannot-link/audit 等
   应用状态，再替换镜像。新 generation 完整验证并可用前保留旧 generation。回滚必须使用“旧镜像＋
   升级前备份”配对，不能让旧镜像直接打开已前向迁移的数据。

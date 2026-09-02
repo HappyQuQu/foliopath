@@ -173,6 +173,28 @@ func TestAcceptedFacePackageArchitectureKeepsReleaseClosedAndSpikeIsolated(t *te
 	}
 }
 
+func TestIntelligentMediaOfflineTopologyRemainsNoNetworkAndReadOnly(t *testing.T) {
+	root := repositoryRoot(t)
+	script := filepath.Join(root, "tests", "release", "intelligent_media_offline_smoke.sh")
+	for _, required := range []string{
+		"--network none",
+		`dst=/library,readonly`,
+		`dst=/models,readonly`,
+		`{{.HostConfig.NetworkMode}}`,
+		`eq .Destination "/models"`,
+		"/api/v1/ai/models",
+		"/api/v1/ai/model-candidate-scans",
+		`'.items == [] and .activeModelId == null and .activeFaceModelId == null'`,
+		`'.candidates == [] and .truncated == false'`,
+		`docker restart "${container}"`,
+		`test "${model_after}" = "${model_before}"`,
+	} {
+		assertDocumentContains(t, script, required)
+	}
+	assertDocumentContains(t, filepath.Join(root, "Makefile"),
+		"test-intelligent-media-offline:\n\ttests/release/intelligent_media_offline_smoke.sh")
+}
+
 func assertDocumentContains(t *testing.T, path, expected string) {
 	t.Helper()
 	content, err := os.ReadFile(path)

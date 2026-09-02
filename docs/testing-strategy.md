@@ -697,6 +697,12 @@ S3 消费者验证在后端合同测试之上增加：生成客户端 adapter �
 390/768/1265/1440、light/dark、zh-CN/en 和 reduced-motion 矩阵复核；通过 S3 不解除 S4 的模型、质量、
 native 双架构、联合容量、供应链和 owner 批准门禁。
 
+`make test-intelligent-media-offline` 提供 `INT-410` 的本地拓扑回归：真实候选容器使用
+`--network none`、只读 rootfs、`/library:ro` 与 `/models:ro`，完成管理员初始化、空 reviewed catalog/
+空 candidate scan、重启及两个来源 sentinel hash 对照。HTTP 辅助容器只加入应用的无外网 network
+namespace，不创建可出站网络。该检查证明无模型时核心服务可用且不写模型/媒体来源，但它是单一
+linux/arm64 本地候选，不替代最终发行源、最终模型或 native 双架构的安装/升级/恢复验收。
+
 `INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
 
 - C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、

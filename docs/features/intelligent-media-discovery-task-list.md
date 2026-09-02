@@ -1579,6 +1579,10 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     模型包或在线/国内镜像，文档不向用户展示虚构下载路径。
 - [ ] `INT-410` 在无外网、发行源、真实部署镜像和 `/models:ro` 四种拓扑验证安装/升级/恢复；没有
   真实镜像证据时从发布范围和 UI 删除镜像选项。
+  - 2026-09-02：新增 `make test-intelligent-media-offline`，本机原生 linux/arm64 候选以
+    `--network none`、只读 rootfs、`/library:ro`、`/models:ro` 完成管理员初始化、空 reviewed catalog/
+    candidate scan、重启和双 sentinel hash 不变，证明无模型时核心服务可用且不写来源。在线/镜像入口
+    已删除；最终发行源、最终模型和同 digest native amd64/arm64 的安装/升级/恢复仍缺，故本项不勾选。
 - [ ] `INT-411` 复审 INT-S4 Integrated Slice Done；未签署不得宣称功能发布完成。
   - 必须同时复核五个 intelligent-media final verifier 及 product/ML/QA/privacy/compliance/security/release
     批准引用；任一缺失时 reviewed catalog/face composition/UI release 继续失败关闭。

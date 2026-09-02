@@ -5,7 +5,7 @@ OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence verify-intelligent-media-native-evidence verify-intelligent-media-native-model-evidence verify-intelligent-media-quality verify-intelligent-media-face-quality verify-intelligent-media-supply-chain verify-intelligent-media-s2-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-libvips test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-face-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-ai spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence verify-intelligent-media-native-evidence verify-intelligent-media-native-model-evidence verify-intelligent-media-quality verify-intelligent-media-face-quality verify-intelligent-media-supply-chain verify-intelligent-media-s2-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-libvips test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-face-capacity test-release-image test-release-upgrade test-release-capacity test-intelligent-media-offline test-storyboard-runtime test-storyboard-vertical release-capacity spike-ai spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -192,6 +192,9 @@ test-release-upgrade:
 
 test-release-capacity:
 	tests/release/capacity_smoke.sh
+
+test-intelligent-media-offline:
+	tests/release/intelligent_media_offline_smoke.sh
 
 test-storyboard-runtime:
 	tests/release/storyboard_ffmpeg_smoke.sh
