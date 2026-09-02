@@ -383,6 +383,7 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	}
 	newlySeen := true
 	sourceChanged := true
+	existingAsset := false
 	mediaJobCurrent := false
 	var assetID int64
 	var existingFingerprint string
@@ -407,6 +408,7 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	)
 	switch {
 	case err == nil:
+		existingAsset = true
 		newlySeen = existingGeneration != run.Generation
 		sourceChanged = existingFingerprint != sourceFingerprint.String()
 		mediaJobCurrent = currentMediaJob != 0
@@ -477,7 +479,10 @@ func upsertAsset(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry sca
 	).Scan(&assetID); err != nil {
 		return false, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
 	}
-	if sourceChanged {
+	// A newly inserted asset cannot own stale derived rows. Avoid issuing two
+	// indexed DELETE statements for every first-generation asset; at 100k
+	// scale those no-op statements materially extend the authoritative scan.
+	if existingAsset && sourceChanged {
 		if _, err := tx.ExecContext(ctx, `
         INSERT OR IGNORE INTO cache_deletions(
             library_id, cache_rel_path, byte_size, created_at_ms

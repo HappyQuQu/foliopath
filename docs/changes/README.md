@@ -44,6 +44,7 @@
 
 ### 2026-09-02
 
+- [原生容量回归收敛](FIX-2026-09-02-native-capacity-regression.md)
 - [人脸候选原生双架构工作流预检](FIX-2026-09-02-face-native-workflow-preflight.md)
 - [人脸功能证据目录分组口径纠偏](FIX-2026-09-02-face-functional-group-metrics.md)
 - [人脸控制面与取消状态机闭环](FIX-2026-09-02-face-control-and-cancellation.md)

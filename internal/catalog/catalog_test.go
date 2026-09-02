@@ -16,6 +16,7 @@ type repositoryStub struct {
 	assets          []Asset
 	directoryCalls  []DirectoryListParams
 	assetCalls      []AssetListParams
+	countCalls      int
 	resolveErr      error
 	lineage         DirectoryLineage
 	lineageErr      error
@@ -93,6 +94,7 @@ func (stub *repositoryStub) CountAssets(
 	if err := ctx.Err(); err != nil {
 		return AssetCounts{}, err
 	}
+	stub.countCalls++
 	counts := AssetCounts{All: int64(len(stub.assets))}
 	for _, item := range stub.assets {
 		if item.Kind == KindVideo {
@@ -314,6 +316,9 @@ func TestAssetQueryDefaultsCanonicalizesKindsAndBindsCursor(t *testing.T) {
 	if first.NextCursor == "" || len(repository.assetCalls) != 1 {
 		t.Fatalf("first page = %#v", first)
 	}
+	if repository.countCalls != 1 {
+		t.Fatalf("first page count calls = %d, want 1", repository.countCalls)
+	}
 	query := repository.assetCalls[0].Query
 	if query.Sort != SortName || query.Order != OrderAsc ||
 		!slices.Equal(query.Kinds, []AssetKind{KindImage, KindVideo}) {
@@ -321,12 +326,16 @@ func TestAssetQueryDefaultsCanonicalizesKindsAndBindsCursor(t *testing.T) {
 	}
 
 	repository.assets = nil
-	if _, err := service.ListAssets(context.Background(), AssetRequest{
+	second, err := service.ListAssets(context.Background(), AssetRequest{
 		LibraryID: 9, DirectoryID: 30,
 		Kinds:  []AssetKind{KindImage, KindVideo},
 		Cursor: first.NextCursor, Limit: 1,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("equivalent root/kind query rejected cursor: %v", err)
+	}
+	if repository.countCalls != 1 || second.Counts != first.Counts {
+		t.Fatalf("cursor page count calls/counts = %d/%#v, want 1/%#v", repository.countCalls, second.Counts, first.Counts)
 	}
 	if repository.assetCalls[1].After == nil || repository.assetCalls[1].After.ID != 40 {
 		t.Fatalf("decoded asset position = %#v", repository.assetCalls[1].After)

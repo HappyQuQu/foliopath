@@ -30,6 +30,7 @@ const (
 	MaxBreadcrumbs  = 2049
 
 	queryVersion     = 1
+	assetCursorV2    = 2
 	directoryOrderV1 = 1
 	assetOrderV2     = 2
 	searchProfileV1  = 1
@@ -501,25 +502,28 @@ func (service *Service) listAssetQuery(
 		revision = query.CatalogRevision
 	}
 	fingerprint := assetFingerprint(query)
-	countQuery := query
-	countQuery.Kinds = nil
-	counts, err := service.repository.CountAssets(ctx, countQuery)
-	if err != nil {
-		return AssetPage{}, err
-	}
-	if counts.All < 0 || counts.Images < 0 || counts.Videos < 0 ||
-		counts.Images+counts.Videos != counts.All {
-		return AssetPage{}, errors.New("catalog repository returned invalid asset counts")
-	}
 	var after *AssetPosition
+	var counts AssetCounts
+	var err error
 	if cursor != "" {
-		position, decodeErr := service.decodeAssetCursor(
+		position, cursorCounts, decodeErr := service.decodeAssetCursor(
 			cursor, revision, fingerprint, query,
 		)
 		if decodeErr != nil {
 			return AssetPage{}, decodeErr
 		}
 		after = &position
+		counts = cursorCounts
+	} else {
+		countQuery := query
+		countQuery.Kinds = nil
+		counts, err = service.repository.CountAssets(ctx, countQuery)
+		if err != nil {
+			return AssetPage{}, err
+		}
+	}
+	if !validAssetCounts(counts) {
+		return AssetPage{}, errors.New("catalog repository returned invalid asset counts")
 	}
 	items, err := service.repository.ListAssetPage(ctx, AssetListParams{
 		Query: query,
@@ -539,7 +543,7 @@ func (service *Service) listAssetQuery(
 	}
 	items = items[:limit]
 	last := items[len(items)-1]
-	next, err := service.encodeAssetCursor(revision, fingerprint, query, AssetPosition{
+	next, err := service.encodeAssetCursor(revision, fingerprint, query, counts, AssetPosition{
 		DirectoryPath:  assetDirectoryPath(last.RelativePath),
 		NaturalNameKey: last.NaturalNameKey,
 		Name:           last.Name,
@@ -932,15 +936,20 @@ type assetCursor struct {
 	ModifiedAtNS  int64     `json:"m,omitempty"`
 	SizeBytes     int64     `json:"z,omitempty"`
 	ID            int64     `json:"i"`
+	All           int64     `json:"a"`
+	Images        int64     `json:"x"`
+	Videos        int64     `json:"y"`
 }
 
 func (service *Service) encodeAssetCursor(
 	revision int64,
 	fingerprint [sha256.Size]byte,
 	query AssetQuery,
+	counts AssetCounts,
 	position AssetPosition,
 ) (string, error) {
 	if revision < 0 || position.ID <= 0 ||
+		!validAssetCounts(counts) ||
 		(query.ScopeKind == ScopeGlobal && query.Sort == SortName && position.LibraryID <= 0) ||
 		(query.Sort == SortName &&
 			(len(position.NaturalNameKey) == 0 || position.Name == "" ||
@@ -949,13 +958,16 @@ func (service *Service) encodeAssetCursor(
 		return "", errors.New("catalog repository returned an invalid asset position")
 	}
 	value, err := service.codec.Encode(assetCursor{
-		Version: queryVersion, Generation: revision, Fingerprint: fingerprint[:],
+		Version: assetCursorV2, Generation: revision, Fingerprint: fingerprint[:],
 		Sort: query.Sort, DirectoryPath: position.DirectoryPath,
 		Key: position.NaturalNameKey, Name: position.Name,
 		LibraryID:    position.LibraryID,
 		RelativePath: position.RelativePath, ModifiedAtNS: position.ModifiedAtNS,
 		SizeBytes: position.SizeBytes,
 		ID:        position.ID,
+		All:       counts.All,
+		Images:    counts.Images,
+		Videos:    counts.Videos,
 	}, assetCursorAudience(query))
 	if err != nil {
 		return "", fmt.Errorf("encode asset cursor: %w", err)
@@ -968,31 +980,38 @@ func (service *Service) decodeAssetCursor(
 	revision int64,
 	fingerprint [sha256.Size]byte,
 	query AssetQuery,
-) (AssetPosition, error) {
+) (AssetPosition, AssetCounts, error) {
 	if len(value) < 8 || len(value) > MaxCursorBytes {
-		return AssetPosition{}, ErrInvalidCursor
+		return AssetPosition{}, AssetCounts{}, ErrInvalidCursor
 	}
 	var decoded assetCursor
 	if err := service.codec.Decode(value, assetCursorAudience(query), &decoded); err != nil ||
-		decoded.Version != queryVersion || decoded.Generation != revision ||
+		decoded.Version != assetCursorV2 || decoded.Generation != revision ||
 		decoded.Sort != query.Sort || !bytes.Equal(decoded.Fingerprint, fingerprint[:]) ||
-		decoded.ID <= 0 {
-		return AssetPosition{}, ErrInvalidCursor
+		decoded.ID <= 0 || !validAssetCounts(AssetCounts{
+		All: decoded.All, Images: decoded.Images, Videos: decoded.Videos,
+	}) {
+		return AssetPosition{}, AssetCounts{}, ErrInvalidCursor
 	}
 	if query.Sort == SortName &&
 		(len(decoded.Key) == 0 || decoded.Name == "" || decoded.RelativePath == "" ||
 			decoded.DirectoryPath != assetDirectoryPath(decoded.RelativePath)) {
-		return AssetPosition{}, ErrInvalidCursor
+		return AssetPosition{}, AssetCounts{}, ErrInvalidCursor
 	}
 	if query.ScopeKind == ScopeGlobal && query.Sort == SortName && decoded.LibraryID <= 0 {
-		return AssetPosition{}, ErrInvalidCursor
+		return AssetPosition{}, AssetCounts{}, ErrInvalidCursor
 	}
 	return AssetPosition{
 		DirectoryPath: decoded.DirectoryPath, NaturalNameKey: decoded.Key,
 		Name: decoded.Name, RelativePath: decoded.RelativePath,
 		LibraryID: decoded.LibraryID, ModifiedAtNS: decoded.ModifiedAtNS,
 		SizeBytes: decoded.SizeBytes, ID: decoded.ID,
-	}, nil
+	}, AssetCounts{All: decoded.All, Images: decoded.Images, Videos: decoded.Videos}, nil
+}
+
+func validAssetCounts(counts AssetCounts) bool {
+	return counts.All >= 0 && counts.Images >= 0 && counts.Videos >= 0 &&
+		counts.Images+counts.Videos == counts.All
 }
 
 func assetDirectoryPath(relativePath string) string {
