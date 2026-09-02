@@ -712,6 +712,12 @@ Retail Safari 必须另用实际 Safari 应用复核 DOM 键盘顺序、预览/�
 真实缩放；Playwright WebKit 不替代该步骤。macOS 在“按下 Tab 键高亮显示网页上的每一项”关闭时使用
 `Option+Tab` 是 Safari 的等价完整键盘遍历路径。该检查仍不能替代触屏设备或真实读屏操作。
 
+`make test-intelligent-media-privacy` 是 `INT-406` 的工程回归入口：使用敏感 canary 验证结构化日志脱敏、
+face/semantic/diagnostic HTTP 安全投影、face capability 与日志/诊断依赖隔离、derived/manual clear 分类边界，
+并要求每个 SQLite 连接启用 `secure_delete=ON`。文件级用例先证明 canary 已写入，再删除、truncate WAL，
+最后复核活动 DB/WAL/SHM 无残留。该入口不宣称清除 operator backup、storage snapshot、文件系统 journal
+或合同明确保留的应用状态，也不替代 privacy/compliance/security owner 发布批准。
+
 `INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
 
 - C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、

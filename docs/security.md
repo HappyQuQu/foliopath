@@ -369,6 +369,9 @@ Backend Ready。CR-2026-022 没有取消 `INT-015` 隐私和合法数据要求�
 - E 默认关闭且按库明确告知。embedding、observation、crop cache、anonymous cluster 归为高敏感可重建
   数据；person name、manual assignment/exclusion/cannot-link/audit 归为不可重建应用状态。SQLite、API、日志、
   诊断和支持包均不得包含 embedding、crop bytes/path、精确 bbox、原始模型错误或推测身份属性。
+- 每个 SQLite 连接强制 `secure_delete=ON`；清除验收在成功删除并 truncate WAL 后扫描活动 DB/WAL/SHM
+  的唯一 canary。该边界不承诺擦除 operator backup、storage snapshot、文件系统 journal 或合同明确保留的
+  应用状态，相关副本仍由部署者按保留/销毁策略处理。
 - face runtime 只能产生匿名 core/edge，不能创建姓名或自动合并 named person。只有合法真实 ground truth
   证明 core precision ≥99.5% 时才开放整组操作，否则强制逐脸或小组确认；edge 永远逐项确认。
 - core component 必须满足 smallest-ID anchor coherence，不能因 `A≈B`、`B≈C` 就传递合并未达到

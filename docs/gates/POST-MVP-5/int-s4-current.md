@@ -41,6 +41,7 @@ make test
 make test-integration
 make test-e2e
 make test-intelligent-media-offline
+make test-intelligent-media-privacy
 make test-web-release-e2e
 make test-browser-capacity
 ```
@@ -67,6 +68,12 @@ sentinel SHA-256 不变；本次临时候选 digest 为
 [retail Safari evidence](../../evidence/int-001/int-s4-retail-safari-darwin-arm64-2026-09-02.md)。该结果关闭
 retail Safari/物理键盘子项，但没有开启或代替物理触控设备和真实读屏。
 
+`INT-406` 的工程隐私入口随后通过：敏感日志属性 canary 全部脱敏，face/semantic/diagnostic HTTP 投影保持
+封闭，所有 SQLite 连接强制 `secure_delete=ON`，删除 canary 经 WAL truncate 后不再存在于活动 DB/WAL/SHM；
+derived/manual clear 仍保持分类边界和原媒体不变。详见
+[隐私工程证据](../../evidence/int-001/int-s4-privacy-engineering-darwin-arm64-2026-09-02.md)。该结果不替代
+privacy/compliance/security owner 的最终发布批准，因此不增加 S4 完成分子。
+
 ## 尚未关闭的任务与精确阻塞
 
 - `INT-401`：缺最终审核 semantic/face package，因而不能完成真实 inference、人物创建、升级/回滚和
@@ -74,7 +81,8 @@ retail Safari/物理键盘子项，但没有开启或代替物理触控设备和
 - `INT-402～403`：缺同一 source SHA、model package 与 final image digest 的原生 amd64/arm64 配对
   artifact，也缺最终模型联合 100k/10k 容量和 governed semantic/tag/video/face 质量报告。
 - `INT-404`：缺最终双架构 SBOM、签名 provenance、license/notices、漏洞/VEX 和模型权重再分发签署。
-- `INT-406`：代码级日志/API/诊断隐私边界通过，但最终 privacy/compliance/security 发布批准缺失。
+- `INT-406`：日志/API/诊断、活动 SQLite 删除残留和无 face crop cache 的工程边界通过，但最终
+  privacy/compliance/security 发布批准缺失。
 - `INT-408`：三引擎自动化、100k 虚拟化、retail Safari 与物理键盘通过，但仍缺物理触摸、读屏和目标设备签署。
 - `INT-410`：当前没有最终发行源和真实部署镜像；在线/国内镜像入口已从范围和 UI 删除，只保留离线
   `/models:ro` 合同。

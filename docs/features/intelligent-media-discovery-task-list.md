@@ -1566,6 +1566,12 @@ adapter，但在质量、隐私发布、模型供应链和原生双架构证据�
     发行签署，后者仍由 `INT-401～404/410/411` 持有。
 - [ ] `INT-406` 人脸/向量/查询/姓名不进入日志和诊断，API/缓存/删除后残留检查通过。
   - 本项还持有最终 privacy/compliance/security 发布复审；S2C Backend Ready 签署不替代 release approval。
+  - 2026-09-02：新增 `make test-intelligent-media-privacy`，对 face/person/name/vector/score/bbox/crop 等日志
+    属性执行 canary 脱敏，复核 face/semantic/diagnostic 安全 DTO，并把 `secure_delete=ON` 固化到每个 SQLite
+    连接；文件级 canary 在删除和 WAL truncate 后不再出现在活动 DB/WAL/SHM，derived/manual clear 继续保持
+    分类数据边界和原媒体 hash/mtime。该结果关闭工程子项，但不替代 privacy/compliance/security owner
+    发布批准，故本项仍不勾选。证据见
+    [S4 隐私工程证据](../evidence/int-001/int-s4-privacy-engineering-darwin-arm64-2026-09-02.md)。
 - [x] `INT-407` 原媒体只读 hash/mtime/mount 证据和路径攻击矩阵通过。
   - 2026-09-02：真实 linux/arm64 候选以只读 rootfs、`/library:ro`、capabilities 全丢弃运行，媒体矩阵、
     Compose、可信代理与恢复演练前后 sentinel SHA-256 一致；face clear 回归同时比较 source

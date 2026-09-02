@@ -1,7 +1,9 @@
 package sqlite
 
 import (
+	"bytes"
 	"context"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -40,7 +42,7 @@ func TestOpenUsesFileDatabaseAndAppliesPragmasToEveryConnection(t *testing.T) {
 		connections = append(connections, connection)
 
 		var version, journalMode string
-		var foreignKeys, busyTimeout, synchronous int
+		var foreignKeys, busyTimeout, synchronous, secureDelete int
 		if err := connection.QueryRowContext(ctx, `SELECT sqlite_version()`).Scan(&version); err != nil {
 			t.Fatalf("sqlite_version connection %d: %v", index, err)
 		}
@@ -70,6 +72,12 @@ func TestOpenUsesFileDatabaseAndAppliesPragmasToEveryConnection(t *testing.T) {
 		}
 		if synchronous != 1 {
 			t.Fatalf("synchronous connection %d = %d, want NORMAL (1)", index, synchronous)
+		}
+		if err := connection.QueryRowContext(ctx, `PRAGMA secure_delete`).Scan(&secureDelete); err != nil {
+			t.Fatalf("secure_delete connection %d: %v", index, err)
+		}
+		if secureDelete != 1 {
+			t.Fatalf("secure_delete connection %d = %d, want ON (1)", index, secureDelete)
 		}
 		if index == 0 {
 			t.Logf("SQLite runtime version: %s", version)
@@ -148,6 +156,59 @@ func TestDatabaseIntegrityForeignKeysAndCheckpoint(t *testing.T) {
 	if busy != 0 {
 		t.Fatalf("wal_checkpoint busy = %d, want 0 (log=%d checkpointed=%d)",
 			busy, logFrames, checkpointedFrames)
+	}
+}
+
+func TestSecureDeleteRemovesDeletedPayloadFromLiveDatabaseFiles(t *testing.T) {
+	store, filename := openTestStore(t)
+	ctx := context.Background()
+	const canary = "privacy-delete-canary-7f6d8b2a4c1e"
+
+	if _, err := store.db.ExecContext(ctx, `CREATE TABLE privacy_delete_probe(value TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.ExecContext(ctx, `INSERT INTO privacy_delete_probe(value) VALUES(?)`, canary); err != nil {
+		t.Fatal(err)
+	}
+	checkpointSQLite(t, store)
+	database, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(database, []byte(canary)) {
+		t.Fatal("privacy canary was not materialized before deletion; residual assertion would be vacuous")
+	}
+
+	if _, err := store.db.ExecContext(ctx, `DELETE FROM privacy_delete_probe`); err != nil {
+		t.Fatal(err)
+	}
+	checkpointSQLite(t, store)
+	for _, candidate := range []string{filename, filename + "-wal", filename + "-shm"} {
+		content, err := os.ReadFile(candidate)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			t.Fatal(err)
+		}
+		if bytes.Contains(content, []byte(canary)) {
+			t.Fatalf("deleted privacy canary remains in live SQLite artifact %s", filepath.Base(candidate))
+		}
+	}
+}
+
+func checkpointSQLite(t *testing.T, store *Store) {
+	t.Helper()
+	var busy, logFrames, checkpointedFrames int
+	if err := store.db.QueryRowContext(context.Background(), `PRAGMA wal_checkpoint(TRUNCATE)`).Scan(
+		&busy,
+		&logFrames,
+		&checkpointedFrames,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if busy != 0 {
+		t.Fatalf("wal checkpoint busy: log=%d checkpointed=%d", logFrames, checkpointedFrames)
 	}
 }
 
