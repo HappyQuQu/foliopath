@@ -705,12 +705,15 @@ linux/arm64 本地候选，不替代最终发行源、最终模型或 native 双
 
 S4 浏览器自动化使用 `make test-web-release-e2e` 与 `make test-browser-capacity`。前者覆盖 Firefox/WebKit
 的键盘、焦点、降级、重排和 storyboard 行为，后者对 Chromium/Firefox/WebKit 的 100k 虚拟集合强制
-FPS、P95 frame interval、process-tree RSS 与 mounted-item 上限。Playwright WebKit、viewport/touch 模拟和
-axe 分别不能替代 retail Safari、物理输入与真实读屏验收；报告必须明确保留这些人工 Gate。
+FPS、P95 frame interval、process-tree RSS 与 mounted-item 上限。Playwright WebKit 和 viewport/touch 模拟
+分别不能替代 retail Safari 与物理输入验收；报告必须明确保留这些人工 Gate。产品用户已通过
+[CR-2026-024](changes/CR-2026-024-int-s4-screen-reader-waiver.md)删除 `INT-408` 的 VoiceOver 人工验收；
+语义、键盘、焦点与 axe 门槛不因此降低。
 
 Retail Safari 必须另用实际 Safari 应用复核 DOM 键盘顺序、预览/查看器快捷键、退出焦点恢复与浏览器
 真实缩放；Playwright WebKit 不替代该步骤。macOS 在“按下 Tab 键高亮显示网页上的每一项”关闭时使用
-`Option+Tab` 是 Safari 的等价完整键盘遍历路径。该检查仍不能替代触屏设备或真实读屏操作。
+`Option+Tab` 是 Safari 的等价完整键盘遍历路径。该检查仍不能替代触屏设备；真实读屏不再属于本版本
+`INT-408` 的发布验收范围。
 
 `make test-intelligent-media-privacy` 是 `INT-406` 的工程回归入口：使用敏感 canary 验证结构化日志脱敏、
 face/semantic/diagnostic HTTP 安全投影、face capability 与日志/诊断依赖隔离、derived/manual clear 分类边界，

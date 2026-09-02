@@ -39,6 +39,7 @@
 - [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5`
   revision 2 已批准，A～E 全部纳入）
 - [CR-2026-022：S2 后端完成与最终发布 Gate 分离](CR-2026-022-s2-backend-release-gate-separation.md)
+- [CR-2026-024：INT-S4 屏幕阅读器验收豁免](CR-2026-024-int-s4-screen-reader-waiver.md)
 
 ## Routine fixes
 

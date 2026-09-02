@@ -61,12 +61,16 @@ sentinel SHA-256 不变；本次临时候选 digest 为
 200% 等效重排与 storyboard 行为通过。100k 虚拟集合在 Chromium/Firefox/WebKit 均只挂载 60 项，超过
 59 FPS，P95 不高于 21 ms，且低于 1.5 GiB RSS。详见
 [浏览器自动化证据](../../evidence/int-001/int-s4-browser-automation-darwin-arm64-2026-09-02.md)。该证据推进
-`INT-408` 的多引擎自动化和大集合子项，但不替代 retail Safari、物理触控或读屏验收。
+`INT-408` 的多引擎自动化和大集合子项，但不替代 retail Safari 或物理触控验收。
 
 随后在同一 Mac 的 retail Safari 26.6.2 上以只读临时 fixture 库通过完整键盘顺序、预览、查看器、`I`
 信息、`Escape` 焦点恢复与真实 200% 页面缩放；媒体 SHA-256 前后相同。详见
 [retail Safari evidence](../../evidence/int-001/int-s4-retail-safari-darwin-arm64-2026-09-02.md)。该结果关闭
-retail Safari/物理键盘子项，但没有开启或代替物理触控设备和真实读屏。
+retail Safari/物理键盘子项，但没有开启或代替物理触控设备。
+
+产品用户随后明确 S4 不需要 VoiceOver；
+[CR-2026-024](../../changes/CR-2026-024-int-s4-screen-reader-waiver.md)从 `INT-408` 删除真实屏幕阅读器人工验收，
+但不把未执行的测试写成通过，并保留语义、键盘和 axe 门槛。该决定不补足仍缺的物理触控/目标设备证据。
 
 `INT-406` 的工程隐私入口随后通过：敏感日志属性 canary 全部脱敏，face/semantic/diagnostic HTTP 投影保持
 封闭，所有 SQLite 连接强制 `secure_delete=ON`，删除 canary 经 WAL truncate 后不再存在于活动 DB/WAL/SHM；
@@ -93,7 +97,8 @@ summary 明确 `finalModelEvidence=false`，因此不增加 S4 主任务完成�
 - `INT-404`：缺最终双架构 SBOM、签名 provenance、license/notices、漏洞/VEX 和模型权重再分发签署。
 - `INT-406`：日志/API/诊断、活动 SQLite 删除残留和无 face crop cache 的工程边界通过，但最终
   privacy/compliance/security 发布批准缺失。
-- `INT-408`：三引擎自动化、100k 虚拟化、retail Safari 与物理键盘通过，但仍缺物理触摸、读屏和目标设备签署。
+- `INT-408`：三引擎自动化、100k 虚拟化、retail Safari 与物理键盘通过；VoiceOver 已由产品明确豁免，
+  仍缺物理触摸和目标设备证据。
 - `INT-410`：当前没有最终发行源和真实部署镜像；在线/国内镜像入口已从范围和 UI 删除，只保留离线
   `/models:ro` 合同。
 - `INT-411`：五个 final verifier 的真实 summary 和 product/ML/QA/privacy/compliance/security/release
