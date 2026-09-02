@@ -279,33 +279,56 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
 		if err != nil {
 			return err
 		}
+		assetStates, err := loadAssetUpsertStates(ctx, tx, run, entries)
+		if err != nil {
+			return err
+		}
+		directoryIDs := make(map[string]int64)
 
 		var newDirectories, newAssets int64
-		mediaAdmissions := make([]mediaJobAdmission, 0, len(entries))
+		preparedAssets := make([]preparedAssetUpsert, 0, len(entries))
 		for _, entry := range entries {
 			switch entry.Kind {
 			case scanner.CatalogEntryDirectory:
-				newlySeen, err := upsertDirectory(ctx, tx, run, entry)
+				newlySeen, directoryID, err := upsertDirectory(ctx, tx, run, entry)
 				if err != nil {
 					return err
 				}
+				directoryIDs[entry.RelativePath] = directoryID
 				if newlySeen {
 					newDirectories++
 				}
 			case scanner.CatalogEntryAsset:
-				newlySeen, admission, err := upsertAsset(ctx, tx, run, entry)
+				state, found := assetStates[entry.RelativePath]
+				directoryID, parentSeen := directoryIDs[entry.ParentPath]
+				if found && parentSeen {
+					state.directoryID = directoryID
+					state.parentCurrent = true
+				}
+				if !found || !state.parentCurrent {
+					if !parentSeen {
+						return fmt.Errorf(
+							"%w: asset parent %q has not been indexed",
+							scanner.ErrInvalidEntry, entry.ParentPath,
+						)
+					}
+					state = assetUpsertState{directoryID: directoryID, parentCurrent: true}
+				}
+				prepared, err := prepareAssetUpsert(run, entry, state)
 				if err != nil {
 					return err
 				}
-				if admission != nil {
-					mediaAdmissions = append(mediaAdmissions, *admission)
-				}
-				if newlySeen {
+				preparedAssets = append(preparedAssets, prepared)
+				if prepared.newlySeen {
 					newAssets++
 				}
 			default:
 				return fmt.Errorf("%w: unknown catalog entry kind %q", scanner.ErrInvalidEntry, entry.Kind)
 			}
+		}
+		mediaAdmissions, err := upsertAssetsBatch(ctx, tx, run, preparedAssets)
+		if err != nil {
+			return err
 		}
 		if err := admitMediaJobsBatch(ctx, tx, run, mediaAdmissions); err != nil {
 			return err
@@ -334,14 +357,19 @@ func (s *Store) UpsertCatalogBatch(ctx context.Context, runID int64, entries []s
 	return errors.Join(scanner.ErrDatabaseUnavailable, err)
 }
 
-func upsertDirectory(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry scanner.CatalogEntry) (bool, error) {
+func upsertDirectory(
+	ctx context.Context,
+	tx *sql.Tx,
+	run scanner.ScanRun,
+	entry scanner.CatalogEntry,
+) (bool, int64, error) {
 	if entry.RelativePath == "" && entry.ParentPath != "" {
-		return false, fmt.Errorf("%w: root directory has a parent", scanner.ErrInvalidEntry)
+		return false, 0, fmt.Errorf("%w: root directory has a parent", scanner.ErrInvalidEntry)
 	}
 
 	newlySeen, err := notSeenInGeneration(ctx, tx, "directories", run.LibraryID, entry.RelativePath, run.Generation)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	var parentID any
@@ -353,14 +381,15 @@ func upsertDirectory(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry
             WHERE library_id = ? AND relative_path = ? AND last_seen_generation = ?`,
 			run.LibraryID, entry.ParentPath, run.Generation).Scan(&id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return false, fmt.Errorf("%w: parent directory %q has not been indexed", scanner.ErrInvalidEntry, entry.ParentPath)
+				return false, 0, fmt.Errorf("%w: parent directory %q has not been indexed", scanner.ErrInvalidEntry, entry.ParentPath)
 			}
-			return false, fmt.Errorf("find parent directory: %w", err)
+			return false, 0, fmt.Errorf("find parent directory: %w", err)
 		}
 		parentID = id
 	}
 
-	if _, err := tx.ExecContext(ctx, `
+	var directoryID int64
+	if err := tx.QueryRowContext(ctx, `
         INSERT INTO directories(
             library_id, parent_id, relative_path, name, natural_name_key,
             search_name_key, mtime_ns, last_seen_generation
@@ -371,13 +400,14 @@ func upsertDirectory(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry
             natural_name_key = excluded.natural_name_key,
             search_name_key = excluded.search_name_key,
             mtime_ns = excluded.mtime_ns,
-            last_seen_generation = excluded.last_seen_generation`,
+            last_seen_generation = excluded.last_seen_generation
+        RETURNING id`,
 		run.LibraryID, parentID, entry.RelativePath, entry.Name,
 		catalog.NaturalNameKey(entry.Name), catalog.SearchTextKey(entry.Name),
-		entry.MTimeNS, run.Generation); err != nil {
-		return false, fmt.Errorf("upsert directory %q: %w", entry.RelativePath, err)
+		entry.MTimeNS, run.Generation).Scan(&directoryID); err != nil {
+		return false, 0, fmt.Errorf("upsert directory %q: %w", entry.RelativePath, err)
 	}
-	return newlySeen, nil
+	return newlySeen, directoryID, nil
 }
 
 type mediaJobAdmission struct {
@@ -385,77 +415,211 @@ type mediaJobAdmission struct {
 	sourceFingerprint string
 }
 
-func upsertAsset(
+type assetUpsertState struct {
+	directoryID         int64
+	existingAssetID     sql.NullInt64
+	existingFingerprint sql.NullString
+	existingGeneration  sql.NullInt64
+	mediaJobCurrent     bool
+	parentCurrent       bool
+}
+
+const assetStatePrefetchLimit = 200
+
+func loadAssetUpsertStates(
 	ctx context.Context,
 	tx *sql.Tx,
 	run scanner.ScanRun,
-	entry scanner.CatalogEntry,
-) (bool, *mediaJobAdmission, error) {
-	if entry.RelativePath == "" || entry.Name == "" || entry.SizeBytes < 0 {
-		return false, nil, scanner.ErrInvalidEntry
+	entries []scanner.CatalogEntry,
+) (map[string]assetUpsertState, error) {
+	assets := make([]scanner.CatalogEntry, 0, len(entries))
+	seen := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		if entry.Kind != scanner.CatalogEntryAsset {
+			continue
+		}
+		if _, duplicate := seen[entry.RelativePath]; duplicate {
+			return nil, fmt.Errorf("%w: duplicate asset %q in catalog batch", scanner.ErrInvalidEntry, entry.RelativePath)
+		}
+		seen[entry.RelativePath] = struct{}{}
+		assets = append(assets, entry)
 	}
-	sourceFingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
-	if err != nil {
-		return false, nil, fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
+	states := make(map[string]assetUpsertState, len(assets))
+	for start := 0; start < len(assets); start += assetStatePrefetchLimit {
+		end := min(start+assetStatePrefetchLimit, len(assets))
+		if err := loadAssetUpsertStateChunk(ctx, tx, run, assets[start:end], states); err != nil {
+			return nil, err
+		}
 	}
-	newlySeen := true
-	sourceChanged := true
-	existingAsset := false
-	mediaJobCurrent := false
-	var directoryID int64
-	var existingAssetID sql.NullInt64
-	var existingFingerprint sql.NullString
-	var existingGeneration sql.NullInt64
-	var currentMediaJob int
-	err = tx.QueryRowContext(ctx, `
-        SELECT directories.id, assets.id, assets.source_fingerprint,
-               assets.last_seen_generation,
+	return states, nil
+}
+
+func loadAssetUpsertStateChunk(
+	ctx context.Context,
+	tx *sql.Tx,
+	run scanner.ScanRun,
+	entries []scanner.CatalogEntry,
+	states map[string]assetUpsertState,
+) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	var statement strings.Builder
+	statement.WriteString(`
+        WITH requested(relative_path, parent_path, source_fingerprint) AS (VALUES `)
+	args := make([]any, 0, len(entries)*3+1)
+	for index, entry := range entries {
+		fingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
+		if err != nil {
+			return fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
+		}
+		if index > 0 {
+			statement.WriteByte(',')
+		}
+		statement.WriteString("(?, ?, ?)")
+		args = append(args, entry.RelativePath, entry.ParentPath, fingerprint.String())
+	}
+	statement.WriteString(`)
+        SELECT requested.relative_path, directories.id, assets.id,
+               assets.source_fingerprint, assets.last_seen_generation,
                EXISTS (
                    SELECT 1
                    FROM media_jobs
                    WHERE asset_id = assets.id
                      AND variant = 'grid'
                      AND transform_version = ?
-                     AND source_fingerprint = ?
-               )
-        FROM directories
+                     AND source_fingerprint = requested.source_fingerprint
+               ),
+               directories.last_seen_generation = ?
+        FROM requested
+		JOIN directories
+		  ON directories.library_id = ?
+		 AND directories.relative_path = requested.parent_path
         LEFT JOIN assets
           ON assets.library_id = directories.library_id
-         AND assets.relative_path = ?
-        WHERE directories.library_id = ?
-          AND directories.relative_path = ?
-          AND directories.last_seen_generation = ?`,
-		thumbnail.GridTransformVersion, sourceFingerprint.String(),
-		entry.RelativePath, run.LibraryID, entry.ParentPath, run.Generation,
-	).Scan(
-		&directoryID, &existingAssetID, &existingFingerprint,
-		&existingGeneration, &currentMediaJob,
-	)
-	switch {
-	case err == nil:
-		if existingAssetID.Valid {
-			existingAsset = true
-			newlySeen = existingGeneration.Int64 != run.Generation
-			sourceChanged = existingFingerprint.String != sourceFingerprint.String()
-			mediaJobCurrent = currentMediaJob != 0
+         AND assets.relative_path = requested.relative_path`)
+	args = append(args, thumbnail.GridTransformVersion, run.Generation, run.LibraryID)
+	rows, err := tx.QueryContext(ctx, statement.String(), args...)
+	if err != nil {
+		return fmt.Errorf("prefetch asset and parent state: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var relativePath string
+		var state assetUpsertState
+		var mediaJobCurrent int
+		var parentCurrent int
+		if err := rows.Scan(
+			&relativePath, &state.directoryID, &state.existingAssetID,
+			&state.existingFingerprint, &state.existingGeneration,
+			&mediaJobCurrent, &parentCurrent,
+		); err != nil {
+			return fmt.Errorf("read prefetched asset state: %w", err)
 		}
-	case errors.Is(err, sql.ErrNoRows):
-		return false, nil, fmt.Errorf(
+		state.mediaJobCurrent = mediaJobCurrent != 0
+		state.parentCurrent = parentCurrent != 0
+		states[relativePath] = state
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate prefetched asset state: %w", err)
+	}
+	return nil
+}
+
+type preparedAssetUpsert struct {
+	entry             scanner.CatalogEntry
+	state             assetUpsertState
+	sourceFingerprint string
+	naturalNameKey    []byte
+	searchNameKey     string
+	searchPathKey     string
+	newlySeen         bool
+	sourceChanged     bool
+}
+
+func prepareAssetUpsert(
+	run scanner.ScanRun,
+	entry scanner.CatalogEntry,
+	state assetUpsertState,
+) (preparedAssetUpsert, error) {
+	if entry.RelativePath == "" || entry.Name == "" || entry.SizeBytes < 0 {
+		return preparedAssetUpsert{}, scanner.ErrInvalidEntry
+	}
+	sourceFingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
+	if err != nil {
+		return preparedAssetUpsert{}, fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
+	}
+	if state.directoryID <= 0 {
+		return preparedAssetUpsert{}, fmt.Errorf(
 			"%w: asset parent %q has not been indexed",
 			scanner.ErrInvalidEntry, entry.ParentPath,
 		)
-	default:
-		return false, nil, fmt.Errorf("read asset and parent state: %w", err)
 	}
+	existingAsset := state.existingAssetID.Valid
+	return preparedAssetUpsert{
+		entry: entry, state: state,
+		sourceFingerprint: sourceFingerprint.String(),
+		naturalNameKey:    catalog.NaturalNameKey(entry.Name),
+		searchNameKey:     catalog.SearchTextKey(entry.Name),
+		searchPathKey:     catalog.SearchTextKey(entry.RelativePath),
+		newlySeen:         !existingAsset || state.existingGeneration.Int64 != run.Generation,
+		sourceChanged:     !existingAsset || state.existingFingerprint.String != sourceFingerprint.String(),
+	}, nil
+}
 
-	var assetID int64
-	if err := tx.QueryRowContext(ctx, `
+const assetUpsertChunkLimit = 60
+
+func upsertAssetsBatch(
+	ctx context.Context,
+	tx *sql.Tx,
+	run scanner.ScanRun,
+	assets []preparedAssetUpsert,
+) ([]mediaJobAdmission, error) {
+	admissions := make([]mediaJobAdmission, 0, len(assets))
+	for start := 0; start < len(assets); start += assetUpsertChunkLimit {
+		end := min(start+assetUpsertChunkLimit, len(assets))
+		chunkAdmissions, err := upsertAssetChunk(ctx, tx, run, assets[start:end])
+		if err != nil {
+			return nil, err
+		}
+		admissions = append(admissions, chunkAdmissions...)
+	}
+	return admissions, nil
+}
+
+func upsertAssetChunk(
+	ctx context.Context,
+	tx *sql.Tx,
+	run scanner.ScanRun,
+	assets []preparedAssetUpsert,
+) ([]mediaJobAdmission, error) {
+	if len(assets) == 0 {
+		return nil, nil
+	}
+	var statement strings.Builder
+	statement.WriteString(`
         INSERT INTO assets(
             library_id, directory_id, relative_path, name, kind, media_format,
             mime_type, size_bytes, mtime_ns, source_fingerprint,
             natural_name_key, search_name_key, search_path_key,
             last_seen_generation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES `)
+	args := make([]any, 0, len(assets)*14)
+	for index, asset := range assets {
+		if index > 0 {
+			statement.WriteByte(',')
+		}
+		statement.WriteString("(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		entry := asset.entry
+		args = append(args,
+			run.LibraryID, asset.state.directoryID, entry.RelativePath, entry.Name,
+			string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
+			entry.SizeBytes, entry.MTimeNS, asset.sourceFingerprint,
+			asset.naturalNameKey, asset.searchNameKey, asset.searchPathKey,
+			run.Generation,
+		)
+	}
+	statement.WriteString(`
         ON CONFLICT(library_id, relative_path) DO UPDATE SET
             directory_id = excluded.directory_id,
             name = excluded.name,
@@ -487,54 +651,74 @@ func upsertAsset(
             search_name_key = excluded.search_name_key,
             search_path_key = excluded.search_path_key,
             last_seen_generation = excluded.last_seen_generation
-        RETURNING id`,
-		run.LibraryID, directoryID, entry.RelativePath, entry.Name,
-		string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
-		entry.SizeBytes, entry.MTimeNS, sourceFingerprint.String(),
-		catalog.NaturalNameKey(entry.Name),
-		catalog.SearchTextKey(entry.Name),
-		catalog.SearchTextKey(entry.RelativePath),
-		run.Generation,
-	).Scan(&assetID); err != nil {
-		return false, nil, fmt.Errorf("upsert asset %q: %w", entry.RelativePath, err)
+		RETURNING id, relative_path`)
+	rows, err := tx.QueryContext(ctx, statement.String(), args...)
+	if err != nil {
+		return nil, fmt.Errorf("upsert asset batch: %w", err)
 	}
-	// A newly inserted asset cannot own stale derived rows. Avoid issuing two
-	// indexed DELETE statements for every first-generation asset; at 100k
-	// scale those no-op statements materially extend the authoritative scan.
-	if existingAsset && sourceChanged {
-		if _, err := tx.ExecContext(ctx, `
+	assetIDs := make(map[string]int64, len(assets))
+	for rows.Next() {
+		var assetID int64
+		var relativePath string
+		if err := rows.Scan(&assetID, &relativePath); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("read upserted asset: %w", err)
+		}
+		assetIDs[relativePath] = assetID
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close upserted asset rows: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate upserted assets: %w", err)
+	}
+	if len(assetIDs) != len(assets) {
+		return nil, errors.New("asset batch upsert returned an incomplete result")
+	}
+
+	admissions := make([]mediaJobAdmission, 0, len(assets))
+	for _, asset := range assets {
+		assetID, found := assetIDs[asset.entry.RelativePath]
+		if !found || assetID <= 0 {
+			return nil, errors.New("asset batch upsert returned an invalid result")
+		}
+		// A newly inserted asset cannot own stale derived rows. Avoid issuing
+		// indexed DELETE statements for first-generation assets.
+		if asset.state.existingAssetID.Valid && asset.sourceChanged {
+			if _, err := tx.ExecContext(ctx, `
         INSERT OR IGNORE INTO cache_deletions(
             library_id, cache_rel_path, byte_size, created_at_ms
         )
         SELECT library_id, cache_rel_path, byte_size, ?
         FROM thumbnails
         WHERE asset_id = ? AND source_fingerprint <> ? AND status = 'ready'`,
-			run.CreatedAtMS, assetID, sourceFingerprint.String(),
-		); err != nil {
-			return false, nil, fmt.Errorf("schedule stale thumbnail cleanup: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
+				run.CreatedAtMS, assetID, asset.sourceFingerprint,
+			); err != nil {
+				return nil, fmt.Errorf("schedule stale thumbnail cleanup: %w", err)
+			}
+			if _, err := tx.ExecContext(ctx, `
         DELETE FROM thumbnails
         WHERE asset_id = ? AND source_fingerprint <> ?`,
-			assetID, sourceFingerprint.String(),
-		); err != nil {
-			return false, nil, fmt.Errorf("invalidate stale thumbnail: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
+				assetID, asset.sourceFingerprint,
+			); err != nil {
+				return nil, fmt.Errorf("invalidate stale thumbnail: %w", err)
+			}
+			if _, err := tx.ExecContext(ctx, `
         DELETE FROM media_jobs
         WHERE asset_id = ? AND variant = 'storyboard'
           AND source_fingerprint <> ?`,
-			assetID, sourceFingerprint.String(),
-		); err != nil {
-			return false, nil, fmt.Errorf("invalidate stale storyboard job: %w", err)
+				assetID, asset.sourceFingerprint,
+			); err != nil {
+				return nil, fmt.Errorf("invalidate stale storyboard job: %w", err)
+			}
+		}
+		if !asset.state.mediaJobCurrent {
+			admissions = append(admissions, mediaJobAdmission{
+				assetID: assetID, sourceFingerprint: asset.sourceFingerprint,
+			})
 		}
 	}
-	if !mediaJobCurrent {
-		return newlySeen, &mediaJobAdmission{
-			assetID: assetID, sourceFingerprint: sourceFingerprint.String(),
-		}, nil
-	}
-	return newlySeen, nil, nil
+	return admissions, nil
 }
 
 func admitMediaJobsBatch(

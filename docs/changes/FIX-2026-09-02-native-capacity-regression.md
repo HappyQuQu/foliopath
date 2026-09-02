@@ -21,25 +21,31 @@ query fingerprint 与 library generation/global catalog revision；篡改、旧�
 后续页因此可安全复用计数而不重复扫描 FTS 结果。
 
 扫描路径在首次发现资产时原先仍执行两个注定为空的 stale-derived `DELETE`。现在只有资产此前存在且 source
-fingerprint 改变时才清理旧 thumbnail/storyboard 状态；资产与父目录状态改为一次读取，每个 scanner/reconcile
-事务末尾再用一条 bounded UPSERT 接纳该批 grid media jobs。已有资产变更、只见代次变化与新资产的业务语义
-不变。这样消除了首代 10 万资产的 20 万次无效索引删除及近 20 万次可合并 SQLite 往返，同时保留单事务、
-有界 batch、`secure_delete=ON` 和真实隐私删除证据要求。
+fingerprint 改变时才清理旧 thumbnail/storyboard 状态；资产与父目录状态按最多 200 项有界预取，资产本体按
+最多 60 项批量 UPSERT，每个 scanner/reconcile 事务末尾再用一条 bounded UPSERT 接纳该批 grid media jobs。
+预取仍记录父目录是否属于当前 generation，逐 entry 按 walker 顺序复核，不能借批处理接受尚未出现的父目录。
+已有资产变更、只见代次变化与新资产的业务语义不变。这样消除了首代 10 万资产的 20 万次无效索引删除及
+逐资产 SQLite 往返，同时保留单事务、有界 batch、`secure_delete=ON` 和真实隐私删除证据要求。
 
 ## 验证
 
 - `go test ./internal/catalog ./internal/store/sqlite ./internal/scanner`：通过；
 - `make spike-capacity`（darwin/arm64，4 CPU，10k 目录/100k 资产）：通过，零预算违规；
-  - scan `57,054ms <= 120,000ms`；
-  - search keyset P95 `79,252us <= 250,000us`；
-  - first/second page P95 `65,535us / 13,649us`；
-  - peak Go heap `44,079,936 bytes`，DB+WAL `158,650,368 bytes`。
+  - scan `29,735ms <= 120,000ms`；
+  - search keyset P95 `83,230us <= 250,000us`；
+  - first/second page P95 `67,106us / 15,985us`；
+  - peak Go heap `42,324,120 bytes`，DB+WAL `157,470,720 bytes`。
 
 中间 source `0eed9a9` 的原生 run
 [`33611605670`](https://github.com/HappyQuQu/foliopath/actions/runs/33611605670) 证明游标优化已使
 amd64/arm64 keyset P95 降至 `120,714us / 235,581us`，但扫描仍为 `190,135ms / 193,474ms`，因此
 两个架构和 paired verifier 均正确失败关闭。上述进一步批处理优化必须在新 source SHA 上重跑，不能用
 中间失败 artifact 充当通过证据。
+
+后续 source `26977c7` 的原生 run
+[`33613627441`](https://github.com/HappyQuQu/foliopath/actions/runs/33613627441) 在只完成状态预取和 job
+批量接纳时，扫描进一步降至 amd64/arm64 `167,428ms / 156,717ms`，仍超过冻结预算，paired verifier
+继续失败关闭。当前资产本体批量 UPSERT 是基于该实测继续收敛，仍须在新 source SHA 上复跑。
 
 本机结果只证明修复候选满足本地门槛。`INT-403` 仍须同一 source SHA 的真实原生 amd64/arm64 rerun；
 最终模型、质量、供应链与 owner 批准仍不得由本记录推断。
