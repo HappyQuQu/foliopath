@@ -19,4 +19,10 @@ func TestUnavailableRuntimeFailsClosed(t *testing.T) {
 	if session, err := New().OpenImageSession(context.Background(), testManifest(), nil); session != nil || !errors.Is(err, aimodel.ErrInferenceRuntimeUnavailable) {
 		t.Fatalf("OpenImageSession = %#v, %v", session, err)
 	}
+	if session, err := New().OpenFaceEmbeddingSession(context.Background(), testManifest(), nil); session != nil || !errors.Is(err, aimodel.ErrInferenceRuntimeUnavailable) {
+		t.Fatalf("OpenFaceEmbeddingSession = %#v, %v", session, err)
+	}
+	if session, err := New().OpenFaceDetectorSession(context.Background(), testManifest(), nil); session != nil || !errors.Is(err, aimodel.ErrInferenceRuntimeUnavailable) {
+		t.Fatalf("OpenFaceDetectorSession = %#v, %v", session, err)
+	}
 }

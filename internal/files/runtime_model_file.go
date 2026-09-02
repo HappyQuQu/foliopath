@@ -12,9 +12,10 @@ type runtimeModelFile struct {
 	path string
 }
 
-func (file *runtimeModelFile) Close() error        { return file.file.Close() }
-func (file *runtimeModelFile) RuntimePath() string { return file.path }
-func (file *runtimeModelFile) Size() int64         { return file.size }
+func (file *runtimeModelFile) Close() error                    { return file.file.Close() }
+func (file *runtimeModelFile) Read(buffer []byte) (int, error) { return file.file.Read(buffer) }
+func (file *runtimeModelFile) RuntimePath() string             { return file.path }
+func (file *runtimeModelFile) Size() int64                     { return file.size }
 
 func newRuntimeModelFile(file *os.File, size int64) (aimodel.RuntimeModelFile, error) {
 	path, err := runtimeFilePath(file)

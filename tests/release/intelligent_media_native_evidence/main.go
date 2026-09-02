@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/HappyQuQu/foliopath/tests/release/evidencejson"
 )
 
 var (
@@ -39,17 +41,65 @@ type identityEvidence struct {
 }
 
 type outcomeEvidence struct {
-	Identity     string `json:"identity"`
-	Repository   string `json:"repository"`
-	Libvips      string `json:"libvips"`
-	SearchMatrix string `json:"searchMatrix"`
-	Capacity     string `json:"capacity"`
-	Complete     bool   `json:"complete"`
+	Identity      string `json:"identity"`
+	Repository    string `json:"repository"`
+	Libvips       string `json:"libvips"`
+	FaceCandidate string `json:"faceCandidate"`
+	SearchMatrix  string `json:"searchMatrix"`
+	Capacity      string `json:"capacity"`
+	Complete      bool   `json:"complete"`
 }
 
 type artifactEvidence struct {
 	Path   string `json:"path"`
 	SHA256 string `json:"sha256"`
+}
+
+type faceCandidateEvidence struct {
+	SchemaVersion            int    `json:"schemaVersion"`
+	EvidenceClass            string `json:"evidenceClass"`
+	SourceCommit             string `json:"sourceCommit"`
+	Architecture             string `json:"architecture"`
+	Machine                  string `json:"machine"`
+	DockerArchitecture       string `json:"dockerArchitecture"`
+	QEMUAllowed              bool   `json:"qemuAllowed"`
+	ImageID                  string `json:"imageId"`
+	ONNXRuntimeCommit        string `json:"onnxRuntimeCommit"`
+	ONNXRuntimeArchiveSHA256 string `json:"onnxRuntimeArchiveSHA256"`
+	DetectorSHA256           string `json:"detectorSHA256"`
+	EmbedderSHA256           string `json:"embedderSHA256"`
+	FixtureSHA256            string `json:"fixtureSHA256"`
+	CandidateCount           int    `json:"candidateCount"`
+	Quantized1e3SHA256       string `json:"quantized1e3SHA256"`
+	ProductionApproved       *bool  `json:"productionApproved"`
+	QualityGate              *bool  `json:"qualityGate"`
+	ComplianceGate           *bool  `json:"complianceGate"`
+	Result                   string `json:"result"`
+}
+
+type faceCapacityEvidence struct {
+	SchemaVersion         int    `json:"schemaVersion"`
+	EvidenceClass         string `json:"evidenceClass"`
+	SourceCommit          string `json:"sourceCommit"`
+	Architecture          string `json:"architecture"`
+	Machine               string `json:"machine"`
+	DockerArchitecture    string `json:"dockerArchitecture"`
+	QEMUAllowed           bool   `json:"qemuAllowed"`
+	ImageID               string `json:"imageId"`
+	ContainerCPUs         int    `json:"containerCPUs"`
+	ContainerMemoryBytes  int64  `json:"containerMemoryBytes"`
+	FaceCount             int    `json:"faceCount"`
+	EmbeddingDimension    int    `json:"embeddingDimension"`
+	PairedClusterCount    int    `json:"pairedClusterCount"`
+	PairedMemberCount     int    `json:"pairedMemberCount"`
+	SingletonClusterCount int    `json:"singletonClusterCount"`
+	SingletonMemberCount  int    `json:"singletonMemberCount"`
+	DeterministicSHA256   string `json:"deterministicSHA256"`
+	ElapsedMillis         int64  `json:"elapsedMillis"`
+	MemorySysBytes        int64  `json:"memorySysBytes"`
+	IdentityGroundTruth   *bool  `json:"identityGroundTruth"`
+	QualityGate           *bool  `json:"qualityGate"`
+	Result                string `json:"result"`
 }
 
 type modelEvidence struct {
@@ -84,14 +134,16 @@ type modelEvidence struct {
 }
 
 type candidateSummary struct {
-	Architecture       string `json:"architecture"`
-	RunnerLabel        string `json:"runnerLabel"`
-	Machine            string `json:"machine"`
-	Docker             string `json:"docker"`
-	CreatedAt          string `json:"createdAt"`
-	ModelPackageDigest string `json:"modelPackageDigest,omitempty"`
-	FinalImageDigest   string `json:"finalImageDigest,omitempty"`
-	PeakRSSBytes       int64  `json:"peakRSSBytes,omitempty"`
+	Architecture        string `json:"architecture"`
+	RunnerLabel         string `json:"runnerLabel"`
+	Machine             string `json:"machine"`
+	Docker              string `json:"docker"`
+	CreatedAt           string `json:"createdAt"`
+	ModelPackageDigest  string `json:"modelPackageDigest,omitempty"`
+	FinalImageDigest    string `json:"finalImageDigest,omitempty"`
+	PeakRSSBytes        int64  `json:"peakRSSBytes,omitempty"`
+	FaceCandidateCount  int    `json:"faceCandidateCount"`
+	FaceCandidateSHA256 string `json:"faceCandidateSHA256"`
 }
 
 type pairedSummary struct {
@@ -152,6 +204,8 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 	}
 	candidates := make([]candidateSummary, 0, 2)
 	models := make(map[string]modelEvidence, 2)
+	faceCandidates := make(map[string]faceCandidateEvidence, 2)
+	faceCapacities := make(map[string]faceCapacityEvidence, 2)
 	seen := map[string]bool{}
 	for identityPath, identity := range identities {
 		if err := validateIdentity(identity, commit, runID, runAttempt); err != nil {
@@ -169,6 +223,24 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 		if err := validateOutcomes(outcomes); err != nil {
 			return pairedSummary{}, fmt.Errorf("%s outcomes: %w", identity.GOARCH, err)
 		}
+		faceCandidatePath := filepath.Join(filepath.Dir(identityPath), "face-candidate.json")
+		faceCandidate, err := readFaceCandidateEvidence(faceCandidatePath)
+		if err != nil {
+			return pairedSummary{}, fmt.Errorf("%s face candidate: %w", identity.GOARCH, err)
+		}
+		if err := validateFaceCandidateEvidence(faceCandidate, identity, commit); err != nil {
+			return pairedSummary{}, fmt.Errorf("%s face candidate: %w", identity.GOARCH, err)
+		}
+		faceCandidates[identity.GOARCH] = faceCandidate
+		faceCapacityPath := filepath.Join(filepath.Dir(identityPath), "face-capacity.json")
+		faceCapacity, err := readFaceCapacityEvidence(faceCapacityPath)
+		if err != nil {
+			return pairedSummary{}, fmt.Errorf("%s face capacity: %w", identity.GOARCH, err)
+		}
+		if err := validateFaceCapacityEvidence(faceCapacity, identity, commit, faceCandidate.ImageID); err != nil {
+			return pairedSummary{}, fmt.Errorf("%s face capacity: %w", identity.GOARCH, err)
+		}
+		faceCapacities[identity.GOARCH] = faceCapacity
 		if requireModel {
 			modelPath := filepath.Join(filepath.Dir(identityPath), "model-evidence.json")
 			model, err := readModelEvidence(modelPath)
@@ -183,6 +255,8 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 		candidate := candidateSummary{
 			Architecture: identity.GOARCH, RunnerLabel: identity.RunnerLabel,
 			Machine: identity.Machine, Docker: identity.Docker, CreatedAt: identity.CreatedAt,
+			FaceCandidateCount:  faceCandidate.CandidateCount,
+			FaceCandidateSHA256: faceCandidate.Quantized1e3SHA256,
 		}
 		if requireModel {
 			model := models[identity.GOARCH]
@@ -197,6 +271,12 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 			return pairedSummary{}, err
 		}
 	}
+	if err := validateFaceCandidatePair(faceCandidates["amd64"], faceCandidates["arm64"]); err != nil {
+		return pairedSummary{}, err
+	}
+	if err := validateFaceCapacityPair(faceCapacities["amd64"], faceCapacities["arm64"]); err != nil {
+		return pairedSummary{}, err
+	}
 	for _, architecture := range []string{"amd64", "arm64"} {
 		if !seen[architecture] {
 			return pairedSummary{}, fmt.Errorf("missing %s evidence", architecture)
@@ -209,6 +289,7 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 		Checks: map[string]bool{
 			"nativeIdentity": true, "sameSourceCommit": true, "sameWorkflowRun": true,
 			"sameWorkflowAttempt": true, "allStepsSucceeded": true, "qemuRejected": true,
+			"faceCandidateNativePreflight": true, "faceSyntheticCapacity": true,
 			"finalModelEvidence": requireModel,
 		},
 		Result: "passed",
@@ -216,17 +297,140 @@ func verifyPairWithOptions(directory, commit, runID string, runAttempt int, requ
 }
 
 func readModelEvidence(path string) (modelEvidence, error) {
-	content, err := os.ReadFile(path)
+	content, err := evidencejson.ReadRegularFile(path)
 	if err != nil {
 		return modelEvidence{}, err
 	}
 	var evidence modelEvidence
-	decoder := json.NewDecoder(strings.NewReader(string(content)))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&evidence); err != nil {
+	if err := evidencejson.Decode(content, &evidence); err != nil {
 		return modelEvidence{}, err
 	}
 	return evidence, nil
+}
+
+func readFaceCandidateEvidence(path string) (faceCandidateEvidence, error) {
+	content, err := evidencejson.ReadRegularFile(path)
+	if err != nil {
+		return faceCandidateEvidence{}, err
+	}
+	var evidence faceCandidateEvidence
+	if err := evidencejson.Decode(content, &evidence); err != nil {
+		return faceCandidateEvidence{}, err
+	}
+	return evidence, nil
+}
+
+func readFaceCapacityEvidence(path string) (faceCapacityEvidence, error) {
+	content, err := evidencejson.ReadRegularFile(path)
+	if err != nil {
+		return faceCapacityEvidence{}, err
+	}
+	var evidence faceCapacityEvidence
+	if err := evidencejson.Decode(content, &evidence); err != nil {
+		return faceCapacityEvidence{}, err
+	}
+	return evidence, nil
+}
+
+func validateFaceCandidateEvidence(evidence faceCandidateEvidence, identity identityEvidence, commit string) error {
+	for _, hash := range []string{
+		evidence.ONNXRuntimeArchiveSHA256, evidence.DetectorSHA256,
+		evidence.EmbedderSHA256, evidence.FixtureSHA256, evidence.Quantized1e3SHA256,
+	} {
+		if !hashPattern.MatchString(hash) {
+			return fmt.Errorf("invalid face candidate SHA-256 %q", hash)
+		}
+	}
+	switch {
+	case evidence.SchemaVersion != 1:
+		return fmt.Errorf("schemaVersion = %d, want 1", evidence.SchemaVersion)
+	case evidence.EvidenceClass != "candidate-native-functional-preflight-only":
+		return errors.New("invalid face candidate evidence class")
+	case evidence.SourceCommit != commit:
+		return errors.New("face candidate source commit mismatch")
+	case evidence.Architecture != identity.GOARCH:
+		return errors.New("face candidate architecture mismatch")
+	case evidence.Machine != identity.Machine:
+		return errors.New("face candidate machine mismatch")
+	case evidence.DockerArchitecture != strings.TrimPrefix(identity.Docker, "linux/"):
+		return errors.New("face candidate Docker architecture mismatch")
+	case evidence.QEMUAllowed:
+		return errors.New("face candidate QEMU evidence is forbidden")
+	case !digestPattern.MatchString(evidence.ImageID):
+		return errors.New("invalid face candidate image ID")
+	case !commitPattern.MatchString(evidence.ONNXRuntimeCommit):
+		return errors.New("invalid ONNX Runtime commit")
+	case evidence.CandidateCount < 1 || evidence.CandidateCount > 64:
+		return fmt.Errorf("face candidate count = %d, want 1..64", evidence.CandidateCount)
+	case evidence.ProductionApproved == nil || evidence.QualityGate == nil || evidence.ComplianceGate == nil:
+		return errors.New("face candidate non-approval flags are required")
+	case *evidence.ProductionApproved || *evidence.QualityGate || *evidence.ComplianceGate:
+		return errors.New("candidate preflight cannot claim production, quality or compliance approval")
+	case evidence.Result != "passed":
+		return fmt.Errorf("face candidate result = %q, want passed", evidence.Result)
+	}
+	return nil
+}
+
+func validateFaceCandidatePair(amd64, arm64 faceCandidateEvidence) error {
+	switch {
+	case amd64.ONNXRuntimeCommit != arm64.ONNXRuntimeCommit:
+		return errors.New("face candidate ONNX Runtime commits differ across architectures")
+	case amd64.DetectorSHA256 != arm64.DetectorSHA256:
+		return errors.New("face candidate detector digests differ across architectures")
+	case amd64.EmbedderSHA256 != arm64.EmbedderSHA256:
+		return errors.New("face candidate embedder digests differ across architectures")
+	case amd64.FixtureSHA256 != arm64.FixtureSHA256:
+		return errors.New("face candidate fixture digests differ across architectures")
+	case amd64.CandidateCount != arm64.CandidateCount:
+		return errors.New("face candidate counts differ across architectures")
+	}
+	return nil
+}
+
+func validateFaceCapacityEvidence(evidence faceCapacityEvidence, identity identityEvidence, commit, imageID string) error {
+	switch {
+	case evidence.SchemaVersion != 1:
+		return fmt.Errorf("schemaVersion = %d, want 1", evidence.SchemaVersion)
+	case evidence.EvidenceClass != "synthetic-native-capacity-only":
+		return errors.New("invalid face capacity evidence class")
+	case evidence.SourceCommit != commit:
+		return errors.New("face capacity source commit mismatch")
+	case evidence.Architecture != identity.GOARCH || evidence.Machine != identity.Machine:
+		return errors.New("face capacity native identity mismatch")
+	case evidence.DockerArchitecture != strings.TrimPrefix(identity.Docker, "linux/"):
+		return errors.New("face capacity Docker architecture mismatch")
+	case evidence.QEMUAllowed:
+		return errors.New("face capacity QEMU evidence is forbidden")
+	case evidence.ImageID != imageID || !digestPattern.MatchString(evidence.ImageID):
+		return errors.New("face capacity image ID mismatch")
+	case evidence.ContainerCPUs != 4 || evidence.ContainerMemoryBytes != 4*1024*1024*1024:
+		return errors.New("face capacity requires the 4 CPU / 4 GiB tier")
+	case evidence.FaceCount != 100000 || evidence.EmbeddingDimension != 512 ||
+		evidence.PairedClusterCount != 50000 || evidence.PairedMemberCount != evidence.FaceCount ||
+		evidence.SingletonClusterCount != evidence.FaceCount || evidence.SingletonMemberCount != evidence.FaceCount:
+		return errors.New("face capacity workload is incomplete")
+	case !hashPattern.MatchString(evidence.DeterministicSHA256):
+		return errors.New("face capacity deterministic SHA-256 is invalid")
+	case evidence.ElapsedMillis < 1 || evidence.ElapsedMillis > int64((10*time.Minute)/time.Millisecond):
+		return errors.New("face capacity elapsed time is outside the bounded run")
+	case evidence.MemorySysBytes < 1 || evidence.MemorySysBytes > 3435973836:
+		return errors.New("face capacity Go memory exceeds the 3.2 GiB process budget")
+	case evidence.IdentityGroundTruth == nil || evidence.QualityGate == nil:
+		return errors.New("face capacity non-quality flags are required")
+	case *evidence.IdentityGroundTruth || *evidence.QualityGate:
+		return errors.New("synthetic face capacity cannot claim identity ground truth or quality approval")
+	case evidence.Result != "passed":
+		return fmt.Errorf("face capacity result = %q, want passed", evidence.Result)
+	}
+	return nil
+}
+
+func validateFaceCapacityPair(amd64, arm64 faceCapacityEvidence) error {
+	if amd64.DeterministicSHA256 != arm64.DeterministicSHA256 {
+		return errors.New("face capacity results differ across architectures")
+	}
+	return nil
 }
 
 func validateModelEvidence(base string, evidence modelEvidence, architecture, commit string) error {
@@ -357,12 +561,12 @@ func findIdentities(directory string) (map[string]identityEvidence, error) {
 		if entry.IsDir() || entry.Name() != "identity.json" {
 			return nil
 		}
-		content, err := os.ReadFile(path)
+		content, err := evidencejson.ReadRegularFile(path)
 		if err != nil {
 			return err
 		}
 		var identity identityEvidence
-		if err := json.Unmarshal(content, &identity); err != nil {
+		if err := evidencejson.Decode(content, &identity); err != nil {
 			return fmt.Errorf("decode %s: %w", path, err)
 		}
 		identities[path] = identity
@@ -410,12 +614,12 @@ func validateIdentity(identity identityEvidence, commit, runID string, runAttemp
 }
 
 func readOutcomes(path string) (outcomeEvidence, error) {
-	content, err := os.ReadFile(path)
+	content, err := evidencejson.ReadRegularFile(path)
 	if err != nil {
 		return outcomeEvidence{}, err
 	}
 	var outcomes outcomeEvidence
-	if err := json.Unmarshal(content, &outcomes); err != nil {
+	if err := evidencejson.Decode(content, &outcomes); err != nil {
 		return outcomeEvidence{}, err
 	}
 	return outcomes, nil
@@ -424,8 +628,9 @@ func readOutcomes(path string) (outcomeEvidence, error) {
 func validateOutcomes(outcomes outcomeEvidence) error {
 	for name, value := range map[string]string{
 		"identity": outcomes.Identity, "repository": outcomes.Repository,
-		"libvips": outcomes.Libvips, "searchMatrix": outcomes.SearchMatrix,
-		"capacity": outcomes.Capacity,
+		"libvips": outcomes.Libvips, "faceCandidate": outcomes.FaceCandidate,
+		"searchMatrix": outcomes.SearchMatrix,
+		"capacity":     outcomes.Capacity,
 	} {
 		if value != "success" {
 			return fmt.Errorf("%s outcome = %q, want success", name, value)

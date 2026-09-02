@@ -198,9 +198,8 @@ RC Gate。它不改变单容器架构，也不把任务中心、系统维护或 
   标签建议、D 视频代表帧搜索与 E 匿名人脸聚类/人物库。OCR、自动姓名/角色识别和云推理继续是非目标。
   [INT-S0](gates/POST-MVP-5/int-s0-architecture-ready.md) 与
   [INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md) 对 A+B 为 Go；
-  [INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md) 已复审为 No-Go，不授权生产 UI。
-  C/D/E 当前只授权 S1R2 合同工作；真实质量、隐私、native amd64、完整进程和最终供应链仍由各自
-  Backend/Release Gate 持有。
+  [INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)、S2B 与 S2C 已 Backend Ready /
+  Release No-Go。真实质量、隐私、native 双架构、完整进程和最终供应链由 S4 Release Gate 持有。
 - 上传、备份、文件整理或任何写入原媒体的能力。
 - 多实例、外部数据库、独立 worker 或分布式队列。
 

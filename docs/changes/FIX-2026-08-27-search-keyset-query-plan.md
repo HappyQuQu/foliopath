@@ -1,7 +1,7 @@
-# 10 万媒体搜索 keyset 查询计划维护提案
+# 10 万媒体搜索 keyset 有序扫描维护
 
 - 日期：2026-08-27
-- 状态：**Proposal — 未授权生产修改**
+- 状态：**本地实现并通过冻结预算；native 双架构与 release owner 验收待完成**
 - 类型：已冻结 MVP 搜索能力的性能回归维护
 - Requirement：`FR-SRH-002～004`、`NFR-PER-001`、`NFR-REL-001`
 - 目标版本与阶段：MVP maintenance，须经 `S4-003` 补充 Gate 批准
@@ -17,8 +17,9 @@
 生产查询先由 FTS 候选流按 rowid 回表，再为派生 folder/name tuple 建临时 B-tree；第二页 keyset
 不会改变执行形态。该问题在无 AI runtime 的基线中已复现，不能归因给 AI，也不能通过放宽预算掩盖。
 
-本记录不改变搜索 profile、API、cursor、默认排序或数据库权威字段，也不授权修改生产 SQL。它只把
-已有能力的性能债务从 `POST-MVP-5` AI Gate 中拆回其规范 owner。
+本记录不改变搜索 profile、API、cursor、默认排序或数据库权威字段。它把已有能力的性能债务从
+`POST-MVP-5` AI Gate 中拆回其规范 owner；2026-09-01 后续实现仍由 native 双架构与 release owner Gate
+持有，未据本地结果授权发布。
 
 ## 保留候选
 
@@ -79,14 +80,30 @@ cursor 的 service-level 语义虽有既有回归，但 production 策略尚未�
 同日前置 `make spike-capacity` 仍以生产查询 `searchKeysetP95Us=296212` 超过 250,000 µs 失败，
 因此本提案不能因候选快速而掩盖现状，也不能通过提高预算验收。
 
-## 必须完成的补充 Gate
+## 2026-09-01 本地生产实现
 
-- 结果等价：直接目录、递归目录、整库、全局；无结果、少于/等于/超过一页；中文、组合字符、
-  sharp-s、1～2 字符、标点和多词 AND；offline library 与 generation/revision cursor。
-- 筛选/排序：kind、modified time；name/modified/size 的升序和降序；第一页、第二页及深分页。
-- 选择策略：比较 FTS-first、order-first、bounded/materialized candidate；若使用已完成 count 作为
-  planner hint，阈值必须由 broad/sparse 分布实测确定，不能硬编码单个 fixture 的经验值。
-- 行为与恢复：完整 hydration、请求取消、扫描并发、FTS rebuild/integrity、数据库重开和旧 cursor。
+`internal/store/sqlite` 已将 `ListAssetPage` 改为按冻结 sort/scope 选择既有索引的有序外层扫描，并用相关
+FTS `EXISTS` 做精确成员判断。查询仍执行相同的规范化 `instr`、scope、kind、modified-window、keyset 和
+hydration；没有增加 migration、planner hint、API 参数或 cursor 字段。索引选择由 repository 唯一 owner
+持有，并覆盖 global/direct/recursive/library 的 name/modified/size（含历史空 scope-kind）回归。
+
+实现后的证据：
+
+- 两库 10k 目录/100k 资产矩阵通过：17 个首页、11 个续页、28 个完整 hydration、五种 cardinality、
+  Unicode/短词/标点/多词、并发扫描、FTS rebuild/integrity 和连接重开均逐 ID 等价；
+- `make spike-capacity` 强制预算通过，`searchKeysetP95Us=133637`，低于冻结的 250,000 µs；
+- production list 首页/续页 P95 为 `10545/12993 µs`，整轮 `budgetViolations=[]`；
+- 并发搜索 P95 `68577 µs`、storyboard browse P95 `30893 µs`，没有用牺牲普通浏览换取通过；
+- catalog SQLite 回归与索引选择单元测试通过。
+
+该结果关闭 darwin/arm64 本地 production query-plan 与 100k 预算缺口。原生 Linux amd64/arm64 同提交
+复跑、最终模型联合负载和 backend/performance/release owner 验收仍由 S4/POST-MVP-5 Gate 持有。
+
+## 剩余 Gate
+
+- 已在本地关闭：直接/递归/整库/全局、cardinality、Unicode/短词/标点/多词、kind/time、三种排序双向、
+  前两页、完整 hydration、取消、扫描并发、FTS rebuild/integrity、数据库重开和旧 cursor 合同回归。
+- 真实分布的 broad/sparse 重复 P95 与更深分页继续作为 native 容量证据；不得硬编码 fixture 阈值。
 - 容量：原生 linux/arm64 与 amd64，4 CPU/4 GiB，10k/100k，保持 `s4-search-v1` 250 ms；不得提高
   SQLite family、RSS 或扫描预算。
 - 契约：优先保持 OpenAPI/schema/cursor 不变。若内部 repository 参数增加 count hint，其唯一 owner、
@@ -94,7 +111,6 @@ cursor 的 service-level 语义虽有既有回归，但 production 策略尚未�
 
 ## 接受与回退
 
-只有完整矩阵结果相等、双架构预算通过、取消/恢复无回归且相关 repository/HTTP/browser 测试通过，
-本提案才能改为 accepted maintenance fix。任一条件失败则保留现有生产查询，继续比较
-bounded/materialized candidate；不得降低 250 ms 预算或让 AI Gate 暗中承担修复。回退是撤销内部
-查询策略并保留既有 index/contract，不涉及 migration down，也不触碰原媒体。
+只有 native 双架构预算通过、完整验证面无回归且 backend/performance/release owner 接受，本维护修复才
+能通过最终 Gate。任一条件失败则回退内部查询策略并保留既有 index/contract；不涉及 migration down，
+不触碰原媒体，也不得降低 250 ms 预算或让 AI Gate 暗中承担修复。

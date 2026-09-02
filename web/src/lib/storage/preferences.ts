@@ -13,6 +13,7 @@ export type MediaSortPreference =
   | "size:desc";
 
 interface Preferences {
+  aiOperationIds?: string[];
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
   mediaSort?: MediaSortPreference;
@@ -25,6 +26,23 @@ interface Preferences {
   previewWidth?: number;
   sidebarWidth?: number;
   theme?: ThemePreference;
+}
+
+export function readAIOperationIds(): string[] {
+  const values = readPreferences().aiOperationIds;
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .slice(0, 50);
+}
+
+export function writeAIOperationIds(values: string[]): void {
+  writePreferences({
+    ...readPreferences(),
+    aiOperationIds: values
+      .filter((value) => typeof value === "string" && value.length > 0)
+      .slice(0, 50),
+  });
 }
 
 function readPreferences(): Preferences {

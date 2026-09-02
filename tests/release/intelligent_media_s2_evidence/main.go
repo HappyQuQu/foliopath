@@ -11,10 +11,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+
+	"github.com/HappyQuQu/foliopath/tests/release/evidencejson"
 )
 
 var (
 	commitPattern   = regexp.MustCompile(`^[0-9a-f]{40,64}$`)
+	runIDPattern    = regexp.MustCompile(`^[1-9][0-9]*$`)
 	digestPattern   = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 	hashPattern     = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	approvalPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{7,255}$`)
@@ -35,20 +38,42 @@ type qualitySummary struct {
 	GatePass              bool             `json:"gate_pass"`
 }
 
+type faceQualityApprovals struct {
+	Product    string `json:"product"`
+	ML         string `json:"ml"`
+	QA         string `json:"qa"`
+	Privacy    string `json:"privacy"`
+	Compliance string `json:"compliance"`
+}
+
+type faceQualitySummary struct {
+	SchemaVersion          int                  `json:"schema_version"`
+	SourceCommit           string               `json:"source_commit"`
+	DatasetManifestSHA256  string               `json:"dataset_manifest_sha256"`
+	ModelPackageDigest     string               `json:"model_package_digest"`
+	Approvals              faceQualityApprovals `json:"approvals"`
+	GroupAssignmentAllowed bool                 `json:"group_assignment_allowed"`
+	GatePass               bool                 `json:"gate_pass"`
+}
+
 type nativeCandidate struct {
-	Architecture       string `json:"architecture"`
-	ModelPackageDigest string `json:"modelPackageDigest"`
-	FinalImageDigest   string `json:"finalImageDigest"`
-	PeakRSSBytes       int64  `json:"peakRSSBytes"`
+	Architecture        string `json:"architecture"`
+	ModelPackageDigest  string `json:"modelPackageDigest"`
+	FinalImageDigest    string `json:"finalImageDigest"`
+	PeakRSSBytes        int64  `json:"peakRSSBytes"`
+	FaceCandidateCount  int    `json:"faceCandidateCount"`
+	FaceCandidateSHA256 string `json:"faceCandidateSHA256"`
 }
 
 type nativeSummary struct {
-	SchemaVersion int               `json:"schemaVersion"`
-	Feature       string            `json:"feature"`
-	SourceCommit  string            `json:"sourceCommit"`
-	Candidates    []nativeCandidate `json:"candidates"`
-	Checks        map[string]bool   `json:"checks"`
-	Result        string            `json:"result"`
+	SchemaVersion      int               `json:"schemaVersion"`
+	Feature            string            `json:"feature"`
+	SourceCommit       string            `json:"sourceCommit"`
+	WorkflowRunID      string            `json:"workflowRunId"`
+	WorkflowRunAttempt int               `json:"workflowRunAttempt"`
+	Candidates         []nativeCandidate `json:"candidates"`
+	Checks             map[string]bool   `json:"checks"`
+	Result             string            `json:"result"`
 }
 
 type supplyImage struct {
@@ -72,26 +97,28 @@ type inputHash struct {
 }
 
 type verifiedSummary struct {
-	SchemaVersion         int             `json:"schemaVersion"`
-	Release               string          `json:"release"`
-	SourceCommit          string          `json:"sourceCommit"`
-	ModelPackageDigest    string          `json:"modelPackageDigest"`
-	DatasetManifestSHA256 string          `json:"datasetManifestSHA256"`
-	Architectures         []string        `json:"architectures"`
-	Inputs                []inputHash     `json:"inputs"`
-	Checks                map[string]bool `json:"checks"`
-	Result                string          `json:"result"`
+	SchemaVersion             int             `json:"schemaVersion"`
+	Release                   string          `json:"release"`
+	SourceCommit              string          `json:"sourceCommit"`
+	ModelPackageDigest        string          `json:"modelPackageDigest"`
+	DatasetManifestSHA256     string          `json:"datasetManifestSHA256"`
+	FaceDatasetManifestSHA256 string          `json:"faceDatasetManifestSHA256"`
+	Architectures             []string        `json:"architectures"`
+	Inputs                    []inputHash     `json:"inputs"`
+	Checks                    map[string]bool `json:"checks"`
+	Result                    string          `json:"result"`
 }
 
 func main() {
 	qualityPath := flag.String("quality", "", "verified quality summary")
+	faceQualityPath := flag.String("face-quality", "", "verified face quality summary")
 	nativePath := flag.String("native", "", "verified strict native-model summary")
 	supplyPath := flag.String("supply-chain", "", "verified supply-chain summary")
 	commit := flag.String("commit", "", "expected source commit")
 	output := flag.String("output", "", "optional aggregate summary path")
 	flag.Parse()
 
-	summary, err := verifyEvidence(*qualityPath, *nativePath, *supplyPath, *commit)
+	summary, err := verifyEvidence(*qualityPath, *faceQualityPath, *nativePath, *supplyPath, *commit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -105,7 +132,7 @@ func main() {
 	fmt.Printf("POST-MVP-5 S2 evidence bound for %s\n", *commit)
 }
 
-func verifyEvidence(qualityPath, nativePath, supplyPath, commit string) (verifiedSummary, error) {
+func verifyEvidence(qualityPath, faceQualityPath, nativePath, supplyPath, commit string) (verifiedSummary, error) {
 	if !commitPattern.MatchString(commit) {
 		return verifiedSummary{}, fmt.Errorf("invalid source commit %q", commit)
 	}
@@ -113,6 +140,14 @@ func verifyEvidence(qualityPath, nativePath, supplyPath, commit string) (verifie
 	qualityHash, err := readSummary(qualityPath, &quality)
 	if err != nil {
 		return verifiedSummary{}, fmt.Errorf("quality summary: %w", err)
+	}
+	var faceQuality faceQualitySummary
+	faceQualityHash, err := readSummary(faceQualityPath, &faceQuality)
+	if err != nil {
+		return verifiedSummary{}, fmt.Errorf("face quality summary: %w", err)
+	}
+	if err := validateFaceQuality(faceQuality, commit); err != nil {
+		return verifiedSummary{}, err
 	}
 	var native nativeSummary
 	nativeHash, err := readSummary(nativePath, &native)
@@ -133,10 +168,11 @@ func verifyEvidence(qualityPath, nativePath, supplyPath, commit string) (verifie
 	if err := validateSupply(supply, commit); err != nil {
 		return verifiedSummary{}, err
 	}
-	if quality.ModelPackageDigest != native.Candidates[0].ModelPackageDigest ||
+	if quality.ModelPackageDigest != faceQuality.ModelPackageDigest ||
+		quality.ModelPackageDigest != native.Candidates[0].ModelPackageDigest ||
 		quality.ModelPackageDigest != native.Candidates[1].ModelPackageDigest ||
 		quality.ModelPackageDigest != supply.ModelPackageDigest {
-		return verifiedSummary{}, errors.New("quality, native and supply-chain model package digests differ")
+		return verifiedSummary{}, errors.New("quality, face quality, native and supply-chain model package digests differ")
 	}
 	nativeImages := map[string]string{}
 	for _, candidate := range native.Candidates {
@@ -150,20 +186,48 @@ func verifyEvidence(qualityPath, nativePath, supplyPath, commit string) (verifie
 
 	return verifiedSummary{
 		SchemaVersion: 1, Release: "POST-MVP-5-r2", SourceCommit: commit,
-		ModelPackageDigest:    quality.ModelPackageDigest,
-		DatasetManifestSHA256: quality.DatasetManifestSHA256,
-		Architectures:         []string{"amd64", "arm64"},
+		ModelPackageDigest:        quality.ModelPackageDigest,
+		DatasetManifestSHA256:     quality.DatasetManifestSHA256,
+		FaceDatasetManifestSHA256: faceQuality.DatasetManifestSHA256,
+		Architectures:             []string{"amd64", "arm64"},
 		Inputs: []inputHash{
 			{Kind: "quality", SHA256: qualityHash},
+			{Kind: "face-quality", SHA256: faceQualityHash},
 			{Kind: "native", SHA256: nativeHash},
 			{Kind: "supply-chain", SHA256: supplyHash},
 		},
 		Checks: map[string]bool{
-			"qualityPassed": true, "strictNativePassed": true, "supplyChainPassed": true,
+			"qualityPassed": true, "faceQualityPassed": true, "strictNativePassed": true, "supplyChainPassed": true,
 			"sameSourceCommit": true, "sameModelPackage": true, "sameFinalImages": true,
 		},
 		Result: "passed",
 	}, nil
+}
+
+func validateFaceQuality(summary faceQualitySummary, commit string) error {
+	switch {
+	case summary.SchemaVersion != 1:
+		return errors.New("face quality schemaVersion must be 1")
+	case summary.SourceCommit != commit:
+		return errors.New("face quality source commit mismatch")
+	case !hashPattern.MatchString(summary.DatasetManifestSHA256):
+		return errors.New("face quality dataset manifest hash is invalid")
+	case !digestPattern.MatchString(summary.ModelPackageDigest):
+		return errors.New("face quality model package digest is invalid")
+	case !summary.GatePass:
+		return errors.New("face quality gate did not pass")
+	case !summary.GroupAssignmentAllowed:
+		return errors.New("face quality did not authorize anonymous core group assignment")
+	}
+	for name, value := range map[string]string{
+		"product": summary.Approvals.Product, "ml": summary.Approvals.ML, "qa": summary.Approvals.QA,
+		"privacy": summary.Approvals.Privacy, "compliance": summary.Approvals.Compliance,
+	} {
+		if !approvalPattern.MatchString(value) {
+			return fmt.Errorf("face quality %s approval is invalid", name)
+		}
+	}
+	return nil
 }
 
 func validateQuality(summary qualitySummary, commit string) error {
@@ -191,12 +255,14 @@ func validateQuality(summary qualitySummary, commit string) error {
 
 func validateNative(summary nativeSummary, commit string) error {
 	if summary.SchemaVersion != 1 || summary.Feature != "FTR-INT-001" ||
-		summary.SourceCommit != commit || summary.Result != "passed" {
+		summary.SourceCommit != commit || !runIDPattern.MatchString(summary.WorkflowRunID) ||
+		summary.WorkflowRunAttempt < 1 || summary.Result != "passed" {
 		return errors.New("strict native summary identity or result is invalid")
 	}
 	for _, check := range []string{
 		"nativeIdentity", "sameSourceCommit", "sameWorkflowRun", "sameWorkflowAttempt",
-		"allStepsSucceeded", "qemuRejected", "finalModelEvidence",
+		"allStepsSucceeded", "qemuRejected", "faceCandidateNativePreflight", "faceSyntheticCapacity",
+		"finalModelEvidence",
 	} {
 		if !summary.Checks[check] {
 			return fmt.Errorf("strict native check %q did not pass", check)
@@ -212,7 +278,9 @@ func validateNative(summary nativeSummary, commit string) error {
 		}
 		seen[candidate.Architecture] = true
 		if !digestPattern.MatchString(candidate.ModelPackageDigest) ||
-			!digestPattern.MatchString(candidate.FinalImageDigest) || candidate.PeakRSSBytes <= 0 {
+			!digestPattern.MatchString(candidate.FinalImageDigest) || candidate.PeakRSSBytes <= 0 ||
+			candidate.FaceCandidateCount < 1 || candidate.FaceCandidateCount > 64 ||
+			!hashPattern.MatchString(candidate.FaceCandidateSHA256) {
 			return fmt.Errorf("%s strict native candidate is incomplete", candidate.Architecture)
 		}
 	}
@@ -247,18 +315,11 @@ func readSummary(path string, target any) (string, error) {
 	if path == "" {
 		return "", errors.New("path is required")
 	}
-	info, err := os.Lstat(path)
+	content, err := evidencejson.ReadRegularFile(path)
 	if err != nil {
 		return "", err
 	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-		return "", errors.New("summary must be a non-symlink regular file")
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(content, target); err != nil {
+	if err := evidencejson.Decode(content, target); err != nil {
 		return "", err
 	}
 	digest := sha256.Sum256(content)

@@ -1,9 +1,53 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestEvidenceJSONRejectsNestedDuplicateKeys(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "manifest.json")
+	content := `{"schema_version":2,"governance":{"data_class":"ordinary-media","data_class":"biometric-ground-truth"}}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var manifest DatasetManifest
+	if err := decodeStrict(path, &manifest); err == nil || !strings.Contains(err.Error(), "duplicate JSON key") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestEvidenceJSONRejectsSymlinkAndOversizedFiles(t *testing.T) {
+	directory := t.TempDir()
+	target := filepath.Join(directory, "target.json")
+	if err := os.WriteFile(target, []byte(`{"schema_version":1}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(directory, "link.json")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readEvidenceJSONFile(link); err == nil || !strings.Contains(err.Error(), "non-symlink regular file") {
+		t.Fatalf("symlink error=%v", err)
+	}
+	oversized := filepath.Join(directory, "oversized.json")
+	file, err := os.Create(oversized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Truncate(maxEvidenceJSONBytes + 1); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readEvidenceJSONFile(oversized); err == nil || !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("oversized error=%v", err)
+	}
+}
 
 func TestExampleManifestsValidate(t *testing.T) {
 	if _, err := ReadDatasetManifest("testdata/dataset-manifest.example.json"); err != nil {
@@ -19,6 +63,9 @@ func TestExampleManifestsValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := ReadModelCatalog("testdata/model-catalog.siglip-candidates.json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadModelCatalog("testdata/model-catalog.arcface-alternative.json"); err != nil {
 		t.Fatal(err)
 	}
 }

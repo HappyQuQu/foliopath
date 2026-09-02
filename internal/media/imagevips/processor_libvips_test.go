@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 	"github.com/davidbyttow/govips/v2/vips"
@@ -62,6 +63,31 @@ func TestPrepareSemanticImageResizesBothAxesAndFailsClosed(t *testing.T) {
 	cancel()
 	if _, err := New().PrepareSemanticImage(cancelled, bytes.NewReader(encoded.Bytes()), media.FormatJPEG); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled error = %v", err)
+	}
+}
+
+func TestDecodeFaceImageProducesBoundedInterleavedRGB(t *testing.T) {
+	t.Cleanup(func() { vips.AssertNoLeaks(t) })
+	source := image.NewNRGBA(image.Rect(0, 0, 320, 160))
+	for offset := 0; offset < len(source.Pix); offset += 4 {
+		source.Pix[offset], source.Pix[offset+1], source.Pix[offset+2], source.Pix[offset+3] = 255, 64, 0, 0
+	}
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, source); err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := New().DecodeFaceImage(context.Background(), bytes.NewReader(encoded.Bytes()), media.FormatPNG,
+		face.MaxInputBytes, 160)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Width != 160 || decoded.Height != 80 || len(decoded.RGB) != 160*80*3 ||
+		decoded.RGB[0] < 250 || decoded.RGB[1] < 60 || decoded.RGB[2] != 0 {
+		t.Fatalf("decoded=%dx%d len=%d rgb=%v", decoded.Width, decoded.Height, len(decoded.RGB), decoded.RGB[:3])
+	}
+	if _, err := New().DecodeFaceImage(context.Background(), bytes.NewReader(encoded.Bytes()), media.FormatJPEG,
+		face.MaxInputBytes, 160); !errors.Is(err, face.ErrInvalidInput) {
+		t.Fatalf("format mismatch error=%v", err)
 	}
 }
 

@@ -3507,7 +3507,7 @@ paths:
         '401': [authentication_required, session_expired]
         '403': [csrf_invalid]
         '404': [library_not_found]
-        '409': [face_disabled, face_model_unavailable, idempotency_conflict]
+        '409': [face_disabled, face_model_unavailable, face_not_ready, library_offline, idempotency_conflict]
         '429': [rate_limited]
         '500': [internal_error]
       parameters:
@@ -3699,6 +3699,84 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/libraries/{libraryId}/ai/face-clusters/{clusterId}:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+      - name: clusterId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ResourceID'
+    get:
+      tags: [People]
+      operationId: getAnonymousFaceCluster
+      summary: Page privacy-safe members of one active anonymous face cluster
+      x-requirements: [FR-INT-010, FR-INT-011, NFR-INT-001, NFR-INT-005, NFR-INT-006]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found, cluster_not_found]
+        '409': [face_not_ready, face_cursor_stale]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Active-build members with opaque IDs and coarse integer-percent regions only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaceClusterDetailPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/assets/{assetId}/faces:
+    parameters:
+      - $ref: '#/components/parameters/AssetIDParameter'
+    get:
+      tags: [People]
+      operationId: listAssetFaces
+      summary: List selectable face projections for one multi-face asset
+      x-requirements: [FR-INT-012, NFR-INT-001, NFR-INT-005, NFR-INT-006]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '409': [face_not_ready]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Opaque face IDs and coarse regions; no embedding, crop, score, path, or exact box.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetFacePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/people:
     get:
       tags: [People]
@@ -3818,6 +3896,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
+
     patch:
       tags: [People]
       operationId: renamePerson
@@ -3903,6 +3982,44 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '428':
           $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/people/{personId}/assets:
+    parameters:
+      - $ref: '#/components/parameters/PersonIDParameter'
+    get:
+      tags: [People]
+      operationId: listPersonAssets
+      summary: List assets with manually confirmed faces for one person
+      x-requirements: [FR-INT-011, FR-INT-014, NFR-INT-001, NFR-INT-005, NFR-INT-006]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '404': [person_not_found]
+        '409': [face_cursor_stale, face_not_ready]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+      responses:
+        '200':
+          description: Stable asset page with the confirmed opaque face IDs in each asset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonAssetPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -6552,7 +6669,7 @@ components:
     AIModelPage:
       type: object
       additionalProperties: false
-      required: [items, activeModelId, revision]
+      required: [items, activeModelId, activeFaceModelId, revision]
       properties:
         items:
           type: array
@@ -6560,6 +6677,8 @@ components:
           items:
             $ref: '#/components/schemas/AIModel'
         activeModelId:
+          $ref: '#/components/schemas/NullableResourceID'
+        activeFaceModelId:
           $ref: '#/components/schemas/NullableResourceID'
         revision:
           type: integer
@@ -7224,6 +7343,99 @@ components:
           format: int64
           minimum: 1
 
+    FaceRegion:
+      type: object
+      additionalProperties: false
+      description: Coarse display-only region rounded to integer percentages; not an exact detector box.
+      required: [xPercent, yPercent, widthPercent, heightPercent]
+      properties:
+        xPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        yPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        widthPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        heightPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    AssetFace:
+      type: object
+      additionalProperties: false
+      required: [faceId, assetId, ordinal, region, state, personId, revision]
+      properties:
+        faceId:
+          $ref: '#/components/schemas/ResourceID'
+        assetId:
+          $ref: '#/components/schemas/ResourceID'
+        ordinal:
+          type: integer
+          minimum: 1
+          maximum: 64
+        region:
+          $ref: '#/components/schemas/FaceRegion'
+        state:
+          type: string
+          enum: [assigned, excluded, anonymous_core, anonymous_edge, unclustered]
+        personId:
+          $ref: '#/components/schemas/NullableResourceID'
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+
+    AssetFacePage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/AssetFace'
+
+    FaceClusterMember:
+      type: object
+      additionalProperties: false
+      required: [faceId, assetId, kind, region, revision]
+      properties:
+        faceId:
+          $ref: '#/components/schemas/ResourceID'
+        assetId:
+          $ref: '#/components/schemas/ResourceID'
+        kind:
+          type: string
+          enum: [core, edge]
+        region:
+          $ref: '#/components/schemas/FaceRegion'
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+
+    FaceClusterDetailPage:
+      type: object
+      additionalProperties: false
+      required: [cluster, items, nextCursor]
+      properties:
+        cluster:
+          $ref: '#/components/schemas/FaceCluster'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FaceClusterMember'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+
     PersonPage:
       type: object
       additionalProperties: false
@@ -7265,6 +7477,34 @@ components:
           $ref: '#/components/schemas/Timestamp'
         updatedAt:
           $ref: '#/components/schemas/Timestamp'
+
+    PersonAsset:
+      type: object
+      additionalProperties: false
+      required: [asset, faceIds]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        faceIds:
+          type: array
+          minItems: 1
+          maxItems: 64
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ResourceID'
+
+    PersonAssetPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PersonAsset'
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
 
     CreatePersonRequest:
       type: object

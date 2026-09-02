@@ -23,6 +23,15 @@ func (s *Store) ListAIModels(ctx context.Context) (aimodel.Snapshot, error) {
 	if activeID.Valid {
 		snapshot.ActiveModelID = activeID.String
 	}
+	var activeFaceID sql.NullString
+	if err := s.db.QueryRowContext(ctx, `
+        SELECT model_id FROM face_generations WHERE state = 'active' AND model_id IS NOT NULL`,
+	).Scan(&activeFaceID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return aimodel.Snapshot{}, fmt.Errorf("read active face model: %w", err)
+	}
+	if activeFaceID.Valid {
+		snapshot.ActiveFaceModelID = activeFaceID.String
+	}
 	rows, err := s.db.QueryContext(ctx, `
         SELECT id, package_id, purpose, version, architecture, content_hash,
                license_id, package_size_bytes, storage_mode, state,
@@ -38,7 +47,7 @@ func (s *Store) ListAIModels(ctx context.Context) (aimodel.Snapshot, error) {
 		if scanErr != nil {
 			return aimodel.Snapshot{}, scanErr
 		}
-		model.Active = model.ID == snapshot.ActiveModelID
+		model.Active = model.ID == snapshot.ActiveModelID || model.ID == snapshot.ActiveFaceModelID
 		snapshot.Items = append(snapshot.Items, model)
 	}
 	if err := rows.Err(); err != nil {
@@ -130,7 +139,8 @@ func (s *Store) SetAIModelAvailability(
 		}
 		if _, err := tx.ExecContext(ctx, `
             UPDATE ai_models
-            SET state = ?, availability_revision = availability_revision + 1, updated_at_ms = ?
+            SET state = ?, availability_revision = availability_revision + 1,
+                updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ?`, state, now.UTC().UnixMilli(), modelID,
 		); err != nil {
 			return fmt.Errorf("update AI model availability: %w", err)
@@ -174,6 +184,15 @@ func (s *Store) GetAIModel(ctx context.Context, modelID string) (aimodel.Model, 
 		return aimodel.Model{}, fmt.Errorf("read active AI model: %w", err)
 	}
 	model.Active = activeID.Valid && activeID.String == model.ID
+	if !model.Active {
+		var activeFaceID sql.NullString
+		if err := s.db.QueryRowContext(ctx, `
+            SELECT model_id FROM face_generations WHERE state = 'active' AND model_id IS NOT NULL`,
+		).Scan(&activeFaceID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return aimodel.Model{}, fmt.Errorf("read active face model: %w", err)
+		}
+		model.Active = activeFaceID.Valid && activeFaceID.String == model.ID
+	}
 	return model, nil
 }
 

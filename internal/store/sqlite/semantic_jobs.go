@@ -88,7 +88,7 @@ func (s *Store) CreateSemanticBackfill(ctx context.Context, value semantic.Backf
                     ON CONFLICT(generation_id, library_id) DO UPDATE SET
                         eligible_count = excluded.eligible_count, completed_count = 0, failed_count = 0,
                         stale_count = 0, checkpoint_id = 0, revision = semantic_library_progress.revision + 1,
-                        updated_at_ms = excluded.updated_at_ms`,
+						updated_at_ms = MAX(semantic_library_progress.updated_at_ms, excluded.updated_at_ms)`,
 					value.Job.GenerationID, value.Job.LibraryID, value.EligibleCount, value.Job.CreatedAt.UnixMilli())
 			} else {
 				_, err = tx.ExecContext(ctx, `
@@ -103,7 +103,7 @@ func (s *Store) CreateSemanticBackfill(ctx context.Context, value semantic.Backf
                         stale_count = 0,
                         checkpoint_id = 0,
                         revision = semantic_library_progress.revision + 1,
-                        updated_at_ms = excluded.updated_at_ms`,
+						updated_at_ms = MAX(semantic_library_progress.updated_at_ms, excluded.updated_at_ms)`,
 					value.Job.GenerationID, value.Job.LibraryID, value.EligibleCount,
 					value.EligibleCount-value.Job.TotalItems, value.Job.CreatedAt.UnixMilli())
 			}
@@ -176,9 +176,9 @@ func (s *Store) ClaimSemanticBackfill(ctx context.Context, now time.Time, lease 
 		claimRevision := job.RequestedRevision + 1
 		result, err := tx.ExecContext(ctx, `
             UPDATE semantic_jobs SET state = 'running', claimed_revision = ?, attempt_count = attempt_count + 1,
-                lease_expires_ms = ?, error_code = NULL, updated_at_ms = ?
+				lease_expires_ms = MAX(created_at_ms + ?, ?), error_code = NULL, updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND state = 'queued' AND requested_revision = ? AND attempt_count < ?`,
-			claimRevision, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision,
+			claimRevision, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision,
 			semantic.MaximumSemanticJobAttempts)
 		if err != nil {
 			return err
@@ -187,9 +187,9 @@ func (s *Store) ClaimSemanticBackfill(ctx context.Context, now time.Time, lease 
 			return semantic.ErrSemanticJobConflict
 		}
 		result, err = tx.ExecContext(ctx, `
-            UPDATE ai_model_operations SET state = 'running', phase = 'building', lease_expires_ms = ?,
-                revision = revision + 1, updated_at_ms = ? WHERE id = ? AND state = 'queued'`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+			UPDATE ai_model_operations SET state = 'running', phase = 'building', lease_expires_ms = MAX(created_at_ms + ?, ?),
+				revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?) WHERE id = ? AND state = 'queued'`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -222,9 +222,9 @@ func (s *Store) RefreshSemanticBackfillLease(ctx context.Context, job semantic.B
 		}
 		cancelRequested = state == "cancelling"
 		result, err := tx.ExecContext(ctx, `
-            UPDATE semantic_jobs SET lease_expires_ms = ?, updated_at_ms = ?
+			UPDATE semantic_jobs SET lease_expires_ms = MAX(created_at_ms + ?, ?), updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND claimed_revision = ? AND state IN ('running','cancelling')`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
 			return err
 		}
@@ -232,9 +232,9 @@ func (s *Store) RefreshSemanticBackfillLease(ctx context.Context, job semantic.B
 			return semantic.ErrSemanticJobConflict
 		}
 		result, err = tx.ExecContext(ctx, `
-            UPDATE ai_model_operations SET lease_expires_ms = ?, updated_at_ms = ?
+			UPDATE ai_model_operations SET lease_expires_ms = MAX(created_at_ms + ?, ?), updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND state IN ('running','cancelling')`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -263,14 +263,14 @@ func (s *Store) CancelSemanticBackfill(ctx context.Context, jobID string, expect
 		}
 		switch job.State {
 		case semantic.JobQueued:
-			_, err = tx.ExecContext(ctx, `UPDATE semantic_jobs SET state='cancelled', requested_revision=requested_revision+1, updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID)
+			_, err = tx.ExecContext(ctx, `UPDATE semantic_jobs SET state='cancelled', requested_revision=requested_revision+1, updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID)
 			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled', phase='completed', error_code='cancelled', revision=revision+1, updated_at_ms=?, finished_at_ms=? WHERE id=?`, now.UnixMilli(), now.UnixMilli(), job.OperationID)
+				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled', phase='completed', error_code='cancelled', revision=revision+1, updated_at_ms=MAX(created_at_ms,?), finished_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), now.UnixMilli(), job.OperationID)
 			}
 		case semantic.JobRunning:
-			_, err = tx.ExecContext(ctx, `UPDATE semantic_jobs SET state='cancelling', requested_revision=requested_revision+1, updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID)
+			_, err = tx.ExecContext(ctx, `UPDATE semantic_jobs SET state='cancelling', requested_revision=requested_revision+1, updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID)
 			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling', revision=revision+1, updated_at_ms=? WHERE id=?`, now.UnixMilli(), job.OperationID)
+				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling', revision=revision+1, updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), job.OperationID)
 			}
 		case semantic.JobCancelling:
 			return nil
@@ -328,7 +328,7 @@ func (s *Store) FinishSemanticBackfill(ctx context.Context, job semantic.Backfil
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE semantic_jobs SET state=?, lease_expires_ms=NULL, error_code=?,
-                requested_revision=requested_revision+1, updated_at_ms=?
+				requested_revision=requested_revision+1, updated_at_ms=MAX(created_at_ms,?)
             WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`,
 			outcome, nullableString(errorCode), now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
@@ -339,7 +339,7 @@ func (s *Store) FinishSemanticBackfill(ctx context.Context, job semantic.Backfil
 		}
 		result, err = tx.ExecContext(ctx, `
             UPDATE ai_model_operations SET state=?, phase='completed', error_code=?, lease_expires_ms=NULL,
-                revision=revision+1, updated_at_ms=?, finished_at_ms=?
+				revision=revision+1, updated_at_ms=MAX(created_at_ms,?), finished_at_ms=MAX(created_at_ms,?)
             WHERE id=? AND state IN ('running','cancelling')`,
 			outcome, nullableString(errorCode), now.UnixMilli(), now.UnixMilli(), job.OperationID)
 		if err != nil {

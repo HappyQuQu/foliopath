@@ -385,6 +385,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/faces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** List selectable face projections for one multi-face asset */
+        get: operations["listAssetFaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/{assetId}/favorite": {
         parameters: {
             query?: never;
@@ -836,6 +856,27 @@ export interface paths {
         };
         /** List privacy-safe anonymous core and edge clusters for review */
         get: operations["listAnonymousFaceClusters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/face-clusters/{clusterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clusterId: components["schemas"]["ResourceID"];
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Page privacy-safe members of one active anonymous face cluster */
+        get: operations["getAnonymousFaceCluster"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1360,6 +1401,26 @@ export interface paths {
         patch: operations["renamePerson"];
         trace?: never;
     };
+    "/api/v1/people/{personId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** List assets with manually confirmed faces for one person */
+        get: operations["listPersonAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -1730,6 +1791,7 @@ export interface components {
             updatedAt: components["schemas"]["Timestamp"];
         };
         AIModelPage: {
+            activeFaceModelId: components["schemas"]["NullableResourceID"];
             activeModelId: components["schemas"]["NullableResourceID"];
             items: components["schemas"]["AIModel"][];
             /** Format: int64 */
@@ -1859,6 +1921,20 @@ export interface components {
             /** Format: int64 */
             revision: number;
             tags: components["schemas"]["Tag"][];
+        };
+        AssetFace: {
+            assetId: components["schemas"]["ResourceID"];
+            faceId: components["schemas"]["ResourceID"];
+            ordinal: number;
+            personId: components["schemas"]["NullableResourceID"];
+            region: components["schemas"]["FaceRegion"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "assigned" | "excluded" | "anonymous_core" | "anonymous_edge" | "unclustered";
+        };
+        AssetFacePage: {
+            items: components["schemas"]["AssetFace"][];
         };
         /** @enum {string} */
         AssetKind: "image" | "animated" | "video";
@@ -2149,6 +2225,20 @@ export interface components {
             /** Format: int64 */
             revision: number;
         };
+        FaceClusterDetailPage: {
+            cluster: components["schemas"]["FaceCluster"];
+            items: components["schemas"]["FaceClusterMember"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        FaceClusterMember: {
+            assetId: components["schemas"]["ResourceID"];
+            faceId: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            kind: "core" | "edge";
+            region: components["schemas"]["FaceRegion"];
+            /** Format: int64 */
+            revision: number;
+        };
         FaceClusterPage: {
             coverage: components["schemas"]["DerivedCoverage"];
             /** @description True only after the frozen legal quality gate proves core precision at least 99.5%. */
@@ -2168,6 +2258,13 @@ export interface components {
         };
         FaceLibrarySettingsUpdate: {
             enabled: boolean;
+        };
+        /** @description Coarse display-only region rounded to integer percentages; not an exact detector box. */
+        FaceRegion: {
+            heightPercent: number;
+            widthPercent: number;
+            xPercent: number;
+            yPercent: number;
         };
         FaceReviewRequest: components["schemas"]["AssignFaceReview"] | components["schemas"]["AssignClusterReview"] | components["schemas"]["ExcludeFaceReview"] | components["schemas"]["CannotLinkFaceReview"] | components["schemas"]["MergePeopleReview"] | components["schemas"]["SplitFaceReview"];
         FaceReviewResult: {
@@ -2449,6 +2546,14 @@ export interface components {
             /** Format: int64 */
             revision: number;
             updatedAt: components["schemas"]["Timestamp"];
+        };
+        PersonAsset: {
+            asset: components["schemas"]["Asset"];
+            faceIds: components["schemas"]["ResourceID"][];
+        };
+        PersonAssetPage: {
+            items: components["schemas"]["PersonAsset"][];
+            nextCursor: components["schemas"]["NullableCursor"];
         };
         PersonPage: {
             items: components["schemas"]["Person"][];
@@ -3933,6 +4038,35 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    listAssetFaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Opaque face IDs and coarse regions; no embedding, crop, score, path, or exact box. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetFacePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     setAssetFavorite: {
         parameters: {
             query?: never;
@@ -4735,6 +4869,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FaceClusterPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAnonymousFaceCluster: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+            };
+            header?: never;
+            path: {
+                clusterId: components["schemas"]["ResourceID"];
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active-build members with opaque IDs and coarse integer-percent regions only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceClusterDetailPage"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -5815,6 +5990,46 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             422: components["responses"]["UnprocessableEntity"];
             428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listPersonAssets: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+            };
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable asset page with the confirmed opaque face IDs in each asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonAssetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

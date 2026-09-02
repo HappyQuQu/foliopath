@@ -4,11 +4,11 @@
 
 - 对应 feature：`FTR-INT-001`
 - 目标：`POST-MVP-5` revision 2（A～E）
-- 状态：A+B S0/S1 为 Go、S2A 为 No-Go；C/D/E 已纳入 scope，S1R2 Contract Ready，
-  S2B 已完成获授权后端实现但 Gate 为 No-Go，S2C 等待隐私准入
+- 状态：A+B S0/S1 与 C/D/E S1R2 为 Go；S2A/S2B/S2C **Backend Ready / Release No-Go**
 - 权威边界：[Frozen scope](../releases/POST-MVP-5-scope-r2.md)；
   [INT-S1](../gates/POST-MVP-5/int-s1-contract-ready.md)授权 A+B，
-  [INT-S1R2](../gates/POST-MVP-5/int-s1r2-contract-ready.md)授权 C/D 后端；E 仍须先通过独立隐私 Gate。
+  [INT-S1R2](../gates/POST-MVP-5/int-s1r2-contract-ready.md)授权 C/D/E 后端；
+  [CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)把最终发行输入归入 S4。
 - S1 capability/事务合同：[A+B S1 contract](intelligent-media-s1-contract.md)
 
 ## 设计结论

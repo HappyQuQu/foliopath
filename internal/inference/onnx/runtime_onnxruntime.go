@@ -85,19 +85,38 @@ static OrtStatus* fp_create_tensor(OrtMemoryInfo* info, float* data, size_t byte
   return fp_api()->CreateTensorWithDataAsOrtValue(info, data, bytes, shape, shape_len,
                                                   ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, out);
 }
+static OrtStatus* fp_create_int64_tensor(OrtMemoryInfo* info, int64_t* data, size_t bytes,
+                                         const int64_t* shape, size_t shape_len, OrtValue** out) {
+  return fp_api()->CreateTensorWithDataAsOrtValue(info, data, bytes, shape, shape_len,
+                                                  ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64, out);
+}
 static OrtStatus* fp_create_run_options(OrtRunOptions** out) {
   return fp_api()->CreateRunOptions(out);
 }
 static OrtStatus* fp_terminate_run(OrtRunOptions* options) {
   return fp_api()->RunOptionsSetTerminate(options);
 }
-static OrtStatus* fp_run_image(OrtSession* session, OrtRunOptions* options,
+static OrtStatus* fp_run_float(OrtSession* session, OrtRunOptions* options,
+                               const char* input_name, const char* output_name,
                                OrtValue* input, OrtValue** output) {
-  const char* input_names[] = {"pixel_values"};
-  const char* output_names[] = {"image_embeds"};
+  const char* input_names[] = {input_name};
+  const char* output_names[] = {output_name};
   const OrtValue* inputs[] = {input};
   return fp_api()->Run(session, options, input_names, inputs, 1,
                        output_names, 1, output);
+}
+static OrtStatus* fp_run_yunet(OrtSession* session, OrtRunOptions* options,
+                               OrtValue* input, OrtValue** outputs) {
+  const char* input_names[] = {"input"};
+  const char* output_names[] = {
+    "cls_8", "cls_16", "cls_32",
+    "obj_8", "obj_16", "obj_32",
+    "bbox_8", "bbox_16", "bbox_32",
+    "kps_8", "kps_16", "kps_32"
+  };
+  const OrtValue* inputs[] = {input};
+  return fp_api()->Run(session, options, input_names, inputs, 1,
+                       output_names, 12, outputs);
 }
 static OrtStatus* fp_tensor_data(OrtValue* value, float** out) {
   return fp_api()->GetTensorMutableData(value, (void**)out);
@@ -110,11 +129,14 @@ import "C"
 
 import (
 	"context"
+	"math"
 	"runtime"
+	"strconv"
 	"sync"
 	"unsafe"
 
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
+	"github.com/HappyQuQu/foliopath/internal/inference/sentencepiece"
 )
 
 type environment struct {
@@ -129,8 +151,35 @@ type tensorContract struct {
 }
 
 const imageTensorElements = 1 * 3 * 224 * 224
+const textTensorElements = 64
+const faceEmbeddingTensorElements = 1 * 3 * 112 * 112
+const faceDetectorTensorElements = 1 * 3 * FaceDetectorHeight * FaceDetectorWidth
 
 type imageSession struct {
+	mu      sync.Mutex
+	env     *environment
+	session *C.OrtSession
+	file    aimodel.RuntimeModelFile
+	closed  bool
+}
+
+type textSession struct {
+	mu      sync.Mutex
+	env     *environment
+	session *C.OrtSession
+	file    aimodel.RuntimeModelFile
+	closed  bool
+}
+
+type faceEmbeddingSession struct {
+	mu      sync.Mutex
+	env     *environment
+	session *C.OrtSession
+	file    aimodel.RuntimeModelFile
+	closed  bool
+}
+
+type faceDetectorSession struct {
 	mu      sync.Mutex
 	env     *environment
 	session *C.OrtSession
@@ -173,6 +222,114 @@ func (*Runtime) OpenImageSession(ctx context.Context, manifest aimodel.Manifest,
 		return nil, err
 	}
 	return &imageSession{env: env, session: session, file: file}, nil
+}
+
+func (*Runtime) OpenTextSession(ctx context.Context, manifest aimodel.Manifest, open aimodel.RuntimeFileOpener) (TextSession, error) {
+	if C.GoString(C.fp_version()) != RuntimeVersion {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	file, err := openModelRole(ctx, manifest, "text_encoder", open)
+	if err != nil {
+		return nil, err
+	}
+	env, err := newEnvironment()
+	if err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	session, err := env.load(file.RuntimePath())
+	if err != nil {
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := validateSession(session,
+		tensorContract{name: "input_ids", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64, dimensions: []int64{1, textTensorElements}},
+		tensorContract{name: "text_embeds", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, dimensions: []int64{1, EmbeddingDimension}},
+	); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	return &textSession{env: env, session: session, file: file}, nil
+}
+
+func (*Runtime) OpenFaceEmbeddingSession(ctx context.Context, manifest aimodel.Manifest, open aimodel.RuntimeFileOpener) (FaceEmbeddingSession, error) {
+	if C.GoString(C.fp_version()) != RuntimeVersion {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	file, err := openModelRole(ctx, manifest, "face_embedder", open)
+	if err != nil {
+		return nil, err
+	}
+	env, err := newEnvironment()
+	if err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	session, err := env.load(file.RuntimePath())
+	if err != nil {
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := validateSession(session,
+		tensorContract{name: "data", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, dimensions: []int64{-1, 3, 112, 112}},
+		tensorContract{name: "1333", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, dimensions: []int64{1, FaceEmbeddingDimension}},
+	); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	return &faceEmbeddingSession{env: env, session: session, file: file}, nil
+}
+
+func (*Runtime) OpenFaceDetectorSession(ctx context.Context, manifest aimodel.Manifest, open aimodel.RuntimeFileOpener) (FaceDetectorSession, error) {
+	if C.GoString(C.fp_version()) != RuntimeVersion {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	file, err := openModelRole(ctx, manifest, "face_detector", open)
+	if err != nil {
+		return nil, err
+	}
+	env, err := newEnvironment()
+	if err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	session, err := env.load(file.RuntimePath())
+	if err != nil {
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := validateFaceDetectorSession(session); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		C.fp_release_session(session)
+		env.close()
+		_ = file.Close()
+		return nil, err
+	}
+	return &faceDetectorSession{env: env, session: session, file: file}, nil
 }
 
 func (session *imageSession) Encode(ctx context.Context, input []float32) ([]float32, error) {
@@ -219,7 +376,11 @@ func (session *imageSession) Encode(ctx context.Context, input []float32) ([]flo
 		}
 	}()
 	var outputValue *C.OrtValue
-	runErr := takeStatus("run image encoder", C.fp_run_image(session.session, options, inputValue, &outputValue))
+	inputName := C.CString("pixel_values")
+	outputName := C.CString("image_embeds")
+	defer C.free(unsafe.Pointer(inputName))
+	defer C.free(unsafe.Pointer(outputName))
+	runErr := takeStatus("run image encoder", C.fp_run_float(session.session, options, inputName, outputName, inputValue, &outputValue))
 	runtime.KeepAlive(input)
 	close(watchDone)
 	<-watched
@@ -247,6 +408,256 @@ func (session *imageSession) Encode(ctx context.Context, input []float32) ([]flo
 	return output, nil
 }
 
+func (session *textSession) EncodeText(ctx context.Context, input []int64) ([]float32, error) {
+	if len(input) != textTensorElements {
+		return nil, aimodel.ErrModelIncompatible
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed || session.session == nil {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	var memoryInfo *C.OrtMemoryInfo
+	if err := takeStatus("create text tensor memory info", C.fp_create_memory_info(&memoryInfo)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_memory_info(memoryInfo)
+	shape := [...]C.int64_t{1, textTensorElements}
+	var inputValue *C.OrtValue
+	if err := takeStatus("create text input tensor", C.fp_create_int64_tensor(memoryInfo,
+		(*C.int64_t)(unsafe.Pointer(&input[0])), C.size_t(len(input)*8), &shape[0], C.size_t(len(shape)), &inputValue)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_value(inputValue)
+	var options *C.OrtRunOptions
+	if err := takeStatus("create text run options", C.fp_create_run_options(&options)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_run_options(options)
+
+	watchDone := make(chan struct{})
+	watched := make(chan struct{})
+	go func() {
+		defer close(watched)
+		select {
+		case <-ctx.Done():
+			status := C.fp_terminate_run(options)
+			if status != nil {
+				C.fp_release_status(status)
+			}
+		case <-watchDone:
+		}
+	}()
+	var outputValue *C.OrtValue
+	inputName := C.CString("input_ids")
+	outputName := C.CString("text_embeds")
+	defer C.free(unsafe.Pointer(inputName))
+	defer C.free(unsafe.Pointer(outputName))
+	runErr := takeStatus("run text encoder", C.fp_run_float(session.session, options, inputName, outputName, inputValue, &outputValue))
+	runtime.KeepAlive(input)
+	close(watchDone)
+	<-watched
+	if outputValue != nil {
+		defer C.fp_release_value(outputValue)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if runErr != nil || outputValue == nil {
+		return nil, incompatible("run text encoder")
+	}
+	var output *C.float
+	if err := takeStatus("read text encoder output", C.fp_tensor_data(outputValue, &output)); err != nil || output == nil {
+		return nil, incompatible("read text encoder output")
+	}
+	result := append([]float32(nil), unsafe.Slice((*float32)(unsafe.Pointer(output)), int(EmbeddingDimension))...)
+	for _, value := range result {
+		if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+			return nil, aimodel.ErrModelIncompatible
+		}
+	}
+	return result, nil
+}
+
+func (session *faceEmbeddingSession) EmbedFace(ctx context.Context, input []float32) ([]float32, error) {
+	if len(input) != faceEmbeddingTensorElements {
+		return nil, aimodel.ErrModelIncompatible
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed || session.session == nil {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	var memoryInfo *C.OrtMemoryInfo
+	if err := takeStatus("create face tensor memory info", C.fp_create_memory_info(&memoryInfo)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_memory_info(memoryInfo)
+	shape := [...]C.int64_t{1, 3, 112, 112}
+	var inputValue *C.OrtValue
+	if err := takeStatus("create face input tensor", C.fp_create_tensor(memoryInfo,
+		(*C.float)(unsafe.Pointer(&input[0])), C.size_t(len(input)*4), &shape[0], C.size_t(len(shape)), &inputValue)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_value(inputValue)
+	var options *C.OrtRunOptions
+	if err := takeStatus("create face run options", C.fp_create_run_options(&options)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_run_options(options)
+
+	watchDone := make(chan struct{})
+	watched := make(chan struct{})
+	go func() {
+		defer close(watched)
+		select {
+		case <-ctx.Done():
+			status := C.fp_terminate_run(options)
+			if status != nil {
+				C.fp_release_status(status)
+			}
+		case <-watchDone:
+		}
+	}()
+	inputName := C.CString("data")
+	outputName := C.CString("1333")
+	defer C.free(unsafe.Pointer(inputName))
+	defer C.free(unsafe.Pointer(outputName))
+	var outputValue *C.OrtValue
+	runErr := takeStatus("run face embedder", C.fp_run_float(session.session, options, inputName, outputName, inputValue, &outputValue))
+	runtime.KeepAlive(input)
+	close(watchDone)
+	<-watched
+	if outputValue != nil {
+		defer C.fp_release_value(outputValue)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if runErr != nil {
+		return nil, runErr
+	}
+	if outputValue == nil {
+		return nil, incompatible("read face embedder output")
+	}
+	var outputData *C.float
+	if err := takeStatus("read face embedder output", C.fp_tensor_data(outputValue, &outputData)); err != nil {
+		return nil, err
+	}
+	if outputData == nil {
+		return nil, incompatible("read face embedder output data")
+	}
+	output := make([]float32, int(FaceEmbeddingDimension))
+	copy(output, unsafe.Slice((*float32)(unsafe.Pointer(outputData)), int(FaceEmbeddingDimension)))
+	return output, nil
+}
+
+func (session *faceDetectorSession) DetectFaces(ctx context.Context, input []float32) ([]FaceDetection, error) {
+	if len(input) != faceDetectorTensorElements {
+		return nil, aimodel.ErrModelIncompatible
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed || session.session == nil {
+		return nil, aimodel.ErrInferenceRuntimeUnavailable
+	}
+	var memoryInfo *C.OrtMemoryInfo
+	if err := takeStatus("create face detector tensor memory info", C.fp_create_memory_info(&memoryInfo)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_memory_info(memoryInfo)
+	shape := [...]C.int64_t{1, 3, FaceDetectorHeight, FaceDetectorWidth}
+	var inputValue *C.OrtValue
+	if err := takeStatus("create face detector input tensor", C.fp_create_tensor(memoryInfo,
+		(*C.float)(unsafe.Pointer(&input[0])), C.size_t(len(input)*4), &shape[0], C.size_t(len(shape)), &inputValue)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_value(inputValue)
+	var options *C.OrtRunOptions
+	if err := takeStatus("create face detector run options", C.fp_create_run_options(&options)); err != nil {
+		return nil, err
+	}
+	defer C.fp_release_run_options(options)
+
+	watchDone := make(chan struct{})
+	watched := make(chan struct{})
+	go func() {
+		defer close(watched)
+		select {
+		case <-ctx.Done():
+			status := C.fp_terminate_run(options)
+			if status != nil {
+				C.fp_release_status(status)
+			}
+		case <-watchDone:
+		}
+	}()
+	var outputValues [12]*C.OrtValue
+	runErr := takeStatus("run face detector", C.fp_run_yunet(session.session, options, inputValue, &outputValues[0]))
+	runtime.KeepAlive(input)
+	close(watchDone)
+	<-watched
+	for _, output := range outputValues {
+		if output != nil {
+			defer C.fp_release_value(output)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if runErr != nil {
+		return nil, runErr
+	}
+	strides := [...]int{8, 16, 32}
+	heads := make([]faceDetectorHead, 0, len(strides))
+	for strideIndex, stride := range strides {
+		cells := FaceDetectorWidth / stride * (FaceDetectorHeight / stride)
+		cls, err := copyFloatTensor(outputValues[strideIndex], cells)
+		if err != nil {
+			return nil, err
+		}
+		obj, err := copyFloatTensor(outputValues[3+strideIndex], cells)
+		if err != nil {
+			return nil, err
+		}
+		bbox, err := copyFloatTensor(outputValues[6+strideIndex], cells*4)
+		if err != nil {
+			return nil, err
+		}
+		kps, err := copyFloatTensor(outputValues[9+strideIndex], cells*10)
+		if err != nil {
+			return nil, err
+		}
+		heads = append(heads, faceDetectorHead{stride: stride, cls: cls, obj: obj, bbox: bbox, kps: kps})
+	}
+	return decodeFaceDetectorHeads(heads)
+}
+
+func copyFloatTensor(value *C.OrtValue, elements int) ([]float32, error) {
+	if value == nil || elements < 1 {
+		return nil, incompatible("read face detector output")
+	}
+	var data *C.float
+	if err := takeStatus("read face detector output", C.fp_tensor_data(value, &data)); err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, incompatible("read face detector output data")
+	}
+	result := make([]float32, elements)
+	copy(result, unsafe.Slice((*float32)(unsafe.Pointer(data)), elements))
+	return result, nil
+}
+
 func (session *imageSession) Close() error {
 	session.mu.Lock()
 	defer session.mu.Unlock()
@@ -270,7 +681,79 @@ func (session *imageSession) Close() error {
 	return nil
 }
 
+func (session *textSession) Close() error {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed {
+		return nil
+	}
+	session.closed = true
+	if session.session != nil {
+		C.fp_release_session(session.session)
+		session.session = nil
+	}
+	if session.env != nil {
+		session.env.close()
+		session.env = nil
+	}
+	if session.file != nil {
+		err := session.file.Close()
+		session.file = nil
+		return err
+	}
+	return nil
+}
+
+func (session *faceEmbeddingSession) Close() error {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed {
+		return nil
+	}
+	session.closed = true
+	if session.session != nil {
+		C.fp_release_session(session.session)
+		session.session = nil
+	}
+	if session.env != nil {
+		session.env.close()
+		session.env = nil
+	}
+	if session.file != nil {
+		err := session.file.Close()
+		session.file = nil
+		return err
+	}
+	return nil
+}
+
+func (session *faceDetectorSession) Close() error {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed {
+		return nil
+	}
+	session.closed = true
+	if session.session != nil {
+		C.fp_release_session(session.session)
+		session.session = nil
+	}
+	if session.env != nil {
+		session.env.close()
+		session.env = nil
+	}
+	if session.file != nil {
+		err := session.file.Close()
+		session.file = nil
+		return err
+	}
+	return nil
+}
+
 var _ ImageSession = (*imageSession)(nil)
+var _ TextSession = (*textSession)(nil)
+var _ FaceEmbeddingSession = (*faceEmbeddingSession)(nil)
+var _ FaceDetectorSession = (*faceDetectorSession)(nil)
 
 func (*Runtime) LoadAndValidate(
 	ctx context.Context,
@@ -318,6 +801,35 @@ func (*Runtime) LoadAndValidate(
 		tensorContract{name: "text_embeds", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, dimensions: []int64{1, EmbeddingDimension}},
 	); err != nil {
 		return aimodel.RuntimeMetadata{}, err
+	}
+	if manifest.FormatVersion == aimodel.SemanticFormatVersion {
+		tokenizerFile := files.tokenizer
+		files.tokenizer = nil
+		tokenizer, err := sentencepiece.New().Open(ctx, tokenizerFile)
+		if err != nil {
+			return aimodel.RuntimeMetadata{}, err
+		}
+		defer tokenizer.Close()
+		ids, err := tokenizer.Encode(ctx, "red armor portrait")
+		if err != nil || ids[0] != 1226 || ids[1] != 14431 || ids[2] != 9391 {
+			return aimodel.RuntimeMetadata{}, aimodel.ErrModelIncompatible
+		}
+		for _, id := range ids[3:] {
+			if id != sentencepiece.EOSTokenID {
+				return aimodel.RuntimeMetadata{}, aimodel.ErrModelIncompatible
+			}
+		}
+		output, err := (&textSession{session: text}).EncodeText(ctx, ids[:])
+		if err != nil || len(output) != int(EmbeddingDimension) {
+			return aimodel.RuntimeMetadata{}, aimodel.ErrModelIncompatible
+		}
+		var norm float64
+		for _, value := range output {
+			norm += float64(value) * float64(value)
+		}
+		if norm == 0 || math.IsNaN(norm) || math.IsInf(norm, 0) {
+			return aimodel.RuntimeMetadata{}, aimodel.ErrModelIncompatible
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return aimodel.RuntimeMetadata{}, err
@@ -374,7 +886,44 @@ func validateSession(session *C.OrtSession, input, output tensorContract) error 
 	return validateTensor(session, false, output)
 }
 
+func validateFaceDetectorSession(session *C.OrtSession) error {
+	var inputCount C.size_t
+	if err := takeStatus("read face detector input count", C.fp_input_count(session, &inputCount)); err != nil {
+		return err
+	}
+	var outputCount C.size_t
+	if err := takeStatus("read face detector output count", C.fp_output_count(session, &outputCount)); err != nil {
+		return err
+	}
+	if inputCount != 1 || outputCount != 12 {
+		return incompatible("validate face detector graph arity")
+	}
+	if err := validateTensorAt(session, true, 0, tensorContract{name: "input", elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+		dimensions: []int64{1, 3, FaceDetectorHeight, FaceDetectorWidth}}); err != nil {
+		return err
+	}
+	index := 0
+	for _, group := range []struct {
+		prefix string
+		width  int64
+	}{{"cls", 1}, {"obj", 1}, {"bbox", 4}, {"kps", 10}} {
+		for _, stride := range []int64{8, 16, 32} {
+			cells := int64(FaceDetectorWidth) * int64(FaceDetectorHeight) / (stride * stride)
+			if err := validateTensorAt(session, false, index, tensorContract{name: group.prefix + "_" + strconv.FormatInt(stride, 10),
+				elementType: C.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, dimensions: []int64{1, cells, group.width}}); err != nil {
+				return err
+			}
+			index++
+		}
+	}
+	return nil
+}
+
 func validateTensor(session *C.OrtSession, input bool, expected tensorContract) error {
+	return validateTensorAt(session, input, 0, expected)
+}
+
+func validateTensorAt(session *C.OrtSession, input bool, index int, expected tensorContract) error {
 	var allocator *C.OrtAllocator
 	if err := takeStatus("get allocator", C.fp_default_allocator(&allocator)); err != nil {
 		return err
@@ -382,9 +931,9 @@ func validateTensor(session *C.OrtSession, input bool, expected tensorContract) 
 	var name *C.char
 	var status *C.OrtStatus
 	if input {
-		status = C.fp_input_name(session, 0, allocator, &name)
+		status = C.fp_input_name(session, C.size_t(index), allocator, &name)
 	} else {
-		status = C.fp_output_name(session, 0, allocator, &name)
+		status = C.fp_output_name(session, C.size_t(index), allocator, &name)
 	}
 	if err := takeStatus("read tensor name", status); err != nil {
 		return err
@@ -396,9 +945,9 @@ func validateTensor(session *C.OrtSession, input bool, expected tensorContract) 
 
 	var typeInfo *C.OrtTypeInfo
 	if input {
-		status = C.fp_input_type(session, 0, &typeInfo)
+		status = C.fp_input_type(session, C.size_t(index), &typeInfo)
 	} else {
-		status = C.fp_output_type(session, 0, &typeInfo)
+		status = C.fp_output_type(session, C.size_t(index), &typeInfo)
 	}
 	if err := takeStatus("read tensor type", status); err != nil {
 		return err

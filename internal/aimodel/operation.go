@@ -25,6 +25,10 @@ const (
 	OperationTagReviewClear       OperationKind = "tag_review_clear"
 	OperationVideoSemanticMissing OperationKind = "video_semantic_missing"
 	OperationVideoSemanticRebuild OperationKind = "video_semantic_rebuild"
+	OperationFaceMissing          OperationKind = "face_missing"
+	OperationFaceRebuild          OperationKind = "face_rebuild"
+	OperationFaceDerivedClear     OperationKind = "face_derived_clear"
+	OperationFaceManualClear      OperationKind = "face_manual_clear"
 )
 
 type OperationState string
@@ -376,7 +380,8 @@ func validOperationKind(value OperationKind) bool {
 	switch value {
 	case OperationModelInstall, OperationModelActivate, OperationSemanticMissing, OperationSemanticRebuild, OperationSemanticClear,
 		OperationTagSuggestionMissing, OperationTagSuggestionRebuild, OperationTagReviewClear,
-		OperationVideoSemanticMissing, OperationVideoSemanticRebuild:
+		OperationVideoSemanticMissing, OperationVideoSemanticRebuild,
+		OperationFaceMissing, OperationFaceRebuild, OperationFaceDerivedClear, OperationFaceManualClear:
 		return true
 	default:
 		return false

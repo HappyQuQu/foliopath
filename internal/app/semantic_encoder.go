@@ -205,6 +205,10 @@ func (factory semanticProductionSessionFactory) resolve(ctx context.Context, gen
 	if !found {
 		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, aimodel.ErrModelIncompatible
 	}
+	if manifest.FormatVersion != aimodel.SemanticFormatVersion || manifest.Contracts == nil ||
+		manifest.Contracts.ImagePreprocess != aimodel.SemanticImagePreprocessContract {
+		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, aimodel.ErrModelIncompatible
+	}
 	return generation, model, manifest, nil
 }
 

@@ -7,6 +7,7 @@ import type { MediaSortPreference } from "../../lib/storage/preferences";
 import { paths } from "../../routes/paths";
 
 export type SearchScope = "library" | "directory" | "all";
+export type SearchMode = "filename" | "semantic";
 export type SearchKind = "all" | AssetKind;
 export type SearchDate = "any" | "30d" | "year";
 
@@ -14,6 +15,7 @@ export interface SearchUrlState {
   date: SearchDate;
   directoryId?: string;
   kind: SearchKind;
+  mode: SearchMode;
   order: SortOrder;
   q: string;
   recursive: boolean;
@@ -34,6 +36,7 @@ export function defaultSearchUrlState(
     date: "any",
     ...(directoryId ? { directoryId } : {}),
     kind: "all",
+    mode: "filename",
     order,
     q: "",
     recursive: false,
@@ -59,12 +62,16 @@ export function parseSearchUrlState(
           ? "directory"
           : "library";
   const kindValue = search.get("kind");
-  const kind: SearchKind =
+  const requestedKind: SearchKind =
     kindValue === "image" ||
     kindValue === "animated" ||
     kindValue === "video"
       ? kindValue
       : "all";
+  const mode: SearchMode = search.get("mode") === "semantic" ? "semantic" : "filename";
+  const kind: SearchKind = mode === "semantic"
+    ? requestedKind === "video" ? "video" : "image"
+    : requestedKind;
   const dateValue = search.get("date");
   const date: SearchDate =
     dateValue === "30d" || dateValue === "year" ? dateValue : "any";
@@ -83,9 +90,10 @@ export function parseSearchUrlState(
         : defaults.order;
 
   return {
-    date,
+    date: mode === "semantic" ? "any" : date,
     ...(scope === "directory" && directoryId ? { directoryId } : {}),
     kind,
+    mode,
     order,
     q: search.get("q")?.trim() ?? "",
     recursive: scope === "directory" && search.get("recursive") === "1",
@@ -97,14 +105,18 @@ export function parseSearchUrlState(
 export function serializeSearchUrlState(state: SearchUrlState): string {
   const search = new URLSearchParams();
   if (state.q) search.set("q", state.q);
+  if (state.mode === "semantic") search.set("mode", "semantic");
   if (state.scope !== "library") search.set("scope", state.scope);
   if (state.scope === "directory" && state.directoryId) {
     search.set("directoryId", state.directoryId);
     if (state.recursive) search.set("recursive", "1");
   }
-  if (state.kind !== "all") search.set("kind", state.kind);
-  if (state.date !== "any") search.set("date", state.date);
-  if (state.sort !== "modifiedAt" || state.order !== "desc") {
+  if (
+    (state.mode === "filename" && state.kind !== "all") ||
+    (state.mode === "semantic" && state.kind === "video")
+  ) search.set("kind", state.kind);
+  if (state.mode === "filename" && state.date !== "any") search.set("date", state.date);
+  if (state.mode === "filename" && (state.sort !== "modifiedAt" || state.order !== "desc")) {
     search.set("sort", state.sort);
     search.set("order", state.order);
   }

@@ -1,4 +1,4 @@
-# POST-MVP-5 revision 1 offline model package contract and proposed v2
+# POST-MVP-5 offline model package contract
 
 - Status: **Accepted for S1 review**
 - Scope: local model discovery, managed copy, strict direct read and activation
@@ -44,11 +44,12 @@ The illustrative sizes/hashes above are not release catalog values. The release 
 manifest projection and hashes; a self-declared package manifest cannot authorize itself. `packageId` is an internal
 catalog key and is not accepted from public API requests.
 
-## Proposed format v2 for ADR-0014
+## Accepted semantic format v2 for ADR-0014
 
-Format v1 remains the accepted S1 contract and is not silently reinterpreted. It cannot represent the selected
-SentencePiece runtime because its third role is `tokenizer`. Until ADR-0014 is accepted, production continues to
-accept only v1 and the built-in catalog remains empty.
+Format v1 remains catalog-readable as a historical S1 shape and is not silently reinterpreted, but production activation
+rejects it because its third role is `tokenizer` and it cannot represent the selected SentencePiece runtime. ADR-0014
+accepts format v2 for fail-closed backend implementation; the built-in release catalog remains empty until final model,
+quality, native dual-architecture and supply-chain approval.
 
 The proposed v2 changes the third role to `sentencepiece_model` and adds explicit contract IDs:
 
@@ -80,9 +81,56 @@ or unknown contracts, additional files, nested paths, duplicate names/roles/JSON
 or bound violations fail closed. Scanner and activation must branch on an accepted exact format version; they never
 guess a format from filenames.
 
-The executable proposal under `spikes/int001-model-package-v2` verifies these shape and non-confusion rules without
-changing the production catalog parser. Moving it into `internal/aimodel` requires ADR-0014 acceptance, an updated
-built-in catalog entry and the production FD/tokenizer activation evidence.
+The executable precursor under `spikes/int001-model-package-v2` continues to provide an independent shape matrix.
+`internal/aimodel` is the production owner and implements the same v2/non-confusion rules without importing the spike.
+Activation additionally requires the production FD-anchored SentencePiece adapter and exact text/image graph smoke;
+acceptance of the format never self-authorizes a catalog entry.
+
+## Face format v3 for ADR-0015
+
+Format v3 is a separate accepted format for `purpose=face_detection_embedding`; it does not reinterpret semantic v1/v2.
+The package is an indivisible detector/embedder combination so activation cannot expose a mixed generation. It also
+binds the threshold profile as a reviewed file rather than trusting runtime defaults or a self-declared pass flag.
+
+```json
+{
+  "formatVersion": 3,
+  "packageId": "face-reviewed-combination-v3",
+  "purpose": "face_detection_embedding",
+  "version": "1.0.0",
+  "architecture": "portable-onnx",
+  "contracts": {
+    "decode": "libvips-srgb-longedge1600-v1",
+    "detector": "yunet-bgr640-letterbox-score-sqrt-v1",
+    "postprocess": "yunet-stride8-16-32-opencv-int-nms-v1",
+    "alignment": "arcface-5point-similarity112-bilinear-zero-v1",
+    "embedding": "auraface-rgb-minus127.5-div127.5-512-v1",
+    "storage": "face-512-l2-f16le-v1",
+    "thresholdProfile": "face-threshold-profile-json-v1"
+  },
+  "files": [
+    {"name": "face_detector.onnx", "size": 1, "sha256": "64 lowercase hex", "role": "face_detector", "licenseId": "MIT"},
+    {"name": "face_embedder.onnx", "size": 1, "sha256": "64 lowercase hex", "role": "face_embedder", "licenseId": "Apache-2.0"},
+    {"name": "threshold_profile.json", "size": 1, "sha256": "64 lowercase hex", "role": "face_threshold_profile", "licenseId": "Apache-2.0"}
+  ]
+}
+```
+
+The values are structural examples, not approved release bytes or thresholds. Exact model/file hashes, component
+licenses and the threshold profile must come from the accepted catalog and governed quality Gate. V3 requires exactly
+the three roles and seven contract IDs above; missing/duplicate roles, semantic purpose/version confusion, nested paths,
+unknown fields/contracts, duplicate JSON keys, trailing JSON, invalid SPDX-safe IDs and package bounds fail closed.
+
+`spikes/int001-model-package-v2.ParseFaceV3` is the isolated executable precursor. It is exercised by `make spike-ai`
+and remains outside the production import graph. ADR-0015 now permits an independently implemented production parser and
+purpose-aware activation transaction, while final model/quality/privacy/native/supply-chain approval remains mandatory
+before catalog admission, runtime composition or release.
+
+The production owner is `internal/aimodel`; it independently implements the same v3 manifest rules without importing the
+spike. `face-threshold-profile-json-v1` is a strict JSON object with exactly `schemaVersion=1`, an opaque `profileId`,
+finite `coreSimilarity` and `edgeSimilarity` values in `[0,1]` with core not below edge, bounded `minCoreSize`, and a
+lowercase SHA-256 `qualitySummarySha256`. Unknown or duplicate keys, trailing values and self-authorization fields such as
+`groupAssignmentAllowed` fail closed. Activation records the profile file hash and parsed profile identity separately.
 
 ## Bounds and enumeration
 

@@ -20,7 +20,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("expected validate, vector, vector-concurrency, vector-quant, ann, face-score, quality-score, or scan-models")
+		return errors.New("expected validate, vector, vector-concurrency, vector-quant, ann, face-score, quality-score, face-quality-score, or scan-models")
 	}
 	switch args[0] {
 	case "validate":
@@ -37,6 +37,8 @@ func run(args []string) error {
 		return runFaceScore(args[1:])
 	case "quality-score":
 		return runQualityScore(args[1:])
+	case "face-quality-score":
+		return runFaceQualityScore(args[1:])
 	case "scan-models":
 		return runModelScan(args[1:])
 	default:
@@ -78,6 +80,45 @@ func runQualityScore(args []string) error {
 	}
 	if !report.GatePass {
 		return errors.New("S2B quality gate failed")
+	}
+	return nil
+}
+
+func runFaceQualityScore(args []string) error {
+	fs := flag.NewFlagSet("face-quality-score", flag.ContinueOnError)
+	input := fs.String("input", "", "S2C face quality result manifest")
+	datasetManifest := fs.String("dataset-manifest", "", "governed biometric dataset manifest")
+	commit := fs.String("commit", "", "source commit that produced the final-model result")
+	output := fs.String("output", "", "optional verified face quality summary path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *input == "" || *datasetManifest == "" || !regexp.MustCompile(`^[0-9a-f]{40,64}$`).MatchString(*commit) {
+		return errors.New("-input, -dataset-manifest and a valid -commit are required")
+	}
+	dataset, err := ReadFaceQualityDataset(*input)
+	if err != nil {
+		return err
+	}
+	identities, err := ValidateFaceQualityManifest(dataset, *datasetManifest)
+	if err != nil {
+		return err
+	}
+	report, err := ScoreFaceQuality(dataset, identities)
+	if err != nil {
+		return err
+	}
+	report.SourceCommit = *commit
+	if err := writeJSON(report); err != nil {
+		return err
+	}
+	if *output != "" {
+		if err := writeJSONFile(*output, report); err != nil {
+			return err
+		}
+	}
+	if !report.GatePass {
+		return errors.New("S2C face quality gate failed")
 	}
 	return nil
 }

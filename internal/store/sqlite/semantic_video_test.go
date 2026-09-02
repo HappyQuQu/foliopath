@@ -138,6 +138,64 @@ func TestVideoJobQueueHashesCoalescesClaimsCancelsAndRecovers(t *testing.T) {
 	}
 }
 
+func TestVideoJobLifecycleClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedStoryboardAsset(t, store.db)
+	generationID := seedEmbeddingGeneration(t, store, 2)
+	seedSemanticLibrarySettings(t, store, 1)
+	var settingsUpdatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT updated_at_ms FROM ai_library_settings WHERE library_id=1`).Scan(&settingsUpdatedAt); err != nil {
+		t.Fatal(err)
+	}
+	now := time.UnixMilli(settingsUpdatedAt).Add(-time.Minute)
+	ids := []string{"vidjob_clock_rollback", "aio_video_clock_rollback"}
+	service, err := semantic.NewVideoJobService(store, store, &semanticWakeCounter{}, func() time.Time { return now }, func(string) (string, error) {
+		id := ids[0]
+		ids = ids[1:]
+		return id, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requested, err := service.Request(context.Background(), 1, generationID, semantic.JobMissing, "video-job-clock-rollback")
+	if err != nil || !requested.Created {
+		t.Fatalf("requested=%+v err=%v", requested, err)
+	}
+	now = now.Add(-time.Minute)
+	claimed, found, err := store.ClaimVideoJob(context.Background(), now, time.Minute)
+	if err != nil || !found || claimed.State != semantic.JobRunning {
+		t.Fatalf("claimed=%+v found=%v err=%v", claimed, found, err)
+	}
+	if claimed.LeaseExpiresAt == nil || claimed.LeaseExpiresAt.Before(claimed.CreatedAt.Add(time.Minute)) {
+		t.Fatalf("claimed created=%v lease=%v", claimed.CreatedAt, claimed.LeaseExpiresAt)
+	}
+	now = now.Add(-time.Minute)
+	cancelling, err := store.CancelVideoJobOperation(context.Background(), claimed.OperationID, claimed.OperationRevision, now)
+	if err != nil || cancelling.State != semantic.JobCancelling {
+		t.Fatalf("cancelling=%+v err=%v", cancelling, err)
+	}
+	cancelRequested, err := store.RefreshVideoJobLease(context.Background(), claimed, now.Add(-time.Minute), time.Minute)
+	if err != nil || !cancelRequested {
+		t.Fatalf("refresh cancel=%v err=%v", cancelRequested, err)
+	}
+	finished, err := store.FinishVideoJob(context.Background(), claimed, semantic.JobCancelled, "", now.Add(-2*time.Minute))
+	if err != nil || finished.State != semantic.JobCancelled {
+		t.Fatalf("finished=%+v err=%v", finished, err)
+	}
+	for _, check := range []struct {
+		query string
+		id    string
+	}{
+		{`SELECT 1 FROM semantic_video_jobs WHERE id=? AND updated_at_ms>=created_at_ms`, claimed.ID},
+		{`SELECT 1 FROM ai_model_operations WHERE id=? AND updated_at_ms>=created_at_ms AND finished_at_ms>=created_at_ms`, claimed.OperationID},
+	} {
+		var valid int
+		if err := store.db.QueryRowContext(context.Background(), check.query, check.id).Scan(&valid); err != nil || valid != 1 {
+			t.Fatalf("time invariant query=%q valid=%d err=%v", check.query, valid, err)
+		}
+	}
+}
+
 func TestVideoJobMigrationPreservesOperationForeignKeys(t *testing.T) {
 	store, _ := openTestStore(t)
 	rows, err := store.db.Query(`SELECT "table", "from", "to" FROM pragma_foreign_key_list('semantic_jobs') WHERE "from"='operation_id'`)

@@ -167,6 +167,103 @@ func TestControlledTagEmbeddingAndSuggestionRepository(t *testing.T) {
 	}
 }
 
+func TestTagReviewRequestClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	createdAt := time.Date(2026, 8, 29, 12, 0, 0, 0, time.UTC)
+	const keyHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	record := semantic.TagReviewRequestRecord{
+		IdempotencyKeyHash: keyHash,
+		RequestHash:        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		State:              "running",
+		Items: []semantic.TagReviewRequestItemState{{Item: semantic.TagReviewItem{
+			SuggestionID: "suggestion_clock_01", Action: semantic.TagReviewAccept,
+			ExpectedSuggestionRevision: 1, ExpectedCurationRevision: 1,
+		}}},
+		CreatedAt: createdAt, UpdatedAt: createdAt,
+	}
+	if _, created, err := store.BeginTagReviewRequest(context.Background(), record); err != nil || !created {
+		t.Fatalf("begin created=%t err=%v", created, err)
+	}
+	if err := store.CommitTagReviewRequestOutcome(context.Background(), keyHash, 0, semantic.TagReviewOutcome{
+		SuggestionID: "suggestion_clock_01", Outcome: semantic.TagReviewAccept, Revision: 2,
+	}, createdAt.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CompleteTagReviewRequest(context.Background(), keyHash, createdAt.Add(-2*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := store.getTagReviewRequest(context.Background(), keyHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.State != "completed" || stored.UpdatedAt.Before(stored.CreatedAt) {
+		t.Fatalf("stored=%+v", stored)
+	}
+}
+
+func TestTagSuggestionInvalidationClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	assetID := catalogAssetID(t, store, "photo-10.jpg")
+	generationID := seedEmbeddingGeneration(t, store, 2)
+	createdAt := time.Date(2026, 8, 29, 13, 0, 0, 0, time.UTC)
+	tag, _, err := store.CreateTag(context.Background(), "clock", "clock", createdAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reviewTag, _, err := store.CreateTag(context.Background(), "clock-review", "clock-review", createdAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshotID string
+	if err := store.db.QueryRow(`SELECT id FROM ai_tag_vocabulary_snapshots WHERE state='active'`).Scan(&snapshotID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`INSERT INTO ai_tag_vocabulary_entries(snapshot_id,tag_id) VALUES(?,?),(?,?)`, snapshotID, tag.ID, snapshotID, reviewTag.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`UPDATE semantic_generations SET state='active' WHERE id=?`, generationID); err != nil {
+		t.Fatal(err)
+	}
+	var fingerprint string
+	if err := store.db.QueryRow(`SELECT source_fingerprint FROM assets WHERE library_id=? AND id=?`, libraryID, assetID).Scan(&fingerprint); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`INSERT INTO ai_tag_suggestions(id,generation_id,library_id,asset_id,vocabulary_snapshot_id,tag_id,source_fingerprint,confidence,state,revision,created_at_ms,updated_at_ms)
+		VALUES('suggestion_clock_stale',?,?,?,?,?,'stale-source',0.9,'pending',1,?,?)`, generationID, libraryID, assetID, snapshotID, tag.ID, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	rollback := createdAt.Add(-time.Hour)
+	if err := store.ReplacePendingTagSuggestions(context.Background(), libraryID, assetID, generationID, snapshotID, fingerprint, nil, rollback); err != nil {
+		t.Fatal(err)
+	}
+	var state string
+	var storedCreatedAt, storedUpdatedAt int64
+	if err := store.db.QueryRow(`SELECT state,created_at_ms,updated_at_ms FROM ai_tag_suggestions WHERE id='suggestion_clock_stale'`).
+		Scan(&state, &storedCreatedAt, &storedUpdatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if state != "invalidated" || storedUpdatedAt < storedCreatedAt {
+		t.Fatalf("stale suggestion=%q %d/%d", state, storedCreatedAt, storedUpdatedAt)
+	}
+
+	const reviewSuggestionID = "suggestion_clock_review"
+	if _, err := store.db.Exec(`INSERT INTO ai_tag_suggestions(id,generation_id,library_id,asset_id,vocabulary_snapshot_id,tag_id,source_fingerprint,confidence,state,revision,created_at_ms,updated_at_ms)
+		VALUES(?,?,?,?,?,?,?,0.8,'pending',1,?,?)`, reviewSuggestionID, generationID, libraryID, assetID, snapshotID, reviewTag.ID, fingerprint, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CommitTagReview(context.Background(), reviewSuggestionID, 1, semantic.TagReviewDismiss, 0, rollback.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.QueryRow(`SELECT state,created_at_ms,updated_at_ms FROM ai_tag_suggestions WHERE id=?`, reviewSuggestionID).
+		Scan(&state, &storedCreatedAt, &storedUpdatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if state != "invalidated" || storedUpdatedAt < storedCreatedAt {
+		t.Fatalf("reviewed suggestion=%q %d/%d", state, storedCreatedAt, storedUpdatedAt)
+	}
+}
+
 func TestTagSuggestionMigrationRejectsFreeTextAndCascadesDerivedState(t *testing.T) {
 	store, _ := openTestStore(t)
 	assertTableColumns(t, store.db, "ai_tag_suggestions", []string{

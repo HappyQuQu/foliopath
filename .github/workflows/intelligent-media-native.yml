@@ -110,6 +110,15 @@ jobs:
           set -euo pipefail
           make test-libvips 2>&1 | tee "${EVIDENCE_DIR}/libvips.log"
 
+      - name: Run pinned face candidate and synthetic capacity preflights
+        id: face_candidate
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          tests/release/face_candidate_native_smoke.sh "${EVIDENCE_DIR}"
+
       - name: Run two-library order-first evidence matrix
         id: search_matrix
         shell: bash
@@ -135,6 +144,7 @@ jobs:
           IDENTITY_OUTCOME: ${{ steps.identity.outcome }}
           REPOSITORY_OUTCOME: ${{ steps.repository.outcome }}
           LIBVIPS_OUTCOME: ${{ steps.libvips.outcome }}
+          FACE_CANDIDATE_OUTCOME: ${{ steps.face_candidate.outcome }}
           SEARCH_MATRIX_OUTCOME: ${{ steps.search_matrix.outcome }}
           CAPACITY_OUTCOME: ${{ steps.capacity.outcome }}
         run: |
@@ -144,15 +154,17 @@ jobs:
             --arg identity "${IDENTITY_OUTCOME}" \
             --arg repository "${REPOSITORY_OUTCOME}" \
             --arg libvips "${LIBVIPS_OUTCOME}" \
+            --arg faceCandidate "${FACE_CANDIDATE_OUTCOME}" \
             --arg searchMatrix "${SEARCH_MATRIX_OUTCOME}" \
             --arg capacity "${CAPACITY_OUTCOME}" \
             '{
               identity: $identity,
               repository: $repository,
               libvips: $libvips,
+              faceCandidate: $faceCandidate,
               searchMatrix: $searchMatrix,
               capacity: $capacity,
-              complete: ([ $identity, $repository, $libvips, $searchMatrix, $capacity ] | all(. == "success"))
+              complete: ([ $identity, $repository, $libvips, $faceCandidate, $searchMatrix, $capacity ] | all(. == "success"))
             }' >"${EVIDENCE_DIR}/outcomes.json"
 
       - name: Upload bounded native evidence

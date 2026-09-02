@@ -1,4 +1,5 @@
 import {
+  Brain,
   FileText,
   FolderOpen,
   GearSix,
@@ -15,6 +16,7 @@ import styles from "./ManagementShell.module.css";
 export type ManagementSection =
   | "general"
   | "libraries"
+  | "ai"
   | "storage"
   | "account"
   | "logs"
@@ -23,6 +25,7 @@ export type ManagementSection =
 const navigation: Array<{
   hrefKey:
     | "accountHref"
+    | "aiHref"
     | "aboutHref"
     | "generalHref"
     | "librariesHref"
@@ -43,6 +46,12 @@ const navigation: Array<{
     icon: FolderOpen,
     key: "shell.libraries",
     section: "libraries",
+  },
+  {
+    hrefKey: "aiHref",
+    icon: Brain,
+    key: "management.ai",
+    section: "ai",
   },
   {
     hrefKey: "accountHref",
@@ -67,6 +76,7 @@ const navigation: Array<{
 export function ManagementShell({
   active,
   accountHref,
+  aiHref = "/settings/ai",
   aboutHref = "/settings/about",
   children,
   generalHref,
@@ -81,6 +91,7 @@ export function ManagementShell({
 }: {
   active: ManagementSection;
   accountHref: string;
+  aiHref?: string;
   aboutHref?: string;
   children: ReactNode;
   generalHref: string;
@@ -96,6 +107,7 @@ export function ManagementShell({
   const { t } = useLocale();
   const hrefs = {
     accountHref,
+    aiHref,
     aboutHref,
     generalHref,
     librariesHref,

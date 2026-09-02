@@ -32,9 +32,10 @@ type installAIModelRequest struct {
 }
 
 type aiModelPageResponse struct {
-	Items         []aiModelResponse `json:"items"`
-	ActiveModelID *string           `json:"activeModelId"`
-	Revision      int64             `json:"revision"`
+	Items             []aiModelResponse `json:"items"`
+	ActiveModelID     *string           `json:"activeModelId"`
+	ActiveFaceModelID *string           `json:"activeFaceModelId"`
+	Revision          int64             `json:"revision"`
 }
 
 type aiModelResponse struct {
@@ -206,6 +207,10 @@ func aiModelPageWire(snapshot aimodel.Snapshot) aiModelPageResponse {
 	if snapshot.ActiveModelID != "" {
 		value := snapshot.ActiveModelID
 		response.ActiveModelID = &value
+	}
+	if snapshot.ActiveFaceModelID != "" {
+		value := snapshot.ActiveFaceModelID
+		response.ActiveFaceModelID = &value
 	}
 	for _, model := range snapshot.Items {
 		response.Items = append(response.Items, aiModelResponse{

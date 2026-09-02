@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "opencv-zoo-yunet-2023mar",
+      "status": "candidate",
+      "purpose": "face_detection",
+      "version": "2023mar",
+      "filename": "face_detection_yunet_2023mar.onnx",
+      "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+      "size_bytes": 232589,
+      "source_url": "https://github.com/opencv/opencv_zoo/raw/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
+      "code_license": {
+        "id": "MIT",
+        "url": "https://github.com/opencv/opencv_zoo/blob/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/LICENSE"
+      },
+      "weight_license": {
+        "id": "MIT",
+        "url": "https://github.com/opencv/opencv_zoo/blob/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/LICENSE"
+      },
+      "architectures": ["onnx-portable; runtime evidence pending"]
+    },
+    {
+      "id": "fal-auraface-v1-glintr100",
+      "status": "candidate",
+      "purpose": "face_embedding",
+      "version": "af6d057c9b0ec4071d4c49c80e3539258798b609",
+      "filename": "glintr100.onnx",
+      "sha256": "a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60",
+      "size_bytes": 260694151,
+      "source_url": "https://huggingface.co/fal/AuraFace-v1/resolve/af6d057c9b0ec4071d4c49c80e3539258798b609/glintr100.onnx",
+      "code_license": {
+        "id": "Apache-2.0",
+        "url": "https://huggingface.co/fal/AuraFace-v1/blob/af6d057c9b0ec4071d4c49c80e3539258798b609/LICENSE.md"
+      },
+      "weight_license": {
+        "id": "Apache-2.0",
+        "url": "https://huggingface.co/fal/AuraFace-v1/blob/af6d057c9b0ec4071d4c49c80e3539258798b609/LICENSE.md"
+      },
+      "architectures": ["onnx-portable; runtime evidence pending"]
+    }
+  ]
+}

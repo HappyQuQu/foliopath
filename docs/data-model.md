@@ -361,7 +361,7 @@ S1 冻结 schema 语义；S2 已以只追加 migration 22/23/24
 
 | 表 | 身份与关键约束 | 数据分类与删除 |
 | --- | --- | --- |
-| `ai_models` | opaque ID；`purpose=semantic_image_text`；package/version/arch/content hash 唯一；state、storage mode、availability revision | 模型配置/运行状态；备份；删除不能触碰 direct source |
+| `ai_models` | opaque ID；精确 `purpose=semantic_image_text|face_detection_embedding`；package/version/arch/content hash 唯一；state、storage mode、availability revision | 模型配置/运行状态；备份；删除不能触碰 direct source；purpose 不可混淆 |
 | `ai_model_operations` | opaque operation ID；kind、state、progress、stable error、lease、revision；不保存路径/URL；Get/create/transition 返回时均由 operation owner 校验 identity/owner/revision 绑定及 queued/active/terminal phase、finished time、error-code 一致性 | 可清理运维状态；保留最近终态由配额策略控制；不一致或串单的持久化结果失败关闭 |
 
 不经过 `OperationService` 的安装/激活 admission 结果必须在 `ManagementService` 出口执行相同 operation
@@ -466,7 +466,7 @@ storyboard cache eviction 不直接删除 frame embedding；下一次来源复�
 | 计划表 | 身份与约束 | 分类/删除 |
 | --- | --- | --- |
 | `face_library_settings` | library PK/FK、enabled/state/revision、active face/cluster generation、coverage revision | 应用设置；备份；默认关闭 |
-| `face_generations` | opaque ID、detector/embedder/cluster contract、model IDs、dimension、threshold profile、state | 可重建代次元数据；最多一个 active profile |
+| `face_generations` | opaque ID、组合 `model_id/package_id`、detector/embedder hash、512 维/transform version、threshold profile ID/hash、state | 可重建代次元数据；最多一个 active face generation；不更新 semantic active pointer |
 | `face_observations` | opaque face ID；`generation_id + library_id + asset_id + source_fingerprint`；受检 normalized bbox/quality；固定 binary16 embedding | 高敏感可重建派生；asset/library/generation cascade；不保存 crop/path |
 | `face_clusters` / `face_cluster_members` | generation-bound anonymous cluster；member role 仅 core/edge；同 observation 每代最多一个 cluster | 高敏感可重建派生；generation cascade；不引用 person name |
 | `people` | instance-level opaque person ID；NFC display name 1～100 code points、revision、created/updated、可空 tombstone；名称不唯一 | 不可重建应用状态；必须备份；删除只由 person owner |

@@ -112,3 +112,32 @@ func TestServiceRejectsInvalidPackageAndRepositoryState(t *testing.T) {
 		t.Fatalf("register invalid error = %v", err)
 	}
 }
+
+func TestServiceAcceptsOneActiveModelPerPurpose(t *testing.T) {
+	now := time.Date(2026, 9, 1, 23, 0, 0, 0, time.UTC)
+	semantic := Model{ID: "aim_semantic_active", Package: testPackage(), StorageMode: StorageManaged,
+		State: StateAvailable, SourceIdentity: "managed:semantic", AvailabilityRevision: 1,
+		CreatedAt: now, UpdatedAt: now, Active: true}
+	facePackage := testPackage()
+	facePackage.PackageID = "face-package-v3"
+	facePackage.Purpose = PurposeFaceDetectionEmbedding
+	facePackage.LicenseID = "Apache-2.0 AND MIT"
+	face := Model{ID: "aim_face_active", Package: facePackage, StorageMode: StorageManaged,
+		State: StateAvailable, SourceIdentity: "managed:face", AvailabilityRevision: 1,
+		CreatedAt: now, UpdatedAt: now, Active: true}
+	repository := &memoryRepository{snapshot: Snapshot{
+		Items: []Model{semantic, face}, ActiveModelID: semantic.ID, ActiveFaceModelID: face.ID, Revision: 3,
+	}}
+	service, err := NewService(repository, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := service.List(context.Background())
+	if err != nil || snapshot.ActiveModelID != semantic.ID || snapshot.ActiveFaceModelID != face.ID {
+		t.Fatalf("snapshot=%+v err=%v", snapshot, err)
+	}
+	repository.snapshot.ActiveFaceModelID = semantic.ID
+	if _, err := service.List(context.Background()); !errors.Is(err, ErrRepositoryState) {
+		t.Fatalf("cross-purpose active error=%v", err)
+	}
+}

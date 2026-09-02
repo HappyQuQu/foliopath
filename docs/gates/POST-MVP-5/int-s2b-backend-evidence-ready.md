@@ -3,7 +3,7 @@
 - 日期：2026-08-29
 - 目标版本：[POST-MVP-5 revision 2](../../releases/POST-MVP-5-scope-r2.md)
 - 范围：C 受控标签建议 + D 完整故事板视频语义搜索
-- 当前判断：**No-Go / Implementation Authorized**
+- 当前判断：**Backend Ready / Release No-Go**
 - Contract input：[INT-S1R2 Contract Ready](int-s1r2-contract-ready.md)（Go）
 
 ## 已授权边界
@@ -12,16 +12,25 @@
 production composition 与集成测试。仍不授权 S3 消费者 UI，也不允许为了模拟可用而接入未审核模型、自由
 文本标签、第二套 FFmpeg 抽帧或部分故事板搜索。
 
-## Go 必需证据
+## Backend Ready 必需证据
 
 - C：受控词表、Top-5、generation/vocabulary/source 失效、100 项 review、curation 原子接受、review clear；
 - D：只消费完整 10/4 帧 plan、max/best-frame 稳定 cursor、partial/degraded/fallback、取消与缓存重建；
-- 合法代表性 tag 数据签署与至少 100 个合法视频的 Top-20 success ≥80%；
-- native linux/amd64 + arm64、4 CPU/4 GiB/100k 联合负载、崩溃/ENOSPC/offline/upgrade/clear；
-- 最终 model/runtime license、SBOM、VEX、notices、provenance；原媒体 sentinel 不变。
+- governed quality scorer/输入 validator、逐项 tag precision/recall 与 video Top-20 重算、阈值失败回退；
+- 本地任务/查询/取消/restart/offline/clear 故障矩阵及原媒体 sentinel 不变。
 
-任一项缺失继续 No-Go。C 失败则删除 suggestion、保留人工标签；D 失败则删除 video semantic、保留现有
-storyboard。S2B Go 不自动改变 A+B S2A 或 E S2C 的判断。
+最终合法 tag 数据签署、至少 100 个合法视频的 Top-20 success ≥80%、native linux/amd64+arm64、4 CPU/
+4 GiB/100k 最终联合负载及 model/runtime SBOM/VEX/notices/provenance 由 S4 Release Gate 持有。任一项
+缺失时 release 继续 No-Go：C 失败则删除 suggestion、D 失败则删除 video semantic。
+
+## 2026-09-01 Backend Ready 签署
+
+[CR-2026-022](../../changes/CR-2026-022-s2-backend-release-gate-separation.md) 将最终发行输入恢复到 S4。
+`INT-221～228` 的 production repository、durable worker、HTTP、ranking/scorer、failure semantics 与
+fail-closed composition 已完成并通过本地回归，因此 S2B 签署 **Backend Ready**。reviewed catalog 为空，
+最终 governed tag/video 质量、native paired final image 和供应链未通过，故 **Release No-Go**。
+同一 closeout 已成功执行完整仓库验证与 100k 强制容量；命令和结果集中记录于
+[S2 最终完成审计](int-s2-final-blocker-audit-2026-09-01.md)。
 
 ## 2026-08-30 本地实现复审
 

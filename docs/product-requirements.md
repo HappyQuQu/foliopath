@@ -336,15 +336,18 @@ revision 1，也不得被 A+B 的 API、migration 或 UI 顺带实现。
   cannot-link 优先，已命名人物不自动合并；默认清除派生 face 数据，人物应用状态需独立二次确认。
 
 状态机、owner、排序、失效、删除与失败语义以
-[C+D+E capability contract](architecture/intelligent-media-s1r2-contract.md)为权威。E 在隐私签署、合法
-ground truth、core precision ≥99.5% 和可商业分发模型/runtime 到位前必须保持 Backend No-Go。
+[C+D+E capability contract](architecture/intelligent-media-s1r2-contract.md)为权威。按
+[CR-2026-022](changes/CR-2026-022-s2-backend-release-gate-separation.md)，E 可在默认不可达、空审核 catalog
+下完成 fail-closed 后端；隐私签署、合法 ground truth、core precision ≥99.5% 和可商业分发 model/runtime
+到位前必须保持 Release No-Go。
 
 冻结非功能要求：全部推理本地执行且不自动联网；任务有界、可取消、可恢复并低于核心派生任务优先级；
 禁用后不产生新派生结果且模型 session 可回收；不同 generation 不混用；API/日志/诊断不暴露原始
 embedding、查询文本、绝对路径、内部模型错误或任意下载地址；模型包视为不可信输入，只接受固定
 allowlist 中不含代码、插件、动态库、脚本或 ONNX external-data 的纯数据包；直接来源缺失、变化或
 可写时失败关闭；复制、校验、激活使用有界空间、并发 1、临时文件与原子发布。在 4 CPU、4 GiB、
-10 万媒体目标档是否达到质量、资源与双架构门槛，由 Backend/Release Gate 证明，本文不预先宣称通过。
+10 万媒体目标档的本地有界实现由 S2 Backend Gate 证明；最终模型质量、资源和 native 双架构由 S4
+Release Gate 证明，本文不预先宣称发布通过。
 
 revision 1 不自动识别或猜测 Coser、模特、公众人物、真人身份、动漫角色或敏感属性，不提供 OCR、
 自由 caption、内容审核、云推理、GPU、在线下载、国内镜像、任意模型市场或新部署单元。

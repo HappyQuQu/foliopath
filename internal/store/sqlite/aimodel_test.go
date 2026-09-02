@@ -53,6 +53,33 @@ func TestAIModelRepositoryRegistersIdempotentlyAndChecksRevision(t *testing.T) {
 	}
 }
 
+func TestAIModelAvailabilityClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	createdAt := time.Date(2026, 8, 27, 13, 0, 0, 0, time.UTC)
+	model := aimodel.Model{
+		ID: "aim_clock_rollback_model",
+		Package: aimodel.VerifiedPackage{
+			PackageID: "semantic-clock-v1", Purpose: aimodel.PurposeSemanticImageText,
+			Version: "1.0.0", Architecture: "arm64",
+			ContentHash: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+			LicenseID:   "Apache-2.0", PackageSizeByte: 2048,
+		},
+		StorageMode: aimodel.StorageManaged, State: aimodel.StateAvailable,
+		SourceIdentity: "managed:sha256:clock", AvailabilityRevision: 1,
+		CreatedAt: createdAt, UpdatedAt: createdAt,
+	}
+	if _, _, err := store.RegisterAIModel(context.Background(), model); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := store.SetAIModelAvailability(context.Background(), model.ID, 1, aimodel.StateUnavailable, createdAt.Add(-time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !updated.UpdatedAt.Equal(createdAt) {
+		t.Fatalf("updated at = %v, want %v", updated.UpdatedAt, createdAt)
+	}
+}
+
 func TestAISemanticMigrationConstraintsAndLibraryCascade(t *testing.T) {
 	store, _ := openTestStore(t)
 	for _, table := range []string{
@@ -72,7 +99,7 @@ func TestAISemanticMigrationConstraintsAndLibraryCascade(t *testing.T) {
 	if err := store.db.QueryRow(`SELECT MAX(version_id) FROM goose_db_version WHERE is_applied = 1`).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 32 {
-		t.Fatalf("migration version = %d, want 32", version)
+	if version != 35 {
+		t.Fatalf("migration version = %d, want 35", version)
 	}
 }

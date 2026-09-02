@@ -87,6 +87,109 @@ func TestSemanticClearAdmissionWorksWithoutAvailableModelAndIsIdempotent(t *test
 	}
 }
 
+func TestSemanticClearAdmissionClampsSettingsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var libraryCreatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT created_at_ms FROM libraries WHERE id=?`, libraryID).Scan(&libraryCreatedAt); err != nil {
+		t.Fatal(err)
+	}
+	now := time.UnixMilli(libraryCreatedAt).Add(-time.Minute)
+	ids := []string{"semclear_clock_rollback", "aio_clear_clock_rollback"}
+	service, err := semantic.NewClearService(store, &semanticWakeCounter{}, func() time.Time { return now }, func(string) (string, error) {
+		id := ids[0]
+		ids = ids[1:]
+		return id, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requested, err := service.Request(context.Background(), libraryID, 1, "semantic-clear-clock-rollback")
+	if err != nil || !requested.Created {
+		t.Fatalf("requested=%+v err=%v", requested, err)
+	}
+	var createdAt, updatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT created_at_ms,updated_at_ms FROM ai_library_settings WHERE library_id=?`, libraryID).Scan(&createdAt, &updatedAt); err != nil {
+		t.Fatal(err)
+	}
+	if createdAt != libraryCreatedAt || updatedAt < createdAt {
+		t.Fatalf("settings created_at_ms=%d updated_at_ms=%d library_created_at_ms=%d", createdAt, updatedAt, libraryCreatedAt)
+	}
+}
+
+func TestSemanticClearLifecycleClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var libraryCreatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT created_at_ms FROM libraries WHERE id=?`, libraryID).Scan(&libraryCreatedAt); err != nil {
+		t.Fatal(err)
+	}
+	now := time.UnixMilli(libraryCreatedAt).Add(-time.Minute)
+	ids := []string{"semclear_clock_lifecycle", "aio_clear_clock_lifecycle", "semclear_clock_cancel", "aio_clear_clock_cancel"}
+	service, err := semantic.NewClearService(store, &semanticWakeCounter{}, func() time.Time { return now }, func(string) (string, error) {
+		id := ids[0]
+		ids = ids[1:]
+		return id, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requested, err := service.Request(context.Background(), libraryID, 1, "semantic-clear-lifecycle-clock-rollback")
+	if err != nil || !requested.Created {
+		t.Fatalf("requested=%+v err=%v", requested, err)
+	}
+	now = now.Add(-time.Minute)
+	claimed, found, err := store.ClaimSemanticClear(context.Background(), now, time.Minute)
+	if err != nil || !found || claimed.State != semantic.JobRunning {
+		t.Fatalf("claimed=%+v found=%v err=%v", claimed, found, err)
+	}
+	if claimed.LeaseExpiresAt == nil || claimed.LeaseExpiresAt.Before(claimed.CreatedAt.Add(time.Minute)) {
+		t.Fatalf("claimed created=%v lease=%v", claimed.CreatedAt, claimed.LeaseExpiresAt)
+	}
+	now = now.Add(-time.Minute)
+	cancelled, err := store.RefreshSemanticClearLease(context.Background(), claimed, now, time.Minute)
+	if err != nil || cancelled {
+		t.Fatalf("refresh cancelled=%v err=%v", cancelled, err)
+	}
+	deleted, done, err := store.DeleteSemanticClearBatch(context.Background(), claimed, 1, now)
+	if err != nil || deleted != 0 || !done {
+		t.Fatalf("delete deleted=%d done=%v err=%v", deleted, done, err)
+	}
+	finished, err := store.FinishSemanticClear(context.Background(), claimed, semantic.JobSucceeded, "", now)
+	if err != nil || finished.State != semantic.JobSucceeded {
+		t.Fatalf("finished=%+v err=%v", finished, err)
+	}
+	assertSemanticClearTimeInvariants(t, store, libraryID, claimed.ID, claimed.OperationID)
+
+	requested, err = service.Request(context.Background(), libraryID, 3, "semantic-clear-cancel-clock-rollback")
+	if err != nil || !requested.Created {
+		t.Fatalf("cancel request=%+v err=%v", requested, err)
+	}
+	now = now.Add(-time.Minute)
+	cancelledJob, err := service.CancelOperation(context.Background(), requested.Job.OperationID, 1)
+	if err != nil || cancelledJob.State != semantic.JobCancelled {
+		t.Fatalf("cancelled=%+v err=%v", cancelledJob, err)
+	}
+	assertSemanticClearTimeInvariants(t, store, libraryID, requested.Job.ID, requested.Job.OperationID)
+}
+
+func assertSemanticClearTimeInvariants(t *testing.T, store *Store, libraryID int64, jobID, operationID string) {
+	t.Helper()
+	for _, check := range []struct {
+		query string
+		args  []any
+	}{
+		{`SELECT 1 FROM ai_library_settings WHERE library_id=? AND updated_at_ms>=created_at_ms`, []any{libraryID}},
+		{`SELECT 1 FROM semantic_clear_jobs WHERE id=? AND updated_at_ms>=created_at_ms`, []any{jobID}},
+		{`SELECT 1 FROM ai_model_operations WHERE id=? AND updated_at_ms>=created_at_ms AND (finished_at_ms IS NULL OR finished_at_ms>=created_at_ms)`, []any{operationID}},
+	} {
+		var valid int
+		if err := store.db.QueryRowContext(context.Background(), check.query, check.args...).Scan(&valid); err != nil || valid != 1 {
+			t.Fatalf("time invariant query=%q valid=%d err=%v", check.query, valid, err)
+		}
+	}
+}
+
 func TestSemanticClearAdmissionRejectsStaleSettingsAndActiveBackfill(t *testing.T) {
 	store, _ := openTestStore(t)
 	libraryID := seedBrowseCatalog(t, store)

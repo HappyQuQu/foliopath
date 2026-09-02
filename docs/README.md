@@ -41,11 +41,13 @@
 和[任务清单](features/intelligent-media-discovery-task-list.md)，并补充审核下载源与 `/models:ro` 离线
 模型获取方案；`POST-MVP-5` [revision 2](releases/POST-MVP-5-scope-r2.md) 已冻结 A～E 完整范围；
 INT-S0 与 [INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md)仍只对 A+B 为 Go；
-[INT-S2A Backend Evidence Ready](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md) 已复审但为 No-Go，
-其中 [ADR-0014 接受审计](gates/POST-MVP-5/adr-0014-acceptance-audit-2026-08-29.md) 仍为 Blocked；
-不授权生产 UI。C 标签、D 视频、E 人脸当前进入 S1R2 合同扩展，Contract Ready 前不写生产后端；国内
-镜像仍没有承诺。S0 本地技术探索已经[收口](gates/POST-MVP-5/int-s0-closeout-and-blockers.md)，不再
-追加同类合成测试；真实质量、原生 amd64 与合规条件由后续 Backend/Release Gate 持有。
+[INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)、
+[INT-S2B](gates/POST-MVP-5/int-s2b-backend-evidence-ready.md) 与
+[INT-S2C](gates/POST-MVP-5/int-s2c-privacy-ready.md) 均为 Backend Ready / Release No-Go；
+[INT-S3](gates/POST-MVP-5/int-s3-consumer-ui-ready.md) 已为 Consumer/UI Ready / Release No-Go；按
+[CR-2026-022](changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终真实质量、native 双架构、
+联合容量、供应链与隐私/合规签署由 S4 持有。国内镜像仍没有承诺；S4 Go 前 reviewed catalog、face
+composition 与发行 UI 继续失败关闭。
 
 ## 当前权威文档
 

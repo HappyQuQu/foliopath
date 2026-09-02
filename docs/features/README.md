@@ -16,7 +16,7 @@ Contract Ready、Backend Evidence Ready、Consumer/UI Ready 和 Integrated Slice
 - [FTR-OPS-001：后台任务中心](task-center.md)（`Post-MVP/3` scope proposed）
 - [FTR-OPS-001 开发任务清单](task-center-task-list.md)
 - [FTR-INT-001：本地智能媒体发现](intelligent-media-discovery.md)（`POST-MVP-5` revision 2，A～E；
-  S1/S1R2 Contract Ready，S2A/S2B No-Go，S2C 等待隐私准入）
+  S1/S1R2 Contract Ready，S2A/S2B/S2C Backend Ready / Release No-Go）
 - [FTR-INT-001 开发任务清单](intelligent-media-discovery-task-list.md)
 
 未来候选（未排期，不授权实现）：

@@ -6,6 +6,8 @@ import {
 
 import {
   searchAssets,
+  searchSemanticAssets,
+  searchSemanticVideos,
   searchLibraryAssets,
   type AssetPage,
 } from "../../lib/api/catalog";
@@ -24,6 +26,7 @@ export const searchKeys = {
       "results",
       libraryId ?? "all",
       state.scope,
+      state.mode,
       state.directoryId ?? "root",
       state.recursive,
       state.q,
@@ -69,6 +72,26 @@ export function useSearchResultsQuery({
   return useInfiniteQuery({
     queryKey: searchKeys.results(libraryId, state),
     queryFn: ({ pageParam }) => {
+      if (state.mode === "semantic") {
+        if (state.kind === "video") {
+          return searchSemanticVideos({
+            q: state.q,
+            ...(libraryId && state.scope !== "all" ? { libraryId } : {}),
+            ...(state.scope === "directory" && state.directoryId
+              ? { directoryId: state.directoryId, recursive: state.recursive }
+              : {}),
+            ...(pageParam ? { cursor: pageParam } : {}),
+          });
+        }
+        return searchSemanticAssets({
+          q: state.q,
+          ...(libraryId && state.scope !== "all" ? { libraryId } : {}),
+          ...(state.scope === "directory" && state.directoryId
+            ? { directoryId: state.directoryId, recursive: state.recursive }
+            : {}),
+          ...(pageParam ? { cursor: pageParam } : {}),
+        });
+      }
       const shared = {
         order: state.order,
         q: state.q,

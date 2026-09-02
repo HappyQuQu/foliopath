@@ -59,17 +59,26 @@ func (service *Service) List(ctx context.Context) (Snapshot, error) {
 	if snapshot.Revision < 1 {
 		return Snapshot{}, ErrRepositoryState
 	}
-	activeFound := snapshot.ActiveModelID == ""
+	semanticFound := snapshot.ActiveModelID == ""
+	faceFound := snapshot.ActiveFaceModelID == ""
 	for index := range snapshot.Items {
 		if err := ValidateModel(snapshot.Items[index]); err != nil {
 			return Snapshot{}, err
 		}
-		if snapshot.Items[index].Active != (snapshot.Items[index].ID == snapshot.ActiveModelID) {
+		expectedActive := snapshot.Items[index].ID == snapshot.ActiveModelID ||
+			snapshot.Items[index].ID == snapshot.ActiveFaceModelID
+		if snapshot.Items[index].Active != expectedActive {
 			return Snapshot{}, ErrRepositoryState
 		}
-		activeFound = activeFound || snapshot.Items[index].Active
+		if snapshot.Items[index].ID == snapshot.ActiveModelID {
+			semanticFound = snapshot.Items[index].Package.Purpose == PurposeSemanticImageText
+		}
+		if snapshot.Items[index].ID == snapshot.ActiveFaceModelID {
+			faceFound = snapshot.Items[index].Package.Purpose == PurposeFaceDetectionEmbedding
+		}
 	}
-	if !activeFound {
+	if !semanticFound || !faceFound ||
+		(snapshot.ActiveModelID != "" && snapshot.ActiveModelID == snapshot.ActiveFaceModelID) {
 		return Snapshot{}, ErrRepositoryState
 	}
 	return snapshot, nil

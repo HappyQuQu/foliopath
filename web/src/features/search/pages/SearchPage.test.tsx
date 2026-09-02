@@ -9,6 +9,8 @@ import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   searchAssets,
   searchLibraryAssets,
+  searchSemanticAssets,
+  searchSemanticVideos,
   type Asset,
 } from "../../../lib/api/catalog";
 import { getLibrary } from "../../../lib/api/libraries";
@@ -21,6 +23,8 @@ vi.mock("../../../lib/api/catalog", async (importOriginal) => {
     ...actual,
     searchAssets: vi.fn(),
     searchLibraryAssets: vi.fn(),
+    searchSemanticAssets: vi.fn(),
+    searchSemanticVideos: vi.fn(),
   };
 });
 
@@ -89,6 +93,8 @@ beforeEach(() => {
   vi.mocked(getLibrary).mockReset();
   vi.mocked(searchAssets).mockReset();
   vi.mocked(searchLibraryAssets).mockReset();
+  vi.mocked(searchSemanticAssets).mockReset();
+  vi.mocked(searchSemanticVideos).mockReset();
   vi.mocked(getLibrary).mockResolvedValue({
     etag: '"library-v1"',
     library: {
@@ -113,6 +119,33 @@ beforeEach(() => {
   vi.mocked(searchAssets).mockResolvedValue({
     items: [result],
     nextCursor: null,
+  });
+  vi.mocked(searchSemanticAssets).mockResolvedValue({
+    items: [result],
+    nextCursor: null,
+    semanticCoverage: {
+      complete: false,
+      completed: 8,
+      eligible: 12,
+      excludedLibraries: [],
+      failed: 1,
+      stale: 3,
+    },
+  });
+  vi.mocked(searchSemanticVideos).mockResolvedValue({
+    items: [videoResult],
+    nextCursor: null,
+    semanticCoverage: {
+      complete: true,
+      completed: 1,
+      eligible: 1,
+      excludedLibraries: [],
+      failed: 0,
+      stale: 0,
+    },
+    semanticVideoMatches: {
+      ast_video: { ordinal: 3, planSize: 10, timestampMs: 42_000 },
+    },
   });
 });
 
@@ -182,6 +215,37 @@ it("moves scope and filters into the URL and selects the global endpoint", async
       q: "京都",
     }),
   );
+});
+
+it("switches to semantic mode through the canonical URL and fixed relevance query", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?q=夜景&kind=animated&date=30d");
+
+  await screen.findByText("京都夜景.jpg");
+  await user.click(screen.getByRole("button", { name: "画面语义" }));
+
+  await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/search?q=%E5%A4%9C%E6%99%AF&mode=semantic",
+  ));
+  expect(searchSemanticAssets).toHaveBeenCalledWith({
+    libraryId: "lib_family",
+    q: "夜景",
+  });
+  expect(screen.getByLabelText("媒体类型")).toHaveValue("image");
+  expect(await screen.findByText("画面语义覆盖：已分析 8 / 可分析 12，失败 1")).toBeVisible();
+  expect(screen.queryByLabelText("日期")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("排序")).not.toBeInTheDocument();
+});
+
+it("shows the best matching storyboard frame for semantic video results", async () => {
+  renderSearch("/libraries/lib_family/search?q=散步&mode=semantic&kind=video");
+
+  expect(await screen.findByText("京都散步.mp4")).toBeVisible();
+  expect(screen.getByText("命中 0:42 · 10 帧故事板")).toBeVisible();
+  expect(searchSemanticVideos).toHaveBeenCalledWith({
+    libraryId: "lib_family",
+    q: "散步",
+  });
 });
 
 it("preserves an empty query state and clears only active filters", async () => {

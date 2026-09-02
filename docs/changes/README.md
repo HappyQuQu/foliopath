@@ -1,5 +1,7 @@
 # FolioPath 变更记录
 
+- [S3 离线模型管理 UI 合同对齐](CR-2026-023-s3-offline-model-ui-contract-alignment.md)
+
 本目录保存两类只追加记录：
 
 - `CR-*`：用户可见范围、版本归属或高风险切片的 Change Record。
@@ -36,11 +38,38 @@
 - [CR-2026-020：收藏与手动标签](CR-2026-020-favorites-and-tags.md)
 - [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5`
   revision 2 已批准，A～E 全部纳入）
+- [CR-2026-022：S2 后端完成与最终发布 Gate 分离](CR-2026-022-s2-backend-release-gate-separation.md)
 
 ## Routine fixes
 
+### 2026-09-02
+
+- [人脸候选原生双架构工作流预检](FIX-2026-09-02-face-native-workflow-preflight.md)
+- [人脸功能证据目录分组口径纠偏](FIX-2026-09-02-face-functional-group-metrics.md)
+- [人脸控制面与取消状态机闭环](FIX-2026-09-02-face-control-and-cancellation.md)
+- [人脸任务 offline admission 收敛](FIX-2026-09-02-face-offline-admission.md)
+- [端到端镜像依赖下载抗瞬断](FIX-2026-09-02-e2e-go-module-download-retry.md)
+
+### 2026-09-01
+
+- [semantic v2 production tokenizer 与文本推理闭环](FIX-2026-09-01-semantic-v2-production-runtime.md)
+- [人脸组合模型包与独立 generation 激活](FIX-2026-09-01-face-composite-model-activation.md)
+- [人脸 core bridge 传递误合并防护](FIX-2026-09-01-face-core-bridge-prevention.md)
+- [coser 私有人脸复核材料准备](FIX-2026-09-01-coser-private-face-review-preparation.md)
+- [S2 durable job 时钟回拨收敛](FIX-2026-09-01-s2-job-clock-rollback.md)
+- [AI 清除设置时钟回拨收敛](FIX-2026-09-01-ai-clear-settings-clock-rollback.md)
+- [人脸设置与任务时钟回拨收敛](FIX-2026-09-01-face-settings-clock-rollback.md)
+- [人脸 LSH 桶边界与 512 维容量收敛](FIX-2026-09-01-face-lsh-bucket-boundary-capacity.md)
+- [人脸 runtime 不可用终止语义](FIX-2026-09-01-face-runtime-unavailable-terminal.md)
+- [人脸检测与嵌入原生 session 边界](FIX-2026-09-01-face-embedding-session-boundary.md)
+- [人脸安全读取投影合同补全](FIX-2026-09-01-face-safe-read-projections.md)
+- [10 万媒体搜索 keyset 有序扫描维护](FIX-2026-08-27-search-keyset-query-plan.md)
+- [固定 libvips 源包获取抗瞬断](FIX-2026-09-01-libvips-source-fetch-retry.md)
+
 ### 2026-08-31
 
+- [人脸质量置信区间与偏差证据 Gate](FIX-2026-08-31-face-quality-confidence-gates.md)
+- [S2C 人脸真实质量证据校验入口](FIX-2026-08-31-s2c-face-quality-verifier.md)
 - [POST-MVP-5 原生双架构证据入口](FIX-2026-08-31-native-ai-evidence-entry.md)
 - [S2B 合法质量评分入口](FIX-2026-08-31-s2b-quality-verifier.md)
 - [智能媒体最终供应链证据校验入口](FIX-2026-08-31-intelligent-media-supply-chain-verifier.md)
@@ -64,10 +93,6 @@
 - [真实浏览器 E2E harness 与当前界面合同同步](FIX-2026-08-28-browser-e2e-harness.md)
 - [语义推理 session 资源计数](FIX-2026-08-28-semantic-session-resource-accounting.md)
 - [Web 依赖高危 advisory 修复](FIX-2026-08-28-web-dependency-advisories.md)
-
-### 2026-08-27
-
-- [10 万媒体搜索 keyset 查询计划维护提案](FIX-2026-08-27-search-keyset-query-plan.md)（Proposal，未授权生产修改）
 
 ### 2026-08-17
 

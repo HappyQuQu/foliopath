@@ -64,6 +64,21 @@
   font-size: var(--font-size-1);
 }
 
+.modeControl {
+  min-height: var(--size-control-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+}
+
+.modeControl button {
+  white-space: nowrap;
+}
+
 .filters select {
   width: 100%;
   min-height: var(--size-control-md);

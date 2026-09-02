@@ -134,16 +134,16 @@ func (s *Store) ClaimVideoJob(ctx context.Context, now time.Time, lease time.Dur
 		}
 		claimRevision := job.RequestedRevision + 1
 		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state='running',claimed_revision=?,attempt_count=attempt_count+1,
-            lease_expires_ms=?,error_code=NULL,updated_at_ms=? WHERE id=? AND state='queued' AND requested_revision=? AND attempt_count<?`,
-			claimRevision, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumVideoJobAttempts)
+			lease_expires_ms=MAX(created_at_ms+?,?),error_code=NULL,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued' AND requested_revision=? AND attempt_count<?`,
+			claimRevision, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumVideoJobAttempts)
 		if err != nil {
 			return err
 		}
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrVideoJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='running',phase='building',lease_expires_ms=?,revision=revision+1,updated_at_ms=? WHERE id=? AND state='queued'`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='running',phase='building',lease_expires_ms=MAX(created_at_ms+?,?),revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued'`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -172,16 +172,16 @@ func (s *Store) RefreshVideoJobLease(ctx context.Context, job semantic.VideoJob,
 			return semantic.ErrVideoJobConflict
 		}
 		cancelled = state == "cancelling"
-		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET lease_expires_ms=?,updated_at_ms=? WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
+		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
 			return err
 		}
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrVideoJobConflict
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=?,updated_at_ms=? WHERE id=? AND state IN ('running','cancelling')`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+		_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state IN ('running','cancelling')`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		return err
 	})
 	return cancelled, err
@@ -257,7 +257,7 @@ func (s *Store) CommitVideoJobProgress(ctx context.Context, commit semantic.Vide
 			ready = 1
 		}
 		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_progress SET ready_count=ready_count+?,degraded_count=degraded_count+?,
-                failed_count=failed_count+?,stale_count=stale_count+?,checkpoint_id=?,revision=revision+1,updated_at_ms=?
+				failed_count=failed_count+?,stale_count=stale_count+?,checkpoint_id=?,revision=revision+1,updated_at_ms=MAX(updated_at_ms,?)
             WHERE generation_id=? AND library_id=? AND revision=? AND checkpoint_id=?`, ready, commit.DegradedCount, commit.FailedCount,
 			commit.StaleCount, commit.NextCheckpointID, commit.UpdatedAt.UTC().UnixMilli(), generationID, libraryID,
 			commit.ExpectedProgressRevision, commit.ExpectedCheckpointID)
@@ -267,7 +267,7 @@ func (s *Store) CommitVideoJobProgress(ctx context.Context, commit semantic.Vide
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrVideoJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET checkpoint_id=?,updated_at_ms=? WHERE id=? AND checkpoint_id=? AND claimed_revision=?`,
+		result, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET checkpoint_id=?,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND checkpoint_id=? AND claimed_revision=?`,
 			commit.NextCheckpointID, commit.UpdatedAt.UTC().UnixMilli(), commit.JobID, commit.ExpectedCheckpointID, commit.ClaimedRevision)
 		if err != nil {
 			return err
@@ -275,7 +275,7 @@ func (s *Store) CommitVideoJobProgress(ctx context.Context, commit semantic.Vide
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrVideoJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+1,revision=revision+1,updated_at_ms=?
+		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+1,revision=revision+1,updated_at_ms=MAX(created_at_ms,?)
             WHERE id=? AND state IN ('running','cancelling')`, commit.UpdatedAt.UTC().UnixMilli(), operationID)
 		if err != nil {
 			return err
@@ -306,14 +306,14 @@ func (s *Store) CancelVideoJobOperation(ctx context.Context, operationID string,
 		}
 		switch job.State {
 		case semantic.JobQueued:
-			_, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state='cancelled',requested_revision=requested_revision+1,updated_at_ms=? WHERE id=?`, now.UnixMilli(), job.ID)
+			_, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state='cancelled',requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), job.ID)
 			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled',phase='completed',error_code='cancelled',revision=revision+1,updated_at_ms=?,finished_at_ms=? WHERE id=?`, now.UnixMilli(), now.UnixMilli(), operationID)
+				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled',phase='completed',error_code='cancelled',revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), now.UnixMilli(), operationID)
 			}
 		case semantic.JobRunning:
-			_, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state='cancelling',requested_revision=requested_revision+1,updated_at_ms=? WHERE id=?`, now.UnixMilli(), job.ID)
+			_, err = tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state='cancelling',requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), job.ID)
 			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=? WHERE id=?`, now.UnixMilli(), operationID)
+				_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), operationID)
 			}
 		case semantic.JobCancelling:
 			return nil
@@ -351,7 +351,7 @@ func (s *Store) FinishVideoJob(ctx context.Context, job semantic.VideoJob, outco
 		if outcome == semantic.JobCancelled && operationState != "cancelling" {
 			return semantic.ErrVideoJobConflict
 		}
-		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state=?,lease_expires_ms=NULL,error_code=?,requested_revision=requested_revision+1,updated_at_ms=?
+		result, err := tx.ExecContext(ctx, `UPDATE semantic_video_jobs SET state=?,lease_expires_ms=NULL,error_code=?,requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?)
             WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`, outcome, nullableString(errorCode), now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
 			return err
@@ -359,7 +359,7 @@ func (s *Store) FinishVideoJob(ctx context.Context, job semantic.VideoJob, outco
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrVideoJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state=?,phase='completed',error_code=?,lease_expires_ms=NULL,revision=revision+1,updated_at_ms=?,finished_at_ms=?
+		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state=?,phase='completed',error_code=?,lease_expires_ms=NULL,revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?)
             WHERE id=? AND state IN ('running','cancelling')`, outcome, nullableString(errorCode), now.UnixMilli(), now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err

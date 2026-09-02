@@ -525,9 +525,9 @@ make test-e2e
 
 当前 `Makefile` 已存在 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`lint`、`test`、
 `test-race`、`test-integration` 和显式 `spike-capacity`；`arch-check` 验证 Go 依赖方向与
-禁止的通用包。它还在 ADR-0014 为提议、INT-S2A 为 No-Go 时强制 production reviewed AI catalog
-为空且不组合 semantic search route，同时保留已批准的 semantic 管理/回填/清理边界；Gate 转换必须
-同步更新该检查。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
+禁止的通用包。它还在 intelligent-media Release No-Go 时强制 production reviewed AI catalog 为空，允许 ADR-0014
+已接受的 fail-closed semantic search composition，并继续禁止未获 release Gate 的 face runtime/route；
+Gate 转换必须同步更新该检查。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
 pattern 编译器，每次禁用 Go test 缓存，强制完整解析 YAML、解析本地引用、执行 OpenAPI
 结构/pattern 验证，并用 AST/Schema 与跨源检查固定认证、错误、健康状态、分页、路径、
 Range，以及 scanner/migration 的 durable admission、phase/counters、issues、cancel、
@@ -609,14 +609,19 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 POST-MVP-5 另提供手动
 [`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) workflow，使用
 GitHub-hosted 原生 linux/amd64 与 linux/arm64 runner 执行同一 source SHA 的常规仓库检查、production
-libvips、两库 order-first 等价矩阵和强制 10k/100k 容量基线。它不在 `push`/`pull_request` 上自动运行，
-不使用 QEMU，也不上传模型、媒体、数据库或 `/library`、`/app/data` 内容。任一检查失败时 job 保持失败，
-仅通过 `if: always()` 上传有界诊断 artifact；不得用 artifact 已上传冒充检查成功。
+libvips、两库 order-first 等价矩阵、强制 10k/100k 容量基线，以及固定 YuNet/AuraFace/公开 JPEG 的
+production-boundary candidate preflight。候选步骤逐项校验外部文件 SHA，在断网只读容器中运行，只上传
+hash、candidate count 和单向量化指纹；它明确不提供最终模型、质量或合规批准。workflow 不在
+`push`/`pull_request` 上自动运行，不使用 QEMU，也不上传模型、媒体、数据库或 `/library`、`/app/data`
+内容。任一检查失败时 job 保持失败，仅通过 `if: always()` 上传有界诊断 artifact；不得用 artifact 已上传
+冒充检查成功。
 
 workflow 文件和架构测试存在只证明“原生执行入口可审计”。只有两个目标架构在同一 source SHA 上实际
 成功运行，且 artifact 中 identity、step outcomes、质量/RSS/数值、索引重建和容量结果满足对应 Gate，
 才能作为 `INT-403` 或 S2 Backend/Release 证据。当前尚无该远程运行，因此双架构状态仍为未完成；已知
-`make spike-capacity` production keyset 超预算会使工作流失败关闭，而不是被候选查询矩阵掩盖。
+`make spike-capacity` 的 production keyset 超预算会使工作流失败关闭，而不是被候选查询矩阵掩盖。
+2026-09-01 本机 production 有序扫描已以 133.637 ms 通过冻结的 250 ms 预算；该本机结果不替代 workflow
+要求的同 SHA 原生双架构实际运行。
 
 下载两个 artifact 后必须执行：
 
@@ -628,8 +633,10 @@ make verify-intelligent-media-native-evidence \
 ```
 
 workflow 的 paired job 已自动调用该入口。verifier 拒绝缺失/重复架构、不同 commit/run/attempt、非原生
-runner identity、QEMU 及任一步骤非 success，并仅在全通过时发布 paired summary。它不读取日志猜测
-质量结论。最终模型获准并在两个原生 job 真实生成 `model-evidence.json` 后，必须改用：
+runner identity、QEMU 及任一步骤非 success，并严格验证两架构 candidate record 的同模型/runtime commit/
+fixture/candidate count 和非批准 flags，仅在全通过时发布 paired summary。两架构量化指纹允许不同，不会
+被 baseline verifier 误升格为数值容差结论。它不读取日志猜测质量结论。最终模型获准并在两个原生 job
+真实生成 `model-evidence.json` 后，必须改用：
 
 ```sh
 make verify-intelligent-media-native-model-evidence \
@@ -684,6 +691,12 @@ truth。S1 不新增重复合成 benchmark，只有能改变候选或合同的�
 
 ## POST-MVP-5 revision 2 C+D+E 验证合同
 
+S3 消费者验证在后端合同测试之上增加：生成客户端 adapter 的路径/游标/revision/CSRF/幂等断言，搜索
+模式 URL 恢复与语义游标失效，标签 suggestion/curation 双 revision 冲突，人物重名/移动/移除/合并，
+单图粗略框与键盘等价列表，以及中英文隐私文案。Storybook 使用全局 axe error policy，并在
+390/768/1265/1440、light/dark、zh-CN/en 和 reduced-motion 矩阵复核；通过 S3 不解除 S4 的模型、质量、
+native 双架构、联合容量、供应链和 owner 批准门禁。
+
 `INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
 
 - C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、
@@ -705,6 +718,20 @@ make verify-intelligent-media-quality \
 并从 counts/result IDs 重算 tag 与 video 指标；不能直接信任输入中的 pass 标志。真实媒体/标注和批准材料
 不进仓库，验证报告只记录有界 ID、hash、计数和聚合指标。
 
+S2C 经治理的人脸 ground truth 到位后必须独立执行：
+
+```sh
+make verify-intelligent-media-face-quality \
+  FACE_QUALITY_INPUT=... DATASET_MANIFEST=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口拒绝公开许可冒充生物特征授权，要求 schema v2 `biometric-ground-truth`、书面授权、隐私复核、
+至少 50 个 opaque identity 且每个至少 20 张图，并逐项核对 detection、verification 和 cluster label 与
+governed manifest 一致。验证器重算 detector recall、verification recall/FPR、anonymous core/edge precision、
+肤色呈现/年龄呈现/光照/遮挡/多人图片切片；每个维度至少两个有效分组、每组至少 20 个 expected face。
+通过判定使用 Wilson 95% 下界（FPR 使用上界），core precision 下界未达 99.5% 时强制失败；未知/单一分组、
+小样本全正确、输入中的 pass 字段或降低阈值均不能绕过。
+
 最终供应链材料到位后还必须执行：
 
 ```sh
@@ -716,18 +743,54 @@ make verify-intelligent-media-supply-chain \
 provenance、signature-verification、vulnerability report 与可选 VEX；拒绝路径逃逸/symlink、不完整 SBOM、
 未验证签名、缺再分发批准，或存在 Critical/High 却没有 VEX 和 security approval 的输入。通过只证明
 证据文件与 manifest 一致；security、compliance、release、inference owner 仍须审阅并签署。
+schema v2 还要求五个唯一角色：inference runtime、semantic tokenizer/model、face detector/embedder；组件名或
+角色重复、任一 notices/再分发批准缺失都失败关闭。
 
-三个入口各自产生真实 summary 后，最终 S2 复审前还必须执行：
+四个入口各自产生真实 summary 后，最终 S2 复审前还必须执行：
 
 ```sh
 make verify-intelligent-media-s2-evidence \
-  QUALITY_SUMMARY=... NATIVE_SUMMARY=... SUPPLY_CHAIN_SUMMARY=... \
+  QUALITY_SUMMARY=... FACE_QUALITY_SUMMARY=... \
+  NATIVE_SUMMARY=... SUPPLY_CHAIN_SUMMARY=... \
   RELEASE_SHA=... SUMMARY_FILE=...
 ```
 
-聚合器要求同一 source commit、同一 model package，并逐架构匹配 strict native 与 supply-chain 的最终
-image digest；baseline native summary 的 `finalModelEvidence=false` 会被拒绝。聚合 summary 记录三个
+聚合器要求 C/D quality、E face quality、native 与 supply-chain 使用同一 source commit、同一 model package，
+并逐架构匹配 strict native 与 supply-chain 的最终
+image digest；baseline native summary 的 `finalModelEvidence=false` 会被拒绝。聚合 summary 记录四个
 输入文件的实际 SHA-256，但不替代任何 owner 的签署或原始 verifier。
+原生 identity/outcomes/final-model evidence、供应链 manifest 和聚合 summary 共用严格 JSON owner，拒绝
+duplicate key、unknown field 与 trailing value，并用 16 MiB 上限和 open 前后 file identity 复核拒绝 symlink/
+非普通文档；artifact 相对路径和内容 hash 检查仍由各 evidence verifier 持有。
+可能包含逐项结果的 quality/face-quality input 及其 governed dataset/model manifest 使用 256 MiB 上限，
+同样只接受 non-symlink regular file、在 open 前后复核 identity 并执行 bounded read；其 strict decoder
+递归拒绝 duplicate JSON key。
+
+`make spike-ai` 还执行不依赖 OpenCV 权重的 E 功能冒烟安全合同，覆盖显式 operator authorization、
+采样/文件大小上限、media-root 和子项 symlink 拒绝、分组均衡选择及候选模型 size/hash 绑定。显式授权的
+本地真实图片功能运行只允许输出聚合 decode/detect/align/embed 计数和延迟，不保存 path、crop 或 embedding，
+且不能替代下面的 ground truth、质量、隐私、双架构或发布验证。
+
+S2C candidate production boundary 另以 build tags `libvips onnxruntime` 在 native Linux 运行：固定 libvips
+闭包从只读公开 JPEG 解码，YuNet/AuraFace 只从 `/proc/self/fd` 加载，并覆盖尺寸/格式上限、BGR detector
+tensor、12-output ABI、NMS、五点 alignment、AuraFace preprocess 与有限非零 embedding。该 smoke 只证明
+原生组合可执行；没有 governed face-level label 时不得计算或宣称 recall、FPR、core precision 或偏差通过。
+
+face format v3 的定向回归还覆盖 detector/embedder/threshold 三文件完整性、purpose/version confusion、严格
+threshold JSON、有限 detector 输出、有限非零 512 维 embedding、session 关闭，以及 activation 事务只替换
+旧 face generation、不修改 semantic active pointer、不提前切库。应用使用无 face runtime 的 composition，
+证明模型缺失时稳定 `model_unavailable`。
+
+同一候选镜像还必须在 `--cpus 4 --memory 4g`、断网、只读 rootfs 下运行 100k × 512 合成人脸聚类。
+每侧写出严格 `face-capacity.json`，绑定 native identity、候选镜像、512 维，以及两种 100,000 成员极端：
+50,000 paired core cluster 与 100,000 edge-only singleton；同时记录总耗时、Go memory sys 和不含向量的
+确定性结果指纹。paired verifier 要求两架构指纹一致，并要求
+`identityGroundTruth=false`、`qualityGate=false`。它只验证候选生成/聚类容量，不替代真实质量、完整 SQLite/
+HTTP/浏览并发或下述最终联合容量。
+
+聚类回归还必须包含 transitive bridge：固定 `A/B` 与 `B/C` 均达到 core threshold、`A/C` 未达到，断言
+smallest-ID anchor coherence 只允许 A/B 成为 core，C 最多为 edge；输入换序结果不变。真实扩大样本若产生
+跨来源巨簇，必须先按同一规则重算并保留失败记录，不能靠提高展示层阈值隐藏。
 
 - E 的真实 ground truth 由隐私 owner 批准且不进仓库/普通 CI。冻结 anonymous core precision ≥99.5%，
   分开报告 recall、edge、肤色/年龄呈现/光照/遮挡/多人图片切片与置信区间；不达 precision 时整组操作

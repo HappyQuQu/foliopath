@@ -332,7 +332,7 @@ func (s *Store) ListAssetPage(
                storyboard.cell_height,
                l.status,
                EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
-        FROM assets a
+        FROM assets a INDEXED BY ` + assetOrderIndex(params.Query) + `
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard
@@ -340,8 +340,12 @@ func (s *Store) ListAssetPage(
          AND storyboard.variant = 'storyboard'`)
 	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" {
 		builder.WriteString(`
-        JOIN asset_search ON asset_search.rowid = a.id
-        WHERE asset_search MATCH ?`)
+		WHERE EXISTS (
+			SELECT 1
+			FROM asset_search
+			WHERE asset_search.rowid = a.id
+			  AND asset_search MATCH ?
+		)`)
 		args = append(args, anchor)
 	} else {
 		builder.WriteString(`
@@ -832,6 +836,34 @@ const assetDirectoryPathSQL = `CASE
     WHEN length(a.relative_path) = length(a.name) THEN ''
     ELSE substr(a.relative_path, 1, length(a.relative_path) - length(a.name) - 1)
 END`
+
+// assetOrderIndex keeps the outer scan in the requested keyset order. Search
+// membership remains an exact correlated FTS predicate, so SQLite can stop as
+// soon as it has collected the bounded page instead of materializing and
+// sorting every FTS candidate.
+func assetOrderIndex(query catalog.AssetQuery) string {
+	if query.Sort == catalog.SortModifiedAt {
+		switch {
+		case query.ScopeKind == catalog.ScopeGlobal:
+			return "assets_search_global_modified"
+		case (query.ScopeKind == "" || query.ScopeKind == catalog.ScopeDirectory) && !query.Recursive:
+			return "assets_browse_directory_modified"
+		default:
+			return "assets_modified"
+		}
+	}
+	if query.Sort == catalog.SortSize {
+		switch {
+		case query.ScopeKind == catalog.ScopeGlobal:
+			return "assets_search_global_size"
+		case (query.ScopeKind == "" || query.ScopeKind == catalog.ScopeDirectory) && !query.Recursive:
+			return "assets_browse_directory_size"
+		default:
+			return "assets_browse_library_size"
+		}
+	}
+	return "assets_browse_folder_name_v2"
+}
 
 func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	direction := " ASC"

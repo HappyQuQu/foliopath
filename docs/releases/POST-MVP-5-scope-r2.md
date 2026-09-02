@@ -4,9 +4,10 @@
 - 日期：2026-08-29
 - 替代：[revision 1](POST-MVP-5-scope.md)
 - Change Record：[CR-2026-021](../changes/CR-2026-021-intelligent-media-discovery.md)
+- Stage Gate Change Record：[CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)
 - Feature：[FTR-INT-001](../features/intelligent-media-discovery.md)
-- 当前 Gate：A+B 的 `INT-S2A` 保持 **No-Go**；C+D 的 S2B 已授权实现但 Backend Gate No-Go；E 的
-  S2C 仍因隐私/合法数据/候选许可准入为 No-Go
+- 当前 Gate：S2A/S2B/S2C 均按 **Backend Ready / Release No-Go** 口径验收；最终模型、真实质量、
+  native 双架构、供应链与隐私/合规发布签署统一由 S4 持有
 - 需求：`FR-INT-001～020`、`NFR-INT-001～010`
 - 产品 Owner：产品用户（2026-08-29 明确决定“都纳入”）
 - 工程预算：接受 scope-budget exception，将 S0 后上限由 revision 1 的 16 单人工程周恢复为完整范围
@@ -59,7 +60,7 @@ generation/coverage 冲突和失败关闭；查询、向量、路径及 native �
 5. face crop/embedding 是高敏感可重建派生数据；人物名和人工关系是不可重建应用状态，清除、备份、
    恢复和删除必须分别处理并二次确认。
 6. 没有隐私批准的合法真实 ground truth、核心簇 precision 证据及可商业分发模型/runtime 前，E 的
-   Backend Evidence Gate 必须保持 No-Go。
+   Release Gate 必须保持 No-Go；S2 只验收默认不可达的 fail-closed 后端与授权功能验证。
 
 ## 非目标
 
@@ -72,21 +73,23 @@ generation/coverage 冲突和失败关闭；查询、向量、路径及 native �
 
 ## 交付顺序与授权
 
-1. A+B 保留已有 S1 合同和 S2A No-Go；不得因 revision 2 静默接通 production search/UI。
+1. A+B 保留已有 S1 合同；semantic search 可以在空 reviewed catalog 下以 fail-closed route 完成后端组合，
+   不得因此填充 catalog 或公开 production UI。
 2. C+D+E 先完成 `INT-114～120` S1 extension，并经 Contract Ready Gate 接受；在此前只允许文档、合同、
    schema 设计和必要隔离 spike，不允许 production migration、handler、worker 或 UI。
 3. S2B 只在 C+D 合同通过后实施；S2C 只在 E 合同、隐私准入和候选许可准入通过后实施。
-4. 每个 S2 Gate 独立失败关闭；后续切片不得以 mock、隐藏入口或空实现冒充完成。
-5. 所有 S2 均 Go 后才允许统一进入 S3 消费者/UI；S4 仍持有完整纵向、目标容量和发布签署。
+4. 每个 S2 Gate 独立验收后端实现与失败关闭；后续切片不得以 mock、隐藏入口或空实现冒充完成。
+5. 所有 S2 均 Backend Ready 后才允许统一进入 S3 消费者/UI；S4 独占最终模型、governed 质量、native
+   双架构、完整纵向、目标容量、供应链和发布签署。S4 未 Go 时 UI 不得进入发行路径。
 
 ## Gate 与失败回退
 
-| 切片 | Backend Gate 必需输入 | 失败回退 |
+| 切片 | S2 Backend Gate 必需输入 | S4 Release Gate 必需输入与失败回退 |
 | --- | --- | --- |
-| A+B | accepted tokenizer/runtime、最终审核模型、合法 1,000 图片集、native 双架构、100k×768、最终供应链 | 删除 B，保留核心浏览与可删除的 A 状态 |
-| C | 受控词表、建议 precision、人工标签 owner 纵向、清除/升级一致性 | 删除建议能力，保留人工标签 |
-| D | 合法 100 视频集、4/10 帧策略、双架构 FFmpeg/embedding、联合负载 | 删除视频语义，保留现有故事板预览 |
-| E | 隐私签署、合法 ground truth、core precision ≥99.5%、可分发模型、人工约束/备份恢复、双架构容量 | 降为 pair/小组建议；仍失败则删除 E |
+| A+B | accepted tokenizer/runtime、model lifecycle、搜索/任务/失败矩阵、本地 100k 强制容量 | 最终审核模型、合法 1,000 图片集、native 双架构、最终联合容量与供应链；失败则删除 B，保留核心浏览与可删除的 A 状态 |
+| C | 受控词表、scorer/输入 validator、人工标签 owner 纵向、清除/升级一致性 | governed 建议 precision 与批准签署；失败则删除建议能力，保留人工标签 |
+| D | 4/10 帧策略、ranking contract、partial/fallback/重建矩阵 | 合法 100 视频集、双架构 FFmpeg/embedding 与联合负载；失败则删除视频语义，保留现有故事板预览 |
+| E | 默认关闭、授权私有功能验证、错误合并/source/offline/kill/100k×512、人工约束/备份恢复与隐私边界 | 最终隐私签署、合法 50×20 ground truth、core precision ≥99.5%、可分发模型和双架构联合容量；失败则降为 pair/小组建议，仍失败则删除 E |
 
 ## 验收 ID
 

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "opencv-zoo-yunet-2023mar",
+      "status": "candidate",
+      "purpose": "face_detection",
+      "version": "2023mar",
+      "filename": "face_detection_yunet_2023mar.onnx",
+      "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+      "size_bytes": 232589,
+      "source_url": "https://github.com/opencv/opencv_zoo/raw/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
+      "code_license": {
+        "id": "MIT",
+        "url": "https://github.com/opencv/opencv_zoo/blob/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/LICENSE"
+      },
+      "weight_license": {
+        "id": "MIT",
+        "url": "https://github.com/opencv/opencv_zoo/blob/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/LICENSE"
+      },
+      "architectures": ["onnx-portable; runtime evidence pending"]
+    },
+    {
+      "id": "open-model-zoo-arcface-resnet100-8",
+      "status": "rejected",
+      "purpose": "face_embedding",
+      "version": "open-model-zoo-4d4266f",
+      "filename": "arcfaceresnet100-8.onnx",
+      "sha256": "f0a2e278b430372d308fef67c1aea308c2baf37f32e8908d9bfce035c26a3fb4",
+      "size_bytes": 261036388,
+      "source_url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/public/2022.1/face-recognition-resnet100-arcface-onnx/arcfaceresnet100-8.onnx",
+      "code_license": {
+        "id": "Apache-2.0",
+        "url": "https://github.com/openvinotoolkit/open_model_zoo/blob/4d4266fbbb7eb5ab80944c2800d7f304868d573d/LICENSE"
+      },
+      "weight_license": {
+        "id": "Apache-2.0",
+        "url": "https://github.com/openvinotoolkit/open_model_zoo/blob/4d4266fbbb7eb5ab80944c2800d7f304868d573d/models/public/face-recognition-resnet100-arcface-onnx/README.md"
+      },
+      "architectures": ["rejected: ONNX Runtime 1.28 execution incompatibility"]
+    }
+  ]
+}

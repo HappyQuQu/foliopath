@@ -60,6 +60,38 @@ func TestOpenModelFilesRequiresKernelHandleAndExpectedSize(t *testing.T) {
 	}
 }
 
+func TestOpenModelFilesUsesExactSemanticV2SentencePieceRole(t *testing.T) {
+	t.Parallel()
+	manifest := testManifest()
+	manifest.FormatVersion = aimodel.SemanticFormatVersion
+	manifest.Files[2].Name = "spiece.model"
+	manifest.Files[2].Role = "sentencepiece_model"
+	opened := make([]string, 0, 3)
+	files, err := openModelFiles(context.Background(), manifest, func(_ context.Context, name string) (aimodel.RuntimeModelFile, error) {
+		opened = append(opened, name)
+		for index, file := range manifest.Files {
+			if file.Name == name {
+				return &runtimeFileStub{path: fmt.Sprintf("/proc/self/fd/%d", index+3), size: file.Size}, nil
+			}
+		}
+		return nil, errors.New("unexpected file")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	files.close()
+	if len(opened) != 3 || opened[2] != "spiece.model" {
+		t.Fatalf("opened=%v", opened)
+	}
+
+	legacy := manifest
+	legacy.Files = append([]aimodel.ManifestFile(nil), manifest.Files...)
+	legacy.Files[2].Role = "tokenizer"
+	if _, err := openModelFiles(context.Background(), legacy, nil); !errors.Is(err, aimodel.ErrModelIncompatible) {
+		t.Fatalf("legacy role error=%v", err)
+	}
+}
+
 func TestOpenModelRoleKeepsOnlyRequestedKernelHandle(t *testing.T) {
 	t.Parallel()
 	manifest := testManifest()

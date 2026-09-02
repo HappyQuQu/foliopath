@@ -110,6 +110,9 @@ unassigned observation
 ```
 
 - 后台只能创建/更新匿名 core/edge，不能创建名称或把 observation 自动写入已命名 person。
+- core component 采用确定性 smallest-ID anchor coherence：每个 core 成员都必须与 component 的稳定
+  anchor 达到冻结 core similarity。仅凭 `A≈B`、`B≈C` 不得推导 `A≈C` 或把两个身份经 bridge face
+  传递合并；未通过 anchor coherence 的候选最多作为 edge 逐项确认。
 - core 只有合法真实 ground truth 证明 precision ≥99.5% 才允许“整组创建/并入人物”；否则产品降级为
   pair/小组逐项确认。edge 永远要求逐项确认。
 - cluster generation 变化不得覆盖 manual assignment、exclusion 或 cannot-link；受约束 observation 在新代

@@ -4,21 +4,21 @@
 - 目标版本：`POST-MVP-5` revision 1
 - 范围：A 模型基础 + B 图片语义搜索后端
 - 复审任务：`INT-216`
-- 当前判断：**No-Go**
+- 当前判断：**Backend Ready / Release No-Go**
 
 ## 结论
 
-S2A 已实现到当前获批合同与可用输入允许的边界，但不能签署 Backend Evidence Ready，也不授权生产
-消费者 UI。阻塞原因不是继续补普通 Go/SQLite 代码即可解决：production text tokenizer/encoder 仍受
-未接受的 ADR-0014 阻断，内建 release catalog 仍为空，合法代表性质量集和原生 Linux/amd64 runner
-尚未到位。
+S2A production 后端已完成 semantic format v2、SentencePiece/ORT image+text runtime、generation-bound
+session、model lifecycle、backfill/clear/search route、故障矩阵、本地 100k 强制容量和完整 transport
+composition，现签署 **Backend Ready**。这不授权发布消费者 UI：内建 release catalog 仍为空，最终审核
+模型、合法代表性质量集、原生双架构最终容量和供应链签署由 S4 持有，因此 **Release No-Go**。
 
-继续增加 Linux/arm64 合成排列不会改变该判断。后续只允许解除下列精确阻塞、修复已批准实现中的
-真实缺陷，以及维护现有证据；不得开始 C 标签建议、D 视频搜索、E 人脸人物库或生产 AI UI。
+CR-2026-022 将最终发布输入从 S2 后端 Gate 分离到 S4；没有降低任何门槛。后续可进入 S3 合同消费者
+实现，但在 S4 Go 前不得填充 catalog、把 candidate 解释为 release model 或公开发行 AI UI。
 
-该判断现由 `make arch-check` 可执行保护：ADR-0014 仍为提议且本 Gate 为 No-Go 时，生产 composition
-必须使用空 reviewed catalog、保留已批准的 Semantic 管理/回填/清理边界，并且不得注入
-`SemanticSearch`。Gate 转换必须在同一变更中显式更新该 fitness check，不能静默接通搜索 route。
+该判断现由 `make arch-check` 可执行保护：Release No-Go 时，production 必须使用空 reviewed catalog，
+允许 ADR-0014 接受的 fail-closed semantic search composition，并继续禁止 face runtime/route。Gate 转换
+必须在同一变更中显式更新该 fitness check，不能静默填入 catalog 或接通 face release 路径。
 
 ## 已实现且通过定向证据的后端边界
 
@@ -36,21 +36,23 @@ S2A 已实现到当前获批合同与可用输入允许的边界，但不能签�
 - durable semantic backfill/clear、fair multi-library claim、lease/retry/cancel/restart、exact vector
   scope、coverage snapshot、stable encrypted cursor、bounded asset projection、auth/CSRF/rate-limit 和
   query/log 脱敏。
+- production semantic format v2 parser、FD-anchored SentencePiece adapter、ORT text `Run`、固定 token/ABI
+  activation smoke、generation-bound text session owner，以及 image/text/video semantic search composition。
 
-## 阻塞矩阵
+## S4 Release 阻塞矩阵
 
 | Blocker | 阻塞任务 | 解除证据 | 未解除时行为 |
 | --- | --- | --- | --- |
-| ADR-0014 仍为 Proposed；package v2 与 SentencePiece production owner 未获接受 | `INT-203/207/208` | 接受 ADR；production parser/runtime/FD lifecycle 与生成合同进入正式包 | semantic search route 保持不注册 |
-| 最终审核 catalog/model、许可和供应链签署缺失 | `INT-202/203/209/214/215` | 固定 package digest、书面再分发结论、SBOM/VEX/notices/provenance 与 catalog entry | production catalog 为空；安装/激活失败关闭 |
-| 合法代表性图片质量集缺失 | `INT-203/209/210` | 冻结数据 manifest 与 Top-20/中英质量报告 | 不宣称语义质量，不发布 Slice B |
-| 原生 Linux/amd64 runner 缺失 | `INT-202/203/210/215` | 与 arm64 同合同的原生数值、取消、强杀、RSS/容量报告 | 不声明双架构完成 |
-| 真实 100k×768 全进程容量未通过 | `INT-207/210` | 最终模型下 backfill + exact search + browse 并发、RSS、DB/WAL/backup 报告 | 不签 Backend Ready |
+| 最终审核 catalog/model、许可和供应链签署缺失 | `INT-209/215` | 固定 package digest、书面再分发结论、SBOM/VEX/notices/provenance 与 catalog entry | production catalog 为空；安装/激活/search 失败关闭 |
+| 合法代表性图片质量集缺失 | `INT-209/210` | 冻结数据 manifest 与 Top-20/中英质量报告 | 不宣称语义质量，不发布 Slice B |
+| 原生 Linux/amd64 runner 缺失 | `INT-210/215` | 与 arm64 同合同的原生数值、取消、强杀、RSS/容量报告 | 不声明双架构完成 |
+| 真实 100k×768 全进程容量未通过 | `INT-210` | 最终模型下 backfill + exact search + browse 并发、RSS、DB/WAL/backup 报告 | 不签 Backend Ready |
 | 最终模型的完整 app backfill + SQLite + native inference 强杀链缺失 | `INT-209/215` | durable claim 后在 native Run 中 kill，新进程 lease recovery 且 active/embedding/media invariants 不变 | 仅承认各子边界证据 |
 
-ADR-0014 已于 2026-08-29 按其六类接受门槛逐项复审，结论为
-[保持提议 / Blocked](adr-0014-acceptance-audit-2026-08-29.md)：特殊 token 合同通过，其余五类仍为
-Partial/Blocked。该审计明确禁止把 QEMU amd64、incomplete SBOM 或 tripwire 结果升级解释为接受证据。
+ADR-0014 已于 2026-09-01 接受 fail-closed 后端实现；2026-08-29 的
+[保持提议 / Blocked](adr-0014-acceptance-audit-2026-08-29.md) 是接受前历史审计。parser、FD tokenizer、
+text runtime/session owner 与搜索 composition 已进入 production，但该接受不批准候选模型、发行镜像或
+供应链签署，也不允许把 QEMU amd64、incomplete SBOM 或 tripwire 结果升级解释为 release 证据。
 同日的 [glibc 官方状态与当前 distroless 复核](../../evidence/int-001/glibc-security-status-refresh-2026-08-29.md)
 确认双架构最新 `cc-debian13` 子镜像仍含 Debian 标记 vulnerable 的 `libc6 2.41-12+deb13u3`；没有可供
 重建和重扫的 trixie 修复基座，供应链 blocker 不变。
@@ -59,8 +61,7 @@ Partial/Blocked。该审计明确禁止把 QEMU amd64、incomplete SBOM 或 trip
 [`Intelligent media native evidence`](../../../.github/workflows/intelligent-media-native.yml) 入口和架构
 fitness check。它会分别验证原生 x64/ARM64 runner identity，执行完整仓库检查、production libvips、
 两库查询矩阵和强制容量基线，并拒绝 QEMU/平台覆盖。该入口尚未在当前 source SHA 上远程执行；文件存在
-不构成 native amd64/arm64 证据，当前已知 production keyset 容量回归也会使 job 失败关闭。因此本 Gate
-继续 **No-Go**。
+不构成 native amd64/arm64 release 证据。因此 S4 Release Gate 继续 **No-Go**。
 
 后续 paired job 与 `make verify-intelligent-media-native-evidence` 已固定同 commit/run/attempt、原生
 runner identity、无 QEMU、两架构齐全及全部 step success；容量失败无法生成 passed summary。该 verifier
@@ -69,17 +70,22 @@ runner identity、无 QEMU、两架构齐全及全部 step success；容量失�
 index rebuild/restart 和 runtime failure matrix。当前没有最终模型生成的结构化文件或真实远程 run，
 因此只完善证据验收链，不解除本 Gate。
 
-2026-08-31 的[远端就绪审计](../../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)进一步确认
-GitHub 远端尚无包含当前 S2/workflow 的候选提交，workflow 清单也没有智能媒体入口；最近运行不存在可配对
-artifact。未经操作者明确授权不提交/推送/触发，因此 native blocker 仍是实际外部状态而非待轮询任务。
+2026-08-31 的[远端就绪审计](../../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)及 2026-09-01
+只读复核确认：`origin/aifeature` 的基线提交已含智能媒体 baseline workflow，但当前 S2 增量不属于该 SHA，
+且最近运行不存在 paired artifact；该 workflow 也不生成严格模式需要的最终 `model-evidence.json`。未经
+操作者明确授权不提交/推送/触发，因此 native blocker 仍是实际外部状态而非待轮询任务。
 
 ## 任务判定
 
-- 完成：`INT-201/204/205/206/211/212/213`。
-- 实现主体存在但被上述证据/决策阻塞：`INT-202/203/207/208/209/210/214/215`。
-- `INT-216` 复审完成；“复审完成”不等于 Gate Go。
+- 完成：`INT-201～216`。
+- `INT-209/210/215` 的最终 release-model/native/supply-chain 延伸证据按 CR-2026-022 由
+  `INT-401～405/407/411` 持有；S2 完成不代表 S4 Go。
 
 ## 已执行检查
+
+2026-09-01 S2 closeout 已成功执行完整 `make fmt/arch-check/generate-check/lint/test/test-integration/test-e2e`、
+强制 100k `make spike-capacity`、`git diff --check`；统一证据见
+[S2 最终完成审计](int-s2-final-blocker-audit-2026-09-01.md)。以下段落保留此前复审历史。
 
 本轮复审引用 2026-08-28 已执行成功的：
 
@@ -168,12 +174,22 @@ model/availability revision、idempotency/request 和初始 operation 任一不�
 出口不再留下只能等重启处理的 active operation。证据见
 [AI worker 终态 CAS 竞态收敛](../../changes/FIX-2026-08-29-ai-worker-terminal-cas-convergence.md)；Gate 不变。
 
-## 下一次复审触发条件
+## 下一次 Release 复审触发条件
 
-只有以下输入发生变化才重新打开 `INT-S2A`：ADR-0014 被接受或否决、最终 catalog/model 获批、合法
-质量集到位、原生 amd64 runner 可用，或完整容量/组合恢复证据产生。单纯重复 arm64 合成测试不触发复审。
+只有最终 catalog/model 获批、合法质量集到位、原生 amd64 runner 可用，或完整容量/组合恢复证据产生，
+才重新打开 S4 Release 复审。单纯重复 arm64 合成测试不触发复审，也不撤销 S2 Backend Ready。
 
 2026-08-31 外部状态与非人脸容量输入再次复核：Debian trixie `libc6` 仍为
 `2.41-12+deb13u3`；GitHub 仓库当前只有历史 main 发布 workflow 结果，没有包含本 worktree 的 native
 amd64 S2 证据。production 100k keyset 基线还出现 296.212 ms 超预算，虽有快速且等价的
 benchmark-only 候选，但尚未通过维护 Gate。以上事实维持本 Gate **No-Go**，不接通 text/search route。
+
+同日本轮强制复跑在 darwin/arm64、`GOMAXPROCS=4` 上再次失败关闭：production keyset P95 为
+`319,616 µs`，超过 `250,000 µs`；order-first 候选首页/续页/hydration P95 分别为
+`9,822/12,243/9,913 µs`，26 个矩阵与 22 个 cursor 场景保持等价。该结果确认回归仍真实存在，也确认
+候选值得进入 owner 复审；在 production query-plan 接受与 native 双架构复跑前不改变 Gate。
+
+2026-09-01 已将该有序扫描方案纳入 repository 唯一实现，并在相同 100k 强制基线得到 production
+keyset P95 `133,637 µs`、`budgetViolations=[]`；两库完整矩阵继续逐 ID 等价。本地 query-plan/预算缺口
+关闭；最终模型联合负载、native Linux amd64/arm64 与 performance/release 验收已移交 S4，S2A 保持
+**Backend Ready / Release No-Go**。

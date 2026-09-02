@@ -49,6 +49,21 @@ func TestAIModelRecoveryPreservesDurableQueuedInstall(t *testing.T) {
 	}
 }
 
+func TestAIModelInstallClaimClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	now := time.Date(2026, 9, 1, 12, 30, 0, 0, time.UTC)
+	work := installWorkFixture(now)
+	work.Operation.ID = "aio_install_clock_rollback"
+	work.IdempotencyKey = "install-clock-rollback"
+	if _, _, err := store.CreateAIModelInstall(context.Background(), work); err != nil {
+		t.Fatal(err)
+	}
+	claimed, found, err := store.ClaimAIModelInstall(context.Background(), now.Add(-time.Minute))
+	if err != nil || !found || claimed.Operation.UpdatedAt.Before(claimed.Operation.CreatedAt) {
+		t.Fatalf("claimed=%+v found=%v err=%v", claimed, found, err)
+	}
+}
+
 func installWorkFixture(now time.Time) aimodel.InstallWork {
 	manifest := aimodel.Manifest{
 		FormatVersion: 1, PackageID: "semantic-test-v1", Purpose: aimodel.PurposeSemanticImageText,

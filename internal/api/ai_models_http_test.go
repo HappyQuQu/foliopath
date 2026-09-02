@@ -104,6 +104,29 @@ func TestAIModelRoutesExposeOnlyReviewedMetadata(t *testing.T) {
 	}
 }
 
+func TestAIModelPageExposesIndependentActiveFaceModelID(t *testing.T) {
+	now := time.Date(2026, 9, 1, 23, 0, 0, 0, time.UTC)
+	model := aimodel.Model{ID: "aim_face_active", Package: aimodel.VerifiedPackage{
+		PackageID: "face-package-v3", Purpose: aimodel.PurposeFaceDetectionEmbedding,
+		Version: "1.0.0", Architecture: "arm64", ContentHash: strings.Repeat("f", 64),
+		LicenseID: "Apache-2.0 AND MIT", PackageSizeByte: 36,
+	}, StorageMode: aimodel.StorageManaged, State: aimodel.StateAvailable, SourceIdentity: "managed:face",
+		AvailabilityRevision: 1, CreatedAt: now, UpdatedAt: now, Active: true}
+	stub := &aiModelManagementStub{snapshot: aimodel.Snapshot{
+		Items: []aimodel.Model{model}, ActiveFaceModelID: model.ID, Revision: 2,
+	}}
+	mux := http.NewServeMux()
+	registerAIModelRoutes(mux, stub)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/ai/models", nil))
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"activeModelId":null`) ||
+		!strings.Contains(response.Body.String(), `"activeFaceModelId":"aim_face_active"`) ||
+		!strings.Contains(response.Body.String(), `"purpose":"face_detection_embedding"`) ||
+		!strings.Contains(response.Body.String(), `"active":true`) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestAIModelCandidateScanUsesSafeUnknownValues(t *testing.T) {
 	stub := &aiModelManagementStub{scan: aimodel.CandidateScan{
 		Revision: 4,

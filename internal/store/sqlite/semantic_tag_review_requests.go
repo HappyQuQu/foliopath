@@ -70,7 +70,7 @@ func (s *Store) CommitTagReviewRequestOutcome(ctx context.Context, keyHash strin
 				return semantic.ErrTagReviewRequestConflict
 			}
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE ai_tag_review_requests SET updated_at_ms=? WHERE idempotency_key_hash=? AND state='running'`, now.UnixMilli(), keyHash)
+		_, err = tx.ExecContext(ctx, `UPDATE ai_tag_review_requests SET updated_at_ms=MAX(created_at_ms,?) WHERE idempotency_key_hash=? AND state='running'`, now.UnixMilli(), keyHash)
 		return err
 	})
 }
@@ -87,7 +87,7 @@ func (s *Store) CompleteTagReviewRequest(ctx context.Context, keyHash string, no
 		if pending != 0 {
 			return semantic.ErrTagReviewRequestConflict
 		}
-		result, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_requests SET state='completed',updated_at_ms=?
+		result, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_requests SET state='completed',updated_at_ms=MAX(created_at_ms,?)
             WHERE idempotency_key_hash=? AND state IN ('running','completed')`, now.UnixMilli(), keyHash)
 		if err != nil {
 			return err

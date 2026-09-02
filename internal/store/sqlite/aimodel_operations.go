@@ -79,10 +79,11 @@ func (s *Store) TransitionAIOperation(
 		result, err := tx.ExecContext(ctx, `
             UPDATE ai_model_operations
             SET state = ?, phase = ?, completed_items = ?, total_items = ?,
-                error_code = ?, revision = revision + 1, updated_at_ms = ?, finished_at_ms = ?
+				error_code = ?, revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?),
+				finished_at_ms = CASE WHEN ? IS NULL THEN NULL ELSE MAX(created_at_ms, ?) END
             WHERE id = ? AND revision = ?`,
 			transition.State, transition.Phase, transition.CompletedItems, totalItems,
-			errorCode, transition.UpdatedAt.UTC().UnixMilli(), finishedAt,
+			errorCode, transition.UpdatedAt.UTC().UnixMilli(), finishedAt, finishedAt,
 			operationID, transition.ExpectedRevision,
 		)
 		if err != nil {
@@ -119,7 +120,8 @@ func (s *Store) RecoverInterruptedAIOperations(ctx context.Context, now time.Tim
 		result, err := tx.ExecContext(ctx, `
             UPDATE ai_model_operations
             SET state = 'failed', phase = 'completed', error_code = 'operation_interrupted',
-                revision = revision + 1, updated_at_ms = ?, finished_at_ms = ?, lease_expires_ms = NULL
+				revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?),
+				finished_at_ms = MAX(created_at_ms, ?), lease_expires_ms = NULL
 			WHERE state IN ('running', 'cancelling')
 			  AND kind NOT IN ('semantic_missing', 'semantic_rebuild', 'semantic_clear')`,
 			now.UTC().UnixMilli(), now.UTC().UnixMilli(),

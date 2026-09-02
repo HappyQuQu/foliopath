@@ -53,6 +53,7 @@ FolioPath 是自托管软件，实际部署者通常决定媒体来源、处理�
 | 建库 | 先匿名 core/edge，名称由用户输入；edge 逐 face 确认 | 自动姓名/身份、edge 批量吸收、自动合并已命名人物 | quality + transaction tests |
 | 跨库 | face rows 始终按 library 隔离；是否允许一个 person 关联多库必须在 S1 明示 | 删除一个库时误删其他库 face，或隐藏跨库关联 | S1 product/data decision |
 | 禁用 | 停止新任务和 session；是否保留已有派生结果须由显式选择决定 | 禁用后仍后台处理 | S1 contract + S2 integration |
+| 来源 offline | 停止后续分析，保留最后可靠 observation、cluster 与人工状态；恢复后由显式任务对账 | 把 offline 当空库、逐项清零或继续无效 runtime admission | S2 integration + S4 recovery |
 | 清除 | 支持按库清除 observations/embeddings/clusters；人物人工状态的保留/删除必须单独、明确选择 | 用“清除缓存”模糊删除人工人物关系；触碰原媒体 | S1 decision table + S2/S4 |
 | 备份 | 明示完整 `/app/data` 备份会包含 embedding、person name 和人工关系；恢复保持 generation/关系一致 | 把备份说成不含人脸数据；诊断包夹带数据库 | deployment/security + S4 |
 | 诊断 | 只含 model ID/version/hash、状态、计数、稳定错误、资源指标 | face crop、向量、名字、query、媒体路径、raw runtime error | S2 tests |
@@ -90,12 +91,18 @@ S1 必须选择并在 UI/API 使用不同动作，不允许一个含糊的“删
 ## 未决问题与阻断结论
 
 - [ ] 部署者告知/合法依据模板及各目标市场的适用性经 privacy/legal owner 评审。
-- [ ] instance-level person 是否允许跨库关联，以及库删除后空人物语义冻结。
-- [ ] 禁用时保留派生结果还是提示用户选择，API/任务语义冻结。
+- [x] instance-level person 允许跨库关联；库删除只级联该库 anchor/constraint/派生状态，人物可保留为空，
+  其他库关系不受影响；data model、migration 与集成测试已冻结。
+- [x] 禁用只停止新分析并在同一事务取消 queued/running analysis job，保留派生结果与人工状态；删除必须走
+  独立 derived/manual clear。SQLite 状态机覆盖 claim/disable 竞争及协作取消，production runtime 未准入时
+  仍没有 session 可卸载。
 - [ ] 五种清除动作、重新认证、审计和恢复边界冻结。
 - [ ] 完整备份的敏感数据提示、加密责任、保留/销毁说明冻结并实测。
-- [ ] 生产诊断/日志/API/支持包的禁止字段形成 executable test；隔离 spike 已有封闭 DTO 与序列化回归，
-  但没有生产接入，不能勾选本项。
+- [ ] 生产诊断/日志/API/支持包的禁止字段形成 executable test；当前生产 HTTP adapter 已有全读取面 wire
+  回归，拒绝 embedding/vector/crop/path/source fingerprint/模型分数，audit repository 也不保存名称、bbox、
+  path 或 embedding。新增架构 fitness test 会解析 face JSON tag/literal、禁止 face capability/SQLite 直接日志，
+  并禁止现有媒体诊断/系统日志依赖 face；face 尚未接 production diagnostics/support-package，因此该完整项
+  仍不勾选，未来接入时必须扩展同一测试而非删除保护。
 - [ ] 合法真实 ground truth 的来源、访问、保留、删除和签署完成。
 - [x] 真实人脸数据进入评测链路前的 manifest v2 结构和拒绝规则已有自动测试；这不关闭上一项。
 - [ ] SFace 或替代 face embedding 的许可/来源获合规批准。

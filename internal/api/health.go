@@ -68,6 +68,17 @@ type RouteDependencies struct {
 	AITagReviews        AITagReviewService
 	AITagReviewClear    AITagReviewClearService
 	AITagJobs           AITagJobService
+	FaceSettings        FaceSettingsService
+	FaceClusters        FaceClusterService
+	FacePeople          PeopleListService
+	FacePerson          PersonQueryService
+	FaceAssetFaces      AssetFacesQueryService
+	FacePersonAssets    PersonAssetsQueryService
+	FaceClusterDetails  FaceClusterDetailQueryService
+	FaceReviews         FaceReviewMutationService
+	FacePersonMutations FacePersonMutationService
+	FaceJobs            FaceJobAdmissionService
+	FaceClears          FaceClearAdmissionService
 }
 
 type SettingsService interface {
@@ -162,6 +173,22 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.AITagJobs != nil {
 		registerAITagJobRoute(mux, dependencies.AITagJobs)
+	}
+	if dependencies.FaceSettings != nil && dependencies.FaceClusters != nil && dependencies.FacePeople != nil &&
+		dependencies.FacePerson != nil && dependencies.FaceAssetFaces != nil && dependencies.FacePersonAssets != nil &&
+		dependencies.FaceClusterDetails != nil && dependencies.Catalog != nil {
+		registerFaceReadRoutes(mux, dependencies.FaceSettings, dependencies.FaceClusters, dependencies.FacePeople,
+			dependencies.FacePerson, dependencies.FaceAssetFaces, dependencies.FacePersonAssets,
+			dependencies.FaceClusterDetails, dependencies.Catalog)
+	}
+	if dependencies.FaceSettings != nil && dependencies.FaceJobs != nil && dependencies.FaceClears != nil {
+		registerFaceControlRoutes(mux, dependencies.FaceSettings, dependencies.FaceJobs, dependencies.FaceClears)
+	}
+	if dependencies.FaceReviews != nil {
+		registerFaceMutationRoutes(mux, dependencies.FaceReviews)
+	}
+	if dependencies.FacePersonMutations != nil {
+		registerFacePersonMutationRoutes(mux, dependencies.FacePersonMutations)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

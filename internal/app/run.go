@@ -19,6 +19,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
+	"github.com/HappyQuQu/foliopath/internal/inference/sentencepiece"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -466,6 +467,14 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic inference sessions: %w", err)
 	}
+	semanticTextSessions, err := newSemanticTextSessionOwner(semanticProductionTextSessionFactory{
+		generations: database, models: aiModels, catalog: aiCatalog,
+		source: aiActivationSource, availability: aiAvailability,
+		onnxRuntime: onnx.New(), tokenizerRuntime: sentencepiece.New(),
+	}, 0, 0, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic text inference sessions: %w", err)
+	}
 	semanticProcessor, err := semantic.NewBackfillProcessor(
 		database, semanticContentSource{content: contentService}, imagevips.New(), semanticSessions,
 		database, database, nil, 0,
@@ -573,6 +582,14 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct tag review service: %w", err)
 	}
+	semanticSearch, err := semantic.NewSearchService(database, database, semanticTextSessions, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic image search: %w", err)
+	}
+	videoSemanticSearch, err := semantic.NewVideoSearchService(database, database, semanticTextSessions, nil)
+	if err != nil {
+		return nil, fmt.Errorf("construct semantic video search: %w", err)
+	}
 	idempotentTagReviews, err := semantic.NewIdempotentTagReviewService(tagReviews, database, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct idempotent tag review service: %w", err)
@@ -582,16 +599,17 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct managed AI model orphan service: %w", err)
 	}
 	aiWorkerComponent, err := newAIWorkerComponent(
-		[]aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker}, aiOperations, aiOrphans, managedModels,
+		[]aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticTextSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker}, aiOperations, aiOrphans, managedModels,
 	)
 	if err != nil {
 		return nil, err
 	}
-	aiManagement, err := aimodel.NewManagementService(aiModels, aiScanner, aiOperations, aiAdmission, aiActivationAdmission, aiAvailability, semanticService)
+	aiManagement, err := aimodel.NewManagementService(aiModels, aiScanner, aiOperations, aiAdmission, aiActivationAdmission, aiAvailability,
+		aimodel.OperationCancellers{Semantic: semanticService})
 	if err != nil {
 		return nil, fmt.Errorf("construct AI model management service: %w", err)
 	}
-	routes, err := api.NewRoutes(api.RouteDependencies{
+	routeDependencies := api.RouteDependencies{
 		Readiness:        readiness.snapshot,
 		Authentication:   authentication,
 		Account:          authentication,
@@ -613,13 +631,16 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		ContentAdmission: resourceController,
 		AIModels:         aiManagement,
 		Semantic:         semanticService,
+		SemanticSearch:   semanticSearch,
 
 		AITagVocabulary:   tagVocabulary,
 		AITagSuggestions:  tagSuggestionList,
 		AITagReviews:      idempotentTagReviews,
 		AITagReviewClear:  semanticService,
 		VideoSemanticJobs: semanticService,
-	})
+	}
+	routeDependencies.VideoSemanticSearch = videoSemanticSearch
+	routes, err := api.NewRoutes(routeDependencies)
 	if err != nil {
 		return nil, err
 	}

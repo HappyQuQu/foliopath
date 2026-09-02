@@ -24,6 +24,7 @@ import styles from "./MediaCollection.module.css";
 export type MediaCollectionLayout = "grid" | "masonry";
 
 export interface MediaCollectionItem {
+  contextLabel?: string;
   favorite?: boolean;
   height: number | null;
   id: string;
@@ -544,6 +545,7 @@ function MediaCard({
         ) : (
           <span>{item.modifiedLabel}</span>
         )}
+        {item.contextLabel && <span>{item.contextLabel}</span>}
       </div>
     </article>
   );

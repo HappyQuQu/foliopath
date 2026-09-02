@@ -1,10 +1,11 @@
 GO ?= go
 NPM ?= npm
+PYTHON ?= python3
 OASDIFF_VERSION ?= v1.17.0
 SQLC_VERSION ?= v1.31.1
 GO_FILES := $(shell rg --files -g '*.go')
 
-.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence verify-intelligent-media-native-evidence verify-intelligent-media-native-model-evidence verify-intelligent-media-quality verify-intelligent-media-supply-chain verify-intelligent-media-s2-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-libvips test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-ai spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
+.PHONY: fmt fmt-check arch-check release-docs-check release-readiness-check release-ready storyboard-readiness-check storyboard-ready verify-release-image-evidence verify-supply-chain-evidence verify-storyboard-evidence verify-intelligent-media-native-evidence verify-intelligent-media-native-model-evidence verify-intelligent-media-quality verify-intelligent-media-face-quality verify-intelligent-media-supply-chain verify-intelligent-media-s2-evidence contract-check compatibility-check generate generate-sql generate-check generate-sql-check web-check openapi-lint lint test test-race test-libvips test-integration test-e2e test-web-e2e test-web-release-e2e test-web-chrome-stable test-browser-capacity test-storyboard-browser-capacity test-face-capacity test-release-image test-release-upgrade test-release-capacity test-storyboard-runtime test-storyboard-vertical release-capacity spike-ai spike-capacity spike-vips spike-runtime sbom provenance release-notices scan-release-image capacity-trend
 
 fmt:
 	gofmt -w $(GO_FILES)
@@ -87,6 +88,16 @@ verify-intelligent-media-quality:
 		-commit "$(RELEASE_SHA)" \
 		$(if $(SUMMARY_FILE),-output "$(abspath $(SUMMARY_FILE))",)
 
+verify-intelligent-media-face-quality:
+	@test -n "$(FACE_QUALITY_INPUT)" || (echo "FACE_QUALITY_INPUT is required" >&2; exit 2)
+	@test -n "$(DATASET_MANIFEST)" || (echo "DATASET_MANIFEST is required" >&2; exit 2)
+	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
+	cd spikes/int001-ai && $(GO) run . face-quality-score \
+		-input "$(abspath $(FACE_QUALITY_INPUT))" \
+		-dataset-manifest "$(abspath $(DATASET_MANIFEST))" \
+		-commit "$(RELEASE_SHA)" \
+		$(if $(SUMMARY_FILE),-output "$(abspath $(SUMMARY_FILE))",)
+
 verify-intelligent-media-supply-chain:
 	@test -n "$(SUPPLY_CHAIN_INPUT)" || (echo "SUPPLY_CHAIN_INPUT is required" >&2; exit 2)
 	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
@@ -96,11 +107,12 @@ verify-intelligent-media-supply-chain:
 
 verify-intelligent-media-s2-evidence:
 	@test -n "$(QUALITY_SUMMARY)" || (echo "QUALITY_SUMMARY is required" >&2; exit 2)
+	@test -n "$(FACE_QUALITY_SUMMARY)" || (echo "FACE_QUALITY_SUMMARY is required" >&2; exit 2)
 	@test -n "$(NATIVE_SUMMARY)" || (echo "NATIVE_SUMMARY is required" >&2; exit 2)
 	@test -n "$(SUPPLY_CHAIN_SUMMARY)" || (echo "SUPPLY_CHAIN_SUMMARY is required" >&2; exit 2)
 	@test -n "$(RELEASE_SHA)" || (echo "RELEASE_SHA is required" >&2; exit 2)
 	$(GO) run ./tests/release/intelligent_media_s2_evidence \
-		-quality "$(QUALITY_SUMMARY)" -native "$(NATIVE_SUMMARY)" \
+		-quality "$(QUALITY_SUMMARY)" -face-quality "$(FACE_QUALITY_SUMMARY)" -native "$(NATIVE_SUMMARY)" \
 		-supply-chain "$(SUPPLY_CHAIN_SUMMARY)" -commit "$(RELEASE_SHA)" \
 		-output "$(SUMMARY_FILE)"
 
@@ -166,6 +178,10 @@ test-storyboard-browser-capacity:
 	cd web && npm run build:storybook
 	cd web && npm run test:storyboard-capacity
 
+test-face-capacity:
+	FOLIOPATH_RUN_CAPACITY_TEST=1 $(GO) test ./internal/face \
+		-run '^TestClusterFaces100KCapacity$$' -count=1 -v
+
 test-release-image:
 	tests/release/image_smoke.sh
 
@@ -189,6 +205,8 @@ release-capacity:
 
 spike-ai:
 	cd spikes/int001-ai && $(GO) test ./...
+	cd spikes/int001-ai && $(PYTHON) -m unittest face_functional_smoke_test.py face_arcface_functional_smoke_test.py
+	$(GO) test ./spikes/int001-model-package-v2
 	$(GO) test ./spikes/int001-vips-input
 
 spike-capacity:

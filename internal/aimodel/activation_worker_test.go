@@ -28,6 +28,31 @@ type inferenceRuntimeStub struct {
 	called   bool
 }
 
+type faceInferenceRuntimeStub struct {
+	metadata FaceRuntimeMetadata
+	called   bool
+}
+
+func (stub *faceInferenceRuntimeStub) LoadAndValidateFace(
+	ctx context.Context,
+	model Model,
+	manifest Manifest,
+	opener RuntimeFileOpener,
+) (FaceRuntimeMetadata, error) {
+	stub.called = true
+	if model.Package.Purpose != PurposeFaceDetectionEmbedding || len(manifest.Files) != 3 {
+		return FaceRuntimeMetadata{}, ErrModelIncompatible
+	}
+	for _, file := range manifest.Files {
+		opened, err := opener(ctx, file.Name)
+		if err != nil {
+			return FaceRuntimeMetadata{}, err
+		}
+		_ = opened.Close()
+	}
+	return stub.metadata, nil
+}
+
 func (stub *inferenceRuntimeStub) LoadAndValidate(ctx context.Context, model Model, manifest Manifest, opener RuntimeFileOpener) (RuntimeMetadata, error) {
 	stub.called = true
 	if model.ID == "" || len(manifest.Files) == 0 {
@@ -51,11 +76,14 @@ func (file *runtimeModelFileStub) RuntimePath() string { return file.path }
 func (file *runtimeModelFileStub) Size() int64         { return file.size }
 
 func TestActivationWorkerLoadsOnlyAvailableReviewedModelThroughSourcePort(t *testing.T) {
-	catalog, manifest, _ := catalogFixture(t)
+	catalog, _, _ := semanticV2CatalogFixture(t)
+	verified, _, found := catalog.PackageByContentHash(strings.Repeat("e", 64), "arm64")
+	if !found {
+		t.Fatal("semantic v2 catalog package missing")
+	}
 	now := time.Date(2026, 8, 27, 20, 0, 0, 0, time.UTC)
-	model := Model{ID: "aim_activation_worker", Package: testPackage(), StorageMode: StorageManaged,
+	model := Model{ID: "aim_activation_worker", Package: verified, StorageMode: StorageManaged,
 		State: StateAvailable, SourceIdentity: "managed:test", AvailabilityRevision: 4, CreatedAt: now, UpdatedAt: now}
-	model.Package.PackageID = manifest.PackageID
 	repository := &memoryRepository{snapshot: Snapshot{Revision: 1, Items: []Model{model}}}
 	models, err := NewService(repository, nil, nil)
 	if err != nil {
@@ -75,9 +103,9 @@ func TestActivationWorkerLoadsOnlyAvailableReviewedModelThroughSourcePort(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	metadata, err := worker.load(context.Background(), ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: 4})
-	if err != nil || metadata.EmbeddingDimension != 768 || !runtime.called || len(source.opened) != 1 {
-		t.Fatalf("load = %#v, %v; runtime=%v opened=%v", metadata, err, runtime.called, source.opened)
+	loaded, err := worker.load(context.Background(), ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: 4})
+	if err != nil || loaded.semantic == nil || loaded.semantic.EmbeddingDimension != 768 || !runtime.called || len(source.opened) != 1 {
+		t.Fatalf("load = %#v, %v; runtime=%v opened=%v", loaded, err, runtime.called, source.opened)
 	}
 	if _, err := worker.load(context.Background(), ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: 3}); !errors.Is(err, ErrModelUnavailable) {
 		t.Fatalf("stale availability error = %v", err)
@@ -89,6 +117,118 @@ func TestActivationWorkerLoadsOnlyAvailableReviewedModelThroughSourcePort(t *tes
 	stored, err := models.Get(context.Background(), model.ID)
 	if err != nil || stored.State != StateUnavailable || stored.AvailabilityRevision != 5 {
 		t.Fatalf("source failure availability = %#v, %v", stored, err)
+	}
+}
+
+func TestActivationWorkerRejectsLegacySemanticV1BeforeRuntime(t *testing.T) {
+	catalog, manifest, _ := catalogFixture(t)
+	verified, _, found := catalog.PackageByContentHash(strings.Repeat("d", 64), "arm64")
+	if !found {
+		t.Fatal("semantic v1 catalog package missing")
+	}
+	now := time.Date(2026, 9, 1, 22, 0, 0, 0, time.UTC)
+	model := Model{ID: "aim_legacy_semantic", Package: verified, StorageMode: StorageManaged,
+		State: StateAvailable, SourceIdentity: "managed:legacy", AvailabilityRevision: 1, CreatedAt: now, UpdatedAt: now}
+	models, err := NewService(&memoryRepository{snapshot: Snapshot{Revision: 1, Items: []Model{model}}}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operations, _ := NewOperationService(managementOperationRepository{}, nil, nil)
+	source := &activationSourceStub{}
+	runtime := &inferenceRuntimeStub{metadata: RuntimeMetadata{EmbeddingDimension: 768}}
+	availability, _ := NewAvailabilityService(models, catalog, source)
+	worker, err := NewActivationWorker(activationRepositoryUnused{}, models, operations, catalog, source, runtime,
+		availability, make(chan struct{}), time.Second, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := worker.load(context.Background(), ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: 1}); !errors.Is(err, ErrModelIncompatible) || runtime.called || len(source.opened) != 0 {
+		t.Fatalf("manifest=%#v error=%v runtime=%v opened=%v", manifest, err, runtime.called, source.opened)
+	}
+}
+
+func TestActivationWorkerDispatchesCombinedFacePackageToIndependentCommit(t *testing.T) {
+	catalog, manifest, _ := faceCatalogFixture(t)
+	verified, _, found := catalog.PackageByContentHash(strings.Repeat("d", 64), "arm64")
+	if !found {
+		t.Fatal("face catalog package missing")
+	}
+	now := time.Date(2026, 9, 1, 21, 0, 0, 0, time.UTC)
+	model := Model{ID: "aim_face_worker", Package: verified, StorageMode: StorageManaged,
+		State: StateAvailable, SourceIdentity: "managed:face", AvailabilityRevision: 3, CreatedAt: now, UpdatedAt: now}
+	models, err := NewService(&memoryRepository{snapshot: Snapshot{Revision: 1, Items: []Model{model}}}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operations, err := NewOperationService(managementOperationRepository{}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := &activationSourceStub{}
+	availability, err := NewAvailabilityService(models, catalog, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	queue := &faceActivationCaptureRepository{}
+	faceRuntime := &faceInferenceRuntimeStub{metadata: FaceRuntimeMetadata{
+		EmbeddingDimension: 512, ThresholdProfile: "face-threshold-reviewed-v1",
+	}}
+	semanticRuntime := &inferenceRuntimeStub{metadata: RuntimeMetadata{EmbeddingDimension: 768}}
+	worker, err := NewActivationWorkerWithFaceRuntime(
+		queue, models, operations, catalog, source, semanticRuntime, faceRuntime, availability,
+		make(chan struct{}), time.Second, nil, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: model.AvailabilityRevision}
+	loaded, err := worker.load(context.Background(), work)
+	if err != nil || loaded.face == nil || loaded.semantic != nil || !faceRuntime.called || semanticRuntime.called || len(source.opened) != 3 {
+		t.Fatalf("loaded=%+v err=%v face=%v semantic=%v opened=%v", loaded, err, faceRuntime.called, semanticRuntime.called, source.opened)
+	}
+	operation := Operation{ID: "aio_face_worker", ModelID: model.ID, Revision: 2}
+	if err := worker.commit(context.Background(), work, operation, "aig_face_worker", now, loaded); err != nil {
+		t.Fatal(err)
+	}
+	commit := queue.faceCommit
+	if commit.OperationID != operation.ID || commit.ExpectedAvailabilityRevision != model.AvailabilityRevision ||
+		commit.Generation.ModelID != model.ID || commit.Generation.PackageID != manifest.PackageID ||
+		commit.Generation.DetectorContentHash != strings.Repeat("a", 64) ||
+		commit.Generation.EmbedderContentHash != strings.Repeat("b", 64) ||
+		commit.Generation.ThresholdProfileHash != strings.Repeat("c", 64) ||
+		commit.Generation.ThresholdProfile != "face-threshold-reviewed-v1" {
+		t.Fatalf("commit=%+v", commit)
+	}
+}
+
+func TestActivationWorkerKeepsFacePackageClosedWithoutFaceRuntime(t *testing.T) {
+	catalog, _, _ := faceCatalogFixture(t)
+	verified, _, _ := catalog.PackageByContentHash(strings.Repeat("d", 64), "arm64")
+	now := time.Date(2026, 9, 1, 21, 30, 0, 0, time.UTC)
+	model := Model{ID: "aim_face_runtime_absent", Package: verified, StorageMode: StorageManaged,
+		State: StateAvailable, SourceIdentity: "managed:face", AvailabilityRevision: 1, CreatedAt: now, UpdatedAt: now}
+	models, err := NewService(&memoryRepository{snapshot: Snapshot{Revision: 1, Items: []Model{model}}}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operations, err := NewOperationService(managementOperationRepository{}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := &activationSourceStub{}
+	availability, err := NewAvailabilityService(models, catalog, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	semanticRuntime := &inferenceRuntimeStub{}
+	worker, err := NewActivationWorker(activationRepositoryUnused{}, models, operations, catalog, source,
+		semanticRuntime, availability, make(chan struct{}), time.Second, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = worker.load(context.Background(), ActivationWork{ModelID: model.ID, ExpectedAvailabilityRevision: 1})
+	if !errors.Is(err, ErrInferenceRuntimeUnavailable) || activationErrorCode(err) != "model_unavailable" || semanticRuntime.called {
+		t.Fatalf("err=%v code=%q semantic_called=%v", err, activationErrorCode(err), semanticRuntime.called)
 	}
 }
 
@@ -139,11 +279,14 @@ func TestActivationWorkerRejectsCorruptClaimBeforeRuntime(t *testing.T) {
 }
 
 func TestActivationWorkerFailsOperationWhenFinalAvailabilityCASIsStale(t *testing.T) {
-	catalog, manifest, _ := catalogFixture(t)
+	catalog, _, _ := semanticV2CatalogFixture(t)
+	verified, _, found := catalog.PackageByContentHash(strings.Repeat("e", 64), "arm64")
+	if !found {
+		t.Fatal("semantic v2 catalog package missing")
+	}
 	now := time.Date(2026, 8, 27, 20, 30, 0, 0, time.UTC)
-	model := Model{ID: "aim_activation_worker_stale", Package: testPackage(), StorageMode: StorageManaged,
+	model := Model{ID: "aim_activation_worker_stale", Package: verified, StorageMode: StorageManaged,
 		State: StateAvailable, SourceIdentity: "managed:test", AvailabilityRevision: 4, CreatedAt: now, UpdatedAt: now}
-	model.Package.PackageID = manifest.PackageID
 	models, err := NewService(&memoryRepository{snapshot: Snapshot{Revision: 1, Items: []Model{model}}}, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -245,5 +388,16 @@ func (activationRepositoryUnused) CommitAIModelActivation(context.Context, Activ
 	return Operation{}, nil
 }
 
+type faceActivationCaptureRepository struct {
+	activationRepositoryUnused
+	faceCommit FaceActivationCommit
+}
+
+func (repository *faceActivationCaptureRepository) CommitFaceModelActivation(_ context.Context, commit FaceActivationCommit) (Operation, error) {
+	repository.faceCommit = commit
+	return Operation{}, nil
+}
+
 var _ ActivationPackageSource = (*activationSourceStub)(nil)
 var _ InferenceRuntime = (*inferenceRuntimeStub)(nil)
+var _ FaceInferenceRuntime = (*faceInferenceRuntimeStub)(nil)

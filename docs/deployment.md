@@ -488,4 +488,4 @@ native session 延迟加载、空闲卸载、全局后台并发默认 1，intera
 
 发布物必须为最终双架构 digest 产出 SPDX/CycloneDX SBOM、VEX、third-party notices、可验证 provenance
 和 model/runtime 再分发签署。缺少 face 模型许可、隐私 intake、合法质量数据或任一 native 架构证据时，
-S2C 保持 No-Go；核心浏览和已经可安全发布的较小 slice 不被伪装成全范围通过。
+S2C 已 Backend Ready，但 Release 保持 No-Go；核心浏览和已经可安全发布的较小 slice 不被伪装成全范围通过。

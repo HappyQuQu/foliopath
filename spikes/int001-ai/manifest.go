@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -19,6 +20,8 @@ import (
 var sha256Pattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var packageSegmentPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 var governanceReferencePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
+
+const maxEvidenceJSONBytes = 256 * 1024 * 1024
 
 type LicenseEvidence struct {
 	ID  string `json:"id"`
@@ -117,12 +120,14 @@ func ReadModelCatalog(filename string) (ModelCatalog, error) {
 }
 
 func decodeStrict(filename string, target any) error {
-	file, err := os.Open(filename)
+	content, err := readEvidenceJSONFile(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	decoder := json.NewDecoder(file)
+	if err := rejectDuplicateEvidenceJSONKeys(content); err != nil {
+		return fmt.Errorf("decode %s: %w", filename, err)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(content))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {
 		return fmt.Errorf("decode %s: %w", filename, err)
@@ -133,6 +138,95 @@ func decodeStrict(filename string, target any) error {
 			return errors.New("multiple JSON values are not allowed")
 		}
 		return fmt.Errorf("decode trailing JSON in %s: %w", filename, err)
+	}
+	return nil
+}
+
+func readEvidenceJSONFile(filename string) ([]byte, error) {
+	info, err := os.Lstat(filename)
+	if err != nil {
+		return nil, err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, errors.New("evidence JSON must be a non-symlink regular file")
+	}
+	if info.Size() < 0 || info.Size() > maxEvidenceJSONBytes {
+		return nil, fmt.Errorf("evidence JSON exceeds %d bytes", maxEvidenceJSONBytes)
+	}
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	opened, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !opened.Mode().IsRegular() || !os.SameFile(info, opened) {
+		return nil, errors.New("evidence JSON identity changed while opening")
+	}
+	content, err := io.ReadAll(io.LimitReader(file, maxEvidenceJSONBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(content) > maxEvidenceJSONBytes {
+		return nil, fmt.Errorf("evidence JSON exceeds %d bytes", maxEvidenceJSONBytes)
+	}
+	return content, nil
+}
+
+func rejectDuplicateEvidenceJSONKeys(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	var walk func() error
+	walk = func() error {
+		token, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		delimiter, ok := token.(json.Delim)
+		if !ok {
+			return nil
+		}
+		switch delimiter {
+		case '{':
+			seen := map[string]struct{}{}
+			for decoder.More() {
+				keyToken, err := decoder.Token()
+				if err != nil {
+					return err
+				}
+				key, ok := keyToken.(string)
+				if !ok {
+					return errors.New("invalid JSON object key")
+				}
+				if _, exists := seen[key]; exists {
+					return fmt.Errorf("duplicate JSON key %q", key)
+				}
+				seen[key] = struct{}{}
+				if err := walk(); err != nil {
+					return err
+				}
+			}
+			_, err = decoder.Token()
+			return err
+		case '[':
+			for decoder.More() {
+				if err := walk(); err != nil {
+					return err
+				}
+			}
+			_, err = decoder.Token()
+			return err
+		default:
+			return errors.New("unexpected JSON delimiter")
+		}
+	}
+	if err := walk(); err != nil {
+		return err
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		return errors.New("multiple JSON values are not allowed")
 	}
 	return nil
 }

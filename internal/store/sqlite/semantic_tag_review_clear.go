@@ -114,9 +114,9 @@ func (s *Store) ClaimTagReviewClear(ctx context.Context, now time.Time, lease ti
 		}
 		claimRevision := job.RequestedRevision + 1
 		result, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET state='running',claimed_revision=?,
-			attempt_count=attempt_count+1,lease_expires_ms=?,error_code=NULL,updated_at_ms=?
+			attempt_count=attempt_count+1,lease_expires_ms=MAX(created_at_ms+?,?),error_code=NULL,updated_at_ms=MAX(created_at_ms,?)
 			WHERE id=? AND state='queued' AND requested_revision=? AND attempt_count<?`, claimRevision,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumSemanticJobAttempts)
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumSemanticJobAttempts)
 		if err != nil {
 			return err
 		}
@@ -124,8 +124,8 @@ func (s *Store) ClaimTagReviewClear(ctx context.Context, now time.Time, lease ti
 			return semantic.ErrTagReviewClearConflict
 		}
 		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='running',phase='clearing',
-			lease_expires_ms=?,revision=revision+1,updated_at_ms=? WHERE id=? AND state='queued'`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+			lease_expires_ms=MAX(created_at_ms+?,?),revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued'`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -154,12 +154,12 @@ func (s *Store) RefreshTagReviewClearLease(ctx context.Context, job semantic.Tag
 			return semantic.ErrTagReviewClearConflict
 		}
 		cancelling = state == "cancelling"
-		if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET lease_expires_ms=?,updated_at_ms=? WHERE id=? AND claimed_revision=?`,
-			now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND claimed_revision=?`,
+			leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=?,updated_at_ms=?
-			WHERE id=? AND state IN ('running','cancelling')`, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+		_, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?)
+			WHERE id=? AND state IN ('running','cancelling')`, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		return err
 	})
 	return cancelling, err
@@ -202,11 +202,11 @@ func (s *Store) DeleteTagReviewClearBatch(ctx context.Context, job semantic.TagR
 			return err
 		}
 		done = remaining == 0
-		if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET deleted_count=deleted_count+?,updated_at_ms=?
+		if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET deleted_count=deleted_count+?,updated_at_ms=MAX(created_at_ms,?)
 			WHERE id=? AND state='running'`, deleted, now.UnixMilli(), job.ID); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+?,revision=revision+1,updated_at_ms=?
+		if _, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+?,revision=revision+1,updated_at_ms=MAX(created_at_ms,?)
 			WHERE id=? AND state='running'`, deleted, now.UnixMilli(), job.OperationID); err != nil {
 			return err
 		}
@@ -241,12 +241,12 @@ func (s *Store) FinishTagReviewClear(ctx context.Context, job semantic.TagReview
 			return semantic.ErrTagReviewClearConflict
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET state=?,lease_expires_ms=NULL,error_code=?,
-			requested_revision=requested_revision+1,updated_at_ms=? WHERE id=? AND claimed_revision=?`, outcome,
+			requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND claimed_revision=?`, outcome,
 			nullableString(errorCode), now.UnixMilli(), job.ID, job.ClaimedRevision); err != nil {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET state=?,phase='completed',error_code=?,lease_expires_ms=NULL,
-			revision=revision+1,updated_at_ms=?,finished_at_ms=? WHERE id=? AND state IN ('running','cancelling')`, outcome,
+			revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?) WHERE id=? AND state IN ('running','cancelling')`, outcome,
 			nullableString(errorCode), now.UnixMilli(), now.UnixMilli(), job.OperationID)
 		return err
 	})
@@ -272,18 +272,18 @@ func (s *Store) CancelTagReviewClearOperation(ctx context.Context, operationID s
 		switch job.State {
 		case semantic.JobQueued:
 			if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET state='cancelled',requested_revision=requested_revision+1,
-				error_code='cancelled',updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID); err != nil {
+				error_code='cancelled',updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID); err != nil {
 				return err
 			}
 			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled',phase='completed',error_code='cancelled',
-				revision=revision+1,updated_at_ms=?,finished_at_ms=? WHERE id=? AND state='queued'`, now.UnixMilli(), now.UnixMilli(), operationID)
+				revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued'`, now.UnixMilli(), now.UnixMilli(), operationID)
 			return err
 		case semantic.JobRunning:
 			if _, err := tx.ExecContext(ctx, `UPDATE ai_tag_review_clear_jobs SET state='cancelling',requested_revision=requested_revision+1,
-				updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID); err != nil {
+				updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID); err != nil {
 				return err
 			}
-			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=?
+			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=MAX(created_at_ms,?)
 				WHERE id=? AND state='running'`, now.UnixMilli(), operationID)
 			return err
 		case semantic.JobCancelling:

@@ -13,8 +13,12 @@ import {
   writeLocalePreference,
   type LocalePreference,
 } from "../storage/preferences";
+import { aiEn, aiZh } from "./aiMessages";
+import { aiReviewEn, aiReviewZh } from "./aiReviewMessages";
 
 const zhCN = {
+  ...aiZh,
+  ...aiReviewZh,
   "account.account": "账户",
   "account.administrator": "管理员",
   "account.changePassword": "修改密码",
@@ -787,6 +791,8 @@ export type MessageKey = keyof typeof zhCN;
 export type Locale = LocalePreference;
 
 const en: Record<MessageKey, string> = {
+  ...aiEn,
+  ...aiReviewEn,
   "account.account": "Account",
   "account.administrator": "Administrator",
   "account.changePassword": "Change password",

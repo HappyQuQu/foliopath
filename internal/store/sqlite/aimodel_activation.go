@@ -78,9 +78,13 @@ func (s *Store) ClaimAIModelActivation(ctx context.Context, now time.Time) (aimo
 		if err != nil {
 			return err
 		}
+		updatedAt := now.UTC()
+		if updatedAt.Before(work.Operation.CreatedAt) {
+			updatedAt = work.Operation.CreatedAt
+		}
 		result, err := tx.ExecContext(ctx, `
-            UPDATE ai_model_operations SET state = 'running', phase = 'loading', revision = revision + 1, updated_at_ms = ?
-            WHERE id = ? AND state = 'queued' AND revision = ?`, now.UTC().UnixMilli(), work.Operation.ID, work.Operation.Revision)
+			UPDATE ai_model_operations SET state = 'running', phase = 'loading', revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?)
+			WHERE id = ? AND state = 'queued' AND revision = ?`, updatedAt.UnixMilli(), work.Operation.ID, work.Operation.Revision)
 		if err != nil {
 			return err
 		}
@@ -90,7 +94,7 @@ func (s *Store) ClaimAIModelActivation(ctx context.Context, now time.Time) (aimo
 		}
 		work.Operation.State, work.Operation.Phase = aimodel.OperationRunning, aimodel.PhaseLoading
 		work.Operation.Revision++
-		work.Operation.UpdatedAt = now.UTC()
+		work.Operation.UpdatedAt = updatedAt
 		claimed, found = work, true
 		return nil
 	})
@@ -114,9 +118,9 @@ func (s *Store) CommitAIModelActivation(ctx context.Context, commit aimodel.Acti
 		if operationState != string(aimodel.OperationRunning) || modelID != commit.Generation.ModelID {
 			return aimodel.ErrInvalidTransition
 		}
-		var modelState string
+		var modelState, modelPurpose string
 		var availabilityRevision int64
-		if err := tx.QueryRowContext(ctx, `SELECT state, availability_revision FROM ai_models WHERE id = ?`, modelID).Scan(&modelState, &availabilityRevision); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT state, availability_revision, purpose FROM ai_models WHERE id = ?`, modelID).Scan(&modelState, &availabilityRevision, &modelPurpose); err != nil {
 			return err
 		}
 		if availabilityRevision != commit.ExpectedAvailabilityRevision {
@@ -125,10 +129,14 @@ func (s *Store) CommitAIModelActivation(ctx context.Context, commit aimodel.Acti
 		if modelState != string(aimodel.StateAvailable) {
 			return aimodel.ErrModelUnavailable
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE semantic_generations SET state = 'retired', updated_at_ms = ? WHERE state = 'active'`, commit.UpdatedAt.UTC().UnixMilli()); err != nil {
+		if modelPurpose != aimodel.PurposeSemanticImageText {
+			return aimodel.ErrInvalidTransition
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE semantic_generations SET state = 'retired', updated_at_ms = MAX(created_at_ms, ?) WHERE state = 'active'`, commit.UpdatedAt.UTC().UnixMilli()); err != nil {
 			return err
 		}
 		activatedAt := commit.Generation.ActivatedAt.UTC().UnixMilli()
+		generationUpdatedAt := max(commit.Generation.CreatedAt.UTC().UnixMilli(), commit.UpdatedAt.UTC().UnixMilli())
 		if _, err := tx.ExecContext(ctx, `
             INSERT INTO semantic_generations(
                 id, model_id, transform_version, output_schema_version, index_format_version,
@@ -136,7 +144,7 @@ func (s *Store) CommitAIModelActivation(ctx context.Context, commit aimodel.Acti
             ) VALUES(?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
 			commit.Generation.ID, modelID, commit.Generation.TransformVersion, commit.Generation.OutputSchemaVersion,
 			commit.Generation.IndexFormatVersion, commit.Generation.EmbeddingDimension,
-			commit.Generation.CreatedAt.UTC().UnixMilli(), activatedAt, commit.UpdatedAt.UTC().UnixMilli()); err != nil {
+			commit.Generation.CreatedAt.UTC().UnixMilli(), activatedAt, generationUpdatedAt); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
@@ -146,7 +154,7 @@ func (s *Store) CommitAIModelActivation(ctx context.Context, commit aimodel.Acti
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE ai_model_operations SET state = 'succeeded', phase = 'completed', revision = revision + 1,
-                updated_at_ms = ?, finished_at_ms = ?, error_code = NULL WHERE id = ? AND revision = ?`,
+				updated_at_ms = MAX(created_at_ms, ?), finished_at_ms = MAX(created_at_ms, ?), error_code = NULL WHERE id = ? AND revision = ?`,
 			commit.UpdatedAt.UTC().UnixMilli(), commit.UpdatedAt.UTC().UnixMilli(), commit.OperationID, commit.ExpectedRevision)
 		if err != nil {
 			return err
@@ -159,6 +167,86 @@ func (s *Store) CommitAIModelActivation(ctx context.Context, commit aimodel.Acti
 	})
 	if err != nil {
 		return aimodel.Operation{}, fmt.Errorf("commit AI model activation: %w", err)
+	}
+	return s.GetAIOperation(ctx, commit.OperationID)
+}
+
+func (s *Store) CommitFaceModelActivation(ctx context.Context, commit aimodel.FaceActivationCommit) (aimodel.Operation, error) {
+	if commit.OperationID == "" || commit.ExpectedRevision < 1 || commit.ExpectedAvailabilityRevision < 1 ||
+		commit.UpdatedAt.IsZero() || aimodel.ValidateFaceGeneration(commit.Generation) != nil {
+		return aimodel.Operation{}, aimodel.ErrInvalidTransition
+	}
+	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		var modelID, operationState string
+		var operationRevision int64
+		if err := tx.QueryRowContext(ctx, `SELECT model_id, state, revision FROM ai_model_operations WHERE id = ?`, commit.OperationID).
+			Scan(&modelID, &operationState, &operationRevision); err != nil {
+			return err
+		}
+		if operationRevision != commit.ExpectedRevision {
+			return aimodel.ErrPreconditionFailed
+		}
+		if operationState != string(aimodel.OperationRunning) || modelID != commit.Generation.ModelID {
+			return aimodel.ErrInvalidTransition
+		}
+		var modelState, modelPurpose, packageID string
+		var availabilityRevision int64
+		if err := tx.QueryRowContext(ctx, `SELECT state, availability_revision, purpose, package_id FROM ai_models WHERE id = ?`, modelID).
+			Scan(&modelState, &availabilityRevision, &modelPurpose, &packageID); err != nil {
+			return err
+		}
+		if availabilityRevision != commit.ExpectedAvailabilityRevision {
+			return aimodel.ErrPreconditionFailed
+		}
+		if modelState != string(aimodel.StateAvailable) {
+			return aimodel.ErrModelUnavailable
+		}
+		if modelPurpose != aimodel.PurposeFaceDetectionEmbedding || packageID != commit.Generation.PackageID {
+			return aimodel.ErrInvalidTransition
+		}
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE face_generations SET state = 'retired', updated_at_ms = MAX(created_at_ms, ?) WHERE state = 'active'`,
+			commit.UpdatedAt.UTC().UnixMilli()); err != nil {
+			return err
+		}
+		activatedAt := commit.Generation.ActivatedAt.UTC().UnixMilli()
+		generationUpdatedAt := max(commit.Generation.CreatedAt.UTC().UnixMilli(), commit.UpdatedAt.UTC().UnixMilli())
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO face_generations(
+                id, detector_package_id, detector_content_hash, embedder_package_id, embedder_content_hash,
+                embedding_dimension, transform_version, threshold_profile, state,
+                created_at_ms, activated_at_ms, updated_at_ms, model_id, package_id, threshold_profile_hash
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)`,
+			commit.Generation.ID,
+			commit.Generation.PackageID, commit.Generation.DetectorContentHash,
+			commit.Generation.PackageID, commit.Generation.EmbedderContentHash,
+			commit.Generation.EmbeddingDimension, commit.Generation.TransformVersion,
+			commit.Generation.ThresholdProfile,
+			commit.Generation.CreatedAt.UTC().UnixMilli(), activatedAt, generationUpdatedAt,
+			modelID, commit.Generation.PackageID, commit.Generation.ThresholdProfileHash); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+            UPDATE ai_model_state SET revision = revision + 1 WHERE singleton_key = 1`); err != nil {
+			return err
+		}
+		result, err := tx.ExecContext(ctx, `
+            UPDATE ai_model_operations SET state = 'succeeded', phase = 'completed', revision = revision + 1,
+                updated_at_ms = MAX(created_at_ms, ?), finished_at_ms = MAX(created_at_ms, ?), error_code = NULL
+            WHERE id = ? AND revision = ?`,
+			commit.UpdatedAt.UTC().UnixMilli(), commit.UpdatedAt.UTC().UnixMilli(),
+			commit.OperationID, commit.ExpectedRevision)
+		if err != nil {
+			return err
+		}
+		rows, err := result.RowsAffected()
+		if err != nil || rows != 1 {
+			return aimodel.ErrPreconditionFailed
+		}
+		return nil
+	})
+	if err != nil {
+		return aimodel.Operation{}, fmt.Errorf("commit face model activation: %w", err)
 	}
 	return s.GetAIOperation(ctx, commit.OperationID)
 }

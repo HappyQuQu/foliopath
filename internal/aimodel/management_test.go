@@ -80,6 +80,17 @@ func (stub *semanticOperationCancellerStub) CancelSemanticOperation(_ context.Co
 	return stub.result, nil
 }
 
+type faceOperationCancellerStub struct {
+	operationID string
+	revision    int64
+	result      Operation
+}
+
+func (stub *faceOperationCancellerStub) CancelFaceOperation(_ context.Context, operationID string, revision int64) (Operation, error) {
+	stub.operationID, stub.revision = operationID, revision
+	return stub.result, nil
+}
+
 func (stub *installAdmissionStub) StartInstall(
 	_ context.Context,
 	candidate Candidate,
@@ -257,6 +268,51 @@ func TestManagementServiceFailsClosedWhenSemanticOwnerIsUnavailable(t *testing.T
 	management := &ManagementService{operations: operations}
 	if _, err := management.CancelOperation(context.Background(), operation.ID, operation.Revision); !errors.Is(err, ErrInvalidTransition) {
 		t.Fatalf("cancel without semantic owner error = %v", err)
+	}
+}
+
+func TestManagementServiceRoutesEveryFaceOperationToItsCanonicalOwner(t *testing.T) {
+	now := time.Date(2026, 9, 2, 18, 0, 0, 0, time.UTC)
+	for _, kind := range []OperationKind{
+		OperationFaceMissing,
+		OperationFaceRebuild,
+		OperationFaceDerivedClear,
+		OperationFaceManualClear,
+	} {
+		t.Run(string(kind), func(t *testing.T) {
+			operation := Operation{ID: "aio_face_route", Kind: kind, State: OperationQueued, Phase: PhaseQueued,
+				Revision: 7, CreatedAt: now, UpdatedAt: now}
+			operations, err := NewOperationService(semanticManagementOperationRepository{operation: operation}, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cancelled := operation
+			cancelled.State, cancelled.Phase, cancelled.Revision = OperationCancelling, PhaseBuilding, 8
+			canceller := &faceOperationCancellerStub{result: cancelled}
+			management := &ManagementService{operations: operations, face: canceller}
+
+			result, err := management.CancelOperation(context.Background(), operation.ID, operation.Revision)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result != cancelled || canceller.operationID != operation.ID || canceller.revision != operation.Revision {
+				t.Fatalf("cancel result = %#v; owner = %#v", result, canceller)
+			}
+		})
+	}
+}
+
+func TestManagementServiceFailsClosedWhenFaceOwnerIsUnavailable(t *testing.T) {
+	now := time.Date(2026, 9, 2, 18, 30, 0, 0, time.UTC)
+	operation := Operation{ID: "aio_face_route", Kind: OperationFaceMissing, State: OperationQueued,
+		Phase: PhaseQueued, Revision: 1, CreatedAt: now, UpdatedAt: now}
+	operations, err := NewOperationService(semanticManagementOperationRepository{operation: operation}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	management := &ManagementService{operations: operations}
+	if _, err := management.CancelOperation(context.Background(), operation.ID, operation.Revision); !errors.Is(err, ErrInvalidTransition) {
+		t.Fatalf("cancel without face owner error = %v", err)
 	}
 }
 

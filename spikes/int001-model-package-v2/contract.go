@@ -1,4 +1,5 @@
-// Package modelpackagev2 is an isolated executable proposal for ADR-0014.
+// Package modelpackagev2 contains isolated executable package proposals for
+// ADR-0014 and ADR-0015.
 // It is not imported by production packages.
 package modelpackagev2
 

@@ -3,10 +3,12 @@
 Status: **local evidence frozen; S0 remains No-Go pending product decisions and external conditions**.
 
 This directory contains machine-readable and reviewable outputs from the
-isolated [`spikes/int001-ai`](../../../spikes/int001-ai/) module. No command in
-this evidence set read a user media library or modified production contracts.
-The local exploration was closed on 2026-08-27. New synthetic permutations are
-not an active work queue; see the
+isolated [`spikes/int001-ai`](../../../spikes/int001-ai/) module. Evidence through
+2026-08-27 did not read a user media library. A separately identified 2026-08-31
+operator-authorized local functional smoke read ordinary images without copying
+them or persisting face-derived data; it is not quality, privacy/legal, model or
+release evidence and did not modify production contracts. New synthetic
+permutations are not an active work queue; see the
 [S0 closeout and blocker list](../../gates/POST-MVP-5/int-s0-closeout-and-blockers.md).
 
 ## 2026-08-25 local baseline
@@ -71,6 +73,14 @@ not an active work queue; see the
 - [Direct model nested-mount boundary on Linux/arm64](direct-model-nested-mount-linux-arm64-2026-08-28.md)
 - [Managed model real ENOSPC on Linux/arm64](managed-model-enospc-linux-arm64-2026-08-28.md)
 - [Native image inference process-kill recovery on Linux/arm64](native-image-inference-sigkill-linux-arm64-2026-08-28.md)
+- [Operator-authorized local face functional smoke on macOS/arm64](face-functional-local-arm64-2026-08-31.md)
+- [Deterministic bounded face clustering at 100k synthetic observations on macOS/arm64](face-clustering-100k-darwin-arm64-2026-09-01.md)
+- [Corrected 100k × 512 face clustering under a constrained Linux/arm64 container](face-clustering-100k-512-linux-arm64-2026-09-01.md)
+- [Face analysis durable checkpoint recovery after a real process kill on Darwin/arm64](face-analysis-process-kill-recovery-darwin-arm64-2026-08-31.md)
+- [Operator-authorized local face group-pair functional evidence](face-group-pair-functional-local-arm64-2026-08-31.md)
+- [Operator-authorized nested-directory face functional evidence](face-nested-group-functional-local-arm64-2026-08-31.md)
+- [Private coser face-review preparation and bounded result](../../changes/FIX-2026-09-01-coser-private-face-review-preparation.md)
+- [S2 local 100k search and 100k×512 face capacity refresh](s2-local-capacity-refresh-darwin-arm64-2026-09-01.md)
 - [SentencePiece C API tokenizer smoke on native Linux/arm64](sentencepiece-capi-linux-arm64-2026-08-27.md)
 - [SentencePiece C API FD/lifecycle evidence on Linux/arm64](sentencepiece-capi-lifecycle-linux-arm64-2026-08-28.md)
 - [SentencePiece C API parity smoke on emulated Linux/amd64](sentencepiece-capi-emulated-amd64-2026-08-28.md)
@@ -87,6 +97,14 @@ not an active work queue; see the
 - [Expanded glibc reachability input across architectures](sentencepiece-ort-glibc-reachability-cross-arch-2026-08-28.md)
   ([machine-readable record](sentencepiece-ort-glibc-reachability-cross-arch-2026-08-28.json))
 - [Distroless Debian 13 glibc security status refresh](glibc-security-status-refresh-2026-08-29.md)
+- [SFace provenance and Debian runtime external-blocker refresh](s2-external-blocker-refresh-2026-08-31.md)
+- [ArcFace ResNet100 replacement-candidate rejection](arcface-resnet100-replacement-rejection-darwin-arm64-2026-08-31.md)
+- [ArcFace ResNet100 deterministic-normalization candidate](arcface-resnet100-normalized-candidate-darwin-arm64-2026-09-01.md)
+- [AuraFace v1 commercially-positioned replacement candidate](auraface-v1-candidate-darwin-arm64-2026-09-01.md)
+  ([current schema-v2 functional record](auraface-v1-candidate-darwin-arm64-2026-09-01-v2.json))
+- [Intel face-reidentification-retail-0095 architecture/provenance hold](intel-face-reidentification-retail-0095-hold-2026-09-01.md)
+- [AuraFace production-boundary Linux/arm64 smoke](auraface-production-boundary-linux-arm64-2026-09-01.md)
+- [AuraFace production-boundary emulated Linux/amd64 preflight](auraface-production-boundary-emulated-amd64-2026-09-01.md)
 - Ten fixed public-license photographs and 24 paired Chinese/English queries
   validate the acquisition/scoring path and expose one SigLIP 1 Chinese Top-1
   miss. This remains a pilot, not the 1,000-image quality set.

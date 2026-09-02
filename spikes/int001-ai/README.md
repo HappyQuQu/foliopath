@@ -3,7 +3,9 @@
 This is an isolated feasibility module. It is not imported by the FolioPath
 application and does not define production API, database, or UI behavior. It
 must only use synthetic, openly licensed, or specifically authorized fixtures;
-never point it at a user's media library.
+never point it at production `/library` or an unreviewed media root. The bounded
+functional smoke below additionally requires an explicit operator authorization
+reference and emits no paths, crops, or embeddings.
 
 The first slice provides three reproducible tools:
 
@@ -39,6 +41,64 @@ python3 -m venv /tmp/foliopath-int001-venv
   --catalog testdata/model-catalog.opencv-zoo-candidates.json \
   --fixture-manifest testdata/face-pipeline-fixture.json \
   --model-root /tmp/operator-supplied-models
+
+# Optional bounded functional smoke on an explicitly operator-authorized local
+# dataset. The command reads ordinary image files without following symlinks,
+# emits aggregate JSON only, and never persists crops or embeddings. It is not
+# identity ground truth, quality evidence, legal approval, or release evidence.
+/tmp/foliopath-int001-venv/bin/python face_functional_smoke.py \
+  --catalog testdata/model-catalog.opencv-zoo-candidates.json \
+  --model-root /tmp/operator-supplied-models \
+  --media-root "${AUTHORIZED_FACE_ROOT}" \
+  --dataset-id operator-local-functional-v1 \
+  --authorization-ref operator-local-functional-2026-08-31 \
+  --max-per-group 100 \
+  --pair-limit 100000
+
+When the media root has top-level groups, the report also contains bounded
+same-group/cross-group threshold metrics. Group labels and embeddings remain only
+in memory; the report deliberately omits names, paths, crops, and vectors. These
+metrics are functional error-merge evidence, not governed identity ground truth.
+
+# Rejected-upstream/derived ArcFace replacement experiment. The normalizer is
+# pinned to one exact source graph and ONNX 1.22.0, refuses overwrite/symlink
+# input, and emits one frozen derived digest. Neither graph is production
+# approved; this path exists only to reproduce the recorded rejection/candidate.
+/tmp/foliopath-int001-venv/bin/python arcface_normalize_onnx.py \
+  --source /tmp/operator-supplied-models/arcfaceresnet100-8.onnx \
+  --output /tmp/operator-supplied-models/arcfaceresnet100-8-normalized-v1.onnx
+/tmp/foliopath-int001-venv/bin/python face_arcface_functional_smoke.py \
+  --catalog testdata/model-catalog.arcface-alternative.json \
+  --model-root /tmp/operator-supplied-models \
+  --normalized-embedder /tmp/operator-supplied-models/arcfaceresnet100-8-normalized-v1.onnx \
+  --normalized-embedder-sha256 345e28fd93dc48fd7bfb3552c58434ca7e279f85ee2132c810b26945d4550844 \
+  --media-root "${AUTHORIZED_FACE_ROOT}" \
+  --dataset-id operator-local-arcface-functional-v1 \
+  --authorization-ref operator-local-functional-2026-08-31
+
+# AuraFace v1 candidate uses its exact upstream graph directly. The pinned
+# catalog fixes SHA-256, ORT tensor names/shapes and InsightFace preprocessing;
+# the weight remains outside Git and the result is not production approval.
+/tmp/foliopath-int001-venv/bin/python face_arcface_functional_smoke.py \
+  --catalog testdata/model-catalog.auraface-candidate.json \
+  --model-root /tmp/operator-supplied-models \
+  --media-root "${AUTHORIZED_FACE_ROOT}" \
+  --dataset-id operator-local-auraface-functional-v2 \
+  --authorization-ref operator-user-authorized-functional-2026-09-01
+
+# Prepare private review material from an explicitly authorized local tree.
+# The output must remain outside Git. It contains derived face thumbnails,
+# embeddings, relative paths and a pending review CSV; candidate clusters are
+# not identity ground truth until a human reviewer completes the CSV.
+/tmp/foliopath-int001-venv/bin/python face_ground_truth_prepare.py \
+  --catalog testdata/model-catalog.auraface-candidate.json \
+  --model-root /tmp/operator-supplied-models \
+  --media-root "${AUTHORIZED_FACE_ROOT}" \
+  --output /tmp/foliopath-private-face-review \
+  --authorization-ref operator-private-review-2026-09-01
+
+# Standard-library safety contract; no OpenCV model files required.
+python3 -m unittest face_functional_smoke_test.py face_arcface_functional_smoke_test.py
 
 # Synthetic multilingual semantic smoke. The pinned model stays outside Git.
 /tmp/foliopath-int001-venv/bin/python semantic_fixture_generate.py \

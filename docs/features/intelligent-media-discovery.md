@@ -2,10 +2,11 @@
 
 ## 状态与归属
 
-- 状态：**POST-MVP-5 revision 2 Frozen**；S1/S1R2 Contract Ready，S2A/S2B Backend Gate No-Go，
-  S2C 等待隐私准入
+- 状态：**POST-MVP-5 revision 2 Frozen**；S1/S1R2 Contract Ready，S2A/S2B/S2C
+  **Backend Ready / Release No-Go**
 - 目标版本：`POST-MVP-5` revision 2；不进入当前 MVP/RC
 - Change Record：[CR-2026-021](../changes/CR-2026-021-intelligent-media-discovery.md)
+- Stage Gate Change Record：[CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)
 - 技术方案：[智能媒体发现技术架构](../architecture/intelligent-media-discovery.md)
 - 可行性验证：[INT-001 spike 计划](../spikes/int-001-ai-feasibility.md)
 - 开发执行：[FTR-INT-001 任务清单](intelligent-media-discovery-task-list.md)
@@ -29,10 +30,9 @@
 3. 用既有视频故事板代表帧做近似内容搜索；
 4. 后台检测人脸并先做匿名聚类，用户再建立人物、命名、合并、拆分或把单个人脸归入人物。
 
-revision 2 已冻结上述四项及模型基础，但交付授权仍按 Gate 分离：A+B 的 S2A 当前为 No-Go；第 2～4 项
-的 `INT-114～120` S1R2 权威合同已经完成，C/D 已完成获授权的生产后端范围但 S2B Gate 仍为 No-Go，
-E 必须先通过独立隐私准入才能开始生产实现。“纳入范围”不等于已经具备发布条件；
-真实质量、隐私、native amd64、4 GiB 完整进程和模型再分发仍由对应 Backend/Release Gate 持有。
+revision 2 已冻结上述四项及模型基础，S2A/S2B/S2C 的 fail-closed production 后端均已 Backend Ready。
+这不等于已经具备发布条件：reviewed catalog 保持为空，face runtime/route 不进入 app composition；真实质量、
+隐私、native 双架构、4 GiB 最终模型联合负载和模型再分发统一由 S4 Release Gate 持有。
 
 ## 产品问题与目标用户
 

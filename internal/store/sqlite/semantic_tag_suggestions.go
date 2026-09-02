@@ -105,7 +105,8 @@ func (s *Store) ReplacePendingTagSuggestions(
 		}
 		if _, err := tx.ExecContext(ctx, `
             UPDATE ai_tag_suggestions
-            SET state = 'invalidated', revision = revision + 1, updated_at_ms = ?
+            SET state = 'invalidated', revision = revision + 1,
+                updated_at_ms = MAX(created_at_ms, ?)
             WHERE library_id = ? AND asset_id = ? AND state = 'pending'
               AND (generation_id <> ? OR vocabulary_snapshot_id <> ? OR source_fingerprint <> ?)`,
 			now.UTC().UnixMilli(), libraryID, assetID, generationID, snapshotID, sourceFingerprint,
@@ -244,7 +245,8 @@ func (s *Store) CommitTagReview(
 		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE ai_tag_suggestions
-            SET state = 'invalidated', revision = revision + 1, updated_at_ms = ?
+            SET state = 'invalidated', revision = revision + 1,
+                updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND state = 'pending' AND revision = ?`,
 			now.UTC().UnixMilli(), suggestionID, expectedRevision,
 		)

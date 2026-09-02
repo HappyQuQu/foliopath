@@ -11,6 +11,11 @@ type RuntimeMetadata struct {
 	EmbeddingDimension int64
 }
 
+type FaceRuntimeMetadata struct {
+	EmbeddingDimension int64
+	ThresholdProfile   string
+}
+
 type RuntimeModelFile interface {
 	io.Closer
 	RuntimePath() string
@@ -28,6 +33,10 @@ type InferenceRuntime interface {
 	LoadAndValidate(context.Context, Model, Manifest, RuntimeFileOpener) (RuntimeMetadata, error)
 }
 
+type FaceInferenceRuntime interface {
+	LoadAndValidateFace(context.Context, Model, Manifest, RuntimeFileOpener) (FaceRuntimeMetadata, error)
+}
+
 type AvailabilityMarker interface {
 	MarkUnavailable(context.Context, string, int64) error
 }
@@ -39,6 +48,7 @@ type ActivationWorker struct {
 	catalog       *Catalog
 	source        ActivationPackageSource
 	runtime       InferenceRuntime
+	faceRuntime   FaceInferenceRuntime
 	availability  AvailabilityMarker
 	notifications <-chan struct{}
 	pollInterval  time.Duration
@@ -53,6 +63,24 @@ func NewActivationWorker(
 	catalog *Catalog,
 	source ActivationPackageSource,
 	runtime InferenceRuntime,
+	availability AvailabilityMarker,
+	notifications <-chan struct{},
+	pollInterval time.Duration,
+	now func() time.Time,
+	newID IDGenerator,
+) (*ActivationWorker, error) {
+	return NewActivationWorkerWithFaceRuntime(queue, models, operations, catalog, source, runtime, nil,
+		availability, notifications, pollInterval, now, newID)
+}
+
+func NewActivationWorkerWithFaceRuntime(
+	queue ActivationRepository,
+	models *Service,
+	operations *OperationService,
+	catalog *Catalog,
+	source ActivationPackageSource,
+	runtime InferenceRuntime,
+	faceRuntime FaceInferenceRuntime,
 	availability AvailabilityMarker,
 	notifications <-chan struct{},
 	pollInterval time.Duration,
@@ -75,7 +103,8 @@ func NewActivationWorker(
 		newID = randomGenerationID
 	}
 	return &ActivationWorker{queue: queue, models: models, operations: operations, catalog: catalog,
-		source: source, runtime: runtime, availability: availability, notifications: notifications, pollInterval: pollInterval, now: now, newID: newID}, nil
+		source: source, runtime: runtime, faceRuntime: faceRuntime, availability: availability,
+		notifications: notifications, pollInterval: pollInterval, now: now, newID: newID}, nil
 }
 
 func (worker *ActivationWorker) Run(ctx context.Context) error {
@@ -125,7 +154,7 @@ func (worker *ActivationWorker) process(parent context.Context, work ActivationW
 	ctx, cancel := context.WithCancel(parent)
 	done := make(chan struct{})
 	go watchOperationCancellation(ctx, cancel, worker.operations, work.Operation.ID, worker.pollInterval, done)
-	metadata, loadErr := worker.load(ctx, work)
+	loaded, loadErr := worker.load(ctx, work)
 	cancel()
 	<-done
 	current, err := worker.operations.Get(context.WithoutCancel(parent), work.Operation.ID)
@@ -149,47 +178,134 @@ func (worker *ActivationWorker) process(parent context.Context, work ActivationW
 		return
 	}
 	now := worker.now().UTC()
-	generation := Generation{ID: id, ModelID: work.ModelID, TransformVersion: SemanticTransformVersion,
-		OutputSchemaVersion: SemanticOutputSchemaVersion, IndexFormatVersion: SemanticIndexFormatVersion,
-		EmbeddingDimension: metadata.EmbeddingDimension, State: GenerationActive,
-		CreatedAt: now, ActivatedAt: &now, UpdatedAt: now}
-	if ValidateGeneration(generation) != nil {
-		settleWorkerFailure(parent, worker.operations, current.ID, "model_incompatible")
-		return
-	}
-	_, commitErr := worker.queue.CommitAIModelActivation(parent, ActivationCommit{
-		OperationID: current.ID, ExpectedRevision: current.Revision,
-		ExpectedAvailabilityRevision: work.ExpectedAvailabilityRevision,
-		Generation:                   generation, UpdatedAt: now,
-	})
+	commitErr := worker.commit(parent, work, current, id, now, loaded)
 	if commitErr == nil {
 		return
 	}
 	settleWorkerFailure(context.WithoutCancel(parent), worker.operations, current.ID, activationErrorCode(commitErr))
 }
 
-func (worker *ActivationWorker) load(ctx context.Context, work ActivationWork) (RuntimeMetadata, error) {
+type activationLoadResult struct {
+	model    Model
+	manifest Manifest
+	semantic *RuntimeMetadata
+	face     *FaceRuntimeMetadata
+}
+
+func (worker *ActivationWorker) load(ctx context.Context, work ActivationWork) (activationLoadResult, error) {
 	model, err := worker.models.Get(ctx, work.ModelID)
 	if err != nil {
-		return RuntimeMetadata{}, err
+		return activationLoadResult{}, err
 	}
 	if model.State != StateAvailable || model.AvailabilityRevision != work.ExpectedAvailabilityRevision {
-		return RuntimeMetadata{}, ErrModelUnavailable
+		return activationLoadResult{}, ErrModelUnavailable
 	}
 	manifest, exists := worker.catalog.Manifest(model.Package.PackageID)
 	if !exists {
-		return RuntimeMetadata{}, ErrModelIncompatible
+		return activationLoadResult{}, ErrModelIncompatible
 	}
 	if err := worker.source.ValidateActivationSource(ctx, model, manifest); err != nil {
-		return RuntimeMetadata{}, errors.Join(err, worker.markUnavailableAfterValidationFailure(ctx, model, err))
+		return activationLoadResult{}, errors.Join(err, worker.markUnavailableAfterValidationFailure(ctx, model, err))
 	}
-	metadata, err := worker.runtime.LoadAndValidate(ctx, model, manifest, func(openCtx context.Context, name string) (RuntimeModelFile, error) {
+	opener := func(openCtx context.Context, name string) (RuntimeModelFile, error) {
 		return worker.source.OpenActivationModelFile(openCtx, model, name)
-	})
+	}
+	result := activationLoadResult{model: model, manifest: manifest}
+	switch model.Package.Purpose {
+	case PurposeSemanticImageText:
+		if manifest.FormatVersion != SemanticFormatVersion {
+			return activationLoadResult{}, ErrModelIncompatible
+		}
+		metadata, runtimeErr := worker.runtime.LoadAndValidate(ctx, model, manifest, opener)
+		result.semantic, err = &metadata, runtimeErr
+	case PurposeFaceDetectionEmbedding:
+		if worker.faceRuntime == nil {
+			return activationLoadResult{}, ErrInferenceRuntimeUnavailable
+		}
+		metadata, runtimeErr := worker.faceRuntime.LoadAndValidateFace(ctx, model, manifest, opener)
+		result.face, err = &metadata, runtimeErr
+	default:
+		return activationLoadResult{}, ErrModelIncompatible
+	}
 	if err != nil && (errors.Is(err, ErrModelSourceUnavailable) || errors.Is(err, ErrModelIncompatible)) {
 		err = errors.Join(err, worker.markUnavailableAfterValidationFailure(ctx, model, err))
 	}
-	return metadata, err
+	return result, err
+}
+
+func (worker *ActivationWorker) commit(
+	ctx context.Context,
+	work ActivationWork,
+	operation Operation,
+	id string,
+	now time.Time,
+	loaded activationLoadResult,
+) error {
+	switch loaded.model.Package.Purpose {
+	case PurposeSemanticImageText:
+		if loaded.semantic == nil {
+			return ErrModelIncompatible
+		}
+		generation := Generation{ID: id, ModelID: work.ModelID, TransformVersion: SemanticTransformVersion,
+			OutputSchemaVersion: SemanticOutputSchemaVersion, IndexFormatVersion: SemanticIndexFormatVersion,
+			EmbeddingDimension: loaded.semantic.EmbeddingDimension, State: GenerationActive,
+			CreatedAt: now, ActivatedAt: &now, UpdatedAt: now}
+		if ValidateGeneration(generation) != nil {
+			return ErrModelIncompatible
+		}
+		_, err := worker.queue.CommitAIModelActivation(ctx, ActivationCommit{
+			OperationID: operation.ID, ExpectedRevision: operation.Revision,
+			ExpectedAvailabilityRevision: work.ExpectedAvailabilityRevision,
+			Generation:                   generation, UpdatedAt: now,
+		})
+		return err
+	case PurposeFaceDetectionEmbedding:
+		if loaded.face == nil {
+			return ErrModelIncompatible
+		}
+		repository, ok := worker.queue.(FaceActivationRepository)
+		if !ok {
+			return ErrInferenceRuntimeUnavailable
+		}
+		detector, embedder, threshold, ok := faceManifestComponents(loaded.manifest)
+		if !ok {
+			return ErrModelIncompatible
+		}
+		generation := FaceGeneration{
+			ID: id, ModelID: work.ModelID, PackageID: loaded.manifest.PackageID,
+			DetectorContentHash: detector.SHA256, EmbedderContentHash: embedder.SHA256,
+			EmbeddingDimension: loaded.face.EmbeddingDimension, TransformVersion: FaceTransformVersion,
+			ThresholdProfile: loaded.face.ThresholdProfile, ThresholdProfileHash: threshold.SHA256,
+			State: GenerationActive, CreatedAt: now, ActivatedAt: &now, UpdatedAt: now,
+		}
+		if ValidateFaceGeneration(generation) != nil {
+			return ErrModelIncompatible
+		}
+		_, err := repository.CommitFaceModelActivation(ctx, FaceActivationCommit{
+			OperationID: operation.ID, ExpectedRevision: operation.Revision,
+			ExpectedAvailabilityRevision: work.ExpectedAvailabilityRevision,
+			Generation:                   generation, UpdatedAt: now,
+		})
+		return err
+	default:
+		return ErrModelIncompatible
+	}
+}
+
+func faceManifestComponents(manifest Manifest) (ManifestFile, ManifestFile, ManifestFile, bool) {
+	var detector, embedder, threshold ManifestFile
+	for _, file := range manifest.Files {
+		switch file.Role {
+		case "face_detector":
+			detector = file
+		case "face_embedder":
+			embedder = file
+		case "face_threshold_profile":
+			threshold = file
+		}
+	}
+	return detector, embedder, threshold,
+		detector.Name != "" && embedder.Name != "" && threshold.Name != ""
 }
 
 func (worker *ActivationWorker) markUnavailableAfterValidationFailure(ctx context.Context, model Model, validationErr error) error {
@@ -221,7 +337,8 @@ func activationErrorCode(err error) string {
 	switch {
 	case errors.Is(err, context.Canceled):
 		return "cancelled"
-	case errors.Is(err, ErrModelUnavailable), errors.Is(err, ErrModelNotFound), errors.Is(err, ErrPreconditionFailed):
+	case errors.Is(err, ErrModelUnavailable), errors.Is(err, ErrModelNotFound), errors.Is(err, ErrPreconditionFailed),
+		errors.Is(err, ErrInferenceRuntimeUnavailable):
 		return "model_unavailable"
 	case errors.Is(err, ErrModelIncompatible), errors.Is(err, ErrInvalidModel):
 		return "model_incompatible"

@@ -13,6 +13,32 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
 
+func TestAssetOrderIndexMatchesFrozenSortAndScope(t *testing.T) {
+	tests := []struct {
+		name  string
+		query catalog.AssetQuery
+		want  string
+	}{
+		{name: "global modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortModifiedAt}, want: "assets_search_global_modified"},
+		{name: "direct modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Sort: catalog.SortModifiedAt}, want: "assets_browse_directory_modified"},
+		{name: "legacy direct modified", query: catalog.AssetQuery{Sort: catalog.SortModifiedAt}, want: "assets_browse_directory_modified"},
+		{name: "recursive modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Recursive: true, Sort: catalog.SortModifiedAt}, want: "assets_modified"},
+		{name: "global size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortSize}, want: "assets_search_global_size"},
+		{name: "direct size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Sort: catalog.SortSize}, want: "assets_browse_directory_size"},
+		{name: "legacy direct size", query: catalog.AssetQuery{Sort: catalog.SortSize}, want: "assets_browse_directory_size"},
+		{name: "library size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeLibrary, Sort: catalog.SortSize}, want: "assets_browse_library_size"},
+		{name: "global name", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortName}, want: "assets_browse_folder_name_v2"},
+		{name: "library name", query: catalog.AssetQuery{ScopeKind: catalog.ScopeLibrary, Sort: catalog.SortName}, want: "assets_browse_folder_name_v2"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := assetOrderIndex(test.query); got != test.want {
+				t.Fatalf("assetOrderIndex() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 func seedBrowseCatalog(t *testing.T, store *Store) int64 {
 	t.Helper()
 	record := createTestLibrary(t, store)

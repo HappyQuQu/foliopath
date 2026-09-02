@@ -1,0 +1,226 @@
+.main {
+  width: 100%;
+  padding: var(--space-10);
+}
+
+.heading {
+  margin-bottom: var(--space-8);
+}
+
+.heading p {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+  font-size: var(--font-size-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: var(--font-size-7);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.04em;
+}
+
+.heading span {
+  display: block;
+  max-width: 44rem;
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.cardList {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.cardHeader h2,
+.cardHeader p {
+  margin: 0;
+}
+
+.cardHeader h2 {
+  font-size: var(--font-size-5);
+}
+
+.cardHeader p,
+.scanSummary {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.switchLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metric {
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--color-surface-hover);
+}
+
+.metric span,
+.metric strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.metric strong {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-3);
+  white-space: nowrap;
+}
+
+.progress {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.progress > div {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-hover);
+}
+
+.progress > div > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width var(--motion-normal) var(--ease-standard);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.rows {
+  display: grid;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.modelRow {
+  min-height: 4.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.modelRow + .modelRow {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.modelIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  border-radius: var(--radius-2);
+  background: var(--color-accent-soft);
+}
+
+.modelInfo,
+.modelState {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.modelInfo span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.modelState {
+  justify-items: end;
+}
+
+@media (max-width: 64rem) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 45rem) {
+  .main {
+    padding: var(--space-6) var(--space-4) var(--space-8);
+  }
+
+  .heading h1 {
+    font-size: var(--font-size-6);
+  }
+
+  .cardHeader,
+  .modelRow {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .modelState,
+  .actions {
+    justify-items: stretch;
+    justify-content: stretch;
+  }
+
+  .actions button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress > div > span {
+    transition: none;
+  }
+}

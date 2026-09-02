@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
-const PurposeSemanticImageText = "semantic_image_text"
+const (
+	PurposeSemanticImageText      = "semantic_image_text"
+	PurposeFaceDetectionEmbedding = "face_detection_embedding"
+)
 
 var (
 	ErrInvalidModel                = errors.New("invalid AI model")
@@ -58,13 +61,15 @@ type Model struct {
 }
 
 type Snapshot struct {
-	Items         []Model
-	ActiveModelID string
-	Revision      int64
+	Items             []Model
+	ActiveModelID     string
+	ActiveFaceModelID string
+	Revision          int64
 }
 
 func ValidatePackage(value VerifiedPackage) error {
-	if value.PackageID == "" || len(value.PackageID) > 128 || value.Purpose != PurposeSemanticImageText ||
+	if value.PackageID == "" || len(value.PackageID) > 128 ||
+		(value.Purpose != PurposeSemanticImageText && value.Purpose != PurposeFaceDetectionEmbedding) ||
 		value.Version == "" || len(value.Version) > 64 ||
 		(value.Architecture != "amd64" && value.Architecture != "arm64") ||
 		!hexSHA256.MatchString(value.ContentHash) || value.LicenseID == "" || len(value.LicenseID) > 128 ||

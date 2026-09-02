@@ -7,33 +7,74 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 )
 
 const (
-	MaxManifestBytes = 64 << 10
-	MaxPackageFiles  = 16
-	MaxPackageBytes  = int64(4 << 30)
+	MaxManifestBytes      = 64 << 10
+	MaxPackageFiles       = 16
+	MaxPackageBytes       = int64(4 << 30)
+	SemanticFormatVersion = 2
+	FaceFormatVersion     = 3
+
+	SemanticImagePreprocessContract = "siglip-rgb224-bicubic-v1"
+	SemanticTextCanonicalContract   = "siglip-transformers-4.56.2-v1"
+	SemanticTokenizerContract       = "sentencepiece-32k-unk2-eos1-pad1-seq64-v1"
+	SemanticEmbeddingContract       = "siglip-768-l2-f16le-v1"
+
+	FaceDecodeContract      = "libvips-srgb-longedge1600-v1"
+	FaceDetectorContract    = "yunet-bgr640-letterbox-score-sqrt-v1"
+	FacePostprocessContract = "yunet-stride8-16-32-opencv-int-nms-v1"
+	FaceAlignmentContract   = "arcface-5point-similarity112-bilinear-zero-v1"
+	FaceEmbeddingContract   = "auraface-rgb-minus127.5-div127.5-512-v1"
+	FaceStorageContract     = "face-512-l2-f16le-v1"
+	FaceThresholdContract   = "face-threshold-profile-json-v1"
+)
+
+var (
+	facePackageIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$`)
+	faceVersionPattern   = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$`)
+	spdxLicenseIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.+-]{0,127}$`)
 )
 
 var ErrModelIncompatible = errors.New("AI model package is incompatible")
 
 type ManifestFile struct {
-	Name   string `json:"name"`
-	Size   int64  `json:"size"`
-	SHA256 string `json:"sha256"`
-	Role   string `json:"role"`
+	Name      string `json:"name"`
+	Size      int64  `json:"size"`
+	SHA256    string `json:"sha256"`
+	Role      string `json:"role"`
+	LicenseID string `json:"licenseId,omitempty"`
 }
 
+type PackageContracts struct {
+	ImagePreprocess     string `json:"imagePreprocess,omitempty"`
+	TextCanonical       string `json:"textCanonicalization,omitempty"`
+	Tokenizer           string `json:"tokenizer,omitempty"`
+	EmbeddingAndStorage string `json:"embeddingAndStorage,omitempty"`
+	Decode              string `json:"decode,omitempty"`
+	Detector            string `json:"detector,omitempty"`
+	Postprocess         string `json:"postprocess,omitempty"`
+	Alignment           string `json:"alignment,omitempty"`
+	Embedding           string `json:"embedding,omitempty"`
+	Storage             string `json:"storage,omitempty"`
+	ThresholdProfile    string `json:"thresholdProfile,omitempty"`
+}
+
+type FaceContracts = PackageContracts
+type SemanticContracts = PackageContracts
+
 type Manifest struct {
-	FormatVersion int            `json:"formatVersion"`
-	PackageID     string         `json:"packageId"`
-	Purpose       string         `json:"purpose"`
-	Version       string         `json:"version"`
-	Architecture  string         `json:"architecture"`
-	LicenseID     string         `json:"licenseId"`
-	Files         []ManifestFile `json:"files"`
+	FormatVersion int               `json:"formatVersion"`
+	PackageID     string            `json:"packageId"`
+	Purpose       string            `json:"purpose"`
+	Version       string            `json:"version"`
+	Architecture  string            `json:"architecture"`
+	LicenseID     string            `json:"licenseId,omitempty"`
+	Contracts     *PackageContracts `json:"contracts,omitempty"`
+	Files         []ManifestFile    `json:"files"`
 }
 
 type CatalogEntry struct {
@@ -99,13 +140,14 @@ func (catalog *Catalog) PackageByContentHash(contentHash, runtimeArchitecture st
 	}
 	manifest := entry.Manifest
 	manifest.Files = append([]ManifestFile(nil), entry.Manifest.Files...)
+	manifest.Contracts = clonePackageContracts(entry.Manifest.Contracts)
 	var total int64
 	for _, file := range manifest.Files {
 		total += file.Size
 	}
 	return VerifiedPackage{
 		PackageID: manifest.PackageID, Purpose: manifest.Purpose, Version: manifest.Version,
-		Architecture: runtimeArchitecture, ContentHash: contentHash, LicenseID: manifest.LicenseID,
+		Architecture: runtimeArchitecture, ContentHash: contentHash, LicenseID: manifestLicenseSummary(manifest),
 		PackageSizeByte: total,
 	}, manifest, true
 }
@@ -145,7 +187,7 @@ func (catalog *Catalog) Verify(manifestBytes []byte, facts []FileFact, runtimeAr
 		Version:         manifest.Version,
 		Architecture:    runtimeArchitecture,
 		ContentHash:     entry.ContentHash,
-		LicenseID:       manifest.LicenseID,
+		LicenseID:       manifestLicenseSummary(manifest),
 		PackageSizeByte: total,
 	}
 	if err := ValidatePackage(verified); err != nil {
@@ -164,14 +206,27 @@ func (catalog *Catalog) Manifest(packageID string) (Manifest, bool) {
 	}
 	manifest := entry.Manifest
 	manifest.Files = append([]ManifestFile(nil), entry.Manifest.Files...)
+	manifest.Contracts = clonePackageContracts(entry.Manifest.Contracts)
 	return manifest, true
 }
 
 func validateManifest(manifest Manifest) error {
-	if manifest.FormatVersion != 1 || manifest.PackageID == "" || len(manifest.PackageID) > 128 ||
-		manifest.Purpose != PurposeSemanticImageText || manifest.Version == "" || len(manifest.Version) > 64 ||
+	switch {
+	case manifest.FormatVersion == 1 && manifest.Purpose == PurposeSemanticImageText:
+		return validateSemanticV1Manifest(manifest)
+	case manifest.FormatVersion == SemanticFormatVersion && manifest.Purpose == PurposeSemanticImageText:
+		return validateSemanticV2Manifest(manifest)
+	case manifest.FormatVersion == FaceFormatVersion && manifest.Purpose == PurposeFaceDetectionEmbedding:
+		return validateFaceManifest(manifest)
+	default:
+		return ErrInvalidModel
+	}
+}
+
+func validateSemanticV1Manifest(manifest Manifest) error {
+	if manifest.PackageID == "" || len(manifest.PackageID) > 128 || manifest.Version == "" || len(manifest.Version) > 64 ||
 		manifest.Architecture != "portable-onnx" || manifest.LicenseID == "" || len(manifest.LicenseID) > 128 ||
-		len(manifest.Files) == 0 || len(manifest.Files) > MaxPackageFiles {
+		manifest.Contracts != nil || len(manifest.Files) == 0 || len(manifest.Files) > MaxPackageFiles {
 		return ErrInvalidModel
 	}
 	names := make(map[string]struct{}, len(manifest.Files))
@@ -181,6 +236,7 @@ func validateManifest(manifest Manifest) error {
 		if file.Name == "" || len(file.Name) > 255 || path.Base(file.Name) != file.Name ||
 			strings.ContainsAny(file.Name, "\\\x00") || file.Name == "." || file.Name == ".." ||
 			file.Size <= 0 || !hexSHA256.MatchString(file.SHA256) ||
+			file.LicenseID != "" ||
 			(file.Role != "image_encoder" && file.Role != "text_encoder" && file.Role != "tokenizer") {
 			return ErrInvalidModel
 		}
@@ -205,11 +261,113 @@ func validateManifest(manifest Manifest) error {
 	return nil
 }
 
+func validateSemanticV2Manifest(manifest Manifest) error {
+	if !facePackageIDPattern.MatchString(manifest.PackageID) || !faceVersionPattern.MatchString(manifest.Version) ||
+		manifest.Architecture != "portable-onnx" || !spdxLicenseIDPattern.MatchString(manifest.LicenseID) ||
+		manifest.Contracts == nil || *manifest.Contracts != (PackageContracts{
+		ImagePreprocess: SemanticImagePreprocessContract, TextCanonical: SemanticTextCanonicalContract,
+		Tokenizer: SemanticTokenizerContract, EmbeddingAndStorage: SemanticEmbeddingContract,
+	}) || len(manifest.Files) != 3 {
+		return ErrInvalidModel
+	}
+	required := map[string]bool{"image_encoder": false, "text_encoder": false, "sentencepiece_model": false}
+	names := make(map[string]struct{}, len(manifest.Files))
+	var total int64
+	for _, file := range manifest.Files {
+		_, roleKnown := required[file.Role]
+		if file.Name == "" || len(file.Name) > 255 || path.Base(file.Name) != file.Name ||
+			strings.ContainsAny(file.Name, "\\\x00") || file.Name == "." || file.Name == ".." ||
+			file.Size <= 0 || file.Size > MaxPackageBytes || !hexSHA256.MatchString(file.SHA256) ||
+			file.LicenseID != "" || !roleKnown || required[file.Role] || total > MaxPackageBytes-file.Size {
+			return ErrInvalidModel
+		}
+		if _, exists := names[file.Name]; exists {
+			return ErrInvalidModel
+		}
+		names[file.Name] = struct{}{}
+		required[file.Role] = true
+		total += file.Size
+	}
+	for _, role := range []string{"image_encoder", "text_encoder", "sentencepiece_model"} {
+		if !required[role] {
+			return ErrInvalidModel
+		}
+	}
+	return nil
+}
+
+func validateFaceManifest(manifest Manifest) error {
+	if !facePackageIDPattern.MatchString(manifest.PackageID) || !faceVersionPattern.MatchString(manifest.Version) ||
+		manifest.Architecture != "portable-onnx" || manifest.LicenseID != "" || manifest.Contracts == nil ||
+		*manifest.Contracts != (FaceContracts{
+			Decode: FaceDecodeContract, Detector: FaceDetectorContract, Postprocess: FacePostprocessContract,
+			Alignment: FaceAlignmentContract, Embedding: FaceEmbeddingContract, Storage: FaceStorageContract,
+			ThresholdProfile: FaceThresholdContract,
+		}) || len(manifest.Files) != 3 {
+		return ErrInvalidModel
+	}
+	required := map[string]bool{"face_detector": false, "face_embedder": false, "face_threshold_profile": false}
+	names := make(map[string]struct{}, len(manifest.Files))
+	var total int64
+	for _, file := range manifest.Files {
+		_, roleKnown := required[file.Role]
+		if file.Name == "" || len(file.Name) > 255 || path.Base(file.Name) != file.Name ||
+			strings.ContainsAny(file.Name, "\\\x00") || file.Name == "." || file.Name == ".." ||
+			file.Size <= 0 || file.Size > MaxPackageBytes || !hexSHA256.MatchString(file.SHA256) ||
+			!spdxLicenseIDPattern.MatchString(file.LicenseID) || !roleKnown || required[file.Role] ||
+			total > MaxPackageBytes-file.Size {
+			return ErrInvalidModel
+		}
+		if _, exists := names[file.Name]; exists {
+			return ErrInvalidModel
+		}
+		names[file.Name] = struct{}{}
+		required[file.Role] = true
+		total += file.Size
+	}
+	for _, role := range []string{"face_detector", "face_embedder", "face_threshold_profile"} {
+		if !required[role] {
+			return ErrInvalidModel
+		}
+	}
+	return nil
+}
+
 func equalManifest(left, right Manifest) bool {
 	return left.FormatVersion == right.FormatVersion && left.PackageID == right.PackageID &&
 		left.Purpose == right.Purpose && left.Version == right.Version &&
 		left.Architecture == right.Architecture && left.LicenseID == right.LicenseID &&
+		equalPackageContracts(left.Contracts, right.Contracts) &&
 		slices.Equal(left.Files, right.Files)
+}
+
+func equalPackageContracts(left, right *PackageContracts) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return *left == *right
+}
+
+func clonePackageContracts(value *PackageContracts) *PackageContracts {
+	if value == nil {
+		return nil
+	}
+	clone := *value
+	return &clone
+}
+
+func manifestLicenseSummary(manifest Manifest) string {
+	if manifest.Purpose == PurposeSemanticImageText {
+		return manifest.LicenseID
+	}
+	licenses := make([]string, 0, len(manifest.Files))
+	for _, file := range manifest.Files {
+		if !slices.Contains(licenses, file.LicenseID) {
+			licenses = append(licenses, file.LicenseID)
+		}
+	}
+	slices.Sort(licenses)
+	return strings.Join(licenses, " AND ")
 }
 
 func verifyFileFacts(expected []ManifestFile, actual []FileFact) error {

@@ -206,12 +206,16 @@ func (semanticProductionRuntimeStub) OpenImageSession(context.Context, aimodel.M
 
 func TestSemanticProductionColdLoadMarksFailedSourceUnavailable(t *testing.T) {
 	manifest := aimodel.Manifest{
-		FormatVersion: 1, PackageID: "semantic-runtime-v1", Purpose: aimodel.PurposeSemanticImageText,
+		FormatVersion: aimodel.SemanticFormatVersion, PackageID: "semantic-runtime-v2", Purpose: aimodel.PurposeSemanticImageText,
 		Version: "1.0.0", Architecture: "portable-onnx", LicenseID: "Apache-2.0",
+		Contracts: &aimodel.SemanticContracts{
+			ImagePreprocess: aimodel.SemanticImagePreprocessContract, TextCanonical: aimodel.SemanticTextCanonicalContract,
+			Tokenizer: aimodel.SemanticTokenizerContract, EmbeddingAndStorage: aimodel.SemanticEmbeddingContract,
+		},
 		Files: []aimodel.ManifestFile{
 			{Name: "image.onnx", Size: 1, SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Role: "image_encoder"},
 			{Name: "text.onnx", Size: 1, SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Role: "text_encoder"},
-			{Name: "tokenizer.json", Size: 1, SHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", Role: "tokenizer"},
+			{Name: "spiece.model", Size: 1, SHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", Role: "sentencepiece_model"},
 		},
 	}
 	catalog, err := aimodel.NewCatalog([]aimodel.CatalogEntry{{

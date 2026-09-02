@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	RuntimeVersion     = "1.28.0"
-	EmbeddingDimension = int64(768)
+	RuntimeVersion         = "1.28.0"
+	EmbeddingDimension     = int64(768)
+	FaceEmbeddingDimension = int64(512)
 )
 
 type Runtime struct{}
@@ -21,6 +22,35 @@ func New() *Runtime { return &Runtime{} }
 
 type ImageSession interface {
 	Encode(context.Context, []float32) ([]float32, error)
+	Close() error
+}
+
+type TextSession interface {
+	EncodeText(context.Context, []int64) ([]float32, error)
+	Close() error
+}
+
+type FaceEmbeddingSession interface {
+	EmbedFace(context.Context, []float32) ([]float32, error)
+	Close() error
+}
+
+type FacePoint struct {
+	X float32
+	Y float32
+}
+
+type FaceDetection struct {
+	X         float32
+	Y         float32
+	Width     float32
+	Height    float32
+	Landmarks [5]FacePoint
+	Score     float32
+}
+
+type FaceDetectorSession interface {
+	DetectFaces(context.Context, []float32) ([]FaceDetection, error)
 	Close() error
 }
 
@@ -51,13 +81,17 @@ func openModelFiles(ctx context.Context, manifest aimodel.Manifest, open aimodel
 		roles[file.Role] = file
 	}
 	files := &modelFiles{}
+	tokenizerRole := "tokenizer"
+	if manifest.FormatVersion == aimodel.SemanticFormatVersion {
+		tokenizerRole = "sentencepiece_model"
+	}
 	for _, target := range []struct {
 		role string
 		set  func(aimodel.RuntimeModelFile)
 	}{
 		{role: "image_encoder", set: func(value aimodel.RuntimeModelFile) { files.image = value }},
 		{role: "text_encoder", set: func(value aimodel.RuntimeModelFile) { files.text = value }},
-		{role: "tokenizer", set: func(value aimodel.RuntimeModelFile) { files.tokenizer = value }},
+		{role: tokenizerRole, set: func(value aimodel.RuntimeModelFile) { files.tokenizer = value }},
 	} {
 		if err := ctx.Err(); err != nil {
 			files.close()

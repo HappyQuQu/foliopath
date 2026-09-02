@@ -358,8 +358,8 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
 ## POST-MVP-5 revision 2 C+D+E 安全与隐私合同
 
 Revision 2 已把 C/D/E 纳入冻结范围；上一段只描述 revision 1 历史边界。`INT-S1R2` 通过前仅允许
-OpenAPI/data 合同，E 的 production migration、handler、worker 与 `internal/face` 仍失败关闭。S2C 开始
-还要求 `INT-015` 隐私 owner 与合法数据 intake 签署，不因 S1 合同完成而自动放行。
+OpenAPI/data 合同；当前 S2C fail-closed production migration、handler、worker 与 `internal/face` 已
+Backend Ready。CR-2026-022 没有取消 `INT-015` 隐私和合法数据要求，而是把最终批准归入 S4 Release Gate。
 
 - C 的词表只引用管理员现有 tag ID；模型不能写自由文本。接受 suggestion 必须原子复核 generation、
   vocabulary、source fingerprint、suggestion revision 和 curation revision。dismiss/accepted 是应用状态，
@@ -371,6 +371,16 @@ OpenAPI/data 合同，E 的 production migration、handler、worker 与 `interna
   诊断和支持包均不得包含 embedding、crop bytes/path、精确 bbox、原始模型错误或推测身份属性。
 - face runtime 只能产生匿名 core/edge，不能创建姓名或自动合并 named person。只有合法真实 ground truth
   证明 core precision ≥99.5% 时才开放整组操作，否则强制逐脸或小组确认；edge 永远逐项确认。
+- core component 必须满足 smallest-ID anchor coherence，不能因 `A≈B`、`B≈C` 就传递合并未达到
+  core 阈值的 `A/C`；bridge candidate 只能降为 edge。cannot-link 仍在 anchor/model 判断前失败关闭。
+- 未注册的 production candidate adapter 仍只接受 capability owner 已打开的媒体流和模型 FD：libvips 解码
+  强制格式/字节/像素/长边上限，ONNX session 只接受 `/proc/self/fd`、精确 role/大小和冻结 tensor ABI；
+  detector/align/embed 输出只在内存中流转。模型、输入 path、crop、landmark、向量和 raw runtime error
+  不得进入日志/诊断。S4 Release Gate 前 app composition 继续禁止注入该 adapter。
+- face format v3 只接受不可拆分的 detector/embedder/threshold-profile 组合包。threshold profile 由严格
+  canonical owner 解析并绑定质量 summary hash，不接受 manifest 或 profile 自报 pass/整组授权；face activation
+  只更新独立 face generation，不得退休 semantic generation 或提前切换任何库的可见 cluster。内建 catalog
+  没有获批 entry 时 application composition 必须继续失败关闭。
 - manual constraint 在换代/重聚类前优先应用；cannot-link 冲突、stale revision、ambiguous lineage 均失败
   关闭。人物 merge 全事务，不能自动或部分合并；undo 仅允许最近且未被后续 revision 修改的事件。
 - derived clear 与 manual relationship clear 是两个权限相同但危险度不同的操作；后者必须显示范围与影响

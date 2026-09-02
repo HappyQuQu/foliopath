@@ -9,11 +9,20 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends libvips-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    attempts=0; \
+    until go mod download; do \
+        attempts=$((attempts + 1)); \
+        if [ "${attempts}" -ge 3 ]; then \
+            exit 1; \
+        fi; \
+        sleep "$((attempts * 2))"; \
+    done
 COPY cmd ./cmd
 COPY internal ./internal
 COPY migrations ./migrations
-RUN CGO_ENABLED=1 go build -tags=libvips -trimpath \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=1 go build -tags=libvips -trimpath \
     -ldflags="-s -w -X main.version=${VERSION}" \
     -o /out/foliopath ./cmd/foliopath
 

@@ -6,11 +6,15 @@
 [`POST-MVP-5` revision 2](releases/POST-MVP-5-scope-r2.md)，不继承 MVP 的 Stage 0 结论。其
 [INT-S0 Architecture Ready](gates/POST-MVP-5/int-s0-architecture-ready.md)只对 A 模型基础 + B 图片语义
 搜索为 **Go**，[INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md)也已 Go，并曾授权
-`INT-201～213` S2 后端实现；[INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)
-已完成复审但判断为 **No-Go**，因此不允许实现生产 UI 或发布镜像。后续只处理复审记录中的精确
-阻塞项。Revision 2 已纳入 C 标签、D 视频和 E 人脸，但三者当前只授权 `INT-114～120` S1R2 合同工作；
-Contract Ready 前禁止生产 migration/backend/UI。真实质量、隐私签署、native amd64、4 GiB 完整进程和
-最终供应链由对应 Backend/Release Gate 持有；revision 2 仍只承诺 `/models:ro`，不包含国内或在线镜像。
+`INT-201～216` S2A 后端实现；[INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)、
+[INT-S2B](gates/POST-MVP-5/int-s2b-backend-evidence-ready.md) 与
+[INT-S2C](gates/POST-MVP-5/int-s2c-privacy-ready.md) 均已签署 **Backend Ready / Release No-Go**，
+[INT-S3 Consumer/UI Ready](gates/POST-MVP-5/int-s3-consumer-ui-ready.md) 也已完成真实合同消费者。
+按 [CR-2026-022](changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终模型、governed 质量、
+隐私签署、native 双架构、4 GiB 完整进程和供应链由 S4 持有；
+S4 未 Go 时 reviewed catalog、face composition 与发行 UI 继续失败关闭。revision 2 仍只承诺
+`/models:ro`，不包含国内或在线镜像；S3 对齐记录见
+[CR-2026-023](changes/CR-2026-023-s3-offline-model-ui-contract-alignment.md)。
 
 当前首要切片 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)已通过
 [UIF-S0 Architecture Ready](gates/MVP-2026-07-23/uif-s0-architecture-ready.md)与

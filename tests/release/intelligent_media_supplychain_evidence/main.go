@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/HappyQuQu/foliopath/tests/release/evidencejson"
 )
 
 const releaseName = "POST-MVP-5-r2"
@@ -31,6 +33,7 @@ type artifactEvidence struct {
 
 type componentEvidence struct {
 	Name                   string           `json:"name"`
+	Role                   string           `json:"role"`
 	Version                string           `json:"version"`
 	License                string           `json:"license"`
 	RedistributionApproved bool             `json:"redistributionApproved"`
@@ -122,14 +125,12 @@ func verifyManifest(path, expectedCommit string) (verifiedSummary, error) {
 	if !commitPattern.MatchString(expectedCommit) {
 		return verifiedSummary{}, fmt.Errorf("invalid source commit %q", expectedCommit)
 	}
-	content, err := os.ReadFile(path)
+	content, err := evidencejson.ReadRegularFile(path)
 	if err != nil {
 		return verifiedSummary{}, err
 	}
 	var evidence supplyChainEvidence
-	decoder := json.NewDecoder(strings.NewReader(string(content)))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&evidence); err != nil {
+	if err := evidencejson.Decode(content, &evidence); err != nil {
 		return verifiedSummary{}, fmt.Errorf("decode evidence: %w", err)
 	}
 	base := filepath.Dir(path)
@@ -147,7 +148,7 @@ func verifyManifest(path, expectedCommit string) (verifiedSummary, error) {
 	sort.Slice(images, func(i, j int) bool { return images[i].Architecture < images[j].Architecture })
 	components := make([]string, 0, len(evidence.Components))
 	for _, item := range evidence.Components {
-		components = append(components, item.Name+"@"+item.Version)
+		components = append(components, item.Role+":"+item.Name+"@"+item.Version)
 	}
 	sort.Strings(components)
 	return verifiedSummary{
@@ -163,8 +164,8 @@ func verifyManifest(path, expectedCommit string) (verifiedSummary, error) {
 
 func validateEvidence(base string, evidence supplyChainEvidence, expectedCommit string) error {
 	switch {
-	case evidence.SchemaVersion != 1:
-		return fmt.Errorf("schemaVersion = %d, want 1", evidence.SchemaVersion)
+	case evidence.SchemaVersion != 2:
+		return fmt.Errorf("schemaVersion = %d, want 2", evidence.SchemaVersion)
 	case evidence.Release != releaseName:
 		return fmt.Errorf("release = %q, want %q", evidence.Release, releaseName)
 	case evidence.SourceCommit != expectedCommit:
@@ -191,16 +192,30 @@ func validateEvidence(base string, evidence supplyChainEvidence, expectedCommit 
 		return err
 	}
 
-	required := map[string]bool{"onnxruntime": false, "sentencepiece": false, "siglip": false}
+	required := map[string]bool{
+		"inference_runtime":  false,
+		"semantic_tokenizer": false,
+		"semantic_model":     false,
+		"face_detector":      false,
+		"face_embedder":      false,
+	}
 	seenComponents := make(map[string]struct{}, len(evidence.Components))
+	seenRoles := make(map[string]struct{}, len(evidence.Components))
 	for _, component := range evidence.Components {
 		key := strings.ToLower(component.Name)
 		if _, duplicate := seenComponents[key]; duplicate {
 			return fmt.Errorf("duplicate component %q", component.Name)
 		}
 		seenComponents[key] = struct{}{}
-		if _, ok := required[key]; ok {
-			required[key] = true
+		if !approvalPattern.MatchString(component.Role) {
+			return fmt.Errorf("component %q has invalid role", component.Name)
+		}
+		if _, duplicate := seenRoles[component.Role]; duplicate {
+			return fmt.Errorf("duplicate component role %q", component.Role)
+		}
+		seenRoles[component.Role] = struct{}{}
+		if _, ok := required[component.Role]; ok {
+			required[component.Role] = true
 		}
 		if component.Name == "" || component.Version == "" || component.License == "" {
 			return errors.New("component name, version and license are required")
@@ -212,9 +227,9 @@ func validateEvidence(base string, evidence supplyChainEvidence, expectedCommit 
 			return err
 		}
 	}
-	for name, present := range required {
+	for role, present := range required {
 		if !present {
-			return fmt.Errorf("required component %q is missing", name)
+			return fmt.Errorf("required component role %q is missing", role)
 		}
 	}
 

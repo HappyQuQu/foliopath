@@ -36,8 +36,8 @@ owner 与容量 spike，不得从本清单顺带修改 OpenAPI、migration、后
 `POST-MVP-5` 另有 [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)，
 执行见[专用任务清单](features/intelligent-media-discovery-task-list.md)。它不进入当前 MVP/RC；
 `POST-MVP-5` revision 2 已冻结 A～E；A+B 的 `INT-S0`、`INT-S1` 与 C/D/E 的 `INT-S1R2`
-均已完成相应合同 Gate。`INT-S2A` 与 `INT-S2B` 已复审为 No-Go，不授权生产 UI；S2C 按产品用户
-决定暂缓人脸实现与测试，但仍保留在最终范围和验收分母中。当前已完成
+均已完成相应合同 Gate。`INT-S2A`、`INT-S2B` 与 `INT-S2C` 已签署 Backend Ready / Release No-Go；
+最终模型、governed 质量、native 双架构、联合容量与供应链移交 S4。当前已完成
 两套语义候选固定、公开许可 10 图/24 查询 pilot、有界输入复测、exact/量化/HNSW 基线、YuNet/SFace
 兼容性 smoke、multi-file catalog/scanner、原子 package publish、生产 govips 原生 arm64 测试及
 与 amd64 QEMU byte-identical 对照、SigLIP 2 固定自导出及 macOS/原生 Linux arm64 ONNX 数值容差
@@ -66,7 +66,7 @@ amd64/统一 runtime、真实
 条件；历史 revision 1 先冻结 A+B、离线模型基线和停损方案，随后产品用户以
 [revision 2](releases/POST-MVP-5-scope-r2.md) 正式纳入 C/D/E。S0 本地技术探索现已
 [收口](gates/POST-MVP-5/int-s0-closeout-and-blockers.md)：不再增加同类合成测试；S1/S1R2 合同已冻结，
-S2A/S2B 均完成后端实现范围内的复审但保持 No-Go，等待清单中列明的真实外部证据。
+S2A/S2B/S2C 均完成 Backend Ready；清单中列明的真实外部 release 证据继续由 S4 失败关闭。
 
 | 阶段 | 用普通话解释 | 状态 | 完成后能看到什么 |
 | --- | --- | --- | --- |

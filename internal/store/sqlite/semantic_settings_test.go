@@ -45,3 +45,35 @@ func TestSemanticLibrarySettingsRejectUnknownLibrary(t *testing.T) {
 		t.Fatalf("get error = %v", err)
 	}
 }
+
+func TestSemanticLibrarySettingsClampTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var libraryCreatedAt int64
+	if err := store.db.QueryRow(`SELECT created_at_ms FROM libraries WHERE id=?`, libraryID).Scan(&libraryCreatedAt); err != nil {
+		t.Fatal(err)
+	}
+	generationID := seedEmbeddingGeneration(t, store, 2)
+	if _, err := store.db.Exec(`UPDATE ai_model_state SET active_model_id=(SELECT model_id FROM semantic_generations WHERE id=?),active_generation_id=? WHERE singleton_key=1`, generationID, generationID); err != nil {
+		t.Fatal(err)
+	}
+	rollback := time.UnixMilli(libraryCreatedAt).Add(-time.Hour)
+	if _, err := store.UpdateSemanticLibrarySettings(context.Background(), libraryID, true, 1, rollback); err != nil {
+		t.Fatal(err)
+	}
+	assertSemanticSettingsTime := func(wantRevision int64) {
+		t.Helper()
+		var createdAt, updatedAt, revision int64
+		if err := store.db.QueryRow(`SELECT created_at_ms,updated_at_ms,revision FROM ai_library_settings WHERE library_id=?`, libraryID).Scan(&createdAt, &updatedAt, &revision); err != nil {
+			t.Fatal(err)
+		}
+		if createdAt < libraryCreatedAt || updatedAt < createdAt || revision != wantRevision {
+			t.Fatalf("settings times/revision = %d/%d/%d, library created %d", createdAt, updatedAt, revision, libraryCreatedAt)
+		}
+	}
+	assertSemanticSettingsTime(2)
+	if _, err := store.UpdateSemanticLibrarySettings(context.Background(), libraryID, false, 2, rollback.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	assertSemanticSettingsTime(3)
+}

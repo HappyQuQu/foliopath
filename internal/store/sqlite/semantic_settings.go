@@ -93,10 +93,11 @@ func (s *Store) UpdateSemanticLibrarySettings(ctx context.Context, libraryID int
 		nextRevision := currentRevision + 1
 		if missing {
 			_, err = tx.ExecContext(ctx, `INSERT INTO ai_library_settings(library_id, enabled, state, revision, coverage_revision, created_at_ms, updated_at_ms)
-                VALUES(?, ?, ?, ?, 1, ?, ?)`, libraryID, boolInt(enabled), state, nextRevision, now.UnixMilli(), now.UnixMilli())
+				SELECT id, ?, ?, ?, 1, MAX(created_at_ms, ?), MAX(created_at_ms, ?)
+				FROM libraries WHERE id=?`, boolInt(enabled), state, nextRevision, now.UnixMilli(), now.UnixMilli(), libraryID)
 		} else {
-			_, err = tx.ExecContext(ctx, `UPDATE ai_library_settings SET enabled=?, state=?, revision=?, updated_at_ms=?
-                WHERE library_id=? AND revision=?`, boolInt(enabled), state, nextRevision, now.UnixMilli(), libraryID, currentRevision)
+			_, err = tx.ExecContext(ctx, `UPDATE ai_library_settings SET enabled=?, state=?, revision=?, updated_at_ms=MAX(created_at_ms, ?)
+				WHERE library_id=? AND revision=?`, boolInt(enabled), state, nextRevision, now.UnixMilli(), libraryID, currentRevision)
 		}
 		return err
 	})

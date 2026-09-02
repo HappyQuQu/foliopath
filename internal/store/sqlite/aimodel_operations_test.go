@@ -49,6 +49,37 @@ func TestAIOperationStateMachinePersistsCASAndCancellation(t *testing.T) {
 	}
 }
 
+func TestAIOperationLifecycleClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	service, err := aimodel.NewOperationService(store, func() time.Time { return now }, func() (string, error) {
+		return "aio_clock_rollback", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	total := int64(2)
+	operation, err := service.Create(context.Background(), aimodel.OperationModelInstall, "", 0, &total)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(-time.Minute)
+	operation, err = service.Start(context.Background(), operation.ID, operation.Revision, aimodel.PhaseVerifying)
+	if err != nil || operation.UpdatedAt.Before(operation.CreatedAt) {
+		t.Fatalf("start=%+v err=%v", operation, err)
+	}
+	now = now.Add(-time.Minute)
+	operation, err = service.RequestCancel(context.Background(), operation.ID, operation.Revision)
+	if err != nil || operation.UpdatedAt.Before(operation.CreatedAt) {
+		t.Fatalf("cancel=%+v err=%v", operation, err)
+	}
+	now = now.Add(-time.Minute)
+	operation, err = service.FinishCancelled(context.Background(), operation.ID, operation.Revision)
+	if err != nil || operation.UpdatedAt.Before(operation.CreatedAt) || operation.FinishedAt == nil || operation.FinishedAt.Before(operation.CreatedAt) {
+		t.Fatalf("finish=%+v err=%v", operation, err)
+	}
+}
+
 func TestAIOperationRecoveryFailsInterruptedWithoutTouchingTerminal(t *testing.T) {
 	store, _ := openTestStore(t)
 	now := time.Date(2026, 8, 27, 15, 0, 0, 0, time.UTC)

@@ -28,8 +28,130 @@ func TestVerifyPairAcceptsMatchingNativeArtifacts(t *testing.T) {
 	if summary.Result != "passed" || len(summary.Candidates) != 2 ||
 		summary.Candidates[0].Architecture != "amd64" ||
 		summary.Candidates[1].Architecture != "arm64" ||
-		!summary.Checks["allStepsSucceeded"] || !summary.Checks["qemuRejected"] {
+		!summary.Checks["allStepsSucceeded"] || !summary.Checks["qemuRejected"] ||
+		!summary.Checks["faceSyntheticCapacity"] {
 		t.Fatalf("unexpected paired summary: %+v", summary)
+	}
+}
+
+func TestVerifyPairRejectsInvalidOrMismatchedFaceCapacityEvidence(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(*faceCapacityEvidence)
+		want   string
+	}{
+		{name: "quality claim", mutate: func(value *faceCapacityEvidence) { approved := true; value.QualityGate = &approved }, want: "cannot claim"},
+		{name: "wrong dimension", mutate: func(value *faceCapacityEvidence) { value.EmbeddingDimension = 128 }, want: "workload is incomplete"},
+		{name: "cross architecture mismatch", mutate: func(value *faceCapacityEvidence) { value.DeterministicSHA256 = strings.Repeat("c", 64) }, want: "differ across architectures"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			writeArtifact(t, directory, validIdentity("amd64"), validOutcomes())
+			writeArtifact(t, directory, validIdentity("arm64"), validOutcomes())
+			capacity := validFaceCapacityEvidence("arm64")
+			test.mutate(&capacity)
+			content, err := json.Marshal(capacity)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(directory, "artifact-arm64", "face-capacity.json"), content, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err = verifyPair(directory, testCommit, testRunID, testRunAttempt)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error=%v want=%q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestVerifyPairRejectsInvalidOrMismatchedFaceCandidateEvidence(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(*faceCandidateEvidence)
+		want   string
+	}{
+		{
+			name: "production approval claim",
+			mutate: func(value *faceCandidateEvidence) {
+				approved := true
+				value.ProductionApproved = &approved
+			},
+			want: "cannot claim production",
+		},
+		{
+			name: "candidate count mismatch",
+			mutate: func(value *faceCandidateEvidence) {
+				value.CandidateCount = 2
+			},
+			want: "counts differ",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			writeArtifact(t, directory, validIdentity("amd64"), validOutcomes())
+			writeArtifact(t, directory, validIdentity("arm64"), validOutcomes())
+			candidate := validFaceCandidateEvidence("arm64")
+			test.mutate(&candidate)
+			content, err := json.Marshal(candidate)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(directory, "artifact-arm64", "face-candidate.json")
+			if err := os.WriteFile(path, content, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err = verifyPair(directory, testCommit, testRunID, testRunAttempt)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error=%v want=%q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestNativeEvidenceRejectsAmbiguousOutcomeJSON(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{name: "unknown", content: `{"identity":"success","repository":"success","libvips":"success","faceCandidate":"success","searchMatrix":"success","capacity":"success","complete":true,"extra":true}`, want: "unknown field"},
+		{name: "duplicate", content: `{"identity":"success","identity":"failed","repository":"success","libvips":"success","faceCandidate":"success","searchMatrix":"success","capacity":"success","complete":true}`, want: "duplicate JSON key"},
+		{name: "trailing", content: `{"identity":"success","repository":"success","libvips":"success","faceCandidate":"success","searchMatrix":"success","capacity":"success","complete":true} {}`, want: "trailing JSON value"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "outcomes.json")
+			if err := os.WriteFile(path, []byte(test.content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := readOutcomes(path); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error=%v want=%q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestVerifyPairRejectsSymlinkIdentityDocument(t *testing.T) {
+	directory := t.TempDir()
+	writeArtifact(t, directory, validIdentity("amd64"), validOutcomes())
+	writeArtifact(t, directory, validIdentity("arm64"), validOutcomes())
+	identityPath := filepath.Join(directory, "artifact-arm64", "identity.json")
+	targetPath := filepath.Join(directory, "arm64-identity-target.json")
+	content, err := os.ReadFile(identityPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(targetPath, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(identityPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(targetPath, identityPath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := verifyPair(directory, testCommit, testRunID, testRunAttempt); err == nil || !strings.Contains(err.Error(), "non-symlink regular file") {
+		t.Fatalf("error=%v", err)
 	}
 }
 
@@ -242,7 +364,39 @@ func validIdentity(architecture string) identityEvidence {
 func validOutcomes() outcomeEvidence {
 	return outcomeEvidence{
 		Identity: "success", Repository: "success", Libvips: "success",
-		SearchMatrix: "success", Capacity: "success", Complete: true,
+		FaceCandidate: "success", SearchMatrix: "success", Capacity: "success", Complete: true,
+	}
+}
+
+func validFaceCandidateEvidence(architecture string) faceCandidateEvidence {
+	identity := validIdentity(architecture)
+	approved := false
+	hash := strings.Repeat("b", 64)
+	return faceCandidateEvidence{
+		SchemaVersion: 1, EvidenceClass: "candidate-native-functional-preflight-only",
+		SourceCommit: testCommit, Architecture: architecture, Machine: identity.Machine,
+		DockerArchitecture: strings.TrimPrefix(identity.Docker, "linux/"),
+		ImageID:            "sha256:" + hash, ONNXRuntimeCommit: testCommit,
+		ONNXRuntimeArchiveSHA256: hash, DetectorSHA256: hash, EmbedderSHA256: hash,
+		FixtureSHA256: hash, CandidateCount: 3, Quantized1e3SHA256: hash,
+		ProductionApproved: &approved, QualityGate: &approved, ComplianceGate: &approved,
+		Result: "passed",
+	}
+}
+
+func validFaceCapacityEvidence(architecture string) faceCapacityEvidence {
+	identity := validIdentity(architecture)
+	approved := false
+	hash := strings.Repeat("b", 64)
+	return faceCapacityEvidence{
+		SchemaVersion: 1, EvidenceClass: "synthetic-native-capacity-only",
+		SourceCommit: testCommit, Architecture: architecture, Machine: identity.Machine,
+		DockerArchitecture: strings.TrimPrefix(identity.Docker, "linux/"),
+		ImageID:            "sha256:" + hash, ContainerCPUs: 4, ContainerMemoryBytes: 4 * 1024 * 1024 * 1024,
+		FaceCount: 100000, EmbeddingDimension: 512, PairedClusterCount: 50000, PairedMemberCount: 100000,
+		SingletonClusterCount: 100000, SingletonMemberCount: 100000,
+		DeterministicSHA256: hash, ElapsedMillis: 1000, MemorySysBytes: 500_000_000,
+		IdentityGroundTruth: &approved, QualityGate: &approved, Result: "passed",
 	}
 }
 
@@ -269,7 +423,12 @@ func writeArtifact(t *testing.T, root string, identity identityEvidence, outcome
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for name, value := range map[string]any{"identity.json": identity, "outcomes.json": outcomes} {
+	for name, value := range map[string]any{
+		"identity.json":       identity,
+		"outcomes.json":       outcomes,
+		"face-candidate.json": validFaceCandidateEvidence(identity.GOARCH),
+		"face-capacity.json":  validFaceCapacityEvidence(identity.GOARCH),
+	} {
 		content, err := json.Marshal(value)
 		if err != nil {
 			t.Fatal(err)

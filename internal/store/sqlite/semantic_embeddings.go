@@ -156,7 +156,8 @@ func (s *Store) CommitSemanticEmbeddingProgress(
                 completed_count = completed_count + ?,
                 failed_count = failed_count + ?,
                 stale_count = stale_count + ?,
-                checkpoint_id = ?, revision = revision + 1, updated_at_ms = ?
+                checkpoint_id = ?, revision = revision + 1,
+                updated_at_ms = MAX(updated_at_ms, ?)
             WHERE generation_id = ? AND library_id = ? AND revision = ? AND checkpoint_id = ?`,
 			len(commit.Batch.Items), commit.FailedCount, commit.StaleCount, commit.NextCheckpointID,
 			commit.UpdatedAt.UTC().UnixMilli(), commit.Batch.GenerationID, commit.Batch.LibraryID,
@@ -168,7 +169,7 @@ func (s *Store) CommitSemanticEmbeddingProgress(
 			return semantic.ErrSemanticProgressConflict
 		}
 		result, err = tx.ExecContext(ctx, `
-            UPDATE semantic_jobs SET checkpoint_id = ?, updated_at_ms = ?
+            UPDATE semantic_jobs SET checkpoint_id = ?, updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND checkpoint_id = ? AND claimed_revision = ?`,
 			commit.NextCheckpointID, commit.UpdatedAt.UTC().UnixMilli(), commit.JobID,
 			commit.ExpectedCheckpointID, commit.ClaimedRevision)
@@ -180,7 +181,7 @@ func (s *Store) CommitSemanticEmbeddingProgress(
 		}
 		result, err = tx.ExecContext(ctx, `
             UPDATE ai_model_operations SET completed_items = completed_items + ?,
-                revision = revision + 1, updated_at_ms = ?
+                revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND state IN ('running', 'cancelling')`,
 			processed, commit.UpdatedAt.UTC().UnixMilli(), operationID)
 		if err != nil {
@@ -202,7 +203,8 @@ func (s *Store) CommitSemanticEmbeddingProgress(
 			}
 		}
 		_, err = tx.ExecContext(ctx, `
-            UPDATE ai_library_settings SET state=?, coverage_revision=coverage_revision+1, updated_at_ms=?
+            UPDATE ai_library_settings SET state=?, coverage_revision=coverage_revision+1,
+                updated_at_ms=MAX(created_at_ms, ?)
             WHERE library_id=? AND enabled=1 AND state <> 'clearing'`,
 			state, commit.UpdatedAt.UTC().UnixMilli(), commit.Batch.LibraryID)
 		return err

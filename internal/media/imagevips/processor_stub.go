@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 )
@@ -40,4 +41,14 @@ func (*Processor) SplitSemanticStoryboard(
 	int, int, int, int,
 ) ([][]byte, error) {
 	return nil, semantic.ErrImagePreprocessUnavailable
+}
+
+func (*Processor) DecodeFaceImage(
+	context.Context,
+	io.ReadSeeker,
+	media.Format,
+	int64,
+	int,
+) (face.DecodedImage, error) {
+	return face.DecodedImage{}, face.ErrRuntimeUnavailable
 }

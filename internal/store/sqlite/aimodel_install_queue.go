@@ -77,11 +77,15 @@ func (s *Store) ClaimAIModelInstall(ctx context.Context, now time.Time) (aimodel
 		if err != nil {
 			return err
 		}
+		updatedAt := now.UTC()
+		if updatedAt.Before(work.Operation.CreatedAt) {
+			updatedAt = work.Operation.CreatedAt
+		}
 		result, err := tx.ExecContext(ctx, `
             UPDATE ai_model_operations
-            SET state = 'running', phase = 'verifying', revision = revision + 1, updated_at_ms = ?
+			SET state = 'running', phase = 'verifying', revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?)
             WHERE id = ? AND state = 'queued' AND revision = ?`,
-			now.UTC().UnixMilli(), work.Operation.ID, work.Operation.Revision,
+			updatedAt.UnixMilli(), work.Operation.ID, work.Operation.Revision,
 		)
 		if err != nil {
 			return fmt.Errorf("claim AI model install: %w", err)
@@ -93,7 +97,7 @@ func (s *Store) ClaimAIModelInstall(ctx context.Context, now time.Time) (aimodel
 		work.Operation.State = aimodel.OperationRunning
 		work.Operation.Phase = aimodel.PhaseVerifying
 		work.Operation.Revision++
-		work.Operation.UpdatedAt = now.UTC()
+		work.Operation.UpdatedAt = updatedAt
 		claimed, found = work, true
 		return nil
 	})

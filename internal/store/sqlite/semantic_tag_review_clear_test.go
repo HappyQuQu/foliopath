@@ -135,3 +135,59 @@ func TestTagReviewClearLeaseRecoveryKeepsCommittedProgress(t *testing.T) {
 		t.Fatalf("second=%#v found=%v err=%v", second, found, err)
 	}
 }
+
+func TestTagReviewClearLifecycleClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	var stateUpdatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT updated_at_ms FROM ai_tag_review_state WHERE library_id=?`, libraryID).Scan(&stateUpdatedAt); err != nil {
+		t.Fatal(err)
+	}
+	now := time.UnixMilli(stateUpdatedAt).Add(-time.Minute)
+	ids := []string{"tagclear_clock_rollback", "aio_tagclear_clock_rollback"}
+	service, err := semantic.NewTagReviewClearService(store, &semanticWakeCounter{}, func() time.Time { return now }, func(string) (string, error) {
+		id := ids[0]
+		ids = ids[1:]
+		return id, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requested, err := service.Request(context.Background(), libraryID, 1, "tag-review-clear-clock-rollback")
+	if err != nil || !requested.Created {
+		t.Fatalf("requested=%+v err=%v", requested, err)
+	}
+	now = now.Add(-time.Minute)
+	claimed, found, err := store.ClaimTagReviewClear(context.Background(), now, time.Minute)
+	if err != nil || !found || claimed.State != semantic.JobRunning {
+		t.Fatalf("claimed=%+v found=%v err=%v", claimed, found, err)
+	}
+	if claimed.LeaseExpiresAt == nil || claimed.LeaseExpiresAt.Before(claimed.CreatedAt.Add(time.Minute)) {
+		t.Fatalf("claimed created=%v lease=%v", claimed.CreatedAt, claimed.LeaseExpiresAt)
+	}
+	now = now.Add(-time.Minute)
+	cancelling, err := store.CancelTagReviewClearOperation(context.Background(), claimed.OperationID, claimed.OperationRevision, now)
+	if err != nil || cancelling.State != semantic.JobCancelling {
+		t.Fatalf("cancelling=%+v err=%v", cancelling, err)
+	}
+	cancelRequested, err := store.RefreshTagReviewClearLease(context.Background(), claimed, now.Add(-time.Minute), time.Minute)
+	if err != nil || !cancelRequested {
+		t.Fatalf("refresh cancel=%v err=%v", cancelRequested, err)
+	}
+	finished, err := store.FinishTagReviewClear(context.Background(), claimed, semantic.JobCancelled, "", now.Add(-2*time.Minute))
+	if err != nil || finished.State != semantic.JobCancelled {
+		t.Fatalf("finished=%+v err=%v", finished, err)
+	}
+	for _, check := range []struct {
+		query string
+		id    string
+	}{
+		{`SELECT 1 FROM ai_tag_review_clear_jobs WHERE id=? AND updated_at_ms>=created_at_ms`, claimed.ID},
+		{`SELECT 1 FROM ai_model_operations WHERE id=? AND updated_at_ms>=created_at_ms AND finished_at_ms>=created_at_ms`, claimed.OperationID},
+	} {
+		var valid int
+		if err := store.db.QueryRowContext(context.Background(), check.query, check.id).Scan(&valid); err != nil || valid != 1 {
+			t.Fatalf("time invariant query=%q valid=%d err=%v", check.query, valid, err)
+		}
+	}
+}

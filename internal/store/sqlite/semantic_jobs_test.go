@@ -102,6 +102,52 @@ func TestSemanticBackfillClaimLeaseCancellationAndFinishAreCASBound(t *testing.T
 	}
 }
 
+func TestSemanticBackfillLifecycleClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	generationID := seedEmbeddingGeneration(t, store, 2)
+	seedSemanticLibrarySettings(t, store, libraryID)
+	var settingsUpdatedAt int64
+	if err := store.db.QueryRowContext(context.Background(), `SELECT updated_at_ms FROM ai_library_settings WHERE library_id=?`, libraryID).Scan(&settingsUpdatedAt); err != nil {
+		t.Fatal(err)
+	}
+	now := time.UnixMilli(settingsUpdatedAt).Add(-time.Minute)
+	job := admitSemanticBackfill(t, store, libraryID, generationID, now, "semantic-backfill-clock-rollback")
+	now = now.Add(-time.Minute)
+	claimed, found, err := store.ClaimSemanticBackfill(context.Background(), now, time.Minute)
+	if err != nil || !found || claimed.State != semantic.JobRunning {
+		t.Fatalf("claimed=%+v found=%v err=%v", claimed, found, err)
+	}
+	if claimed.LeaseExpiresAt == nil || claimed.LeaseExpiresAt.Before(claimed.CreatedAt.Add(time.Minute)) {
+		t.Fatalf("claimed created=%v lease=%v", claimed.CreatedAt, claimed.LeaseExpiresAt)
+	}
+	now = now.Add(-time.Minute)
+	cancelling, err := store.CancelSemanticBackfill(context.Background(), job.ID, claimed.OperationRevision, now)
+	if err != nil || cancelling.State != semantic.JobCancelling {
+		t.Fatalf("cancelling=%+v err=%v", cancelling, err)
+	}
+	cancelRequested, err := store.RefreshSemanticBackfillLease(context.Background(), claimed, now.Add(-time.Minute), time.Minute)
+	if err != nil || !cancelRequested {
+		t.Fatalf("refresh cancel=%v err=%v", cancelRequested, err)
+	}
+	finished, err := store.FinishSemanticBackfill(context.Background(), claimed, semantic.JobCancelled, "", now.Add(-2*time.Minute))
+	if err != nil || finished.State != semantic.JobCancelled {
+		t.Fatalf("finished=%+v err=%v", finished, err)
+	}
+	for _, check := range []struct {
+		query string
+		id    string
+	}{
+		{`SELECT 1 FROM semantic_jobs WHERE id=? AND updated_at_ms>=created_at_ms`, claimed.ID},
+		{`SELECT 1 FROM ai_model_operations WHERE id=? AND updated_at_ms>=created_at_ms AND finished_at_ms>=created_at_ms`, claimed.OperationID},
+	} {
+		var valid int
+		if err := store.db.QueryRowContext(context.Background(), check.query, check.id).Scan(&valid); err != nil || valid != 1 {
+			t.Fatalf("time invariant query=%q valid=%d err=%v", check.query, valid, err)
+		}
+	}
+}
+
 func TestSemanticBackfillRecoveryRequeuesThenFailsAtAttemptLimit(t *testing.T) {
 	store, _ := openTestStore(t)
 	libraryID := seedBrowseCatalog(t, store)

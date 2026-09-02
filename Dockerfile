@@ -127,16 +127,27 @@ RUN mkdir -p /src/glib \
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS vips
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-       build-essential libexpat1-dev libexif-dev \
+       build-essential ca-certificates curl libexpat1-dev libexif-dev \
        libffi-dev libjpeg62-turbo-dev libpcre2-dev libpng-dev \
        libwebp-dev meson ninja-build pkg-config \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=expat /opt/expat /opt/expat
 COPY --from=glib /opt/glib /opt/glib
-ADD --checksum=sha256:d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724 \
-    https://github.com/libvips/libvips/releases/download/v8.16.1/vips-8.16.1.tar.xz \
-    /tmp/vips.tar.xz
-RUN mkdir -p /src/vips \
+RUN vips_attempt=1; \
+    while [ "${vips_attempt}" -le 5 ]; do \
+        if curl --fail --location --show-error --silent \
+          --connect-timeout 30 --max-time 300 --continue-at - \
+          https://github.com/libvips/libvips/releases/download/v8.16.1/vips-8.16.1.tar.xz \
+          --output /tmp/vips.tar.xz; then \
+            break; \
+        fi; \
+        if [ "${vips_attempt}" -eq 5 ]; then exit 1; fi; \
+        sleep "$((vips_attempt * 2))"; \
+        vips_attempt="$((vips_attempt + 1))"; \
+    done \
+    && echo 'd114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724  /tmp/vips.tar.xz' \
+       | sha256sum --check --strict - \
+    && mkdir -p /src/vips \
     && tar --extract --file /tmp/vips.tar.xz \
        --directory /src/vips --strip-components=1 \
     && PKG_CONFIG_PATH=/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \

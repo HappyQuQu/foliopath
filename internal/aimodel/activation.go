@@ -12,6 +12,7 @@ const (
 	SemanticTransformVersion    = 1
 	SemanticOutputSchemaVersion = 1
 	SemanticIndexFormatVersion  = 1
+	FaceTransformVersion        = 1
 )
 
 type GenerationState string
@@ -58,6 +59,40 @@ type ActivationRepository interface {
 	CreateAIModelActivation(context.Context, ActivationWork) (ActivationWork, bool, error)
 	ClaimAIModelActivation(context.Context, time.Time) (ActivationWork, bool, error)
 	CommitAIModelActivation(context.Context, ActivationCommit) (Operation, error)
+}
+
+// FaceGeneration is the immutable identity of one atomically activated
+// detector/embedder/threshold-profile combination. Visible per-library cluster
+// builds switch independently after a full rebuild succeeds.
+type FaceGeneration struct {
+	ID                   string
+	ModelID              string
+	PackageID            string
+	DetectorContentHash  string
+	EmbedderContentHash  string
+	EmbeddingDimension   int64
+	TransformVersion     int64
+	ThresholdProfile     string
+	ThresholdProfileHash string
+	State                GenerationState
+	CreatedAt            time.Time
+	ActivatedAt          *time.Time
+	UpdatedAt            time.Time
+}
+
+type FaceActivationCommit struct {
+	OperationID                  string
+	ExpectedRevision             int64
+	ExpectedAvailabilityRevision int64
+	Generation                   FaceGeneration
+	UpdatedAt                    time.Time
+}
+
+// FaceActivationRepository is intentionally separate from the semantic
+// singleton commit. A repository may support semantic activation without
+// enabling the face lifecycle.
+type FaceActivationRepository interface {
+	CommitFaceModelActivation(context.Context, FaceActivationCommit) (Operation, error)
 }
 
 type ActivationResult struct {
@@ -184,6 +219,21 @@ func ValidateGeneration(generation Generation) error {
 		generation.EmbeddingDimension < 1 || generation.EmbeddingDimension > 65536 ||
 		generation.State != GenerationActive || generation.CreatedAt.IsZero() ||
 		generation.ActivatedAt == nil || generation.UpdatedAt.Before(generation.CreatedAt) {
+		return ErrInvalidModel
+	}
+	return nil
+}
+
+func ValidateFaceGeneration(generation FaceGeneration) error {
+	if generation.ID == "" || generation.ModelID == "" || generation.PackageID == "" ||
+		!hexSHA256.MatchString(generation.DetectorContentHash) ||
+		!hexSHA256.MatchString(generation.EmbedderContentHash) ||
+		!hexSHA256.MatchString(generation.ThresholdProfileHash) ||
+		generation.EmbeddingDimension != 512 || generation.TransformVersion != FaceTransformVersion ||
+		generation.ThresholdProfile == "" || len(generation.ThresholdProfile) > 128 ||
+		generation.State != GenerationActive || generation.CreatedAt.IsZero() ||
+		generation.ActivatedAt == nil || generation.ActivatedAt.Before(generation.CreatedAt) ||
+		generation.UpdatedAt.Before(generation.CreatedAt) {
 		return ErrInvalidModel
 	}
 	return nil

@@ -11,10 +11,10 @@ import (
 )
 
 type intelligentMediaStageProgress struct {
-	heading string
-	label   string
-	done    int
-	total   int
+	headingPrefix string
+	label         string
+	done          int
+	total         int
 }
 
 var intelligentMediaMainTask = regexp.MustCompile("^- \\[[ x]\\] `INT-[0-9]+`")
@@ -32,21 +32,21 @@ func TestIntelligentMediaProgressSummaryMatchesMainTaskCheckboxes(t *testing.T) 
 	text := string(content)
 	lines := strings.Split(text, "\n")
 	stages := []intelligentMediaStageProgress{
-		{heading: "## S0 审计台账（本地探索已收口）", label: "S0 可行性审计"},
-		{heading: "## S1：A+B 权威合同（完成）", label: "S1 A+B 权威合同"},
-		{heading: "## S1R2：C+D+E 权威合同扩展（当前阶段）", label: "S1R2 C+D+E 合同扩展"},
-		{heading: "## S2A：模型管理与图片语义搜索后端", label: "S2A 模型管理与图片语义搜索后端"},
-		{heading: "## S2B：标签建议与视频代表帧搜索后端（revision 2，当前阶段）", label: "S2B 标签与视频搜索"},
-		{heading: "## S2C：人脸聚类与人物库后端（revision 2，等待隐私准入）", label: "S2C 人脸与人物库"},
-		{heading: "## S3：消费者与 UI（每个页面等待对应 S2）", label: "S3 消费者与 UI"},
-		{heading: "## S4：纵向、容量与发布", label: "S4 纵向、容量与发布"},
+		{headingPrefix: "## S0 审计台账", label: "S0 可行性审计"},
+		{headingPrefix: "## S1：A+B 权威合同", label: "S1 A+B 权威合同"},
+		{headingPrefix: "## S1R2：C+D+E 权威合同扩展", label: "S1R2 C+D+E 合同扩展"},
+		{headingPrefix: "## S2A：模型管理与图片语义搜索后端", label: "S2A 模型管理与图片语义搜索后端"},
+		{headingPrefix: "## S2B：标签建议与视频代表帧搜索后端", label: "S2B 标签与视频搜索"},
+		{headingPrefix: "## S2C：人脸聚类与人物库后端", label: "S2C 人脸与人物库"},
+		{headingPrefix: "## S3：消费者与 UI", label: "S3 消费者与 UI"},
+		{headingPrefix: "## S4：纵向、容量与发布", label: "S4 纵向、容量与发布"},
 	}
 
 	for index := range stages {
 		stages[index].done, stages[index].total = countIntelligentMediaMainTasks(
 			t,
 			lines,
-			stages[index].heading,
+			stages[index].headingPrefix,
 		)
 		percentage := roundedProgress(stages[index].done, stages[index].total)
 		expectedRow := fmt.Sprintf(
@@ -79,12 +79,12 @@ func TestIntelligentMediaProgressSummaryMatchesMainTaskCheckboxes(t *testing.T) 
 	)
 }
 
-func countIntelligentMediaMainTasks(t *testing.T, lines []string, heading string) (int, int) {
+func countIntelligentMediaMainTasks(t *testing.T, lines []string, headingPrefix string) (int, int) {
 	t.Helper()
 	inside := false
 	done, total := 0, 0
 	for _, line := range lines {
-		if line == heading {
+		if strings.HasPrefix(line, headingPrefix) {
 			inside = true
 			continue
 		}
@@ -100,7 +100,7 @@ func countIntelligentMediaMainTasks(t *testing.T, lines []string, heading string
 		}
 	}
 	if !inside || total == 0 {
-		t.Fatalf("stage %q has no main tasks", heading)
+		t.Fatalf("stage %q has no main tasks", headingPrefix)
 	}
 	return done, total
 }

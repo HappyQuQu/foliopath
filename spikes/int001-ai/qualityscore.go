@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 )
 
 const (
@@ -97,7 +96,7 @@ func ReadS2BQualityDataset(filename string) (S2BQualityDataset, error) {
 }
 
 func ValidateS2BQualityManifest(quality S2BQualityDataset, filename string) error {
-	content, err := os.ReadFile(filename)
+	content, err := readEvidenceJSONFile(filename)
 	if err != nil {
 		return fmt.Errorf("read governed dataset manifest: %w", err)
 	}

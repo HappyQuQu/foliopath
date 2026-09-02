@@ -30,7 +30,7 @@ FS-01 路径边界、FS-02 SQLite/generation、FS-03 原生双架构媒体链路
 | 运维 | FS-05 已验证单容器 probe、非 root、health、优雅退出、离线恢复和故障关闭 | 正式应用观测、缓存配额、在线备份、真实升级与 NAS 断连未实现 | 在 S1/对应 Backend/Release Gate 用正式应用复验 | Stage 0 运行模式可行，不等于可发布 |
 | 跨架构 | 相同 govips/FFmpeg fixture 与 FS-05 Dockerfile 已在原生 amd64/arm64 通过 | 最终 manifest、发布 digest 和持续安全更新仍待验证 | Release Gate 对最终 digest 重跑矩阵 | 可行但不是“纯 Go”交叉编译 |
 | 许可证 | source/npm/image SPDX 可重复生成；libvips 为 LGPL-2.1，Debian FFmpeg 启用 GPL、libx264/libx265 | 最终 notices、source offer、漏洞和签署尚未完成 | 对最终双平台 digest 附 SBOM/provenance 并完成合规签署 | Stage 0 未发现换栈阻断，发布前仍必须审查 |
-| 本地 AI revision 2 | A+B 已冻结 ORT C API、SigLIP 1 float16-internal、SQLite float16 exact、CPU-only 与 `/models:ro` 离线基线；C/D/E capability、data 与 OpenAPI 已冻结；S1R2 Contract Ready，C/D 已完成获授权后端实现；arm64 模型包/故障关闭/100k、tokenizer→text parity 和组合 no-SSL runtime 子证据已落地 | 合法图片/tag/video/face 质量、face 隐私与许可、最终审核模型、native amd64、联合容量和最终再分发/SBOM/VEX/provenance 尚未通过；组合镜像 glibc Critical/High 仍未处置 | S1R2 已冻结安全/部署/测试合同；真实质量、隐私、双架构与供应链在各 S2/Release Gate 失败时删除或降级对应 slice，不改云服务或放宽门槛 | **A+B S0/S1 Go；S1R2 Contract Ready；S2A/S2B No-Go；S2C 等待隐私准入** |
+| 本地 AI revision 2 | semantic v2、ORT/SentencePiece、SQLite float16、A～E capability/data/OpenAPI、C/D/E worker/API、人脸 package/generation/人物状态、故障矩阵、本地 100k 与授权 `coser` 功能验证均已落地 | 合法 semantic/tag/video/face 最终质量、face 隐私/许可、最终审核模型、native paired image、联合容量和最终再分发/SBOM/VEX/provenance 尚未通过；组合镜像 glibc Critical/High 仍未处置 | CR-2026-022 将最终发行输入归入 S4；失败时 catalog/face composition/UI release 保持关闭，不改云服务或放宽门槛 | **S2A/S2B/S2C Backend Ready；Release No-Go** |
 
 ## 当前 spike 状态
 

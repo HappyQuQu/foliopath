@@ -10,6 +10,7 @@ import {
   listDirectories,
   searchAssets,
   searchLibraryAssets,
+  searchSemanticAssets,
 } from "./catalog";
 
 vi.mock("./client", () => ({
@@ -368,6 +369,50 @@ describe("catalog adapter", () => {
           order: "asc",
           q: "clip",
           sort: "name",
+        },
+      },
+    });
+  });
+
+  it("uses the dedicated semantic endpoint without filename sort or filter parameters", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: {
+        coverage: {
+          complete: false,
+          completed: 8,
+          eligible: 12,
+          excludedLibraries: [],
+          failed: 1,
+          stale: 3,
+        },
+        items: [],
+        nextCursor: "semantic-next",
+      },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await expect(searchSemanticAssets({
+      cursor: "semantic-cursor",
+      directoryId: "dir_japan",
+      libraryId: "lib_family",
+      q: "夜晚城市灯光",
+      recursive: true,
+    })).resolves.toMatchObject({
+      items: [],
+      nextCursor: "semantic-next",
+      semanticCoverage: { completed: 8, eligible: 12 },
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/semantic/assets", {
+      params: {
+        query: {
+          cursor: "semantic-cursor",
+          directoryId: "dir_japan",
+          libraryId: "lib_family",
+          limit: 50,
+          q: "夜晚城市灯光",
+          recursive: true,
         },
       },
     });

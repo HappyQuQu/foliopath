@@ -134,6 +134,49 @@ func TestSemanticEmbeddingProgressCanCommitFailureWithoutVector(t *testing.T) {
 	assertEmbeddingJobState(t, store, 99, 1, 2)
 }
 
+func TestSemanticEmbeddingProgressClampsTimeAcrossClockRollback(t *testing.T) {
+	store, _ := openTestStore(t)
+	libraryID := seedBrowseCatalog(t, store)
+	generationID := seedEmbeddingGeneration(t, store, 2)
+	createdAt := time.Date(2026, 8, 28, 1, 0, 0, 0, time.UTC)
+	seedSemanticLibrarySettings(t, store, libraryID)
+	seedEmbeddingJob(t, store, generationID, libraryID, createdAt, 1)
+	vector, err := semantic.EncodeEmbedding([]float32{3, 4}, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assetID := catalogAssetID(t, store, "photo-10.jpg")
+	progress, err := store.CommitSemanticEmbeddingProgress(context.Background(), semantic.EmbeddingProgressCommit{
+		JobID: "aij_embedding_job", ClaimedRevision: 7,
+		ExpectedProgressRevision: 1, ExpectedCheckpointID: 0, NextCheckpointID: assetID,
+		Batch: semantic.EmbeddingBatch{GenerationID: generationID, LibraryID: libraryID, Items: []semantic.EmbeddingItem{{
+			AssetID: assetID, SourceFingerprint: "v1:10:10", Vector: vector, CreatedAt: createdAt,
+		}}}, UpdatedAt: createdAt.Add(-time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if progress.UpdatedAt.Before(createdAt) {
+		t.Fatalf("progress updated at = %v, want >= %v", progress.UpdatedAt, createdAt)
+	}
+	for _, check := range []struct {
+		query string
+		args  []any
+	}{
+		{query: `SELECT created_at_ms,updated_at_ms FROM semantic_jobs WHERE id='aij_embedding_job'`},
+		{query: `SELECT created_at_ms,updated_at_ms FROM ai_model_operations WHERE id='aio_embedding_operation'`},
+		{query: `SELECT created_at_ms,updated_at_ms FROM ai_library_settings WHERE library_id=?`, args: []any{libraryID}},
+	} {
+		var rowCreatedAt, rowUpdatedAt int64
+		if err := store.db.QueryRow(check.query, check.args...).Scan(&rowCreatedAt, &rowUpdatedAt); err != nil {
+			t.Fatal(err)
+		}
+		if rowUpdatedAt < rowCreatedAt {
+			t.Fatalf("row times = %d/%d for %q", rowCreatedAt, rowUpdatedAt, check.query)
+		}
+	}
+}
+
 func seedEmbeddingGeneration(t *testing.T, store *Store, dimension int) string {
 	t.Helper()
 	now := time.Date(2026, 8, 27, 20, 0, 0, 0, time.UTC)

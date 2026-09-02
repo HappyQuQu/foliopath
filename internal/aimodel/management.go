@@ -27,10 +27,20 @@ type ManagementService struct {
 	activation   ActivationAdmission
 	availability *AvailabilityService
 	semantic     SemanticOperationCanceller
+	face         FaceOperationCanceller
 }
 
 type SemanticOperationCanceller interface {
 	CancelSemanticOperation(context.Context, string, int64) (Operation, error)
+}
+
+type FaceOperationCanceller interface {
+	CancelFaceOperation(context.Context, string, int64) (Operation, error)
+}
+
+type OperationCancellers struct {
+	Semantic SemanticOperationCanceller
+	Face     FaceOperationCanceller
 }
 
 func NewManagementService(
@@ -40,21 +50,21 @@ func NewManagementService(
 	install InstallAdmission,
 	activation ActivationAdmission,
 	availability *AvailabilityService,
-	semanticCanceller ...SemanticOperationCanceller,
+	cancellers ...OperationCancellers,
 ) (*ManagementService, error) {
 	if models == nil || scanner == nil || operations == nil || install == nil || activation == nil || availability == nil {
 		return nil, errors.New("AI model management dependencies are required")
 	}
-	var semantic SemanticOperationCanceller
-	if len(semanticCanceller) > 1 {
-		return nil, errors.New("only one semantic operation canceller is allowed")
+	var owners OperationCancellers
+	if len(cancellers) > 1 {
+		return nil, errors.New("only one operation canceller set is allowed")
 	}
-	if len(semanticCanceller) == 1 {
-		semantic = semanticCanceller[0]
+	if len(cancellers) == 1 {
+		owners = cancellers[0]
 	}
 	return &ManagementService{
 		models: models, scanner: scanner, operations: operations, install: install, activation: activation,
-		availability: availability, semantic: semantic,
+		availability: availability, semantic: owners.Semantic, face: owners.Face,
 	}, nil
 }
 
@@ -178,6 +188,13 @@ func (service *ManagementService) CancelOperation(
 			return Operation{}, ErrInvalidTransition
 		}
 		return service.semantic.CancelSemanticOperation(ctx, operationID, revision)
+	}
+	if operation.Kind == OperationFaceMissing || operation.Kind == OperationFaceRebuild ||
+		operation.Kind == OperationFaceDerivedClear || operation.Kind == OperationFaceManualClear {
+		if service.face == nil {
+			return Operation{}, ErrInvalidTransition
+		}
+		return service.face.CancelFaceOperation(ctx, operationID, revision)
 	}
 	return service.operations.RequestCancel(ctx, operationID, revision)
 }

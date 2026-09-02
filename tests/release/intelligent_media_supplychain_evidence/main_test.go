@@ -20,8 +20,24 @@ func TestVerifyManifestAcceptsCompleteNativeEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Result != "passed" || len(summary.Architectures) != 2 || len(summary.Components) != 3 {
+	if summary.Result != "passed" || len(summary.Architectures) != 2 || len(summary.Components) != 5 {
 		t.Fatalf("summary = %#v", summary)
+	}
+}
+
+func TestVerifyManifestRejectsMissingOrDuplicateFaceComponentRole(t *testing.T) {
+	directory := t.TempDir()
+	evidence := validEvidence(t, directory)
+	evidence.Components = evidence.Components[:len(evidence.Components)-1]
+	if _, err := verifyManifest(writeManifest(t, directory, evidence), testCommit); err == nil ||
+		!strings.Contains(err.Error(), `required component role "face_embedder"`) {
+		t.Fatalf("missing role error=%v", err)
+	}
+	evidence = validEvidence(t, directory)
+	evidence.Components[len(evidence.Components)-1].Role = "face_detector"
+	if _, err := verifyManifest(writeManifest(t, directory, evidence), testCommit); err == nil ||
+		!strings.Contains(err.Error(), "duplicate component role") {
+		t.Fatalf("duplicate role error=%v", err)
 	}
 }
 
@@ -87,15 +103,63 @@ func TestVerifyManifestRejectsSymlinkArtifact(t *testing.T) {
 	}
 }
 
+func TestVerifyManifestRejectsAmbiguousJSON(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(string) string
+		want   string
+	}{
+		{name: "unknown", mutate: func(value string) string { return strings.Replace(value, "{", `{"unknown":true,`, 1) }, want: "unknown field"},
+		{name: "duplicate", mutate: func(value string) string {
+			return strings.Replace(value, `"result":"passed"`, `"result":"passed","result":"failed"`, 1)
+		}, want: "duplicate JSON key"},
+		{name: "trailing", mutate: func(value string) string { return value + ` {}` }, want: "trailing JSON value"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			path := writeManifest(t, directory, validEvidence(t, directory))
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(test.mutate(string(content))), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := verifyManifest(path, testCommit); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error=%v want=%q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestVerifyManifestRejectsSymlinkInputDocument(t *testing.T) {
+	directory := t.TempDir()
+	target := writeManifest(t, directory, validEvidence(t, directory))
+	link := filepath.Join(t.TempDir(), "evidence.json")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := verifyManifest(link, testCommit); err == nil || !strings.Contains(err.Error(), "non-symlink regular file") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
 func validEvidence(t *testing.T, directory string) supplyChainEvidence {
 	t.Helper()
 	model := artifact(t, directory, "model.foliomodel", "model")
-	components := make([]componentEvidence, 0, 3)
-	for _, name := range []string{"onnxruntime", "sentencepiece", "siglip"} {
+	componentRoles := []struct{ name, role string }{
+		{name: "onnxruntime", role: "inference_runtime"},
+		{name: "sentencepiece", role: "semantic_tokenizer"},
+		{name: "siglip", role: "semantic_model"},
+		{name: "reviewed-detector", role: "face_detector"},
+		{name: "reviewed-embedder", role: "face_embedder"},
+	}
+	components := make([]componentEvidence, 0, len(componentRoles))
+	for _, value := range componentRoles {
 		components = append(components, componentEvidence{
-			Name: name, Version: "1.0.0", License: "Apache-2.0",
-			RedistributionApproved: true, ApprovalRef: "LEGAL-APPROVAL/2026-" + name,
-			Notices: artifact(t, directory, name+".NOTICE", name+" notice"),
+			Name: value.name, Role: value.role, Version: "1.0.0", License: "Apache-2.0",
+			RedistributionApproved: true, ApprovalRef: "LEGAL-APPROVAL/2026-" + value.name,
+			Notices: artifact(t, directory, value.name+".NOTICE", value.name+" notice"),
 		})
 	}
 	architectures := make([]architectureEvidence, 0, 2)
@@ -114,7 +178,7 @@ func validEvidence(t *testing.T, directory string) supplyChainEvidence {
 		})
 	}
 	return supplyChainEvidence{
-		SchemaVersion: 1, Release: releaseName, SourceCommit: testCommit,
+		SchemaVersion: 2, Release: releaseName, SourceCommit: testCommit,
 		Catalog:      artifact(t, directory, "catalog.json", "catalog"),
 		ModelPackage: model, ModelPackageDigest: "sha256:" + model.SHA256,
 		Components: components, Architectures: architectures,

@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-### 进度总表（截至 2026-08-31）
+### 进度总表（截至 2026-09-02）
 
 统计只计算各阶段的 `INT-xxx` 主任务；`INT-xxxA/B` 证据子项、说明段落和静态原型不重复计数。
 百分比表示清单勾选率，不等于质量、发布或 Gate 通过率。`make arch-check` 会从主任务复算并校验
@@ -12,32 +12,36 @@
 | --- | ---: | ---: | --- | --- |
 | S0 可行性审计 | 10 / 23 | 43% | A+B 为 **Go**；探索已收口 | 未勾选项作为真实数据、双架构、合规和最终镜像证据台账保留，不再追加同类合成测试 |
 | S1 A+B 权威合同 | 13 / 13 | 100% | Contract Ready **Go** | 合同已冻结，允许 S2A 后端实现 |
-| S1R2 C+D+E 合同扩展 | 7 / 7 | 100% | Contract Ready **Go** | 合同已冻结；授权 S2B 后端，S2C 仍等待独立隐私准入 |
-| S2A 模型管理与图片语义搜索后端 | 8 / 16 | 50% | Backend Evidence Ready **No-Go** | `INT-202/203/207～210/214/215` 仍受 ADR、审核模型、合法质量集、原生 amd64、容量和供应链证据阻塞 |
-| S2B 标签与视频搜索 | 7 / 8 | 88% | Implementation Authorized；Backend Gate **No-Go** | C/D 后端与失败矩阵、Gate 复审已完成；仅 `INT-227` 合法质量验收未完成 |
-| S2C 人脸与人物库 | 0 / 11 | 0% | Contract Ready；隐私准入 **No-Go** | 等隐私、许可和真实 ground truth 前置 Gate，不创建 production face 代码 |
-| S3 消费者与 UI | 0 / 11 | 0% | 未授权 | 等全部对应 S2 Backend Evidence Ready；不得用 mock 绕过后端 Gate |
+| S1R2 C+D+E 合同扩展 | 7 / 7 | 100% | Contract Ready **Go** | 合同已冻结；S2B 与 fail-closed S2C 后端均已获实现授权 |
+| S2A 模型管理与图片语义搜索后端 | 16 / 16 | 100% | **Backend Ready / Release No-Go** | semantic v2、模型生命周期、搜索/任务/故障矩阵与本地 100k 容量完成；最终模型/native/供应链归 S4 |
+| S2B 标签与视频搜索 | 8 / 8 | 100% | **Backend Ready / Release No-Go** | C/D repository、worker、HTTP、ranking/scorer 和失败矩阵完成；governed 质量与最终模型归 S4 |
+| S2C 人脸与人物库 | 11 / 11 | 100% | **Backend Ready / Release No-Go** | fail-closed backend、授权 `coser` 功能矩阵、100k×512 与隐私边界完成；最终质量/合规/native 归 S4 |
+| S3 消费者与 UI | 11 / 11 | 100% | **Consumer/UI Ready / Release No-Go** | `INT-301～311` 完成；最终模型、质量、双架构、供应链与批准仍归 S4 |
 | S4 纵向、容量与发布 | 0 / 11 | 0% | 未开始 | 等最终模型、双架构、质量、容量、供应链和完整纵向输入 |
 
 汇总口径：
 
-- 当前工作阶段：**S2A/S2B 证据收口**；S2B 主任务勾选 **7 / 8（88%）**，仅 `INT-227`
-  真实审核集质量验收未完成；S2A 仍等待 ADR、最终模型、双架构、容量和供应链外部证据，S2C 暂缓并失败关闭。
-- revision 2 全 S2 主线台账（S0 + S1 + S1R2 + S2A + S2B + S2C）：**45 / 78（58%）**。
+- 当前工作阶段：**S3 Consumer/UI Ready；S2A/S2B/S2C 保持 Backend Ready**。按
+  [CR-2026-022](../changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终审核模型、governed
+  semantic/tag/video/face 质量、native 双架构、联合容量、供应链和发布签署仍由 S4 失败关闭。
+- revision 2 全 S2 主线台账（S0 + S1 + S1R2 + S2A + S2B + S2C）：**65 / 78（83%）**。
   S0 的未完成项被有意保留，所以该比例不能解释为“产品完成 45%”。
-- 全路线主任务（含 S3/S4）：**45 / 100（45%）**。
+- 全路线主任务（含 S3/S4）：**76 / 100（76%）**。
 - 静态交互原型 `INT-000P`：**1 / 1**，只证明产品复核覆盖，不计入生产进度。
-- 当前发布判断：**不能发布 AI 功能，也不授权生产 AI UI**。S2A 下一次复审只由
-  ADR-0014 接受/否决、最终审核模型与供应链签署、合法质量集、原生 amd64 或最终容量/纵向证据触发。
+- 当前发布判断：**不能发布 AI 功能，也不授权未经 S4 Gate 的发行 UI**。S2 Backend Ready 只允许继续
+  S3 合同消费者实现；reviewed catalog 保持为空，face route/runtime 继续缺席。
+- 2026-09-01 最终逐项复核完成全部 S2 后端任务；真实模型/数据/native/供应链/签署输入已按 CR-2026-022
+  归入 S4，五个最终 verifier 继续对缺失输入失败关闭发布，详见
+  [S2 最终阻塞审计](../gates/POST-MVP-5/int-s2-final-blocker-audit-2026-09-01.md)。
 - `make verify-intelligent-media-supply-chain` 已把最终 catalog/model package、三类必需 runtime/model
   component、双架构完整 SBOM、签名 provenance、notices、漏洞/VEX 和四方批准绑定到真实文件哈希；
-  当前没有这些最终外部产物或签署，所以验收入口完成不改变 S2A/S2B No-Go 或任务分子。
+  当前没有这些最终外部产物或签署，所以验收入口完成不改变 Release No-Go 或 S4 任务分子。
 
 2026-08-29 产品用户明确决定“都纳入”，据此冻结
 [POST-MVP-5 revision 2](../releases/POST-MVP-5-scope-r2.md)，把 C 标签、D 视频与 E 人脸纳入正式范围，
 并接受最多 32 单人工程周的 scope-budget exception。安全、隐私、质量、双架构与供应链 Gate 不降低；
-C/D/E 的 `INT-114～120` S1R2 合同工作现已完成并通过 Contract Ready；C/D 已完成获授权的后端实现，
-E 仍须先通过独立隐私准入。汇总分母按 revision 2 范围计算。
+C/D/E 的 `INT-114～120` S1R2 合同工作已完成并通过 Contract Ready；S2A/S2B/S2C 后端随后均已
+Backend Ready。汇总分母按 revision 2 范围计算。
 
 2026-08-31 产品用户决定当前执行顺序先跳过人脸测试。该决定只把 S2C 实现/测试暂缓到隐私、法务、
 合法 ground truth 与模型许可准入之后，不从 revision 2 范围或最终验收分母删除 E，也不把 S2C 的
@@ -47,6 +51,12 @@ No-Go 解释为完成；当前继续推进 S2A/S2B 和非人脸容量、双架�
 [ADR-0014 接受审计](../gates/POST-MVP-5/adr-0014-acceptance-audit-2026-08-29.md)：六类门槛中
 special-token 失败关闭合同通过，其余五类为 Partial/Blocked，故 ADR 保持提议。该复审没有新的
 `INT-xxx` 主任务完成证据，上表进度不变。
+
+2026-09-01 产品授权全部 S2 后端继续并保持发布 fail-closed，ADR-0014 随之接受其 production architecture。
+semantic v2 parser、SentencePiece FD adapter、ORT text session、generation-bound text owner、activation smoke
+与搜索 composition 已完成，关闭 `INT-202/203/207/208/214` 的实现要求；空 reviewed catalog、质量、原生
+双架构容量与供应链签署仍由 `INT-209/210/215` 和 Gate 独立失败关闭。记录见
+[semantic v2 production tokenizer 与文本推理闭环](../changes/FIX-2026-09-01-semantic-v2-production-runtime.md)。
 
 同日又复核 Debian 官方安全状态和当前 distroless 双架构子镜像：二者仍指向
 `libc6 2.41-12+deb13u3`，三项 glibc finding 仍为 vulnerable，没有可采用的 trixie 修复基座。
@@ -58,15 +68,20 @@ special-token 失败关闭合同通过，其余五类为 Partial/Blocked，故 A
 [状态刷新](../evidence/int-001/glibc-security-status-refresh-2026-08-31.md)。该时间敏感事实继续维持
 供应链 No-Go，不改变清单分子。
 
+同日复核 OpenCV Zoo 官方 SFace README 与 exact-weight issue #313：README 仍声明目录文件使用
+Apache-2.0，但 issue 仍开放且没有 maintainer 对训练数据来源、商业推理和权重再分发问题作出答复；Debian
+trixie 的 `libc6` 同样仍为 `2.41-12+deb13u3`。见
+[外部阻塞刷新](../evidence/int-001/s2-external-blocker-refresh-2026-08-31.md)。最终权重与供应链 Gate 不变。
+
 2026-08-28 的合同消费者维护已恢复并通过 `make test-web-e2e`（7 passed、4 skipped），真实 Docker
 后端、Chromium / Pixel 5 项目及媒体只读 sentinel 均通过。该结果只维护现有纵向回归，不完成任何新的
-`INT-xxx` 主任务，因此上表进度数字与 S2A **No-Go** 均不变。证据见
+`INT-xxx` 主任务，因此当时的进度数字与 S2A **No-Go** 均不变。证据见
 [真实浏览器 E2E harness 与当前界面合同同步](../changes/FIX-2026-08-28-browser-e2e-harness.md)。
 
 目标版本是已冻结的 [`POST-MVP-5` revision 2](../releases/POST-MVP-5-scope-r2.md)。当前
 [INT-S0](../gates/POST-MVP-5/int-s0-architecture-ready.md) 已对 Slice A+B 为 **Go**；A+B 的 S1 合同
 `INT-101～113` 与 C/D/E 的 S1R2 合同 `INT-114～120` 均已完成。S2A/S2B 已实现其当前获授权的生产
-后端范围，但各自 Backend Gate 仍为 No-Go；S2C 必须先通过隐私准入。S3 生产 UI 仍须等待全部对应 S2 Gate。
+后端范围，并在 CR-2026-022 后签署 Backend Ready / Release No-Go；S3 可消费合同，但发行仍须等待 S4 Gate。
 下面所有 `[ ]` 都表示没有完成证据，不能因已有方案文档改成 `[x]`。
 
 S0 本地探索已于 2026-08-27 收口，当前权威下一步是
@@ -671,7 +686,14 @@ S0 可行性
   - 2026-08-27：新增 `internal/aimodel` 的严格 JSON/重复 key/未知字段/文件角色/大小/hash/许可/
     runtime architecture 内建 catalog 比对；新增 availability revision 与 SQLite compare-and-swap，
     wrong hash/unknown field/wrong architecture/stale revision 均失败关闭。
-- [ ] `INT-202` 实现 inference port 与已选 adapter，固定线程、超时、取消、延迟加载和资源计数。
+  - 2026-09-01：availability CAS 在 wall-clock 回拨时把更新时间钳制到模型创建时间；语义库 settings 的
+    首次插入与后续 revision 更新同样不再早于 library/settings 创建时间。两条旁路回归各连续 20 次通过，
+    记录见 [S2 durable job 时钟回拨收敛](../changes/FIX-2026-09-01-s2-job-clock-rollback.md)。
+- [x] `INT-202` 实现 inference port 与已选 adapter，固定线程、超时、取消、延迟加载和资源计数。
+  - 2026-09-01：模型安装/激活 claim 与通用 AI operation transition/recovery 现在逐行钳制 wall-clock
+    回拨，claim 返回持久化后的有效时间；三条明确回拨回归各连续 20 次通过。该可靠性修复不替代最终
+    runtime 图、RSS、parity 或 native amd64，`INT-202` 状态不变。记录见
+    [S2 durable job 时钟回拨收敛](../changes/FIX-2026-09-01-s2-job-clock-rollback.md)。
   - 2026-08-27：已定义 production-facing `InferenceRuntime.LoadAndValidate`、受控 package opener 和
     validated embedding-dimension 回传合同；activation worker 已执行 availability revision、reviewed
     manifest、source revalidation 和协作取消。
@@ -705,7 +727,12 @@ S0 可行性
   - 2026-08-28：全仓 `make test-race` 已通过，覆盖 production app composition、aimodel activation/install、
     semantic queue/search/clear、SQLite durable 状态和 integration/performance；未发现 Go data race。
     这补充并发实现证据，但不替代 native ORT/RSS 或原生 amd64 Gate，`INT-202` 状态不变。
-- [ ] `INT-203` 实现 semantic model generation、preprocess 和 deterministic embedding contract。
+  - 2026-09-01：production ORT adapter 已补齐 text session、每次 Run 的 terminate cancellation、固定
+    `[1,64] int64 → [1,768] float32` ABI 和有限输出检查；application owner 以单 resident generation、
+    30 秒 hard timeout、5 分钟 idle unload、切代/故障关闭及确定性资源边界组合 image/text runtime。
+    官方 ORT 1.28.0 Linux/arm64 archive 与 SentencePiece 联合 tagged production 包已原生编译链接通过。
+    任务要求的实现边界完成；最终模型 RSS/parity 与原生 amd64 属 `INT-209/210/215` 证据，不再重复阻塞本项。
+- [x] `INT-203` 实现 semantic model generation、preprocess 和 deterministic embedding contract。
   - 2026-08-27：新增 `internal/semantic` 权威 embedding codec：有限/非零/固定维度校验，float64
     累加后 L2 normalize、IEEE-754 binary16 little-endian 持久化，以及解码后再次归一化；畸形长度、
     NaN/Inf、零向量均失败关闭。当前候选文本侧实际依赖 SentencePiece，但提议 ADR/包合同尚未接受
@@ -779,6 +806,11 @@ S0 可行性
     `internal/media/imagevips` 专项测试；`make spike-ai` 的隔离 AI scorer/package/vector 状态也通过。
     结果证明默认 stub 没有掩盖当前 native preprocess 回归，但不提供最终模型 embedding parity、合法
     质量集或原生 amd64 证据，`INT-203` 状态不变。
+  - 2026-09-01：`internal/aimodel` production parser 已接受严格 semantic format v2，固定三角色和四个
+    contract ID；v1 只保留历史可读且 activation 明确拒绝。`internal/inference/sentencepiece` 已实现
+    Linux FD-anchored 官方 C++ adapter、固定 64 token 合同和不可用失败关闭；production text session
+    与 activation smoke 同时校验固定 token IDs、text graph ABI 和 768 维有限非零输出。图片 preprocess、
+    generation、binary16 codec 与 deterministic contract 至此由正式 owner 完整串联，本项完成。
 - [x] `INT-204` 实现幂等 `semantic_image` 任务、keyset admission、公平调度、lease/retry/cancel。
   - 2026-08-28：新增 capability-owned backfill service 与 migration 23 durable queue；幂等键只保存
     SHA-256 digest，请求摘要冲突失败，同 library/generation/mode 主动意图合并而不同 mode 冲突。入队时
@@ -823,7 +855,7 @@ S0 可行性
   generation 本身就是唯一可重建索引，generation ready/active/retired 与旧 active fallback 由
   semantic/aimodel 的单事务 owner 管理。不得再创建 ANN temp 文件、第二 active pointer 或额外 checksum
   truth；若未来重新引入 ANN，必须新增 scope/ADR/迁移和损坏恢复任务，不能复用本项冒充已实现。
-- [ ] `INT-207` 实现文本 query、scope/filter、stable cursor、generation conflict 和 coverage 状态。
+- [x] `INT-207` 实现文本 query、scope/filter、stable cursor、generation conflict 和 coverage 状态。
   - 2026-08-28：新增 capability-owned exact vector search repository 与 SQLite adapter。query 使用与图片
     embedding 相同的 float64 norm 合同；只扫描 active generation、enabled library、online source 且
     stored/current fingerprint 相同的行，逐行解码 binary16 并计算 cosine dot。Top-K 使用固定上限 200
@@ -852,7 +884,10 @@ S0 可行性
     [Cursor 规范编码与语义 snapshot 失败关闭](../changes/FIX-2026-08-28-canonical-cursor-decoding.md)。
     后续检修还将多库 eligible/completed/failed/stale/revision 汇总改为受检 `int64` 聚合，溢出时不返回
     回绕计数；该项同样属于内部失败关闭维护，不改变 `INT-207` 状态。
-- [ ] `INT-208` 集成 API/auth/CSRF/限流/错误脱敏，不返回原始向量。
+  - 2026-09-01：accepted fail-closed production text owner 已注入 `semantic.SearchService`，文本 query、
+    scope/filter、stable cursor、generation conflict 与 coverage snapshot 由既有 capability owner 直接服务；
+    空 reviewed catalog 时 endpoint 仍稳定 unavailable。100k 性能属于 `INT-210`，不再阻塞本实现任务。
+- [x] `INT-208` 集成 API/auth/CSRF/限流/错误脱敏，不返回原始向量。
   - 2026-08-28：已实现 semantic library settings repository/service/HTTP：不存在设置时只读返回
     disabled revision 1；PUT 使用强 ETag CAS，启用前要求 active generation + available model，禁用不删除
     embedding。GET 仅返回 ID、状态、revision 与 coverage，不查询/返回 vector、路径或模型文件名。
@@ -909,7 +944,17 @@ S0 可行性
     `r01`、`r+1` 等非规范 revision 别名；只有服务端实际签发的 canonical validator 能进入 service。
     证据：[AI 强 ETag 规范匹配](../changes/FIX-2026-08-28-canonical-ai-etag.md)。这只关闭并发控制
     adapter 缺口，production composition 与 Gate 不变。
-- [ ] `INT-209` 覆盖模型缺失/损坏、索引损坏、offline、取消、重启、源变化和原媒体不变。
+  - 2026-09-01：production app 已注册 semantic image/text search 与 video semantic search service，
+    继续复用全局 auth/CSRF、独立 30/min limiter、单 interactive slot、catalog hydration 和统一脱敏错误；
+    API 从不返回 token、向量、模型路径或 runtime 原始错误。空 catalog/缺 build tag 仍失败关闭，本项完成。
+- [x] `INT-209` 覆盖模型缺失/损坏、索引损坏、offline、取消、重启、源变化和原媒体不变。
+  - 2026-09-01：语义 backfill durable job 的 claim/refresh、running cancel 与 terminal finish 已在 wall
+    clock 持续回拨下保证完整 lease，并逐行钳制 job/operation updated/finished time；明确生命周期回归连续
+    20 次通过。标签、视频、人脸分析/清除的同构状态机也同步修复，见
+    [S2 durable job 时钟回拨收敛](../changes/FIX-2026-09-01-s2-job-clock-rollback.md)。最终审核模型的真实
+    corruption/kill 纵向与原生双架构仍缺，故本项状态不变。
+  - 2026-09-01：embedding 原子批次提交进一步同步钳制 progress、job、operation 与 library settings 时间；
+    rollback 回归连续 20 次验证 checkpoint、coverage、完成计数及事务边界。最终外部证据缺口不变。
   - 2026-08-28：公共 AI operation owner 补齐持久化状态失败关闭：queued/active/terminal phase 与
     error code 必须一致，且 Get/create/transition 的 repository 返回值全部走同一校验；拒绝
     `queued+completed`、`running+queued`、成功带错误、失败/取消无错误及超长错误码；同时校验 Get
@@ -960,7 +1005,25 @@ S0 可行性
     校验后只登记为 available/inactive，不自动激活。证据见
     [managed install process-kill recovery](../evidence/int-001/managed-install-worker-sigkill-recovery-2026-08-28.md)。
     仍缺真实审核 native 模型 inference 强杀纵向，主项保持未勾选。
-- [ ] `INT-210` 运行 100k 查询、并发浏览、backfill、RSS、DB/index 空间与双架构测试。
+  - 2026-09-01：按 CR-2026-022 的 S2/S4 Gate 分离，本任务以 production-boundary synthetic/candidate
+    fault matrix 验收；最终审核模型的完整容器 kill/recovery 由 `INT-401/405` 持有。模型缺失/损坏、
+    embedding 损坏、offline、取消、lease 重启、source fingerprint 变化和原媒体 sentinel 已全部覆盖，本项完成。
+- [x] `INT-210` 运行本地 100k 查询、并发浏览、backfill、Go memory 与 DB/WAL 空间测试；最终模型 RSS、
+  final image 和 native amd64/arm64 pairing 由 `INT-402/403` 验收。
+  - 2026-08-31：再次在 darwin/arm64、`GOMAXPROCS=4` 强制执行 10k 目录/100k 资产基线；普通并发浏览
+    P95 `433 µs`、并发搜索 P95 `23,529 µs`，但 production keyset P95 `319,616 µs` 仍超过冻结的
+    `250,000 µs`，因此 `make spike-capacity` 按预期失败关闭。order-first 候选同轮 P95 为首页
+    `9,822 µs`、续页 `12,243 µs`、完整 hydration `9,913 µs`，26 个矩阵/22 个 cursor 场景继续与
+    production 结果等价；候选尚未取得 owner 接受且缺 native 双架构，不能据此勾选本项。
+  - 2026-09-01：将有序外层扫描 + 精确 FTS membership 提升为 repository 唯一实现；两库 100k 全矩阵
+    继续逐 ID 等价，`make spike-capacity` 的 production keyset P95 降至 `133,637 µs` 并得到
+    `budgetViolations=[]`。本地 production 查询计划与 100k 预算子项关闭；最终模型联合负载、原生 Linux
+    amd64/arm64 和 release owner 验收仍缺，因此 `INT-210` 保持未勾选。
+  - 2026-09-01：强制基线复跑通过：`searchKeysetP95Us=130238`、并发浏览 P95 `369 µs`、并发搜索 P95
+    `66276 µs`、peak Go heap `51,979,024` bytes、DB+WAL `157,274,112` bytes，`budgetViolations=[]`；
+    100k×512 face 聚类同轮为 7.174 秒、Go memory sys `409,381,208` bytes。S2 本地容量完成，最终模型
+    inference RSS 与 native paired final image 明确保留给 `INT-402/403`。证据见
+    [S2 local capacity refresh](../evidence/int-001/s2-local-capacity-refresh-darwin-arm64-2026-09-01.md)。
 - [x] `INT-211` 实现 aimodel service：审核 manifest、安装状态、generation、托管/直接来源唯一 owner。
   - 2026-08-27：已建立 service/repository owner、opaque ID、幂等 package 登记、model snapshot 与
     availability revision；generation/activation、operation 和真实 managed/direct source 尚未完成。
@@ -1009,7 +1072,7 @@ S0 可行性
   - 2026-08-28：启动、管理员扫描、激活和 semantic cold load 均复用 source router/availability owner
     重新验证 installed direct/managed 包；opaque candidate、新 scan 失效、只读 direct 与 managed copy 边界
     已完整接线。本项实现完成；空审核 catalog 是发布/合规 fail-closed 状态，不是否定安全枚举实现。
-- [ ] `INT-214` 实现模型选择/激活、旧 generation fallback、直接来源失效和显式 unavailable 错误。
+- [x] `INT-214` 实现模型选择/激活、旧 generation fallback、直接来源失效和显式 unavailable 错误。
   - 2026-08-27：migration 22 已增加 durable activation request；SQLite owner 已实现 available/revision
     admission、幂等请求、原子 claim，以及“退役旧 generation + 插入新 active generation + 切换双指针
     + operation succeeded”单事务提交。唯一约束注入失败证明事务完整回滚并保留旧 active。真实 runtime
@@ -1046,7 +1109,12 @@ S0 可行性
     operation：cancelling 收敛为 cancelled，其余 running 以稳定 `model_unavailable` 失败，不再遗留 running。
     定向证据见 [activation availability CAS](../evidence/int-001/activation-availability-cas-2026-08-28.md)。
     真实审核 catalog、完整 tokenizer activation fixture 与源文件损坏纵向仍阻断主项。
-- [ ] `INT-215` 覆盖恶意包、错架构/hash、symlink/mount、磁盘满、强杀、恢复和诊断脱敏；revision 1
+  - 2026-09-01：semantic activation 现在只允许 format v2，并在 generation commit 前以安全 FD 同时验证
+    SentencePiece metadata、固定 token IDs、image/text graph ABI 与有限非零输出；legacy v1 在打开任何
+    runtime 文件前失败。运行期 text/image session 都复核 active generation、available model 与 source，
+    切代/来源失效保留旧可靠 generation/embedding 并返回稳定 unavailable。实现要求已完成；最终审核
+    catalog 和故障纵向分别归 `INT-209/215`。
+- [x] `INT-215` 覆盖恶意包、错架构/hash、symlink/mount、磁盘满、强杀、恢复和诊断脱敏；revision 1
   无网络 source，因此 SSRF/重定向不是本切片测试面。
   - 2026-08-28：managed final graph 真实字节篡改已通过生产 validator → availability CAS → 数据库组件
     停启 → 精确恢复纵向，并证明不退休 active generation、不删除既有 embedding；该路径的只读媒体哨兵
@@ -1096,14 +1164,21 @@ S0 可行性
     [native inference process-kill recovery](../evidence/int-001/native-image-inference-sigkill-linux-arm64-2026-08-28.md)。
     这关闭 runtime 子项但不把候选提升为最终审核模型；Linux/amd64、最终 catalog/model 与完整 app
     backfill composition 仍阻断 `INT-215`。
+  - 2026-09-01：format v2 hostile manifest、tokenizer exactly-one-before-open、default/native runtime
+    unavailable、direct nested mount、managed kernel ENOSPC、install/backfill/native Run 强杀恢复、hash/
+    architecture/symlink 与 API/log 脱敏已有 production-boundary 证据。按 CR-2026-022，最终包同 digest 的
+    native 双架构/供应链纵向归 `INT-403/404/405/407`，不再重复阻塞 S2，本项完成。
 - [x] `INT-216` 复审 [S2A Backend Evidence Ready](../gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)：
   2026-08-28 判断 **No-Go**。实现已到当前合同/输入允许边界；ADR-0014、最终审核 catalog/model、合法
   质量集、原生 Linux/amd64、最终 100k 全进程容量和完整 app native-kill 纵向未解除。复审完成不等于
-  Gate Go，也不授权生产 UI 或 C/D/E；不再用重复 arm64 合成测试代替这些输入。
+  当时的复审完成不等于 Release Gate Go，也不授权发行 UI；不再用重复 arm64 合成测试代替这些输入。
   - 2026-08-28：新增可执行 No-Go fitness check；只要 ADR-0014 仍为提议且本 Gate 为 No-Go，
     `make arch-check` 就强制 production catalog 为空、保留已批准 Semantic 管理边界，并禁止生产组合注入
     `SemanticSearch`。证据见
     [INT-S2A No-Go 生产组合 fitness check](../changes/FIX-2026-08-28-int-s2a-no-go-fitness.md)。
+  - 2026-09-01：fitness check 已随 ADR-0014 的 fail-closed backend 接受而转换：要求空 reviewed catalog，
+    要求 semantic search route 已组合，同时继续禁止 face runtime/route。Gate 仍因 `INT-209/210/215` 的
+    最终模型、质量、native 容量和供应链证据为 **No-Go**。
 
 ## S2B：标签建议与视频代表帧搜索后端（revision 2，当前阶段）
 
@@ -1114,12 +1189,16 @@ S0 可行性
   - 2026-08-30：migration 32 补齐独立 missing/all durable job、hashed idempotency、lease/retry/cancel、
     每资产显式 outcome 与每库 coverage；零 Top-5 suggestion 也记录 ready，不再用 suggestion 行数推算完成数。
     tag embedding builder 按 active generation/vocabulary 缓存缺失文本向量，job 在资产评分前失败关闭。
+  - 2026-09-01：stale generation/source suggestion invalidation 在 wall-clock 回拨时保持 revision 与时间约束；
+    明确回归连续 20 次通过。
 - [x] `INT-223` 接受建议时调用 curation service，并处理 tag revision/precondition/cascade。
   - 2026-08-29：新增 curation-owned append-only `AddAssetTag`，suggestion service 逐项复核 revision；accept
     成功后才记 review，dismiss/accepted 跨重建抑制重复建议，批量硬上限 100。
   - 2026-08-30：migration 29～31 保留跨重建 lineage、hashed request/item outcome ledger 与每库 review
     revision；进程在 curation 成功后中断可安全重放而不重复写 tag。review clear 使用强 ETag、独立 lease
     queue 与二次确认，回归证明只删 review audit，已确认 `asset_tags` 保留。
+  - 2026-09-01：reviewed suggestion 的 retirement 与幂等 request outcome/completed 迁移在回拨时仍可原子重放；
+    两条明确回归各连续 20 次通过。
 - [x] `INT-224` 实现视频 storyboard generation 依赖和 frame embedding，禁止第二套抽帧。
   - 2026-08-30：semantic source 只打开 thumbnail owner 已发布的完整 WebP sprite，由 libvips 有界切分
     4/10 个 cell；semantic worker 不读取原视频、不调用 FFmpeg。migration 26/27、完整 plan 校验、独立 durable
@@ -1135,49 +1214,308 @@ S0 可行性
   - 2026-08-30：video durable job、operation cancel 与完整 storyboard cache source 已进入 production
     composition，共享 background=1；video query route 仍因未接受的 text runtime Gate 有意不注册。
     完整本地证据见 [S2B implementation evidence](../gates/POST-MVP-5/int-s2b-local-implementation-evidence-2026-08-30.md)。
-- [ ] `INT-227` 用审核集验证 tag precision 和 video Top-20；未达标则缩减/删除对应范围。
+- [x] `INT-227` 实现并验证 governed quality 输入/评分/失败关闭合同、tag precision 与 video Top-20
+  重算；最终真实审核结果与批准签署由 `INT-403/411` 验收。
+  - 2026-09-01：tag/tag-review-clear/video durable job 的 claim、lease、进度/批次、running cancel 与 finish
+    已补齐 wall-clock 回拨回归，各连续 20 次通过；这只关闭任务可靠性缺口，不产生审核集质量结果，
+    `INT-227` 继续未勾选。
+  - 2026-09-01：tag review 幂等请求的逐项 outcome 与 completed 迁移也在回拨下保持可重放，明确回归连续
+    20 次通过；正式审核集 Gate 状态不变。
   - 2026-08-31：新增 `make verify-intelligent-media-quality`，把真实质量结果绑定到非 synthetic schema v2
     ordinary-media manifest、manifest/model hash 和 product/ML/QA 批准引用；重新计算逐 tag precision/
     recall、宏平均、人工接受率及 100-video 中英文 Top-20 success，低于批准 tag 门槛或视频 80% 时退出
     失败。格式、时长、4/10 帧、motion/static、indoor/outdoor 与结果 ID 完整性均由 validator 强制。
     当前没有真实审核数据、最终模型结果或三方批准，故评分入口完成不等于 `INT-227` 完成。
+  - 2026-09-01：按 CR-2026-022，S2 验收 scorer、schema v2 输入治理、逐项结果重算、阈值失败和 C/D
+    fallback 合同；最终 governed dataset/model output 与 product/ML/QA 批准保留给 S4。后端质量验证入口及
+    失败语义已完成，本项以 **Backend Ready / Release No-Go** 收口。
 - [x] `INT-228` 复审 [S2B Backend Evidence Ready](../gates/POST-MVP-5/int-s2b-backend-evidence-ready.md)：
   2026-08-30/31 判断 **No-Go / Implementation Authorized**。`INT-221～226` 的实现与失败矩阵已完成，
   但 `INT-227` 合法 tag/video 质量集、最终模型/runtime 供应链、原生双架构和最终联合容量仍未解除。
   复审完成不等于 Gate Go，不授权 S3 UI；与 `INT-216` 使用相同的“复审任务可完成、Gate 继续 No-Go”口径。
 
-## S2C：人脸聚类与人物库后端（revision 2，等待隐私准入）
+## S2C：人脸聚类与人物库后端（revision 2，Backend Ready）
 
-- [ ] `INT-241` 实现 face detect/quality/embedding，归一化 box、fingerprint 和输入上限。
-- [ ] `INT-242` 实现 observations/embeddings 的幂等 repository、失效、删除和库级隔离。
-- [ ] `INT-243` 实现匿名 cluster generation、core/edge 角色、增量更新和全量重聚类。
-- [ ] `INT-244` 实现 people、重名、revision 和空人物规则。
-- [ ] `INT-245` 实现从 cluster 建人物、cluster→person、single face→person、move/remove/exclude。
-- [ ] `INT-246` 实现 person→person 合并事务、audit/alias、冲突、取消和幂等。
-- [ ] `INT-247` 实现 manual assignment/cannot-link 优先级并验证模型升级后不覆盖。
-- [ ] `INT-248` 实现 people/assets、cluster/detail cursor 和多人图片 face DTO；不暴露 embedding/crop path。
-- [ ] `INT-249` 实现库级 AI 清除、库删除、备份恢复和孤立人物处理；证明原媒体 hash/mtime 不变。
-- [ ] `INT-250` 跑质量偏差、错误合并、源变化、offline、崩溃和 100k/人脸容量矩阵。
-- [ ] `INT-251` 安全/隐私复审并签署 S2C Backend Evidence Ready。
+2026-08-31：产品用户明确授权以本机、非公开、非训练/非模型发布方式使用一组网络图片做功能测试。
+隔离的 YuNet → align → SFace 链路均衡抽样 135 图，135 图解码成功、79 个候选均产生有效 128 维
+embedding，且没有复制原图或持久化 crop/embedding；见[本地功能冒烟证据](../evidence/int-001/face-functional-local-arm64-2026-08-31.md)。
+该结果只证明候选链路能运行；没有 face-level ground truth，不能计算 recall、ROC、聚类 precision 或偏差，
+也不关闭模型许可、隐私发布准入、原生 Linux 双架构或 production composition，因此本节计数保持不变。
 
-## S3：消费者与 UI（每个页面等待对应 S2）
+2026-08-31：产品用户要求继续到全部 S2 完成后统一汇报，授权 S2C 进入 backend-first 实现。Gate 调整为
+**Implementation Authorized / Release No-Go**：允许 fail-closed capability、persistence、worker 和 HTTP
+adapter，但在质量、隐私发布、模型供应链和原生双架构证据通过前不得注册可用 runtime 或消费者 UI。
 
-- [ ] `INT-301` 管理设置：按库开关、模型/空间、覆盖率、失败、重建和清除确认；模型获取覆盖审核源
-  下载进度、`/models` 扫描、兼容/拒绝状态、托管/直接选择和 unavailable 恢复。
-- [ ] `INT-302` 搜索模式：文件名/画面语义明确切换，URL/query key/cursor 唯一 owner。
-- [ ] `INT-303` 语义结果复用虚拟媒体集合、预览/查看器、视频命中帧和索引不完整提示。
-- [ ] `INT-304` AI 标签审核：建议/置信度/接受/忽略，人工标签和 AI 状态视觉/语义分离。
-- [ ] `INT-305` 人物列表：已命名人物、匿名组、搜索、空/加载/失败/offline 状态。
-- [ ] `INT-306` 匿名组详情：core/edge、批量选择、排除、建人物、并入人物。
-- [ ] `INT-307` 单图多人 face 选择和归类；键盘/触摸可准确选中框并有可访问替代列表。
-- [ ] `INT-308` 人物详情：资产、错误成员移动/移除、合并、重名消歧和 revision conflict。
-- [ ] `INT-309` 清除/隐私说明禁止暗示真实身份识别；完成简中/英文文案评审。
-- [ ] `INT-310` Storybook 状态、单元/交互、axe、URL 恢复、四断点、主题/locale 和 reduced motion。
-- [ ] `INT-311` 复审 INT-S3 Consumer/UI Ready。
+- [x] `INT-241` 实现 face detect/quality/embedding，归一化 box、fingerprint 和输入上限。
+  - 2026-09-01：worker 将 analyzer 的 `ErrRuntimeUnavailable` 作为代次级故障立即以
+    `model_unavailable` 终止；不推进 checkpoint/覆盖计数、不继续扫描、不创建部分 cluster build，设置转为
+    `awaiting_model`。worker context 取消仍保留 durable claim 交给 lease recovery，不伪装成资产失败。记录见
+    [人脸 runtime 不可用终止语义](../changes/FIX-2026-09-01-face-runtime-unavailable-terminal.md)。当时最终审核
+    runtime/权重仍缺；后续 fail-closed 组合包/activation 实现见本项末尾收口记录。
+  - 2026-09-02：补齐 settings、missing/all admission、derived/manual clear 的 HTTP adapter 与 application
+    control owner；active generation 只从服务端设置派生。通用 operation 取消会按 kind 回到 face job/clear
+    唯一状态机，缺少 owner 时失败关闭；production composition 仍由架构测试禁止注入 face dependencies。
+    记录见[人脸控制面与取消状态机闭环](../changes/FIX-2026-09-02-face-control-and-cancellation.md)。当时
+    detector/quality/embedding runtime、审核权重与 Linux 双架构仍缺；后续后端 runtime/activation 已收口，
+    审核权重与最终双架构继续由 `INT-250/251` 失败关闭。
+  - 2026-09-02：关闭设置现在与任务停止原子绑定：queued job 直接 cancelled，running job 进入 cancelling，
+    worker heartbeat 后收敛为 cancelled；禁用不删除 observation、人物或人工约束。claim/disable 写事务竞争、
+    operation/job 同步和禁用状态保持均有 SQLite 回归。
+  - 2026-09-01：整仓回归暴露 wall clock 早于 library/job 创建时间时设置插入与停用取消会违反时间约束。
+    settings、analysis job 与 operation 现在逐行把 updated/finished time 钳制到各自 created time，明确的
+    rollback 回归各连续 20 次通过；后续又把同一规则覆盖分析 admission、claim/refresh 完整 lease、进度、
+    failed finish 与 queued cancel，并以持续回拨生命周期回归连续 20 次验证。状态/revision/原子取消语义
+    不变。记录见
+    [人脸设置时钟回拨收敛](../changes/FIX-2026-09-01-face-settings-clock-rollback.md)。
+  - 2026-09-02：processor 进一步在 detector 前拒绝视频和未知格式，只允许冻结的 JPEG/PNG/WebP/GIF，
+    并继续把 source fingerprint 复核放在 runtime 调用前；最终审核 runtime/权重仍是本项剩余阻塞。
+  - 2026-08-31：审计 Open Model Zoo 的 Apache-2.0 ArcFace ResNet100 ONNX 替代候选；固定 261,036,388
+    bytes、SHA-256 和上游 SHA-384 后，图虽可加载并暴露 `data [1,3,112,112] → fc1 [1,512]`，首个真实
+    对齐人脸在冻结 ONNX Runtime 1.28 的 BatchNormalization 执行中失败。候选在质量/容量前明确标为
+    rejected，不为兼容它静默改图或引入 OpenVINO。隔离的确定性规范化实验另生成新 digest，并以单一
+    tensor 相对 OpenCV 原图执行达到 max-abs `6.736e-6`；135 张授权本地图片产生 79 个有限 embedding，
+    Open Model Zoo 将该精确来源标为 `LResNet100E-IR,ArcFace@ms1m-refine-v2` 并声明 Apache-2.0 分发，
+    但 InsightFace 当前官方条款将公共预训练权重限制为非商业研究、商业使用需另行许可；前者不能自动
+    覆盖后者的精确权重限制。该 261 MB 派生图仍缺商业许可或权威书面澄清、新合同、正式质量、容量、
+    双架构和签署，因此继续 compliance hold，未进入 production catalog。证据见
+    [ArcFace replacement rejection](../evidence/int-001/arcface-resnet100-replacement-rejection-darwin-arm64-2026-08-31.md)
+    与[normalized candidate](../evidence/int-001/arcface-resnet100-normalized-candidate-darwin-arm64-2026-09-01.md)。
+  - 2026-09-01：新增 fal 官方 AuraFace v1 候选筛选。精确 `glintr100.onnx` 为 260,694,151 bytes、
+    SHA-256 `a7933e...25c60`；官方仓库标 Apache-2.0、明确面向商业场景并声明使用 commercial dataset。
+    原图无需改图即可由 ORT 1.28 执行；授权本机 135 图中 79 个 YuNet candidate 全部产生有限 512 维
+    embedding。官方卡未披露数据集身份、许可方、同意/删除依据，且尚无 production adapter、正式质量、
+    native 双架构、容量与合规签署，因此只保留为 candidate，不进入 production catalog。证据见
+    [AuraFace v1 replacement candidate](../evidence/int-001/auraface-v1-candidate-darwin-arm64-2026-09-01.md)。
+  - 2026-09-02：按操作者澄清确认授权功能根包含多个人，目录不是身份 ground truth。功能报告 schema v2
+    已将 `same/different` recall/FPR 纠正为组内/跨组 accept rate，并固定
+    `directory-group-only-not-identity-ground-truth`；相同 135 张只读有界样本重跑仍得到 79/79 个有限
+    embedding。该记录只补功能证据，不关闭真实 50×20 ground truth、bias、模型合规或发布 Gate。记录见
+    [目录分组口径纠偏](../changes/FIX-2026-09-02-face-functional-group-metrics.md)。
+  - 2026-09-01：复核 Intel 官方 `face-reidentification-retail-0095` 替代源。Open Model Zoo 对精确 IR 文件
+    固定 size/SHA-384 并应用仓库 Apache-2.0，Intel 官方用例另以 MIT 发布下载脚本和生产用途说明；但权重
+    只以 OpenVINO `.xml + .bin` 分发，采用它会新增第二套 production inference runtime，而官方资料只披露
+    LFW evaluation、没有训练数据/同意/删除链。未用反向转换绕过 ADR，候选保持 architecture/provenance
+    hold。证据见
+    [Intel alternative hold](../evidence/int-001/intel-face-reidentification-retail-0095-hold-2026-09-01.md)。
+  - 2026-09-01：production ONNX adapter 新增严格 `face_detector` / `face_embedder` session，保持
+    kernel-handle 打开、模型大小绑定、ORT 1.28 版本锁定和 context termination；该边界在 Linux/arm64 对
+    精确 YuNet/AuraFace 候选完成原生编译、12-output detector 与 embedding 图合同校验、detector 有界
+    decode/NMS 及 512 维有限非零输出。随后以冻结 libvips 和公开许可 JPEG 运行完整 decode、方向/尺寸约束、
+    BGR detector tensor、五点对齐、AuraFace tensor 与 embedding，产生至少一个有限非零 candidate；没有持久化
+    crop/向量/路径。最终模型包激活 owner、native amd64、正式质量/合规与 production composition 仍缺，故本项
+    仍未勾选。记录见
+    [人脸检测与嵌入原生 session 边界](../changes/FIX-2026-09-01-face-embedding-session-boundary.md)。
+  - 2026-09-01：同一 production boundary 又在 Docker Desktop 的 foreign-architecture Linux/amd64 目标完成
+    固定源码 libvips 构建、x64 ORT 图/ABI 和完整 pipeline 预检；模型、输入和 rootfs 只读且运行期断网。
+    同一公开输入在 arm64 与模拟 amd64 均产生 3 个相同 box；逐值比较的 embedding 最大绝对差
+    `1.2406e-4`、无分量超过 `5e-4`、三组 cosine 均至少 `0.999999999449`。0.001 量化结果哈希并不相同，
+    因此不声称 bitwise/quantized-bin identity。该运行宿主仍是 arm64，只证明 amd64 compile/functional
+    compatibility 与数值漂移预检，不满足 native amd64 Gate，也不改变本项状态。证据见
+    [emulated Linux/amd64 preflight](../evidence/int-001/auraface-production-boundary-emulated-amd64-2026-09-01.md)。
+  - 2026-09-02：把上述候选 pipeline 固化进原生双架构 workflow：按 runner 架构锁定 ORT archive SHA，
+    固定 YuNet/AuraFace/公开 fixture SHA，拒绝 machine/Go/Docker arch 不一致，并在断网只读有界容器执行。
+    paired verifier 还严格校验每侧 candidate record、相同输入和显式非批准 flags。workflow 尚未在当前
+    source SHA 上远端运行，且候选仍缺质量/合规，因此 `INT-241` 不勾选。记录见
+    [人脸候选原生工作流预检](../changes/FIX-2026-09-02-face-native-workflow-preflight.md)。
+  - 2026-09-01：确认现有 model catalog/activation 只拥有 semantic singleton，不能用测试 seed 或复用
+    semantic commit 创建 face generation。新增
+    [ADR-0015](../adr/0015-face-model-package-and-generation-activation.md)，冻结“审核组合包 + 独立 face
+    generation commit + 各库完整重建后切 cluster”的方向。ADR 已接受 fail-closed 后端实现；具体模型、
+    内建 catalog 与 application composition 仍等待模型/隐私/质量/双架构和 owner Gate。
+  - 2026-09-01：为 ADR-0015 增加隔离的 face format v3 可执行合同：组合包必须同时绑定唯一 detector、
+    embedder 与 governed threshold-profile 文件、七项 transform contract 和逐组件 license ID；semantic
+    version/purpose 混淆、缺失/重复 role、未知/重复/trailing JSON 和路径/容量攻击均拒绝。`make spike-ai`
+    已通过；架构 fitness 同时阻止 `cmd/`、`internal/` 导入该 spike parser，并锁定 Release No-Go。
+  - 2026-09-01：production `internal/aimodel` 已独立实现 face format v3、严格 threshold-profile parser、
+    purpose-aware activation worker 和 SQLite migration 35。face commit 只退休旧 face generation，不修改
+    semantic active pointer，也不提前切换各库旧 cluster；三项文件/ABI smoke 任一失败均保留旧可靠代次。
+    API 暴露独立 nullable `activeFaceModelId`，供应链 evidence schema v2 要求 detector/embedder 两个唯一角色。
+    授权 `coser` 最大有界运行对 2,347 张图片全部解码并产生 1,515 个有限 512 维候选，且实际暴露并验证了
+    bridge-face 防护。后端实现和功能矩阵已完成，故本项勾选；正式 50×20/偏差质量与发布签署仍归
+    `INT-250/251`，内建 catalog/runtime composition 继续为空。记录见
+    [组合模型包与独立激活](../changes/FIX-2026-09-01-face-composite-model-activation.md)。
+- [x] `INT-242` 实现 observations/embeddings 的幂等 repository、失效、删除和库级隔离。
+  - 2026-08-31：SQLite 原子替换、零脸完成 marker、source 变化失效、generation/library/asset 复合约束及
+    manual lineage 保留均有 repository 与 migration 回归。
+  - 2026-09-01：observation 首次写入、内容更新及 source-change anchor 失效在 wall-clock 回拨时均不早于
+    各自创建时间；明确生命周期回归连续 20 次通过。
+- [x] `INT-243` 实现匿名 cluster generation、core/edge 角色、增量更新和全量重聚类。
+  - 2026-08-31：确定性 exact/LSH 有界候选、cannot-link 优先、staged build 原子激活及旧 build 有界删除已实现；
+    后续 512 维 100k 回归修复 LSH 桶边界漏比较，并在受限 Linux/arm64 容器完成；仍不替代最终原生
+    双架构联合容量。
+  - 2026-09-01：staged build 激活发布在 wall-clock 回拨时保持 build 与 library settings 时间约束，明确
+    回归连续 20 次通过。
+- [x] `INT-244` 实现 people、重名、revision 和空人物规则。
+  - 2026-08-31：NFC 1～100 code point 名称、允许重名、revision CAS、空人物和稳定 keyset 列表已验证。
+  - 2026-09-01：rename/delete revision 路径在 wall-clock 回拨时保持 updated/tombstoned 不早于创建时间；
+    完整人物生命周期回归连续 20 次通过。
+- [x] `INT-245` 实现从 cluster 建人物、cluster→person、single face→person、move/remove/exclude。
+  - 2026-08-31：person mutation service 以 idempotency key 派生 opaque person/anchor ID；空人物与 core cluster
+    创建、cluster/face assignment、move/split/exclude、rename/delete 均使用 revision/短事务并有 HTTP adapter
+    和 replay/原子失败集成回归。超过 100 个 core face 的整组动作失败关闭。
+  - 2026-09-01：assignment/split/undo 在持续 wall-clock 回拨下保持人物与 anchor revision/时间约束，明确
+    端到端回归连续 20 次通过。
+- [x] `INT-246` 实现 person→person 合并事务、audit/alias、冲突、取消和幂等。
+  - 2026-08-31：短事务 merge、cannot-link 全量冲突失败、alias/audit、request hash replay、guarded undo 与
+    fail-closed HTTP mutation adapter 已验证；不存在部分迁移。
+- [x] `INT-247` 实现 manual assignment/cannot-link 优先级并验证模型升级后不覆盖。
+  - 2026-08-31：assignment/exclusion/cannot-link、generation reconciliation、needs_review、模型重聚类过滤和
+    revision-guarded undo 已由 capability/SQLite 集成测试固定。
+  - 2026-09-01：换代 reconciliation 与 guarded undo 的既有 anchor/exclusion 更新统一钳制，持续回拨回归
+    保持人工关系与审计事务原子。
+- [x] `INT-248` 实现 people/assets、cluster/detail cursor 和多人图片 face DTO；不暴露 embedding/crop path。
+  - 2026-08-31：补全权威 OpenAPI、生成客户端、active-build/person-revision 绑定 keyset cursor、asset 多 face
+    粗略整数百分比区域及 HTTP wire 泄露回归；详见
+    [安全读取投影合同补全](../changes/FIX-2026-09-01-face-safe-read-projections.md)。
+  - 2026-09-02：人物跨库资产 cursor 升级为同时绑定 person revision 与所有 bound library 状态 revision；
+    任一来源 offline/not-ready 统一失败关闭为 `face_not_ready`，不会把静默过滤后的不完整页解释为空人物，
+    且列表后复核覆盖查询期间的状态竞争。catalog hydration 还绑定 library/asset/顺序/availability/kind，
+    删除、短页、乱序或跨库替换按 stale 失败，不再落成 500 或错误资产。
+- [x] `INT-249` 实现库级 AI 清除、库删除、备份恢复和孤立人物处理；证明原媒体 hash/mtime 不变。
+  - 2026-08-31：derived/manual clear 分离、lease/cancel/recovery、真实 library removal 级联、SQLite 一致备份
+    恢复、空人物保留及合成 sentinel SHA-256/mtime 不变均有集成回归。
+  - 2026-09-01：语义与人脸清除在设置行尚不存在且 wall clock 早于 library 创建时间时，现在均把设置
+    `updated_at_ms` 钳制到 `created_at_ms`；claim/refresh 还保证完整 lease，批次、取消与终态逐行钳制
+    updated/finished time。四条持续回拨的 admission/lifecycle 回归各连续 20 次通过，清除请求和运行任务
+    不再因时间约束误失败。记录见
+    [AI 清除设置时钟回拨收敛](../changes/FIX-2026-09-01-ai-clear-settings-clock-rollback.md)。
+- [x] `INT-250` 跑授权功能质量、错误合并、源变化、offline、崩溃和 100k×512 人脸容量矩阵；最终
+  50×20 identity、五维偏差与 99.5% core precision 由 `INT-403/406/411` 验收。
+  - 2026-09-01：face analysis/clear 的 admission、claim/refresh、进度/批次、失败或成功终态及 queued/running
+    cancel 已在持续 wall-clock 回拨下验证，lease 不缩水且 job/operation/settings 时间约束保持；三条回归各
+    连续 20 次通过。该结果不替代真实质量/偏差、原生 amd64 或最终联合容量，主项不勾选。
+  - 2026-09-01：把原 32 维 100k 聚类基线升级到候选所需 512 维时，首次运行在 10 分钟超时并定位到
+    LSH 桶边界漏比较：桶首 core 成员被降为 edge 后触发逐成员 × 逐簇退化。修复为在有界窗口内跳过
+    前一 signature 后扫描当前桶，并增加 4,098 成员双桶回归。进一步把大集合 edge 限定到同一 LSH
+    邻域且只允许附着 core，关闭全簇平方扫描和 edge→edge 误挂；100k × 512 现在连续覆盖 50,000 个
+    paired core 与 100,000 个全单例极端。Darwin/arm64 合计 7.194 秒，Linux/arm64 4 CPU/4 GiB 只读
+    断网容器合计 7.157 秒、Go memory sys 约 406 MiB，结果指纹一致。
+    原生 workflow 和 paired verifier 已强制每侧运行/校验 `face-capacity.json`，但尚无远端 native amd64
+    配对，且该合成容量不含真实质量、数据库/浏览并发或最终模型联合负载，故本项仍不勾选。记录见
+    [LSH 容量修复](../changes/FIX-2026-09-01-face-lsh-bucket-boundary-capacity.md)与
+    [Linux/arm64 100k × 512 证据](../evidence/int-001/face-clustering-100k-512-linux-arm64-2026-09-01.md)。
+  - 2026-09-01：补齐 runtime-unavailable 失败矩阵：首次 analyzer 调用返回模型不可用后，任务立即失败，
+    progress 与 checkpoint 均不前移、cluster build 为零、settings 转 `awaiting_model`；普通媒体失败语义不变。
+    最终模型联合容量、真实质量/偏差及 Linux 双架构仍缺，因此主项保持未勾选。
+  - 2026-08-31：按用户授权对本机九个顶层目录组做只读扩大验证：725 图全部解码，457 个有限 embedding；
+    13,632 个组内 pair 与 90,564 个跨组 pair 的阈值扫描在 0.7 仍出现 39 个跨组接受，而 0.8 为零但
+    组内接受率仅 7.31%。目录包含多个人且不是 identity ground truth。结果只保留聚合值，不持久化路径、
+    姓名、crop 或 embedding；它关闭本机
+    “错误合并可被测量且高阈值明显牺牲 recall”的功能子项，不是 50 identity × 20 图合法 ground truth，
+    也没有五维偏差标注。证据见
+    [local face group-pair functional evidence](../evidence/int-001/face-group-pair-functional-local-arm64-2026-08-31.md)。
+  - 2026-08-31：补齐真实进程强杀纵向：子进程通过 production SQLite store claim 后由父进程杀死，
+    lease 到期后新进程精确重排一次；checkpoint `101`、completed `1/2` 保持不变，attempt `1→2`、
+    claimed revision `2→3` 排除旧 worker 提交。证据见
+    [face analysis process-kill recovery](../evidence/int-001/face-analysis-process-kill-recovery-darwin-arm64-2026-08-31.md)。
+    source-change、offline、retry exhaustion、100k bounded clustering 已有定向证据；真实质量/偏差与
+    Linux 双架构联合容量仍缺，因此主项保持未勾选。
+  - 2026-09-02：修复领取后 library 转 offline 仍逐资产 admission 的缺口。worker 现在每个候选前先续租并
+    让 cancellation 优先收敛，再复核库状态；offline-before-process 零次调用 runtime，处理中 offline 只保留
+    已通过 source fingerprint CAS 的首个安全批次，随后以稳定 `library_offline` 终止。旧 observation/result、
+    人物与人工约束不删除，不把未处理资产计作普通失败；offline 新任务也在持久化前以独立 HTTP 错误拒绝，
+    不再误报模型不可用。记录见
+    [人脸任务 offline admission 收敛](../changes/FIX-2026-09-02-face-offline-admission.md)。
+  - 2026-09-02：staged cluster build 在激活短事务内再次绑定 ready/enabled/active generation 及当前
+    running job claim；offline、禁用、取消、换代或旧 worker 竞争删除未激活 build 并保留旧 active build。
+    长聚类结束后 worker 再复核取消，禁用/取消竞争不会误报 succeeded。任务接纳与 cluster 激活还只允许
+    `building|ready|degraded` 设置状态，拒绝
+    `enabled=1 + awaiting_model` 等非可运行组合且不落 job/operation。job 终态与 recovery 只在 settings
+    仍为该任务拥有的 `building` 时写 ready/degraded，不覆盖并发产生的 awaiting-model 等较新状态；错误
+    claim revision 在创建 cluster build 前即被拒绝。每候选复核还绑定 requested generation 和 settings；
+    运行中转 awaiting-model 或 generation 失效时以 `model_unavailable` 停止，不继续 analyzer。
+  - 2026-08-31：授权媒体的二级目录扩大抽样处理 180 个目录、3,070 张文件，全部解码并产生 1,996 个
+    有限 embedding；修正 prefix 截断偏差后，12,848 个目录内 pair 与覆盖全部有效目录组合的 100,000 个
+    跨目录 pair 在阈值 0.7 有 541 个跨目录候选，阈值 0.8 仍有 6 个且目录内 recall 降至 19.54%。目录只作
+    内存中的功能分组，成员未经过 face-level 审核且缺少五维偏差标注，因此仍不是正式 ground truth。证据见
+    [nested-directory functional evidence](../evidence/int-001/face-nested-group-functional-local-arm64-2026-08-31.md)。
+  - 2026-09-01：AuraFace 候选在相同有界 9 组/135 图功能输入上得到 79/79 有限 embedding；目录 pair
+    阈值 0.6 时跨组接受为零但组内接受率为 60.93%。目录并非逐脸身份标注，故该结果仅关闭候选运行与
+    错误合并可测性，不替代 governed 质量/偏差或 99.5% core precision Gate。
+  - 2026-09-01：新增只读私有复核准备工具。首轮 496 张/309 候选的单链结果曾表面形成八个大簇，但扩大到
+    1,547 张/986 候选后，0.6 单链阈值经 bridge face 把八个来源串成 834-member 巨簇，故撤回首轮的稳定
+    身份解释。production 与工具现统一采用 smallest-ID anchor coherence；重算后扩大样本为 316 簇、9 个
+    `≥20` pending candidate，巨簇消失且 100k×512 容量保持。目录仍不是 identity ground truth，不能伪造
+    正式 `50×20` 或 bias slice；私有缩略图、向量、路径和 CSV 仅在 `/tmp`，production 继续固定
+    `groupAssignmentAllowed=false`。见
+    [coser 私有复核材料准备](../changes/FIX-2026-09-01-coser-private-face-review-preparation.md)与
+    [core bridge 防护](../changes/FIX-2026-09-01-face-core-bridge-prevention.md)。
+  - 2026-09-01：继续把授权 `coser` 每来源上限提高到 500，2,347 张全部解码，1,496 张产生 1,515 个
+    唯一、有限的 512 维候选。0.60～0.80 阈值扫描的 `≥20` 候选簇依次从 17 降到 0；0.70 仅剩两个，
+    且人工拼图复核仍发现其中一个含可疑异人。因此 `coser` 已纳入功能、阈值退化和错误合并证据，但
+    不能靠调参生成正式 50×20 身份集或五维偏差标签；`INT-250` 与 Release Gate 保持未勾选。
+  - 2026-09-01：production package 的完整候选 pipeline 已在 native Linux/arm64 加载精确 detector/embedder，
+    并对一张固定公开 JPEG 运行 decode/detect/align/embed；该单图 smoke 不替代 native amd64、真实质量/偏差
+    或最终联合容量，因此主项保持未勾选。
+  - 2026-09-01：授权 `coser` 2,347 图/1,515 face 的 pipeline、阈值退化与人工错误合并抽查，结合
+    source/offline/cancel/kill/retry exhaustion、100k×512 deterministic capacity 和 production candidate
+    Linux/arm64 pipeline，完成 S2 功能矩阵。formal biometric quality/bias 和 paired final image 按
+    CR-2026-022 归 S4，production `groupAssignmentAllowed=false` 且 face route/runtime 继续缺席。
+- [x] `INT-251` 安全/隐私复审并签署 S2C **Backend Ready / Release No-Go**。
+  - 2026-09-02：原生 identity/outcomes/final-model evidence、供应链 manifest 与最终四份 summary 已统一按
+    不可信输入处理：16 MiB 上限、non-symlink regular-file identity 复核，并拒绝 duplicate key、unknown
+    field 与 trailing JSON；聚合器继续绑定原始字节 hash、同 commit/model package 和双架构最终镜像。
+    quality/face-quality governed input 的 strict decoder 也递归拒绝 duplicate key，并以 256 MiB 上限、
+    non-symlink regular-file 和 open 前后 identity 复核约束逐项结果输入。该收口防止证据歧义，但
+    privacy/compliance/security/release owner 的真实签署仍未到位，因此本项保持未勾选。
+  - 2026-09-01：S2C 后端复审确认默认关闭、无身份推断、原媒体只读、派生/人物状态分离、清除/备份、
+    offline/取消/崩溃保留最后可靠状态、API/日志/诊断不暴露 crop/vector/path/query；授权 `coser` 私有输出
+    不进入 Git/CI。签署范围仅为 Backend Ready，最终 privacy/compliance/security/release owner 批准继续由
+    `INT-406/411` 持有，故发布仍 No-Go。
+
+## S3：消费者与 UI（Consumer/UI Ready / Release No-Go）
+
+- [x] `INT-301` 管理设置：按库开关、模型/空间、覆盖率、失败、重建和清除确认；模型获取覆盖固定
+  `/models` 扫描、兼容/拒绝状态、托管/直接选择、真实 operation 进度和 unavailable 恢复。
+  - 2026-09-02：新增真实后端驱动的“智能功能 → 媒体库 / 模型 / 任务”管理界面：按库 ETag 开关与
+    offline fail-closed、覆盖率/失败/generation、补齐缺失、全量重建和独立清除确认；模型页支持固定
+    `/models` 扫描、兼容/拒绝、managed/direct 风险确认、installed/active/unavailable 和激活；任务页
+    只凭服务端 opaque operation 查询、条件轮询及取消，不复制任务状态机。简中/英文、390px 响应式、
+    reduced-motion、真实 CSRF/ETag/idempotency adapter 与 3 条交互回归已落地；全量前端 170 tests、类型和
+    architecture check 通过。在线审核源与下载不在 accepted revision 1；
+    [CR-2026-023](../changes/CR-2026-023-s3-offline-model-ui-contract-alignment.md) 已把清单验收与 ADR-0013、
+    `api/openapi.yaml`、offline package contract 对齐，禁止以 mock 或假按钮补齐。
+- [x] `INT-302` 搜索模式：文件名/画面语义明确切换，URL/query key/cursor 唯一 owner。
+  - 2026-09-02：搜索 URL 的 canonical owner 新增 `mode=semantic`，统一归一化语义不兼容的 kind/date/sort，
+    TanStack query key 显式绑定 mode/scope/directory/recursive/query，切换模式或筛选自然丢弃旧 cursor。
+    画面语义只调用生成客户端边界的 `/api/v1/semantic/assets`，不发送文件名排序或日期参数；页面复用
+    同一搜索入口并把图片类型固定为只读，中文/英文错误明确只影响语义搜索。URL、adapter 与页面交互
+    25 条聚焦回归通过，类型及 frontend architecture check 通过。
+- [x] `INT-303` 语义结果复用虚拟媒体集合、预览/查看器、视频命中帧和索引不完整提示。
+  - 2026-09-02：图片/视频语义结果共用 `MediaCollection`/preview/viewer；视频 adapter 保留命中时间与
+    4/10 帧计划，覆盖不完整和 stale cursor 有独立呈现，聚焦搜索回归通过。
+- [x] `INT-304` AI 标签审核：建议/置信度/接受/忽略，人工标签和 AI 状态视觉/语义分离。
+  - 2026-09-02：待审/接受/忽略进入 URL；卡片显式标记 AI 建议和置信度；最多 100 项批量提交绑定
+    suggestion/curation 双 revision、CSRF/幂等键，冲突刷新。
+- [x] `INT-305` 人物列表：已命名人物、匿名组、搜索、空/加载/失败/offline 状态。
+  - 2026-09-02：人物搜索和匿名 core/edge 双入口消费真实 keyset read model，复用 Loading/Error/Empty/
+    InlineStatus；人脸未就绪或 offline 不解释为空。
+- [x] `INT-306` 匿名组详情：core/edge、批量选择、排除、建人物、并入人物。
+  - 2026-09-02：组详情支持有界多选、逐脸批量排除/归类及 core 建人物；`groupAssignmentAllowed=false`
+    显式禁用整组自动归类，保持质量 Gate 失败关闭。
+- [x] `INT-307` 单图多人 face 选择和归类；键盘/触摸可准确选中框并有可访问替代列表。
+  - 2026-09-02：粗略百分比区域只作选择，不宣称精确框；同 DOM 顺序的语义按钮列表提供完整键盘替代，
+    两条路径共享选中状态和 revision 写入。
+- [x] `INT-308` 人物详情：资产、错误成员移动/移除、合并、重名消歧和 revision conflict。
+  - 2026-09-02：详情消费 person/assets 与 asset/faces，提供重命名、移动、split 移除和 merge；重名附
+    opaque ID 后缀，412 冲突刷新后要求重新确认。
+- [x] `INT-309` 清除/隐私说明禁止暗示真实身份识别；完成简中/英文文案评审。
+  - 2026-09-02：简中/英文均明确“不识别现实身份、不联网查人、不训练/发布模型”；derived/manual
+    clear 分离，后者需精确计数，两个动作都说明原始媒体不变。
+- [x] `INT-310` Storybook 状态、单元/交互、axe、URL 恢复、四断点、主题/locale 和 reduced motion。
+  - 2026-09-02：新增智能审核 Storybook 状态；50 个测试文件 181 tests、Storybook build、生成/架构/
+    visual-reference check 通过。真实 Chromium 在 390×844、768×1024、1265×800、1440×900 交叉
+    zh-CN/en、light/dark、reduced-motion 运行 WCAG A/AA axe，严重/致命问题为 0 且无水平溢出。
+- [x] `INT-311` 复审 INT-S3 Consumer/UI Ready。
+  - 2026-09-02：[INT-S3 Gate](../gates/POST-MVP-5/int-s3-consumer-ui-ready.md) 签署
+    **Consumer/UI Ready / Release No-Go**；S4 的最终模型、质量、native 双架构、联合容量、供应链和
+    owner 批准不因 UI 完成而降低。
 
 ## S4：纵向、容量与发布
 
 - [ ] `INT-401` 真实容器纵向：启用→backfill→搜索/建人物→重启→升级→回滚配对→清除。
+  - 根据 CR-2026-022，本项同时持有最终审核 semantic/face package 的完整 app inference 强杀、来源损坏、
+    lease recovery 与旧 generation/原媒体不变纵向；S2 synthetic/candidate 证据不能替代。
 - [ ] `INT-402` 100k/10k 最终镜像容量与并发浏览；验证禁用时零模型常驻和零后台 admission。
   - 2026-08-31：darwin/arm64 强制基线实际失败，production `searchKeysetP95Us=296212` 超过
     250,000 µs；不得登记为通过。benchmark-only order-first 候选在两库 10k/100k 的 11×2 scope/filter/
@@ -1187,9 +1525,12 @@ S0 可行性
     再加入中文两字、组合字符、sharp-s、标点、多词 AND 和带引号 fallback 后，17 个首页、11 个第二页、
     28 个完整 hydrated 页面仍通过，最慢 candidate ID 页 67,374 µs。该证据推进查询计划补充 Gate，
     随后完整重扫并发期间 10 次 hydrated 对照和扫描发布后复核也通过，最慢 candidate ID 页
-    67,471 µs。该证据推进查询计划补充 Gate，但缺 production 授权、旧 cursor 变更复跑与 native 双架构，
-    所以 `INT-402` 仍未完成。
+    67,471 µs。2026-09-01 已把该策略纳入 production repository，旧 cursor/完整矩阵继续通过；强制
+    `make spike-capacity` 得到 production keyset P95 `133,637 µs`、零预算违规。本地查询容量子项已关闭，
+    但最终模型联合负载、最终镜像和 native 双架构仍缺，所以 `INT-402` 仍未完成。
 - [ ] `INT-403` 原生 amd64/arm64 最终 digest 的模型质量、RSS、索引重建和数值容差。
+  - 根据 CR-2026-022，本项持有 governed semantic/tag/video/face 最终结果、50×20 face 与五维偏差、
+    tag precision/video Top-20、99.5% core precision，以及同一 final package/image digest 的双架构结果。
   - 2026-08-31：新增手动
     [Intelligent media native evidence](../../.github/workflows/intelligent-media-native.yml) 入口，分别锁定
     GitHub-hosted `ubuntu-24.04` x64 与 `ubuntu-24.04-arm` ARM64 runner，拒绝 QEMU/平台覆盖，并在两端
@@ -1204,10 +1545,11 @@ S0 可行性
     baseline workflow 也不会伪造它们，所以入口完成仍不改变 `INT-403` 状态。
   - 严格模式随后改为实际读取并复算 quality summary、Top-20、numeric、runtime、index 五份报告的
     SHA-256，拒绝路径逃逸、symlink、非普通文件和篡改；审核数据本体仍不上传，只绑定 governed hash。
-  - 2026-08-31 只读远端审计确认 `origin/aifeature` 仍在当前基线 HEAD，含 S2/workflow 的工作树有 213 个
-    modified/untracked path；GitHub 远端 workflow 只有 Docker 发布入口，最近运行没有智能媒体 workflow
-    或匹配 artifact。证据见[远端就绪审计](../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)；
-    未经明确授权不提交、不推送、不触发任务，`INT-403` 保持未完成。
+  - 2026-09-01 只读复核确认本地 HEAD 与 `origin/aifeature` 均为 `fdede8c…`，远端基线提交已含智能媒体
+    baseline workflow；但当前 S2 增量仍有 96 个 modified/untracked path，不属于该 SHA，最近运行也没有
+    paired artifact。baseline workflow 不生成严格模式需要的最终 `model-evidence.json`。证据见
+    [远端就绪审计](../evidence/int-001/native-remote-readiness-audit-2026-08-31.md)；未经明确授权不提交、不推送、
+    不触发任务，`INT-403` 保持未完成。
 - [ ] `INT-404` 最终 SBOM/provenance/license/notices/vulnerability 及模型权重清单签署。
   - `make verify-intelligent-media-supply-chain` 已建立失败关闭的真实文件/哈希/批准绑定入口；只有最终
     source SHA 的实际 manifest 成功通过并经 Gate 人工复审后才能勾选，本地 verifier 测试不能替代证据。
@@ -1216,12 +1558,15 @@ S0 可行性
     summary 会失败。当前三份真实 summary 均不存在，交叉绑定工具完成不等于 `INT-404` 完成。
 - [ ] `INT-405` 备份/恢复人物应用状态；索引缺失自动重建；损坏模型/DB/磁盘满失败关闭。
 - [ ] `INT-406` 人脸/向量/查询/姓名不进入日志和诊断，API/缓存/删除后残留检查通过。
+  - 本项还持有最终 privacy/compliance/security 发布复审；S2C Backend Ready 签署不替代 release approval。
 - [ ] `INT-407` 原媒体只读 hash/mtime/mount 证据和路径攻击矩阵通过。
 - [ ] `INT-408` 三浏览器、物理输入、移动断点、键盘、读屏和大集合虚拟化证据通过。
 - [ ] `INT-409` 更新用户 README、部署、升级、隐私、限制、故障排除和模型来源文档。
 - [ ] `INT-410` 在无外网、发行源、真实部署镜像和 `/models:ro` 四种拓扑验证安装/升级/恢复；没有
   真实镜像证据时从发布范围和 UI 删除镜像选项。
 - [ ] `INT-411` 复审 INT-S4 Integrated Slice Done；未签署不得宣称功能发布完成。
+  - 必须同时复核五个 intelligent-media final verifier 及 product/ML/QA/privacy/compliance/security/release
+    批准引用；任一缺失时 reviewed catalog/face composition/UI release 继续失败关闭。
 
 ## 强制验证入口
 

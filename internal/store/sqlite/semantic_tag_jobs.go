@@ -115,14 +115,14 @@ func (s *Store) ClaimTagJob(ctx context.Context, now time.Time, lease time.Durat
 			return err
 		}
 		claim := job.RequestedRevision + 1
-		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='running',claimed_revision=?,attempt_count=attempt_count+1,lease_expires_ms=?,error_code=NULL,updated_at_ms=? WHERE id=? AND state='queued' AND requested_revision=? AND attempt_count<?`, claim, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumSemanticJobAttempts)
+		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='running',claimed_revision=?,attempt_count=attempt_count+1,lease_expires_ms=MAX(created_at_ms+?,?),error_code=NULL,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued' AND requested_revision=? AND attempt_count<?`, claim, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.RequestedRevision, semantic.MaximumSemanticJobAttempts)
 		if err != nil {
 			return err
 		}
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrTagJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='running',phase='building',lease_expires_ms=?,revision=revision+1,updated_at_ms=? WHERE id=? AND state='queued'`, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='running',phase='building',lease_expires_ms=MAX(created_at_ms+?,?),revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued'`, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -151,11 +151,11 @@ func (s *Store) RefreshTagJobLease(ctx context.Context, job semantic.TagJob, now
 			return semantic.ErrTagJobConflict
 		}
 		cancelling = state == "cancelling"
-		_, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET lease_expires_ms=?,updated_at_ms=? WHERE id=? AND claimed_revision=?`, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
+		_, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND claimed_revision=?`, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=?,updated_at_ms=? WHERE id=? AND state IN ('running','cancelling')`, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
+		_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET lease_expires_ms=MAX(created_at_ms+?,?),updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state IN ('running','cancelling')`, leaseMS, now.UnixMilli()+leaseMS, now.UnixMilli(), job.OperationID)
 		return err
 	})
 	return cancelling, err
@@ -224,17 +224,17 @@ func (s *Store) CommitTagJobProgress(ctx context.Context, c semantic.TagJobProgr
 		if _, err := tx.ExecContext(ctx, `INSERT INTO semantic_tag_asset_progress(generation_id,library_id,asset_id,vocabulary_snapshot_id,source_fingerprint,outcome,updated_at_ms) VALUES(?,?,?,?,?,?,?) ON CONFLICT(generation_id,library_id,asset_id,vocabulary_snapshot_id) DO UPDATE SET source_fingerprint=excluded.source_fingerprint,outcome=excluded.outcome,updated_at_ms=excluded.updated_at_ms`, generation, library, c.NextCheckpointID, snapshot, fingerprint, outcome, c.UpdatedAt.UnixMilli()); err != nil {
 			return err
 		}
-		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_library_progress SET ready_count=ready_count+?,degraded_count=degraded_count+?,failed_count=failed_count+?,stale_count=stale_count+?,checkpoint_id=?,revision=revision+1,updated_at_ms=? WHERE generation_id=? AND library_id=? AND vocabulary_snapshot_id=? AND revision=? AND checkpoint_id=?`, boolInt(c.Plan != nil), c.DegradedCount, c.FailedCount, c.StaleCount, c.NextCheckpointID, c.UpdatedAt.UnixMilli(), generation, library, snapshot, c.ExpectedProgressRevision, c.ExpectedCheckpointID)
+		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_library_progress SET ready_count=ready_count+?,degraded_count=degraded_count+?,failed_count=failed_count+?,stale_count=stale_count+?,checkpoint_id=?,revision=revision+1,updated_at_ms=MAX(updated_at_ms,?) WHERE generation_id=? AND library_id=? AND vocabulary_snapshot_id=? AND revision=? AND checkpoint_id=?`, boolInt(c.Plan != nil), c.DegradedCount, c.FailedCount, c.StaleCount, c.NextCheckpointID, c.UpdatedAt.UnixMilli(), generation, library, snapshot, c.ExpectedProgressRevision, c.ExpectedCheckpointID)
 		if err != nil {
 			return err
 		}
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrTagJobConflict
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET checkpoint_id=?,updated_at_ms=? WHERE id=? AND checkpoint_id=? AND claimed_revision=?`, c.NextCheckpointID, c.UpdatedAt.UnixMilli(), c.JobID, c.ExpectedCheckpointID, c.ClaimedRevision); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET checkpoint_id=?,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND checkpoint_id=? AND claimed_revision=?`, c.NextCheckpointID, c.UpdatedAt.UnixMilli(), c.JobID, c.ExpectedCheckpointID, c.ClaimedRevision); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+1,revision=revision+1,updated_at_ms=? WHERE id=? AND state='running'`, c.UpdatedAt.UnixMilli(), operationID); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE ai_model_operations SET completed_items=completed_items+1,revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='running'`, c.UpdatedAt.UnixMilli(), operationID); err != nil {
 			return err
 		}
 		updated, err = scanTagProgress(tx.QueryRowContext(ctx, tagProgressSelect, generation, library, snapshot))
@@ -263,14 +263,14 @@ func (s *Store) FinishTagJob(ctx context.Context, job semantic.TagJob, outcome s
 			outcome == semantic.JobFailed && state != "running" && state != "cancelling" {
 			return semantic.ErrTagJobConflict
 		}
-		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state=?,lease_expires_ms=NULL,error_code=?,requested_revision=requested_revision+1,updated_at_ms=? WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`, outcome, nullableString(code), now.UnixMilli(), job.ID, job.ClaimedRevision)
+		result, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state=?,lease_expires_ms=NULL,error_code=?,requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND claimed_revision=? AND state IN ('running','cancelling')`, outcome, nullableString(code), now.UnixMilli(), job.ID, job.ClaimedRevision)
 		if err != nil {
 			return err
 		}
 		if rows, _ := result.RowsAffected(); rows != 1 {
 			return semantic.ErrTagJobConflict
 		}
-		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state=?,phase='completed',error_code=?,lease_expires_ms=NULL,revision=revision+1,updated_at_ms=?,finished_at_ms=? WHERE id=? AND state IN ('running','cancelling')`, outcome, nullableString(code), now.UnixMilli(), now.UnixMilli(), job.OperationID)
+		result, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state=?,phase='completed',error_code=?,lease_expires_ms=NULL,revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?) WHERE id=? AND state IN ('running','cancelling')`, outcome, nullableString(code), now.UnixMilli(), now.UnixMilli(), job.OperationID)
 		if err != nil {
 			return err
 		}
@@ -300,16 +300,16 @@ func (s *Store) CancelTagJobOperation(ctx context.Context, operationID string, r
 		}
 		switch job.State {
 		case semantic.JobQueued:
-			if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='cancelled',requested_revision=requested_revision+1,error_code='cancelled',updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID); err != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='cancelled',requested_revision=requested_revision+1,error_code='cancelled',updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID); err != nil {
 				return err
 			}
-			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled',phase='completed',error_code='cancelled',revision=revision+1,updated_at_ms=?,finished_at_ms=? WHERE id=? AND state='queued'`, now.UnixMilli(), now.UnixMilli(), operationID)
+			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelled',phase='completed',error_code='cancelled',revision=revision+1,updated_at_ms=MAX(created_at_ms,?),finished_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='queued'`, now.UnixMilli(), now.UnixMilli(), operationID)
 			return err
 		case semantic.JobRunning:
-			if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='cancelling',requested_revision=requested_revision+1,updated_at_ms=? WHERE id=?`, now.UnixMilli(), jobID); err != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE semantic_tag_jobs SET state='cancelling',requested_revision=requested_revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, now.UnixMilli(), jobID); err != nil {
 				return err
 			}
-			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=? WHERE id=? AND state='running'`, now.UnixMilli(), operationID)
+			_, err = tx.ExecContext(ctx, `UPDATE ai_model_operations SET state='cancelling',revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND state='running'`, now.UnixMilli(), operationID)
 			return err
 		case semantic.JobCancelling:
 			return nil
