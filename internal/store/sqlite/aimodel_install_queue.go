@@ -20,6 +20,15 @@ func (s *Store) FindAIModelInstall(ctx context.Context, key string) (aimodel.Ins
 	return work, err == nil, err
 }
 
+func (s *Store) LatestAIModelInstall(ctx context.Context, candidateID string) (aimodel.Operation, bool, error) {
+	work, err := scanAIModelInstall(s.db.QueryRowContext(ctx, aiModelInstallSelect+`
+		WHERE request.candidate_id = ? ORDER BY request.created_at_ms DESC, request.operation_id DESC LIMIT 1`, candidateID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return aimodel.Operation{}, false, nil
+	}
+	return work.Operation, err == nil, err
+}
+
 func (s *Store) CreateAIModelInstall(ctx context.Context, work aimodel.InstallWork) (aimodel.InstallWork, bool, error) {
 	packageJSON, manifestJSON, err := encodeAIModelInstall(work)
 	if err != nil {

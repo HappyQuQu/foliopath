@@ -304,6 +304,10 @@ func aiOperationETag(operation aimodel.Operation) string {
 
 func writeAIModelError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, aimodel.ErrDownloadUnavailable):
+		writePublicError(writer, request, http.StatusConflict, "model_download_unavailable", "The model download source is unavailable.")
+	case errors.Is(err, aimodel.ErrDownloadActive):
+		writePublicError(writer, request, http.StatusConflict, "model_download_active", "A download for this model is already in progress.")
 	case errors.Is(err, errPreconditionRequired):
 		writePublicError(writer, request, http.StatusPreconditionRequired, "precondition_required", "A current resource validator is required.")
 	case errors.Is(err, aimodel.ErrPreconditionFailed):

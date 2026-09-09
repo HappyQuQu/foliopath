@@ -2,6 +2,19 @@
 
 ## 状态
 
+部署维护新增 `node --test scripts/verify-deployed-web.test.mjs`；实际候选与部署分别运行
+`node scripts/verify-deployed-web.mjs ORIGIN internal/webassets/dist /settings/ai /intelligence`。
+它拒绝旧静态文件、非 200 响应及跨 origin 重定向，使用 `/` 核对 Go FileServer 的规范 index 入口。
+该校验与实际认证/业务测试互补，不替代功能或 runtime 验收；2026-09-09 的实测与失败项见
+[部署一致性记录](changes/FIX-2026-09-09-aifeature-deployment-integrity.md)。
+
+CR-2026-026 下载与 UI 扩展的验证面：`internal/aimodel/download*_test.go` 检查精确目录，
+`downloadhttp` 测试 HTTPS 流、地址/重定向/大小边界；`internal/files/model_download_config_test.go`
+检查配置有界读取；`tests/integration/ai_model_download_test.go` 使用合成字节与真实 HTTP/SQLite/managed
+store 验证成功、损坏拒绝、取消、重复准入和重开数据库后的进度。API 与生成 client/component tests
+验证 ID-only 请求、ETag、服务器任务恢复、键盘页签和维护确认；Storybook 用合成元数据做中英文/浅深/窄屏
+预览。它们不证明真实模型质量、Linux native 推理或最终容器可用；本轮执行结果见对应 CR，不覆盖历史 S4。
+
 本文同时定义目标验证体系和当前已落地的 Go 验证面。仓库已有路径边界、媒体库、
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
 契约测试，真实 HTTP 边界、合成媒体 fixture 和显式容量测试。正式 `cmd/foliopath`、

@@ -10,6 +10,16 @@
 
 ## 核心表
 
+### 模型下载历史扩展（migration 36）
+
+CR-2026-026 复用 `ai_model_install_requests` 与 `ai_model_operations`，不新增下载任务状态机或保存权重 BLOB。
+目录 ID 作为 `candidate_id`，排队候选固定 manifest 与 `download:<contentHash>` 来源标识；网络 URL
+只存在部署配置，不进入公共任务 DTO。migration 36 添加 `(candidate_id, created_at_ms DESC,
+operation_id DESC)` 索引，支持稳定读取每个目录项最近任务。托管安装的 completed/total 字段以字节计，
+进度最多每 500ms 提交一次（初始/最终除外），终态保留进度，历史可跨重启读取。相同幂等键重放，
+另一键遇到同模型活动下载返回冲突；取消/失败后新键重新下载。运行中任务的恢复仍由既有 operation owner
+负责，不承诺断点续传。文件发布、注册、激活保持独立步骤，已有模型与原媒体不因下载失败被删除。
+
 ### `libraries`
 
 - `id`：不透明稳定 ID。

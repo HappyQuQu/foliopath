@@ -1,5 +1,10 @@
 # FolioPath 需求—架构追踪
 
+FR-INT-017/019/020 的 POST-MVP-5 预设展示扩展见
+[CR-2026-027](../changes/CR-2026-027-builtin-model-presets.md)：aimodel 拥有候选元数据，API 映射，
+前端消费生成合同；候选不会进入可安装 Catalog。回归覆盖预设隔离、HTTP 元数据及 UI 不提供虚假下载。
+此项不代表默认模型下载、激活或 S4 发布验收完成。
+
 ## 状态与使用方式
 
 本文把当前已确认的需求族映射到架构责任、契约、数据、决策、风险、验证和交付阶段。它是设计与评审索引，不表示表中 API、前端、容器或全部测试已经实现。
@@ -28,6 +33,19 @@ Stage 0 范围及供应链识别已有报告证据；Backend Ready 结论只来�
 损坏与暂时性工具故障使用不同结构化原因；无 migration 或媒体内容变更。
 
 ## 功能需求追踪
+
+2026-09-08 的 POST-MVP-5 扩展 [CR-2026-026](../changes/CR-2026-026-ai-model-download-and-ui.md)
+对应 FR-INT-015/017/019/020、NFR-INT-007/009/010：`aimodel` 唯一拥有下载目录与准入，
+`aimodel/downloadhttp` 为受控出站适配器，`files` 读取配置并复用 managed store；SQLite migration 36
+提供最近任务索引，API/OpenAPI → domain adapter → AI settings 为消费者。复用安装 worker/operation owner，
+不增加进程或状态机；ADR-0016 允许部署管理员固定目录，空配置仍不联网。Architecture fitness 验证
+composition 只能读取固定配置并保留 face/Release No-Go；下载/集成/UI 测试链接见 CR。
+阶段为后端与 UI 实现扩展，不将历史发布 Gate 改为 Go；真实包下载源、推理镜像和最终验收仍不在完成声明中。
+
+2026-09-09 的[部署一致性修复](../changes/FIX-2026-09-09-aifeature-deployment-integrity.md)归属
+`internal/webassets` / 构建部署，关联 FR-DEP-001～004、上述 FR-INT 与 NFR-REL-001。
+`scripts/verify-deployed-web.mjs` 及 3 项 Node 回归测试建立“新 dist → 镜像内嵌 SPA → 线上字节”校验；
+候选和 server222 正式端点已通过。健康检查不再作为前端版本的唯一证据，S3 / S4 Gate 状态不变。
 
 | 需求族 | 目标版本 | 范围状态 | Change Record | Capability / adapter | 计划 API 或用户流程 | 数据与派生状态 | 决策与约束 | 主要风险 | 必需验证 | Roadmap 阶段 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

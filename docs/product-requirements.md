@@ -1,5 +1,8 @@
 # FolioPath 产品需求文档
 
+POST-MVP-5 FR-INT-017/019/020 补充：[CR-2026-027](changes/CR-2026-027-builtin-model-presets.md)
+要求无需手写配置即可查看项目候选预设；候选展示与可下载、可启用状态分离，默认可用模型包仍待交付。
+
 ## 文档状态
 
 本文是首个可用版本（MVP）的已确认产品基线，不表示下述功能已经发布。用户已于 2026-07-23 确认 [RQ-001～RQ-014](requirements-checklist.md) 全部采用 A，并于 2026-07-28 通过 [CR-2026-002](changes/CR-2026-002-authenticated-lan-http.md) 确认受信局域网 HTTP 部署；实现与验收必须按这些选择执行。当前范围由 [`MVP-2026-07-23` scope manifest revision 4](releases/MVP-2026-07-23-scope-r4.md) 锁定，新用户能力默认进入后续版本；改变范围必须遵守[交付与架构治理](architecture/delivery-governance.md)的 Change Record、影响分析和 scope trade-off，不能靠不断追加 FR 延后发布。
@@ -322,6 +325,12 @@ OpenAPI、migration 与生产代码必须等待 `OPS-S0/S1`，完整决定见
 revision 1，也不得被 A+B 的 API、migration 或 UI 顺带实现。
 
 ## `POST-MVP-5` revision 2：标签、视频与匿名人物能力（已冻结，合同扩展中）
+
+2026-09-08 增补：[CR-2026-026](changes/CR-2026-026-ai-model-download-and-ui.md) 扩展 FR-INT-017/019，
+允许部署管理员以固定 manifest/哈希的 HTTPS 目录提供模型，管理员在界面按 ID 下载至托管目录；
+须显示真实字节进度、取消、重试与服务器最近任务。FR-INT-015/020 增加概览引导并明确区分
+“未配置来源、未编入推理组件、已下载、已启用”。任意 URL 输入、未校验安装与自动启用仍不允许。
+这是 POST-MVP-5 的加法扩展，不更改 MVP 或历史 S4 发布结论。
 
 [`POST-MVP-5 revision 2`](releases/POST-MVP-5-scope-r2.md)替代 revision 1 并正式纳入
 `FR-INT-004`、`FR-INT-006～014`；A+B 的原合同保持不变。产品纳入不跳过交付 Gate：C/D/E 当前只授权

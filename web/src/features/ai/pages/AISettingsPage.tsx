@@ -46,6 +46,8 @@ import {
   useActivateAIModelMutation,
   useAIOperationQueries,
   useAIModelsQuery,
+  useAIModelDownloadsQuery,
+  useDownloadAIModelMutation,
   useCancelAIOperationMutation,
   useClearDerivedFaceDataMutation,
   useClearManualFaceRelationshipsMutation,
@@ -60,8 +62,11 @@ import {
   useUpdateFaceSettingsMutation,
 } from "../queries";
 import styles from "./AISettingsPage.module.css";
+import { AIModelDownloadsPanel } from "./AIModelDownloadsPanel";
+import { AIOverview } from "./AIOverview";
 
-type AIView = "libraries" | "models" | "tasks" | "faces";
+type AIView = "overview" | "libraries" | "models" | "tasks" | "faces";
+const views: AIView[] = ["overview", "models", "libraries", "faces", "tasks"];
 type Confirmation =
   | { kind: "rebuild"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
   | { kind: "clear"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
@@ -88,9 +93,15 @@ export function AISettingsPage({
   const semanticQueries = useSemanticSettingsQueries(libraries.map((library) => library.id));
   const faceQueries = useFaceSettingsQueries(libraries.map((library) => library.id));
   const modelsQuery = useAIModelsQuery();
+  const downloadsQuery = useAIModelDownloadsQuery();
+  const download = useDownloadAIModelMutation();
   const [candidateScan, setCandidateScan] = useState<AIModelCandidateScan | null>(null);
   const [operationIds, setOperationIds] = useState(readAIOperationIds);
-  const operationQueries = useAIOperationQueries(operationIds);
+  const trackedOperationIds = useMemo(() => [...new Set([
+    ...(downloadsQuery.data?.items.flatMap((item) => item.operation ? [item.operation.id] : []) ?? []),
+    ...operationIds,
+  ])].slice(0, 66), [downloadsQuery.data, operationIds]);
+  const operationQueries = useAIOperationQueries(trackedOperationIds);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const toast = useToast();
   const scan = useScanAIModelCandidatesMutation();
@@ -104,6 +115,12 @@ export function AISettingsPage({
   const requestFaces = useRequestFaceJobMutation();
   const clearFaceDerived = useClearDerivedFaceDataMutation();
   const clearFaceManual = useClearManualFaceRelationshipsMutation();
+
+  function navigateView(item: AIView) {
+    const next = new URLSearchParams(searchParams);
+    if (item === "overview") next.delete("view"); else next.set("view", item);
+    setSearchParams(next);
+  }
 
   function rememberOperation(operation: AIModelOperation) {
     setOperationIds((current) => {
@@ -146,14 +163,20 @@ export function AISettingsPage({
         </header>
 
         <div className={styles.tabs} role="tablist" aria-label={t("ai.sections")}>
-          {(["libraries", "faces", "models", "tasks"] as const).map((item) => (
+          {views.map((item, index) => (
             <Button
               aria-selected={view === item}
+              aria-controls="ai-settings-panel"
+              id={`ai-tab-${item}`}
+              tabIndex={view === item ? 0 : -1}
               key={item}
-              onClick={() => {
-                const next = new URLSearchParams();
-                if (item !== "libraries") next.set("view", item);
-                setSearchParams(next, { replace: true });
+              onClick={() => navigateView(item)}
+              onKeyDown={(event) => {
+                const next = event.key === "ArrowRight" ? (index + 1) % views.length : event.key === "ArrowLeft" ? (index + views.length - 1) % views.length : event.key === "Home" ? 0 : event.key === "End" ? views.length - 1 : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                const target = views[next]!; navigateView(target);
+                document.getElementById(`ai-tab-${target}`)?.focus();
               }}
               role="tab"
               variant={view === item ? "secondary" : "quiet"}
@@ -162,6 +185,22 @@ export function AISettingsPage({
             </Button>
           ))}
         </div>
+
+        <div id="ai-settings-panel" role="tabpanel" aria-labelledby={`ai-tab-${view}`} tabIndex={0} className={styles.panel}>
+        {view === "overview" && (librariesQuery.isError || modelsQuery.isError || downloadsQuery.isError || semanticQueries.some((query) => query.isError)) &&
+          <ErrorState message={t("ai.overview.loadFailed")} onRetry={() => { void librariesQuery.refetch(); void modelsQuery.refetch(); void downloadsQuery.refetch(); semanticQueries.forEach((query) => void query.refetch()); }} />}
+        {view === "overview" && (librariesQuery.isPending || modelsQuery.isPending || downloadsQuery.isPending || semanticQueries.some((query) => query.isPending)) && <LoadingState label={t("ai.loadingStatus")} />}
+        {view === "overview" && !librariesQuery.isPending && !librariesQuery.isError && !modelsQuery.isPending && !modelsQuery.isError && !downloadsQuery.isPending && !downloadsQuery.isError && semanticQueries.every((query) => !query.isPending && !query.isError) && <AIOverview
+          runtimeAvailable={downloadsQuery.data?.runtimeAvailable}
+          activeModel={Boolean(modelsQuery.data?.activeModelId)}
+          modelCount={modelsQuery.data?.items.length ?? 0}
+          totalLibraries={libraries.length}
+          partialLibraries={Boolean(librariesQuery.hasNextPage)}
+          enabledLibraries={semanticQueries.filter((query) => query.data?.enabled).length}
+          completed={semanticQueries.reduce((sum, query) => sum + (query.data?.coverage.completed ?? 0), 0)}
+          eligible={semanticQueries.reduce((sum, query) => sum + (query.data?.coverage.eligible ?? 0), 0)}
+          onView={navigateView}
+        />}
 
         {view === "libraries" && (
           <LibrariesPanel
@@ -190,7 +229,14 @@ export function AISettingsPage({
         )}
 
         {view === "models" && (
+          <div className={styles.cardList}>
+          <AIModelDownloadsPanel query={downloadsQuery} pending={download.isPending || cancel.isPending}
+            onDownload={(downloadId) => void runAction(() => download.mutateAsync({ downloadId, csrfToken: session.csrfToken, idempotencyKey: createRequestKey() }), "ai.download.started")}
+            onCancel={(operation) => void cancel.mutateAsync({ csrfToken: session.csrfToken, etag: operation.etag, operationId: operation.id })
+              .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
+          />
           <ModelsPanel
+            runtimeAvailable={downloadsQuery.data?.runtimeAvailable ?? false}
             candidateScan={candidateScan}
             models={modelsQuery.data?.items ?? []}
             modelsError={modelsQuery.isError}
@@ -214,6 +260,7 @@ export function AISettingsPage({
               .then(setCandidateScan)
               .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
           />
+          </div>
         )}
 
         {view === "faces" && (
@@ -240,7 +287,7 @@ export function AISettingsPage({
         {view === "tasks" && (
           <TasksPanel
             cancelPending={cancel.isPending}
-            operationIds={operationIds}
+            operationIds={trackedOperationIds}
             queries={operationQueries}
             onCancel={(operation) => void cancel.mutateAsync({
               csrfToken: session.csrfToken,
@@ -249,6 +296,8 @@ export function AISettingsPage({
             }).catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
           />
         )}
+        {(view === "libraries" || view === "faces") && librariesQuery.hasNextPage && <Button loading={librariesQuery.isFetchingNextPage} onClick={() => void librariesQuery.fetchNextPage()}>{t("ai.moreLibraries")}</Button>}
+        </div>
       </div>
 
       <ConfirmationDialog
@@ -341,7 +390,6 @@ function LibrariesPanel({
             <Metric label={t("ai.state")} value={t(`ai.state.${settings.state}`)} />
             <Metric label={t("ai.coverage")} value={`${number.format(settings.coverage.completed)} / ${number.format(settings.coverage.eligible)}`} />
             <Metric label={t("ai.failed")} value={number.format(settings.coverage.failed)} />
-            <Metric label={t("ai.generation")} value={settings.activeGenerationId ?? t("ai.none")} />
           </div>
           <div className={styles.progress}>
             <div aria-hidden="true"><span style={{ width: `${coveragePercent(settings)}%` }} /></div>
@@ -357,6 +405,10 @@ function LibrariesPanel({
             <Button disabled={actionPending || !settings.enabled || library.status === "offline"} onClick={() => onMissing(library)}>
               <Play aria-hidden="true" size={17} />{t("ai.fillMissing")}
             </Button>
+          </div>
+          <details className={styles.details}><summary>{t("ai.maintenance")}</summary>
+            <p>{t("ai.maintenanceDescription")}</p>
+            <div className={styles.actions}>
             <Button disabled={actionPending || !settings.enabled || library.status === "offline"} onClick={() => onRebuild(library, settings)}>
               <ArrowsClockwise aria-hidden="true" size={17} />{t("ai.rebuildAll")}
             </Button>
@@ -364,6 +416,7 @@ function LibrariesPanel({
               <Trash aria-hidden="true" size={17} />{t("ai.clearData")}
             </Button>
           </div>
+          </details>
         </>}
       </article>;
     })}
@@ -371,6 +424,7 @@ function LibrariesPanel({
 }
 
 function ModelsPanel({
+  runtimeAvailable,
   actionPending,
   candidateScan,
   models,
@@ -383,6 +437,7 @@ function ModelsPanel({
   onRetry,
   onScan,
 }: {
+  runtimeAvailable: boolean;
   actionPending: boolean;
   candidateScan: AIModelCandidateScan | null;
   models: AIModel[];
@@ -404,7 +459,7 @@ function ModelsPanel({
       <header className={styles.cardHeader}>
         <div><h2>{t("ai.installedModels")}</h2><p>{t("ai.installedDescription")}</p></div>
       </header>
-      {models.length === 0 ? <InlineStatus tone="warning">{t("ai.noInstalledModels")}</InlineStatus> :
+      {models.length === 0 ? <InlineStatus>{t("ai.noInstalledModels")}</InlineStatus> :
         <div className={styles.rows}>{models.map((model) => <div className={styles.modelRow} key={model.id}>
           <div className={styles.modelIcon}><Database aria-hidden="true" size={22} /></div>
           <div className={styles.modelInfo}>
@@ -415,16 +470,16 @@ function ModelsPanel({
             <InlineStatus tone={model.active ? "success" : model.state === "unavailable" ? "danger" : "info"}>
               {model.active ? t("ai.modelActive") : t(`ai.modelState.${model.state}`)}
             </InlineStatus>
-            {!model.active && <Button disabled={actionPending || model.state === "unavailable"} onClick={() => onActivate(model)} size="small">{t("ai.activate")}</Button>}
+            {!model.active && <Button disabled={actionPending || !runtimeAvailable || model.state === "unavailable"} onClick={() => onActivate(model)} size="small">{t("ai.activate")}</Button>}
           </div>
         </div>)}</div>}
     </section>
-    <section className={styles.card}>
+    <details className={`${styles.card} ${styles.details}`}>
+      <summary>{t("ai.offlineImport")}</summary>
       <header className={styles.cardHeader}>
         <div><h2>{t("ai.modelDirectory")}</h2><p>{t("ai.modelDirectoryDescription")}</p></div>
         <Button disabled={actionPending} onClick={onScan} variant="primary"><HardDrive aria-hidden="true" size={17} />{t("ai.scanModels")}</Button>
       </header>
-      <InlineStatus>{t("ai.noOnlineDownload")}</InlineStatus>
       {scanError && <InlineStatus tone="danger">{t("ai.modelScanFailed")}</InlineStatus>}
       {candidateScan && <>
         <p className={styles.scanSummary}>{formatMessage(t("ai.scanSummary"), { count: String(candidateScan.candidates.length), time: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(candidateScan.scannedAt)) })}</p>
@@ -442,7 +497,7 @@ function ModelsPanel({
           </div>}
         </div>)}</div>
       </>}
-    </section>
+    </details>
   </div>;
 }
 
@@ -459,7 +514,7 @@ function FaceSettingsPanel({ libraries, onDerived, onJob, onManual, onToggle, pe
   const [counts, setCounts] = useState({ assignmentCount: 0, constraintCount: 0, personCount: 0 });
   return <div className={styles.cardList}>
     <InlineStatus>{t("ai.faceDescription")}</InlineStatus>
-    <Link to={paths.intelligence}><Button>{t("ai.reviewWorkspace")}</Button></Link>
+    <Link className={styles.textLink} to={paths.intelligence}>{t("ai.reviewWorkspace")}</Link>
     {libraries.map((library, index) => {
       const query = queries[index]; const settings = query?.data;
       return <article className={styles.card} key={library.id}>
@@ -475,12 +530,13 @@ function FaceSettingsPanel({ libraries, onDerived, onJob, onManual, onToggle, pe
           <Metric label={t("ai.generation")} value={settings.activeGenerationId ?? t("ai.none")} />
         </div><div className={styles.actions}>
           <Button disabled={pending || !settings.enabled} onClick={() => onJob(library, "missing")}>{t("ai.fillMissing")}</Button>
+        </div><details className={styles.details}><summary>{t("ai.maintenance")}</summary><div className={styles.actions}>
           <Button disabled={pending || !settings.enabled} onClick={() => onJob(library, "all")}>{t("ai.rebuildAll")}</Button>
           <Button disabled={pending} variant="danger" onClick={() => onDerived(library, settings)}>{t("ai.clearFaceDerived")}</Button>
         </div><InlineStatus tone="warning">{t("ai.faceManualWarning")}</InlineStatus>
         <div className={styles.actions}>{(["personCount", "assignmentCount", "constraintCount"] as const).map((key) => <label key={key}>{t(`ai.${key}`)} <input min="0" type="number" value={counts[key]} onChange={(event) => setCounts((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} /></label>)}
           <Button disabled={pending} variant="danger" onClick={() => onManual(library, settings, counts)}>{t("ai.clearFaceManual")}</Button>
-        </div></>}
+        </div></details></>}
       </article>;
     })}
   </div>;
@@ -501,11 +557,12 @@ function TasksPanel({ cancelPending, onCancel, operationIds, queries }: {
     if (query?.isError) return <div className={styles.card} key={id}><ErrorState message={t("ai.taskFailedToLoad")} onRetry={() => void query.refetch()} /></div>;
     if (!operation) return null;
     const percent = operation.totalItems && operation.totalItems > 0 ? Math.min(100, operation.completedItems / operation.totalItems * 100) : null;
+    const amount = (value: number) => operation.kind === "model_install" ? formatBytes(value, new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })) : new Intl.NumberFormat(locale).format(value);
     return <article className={styles.card} key={id}>
       <header className={styles.cardHeader}><div><h2>{t(`ai.operation.${operation.kind}`)}</h2><p>{new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(operation.updatedAt))}</p></div><InlineStatus tone={operationTone(operation)}>{t(`ai.operationState.${operation.state}`)}</InlineStatus></header>
       <div className={styles.metrics}>
         <Metric label={t("ai.phase")} value={t(`ai.phase.${operation.phase}`)} />
-        <Metric label={t("ai.processed")} value={operation.totalItems === null ? String(operation.completedItems) : `${operation.completedItems} / ${operation.totalItems}`} />
+        <Metric label={t("ai.processed")} value={operation.totalItems === null ? amount(operation.completedItems) : `${amount(operation.completedItems)} / ${amount(operation.totalItems)}`} />
         <Metric label={t("ai.error")} value={operation.errorCode ? t(`ai.error.${operation.errorCode}`) : t("ai.none")} />
       </div>
       {percent !== null && <div className={styles.progress}><div aria-hidden="true"><span style={{ width: `${percent}%` }} /></div><span>{Math.round(percent)}%</span></div>}
@@ -528,8 +585,8 @@ function ConfirmationDialog({ confirmation, onClose, onConfirm, pending }: { con
 
 function Metric({ label, value }: { label: string; value: string }) { return <div className={styles.metric}><span>{label}</span><strong>{value}</strong></div>; }
 function coveragePercent(settings: SemanticSettingsSnapshot) { return settings.coverage.eligible === 0 ? 0 : Math.min(100, settings.coverage.completed / settings.coverage.eligible * 100); }
-function parseView(value: string | null): AIView { return value === "models" || value === "tasks" || value === "faces" ? value : "libraries"; }
+function parseView(value: string | null): AIView { return value === "libraries" || value === "models" || value === "tasks" || value === "faces" ? value : "overview"; }
 function formatBytes(value: number, format: Intl.NumberFormat) { return value >= 1024 ** 3 ? `${format.format(value / 1024 ** 3)} GiB` : `${format.format(value / 1024 ** 2)} MiB`; }
 function operationTone(operation: AIModelOperation): "info" | "success" | "warning" | "danger" { return operation.state === "succeeded" ? "success" : operation.state === "failed" ? "danger" : operation.state === "cancelled" ? "warning" : "info"; }
 function formatMessage(message: string, values: Record<string, string>) { return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, value), message); }
-function actionErrorMessage(error: unknown, t: (key: MessageKey) => string) { if (error instanceof ApiError) { if (error.code === "model_unavailable") return t("ai.error.model_unavailable"); if (error.code === "insufficient_space") return t("ai.error.insufficient_space"); if (error.code === "precondition_failed") return t("ai.error.precondition_failed"); if (error.code === "model_source_unavailable") return t("ai.error.model_source_unavailable"); } return t("ai.actionFailed"); }
+function actionErrorMessage(error: unknown, t: (key: MessageKey) => string) { if (error instanceof ApiError) { if (error.code === "model_download_active") return t("ai.download.active"); if (error.code === "model_unavailable") return t("ai.error.model_unavailable"); if (error.code === "insufficient_space") return t("ai.error.insufficient_space"); if (error.code === "precondition_failed") return t("ai.error.precondition_failed"); if (error.code === "model_source_unavailable") return t("ai.error.model_source_unavailable"); } return t("ai.actionFailed"); }

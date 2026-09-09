@@ -84,7 +84,32 @@ func (worker *InstallWorker) process(parent context.Context, work InstallWork) {
 	ctx, cancel := context.WithCancel(parent)
 	done := make(chan struct{})
 	go worker.watchCancellation(ctx, cancel, work.Operation.ID, done)
-	_, _, installErr := worker.installer.Install(ctx, work.Candidate, work.StorageMode)
+	var installErr error
+	if installer, ok := worker.installer.(interface {
+		InstallWithProgress(context.Context, Candidate, StorageMode, func(int64, int64) error) (Model, bool, error)
+	}); ok {
+		var last time.Time
+		_, _, installErr = installer.InstallWithProgress(ctx, work.Candidate, work.StorageMode, func(completed, total int64) error {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if !last.IsZero() && completed != total && time.Since(last) < 500*time.Millisecond {
+				return nil
+			}
+			current, err := worker.operations.Get(ctx, work.Operation.ID)
+			if err != nil {
+				return err
+			}
+			if current.State == OperationCancelling {
+				return context.Canceled
+			}
+			_, err = worker.operations.Progress(ctx, current.ID, current.Revision, PhaseCopying, completed, &total)
+			last = time.Now()
+			return err
+		})
+	} else {
+		_, _, installErr = worker.installer.Install(ctx, work.Candidate, work.StorageMode)
+	}
 	cancel()
 	<-done
 	current, err := worker.operations.Get(context.WithoutCancel(parent), work.Operation.ID)
@@ -103,7 +128,7 @@ func (worker *InstallWorker) process(parent context.Context, work InstallWork) {
 		return
 	}
 	operationID := current.ID
-	current, err = worker.operations.Progress(parent, operationID, current.Revision, PhaseFinalizing, 0, nil)
+	current, err = worker.operations.Progress(parent, operationID, current.Revision, PhaseFinalizing, current.CompletedItems, current.TotalItems)
 	if err != nil {
 		worker.settleFinalizationFailure(parent, operationID)
 		return
@@ -140,6 +165,8 @@ func (worker *InstallWorker) watchCancellation(ctx context.Context, cancel conte
 
 func installErrorCode(err error) string {
 	switch {
+	case errors.Is(err, ErrDownloadUnavailable):
+		return "download_failed"
 	case errors.Is(err, context.Canceled):
 		return "cancelled"
 	case errors.Is(err, ErrModelIncompatible), errors.Is(err, ErrInvalidModel):

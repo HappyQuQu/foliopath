@@ -142,6 +142,8 @@ func TestOpenAPIHasExactAuthoritativeResourceOperations(t *testing.T) {
 		"GET /api/v1/libraries/{libraryId}/assets",
 		"GET /api/v1/assets",
 		"GET /api/v1/ai/models",
+		"GET /api/v1/ai/model-downloads",
+		"POST /api/v1/ai/model-downloads/{downloadId}/install",
 		"GET /api/v1/ai/operations/{operationId}",
 		"POST /api/v1/ai/model-candidate-scans",
 		"POST /api/v1/ai/model-candidates/{candidateId}/install",

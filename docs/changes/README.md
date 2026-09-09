@@ -29,6 +29,9 @@
 
 ### Post-MVP 与未来提案
 
+- [CR-2026-027：内置模型预设展示](CR-2026-027-builtin-model-presets.md)
+
+- [CR-2026-026：模型下载与智能功能界面优化](CR-2026-026-ai-model-download-and-ui.md)
 - [CR-2026-004：视频故事板悬停预览](CR-2026-004-video-storyboard-preview.md)
 - [CR-2026-005：媒体库自动发现](CR-2026-005-automatic-library-discovery.md)
 - [CR-2026-007：运维与维护原型](CR-2026-007-operations-maintenance-prototype.md)
@@ -43,6 +46,14 @@
 - [CR-2026-025：INT-S4 剩余验收未验证关闭](CR-2026-025-int-s4-unverified-closure.md)
 
 ## Routine fixes
+
+### 2026-09-09
+
+- [server222 智能功能前端部署一致性](FIX-2026-09-09-aifeature-deployment-integrity.md)
+
+### 2026-09-07
+
+- [媒体任务续租写入串行化](FIX-2026-09-07-media-lease-write-serialization.md)
 
 ### 2026-09-02
 

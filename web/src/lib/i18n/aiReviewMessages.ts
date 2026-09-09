@@ -1,6 +1,8 @@
 export const aiReviewZh = {
-  "intelligence.title": "智能审核",
-  "intelligence.description": "审核本地模型建议和匿名人脸分组；名称只由管理员填写，不推断真实身份。",
+  "intelligence.title": "智能整理",
+  "intelligence.description": "确认合适的标签，整理人物照片。模型提供建议，整理方式由你决定。",
+  "intelligence.manageModels": "设置与模型",
+  "intelligence.allReviewed": "当前筛选下的建议已处理完，可以切换其他状态查看。",
   "intelligence.tags": "AI 标签建议", "intelligence.people": "已命名人物",
   "intelligence.clusters": "匿名组", "intelligence.faces": "单图人脸",
   "intelligence.pending": "待审核", "intelligence.accepted": "已接受", "intelligence.dismissed": "已忽略",
@@ -27,15 +29,17 @@ export const aiReviewZh = {
   "intelligence.revisionConflict": "状态已被其他操作更新；已刷新，请重新确认。",
   "intelligence.loadFailed": "无法载入审核数据；普通浏览和原始媒体不受影响。",
   "intelligence.actionFailed": "审核未保存，请刷新后重试。", "intelligence.saved": "审核已保存。",
-  "intelligence.privacyTitle": "隐私边界",
+  "intelligence.privacyTitle": "关于本地处理与人物归类",
   "intelligence.privacy": "人脸功能只在本机生成匿名相似分组。它不会识别现实身份、不会联网查人，也不会训练或发布模型。人物名称和归类均由当前管理员手动确认。清除只删除应用状态或可重建派生数据，绝不修改原始媒体。",
   "intelligence.library": "媒体库", "intelligence.assetId": "媒体 ID",
   "intelligence.showFaces": "载入此媒体的人脸", "intelligence.none": "暂无项目",
 } as const;
 
 export const aiReviewEn: Record<keyof typeof aiReviewZh, string> = {
-  "intelligence.title": "Intelligence review",
-  "intelligence.description": "Review local-model suggestions and anonymous face groups. Names are administrator-supplied and never inferred as real identities.",
+  "intelligence.title": "Smart organization",
+  "intelligence.description": "Review useful tags and organize photos of people. The model suggests; you decide.",
+  "intelligence.manageModels": "Settings & models",
+  "intelligence.allReviewed": "Suggestions in this filter have been reviewed. Select another status to browse them.",
   "intelligence.tags": "AI tag suggestions", "intelligence.people": "Named people",
   "intelligence.clusters": "Anonymous groups", "intelligence.faces": "Faces in one asset",
   "intelligence.pending": "Pending", "intelligence.accepted": "Accepted", "intelligence.dismissed": "Dismissed",

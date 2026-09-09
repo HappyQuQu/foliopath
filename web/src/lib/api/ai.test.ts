@@ -1,12 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "./client";
-import { applyFaceReview, getLibraryFaceSettings, listAITagSuggestions, listFaceClusters, reviewAITagSuggestions } from "./ai";
+import { applyFaceReview, downloadAIModel, listAIModelDownloads, getLibraryFaceSettings, listAITagSuggestions, listFaceClusters, reviewAITagSuggestions } from "./ai";
 
 vi.mock("./client", () => ({ apiClient: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn() } }));
 
 describe("intelligence API adapters", () => {
   beforeEach(() => { vi.mocked(apiClient.GET).mockReset(); vi.mocked(apiClient.POST).mockReset(); });
+
+  it("downloads by ID without sending a URL or body and preserves the operation validator", async () => {
+    vi.mocked(apiClient.POST).mockResolvedValue({ data: { id: "aio_download", revision: 3 }, response: new Response(null, { headers: { ETag: '\"aio_download-r3\"' } }) } as never);
+    await expect(downloadAIModel({ downloadId: "download_vision", csrfToken: "csrf", idempotencyKey: "download_key" })).resolves.toMatchObject({ etag: '\"aio_download-r3\"' });
+    expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/ai/model-downloads/{downloadId}/install", { headers: { "X-CSRF-Token": "csrf" }, params: { header: { "Idempotency-Key": "download_key" }, path: { downloadId: "download_vision" } } });
+  });
+
+  it("restores a cancellable snapshot from server download history", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({ data: { runtimeAvailable: false, items: [{ id: "download_vision", operation: { id: "aio_download", revision: 7 } }, { id: "download_second", operation: null }] }, response: new Response() } as never);
+    await expect(listAIModelDownloads()).resolves.toMatchObject({ runtimeAvailable: false, items: [{ operation: { etag: '\"aio_download-r7\"' } }, { operation: null }] });
+  });
 
   it("binds tag suggestion cursors to library and status", async () => {
     vi.mocked(apiClient.GET).mockResolvedValue({ data: { items: [], nextCursor: null, coverage: coverage() }, response: new Response() } as never);

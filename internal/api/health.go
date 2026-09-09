@@ -59,6 +59,7 @@ type RouteDependencies struct {
 	Content             ContentService
 	ContentAdmission    ContentAdmission
 	AIModels            AIModelManagementService
+	AIModelDownloads    AIModelDownloadService
 	Semantic            SemanticService
 	SemanticSearch      SemanticSearchService
 	VideoSemanticSearch VideoSemanticSearchService
@@ -145,6 +146,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.AIModels != nil {
 		registerAIModelRoutes(mux, dependencies.AIModels)
+	}
+	if dependencies.AIModelDownloads != nil {
+		registerAIModelDownloadRoutes(mux, dependencies.AIModelDownloads)
 	}
 	if dependencies.Semantic != nil {
 		registerSemanticRoutes(mux, dependencies.Semantic)

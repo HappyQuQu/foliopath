@@ -5,9 +5,12 @@ import {
   useQueryClient,
   type Query,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import {
   activateAIModel,
+  downloadAIModel,
+  listAIModelDownloads,
   applyFaceReview,
   clearDerivedFaceData,
   clearManualFaceRelationships,
@@ -40,6 +43,7 @@ import {
 export const aiKeys = {
   all: ["ai"] as const,
   models: ["ai", "models"] as const,
+  downloads: ["ai", "downloads"] as const,
   semantic: (libraryId: string) => ["ai", "semantic", libraryId] as const,
   faces: (libraryId: string) => ["ai", "faces", libraryId] as const,
   operation: (operationId: string) => ["ai", "operation", operationId] as const,
@@ -53,6 +57,11 @@ export const aiKeys = {
 
 export function useAIModelsQuery() {
   return useQuery({ queryKey: aiKeys.models, queryFn: listAIModels });
+}
+
+export function useAIModelDownloadsQuery() {
+  return useQuery({ queryKey: aiKeys.downloads, queryFn: listAIModelDownloads, refetchInterval: (query) =>
+    query.state.data?.items.some((item) => item.operation && operationIsActive(item.operation)) ? 1_500 : 10_000 });
 }
 
 export function useSemanticSettingsQueries(libraryIds: string[]) {
@@ -69,7 +78,8 @@ export function useSemanticSettingsQueries(libraryIds: string[]) {
 }
 
 export function useAIOperationQueries(operationIds: string[]) {
-  return useQueries({
+  const client = useQueryClient();
+  const queries = useQueries({
     queries: operationIds.map((operationId) => ({
       queryKey: aiKeys.operation(operationId),
       queryFn: () => getAIOperation(operationId),
@@ -77,6 +87,15 @@ export function useAIOperationQueries(operationIds: string[]) {
         query.state.data && operationIsActive(query.state.data) ? 1_500 : false,
     })),
   });
+  const finished = queries.map((query) => query.data && !operationIsActive(query.data) ? `${query.data.id}:${query.data.revision}` : "").filter(Boolean).join(",");
+  useEffect(() => {
+    if (!finished) return;
+    void client.invalidateQueries({ queryKey: aiKeys.models });
+    void client.invalidateQueries({ queryKey: aiKeys.downloads });
+    void client.invalidateQueries({ queryKey: ["ai", "semantic"] });
+    void client.invalidateQueries({ queryKey: ["ai", "faces"] });
+  }, [client, finished]);
+  return queries;
 }
 
 function mutationWithInvalidation<TInput, TOutput>(
@@ -92,6 +111,7 @@ function mutationWithInvalidation<TInput, TOutput>(
 }
 
 export const useScanAIModelCandidatesMutation = mutationWithInvalidation(scanAIModelCandidates);
+export const useDownloadAIModelMutation = mutationWithInvalidation(downloadAIModel);
 export const useInstallAIModelCandidateMutation = mutationWithInvalidation(installAIModelCandidate);
 export const useActivateAIModelMutation = mutationWithInvalidation(activateAIModel);
 export const useUpdateSemanticSettingsMutation = mutationWithInvalidation(updateLibrarySemanticSettings);

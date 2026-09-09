@@ -7,6 +7,8 @@ export type AIModelCandidate = components["schemas"]["AIModelCandidate"];
 export type AIModelCandidateScan = components["schemas"]["AIModelCandidateScan"];
 export type AIModelOperation = components["schemas"]["AIModelOperation"];
 export type AIModelPage = components["schemas"]["AIModelPage"];
+export type AIModelDownload = Omit<components["schemas"]["AIModelDownload"], "operation"> & { operation: AIOperationSnapshot | null };
+export type AIModelDownloadPage = Omit<components["schemas"]["AIModelDownloadPage"], "items"> & { items: AIModelDownload[] };
 export type SemanticLibrarySettings = components["schemas"]["SemanticLibrarySettings"];
 export type AITagSuggestion = components["schemas"]["AITagSuggestion"];
 export type AITagSuggestionPage = components["schemas"]["AITagSuggestionPage"];
@@ -33,6 +35,19 @@ export interface AIOperationSnapshot extends AIModelOperation {
 
 export async function listAIModels(): Promise<AIModelPage> {
   return unwrap(apiClient.GET("/api/v1/ai/models"));
+}
+
+export async function listAIModelDownloads(): Promise<AIModelDownloadPage> {
+  const page = await unwrap(apiClient.GET("/api/v1/ai/model-downloads"));
+  return { ...page, items: page.items.map((item) => ({ ...item, operation: item.operation
+    ? { ...item.operation, etag: `"${item.operation.id}-r${item.operation.revision}"` } : null })) };
+}
+
+export async function downloadAIModel(input: { downloadId: string; csrfToken: string; idempotencyKey: string }): Promise<AIOperationSnapshot> {
+  return unwrapWithEtag(apiClient.POST("/api/v1/ai/model-downloads/{downloadId}/install", {
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: { header: { "Idempotency-Key": input.idempotencyKey }, path: { downloadId: input.downloadId } },
+  }));
 }
 
 export async function scanAIModelCandidates(csrfToken: string): Promise<AIModelCandidateScan> {

@@ -41,8 +41,10 @@ it("separates AI suggestions from manual tags and submits exact revisions", asyn
   expect(mocks.review).toHaveBeenCalledWith(expect.objectContaining({ action: "accept", items: [{ curationRevision: 7, suggestion }] }));
 });
 
-it("provides explicit privacy language in Chinese", () => {
+it("keeps local processing details available on demand", async () => {
+  const user = userEvent.setup();
   renderPage();
+  await user.click(screen.getByText("关于本地处理与人物归类"));
   expect(screen.getByText(/不会识别现实身份、不会联网查人，也不会训练或发布模型/)).toBeVisible();
 });
 

@@ -18,6 +18,45 @@ provenance 和安全/合规签署阻断。
 [ADR-0012](adr/0012-root-runtime-bind-data.md) 已将当前候选改为 root runtime，以支持
 Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据不能替代新候选复验。
 
+## 模型下载目录
+
+[CR-2026-026](changes/CR-2026-026-ai-model-download-and-ui.md) / [ADR-0016](adr/0016-admin-model-download-catalog.md)
+增加“智能功能 → 模型”的下载操作。**仓库没有默认托管模型下载源，根 Dockerfile 也没有编入 AI
+推理组件**；页面不能替代这两项部署准备。下载完成只代表文件校验安装成功，不代表已启用或质量达标。
+
+部署管理员在现有数据卷中提供 `/app/data/model-downloads.json`（普通文件，最多 1 MiB），重启后载入。
+文件不存在或为空时不配置任何来源；有效 JSON 顶层必须是数组，最多 16 项。`[]` 可显式关闭目录。
+格式错误、未知字段、重复键或不兼容清单会拒绝启动；变更前备份配置，启动失败可恢复旧配置。此文件
+只能由受信任部署管理员写入，不应通过 HTTP 开放编辑，也不需要为媒体增加挂载。
+
+每项结构由 `internal/aimodel.DownloadDefinition` 定义：
+
+| 字段 | 配置要求 |
+| --- | --- |
+| `id` | 稳定、不透明、8–128 字符，字母数字开头，仅字母数字/下划线/连字符；换包时使用新 ID |
+| `name`、`sourceLabel` | 给用户看的模型名和来源名，不含 URL、凭据或宿主路径 |
+| `manifest` | 完整 FolioPath 模型包 manifest；语义 v2 或人脸 v3 必须匹配既有 graph/tokenizer/预处理合同；旧 v1 仅保留兼容读取 |
+| `contentHash` | 审核包的固定 64 位小写十六进制内容标识；同一个包不能重复出现 |
+| `runtimeArchitectures` | 非空 `amd64` / `arm64` 列表，依据该模型实际验证范围填写 |
+| `files` | 文件名到固定 HTTPS URL 的映射，与 manifest 文件列表完全对应；每个文件大小、SHA-256 必须精确填写在 manifest 中 |
+| `redirectHosts` | 可选 CDN 主机名数组（最多 8 个），不含 scheme/端口/路径；仅允许实际必要的重定向主机 |
+
+下载 URL 只能使用公开地址的 HTTPS/443；不支持 HTTP、私网镜像、URL 凭据、动态模型代码或环境代理。
+需要 CDN 重定向时显式配置其主机；不允许依赖会过期的私有签名 URL。FolioPath 不从 Hugging Face
+仓库页自动转换模型，也不把任意 ONNX 当作兼容模型包。下载源与完整包应先由部署者审核；本说明不提供
+假示例权重地址来冒充可用源。完整包合同见[语义 v2 ADR](adr/0014-siglip-sentencepiece-tokenizer-runtime.md)
+和[人脸 v3 ADR](adr/0015-face-model-package-and-generation-activation.md)。
+
+配置后，管理员在界面下载，服务端通过唯一安装 worker 串行流式传输至 `/app/data/models`，复用现有
+空间配额、安全余量、逐文件校验和原子发布。离开页面不会取消任务；进度/最近结果保存在 SQLite，
+可跨浏览器查看。主动取消会结束在途连接；服务重启后排队项继续排队，运行中被打断的任务失败关闭，
+临时文件按既有恢复流程清理。重试从零开始，不支持断点续传。已安装但未启用的模型不会启动分析。
+同模型已有活动下载时另一个幂等键返回冲突，避免重复排队。
+
+离线 `/models:ro` 导入保留在模型页折叠区。目录条目同样用于精确包兼容验证；删除/撤回目录条目需
+重启，会使依赖该包的激活验证失败关闭，不删除原始媒体或已保存模型。备份需包含下载配置、数据库和
+要保留的托管模型；不要把下载配置中的真实服务信息放入公开日志或截图。
+
 ## 部署目标
 
 - 一个容器、一个应用进程、一个 HTTP 端口。
@@ -332,6 +371,23 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 离线备份”配对回滚。最终不可变 digest 与供应链签署仍是发布阻断。
 
 ## 升级与回滚
+
+### 前后端产物一致性
+
+Go 二进制嵌入 Vite dist；只替换二进制也会替换前端。即便只是后端修复，也必须从同一源码快照
+重新生成 dist 后再编译 Go，不能复用未经校验的本地旧 dist。每次部署使用独立镜像版本，记录实际
+image ID、源码状态与前端哈希，不能把旧发布标签重新指向不同内容。
+
+切换前对隔离候选执行、切换后对实际服务再次执行：
+
+```sh
+node --test scripts/verify-deployed-web.test.mjs
+node scripts/verify-deployed-web.mjs http://127.0.0.1:8080 internal/webassets/dist /settings/ai /intelligence
+```
+
+地址需替换为实际候选或部署 origin。该命令不登录、不修改服务器，逐文件比较 HTTP 返回字节与
+本次新构建目录，并验证 SPA 路由返回同一 index；不证明认证后的功能或真实推理通过。应配合独立
+合成环境中的认证/API/页面检查。普通 runtime readiness 不能代替这些检查。
 
 推荐升级流程：
 

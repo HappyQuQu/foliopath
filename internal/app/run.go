@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
+	"github.com/HappyQuQu/foliopath/internal/aimodel/downloadhttp"
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
 	"github.com/HappyQuQu/foliopath/internal/inference/sentencepiece"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
@@ -405,10 +407,15 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct library lifecycle service: %w", err)
 	}
 	aiSource, aiSourceComponent := newAIModelSource(configuration.modelRoot)
-	aiCatalog, err := aimodel.NewCatalog(nil)
+	downloadConfig, err := files.ReadModelDownloadCatalog(filepath.Join(configuration.dataRoot, "model-downloads.json"))
+	if err != nil {
+		return nil, fmt.Errorf("read model download configuration: %w", err)
+	}
+	downloadCatalog, err := aimodel.ParseDownloadCatalog(downloadConfig, runtime.GOARCH)
 	if err != nil {
 		return nil, fmt.Errorf("construct reviewed AI model catalog: %w", err)
 	}
+	aiCatalog := downloadCatalog.Packages()
 	aiScanner, err := aimodel.NewScanner(aiSource, aiCatalog, runtime.GOARCH, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct AI model scanner: %w", err)
@@ -425,7 +432,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct managed AI model store: %w", err)
 	}
-	aiInstaller, err := aimodel.NewInstaller(aiModels, aiSource, managedModels)
+	aiDownloadSource := &aimodel.DownloadSource{Catalog: downloadCatalog, Remote: downloadhttp.New(), Offline: aiSource}
+	aiInstaller, err := aimodel.NewInstaller(aiModels, aiDownloadSource, managedModels)
 	if err != nil {
 		return nil, fmt.Errorf("construct AI model installer: %w", err)
 	}
@@ -639,6 +647,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		AITagReviewClear:  semanticService,
 		VideoSemanticJobs: semanticService,
 	}
+	aiDownloads, err := aimodel.NewDownloadService(downloadCatalog, aiModels, aiAdmission, database, aiRuntimeIncluded)
+	if err != nil {
+		return nil, fmt.Errorf("construct model downloads: %w", err)
+	}
+	routeDependencies.AIModelDownloads = aiDownloads
 	routeDependencies.VideoSemanticSearch = videoSemanticSearch
 	routes, err := api.NewRoutes(routeDependencies)
 	if err != nil {

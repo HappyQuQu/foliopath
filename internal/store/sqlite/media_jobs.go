@@ -390,26 +390,28 @@ func (s *Store) RefreshMediaJobLease(
 	if err != nil {
 		return err
 	}
-	now := s.nowMS()
-	result, err := s.db.ExecContext(ctx, `
-        UPDATE media_jobs
-        SET heartbeat_at_ms = ?, lease_expires_at_ms = ?
-        WHERE id = ? AND transform_version = ?
-          AND source_fingerprint = ? AND status = 'running'`,
-		now, now+leaseMS, job.ID, job.TransformVersion,
-		job.SourceFingerprint.String(),
-	)
-	if err != nil {
-		return fmt.Errorf("refresh media job lease: %w", err)
-	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("inspect media job lease refresh: %w", err)
-	}
-	if changed != 1 {
-		return thumbnail.ErrJobNotActive
-	}
-	return nil
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		now := s.nowMS()
+		result, err := tx.ExecContext(ctx, `
+            UPDATE media_jobs
+            SET heartbeat_at_ms = ?, lease_expires_at_ms = ?
+            WHERE id = ? AND transform_version = ?
+              AND source_fingerprint = ? AND status = 'running'`,
+			now, now+leaseMS, job.ID, job.TransformVersion,
+			job.SourceFingerprint.String(),
+		)
+		if err != nil {
+			return fmt.Errorf("refresh media job lease: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect media job lease refresh: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrJobNotActive
+		}
+		return nil
+	})
 }
 
 func (s *Store) RecoverExpiredMediaJobs(

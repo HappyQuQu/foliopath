@@ -135,4 +135,14 @@ func (service *databaseService) CommitAIModelActivation(ctx context.Context, com
 var _ aimodel.Repository = (*databaseService)(nil)
 var _ aimodel.OperationRepository = (*databaseService)(nil)
 var _ aimodel.InstallQueue = (*databaseService)(nil)
+
+func (service *databaseService) LatestAIModelInstall(ctx context.Context, id string) (aimodel.Operation, bool, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return aimodel.Operation{}, false, errAIRepositoryNotReady
+	}
+	return service.store.LatestAIModelInstall(ctx, id)
+}
+
 var _ aimodel.ActivationRepository = (*databaseService)(nil)

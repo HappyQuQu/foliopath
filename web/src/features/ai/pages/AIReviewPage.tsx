@@ -1,9 +1,10 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
+import { ArrowRight, SlidersHorizontal, Sparkle } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
-import { Button, EmptyState, ErrorState, InlineStatus, LoadingState, useToast } from "../../../components/ui";
+import { Button, EmptyState, ErrorState, InlineStatus, LoadingState, Select, useToast } from "../../../components/ui";
 import type { AITagSuggestion, AssetFace, FaceReviewRequest, Person } from "../../../lib/api/ai";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { assetContentUrl } from "../../../lib/api/catalog";
@@ -44,20 +45,24 @@ export function AIReviewPage({ logoutPending, onLogout, session }: {
     logoutPending={logoutPending} onLogout={onLogout} searchHref={paths.search}
     settingsHref={paths.generalSettings} title={t("intelligence.title")}>
     <div className={styles.main}>
-      <header className={styles.heading}><h1>{t("intelligence.title")}</h1><p>{t("intelligence.description")}</p></header>
-      <section className={styles.privacy} aria-labelledby="privacy-heading"><h2 id="privacy-heading">{t("intelligence.privacyTitle")}</h2><p>{t("intelligence.privacy")}</p></section>
-      <div className={styles.tabs} role="tablist" aria-label={t("intelligence.title")}>
-        {(["tags", "people", "clusters", "faces"] as const).map((item) => <Button key={item} role="tab"
-          aria-selected={view === item} variant={view === item ? "secondary" : "quiet"} onClick={() => navigate(item)}>{t(`intelligence.${item}`)}</Button>)}
+      <header className={styles.heading}><div><p className={styles.eyebrow}><Sparkle aria-hidden="true" size={16} />{t("ai.overview.eyebrow")}</p><h1>{t("intelligence.title")}</h1><p>{t("intelligence.description")}</p></div>
+        <Link className={styles.settingsLink} to={paths.aiSettings}><SlidersHorizontal aria-hidden="true" size={18} />{t("intelligence.manageModels")}<ArrowRight aria-hidden="true" size={16} /></Link>
+      </header>
+      <div className={styles.tabs} role="group" aria-label={t("intelligence.title")}>
+        {(["tags", "people", "clusters", ...(assetId || view === "faces" ? ["faces" as const] : [])] as const).map((item) => <Button key={item}
+          aria-pressed={view === item} variant={view === item ? "secondary" : "quiet"} onClick={() => navigate(item)}>{t(`intelligence.${item}`)}</Button>)}
       </div>
-      {libraries.length > 0 && (view === "tags" || view === "clusters") && <label className={styles.filters}>{t("intelligence.library")}
-        <select className={styles.input} value={libraryId} onChange={(event) => setParams({ view, libraryId: event.target.value })}>
+      {libraries.length > 0 && (view === "tags" || view === "clusters") && <label className={styles.libraryFilter}>{t("intelligence.library")}
+        <Select value={libraryId} onChange={(event) => setParams({ view, libraryId: event.target.value })}>
           {libraries.map((library) => <option value={library.id} key={library.id}>{library.name}</option>)}
-        </select></label>}
+        </Select></label>}
+      {librariesQuery.isError && <ErrorState message={t("ai.loadFailed")} onRetry={() => void librariesQuery.refetch()} />}
+      {!librariesQuery.isPending && !librariesQuery.isError && !libraries.length && <EmptyState title={t("ai.noLibraries")} description={t("ai.noLibrariesDescription")} />}
       {view === "tags" && <TagReviewPanel libraryId={libraryId} session={session} />}
       {view === "people" && (personId ? <PersonPanel personId={personId} session={session} onBack={() => navigate("people")} /> : <PeoplePanel onOpen={(id) => navigate("people", { person: id })} />)}
       {view === "clusters" && (clusterId ? <ClusterPanel clusterId={clusterId} libraryId={libraryId} session={session} onBack={() => navigate("clusters")} /> : <ClustersPanel libraryId={libraryId} onOpen={(id) => navigate("clusters", { cluster: id })} />)}
       {view === "faces" && <FacesPanel assetId={assetId} onAsset={(id) => navigate("faces", { asset: id })} session={session} />}
+      <details className={styles.privacy}><summary>{t("intelligence.privacyTitle")}</summary><p>{t("intelligence.privacy")}</p></details>
     </div>
   </AppShell>;
 }
@@ -78,14 +83,15 @@ function TagReviewPanel({ libraryId, session }: { libraryId: string; session: Au
     try { await review.mutateAsync({ action, csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), items: ready }); setSelected([]); toast.show({ message: t("intelligence.saved"), tone: "success" }); }
     catch (error) { toast.show({ message: error instanceof ApiError && error.code === "precondition_failed" ? t("intelligence.revisionConflict") : t("intelligence.actionFailed"), tone: "danger" }); void query.refetch(); }
   }
-  if (!libraryId || query.isPending) return <LoadingState label={t("common.loading")} />;
+  if (!libraryId) return null;
+  if (query.isPending) return <LoadingState label={t("common.loading")} />;
   if (query.isError) return <ErrorState message={t("intelligence.loadFailed")} onRetry={() => void query.refetch()} />;
   const coverage = query.data.coverage;
   return <section><div className={styles.filters}>{(["pending", "accepted", "dismissed"] as const).map((item) => <Button key={item} variant={status === item ? "secondary" : "quiet"} onClick={() => { const next = new URLSearchParams(params); if (item === "pending") next.delete("status"); else next.set("status", item); setParams(next); setSelected([]); }}>{t(`intelligence.${item}`)}</Button>)}</div>
     <p className={styles.meta}>{t("intelligence.coverage").replace("{completed}", String(coverage.completed)).replace("{eligible}", String(coverage.eligible)).replace("{failed}", String(coverage.failed)).replace("{degraded}", String(coverage.degraded))}</p>
     {!coverage.complete && <InlineStatus tone="warning">{t("intelligence.incomplete")}</InlineStatus>}
     {status === "pending" && selected.length > 0 && <div className={styles.actions}><Button disabled={review.isPending} onClick={() => void submit("accept")}>{t("intelligence.accept")}</Button><Button disabled={review.isPending} variant="secondary" onClick={() => void submit("dismiss")}>{t("intelligence.dismiss")}</Button></div>}
-    {items.length === 0 ? <EmptyState title={t("intelligence.noSuggestions")} description={t("intelligence.incomplete")} /> : <div className={styles.grid}>{items.map((item) => <SuggestionCard item={item} key={item.id} selected={selected.includes(item.id)} onSelect={(checked) => setSelected((current) => checked ? [...current, item.id].slice(0, 100) : current.filter((id) => id !== item.id))} />)}</div>}
+    {items.length === 0 ? <EmptyState title={t("intelligence.noSuggestions")} description={t(coverage.complete ? "intelligence.allReviewed" : "intelligence.incomplete")} /> : <div className={styles.grid}>{items.map((item) => <SuggestionCard item={item} key={item.id} selected={selected.includes(item.id)} onSelect={(checked) => setSelected((current) => checked ? [...current, item.id].slice(0, 100) : current.filter((id) => id !== item.id))} />)}</div>}
   </section>;
 }
 

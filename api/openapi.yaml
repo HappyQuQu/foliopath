@@ -26,6 +26,7 @@ x-foliopath-contract:
   targetVersion: POST-MVP-5
   scopeRevision: 2
   baselineEvent: CR-2026-021
+  additiveChanges: [CR-2026-026]
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -68,7 +69,7 @@ tags:
   - name: Curation
     description: Application-only favorites and manual tags that never modify original media.
   - name: AI models
-    description: Reviewed offline model discovery, installation, availability, and activation.
+    description: Deployment-approved model downloads, offline discovery, installation, availability, and activation.
   - name: Semantic search
     description: Opt-in local image and complete-storyboard video semantic indexing and natural-language search.
   - name: Tag suggestions
@@ -2452,6 +2453,105 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/ai/model-downloads:
+    get:
+      tags: [AI models]
+      operationId: listAIModelDownloads
+      summary: List configured downloadable model packages and latest install progress
+      description: |
+        Returns at most 16 deployment-configured packages without URLs or paths.
+        An empty list means no download source is configured. runtimeAvailable
+        reports whether the semantic runtime is compiled in, not model quality
+        or successful activation. Operation progress for managed model installs
+        uses bytes when totalItems is present. History is stored on the server.
+      x-requirements: [FR-INT-017, FR-INT-019, FR-INT-020]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Configured models and runtime status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelDownloadPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/ai/model-downloads/{downloadId}/install:
+    parameters:
+      - name: downloadId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 8
+          maxLength: 128
+          pattern: '^[A-Za-z0-9_-]+$'
+    post:
+      tags: [AI models]
+      operationId: downloadAIModel
+      summary: Download and verify a configured model into managed storage
+      description: |
+        Accepts only a catalog ID, never a URL, path or uploaded weight.
+        Shares the durable model install queue with offline installation.
+        Cancel through the existing operation cancellation endpoint. On failure
+        retry with a new idempotency key; interrupted transfers restart from zero.
+        Successful installation does not activate the model automatically.
+        The same idempotency key replays its operation. A different key for an
+        already active download returns 409 model_download_active.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-INT-017, FR-INT-019, NFR-INT-007, NFR-INT-009, NFR-INT-010]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '409': [model_download_unavailable, model_download_active, idempotency_conflict]
+        '422': [model_incompatible]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '202':
+          description: Download queued. Progress represents received bytes; installation verifies all hashes.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Location:
+              description: Relative operation URL.
+              schema:
+                type: string
+            Idempotency-Replayed:
+              description: Whether the prior operation was returned.
+              schema:
+                type: boolean
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/ai/models:
     get:
       tags: [AI models]
@@ -2498,7 +2598,7 @@ paths:
         managed/direct package against its reviewed manifest and updates only
         its availability state; active generation metadata and embeddings are
         preserved when a source is unavailable.
-        Revision 1 deliberately has no online model-download operation.
+        Online model acquisition uses the separate configured download catalog.
       security:
         - cookieAuth: []
           csrfToken: []
@@ -6666,6 +6766,77 @@ components:
           minimum: 100
           maximum: 60000
 
+    AIModelDownloadPage:
+      type: object
+      additionalProperties: false
+      required: [items, runtimeAvailable]
+      properties:
+        presets:
+          type: array
+          maxItems: 16
+          description: Built-in informational candidates, not installable downloads. Missing in older servers.
+          items:
+            $ref: '#/components/schemas/AIModelPreset'
+        runtimeAvailable:
+          type: boolean
+          description: Semantic inference dependencies are compiled into this build; activation still validates the model.
+        items:
+          type: array
+          maxItems: 16
+          items:
+            $ref: '#/components/schemas/AIModelDownload'
+
+    AIModelPreset:
+      type: object
+      additionalProperties: false
+      required: [id, name, sourceLabel, purpose, readiness]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sourceLabel:
+          type: string
+        purpose:
+          type: string
+          enum: [semantic_image_text, face_detection_embedding]
+        readiness:
+          type: string
+          enum: [package_pending, adapter_pending]
+
+    AIModelDownload:
+      type: object
+      additionalProperties: false
+      required: [id, name, sourceLabel, purpose, version, licenseId, packageSizeBytes, compatibility, installedModelId, operation]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sourceLabel:
+          type: string
+        purpose:
+          type: string
+          enum: [semantic_image_text, face_detection_embedding]
+        version:
+          type: string
+        licenseId:
+          type: string
+        packageSizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        compatibility:
+          type: string
+          enum: [compatible, architecture_mismatch]
+        installedModelId:
+          $ref: '#/components/schemas/NullableResourceID'
+        operation:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/AIModelOperation'
+
     AIModelPage:
       type: object
       additionalProperties: false
@@ -6836,11 +7007,13 @@ components:
           type: integer
           format: int64
           minimum: 0
+          description: Managed model_install reports received bytes; other operation kinds report processed items.
         totalItems:
           type: integer
           format: int64
           minimum: 0
           nullable: true
+          description: Managed model_install reports manifest package bytes; null means the total is not yet known.
         revision:
           type: integer
           format: int64
@@ -6850,6 +7023,7 @@ components:
           nullable: true
           enum:
             - model_candidate_stale
+            - download_failed
             - model_incompatible
             - model_source_unavailable
             - model_source_unsafe
@@ -7722,6 +7896,8 @@ components:
       type: string
       description: Stable machine-readable code. New public codes require a contract change.
       enum:
+        - model_download_unavailable
+        - model_download_active
         - invalid_request
         - validation_failed
         - invalid_cursor

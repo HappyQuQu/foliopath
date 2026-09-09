@@ -48,20 +48,25 @@ func TestIntelligentMediaNoGoFailsClosedInProductionComposition(t *testing.T) {
 		}
 	}
 
-	emptyCatalogCalls := 0
+	configuredCatalogCalls := 0
 	routeCompositions := 0
 	ast.Inspect(parsed, func(node ast.Node) bool {
 		switch current := node.(type) {
 		case *ast.CallExpr:
 			selector, ok := current.Fun.(*ast.SelectorExpr)
-			if !ok || selector.Sel.Name != "NewCatalog" || selectorPackage(selector) != "aimodel" {
+			if !ok || selector.Sel.Name != "ParseDownloadCatalog" || selectorPackage(selector) != "aimodel" {
 				return true
 			}
-			if len(current.Args) != 1 || !isNilIdentifier(current.Args[0]) {
-				t.Errorf("production reviewed AI catalog must remain empty while intelligent-media release gate is No-Go")
+			if len(current.Args) != 2 {
+				t.Error("model download catalog must use deployment-owned config")
 				return true
 			}
-			emptyCatalogCalls++
+			config, valid := current.Args[0].(*ast.Ident)
+			if !valid || config.Name != "downloadConfig" {
+				t.Errorf("AI catalog must use the fixed deployment-owned configuration per ADR-0016")
+				return true
+			}
+			configuredCatalogCalls++
 		case *ast.CompositeLit:
 			selector, ok := current.Type.(*ast.SelectorExpr)
 			if !ok || selector.Sel.Name != "RouteDependencies" || selectorPackage(selector) != "api" {
@@ -100,9 +105,11 @@ func TestIntelligentMediaNoGoFailsClosedInProductionComposition(t *testing.T) {
 		return true
 	})
 
-	if emptyCatalogCalls != 1 {
-		t.Errorf("production composition has %d empty reviewed AI catalog constructors, want 1", emptyCatalogCalls)
+	if configuredCatalogCalls != 1 {
+		t.Errorf("production composition has %d configured AI catalog constructors, want 1", configuredCatalogCalls)
 	}
+	assertDocumentContains(t, runPath, `files.ReadModelDownloadCatalog(filepath.Join(configuration.dataRoot, "model-downloads.json"))`)
+	assertDocumentContains(t, filepath.Join(root, "docs", "adr", "0016-admin-model-download-catalog.md"), "Accepted for implementation")
 	if routeCompositions != 1 {
 		t.Errorf("production composition has %d API route dependency literals, want 1", routeCompositions)
 	}

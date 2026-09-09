@@ -1,5 +1,8 @@
 # FolioPath
 
+The experimental AI model page includes built-in informational presets, separate from installable downloads.
+Presets marked pending are not yet downloadable or supported; custom verified download catalogs remain optional.
+
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> · <strong>English</strong> · <a href="CHANGELOG.md">Changelog</a>
 </p>
@@ -154,9 +157,12 @@ original media.
 
 These capabilities remain disabled for release until the final reviewed model packages, governed
 quality results, native `linux/amd64` and `linux/arm64` evidence, joint 4 CPU/4 GiB capacity,
-supply-chain evidence, and required approvals pass the S4 gate. FolioPath has no model-download or
-mirror UI: operators must obtain a package whose exact digest is in the reviewed catalog and expose
-it through an optional read-only `/models:ro` mount. Missing, changed, corrupt, incompatible, or
+supply-chain evidence, and required approvals pass the S4 gate. The intelligence settings now include
+an overview, a model download catalog with persistent progress/cancel/retry, library analysis, and tasks.
+Downloads require a deployment-administered catalog of exact HTTPS files and hashes; no default hosted
+model source is configured. The current default image does not include AI inference, and downloading
+a model does not enable analysis. See [model download setup](docs/deployment.md#模型下载目录).
+Offline import through optional read-only `/models:ro` remains available. Missing, changed, corrupt, incompatible, or
 unreviewed packages make only the dependent intelligent capability unavailable; normal browsing
 continues. See the [frozen revision 2 scope](docs/releases/POST-MVP-5-scope-r2.md),
 [deployment contract](docs/deployment.md#post-mvp-5-revision-2-cde-deployment-and-recovery-contract),

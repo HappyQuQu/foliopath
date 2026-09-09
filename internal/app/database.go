@@ -31,6 +31,7 @@ type databaseStore interface {
 	aimodel.Repository
 	aimodel.OperationRepository
 	aimodel.InstallQueue
+	aimodel.DownloadHistory
 	aimodel.ActivationRepository
 	semantic.BackfillQueue
 	semantic.ClearQueue

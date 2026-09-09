@@ -119,7 +119,7 @@ export interface paths {
          *     managed/direct package against its reviewed manifest and updates only
          *     its availability state; active generation metadata and embeddings are
          *     preserved when a source is unavailable.
-         *     Revision 1 deliberately has no online model-download operation.
+         *     Online model acquisition uses the separate configured download catalog.
          */
         post: operations["scanAIModelCandidates"];
         delete?: never;
@@ -142,6 +142,58 @@ export interface paths {
         put?: never;
         /** Install one candidate by managed copy or strict direct reference */
         post: operations["installAIModelCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List configured downloadable model packages and latest install progress
+         * @description Returns at most 16 deployment-configured packages without URLs or paths.
+         *     An empty list means no download source is configured. runtimeAvailable
+         *     reports whether the semantic runtime is compiled in, not model quality
+         *     or successful activation. Operation progress for managed model installs
+         *     uses bytes when totalItems is present. History is stored on the server.
+         */
+        get: operations["listAIModelDownloads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-downloads/{downloadId}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download and verify a configured model into managed storage
+         * @description Accepts only a catalog ID, never a URL, path or uploaded weight.
+         *     Shares the durable model install queue with offline installation.
+         *     Cancel through the existing operation cancellation endpoint. On failure
+         *     retry with a new idempotency key; interrupted transfers restart from zero.
+         *     Successful installation does not activate the model automatically.
+         *     The same idempotency key replays its operation. A different key for an
+         *     already active download returns 409 model_download_active.
+         */
+        post: operations["downloadAIModel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1771,12 +1823,37 @@ export interface components {
             /** @description True when the bounded scan found more entries than may be reported. */
             truncated: boolean;
         };
-        AIModelOperation: {
+        AIModelDownload: {
+            /** @enum {string} */
+            compatibility: "compatible" | "architecture_mismatch";
+            id: string;
+            installedModelId: components["schemas"]["NullableResourceID"];
+            licenseId: string;
+            name: string;
+            operation: components["schemas"]["AIModelOperation"] | null;
             /** Format: int64 */
+            packageSizeBytes: number;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "face_detection_embedding";
+            sourceLabel: string;
+            version: string;
+        };
+        AIModelDownloadPage: {
+            items: components["schemas"]["AIModelDownload"][];
+            /** @description Built-in informational candidates, not installable downloads. Missing in older servers. */
+            presets?: components["schemas"]["AIModelPreset"][];
+            /** @description Semantic inference dependencies are compiled into this build; activation still validates the model. */
+            runtimeAvailable: boolean;
+        };
+        AIModelOperation: {
+            /**
+             * Format: int64
+             * @description Managed model_install reports received bytes; other operation kinds report processed items.
+             */
             completedItems: number;
             createdAt: components["schemas"]["Timestamp"];
             /** @enum {string|null} */
-            errorCode: "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "vocabulary_unavailable" | "storyboard_not_ready" | "face_model_unavailable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "operation_interrupted" | "cancelled" | "internal_error" | null;
+            errorCode: "model_candidate_stale" | "download_failed" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "vocabulary_unavailable" | "storyboard_not_ready" | "face_model_unavailable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "operation_interrupted" | "cancelled" | "internal_error" | null;
             id: components["schemas"]["ResourceID"];
             /** @enum {string} */
             kind: "model_install" | "model_activate" | "semantic_missing" | "semantic_rebuild" | "semantic_clear" | "tag_suggestion_missing" | "tag_suggestion_rebuild" | "tag_review_clear" | "video_semantic_missing" | "video_semantic_rebuild" | "face_missing" | "face_rebuild" | "face_derived_clear" | "face_manual_clear";
@@ -1786,7 +1863,10 @@ export interface components {
             revision: number;
             /** @enum {string} */
             state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Managed model_install reports manifest package bytes; null means the total is not yet known.
+             */
             totalItems: number | null;
             updatedAt: components["schemas"]["Timestamp"];
         };
@@ -1796,6 +1876,15 @@ export interface components {
             items: components["schemas"]["AIModel"][];
             /** Format: int64 */
             revision: number;
+        };
+        AIModelPreset: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "face_detection_embedding";
+            /** @enum {string} */
+            readiness: "package_pending" | "adapter_pending";
+            sourceLabel: string;
         };
         AITagSuggestion: {
             asset: components["schemas"]["Asset"];
@@ -2200,7 +2289,7 @@ export interface components {
          * @description Stable machine-readable code. New public codes require a contract change.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
+        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
         ErrorResponse: {
             error: components["schemas"]["Error"];
         };
@@ -3584,6 +3673,71 @@ export interface operations {
                     /** @description Relative URL of the model operation. */
                     Location?: string;
                     "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAIModelDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configured models and runtime status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelDownloadPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    downloadAIModel: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download queued. Progress represents received bytes; installation verifies all hashes. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    /** @description Whether the prior operation was returned. */
+                    "Idempotency-Replayed"?: boolean;
+                    /** @description Relative operation URL. */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {

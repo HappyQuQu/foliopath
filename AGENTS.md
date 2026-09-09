@@ -157,6 +157,11 @@ them.
 
 ## Media processing
 
+- POST-MVP-5 model downloads follow ADR-0016: only a deployment-owned fixed
+  catalog may supply HTTPS URLs and exact hashes. Browser APIs accept opaque
+  download IDs, never URLs; downloads reuse the bounded model-install worker
+  and verified atomic managed store. Downloaded is not activated or release-ready.
+
 - Use libvips through `govips` for image metadata and thumbnails.
 - Use `ffprobe` for video metadata and `ffmpeg` for poster extraction.
 - The MVP format contract is JPEG, PNG, WebP, and GIF for image indexing/thumbnails,

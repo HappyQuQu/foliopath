@@ -33,3 +33,4 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0013：本地 AI 运行时与可重建向量索引](0013-local-ai-runtime-and-derived-vector-index.md)（A+B 已接受）
 - [ADR-0014：SigLIP SentencePiece tokenizer runtime 与模型包 v2](0014-siglip-sentencepiece-tokenizer-runtime.md)（已接受 fail-closed 后端实现；发行链接、模型激活与发布仍等待质量/双架构/供应链 Gate）
 - [ADR-0015：人脸组合模型包与独立 generation 激活](0015-face-model-package-and-generation-activation.md)（已接受 fail-closed 后端实现；模型激活与发布仍等待 S2C 质量/隐私/双架构准入）
+- [ADR-0016：部署管理员模型下载目录](0016-admin-model-download-catalog.md)（已接受下载与 UI 扩展；不提供默认下载源、不解除 AI Release No-Go）
