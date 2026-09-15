@@ -1,5 +1,49 @@
 # FolioPath 候选部署与运维
 
+2026-09-16 人脸接入开发：migration 40 扩展内部 service 模型记录，尚无主进程人脸部署配置入口。升级前备份 `/app/data`；一旦存在人脸 service 记录，不支持直接降回 39，应恢复升级前备份，禁止为了降级删除模型/代次。当前开发验证只运行本地临时 Docker 测试库，未升级现有运行环境。
+
+候选主进程现支持 `FOLIOPATH_AI_DEPLOYMENT` JSON，字段为 `origin`、`identity`、
+`model_bytes`、`license_id`，严格解析并在启动时拒绝不合法配置。身份需从固定候选
+镜像离线读取，不能把 HTTP 实时响应当成可信预期；结构见
+[启动合同](architecture/independent-ml-generation-contract.md)。未设置则保留旧路径。
+本地测试再叠加 `spikes/int001-remote-ml/compose.app.yaml`：主应用仅发布
+`127.0.0.1:6091`，AI 仍仅在内部网络，无媒体或数据库挂载。测试主应用现使用包含
+FFmpeg 的实际 distroless 镜像 `foliopath-app:candidate`，
+挂载合成 fixtures 和独立 candidate-app-data 卷，不是发行 Compose。
+AI 初始离线不阻塞普通图库；每 30 秒核验，恢复后复用活动模型，不清理旧索引。
+激活每个可用性版本最多三次持久化尝试，无直接网络回退。
+
+2026-09-15：migration 39 引入 service 模型类型。出现该类型后不能直接降级数据库到 38；
+迁移会拒绝，不会删除模型以完成降级。测试中显式回滚失败事务验证数据保留；运行时升级
+失败应关闭连接/停止启动，回退须恢复升级前 `/app/data` 备份，不得直接更换旧镜像强行打开。
+
+2026-09-15 ADR-0020 专用 AI 候选镜像使用 `services/inference/Dockerfile`；隔离 Compose
+覆盖文件为 `spikes/int001-remote-ml/compose.foliopath.yaml`。AI 不发布端口，只读 `/cache`，
+容器内 1 GiB `/verified-cache` tmpfs 保存已核验模型快照，另有 128 MiB `/tmp`，
+内存预算 4 GiB（包括快照及模型加载）。健康检查只有校验完成后成功。
+此预算不是四核/4 GiB 整机容量验收，也不是最终正式 Compose，根部署未切换。
+
+2026-09-14：新 AI 双服务方向见 ADR-0019。当前可运行的隔离验证 Compose 位于
+`spikes/int001-remote-ml/compose.yaml`，固定镜像、仅私网、无端口、只读复制模型。
+这是 ML 服务 + 测试客户端，不是主应用已接入的正式 Compose；根 compose.yaml 尚未改变。
+
+## 模型下载代理（POST-MVP-5 / ADR-0017）
+
+支持显式设置 `FOLIOPATH_MODEL_DOWNLOAD_PROXY=http://192.168.2.231:7890`。
+在支持 ADR-0017 的镜像中为 FolioPath 服务增加此环境变量并重新创建容器后生效。
+默认跟随部署时，未设置/空值为直连；HTTP_PROXY、HTTPS_PROXY、ALL_PROXY、NO_PROXY 不会影响模型下载。
+含 ADR-0018 的镜像还支持「智能 → 模型 → 模型下载代理」：跟随 Docker、直连、自定义。
+界面选择优先于部署值；选择跟随配置可恢复 Docker 默认。设置保存在 /app/data 的 SQLite，
+重启保留。保存无需重启，下一文件连接生效，在途文件不切换。连接测试不会保存表单或安装模型。
+更新前备份 /app/data；本变更增加迁移 00037，旧镜像回退应按既有备份恢复流程执行。
+此变量不是入站 `FOLIOPATH_TRUSTED_PROXIES`，也不改变媒体/更新检查等其他请求。
+
+仅接受无认证 HTTP/HTTPS 代理 origin，可指定端口；不接受账号密码、路径、query 或 fragment。
+代理失败不会自动直连。HTTPS 证书校验不关闭，代理无需也不应解密模型流量。
+代理承担目标域名解析与私网/metadata 地址拦截策略，运营者必须信任它。
+固定模型目录仍须明确允许 CDN 重定向主机；例如本次固定 SigLIP tokenizer 源跳转到
+`us.aws.cdn.hf.co`，不能只允许 huggingface.co，也不能使用通配符允许所有跳转。
+
 ## 状态
 
 本文描述首个可用版本的候选部署方式。Stage 5 `S5-001A` 已建立根 `Dockerfile` 候选镜像：

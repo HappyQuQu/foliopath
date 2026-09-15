@@ -35,15 +35,32 @@ type ImageEncoder interface {
 	EncodeSemanticImage(context.Context, string, []float32) ([]float32, error)
 }
 
-type BackfillProcessor struct {
-	catalog      BackfillCatalog
-	assets       BackfillAssetSource
+type StreamImageEncoder interface {
+	EncodeSemanticStream(context.Context, string, io.ReadSeeker, media.Format) ([]float32, error)
+}
+
+// legacyStreamEncoder preserves the existing SigLIP preprocessing contract.
+type legacyStreamEncoder struct {
 	preprocessor ImagePreprocessor
 	encoder      ImageEncoder
-	embeddings   EmbeddingRepository
-	queue        BackfillQueue
-	now          func() time.Time
-	pageSize     int
+}
+
+func (e legacyStreamEncoder) EncodeSemanticStream(ctx context.Context, generation string, source io.ReadSeeker, format media.Format) ([]float32, error) {
+	tensor, err := e.preprocessor.PrepareSemanticImage(ctx, source, format)
+	if err != nil {
+		return nil, err
+	}
+	return e.encoder.EncodeSemanticImage(ctx, generation, tensor)
+}
+
+type BackfillProcessor struct {
+	catalog    BackfillCatalog
+	assets     BackfillAssetSource
+	encoder    StreamImageEncoder
+	embeddings EmbeddingRepository
+	queue      BackfillQueue
+	now        func() time.Time
+	pageSize   int
 }
 
 func NewBackfillProcessor(
@@ -59,6 +76,16 @@ func NewBackfillProcessor(
 	if catalog == nil || assets == nil || preprocessor == nil || encoder == nil || embeddings == nil || queue == nil {
 		return nil, errors.New("semantic backfill processor dependencies are required")
 	}
+	return NewStreamBackfillProcessor(catalog, assets, legacyStreamEncoder{preprocessor, encoder}, embeddings, queue, now, pageSize)
+}
+
+// NewStreamBackfillProcessor shares the existing bounded job/commit loop. The
+// supplied encoder owns generation admission; the remote path requires BoundEncoder.
+func NewStreamBackfillProcessor(catalog BackfillCatalog, assets BackfillAssetSource, encoder StreamImageEncoder,
+	embeddings EmbeddingRepository, queue BackfillQueue, now func() time.Time, pageSize int) (*BackfillProcessor, error) {
+	if catalog == nil || assets == nil || encoder == nil || embeddings == nil || queue == nil {
+		return nil, errors.New("semantic backfill processor dependencies are required")
+	}
 	if now == nil {
 		now = time.Now
 	}
@@ -68,7 +95,7 @@ func NewBackfillProcessor(
 	if pageSize < 1 || pageSize > 1000 {
 		return nil, ErrInvalidSemanticJob
 	}
-	return &BackfillProcessor{catalog: catalog, assets: assets, preprocessor: preprocessor,
+	return &BackfillProcessor{catalog: catalog, assets: assets,
 		encoder: encoder, embeddings: embeddings, queue: queue, now: now, pageSize: pageSize}, nil
 }
 
@@ -77,6 +104,7 @@ func (processor *BackfillProcessor) Process(ctx context.Context, job BackfillJob
 		job.State != JobRunning || job.ClaimedRevision < 1 || job.TotalItems < job.CompletedItems {
 		return ErrInvalidSemanticJob
 	}
+	defer processor.BackgroundAdmissionCancelled(ctx, job)
 	progress, found, err := processor.embeddings.GetSemanticEmbeddingProgress(ctx, job.GenerationID, job.LibraryID)
 	if err != nil || !found {
 		return processor.fail(ctx, job, "internal_error", firstNonNil(err, ErrSemanticProgressConflict))
@@ -136,6 +164,17 @@ func (processor *BackfillProcessor) Process(ctx context.Context, job BackfillJob
 	return err
 }
 
+// BackgroundAdmissionCancelled finalizes only a persisted user cancellation,
+// including when resource admission prevented Process from starting.
+func (processor *BackfillProcessor) BackgroundAdmissionCancelled(ctx context.Context, job BackfillJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = processor.queue.FinishSemanticBackfill(cleanup, job, JobCancelled, "", processor.now().UTC())
+}
+
 type candidateOutcome uint8
 
 const (
@@ -159,11 +198,7 @@ func (processor *BackfillProcessor) processCandidate(ctx context.Context, job Ba
 	if asset.SourceFingerprint != candidate.SourceFingerprint {
 		return EmbeddingItem{}, candidateStale, ErrSemanticSourceChanged
 	}
-	tensor, err := processor.preprocessor.PrepareSemanticImage(ctx, asset.File, asset.Format)
-	if err != nil {
-		return EmbeddingItem{}, candidateFailed, err
-	}
-	vector, err := processor.encoder.EncodeSemanticImage(ctx, job.GenerationID, tensor)
+	vector, err := processor.encoder.EncodeSemanticStream(ctx, job.GenerationID, asset.File, asset.Format)
 	if err != nil {
 		return EmbeddingItem{}, candidateFailed, err
 	}

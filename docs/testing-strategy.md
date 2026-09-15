@@ -1,5 +1,22 @@
 # FolioPath 测试策略
 
+图片源变更回归：app-chain.mjs 可启用 FOLIOPATH_TEST_INVALIDATION=1，仅允许
+指定格式的临时合成目录，修改夹具时间戳后通过扫描 API 验证 coverage 与检索同步
+失效并回填恢复。严禁指向真实图库。仓储测试另覆盖重复 upsert 和失败扫描保留。
+
+部署启动子片另用 `compose.app.yaml` 叠加候选 AI Compose，在本地 Docker 以合成
+fixtures/独立测试数据卷验证主进程就绪、自动激活、服务中断及恢复；不使用真实图库。
+app 回归覆盖离线配置、幂等注册、恢复和本地并发满不误标离线；HTTP 回归确保身份
+不匹配前不发送输入。此门通过不替代建库→回填→搜索的完整 E2E。
+
+CR-2026-030 独立 ML 验证：`spikes/int001-remote-ml/probe.py` 经内部 HTTP 测合成图像/文本
+512 维输出、重复请求稳定及纯色图无人脸。禁止将复制的 coser 加入自动化测试；
+主应用集成、服务故障、模型代次切换与质量另设后续验收。
+用户已要求后续仅在本地验证，不再使用 server222。Go 传输回归入口为
+`go test -race ./internal/inference/remoteml ./internal/semantic ./internal/face`；
+新增响应正文超时/截断后的同客户端恢复测试，检查无隐式重试及请求槽释放。
+真实离线模型测试命令见 `spikes/int001-remote-ml/README.md`，不替代主应用/质量验收。
+
 ## 状态
 
 部署维护新增 `node --test scripts/verify-deployed-web.test.mjs`；实际候选与部署分别运行
@@ -853,3 +870,10 @@ smallest-ID anchor coherence 只允许 A/B 成为 core，C 最多为 edge；输�
 本阶段可由 contract/architecture test 验证 OpenAPI、生成确定性和生产 composition fail-closed；production
 migration/handler/worker 测试只有 S1R2 Gate Go 后才允许出现。测试报告必须逐条写已执行/未执行和环境，
 不得把 static prototype、synthetic face state machine 或 arm64 单机数据描述为发布证明。
+## 独立 AI 本地 Docker 工作流（2026-09-15）
+
+按用户要求，独立 AI 后续验证优先在本地 Docker 执行，不使用 server222。
+`spikes/int001-remote-ml/compose.yaml` 的 test profile 提供 regression（无网络、
+只读根、临时数据库、竞态检测）及 encoded-probe（私有网络真实离线推理）。
+完整命令见该目录 README。三包回归和真实 ML probe 必须分别记录结果，不能互相替代；
+它们都不等同于主应用 UI/查询/回填完整 E2E。测试镜像不作为正式产品镜像发布。

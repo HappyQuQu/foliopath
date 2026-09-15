@@ -39,6 +39,13 @@ type Processor[T any] interface {
 	Process(context.Context, T) error
 }
 
+// AdmissionCancellationHandler lets the capability finalize claimed work that
+// never entered Process. It owns bounded cleanup and all persisted state rules;
+// resourcecontrol does not interpret user cancellation versus shutdown.
+type AdmissionCancellationHandler[T any] interface {
+	BackgroundAdmissionCancelled(context.Context, T)
+}
+
 type BackgroundProcessor[T any] struct {
 	controller *Controller
 	next       Processor[T]
@@ -57,10 +64,23 @@ func LimitBackground[T any](
 func (processor *BackgroundProcessor[T]) Process(ctx context.Context, item T) error {
 	release, err := processor.controller.AcquireBackground(ctx)
 	if err != nil {
+		processor.notifyAdmissionCancellation(ctx, item)
 		return err
 	}
 	defer release()
+	if err := ctx.Err(); err != nil {
+		processor.notifyAdmissionCancellation(ctx, item)
+		return err
+	}
 	return processor.next.Process(ctx, item)
+}
+
+func (processor *BackgroundProcessor[T]) notifyAdmissionCancellation(ctx context.Context, item T) {
+	if ctx.Err() != nil {
+		if handler, ok := processor.next.(AdmissionCancellationHandler[T]); ok {
+			handler.BackgroundAdmissionCancelled(ctx, item)
+		}
+	}
 }
 
 func NewController(limits Limits) (*Controller, error) {
@@ -104,6 +124,10 @@ func newLimiter(limit int) *limiter {
 func (limiter *limiter) acquire(ctx context.Context) (func(), error) {
 	for {
 		limiter.mutex.Lock()
+		if err := ctx.Err(); err != nil {
+			limiter.mutex.Unlock()
+			return nil, err
+		}
 		if limiter.inUse < limiter.limit {
 			limiter.inUse++
 			limiter.mutex.Unlock()

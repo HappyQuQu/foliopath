@@ -194,7 +194,7 @@ func (factory semanticProductionSessionFactory) resolve(ctx context.Context, gen
 		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, semantic.ErrImageEncoderUnavailable
 	}
 	generation, err := factory.generations.GetSemanticGenerationRuntime(ctx, generationID)
-	if err != nil || generation.State != "active" || generation.EmbeddingDimension != int(onnx.EmbeddingDimension) {
+	if err != nil || semantic.RequireLegacySigLIPGeneration(generation) != nil {
 		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, errors.Join(semantic.ErrSemanticGenerationUnavailable, err)
 	}
 	model, err := factory.models.Get(ctx, generation.ModelID)

@@ -28,6 +28,7 @@ type StorageMode string
 const (
 	StorageManaged StorageMode = "managed"
 	StorageDirect  StorageMode = "direct"
+	StorageService StorageMode = "service"
 )
 
 type State string
@@ -81,10 +82,14 @@ func ValidatePackage(value VerifiedPackage) error {
 
 func ValidateModel(value Model) error {
 	if value.ID == "" || len(value.ID) > 128 || ValidatePackage(value.Package) != nil ||
-		(value.StorageMode != StorageManaged && value.StorageMode != StorageDirect) ||
+		(value.StorageMode != StorageManaged && value.StorageMode != StorageDirect && value.StorageMode != StorageService) ||
 		(value.State != StateInstalled && value.State != StateAvailable && value.State != StateUnavailable) ||
 		value.SourceIdentity == "" || len(value.SourceIdentity) > 256 || value.AvailabilityRevision < 1 ||
 		value.CreatedAt.IsZero() || value.UpdatedAt.Before(value.CreatedAt) {
+		return ErrRepositoryState
+	}
+	if value.StorageMode == StorageService && (value.State == StateInstalled ||
+		(value.Package.Purpose != PurposeSemanticImageText && value.Package.Purpose != PurposeFaceDetectionEmbedding) || value.SourceIdentity != value.Package.ContentHash) {
 		return ErrRepositoryState
 	}
 	return nil

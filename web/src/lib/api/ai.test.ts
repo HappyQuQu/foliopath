@@ -1,12 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "./client";
+import { getLibraryVideoSemanticStatus } from "./ai";
+import { requestLibraryVideoSemanticJob } from "./ai";
 import { applyFaceReview, downloadAIModel, listAIModelDownloads, getLibraryFaceSettings, listAITagSuggestions, listFaceClusters, reviewAITagSuggestions } from "./ai";
 
 vi.mock("./client", () => ({ apiClient: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn() } }));
 
 describe("intelligence API adapters", () => {
   beforeEach(() => { vi.mocked(apiClient.GET).mockReset(); vi.mocked(apiClient.POST).mockReset(); });
+
+  it("requests video work by library ID with CSRF and idempotency", async () => {
+    vi.mocked(apiClient.POST).mockResolvedValue({ data: { id: "aio_video", revision: 2 }, response: new Response(null, { headers: { ETag: '"aio_video-r2"' } }) } as never);
+    await expect(requestLibraryVideoSemanticJob({ libraryId: "lib_1", mode: "all", csrfToken: "csrf", idempotencyKey: "video-key" })).resolves.toMatchObject({ id: "aio_video" });
+    expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/libraries/{libraryId}/ai/video-semantic/jobs", { body: { mode: "all" }, headers: { "X-CSRF-Token": "csrf" }, params: { header: { "Idempotency-Key": "video-key" }, path: { libraryId: "lib_1" } } });
+  });
+
+  it("reads video progress without a query or inference request and preserves unknown coverage", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({ data: { libraryId: "lib_1", enabled: false, offline: true, activeGenerationId: null, coverage: null }, response: new Response() } as never);
+    await expect(getLibraryVideoSemanticStatus("lib_1")).resolves.toMatchObject({ coverage: null, offline: true });
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/libraries/{libraryId}/ai/video-semantic", { params: { path: { libraryId: "lib_1" } } });
+    expect(apiClient.POST).not.toHaveBeenCalled();
+  });
 
   it("downloads by ID without sending a URL or body and preserves the operation validator", async () => {
     vi.mocked(apiClient.POST).mockResolvedValue({ data: { id: "aio_download", revision: 3 }, response: new Response(null, { headers: { ETag: '\"aio_download-r3\"' } }) } as never);

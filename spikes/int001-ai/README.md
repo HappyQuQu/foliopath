@@ -338,3 +338,41 @@ results do not satisfy native dual-architecture evidence. The tool requires an
 explicit `--execution-mode native|qemu`; it records the compiled Go architecture
 and refuses an omitted or unknown mode so evidence cannot silently mislabel an
 emulated run as native.
+# SigLIP / Immich compatibility probe (2026-09-10)
+
+`siglip_immich_probe.py` is an isolated development probe, not a production installer.
+Install `requirements-siglip-immich-probe.txt` in a disposable Python environment.
+Supply the fixed upstream artifacts recorded in
+`docs/evidence/int-001/siglip-download-source-check-2026-09-10.md` as `image.onnx`,
+`text.onnx`, `spiece.model`, and `tokenizer.json` in an isolated source directory.
+Run `python siglip_immich_probe.py --source /path/to/candidate-files` for checks only.
+Optional `--candidate-output /path/to/new-directory` generates ABI-converted development graphs
+and compares one synthetic input per graph with the upstream output. Existing output directories
+are refused; the inputs are not modified. No arbitrary weights, remote code, model publishing,
+production manifest, quality approval or default catalog admission are part of this probe.
+
+Native Go candidate checks are opt-in with Linux/cgo, pinned ORT 1.28.0, build tags
+`onnxruntime inferencecandidate`, and `FOLIOPATH_SIGLIP_CANDIDATE_DIR` pointing to the converted
+graphs. `TestNativeSemanticConvertedCandidate` verifies exact fixture hashes and finite nonzero
+768-dimensional image/text outputs; it does not test tokenizer composition or activation.
+
+## Native managed-install / activation candidate probe
+
+The opt-in test `TestSemanticCandidateManagedInstallAndNativeActivation` under
+`tests/integration/semantic_candidate_activation_test.go` extends the isolated
+SigLIP conversion probe through real managed publication, registration, native
+activation worker and SQLite reopen. It does not test HTTP acquisition, admit a
+production catalog entry or prove semantic quality.
+
+Run on Linux/amd64 with ONNX Runtime 1.28.0 headers/shared library and SentencePiece:
+
+```sh
+FOLIOPATH_SIGLIP_CANDIDATE_DIR=/candidate \
+go test -p=2 -tags=onnxruntime,sentencepiece,inferencecandidate ./tests/integration \
+  -run '^TestSemanticCandidateManagedInstallAndNativeActivation$' -count=1 -v
+```
+
+The candidate directory must contain the three pinned artifacts documented in
+`docs/evidence/int-001/siglip-download-source-check-2026-09-10.md`. It is mounted
+read-only; the test uses fresh temporary database and managed-store directories.
+No developer media, live database or production model catalog is used.

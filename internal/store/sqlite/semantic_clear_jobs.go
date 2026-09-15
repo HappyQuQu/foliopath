@@ -256,6 +256,14 @@ func (s *Store) FinishSemanticClear(ctx context.Context, job semantic.ClearJob, 
 		if err := tx.QueryRowContext(ctx, `SELECT state FROM semantic_clear_jobs WHERE id=? AND claimed_revision=?`, job.ID, job.ClaimedRevision).Scan(&state); err != nil {
 			return semantic.ErrSemanticClearConflict
 		}
+		// Accepted cancellation wins over terminal success/failure attempts after
+		// a committed batch. Previously deleted derived data is not restored.
+		if state == "cancelling" {
+			outcome, errorCode = semantic.JobCancelled, "cancelled"
+		}
+		if outcome == semantic.JobCancelled && state != "cancelling" {
+			return semantic.ErrSemanticClearConflict
+		}
 		if outcome == semantic.JobSucceeded {
 			if state != "running" {
 				return semantic.ErrSemanticClearConflict

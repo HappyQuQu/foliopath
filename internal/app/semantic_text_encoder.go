@@ -227,7 +227,7 @@ func (factory semanticProductionTextSessionFactory) resolve(ctx context.Context,
 		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, semantic.ErrSemanticGenerationUnavailable
 	}
 	generation, err := factory.generations.GetSemanticGenerationRuntime(ctx, generationID)
-	if err != nil || generation.State != "active" || generation.EmbeddingDimension != semantic.SigLIPEmbeddingDimension {
+	if err != nil || semantic.RequireLegacySigLIPGeneration(generation) != nil {
 		return semantic.GenerationRuntime{}, aimodel.Model{}, aimodel.Manifest{}, errors.Join(semantic.ErrSemanticGenerationUnavailable, err)
 	}
 	model, err := factory.models.Get(ctx, generation.ModelID)

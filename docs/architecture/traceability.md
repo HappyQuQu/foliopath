@@ -1,5 +1,252 @@
 # FolioPath 需求—架构追踪
 
+2026-09-16 CR-2026-030 / FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2：aimodel 原激活 worker 增加独立服务人脸分支；SQLite migration 40 扩展内部模型记录，旧文件提交拒绝 service。[合同与验证](../evidence/int-001/face-deployment-worker-2026-09-16.md)。app 真实身份/阈值准入和身份绑定代次提交尚未实现。
+
+2026-09-15 CR-2026-030 / FR-INT-009 / NFR-INT-002、004、005，POST-MVP-5 S2：imagevips 解码→remoteml FaceRuntime→face.Candidate，质量启发式由 face 唯一持有、旧 faceonnx 复用。无阈值调整。
+[Docker 竞态与真实四格式证据](../evidence/int-001/face-runtime-adapter-2026-09-15.md)，架构检查通过；app 人脸代次与任务仍未组合。
+
+2026-09-15 CR-2026-030 / FR-INT-009 / NFR-INT-002、004、005，POST-MVP-5 S2：remoteml 新增 face-v1 客户端，复用 HTTP/并发/身份读取实现，不复用 CLIP 身份；app 尚未组合。
+[13 项 Docker 竞态及真实零人脸传输证据](../evidence/int-001/face-go-transport-2026-09-15.md)。架构检查通过；face 的质量、代次和聚类归属不变。
+
+2026-09-15 CR-2026-030 / FR-INT-009 / NFR-INT-002、004、005，POST-MVP-5 S2：inference 新增独立人脸身份、可选固定缓存、有界私有协议；face 仍拥有质量/聚类，app 尚未组合。
+[合同与 Docker 证据](../evidence/int-001/face-service-contract-2026-09-15.md)。13 项合同/缓存测试及真实零人脸通过，架构检查通过；不代表非空识别或发行验收。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016 / NFR-INT-007：跨库混合审核账本清理后取消与另一库隔离回归通过；
+[合成持久化证据](../evidence/int-001/tag-review-cross-library-2026-09-15.md)。Owner semantic/SQLite/curation，无生产契约变化。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016 / NFR-INT-007：新词表文本编码请求在 AI 暂停期间取消及恢复通过，Owner app/semantic/remoteml；
+[实际证据边界](../evidence/int-001/tag-text-request-cancellation-2026-09-15.md)，本轮不改生产合同。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016 / NFR-INT-007：标签非空处理器在提交前/后取消及停机边界通过，Owner semantic/SQLite；
+[确定性四场景证据](../evidence/int-001/tag-job-processing-cancellation-2026-09-15.md)。本轮无生产变化。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016 / NFR-INT-007：新本地镜像非空标签任务等待取消、恢复及 curation 保留通过；
+[实际证据与未覆盖交错](../evidence/int-001/tag-job-runtime-cancellation-2026-09-15.md)。Owner app/semantic/resourcecontrol，无合同变化。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016 / NFR-INT-007：标签生成处理器有界取消收尾及 SQLite 已接受取消优先，Owner semantic/SQLite；
+[Docker 边界回归](../evidence/int-001/tag-job-cancellation-2026-09-15.md)。原合同不变，非空实际运行矩阵待补。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016：正式 HTTP 非空建议接受、幂等重放及清理保留 curation 验收通过；
+[本地证据和未覆盖范围](../evidence/int-001/tag-review-chain-2026-09-15.md)。Owner app/semantic/curation，无生产合同变更。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016：app 组合标签生成服务、单 worker 与共享后台额度，复用同代次 BoundEncoder；
+[本地首次任务及未校准阈值边界](../evidence/int-001/tag-generation-wiring-2026-09-15.md)。Owner app/semantic，合同沿用，非空端到端未完成。
+
+2026-09-15 CR-2026-030 / FR-INT-004 / FR-INT-016：核查确认独立 AI 主应用缺少标签生成服务/worker 组合，不能标为生产已交付；
+[代码与 HTTP 证据](../evidence/int-001/tag-generation-gap-2026-09-15.md)。Owner app/semantic，非空正式审核链路需先补此依赖。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：新镜像正式 API 验证标签审核清理等待取消及重试，Owner semantic/SQLite/resourcecontrol/app；
+[实际链路证据边界](../evidence/int-001/tag-clear-runtime-2026-09-15.md)。无合同变化。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：标签审核清理终态优先处理已接受取消，Owner semantic/SQLite；
+[非空批次及正式标签保留证据](../evidence/int-001/tag-clear-batch-2026-09-15.md)。接口与数据结构未变。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：标签审核清理复用资源取消通知与有界收尾，SQLite 要求已接受取消，Owner semantic/SQLite；
+[Docker 回归和边界](../evidence/int-001/tag-clear-admission-2026-09-15.md)。原清理合同不变。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：包含终态修复的新本地镜像通过四类受控混合取消恢复，Owner semantic/scanner/resourcecontrol/app；
+[实际链路与精确交错证据边界](../evidence/int-001/cancellation-runtime-refresh-2026-09-15.md)。合同未变。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：语义清理终态事务优先处理已接受取消，Owner semantic/SQLite；
+[部分及最终批次 Docker 复现与修复](../evidence/int-001/clear-batch-cancellation-2026-09-15.md)。原删除边界、领取版本及合同不变。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：真实图片处理器与 SQLite 确定性终态取消组合通过，Owner semantic/SQLite；
+[证据与清理终态待修边界](../evidence/int-001/image-processor-terminal-2026-09-15.md)。本轮无生产合同变化。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：SQLite 图片终态事务优先处理已持久化取消，原领取版本校验保留；
+[先失败后通过的 Docker 回归](../evidence/int-001/image-terminal-cancellation-2026-09-15.md)。Owner semantic/SQLite，无 API 或数据结构变更。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007，扫描关联 FR-SCN-004/008：新运行镜像完成扫描/语义清理受控混合等待取消；
+[实际 HTTP 证据及恢复边界](../evidence/int-001/scan-clear-admission-runtime-2026-09-15.md)。Owner scanner/semantic/resourcecontrol/app，未变更合同。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：扫描入口及资源准入取消交回 scanner.abort，SQLite 原事务保持索引与代次；
+[Docker 组合和既有扫描回归](../evidence/int-001/scan-admission-cancellation-2026-09-15.md)。未改变 API 或状态归属，实际 worker 混合等待验收待补。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：ClearProcessor 复用取消通知，SQLite 要求 cancelling 才接受 cancelled；
+[组合回归与保留边界](../evidence/int-001/clear-admission-cancellation-2026-09-15.md)。扫描独立状态机不变。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：图片取消清理接入的新运行镜像完成受控混合任务验证；
+[实际 HTTP 证据与范围](../evidence/int-001/image-admission-runtime-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：图片回填复用资源准入取消通知，semantic 有界清理、SQLite 终态 CAS 保持原归属；
+[组合回归及剩余项](../evidence/int-001/image-admission-cancellation-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：实际双容器、额度 1 的图片/视频混合任务验证视频取消和恢复；
+[证据及可观测边界](../evidence/int-001/mixed-admission-runtime-2026-09-15.md)。不代表所有任务类型或容量验收。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：resourcecontrol 可选准入取消通知，视频能力复用有界终态清理，SQLite CAS 不变；
+[组合测试证据](../evidence/int-001/video-admission-cancellation-2026-09-15.md)。其他任务类型不视为已修复。
+
+2026-09-15 CR-2026-030 / FR-INT-016 / NFR-INT-007：resourcecontrol 保持唯一预算 owner，补齐已取消请求准入拒绝；
+[Docker 竞态回归及未验证边界](../evidence/int-001/background-admission-2026-09-15.md)，不更改并发数或任务状态机。
+
+2026-09-15 CR-2026-030 / FR-INT-016：旧记录不存在提示、本地单条移除及刷新持久化已在实际本地镜像验证；
+[浏览器证据](../evidence/int-001/missing-task-records-runtime-2026-09-15.md)。无服务端边界变化。
+
+2026-09-15 CR-2026-030 / FR-INT-016：前端消费明确任务不存在合同，复用 preferences owner 移除本地 ID，无服务端副作用。
+[Docker 回归及边界](../evidence/int-001/missing-task-records-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-004/016：实际浏览器验证多库选择、不同覆盖率、URL 刷新和 beta 补齐目标；
+[证据与旧任务残留问题](../evidence/int-001/multilib-browser-2026-09-15.md)。不视为全部任务页验收。
+
+2026-09-15 CR-2026-030 / FR-INT-004/016：全局单视频 worker 多库排队、取消隔离、重试与按库检索已在独立本地 Docker 验证；
+[证据](../evidence/int-001/multilib-cancellation-2026-09-15.md)。不更改并发预算或发行 Gate。
+
+2026-09-15 CR-2026-030 / FR-INT-004/016：实际本地镜像及浏览器验证取消收尾、
+最终提交竞态和取消后补齐，历史操作保留；[证据](../evidence/int-001/video-cancellation-runtime-2026-09-15.md)。不代表多库并发/发行验收完成。
+
+2026-09-15 CR-2026-030 / FR-INT-004/016：semantic 视频 worker 有界取消收尾，
+SQLite 既有终态事务保持已接受取消优先，非用户取消保留租约恢复。
+[本地 Docker 交错与跨库隔离证据](../evidence/int-001/video-cancellation-2026-09-15.md)；不扩大发行 Gate。
+
+2026-09-15 CR-2026-030 / FR-INT-004/016：前端消费既有视频任务合同，复用确认、任务追踪/取消及失效规则。
+Docker 38 项回归、实际浏览器补齐/重建通过。[证据与边界](../evidence/int-001/video-actions-ui-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-005/015/016：在独立本地 Docker 数据卷验证
+coverageRecorded 从缺记录到真实模型回填成功，总览/管理页及图片/视频隔离显示通过。
+[实际证据](../evidence/int-001/image-unrecorded-runtime-2026-09-15.md)，不视为全发行完成。
+
+2026-09-15 CR-2026-030 / FR-INT-005/015/016：Settings 增加 coverageRecorded 只读字段，
+SQLite 判断记录存在，API 约束未知 complete=false，前端消费生成合同；无新持久化或任务状态机。
+[Docker 证据与实际新代次验收边界](../evidence/int-001/image-unrecorded-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-005/015/016：SQLite 图片设置读取合并为单快照，
+覆盖率不依赖模型健康，但供任务准入的代次可用性语义不变。
+[本地 Docker 与浏览器证据](../evidence/int-001/image-offline-coverage-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-004/015/016：视频状态实际运行镜像/浏览器、AI 离线恢复验证通过；
+canonical queries 补充模型和图片静止状态刷新，33 项 Docker 前端测试与架构检查通过。
+[记录及图片离线 0/0 未完成项](../evidence/int-001/video-status-runtime-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-004/006/007/016：semantic 拥有视频状态窄服务，SQLite
+读取同一快照，API 暴露已认证只读合同，app 组合；前端消费生成客户端，不借用搜索推理。
+Docker SQLite/HTTP/合同及前端定向回归通过。[证据](../evidence/int-001/video-status-ui-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-001/002/005/015/016：前端 ai 复用 AIModel.storageMode
+修复独立服务开关误依赖旧运行时，标明图片覆盖率范围；无新协议或状态机。
+Docker 页面测试 19/19、构建及架构检查通过。[证据](../evidence/int-001/settings-service-toggle-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-006/007/015/016：SQLite 成功扫描事务核对视频移除
+覆盖率，复用完整计划谓词；未知汇总退回 pending，历史操作不改写。
+[证据](../evidence/int-001/video-removal-2026-09-15.md)，API 说明/生成源及回归同步。
+
+2026-09-15 CR-2026-030 / FR-INT-006/007/015/016：SQLite 扫描事务同步视频新增和
+失效进度；完整计划仍由既有候选谓词拥有，未复制判定。[记录](../evidence/int-001/video-invalidation-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-005/015/016：图片新增/移除计数由 SQLite 原扫描
+事务维护，删除汇总仅允许成功扫描路径调用；不改原媒体。[记录](../evidence/int-001/semantic-membership-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-005/015/016：SQLite 在扫描原事务中同步图片语义
+进度失效，不复制 HTTP 状态机；仓储竞态及本地真实闭环通过。
+[证据](../evidence/int-001/semantic-invalidation-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-001/002/005/006/007：api 语义设置路由修正为权威
+OpenAPI 的 PATCH，HTTP 竞态通过；本地实际运行镜像的图片/视频全链路及重启通过。
+[证据](../evidence/int-001/app-chain-2026-09-15.md)，源指纹变更后 coverage 一致性待修。
+
+2026-09-15 最新 CR-2026-030 / FR-INT-017/020 / NFR-INT-007/009/010，POST-MVP-5：
+app 拥有部署解析及启动组合，原 aimodel worker 和 SQLite 事务仍是激活唯一 owner；
+run.go 已实例化共享图片/文本/视频 BoundEncoder 和后台核验。旧子片“未实例化”被
+本条替代。证据：[本地主进程启动](../evidence/int-001/deployment-startup-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-017/020 / NFR-INT-007/009/010：aimodel 复用激活调度；
+app 组合共享身份客户端和 semantic 提交合同，remoteml 身份复核计入既有两请求预算。
+本地 Docker 相关竞态通过；run.go 未实例化，不代表应用接通。[证据](../evidence/int-001/deployment-worker-adapter-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-017/020 / NFR-INT-007/009/010：semantic 拥有部署激活
+提交合同，SQLite 复用原唯一激活事务与空间绑定 helper；不增加状态机，失败保留旧索引。
+本地 Docker 7 种场景和真实图片/视频链路通过，app 未调用；[证据](../evidence/int-001/deployment-activation-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-017/020 / NFR-INT-007/009/010：aimodel 拥有 service
+记录验证/内部注册，SQLite migration 39 保留引用并约束类型；旧文件刷新跳过、旧激活拒绝。
+OpenAPI 响应 enum 扩展，安装请求不扩展；[证据](../evidence/int-001/service-model-record-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-019/020 / NFR-INT-007/009/010：semantic.VideoProcessor
+统一消费流式编码器，旧构造器复用既有桥接；完整计划/事务所有权不变，app 未切换。
+本地 Docker 单元、视频 SQLite 竞态及真实四帧链路通过；[证据](../evidence/int-001/remote-video-stream-2026-09-15.md)。
+
+2026-09-15 ADR-0020 / CR-2026-030 / FR-INT-017/019/020 / NFR-INT-007/009/010：
+`services/inference` 拥有专用服务与固定快照；remoteml 拥有独立预期身份校验和响应绑定。
+候选本地 Docker 单元/竞态及真实链路通过，生产 app 组合未完成；
+[证据](../evidence/int-001/owned-ml-image-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-017/019/020 / NFR-INT-007/009/010：SQLite 测试适配
+以 `remotemlprobe` 标签组合真实 HTTP、imagevips、BoundEncoder、既有回填任务和持久化检索；
+本地 Docker 竞态通过，3 张合成图片写入后数据库重开检索成功。仅测试身份，无部署准入、
+主应用组合或质量承诺；[证据](../evidence/int-001/independent-ml-persisted-chain-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 / FR-INT-017/019/020 / NFR-INT-007/009/010：semantic 统一拥有旧
+SigLIP 代次准入，app 图片/文本工厂消费；新增状态/维度/空间矩阵和工厂边界回归，
+本地 Docker 竞态通过。属于兼容 Gate 修补，不开放生产接入；[证据](../evidence/int-001/independent-ml-legacy-boundary-2026-09-15.md)。
+
+2026-09-15 CR-2026-030 本地 Docker test profile 已覆盖 native/semantic 竞态与 8 项 SQLite
+代次/回填测试、真实离线向量 probe；SQLite 全包首次 5 分钟超时，随后不缩减范围以 15 分钟预算完整复跑通过。
+详见 [Docker 回归](../evidence/int-001/local-docker-regression-2026-09-15.md)；发行 Gate 不变。
+
+2026-09-15 / CR-2026-030：semantic 回填统一 stream 编码入口，legacy bridge 保留旧 SigLIP。
+SQLite 真实任务成功/提交前退役零写入测试通过，见 [证据](../evidence/int-001/independent-ml-stream-backfill-2026-09-15.md)。
+新 app 组合尚未启用，事务与队列所有权未变化。
+
+CR-2026-030 共同准入子片：semantic BoundEncoder 为文本/图片共用空间与状态检查 owner，
+SQLite 提供持久化 GenerationRuntime，transport 不持有准入策略。
+[单元/SQLite 组合证据](../evidence/int-001/independent-ml-bound-encoder-2026-09-14.md)通过；主应用替换仍待完成。
+
+CR-2026-030 / FR-INT-017/019/020、NFR-INT-007/009/010 / POST-MVP-5：
+semantic GenerationSpaceRepository → SQLite semantic_space / migration 38 实现一次性代次绑定，
+保留既有 write transaction 所有权。旧代次不补指纹；`semantic_space_test.go` 覆盖幂等、
+冲突、维度、旧状态、已有向量拒绝、独立数据库连接读取和删除级联。新查询/回填组合仍未完成。
+
+CR-2026-030 图片入口增量：opt-in `TestEncodedImageServiceProbe` 已在 Linux/arm64 将
+PNG/JPEG/GIF/WebP 合成 stream 经 imagevips 编码、Go HTTP 送达真实固定 ML，向量验证通过。
+[证据](../evidence/int-001/independent-ml-encoded-chain-2026-09-14.md)不替代 app/index/generation 集成 Gate。
+
+CR-2026-030 / POST-MVP-5 / FR-INT-017/019/020、NFR-INT-007/009/010：
+[编码图片入口合同](independent-ml-image-contract.md)由 semantic 拥有，imagevips 实现；
+接受已打开流，不解析路径，独立于 SigLIP 张量。尚未接入 app，不改变发行 Gate。
+
+CR-2026-030 隔离缓存诊断：`spikes/int001-remote-ml/cache-audit.mjs` 校验完整本地基线，
+5 项合成测试与真实只读缓存/固定镜像离线复测通过；[证据](../evidence/int-001/independent-ml-cache-audit-2026-09-14.md)。
+不作为 app 生产文件边界或服务身份认证，不改变模型代次准入 Gate。
+
+2026-09-14 / CR-2026-030 / POST-MVP-5 / FR-INT-017/019/020、NFR-INT-007/009/010：
+semantic 单独拥有[向量空间身份与代次兼容合同](independent-ml-generation-contract.md)，
+实现于 `space_identity.go`；字段变化、非法描述、旧代次拒绝有合成单元/竞态证据。
+这是纯检查，不是已接入的运行时防线；模型缓存事实核验、持久化与 app 组合仍待完成。
+
+2026-09-14 POST-MVP-5 / FR-INT-017/019/020、NFR-INT-007/009/010：
+[ADR-0019](../adr/0019-independent-machine-learning-service.md) 接受独立 AI 容器方向。
+app 仍持有任务/数据/媒体边界，inference 拥有内部服务适配。隔离协议探针位于
+`spikes/int001-remote-ml`，Linux/arm64 离线 HTTP 测试通过；生产协议、代次和 UI 迁移未完成。
+Go HTTP adapter 位于 `internal/inference/remoteml`，遵循
+[传输子片合同](independent-ml-transport-contract.md)，单元/竞态覆盖故障与资源边界；
+不读媒体、不写索引，不冒用旧 ImageEncoder 接口。模型代次/身份准入 Gate 保持未完成。
+Go adapter 的真实离线容器合成联调也已通过，见
+[传输证据](../evidence/int-001/independent-ml-go-transport-2026-09-14.md)。
+对应用户选定的设置原型位于 `spikes/int001-ui-settings`，仅复用共享 UI，不定义新 API
+或生产路由。浏览器视觉/交互检查通过，模型身份与后端 Gate 不因此变更。
+正式 `AISettingsPage` 已按 CR-2026-030 的 UI-only 范围应用方案一：仅重排既有
+S2A/S2C/S3 契约消费者，保留独立 ETag/CSRF 和兼容维护入口。197 项前端测试与
+桌面/手机复核通过，见 [复核记录](../../design-qa.md)；新独立服务接入仍未完成。
+
+2026-09-10 FR-INT-017/019/020 / POST-MVP-5，CR-2026-026/027：
+aimodel 安装与激活 owner、files managed publisher、ONNX runtime、SQLite commit 的
+真实候选隔离集成通过；测试为 `semantic_candidate_activation_test.go`，详情见
+[证据](../evidence/int-001/siglip-download-source-check-2026-09-10.md)。
+不替代生产下载源、正式 runtime 闭包或质量 Gate。
+
+FR-INT-017/019、NFR-INT-007/009 的管理员代理设置见 [CR-2026-029](../changes/CR-2026-029-admin-model-proxy-settings.md) / ADR-0018。
+aimodel 拥有模式/优先级，downloadhttp 拥有 URL/固定探测；SQLite 迁移 00037 使用 write gate + revision。
+Backend Ready：持久化集成已通过；API/前端回归记录见 CR。范围为 POST-MVP-5，发行 Gate 不变。
+
+FR-INT-017/019、NFR-INT-007/009 的显式下载代理扩展见
+[CR-2026-028](../changes/CR-2026-028-model-download-proxy.md) / ADR-0017：app 配置、downloadhttp
+唯一出口策略 owner；配置/CONNECT/TLS/目标拒绝/race 回归及 server222 固定文件 probe 已通过。
+代理模式 DNS/IP enforcement 委托部署代理，不复用入站代理信任配置；未改变发布 Gate。
+
+2026-09-10 FR-INT-017/019 模型获取跟进：隔离 SigLIP ABI 转换与 native candidate 测试证据见
+[源核对](../evidence/int-001/siglip-download-source-check-2026-09-10.md)。仅补充开发验证，未改变
+reviewed Catalog、runtime 合同或 S4 Gate。脚本留在 spikes，native 测试需显式 build tag 与精确 fixture。
+
 FR-INT-017/019/020 的 POST-MVP-5 预设展示扩展见
 [CR-2026-027](../changes/CR-2026-027-builtin-model-presets.md)：aimodel 拥有候选元数据，API 映射，
 前端消费生成合同；候选不会进入可安装 Catalog。回归覆盖预设隔离、HTTP 元数据及 UI 不提供虚假下载。

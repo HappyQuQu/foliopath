@@ -11,6 +11,10 @@ import (
 
 const MaxTagSuggestionsPerAsset = 5
 
+// DefaultTagSuggestionThreshold is a candidate ranking cutoff, not a calibrated
+// probability. Confidence is (cosine+1)/2; suggestions require human review.
+const DefaultTagSuggestionThreshold float32 = 0.65
+
 var ErrInvalidTagSuggestion = errors.New("invalid semantic tag suggestion")
 
 type TagEmbedding struct {

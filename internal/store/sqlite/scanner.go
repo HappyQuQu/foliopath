@@ -684,7 +684,18 @@ func upsertAssetChunk(
 		}
 		// A newly inserted asset cannot own stale derived rows. Avoid issuing
 		// indexed DELETE statements for first-generation assets.
+		if !asset.state.existingAssetID.Valid && (asset.entry.AssetKind == scanner.AssetKindImage || asset.entry.AssetKind == scanner.AssetKindAnimated) {
+			if err := addSemanticCandidate(ctx, tx, run.LibraryID, run.CreatedAtMS); err != nil {
+				return nil, fmt.Errorf("update semantic candidate coverage: %w", err)
+			}
+		}
 		if asset.state.existingAssetID.Valid && asset.sourceChanged {
+			if err := invalidateVideoSemanticSource(ctx, tx, run.LibraryID, assetID, asset.state.existingFingerprint.String, run.CreatedAtMS); err != nil {
+				return nil, fmt.Errorf("invalidate stale video semantic coverage: %w", err)
+			}
+			if err := invalidateSemanticSource(ctx, tx, run.LibraryID, assetID, asset.state.existingFingerprint.String, run.CreatedAtMS); err != nil {
+				return nil, fmt.Errorf("invalidate stale semantic coverage: %w", err)
+			}
 			if _, err := tx.ExecContext(ctx, `
         INSERT OR IGNORE INTO cache_deletions(
             library_id, cache_rel_path, byte_size, created_at_ms
@@ -710,6 +721,11 @@ func upsertAssetChunk(
 				assetID, asset.sourceFingerprint,
 			); err != nil {
 				return nil, fmt.Errorf("invalidate stale storyboard job: %w", err)
+			}
+		}
+		if !asset.state.existingAssetID.Valid && asset.entry.AssetKind == scanner.AssetKindVideo {
+			if err := addVideoSemanticCandidate(ctx, tx, run.LibraryID, run.CreatedAtMS); err != nil {
+				return nil, fmt.Errorf("update video semantic candidate coverage: %w", err)
 			}
 		}
 		if !asset.state.mediaJobCurrent {
@@ -835,6 +851,12 @@ func (s *Store) CompleteFullScan(
 			return err
 		}
 
+		if err := removeSemanticCandidates(ctx, tx, run.LibraryID, run.Generation, s.nowMS()); err != nil {
+			return err
+		}
+		if err := removeVideoSemanticCandidates(ctx, tx, run.LibraryID, run.Generation, s.nowMS()); err != nil {
+			return fmt.Errorf("reconcile removed video semantic coverage: %w", err)
+		}
 		if _, err := tx.ExecContext(ctx, `
             DELETE FROM assets WHERE library_id = ? AND last_seen_generation < ?`,
 			run.LibraryID, run.Generation); err != nil {

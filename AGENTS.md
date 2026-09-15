@@ -38,6 +38,13 @@ them.
 ## Repository and dependency boundaries
 
 - Use a modular Go monolith with one HTTP process and an embedded React SPA.
+  ADR-0020 accepts a FolioPath-owned thin AI image based on the pinned upstream
+  runtime, with verified private cache snapshots and a versioned identity protocol.
+  This is still exactly two deployment units; release approval requires evidence.
+  POST-MVP-5 ADR-0019 accepts an optional independent AI inference container.
+  The main application retains SQLite, auth, media access and bounded job ownership;
+  the AI service gets no media/database mount and no default public port. Internal
+  contracts and model-generation compatibility must precede production integration.
 - `cmd/foliopath` is a minimal process entry point. Dependency composition,
   lifecycle, and graceful shutdown belong in `internal/app`.
 - Put business capabilities under `internal/` (`auth`, `settings`, `library`,
@@ -161,6 +168,15 @@ them.
   catalog may supply HTTPS URLs and exact hashes. Browser APIs accept opaque
   download IDs, never URLs; downloads reuse the bounded model-install worker
   and verified atomic managed store. Downloaded is not activated or release-ready.
+
+- ADR-0017 permits an explicit deployment-owned model download HTTP/HTTPS proxy.
+  ADR-0018 additionally permits authenticated administrator inherit/direct/custom
+  overrides persisted under /app/data with revision conflict protection. Only the
+  custom proxy origin is exposed to administrators, never the deployment URL.
+  Connectivity tests use one fixed verified source, never a browser-supplied target.
+  Never inherit ambient proxy variables. Proxy mode delegates destination DNS/address
+  enforcement to the trusted proxy; preserve HTTPS verification, target literal-IP/local-name
+  rejection, fixed redirect hosts, hashes and bounded installs. No implicit direct fallback.
 
 - Use libvips through `govips` for image metadata and thumbnails.
 - Use `ffprobe` for video metadata and `ffmpeg` for poster extraction.

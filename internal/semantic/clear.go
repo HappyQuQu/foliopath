@@ -94,6 +94,7 @@ func (processor *ClearProcessor) Process(ctx context.Context, job ClearJob) erro
 	if job.ID == "" || job.LibraryID < 1 || job.OperationID == "" || job.State != JobRunning || job.ClaimedRevision < 1 {
 		return ErrInvalidSemanticClear
 	}
+	defer processor.BackgroundAdmissionCancelled(ctx, job)
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -111,6 +112,17 @@ func (processor *ClearProcessor) Process(ctx context.Context, job ClearJob) erro
 			return err
 		}
 	}
+}
+
+// BackgroundAdmissionCancelled leaves unrequested shutdown work recoverable;
+// the queue permits cancellation only after a persisted cancellation request.
+func (processor *ClearProcessor) BackgroundAdmissionCancelled(ctx context.Context, job ClearJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = processor.queue.FinishSemanticClear(cleanup, job, JobCancelled, "", processor.now().UTC())
 }
 
 func NewClearService(queue ClearQueue, wake interface{ Wake() }, now func() time.Time, newID func(string) (string, error)) (*ClearService, error) {

@@ -14,41 +14,35 @@ func (s *Store) GetSemanticLibrarySettings(ctx context.Context, libraryID int64)
 	if libraryID < 1 {
 		return semantic.LibrarySettings{}, semantic.ErrSemanticLibraryNotFound
 	}
-	var exists int
-	if err := s.db.QueryRowContext(ctx, `SELECT 1 FROM libraries WHERE id=?`, libraryID).Scan(&exists); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return semantic.LibrarySettings{}, semantic.ErrSemanticLibraryNotFound
-		}
-		return semantic.LibrarySettings{}, err
-	}
-	value := semantic.LibrarySettings{LibraryID: libraryID, State: semantic.LibraryDisabled, Revision: 1,
-		Coverage: semantic.Coverage{Revision: 1}}
-	var enabled int
-	var state string
-	err := s.db.QueryRowContext(ctx, `SELECT enabled, state, revision FROM ai_library_settings WHERE library_id=?`, libraryID).Scan(&enabled, &state, &value.Revision)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return semantic.LibrarySettings{}, err
-	}
-	if err == nil {
-		value.Enabled, value.State = enabled == 1, semantic.LibraryState(state)
-	}
+	var value semantic.LibrarySettings
 	var generationID sql.NullString
-	_ = s.db.QueryRowContext(ctx, `
-        SELECT state.active_generation_id FROM ai_model_state state
-        JOIN semantic_generations generation ON generation.id=state.active_generation_id AND generation.state='active'
-        JOIN ai_models model ON model.id=state.active_model_id AND model.state='available'
-        WHERE state.singleton_key=1`).Scan(&generationID)
-	if generationID.Valid {
+	var modelAvailable bool
+	// One statement keeps settings, active generation and progress in one snapshot.
+	// Availability gates new work, not access to already recorded progress.
+	err := s.db.QueryRowContext(ctx, `
+        SELECT library.id, COALESCE(setting.enabled,0), COALESCE(setting.state,'disabled'),
+               COALESCE(setting.revision,1), generation.id, COALESCE(model.state='available',0),
+               COALESCE(progress.eligible_count,0), COALESCE(progress.completed_count,0),
+               COALESCE(progress.failed_count,0), COALESCE(progress.stale_count,0), COALESCE(progress.revision,1), progress.revision IS NOT NULL
+        FROM libraries library
+        LEFT JOIN ai_library_settings setting ON setting.library_id=library.id
+        LEFT JOIN ai_model_state state ON state.singleton_key=1
+        LEFT JOIN semantic_generations generation ON generation.id=state.active_generation_id AND generation.state='active'
+        LEFT JOIN ai_models model ON model.id=state.active_model_id
+        LEFT JOIN semantic_library_progress progress ON progress.generation_id=generation.id AND progress.library_id=library.id
+        WHERE library.id=?`, libraryID).Scan(&value.LibraryID, &value.Enabled, &value.State, &value.Revision,
+		&generationID, &modelAvailable, &value.Coverage.Eligible, &value.Coverage.Completed, &value.Coverage.Failed,
+		&value.Coverage.Stale, &value.Coverage.Revision, &value.CoverageRecorded)
+	if errors.Is(err, sql.ErrNoRows) {
+		return semantic.LibrarySettings{}, semantic.ErrSemanticLibraryNotFound
+	}
+	if err != nil {
+		return semantic.LibrarySettings{}, fmt.Errorf("read semantic library settings: %w", err)
+	}
+	// Existing job admission uses this field; do not expose an unavailable generation
+	// as actionable merely because its recorded progress is still readable.
+	if modelAvailable {
 		value.ActiveGenerationID = generationID.String
-		var progressRevision int64
-		err = s.db.QueryRowContext(ctx, `SELECT eligible_count, completed_count, failed_count, stale_count, revision
-            FROM semantic_library_progress WHERE generation_id=? AND library_id=?`, generationID.String, libraryID).Scan(
-			&value.Coverage.Eligible, &value.Coverage.Completed, &value.Coverage.Failed, &value.Coverage.Stale, &progressRevision)
-		if err == nil {
-			value.Coverage.Revision = progressRevision
-		} else if !errors.Is(err, sql.ErrNoRows) {
-			return semantic.LibrarySettings{}, err
-		}
 	}
 	return value, nil
 }

@@ -32,6 +32,7 @@ func (processor *VideoJobProcessor) Process(ctx context.Context, job VideoJob) e
 		job.State != JobRunning || job.ClaimedRevision < 1 || job.CompletedItems > job.TotalItems {
 		return ErrInvalidVideoJob
 	}
+	defer processor.BackgroundAdmissionCancelled(ctx, job)
 	progress, found, err := processor.queue.GetVideoJobProgress(ctx, job.GenerationID, job.LibraryID)
 	if err != nil || !found {
 		return processor.fail(ctx, job, "internal_error", firstNonNil(err, ErrVideoJobConflict))
@@ -76,6 +77,19 @@ func (processor *VideoJobProcessor) Process(ctx context.Context, job VideoJob) e
 	}
 	_, err = processor.queue.FinishVideoJob(ctx, job, JobSucceeded, "", processor.now().UTC())
 	return err
+}
+
+// BackgroundAdmissionCancelled also handles cancellation before resource
+// admission. The same bounded cleanup is used after processing has started.
+func (processor *VideoJobProcessor) BackgroundAdmissionCancelled(ctx context.Context, job VideoJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	// Only the queue CAS decides whether a persisted user cancellation exists.
+	// Shutdown or lease loss without it remains recoverable, never cancelled.
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = processor.queue.FinishVideoJob(cleanup, job, JobCancelled, "", processor.now().UTC())
 }
 
 func (processor *VideoJobProcessor) fail(ctx context.Context, job VideoJob, code string, cause error) error {

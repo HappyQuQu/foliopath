@@ -267,7 +267,7 @@ func (s *Service) RunClaimedFullScan(
 		return ScanRun{}, errors.New("scanner walker is required")
 	}
 	if err := ctx.Err(); err != nil {
-		return ScanRun{}, err
+		return s.abort(ctx, run, SkipCounts{}, err)
 	}
 	rootRelativePath, err := s.repository.GetLibraryRoot(ctx, run.LibraryID)
 	if err != nil {

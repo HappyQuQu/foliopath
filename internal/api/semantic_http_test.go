@@ -94,7 +94,7 @@ func TestSemanticHTTPSettingsAndBackfillWireContract(t *testing.T) {
 		t.Fatalf("GET = %d %#v %s", get.Code, get.Header(), get.Body.String())
 	}
 
-	putRequest := httptest.NewRequest(http.MethodPut, "/api/v1/libraries/lib_7/ai/semantic", strings.NewReader(`{"enabled":true}`))
+	putRequest := httptest.NewRequest(http.MethodPatch, "/api/v1/libraries/lib_7/ai/semantic", strings.NewReader(`{"enabled":true}`))
 	putRequest.Header.Set("Content-Type", "application/json")
 	putRequest.Header.Set("If-Match", `"semantic-library-7-r2"`)
 	put := httptest.NewRecorder()
@@ -136,7 +136,7 @@ func TestSemanticHTTPRejectsMalformedWriteContracts(t *testing.T) {
 	mux := http.NewServeMux()
 	registerSemanticRoutes(mux, stub)
 	for _, request := range []*http.Request{
-		httptest.NewRequest(http.MethodPut, "/api/v1/libraries/lib_7/ai/semantic", strings.NewReader(`{"enabled":true}`)),
+		httptest.NewRequest(http.MethodPatch, "/api/v1/libraries/lib_7/ai/semantic", strings.NewReader(`{"enabled":true}`)),
 		httptest.NewRequest(http.MethodPost, "/api/v1/libraries/lib_7/ai/semantic/jobs", strings.NewReader(`{"mode":"video"}`)),
 	} {
 		request.Header.Set("Content-Type", "application/json")
@@ -192,6 +192,15 @@ func TestSemanticSearchHTTPParsesScopeAndReturnsAssetPage(t *testing.T) {
 	if len(body.Items) != 1 || body.Items[0].ID != "ast_9" || body.NextCursor == nil || *body.NextCursor != "opaque-cursor" ||
 		len(body.Coverage.ExcludedLibraries) != 1 || body.Coverage.ExcludedLibraries[0].LibraryID != "lib_8" || body.Coverage.Complete {
 		t.Fatalf("body = %#v", body)
+	}
+}
+
+func TestSemanticSettingsWireDistinguishesUnrecordedFromEmptyComplete(t *testing.T) {
+	for _, recorded := range []bool{false, true} {
+		result := semanticSettingsWire(semantic.LibrarySettings{LibraryID: 1, CoverageRecorded: recorded, Coverage: semantic.Coverage{Revision: 1}})
+		if result.CoverageRecorded != recorded || result.Coverage.Complete != recorded {
+			t.Fatalf("recorded=%v result=%+v", recorded, result)
+		}
 	}
 }
 

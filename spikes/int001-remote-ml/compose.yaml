@@ -1,0 +1,82 @@
+name: foliopath-ml-probe
+services:
+  persisted-probe:
+    image: foliopath-remote-ml-regression:local
+    profiles: [test]
+    entrypoint: [/out/remote-sqlite-probe.test]
+    command: [-test.run, '^TestRemoteSemanticPersistedProbe$', -test.v, -test.timeout=3m]
+    environment:
+      FOLIOPATH_TEST_ML_ORIGIN: http://machine-learning:3003
+    networks: [inference]
+    read_only: true
+    tmpfs: [/tmp:size=536870912]
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 128
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  regression:
+    image: foliopath-remote-ml-regression:local
+    build:
+      context: ../..
+      target: remote-ml-regression
+    profiles: [test]
+    network_mode: none
+    read_only: true
+    tmpfs: [/tmp:size=536870912]
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 128
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  encoded-probe:
+    image: foliopath-remote-ml-regression:local
+    profiles: [test]
+    entrypoint: [/out/remote-image-probe.test]
+    command: [-test.run, '^TestEncodedImageServiceProbe$', -test.v, -test.timeout=2m]
+    environment:
+      FOLIOPATH_TEST_ML_ORIGIN: http://machine-learning:3003
+    networks: [inference]
+    read_only: true
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 64
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v3.1.0@sha256:5a0839dc5303cd7215bcd2180a26aed3af41675aefb3e75e5157e9f10ad16e6e
+    environment:
+      MACHINE_LEARNING_CACHE_FOLDER: /cache
+      MACHINE_LEARNING_WORKERS: "1"
+      MACHINE_LEARNING_REQUEST_THREADS: "1"
+      MACHINE_LEARNING_MODEL_INTRA_OP_THREADS: "2"
+      MACHINE_LEARNING_MODEL_INTER_OP_THREADS: "1"
+      MACHINE_LEARNING_ANN: "false"
+      HF_HUB_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_TEST_MODEL_CACHE:?Set the copied model-cache directory}
+        target: /cache
+        read_only: true
+    networks: [inference]
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 256
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  probe:
+    image: ghcr.io/immich-app/immich-machine-learning:v3.1.0@sha256:5a0839dc5303cd7215bcd2180a26aed3af41675aefb3e75e5157e9f10ad16e6e
+    profiles: [test]
+    command: [python, /probe/probe.py]
+    volumes:
+      - ./probe.py:/probe/probe.py:ro
+    networks: [inference]
+    cpus: 1
+    mem_limit: 256m
+    pids_limit: 64
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+networks:
+  inference:
+    internal: true

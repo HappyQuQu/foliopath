@@ -320,6 +320,11 @@ func (s *Store) FinishSemanticBackfill(ctx context.Context, job semantic.Backfil
 			}
 			return err
 		}
+		// An accepted cancellation wins over a later success/failure attempt.
+		// Resolve this in the terminal transaction, preserving committed progress.
+		if operationState == "cancelling" {
+			outcome, errorCode = semantic.JobCancelled, "cancelled"
+		}
 		if outcome == semantic.JobSucceeded && (operationState != "running" || completed != total) {
 			return semantic.ErrSemanticJobConflict
 		}

@@ -51,6 +51,7 @@ type semanticCoverageResponse struct {
 	Complete  bool  `json:"complete"`
 }
 type semanticSettingsResponse struct {
+	CoverageRecorded   bool                     `json:"coverageRecorded"`
 	LibraryID          string                   `json:"libraryId"`
 	Enabled            bool                     `json:"enabled"`
 	State              semantic.LibraryState    `json:"state"`
@@ -142,7 +143,7 @@ func registerSemanticRoutes(mux *http.ServeMux, service SemanticService) {
 		w.Header().Set("ETag", semanticSettingsETag(settings))
 		writeJSON(w, http.StatusOK, semanticSettingsWire(settings))
 	})
-	mux.HandleFunc("PUT /api/v1/libraries/{libraryId}/ai/semantic", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("PATCH /api/v1/libraries/{libraryId}/ai/semantic", func(w http.ResponseWriter, r *http.Request) {
 		libraryID, err := parseResourceID(r.PathValue("libraryId"), "lib_")
 		if err != nil {
 			writeSemanticError(w, r, semantic.ErrSemanticLibraryNotFound)
@@ -460,8 +461,8 @@ func semanticSettingsWire(value semantic.LibrarySettings) semanticSettingsRespon
 		current := value.ActiveGenerationID
 		generation = &current
 	}
-	return semanticSettingsResponse{LibraryID: libraryID(value.LibraryID), Enabled: value.Enabled, State: value.State, Revision: value.Revision, ActiveGenerationID: generation,
-		Coverage: semanticCoverageResponse{Eligible: value.Coverage.Eligible, Completed: value.Coverage.Completed, Failed: value.Coverage.Failed, Stale: value.Coverage.Stale, Revision: value.Coverage.Revision, Complete: value.Coverage.Complete()}}
+	return semanticSettingsResponse{LibraryID: libraryID(value.LibraryID), Enabled: value.Enabled, State: value.State, Revision: value.Revision, ActiveGenerationID: generation, CoverageRecorded: value.CoverageRecorded,
+		Coverage: semanticCoverageResponse{Eligible: value.Coverage.Eligible, Completed: value.Coverage.Completed, Failed: value.Coverage.Failed, Stale: value.Coverage.Stale, Revision: value.Coverage.Revision, Complete: value.CoverageRecorded && value.Coverage.Complete()}}
 }
 
 func semanticSettingsETag(value semantic.LibrarySettings) string {

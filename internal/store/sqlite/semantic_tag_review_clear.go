@@ -232,6 +232,14 @@ func (s *Store) FinishTagReviewClear(ctx context.Context, job semantic.TagReview
 		if err := tx.QueryRowContext(ctx, `SELECT state FROM ai_tag_review_clear_jobs WHERE id=? AND claimed_revision=?`, job.ID, job.ClaimedRevision).Scan(&state); err != nil {
 			return semantic.ErrTagReviewClearConflict
 		}
+		// Cancellation accepted after a deletion batch wins over later terminal
+		// success/failure attempts. Already committed deletions remain committed.
+		if state == "cancelling" {
+			outcome, errorCode = semantic.JobCancelled, "cancelled"
+		}
+		if outcome == semantic.JobCancelled && state != "cancelling" {
+			return semantic.ErrTagReviewClearConflict
+		}
 		if outcome == semantic.JobSucceeded {
 			var remaining int
 			if state != "running" || tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM ai_tag_reviews WHERE library_id=?)`, job.LibraryID).Scan(&remaining) != nil || remaining != 0 {

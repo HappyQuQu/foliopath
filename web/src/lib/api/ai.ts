@@ -3,6 +3,19 @@ import { apiClient } from "./client";
 import { createApiError } from "./errors";
 
 export type AIModel = components["schemas"]["AIModel"];
+export type VideoSemanticStatus = components["schemas"]["VideoSemanticStatus"];
+export async function getLibraryVideoSemanticStatus(libraryId: string): Promise<VideoSemanticStatus> {
+  return unwrap(apiClient.GET("/api/v1/libraries/{libraryId}/ai/video-semantic", { params: { path: { libraryId } } }));
+}
+export type AIModelProxySettings = components["schemas"]["AIModelProxySettings"];
+export type AIModelProxySnapshot = components["schemas"]["AIModelProxySnapshot"];
+export async function getAIModelProxy(): Promise<AIModelProxySnapshot> { return unwrap(apiClient.GET("/api/v1/ai/model-proxy")); }
+export async function saveAIModelProxy(input: { body: AIModelProxySettings; csrfToken: string }): Promise<AIModelProxySnapshot> {
+  return unwrap(apiClient.PUT("/api/v1/ai/model-proxy", { body: input.body, headers: { "X-CSRF-Token": input.csrfToken } }));
+}
+export async function testAIModelProxy(input: { body: AIModelProxySettings; csrfToken: string }) {
+  return unwrap(apiClient.POST("/api/v1/ai/model-proxy/test", { body: input.body, headers: { "X-CSRF-Token": input.csrfToken } }));
+}
 export type AIModelCandidate = components["schemas"]["AIModelCandidate"];
 export type AIModelCandidateScan = components["schemas"]["AIModelCandidateScan"];
 export type AIModelOperation = components["schemas"]["AIModelOperation"];
@@ -146,6 +159,15 @@ export async function requestLibrarySemanticJob(input: {
       header: { "Idempotency-Key": input.idempotencyKey },
       path: { libraryId: input.libraryId },
     },
+  }));
+}
+
+export async function requestLibraryVideoSemanticJob(input: {
+  csrfToken: string; idempotencyKey: string; libraryId: string; mode: "missing" | "all";
+}): Promise<AIOperationSnapshot> {
+  return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/video-semantic/jobs", {
+    body: { mode: input.mode }, headers: { "X-CSRF-Token": input.csrfToken },
+    params: { header: { "Idempotency-Key": input.idempotencyKey }, path: { libraryId: input.libraryId } },
   }));
 }
 

@@ -1,5 +1,9 @@
 # FolioPath 变更记录
 
+[CR-2026-030：独立 AI 服务](CR-2026-030-independent-machine-learning-service.md)。
+
+[CR-2026-029：模型下载代理界面设置](CR-2026-029-admin-model-proxy-settings.md)。
+
 - [S3 离线模型管理 UI 合同对齐](CR-2026-023-s3-offline-model-ui-contract-alignment.md)
 
 本目录保存两类只追加记录：
@@ -28,6 +32,8 @@
 - [CR-2026-019：视频预览默认静音偏好](CR-2026-019-video-preview-default-mute.md)
 
 ### Post-MVP 与未来提案
+
+- [CR-2026-028：模型下载显式代理](CR-2026-028-model-download-proxy.md)
 
 - [CR-2026-027：内置模型预设展示](CR-2026-027-builtin-model-presets.md)
 

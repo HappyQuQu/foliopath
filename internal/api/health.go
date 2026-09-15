@@ -60,10 +60,12 @@ type RouteDependencies struct {
 	ContentAdmission    ContentAdmission
 	AIModels            AIModelManagementService
 	AIModelDownloads    AIModelDownloadService
+	ModelProxy          ModelProxyService
 	Semantic            SemanticService
 	SemanticSearch      SemanticSearchService
 	VideoSemanticSearch VideoSemanticSearchService
 	VideoSemanticJobs   VideoSemanticJobService
+	VideoSemanticStatus VideoSemanticStatusService
 	AITagVocabulary     AITagVocabularyService
 	AITagSuggestions    AITagSuggestionListService
 	AITagReviews        AITagReviewService
@@ -150,6 +152,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	if dependencies.AIModelDownloads != nil {
 		registerAIModelDownloadRoutes(mux, dependencies.AIModelDownloads)
 	}
+	if dependencies.ModelProxy != nil {
+		registerModelProxyRoutes(mux, dependencies.ModelProxy)
+	}
 	if dependencies.Semantic != nil {
 		registerSemanticRoutes(mux, dependencies.Semantic)
 	}
@@ -162,6 +167,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.VideoSemanticJobs != nil {
 		registerVideoSemanticJobRoute(mux, dependencies.VideoSemanticJobs)
+	}
+	if dependencies.VideoSemanticStatus != nil {
+		registerVideoSemanticStatusRoute(mux, dependencies.VideoSemanticStatus)
 	}
 	if dependencies.AITagVocabulary != nil {
 		registerAITagVocabularyRoutes(mux, dependencies.AITagVocabulary)

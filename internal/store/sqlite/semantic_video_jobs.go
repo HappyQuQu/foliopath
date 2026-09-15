@@ -345,6 +345,11 @@ func (s *Store) FinishVideoJob(ctx context.Context, job semantic.VideoJob, outco
             AND current.state IN ('running','cancelling')`, job.ID, job.ClaimedRevision, job.OperationID).Scan(&operationState, &completed, &total); err != nil {
 			return semantic.ErrVideoJobConflict
 		}
+		// Cancellation accepted before this terminal transaction wins over a
+		// simultaneous final commit or inference failure. Preserve committed work.
+		if operationState == "cancelling" {
+			outcome, errorCode = semantic.JobCancelled, "cancelled"
+		}
 		if outcome == semantic.JobSucceeded && (operationState != "running" || completed != total) {
 			return semantic.ErrVideoJobConflict
 		}

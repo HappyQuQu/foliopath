@@ -19,6 +19,12 @@ func New() *Processor {
 	return &Processor{}
 }
 
+func (*Processor) PrepareRemoteSemanticImage(context.Context, io.ReadSeeker, media.Format) ([]byte, error) {
+	return nil, semantic.ErrImagePreprocessUnavailable
+}
+
+var _ semantic.EncodedImagePreprocessor = (*Processor)(nil)
+
 func (*Processor) Process(
 	context.Context,
 	io.ReadSeeker,

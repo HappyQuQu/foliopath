@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 import {
   activateAIModel,
+  getAIModelProxy, saveAIModelProxy, testAIModelProxy,
   downloadAIModel,
   listAIModelDownloads,
   applyFaceReview,
@@ -18,6 +19,7 @@ import {
   clearLibrarySemanticData,
   getAIOperation,
   getLibrarySemanticSettings,
+  getLibraryVideoSemanticStatus,
   getFaceCluster,
   getLibraryFaceSettings,
   getPerson,
@@ -28,6 +30,7 @@ import {
   listPeople,
   listPersonAssets,
   requestLibrarySemanticJob,
+  requestLibraryVideoSemanticJob,
   requestFaceAnalysisJob,
   scanAIModelCandidates,
   reviewAITagSuggestions,
@@ -42,8 +45,10 @@ import {
 
 export const aiKeys = {
   all: ["ai"] as const,
+  videoStatus: (libraryId: string) => ["ai", "video-status", libraryId] as const,
   models: ["ai", "models"] as const,
   downloads: ["ai", "downloads"] as const,
+  proxy: ["ai", "model-proxy"] as const,
   semantic: (libraryId: string) => ["ai", "semantic", libraryId] as const,
   faces: (libraryId: string) => ["ai", "faces", libraryId] as const,
   operation: (operationId: string) => ["ai", "operation", operationId] as const,
@@ -56,8 +61,25 @@ export const aiKeys = {
 };
 
 export function useAIModelsQuery() {
-  return useQuery({ queryKey: aiKeys.models, queryFn: listAIModels });
+  return useQuery({ queryKey: aiKeys.models, queryFn: listAIModels, refetchInterval: 10_000 });
 }
+
+export function useVideoSemanticStatusQuery(libraryId: string) {
+  return useQuery({
+    queryKey: aiKeys.videoStatus(libraryId),
+    queryFn: () => getLibraryVideoSemanticStatus(libraryId),
+    refetchInterval: 10_000,
+  });
+}
+
+export function useAIModelProxyQuery() {
+  return useQuery({ queryKey: aiKeys.proxy, queryFn: getAIModelProxy, staleTime: Infinity, refetchOnWindowFocus: false });
+}
+export function useSaveAIModelProxyMutation() {
+  const client = useQueryClient();
+  return useMutation({ mutationFn: saveAIModelProxy, onSuccess: (value) => client.setQueryData(aiKeys.proxy, value) });
+}
+export function useTestAIModelProxyMutation() { return useMutation({ mutationFn: testAIModelProxy }); }
 
 export function useAIModelDownloadsQuery() {
   return useQuery({ queryKey: aiKeys.downloads, queryFn: listAIModelDownloads, refetchInterval: (query) =>
@@ -72,7 +94,7 @@ export function useSemanticSettingsQueries(libraryIds: string[]) {
       refetchInterval: (query: Query<SemanticSettingsSnapshot>) =>
         query.state.data && ["building", "clearing"].includes(query.state.data.state)
           ? 1_500
-          : false,
+          : 10_000,
     })),
   });
 }
@@ -93,6 +115,7 @@ export function useAIOperationQueries(operationIds: string[]) {
     void client.invalidateQueries({ queryKey: aiKeys.models });
     void client.invalidateQueries({ queryKey: aiKeys.downloads });
     void client.invalidateQueries({ queryKey: ["ai", "semantic"] });
+    void client.invalidateQueries({ queryKey: ["ai", "video-status"] });
     void client.invalidateQueries({ queryKey: ["ai", "faces"] });
   }, [client, finished]);
   return queries;
@@ -116,6 +139,7 @@ export const useInstallAIModelCandidateMutation = mutationWithInvalidation(insta
 export const useActivateAIModelMutation = mutationWithInvalidation(activateAIModel);
 export const useUpdateSemanticSettingsMutation = mutationWithInvalidation(updateLibrarySemanticSettings);
 export const useRequestSemanticJobMutation = mutationWithInvalidation(requestLibrarySemanticJob);
+export const useRequestVideoSemanticJobMutation = mutationWithInvalidation(requestLibraryVideoSemanticJob);
 export const useClearSemanticDataMutation = mutationWithInvalidation(clearLibrarySemanticData);
 export const useCancelAIOperationMutation = mutationWithInvalidation(cancelAIOperation);
 export const useReviewAITagSuggestionsMutation = mutationWithInvalidation(reviewAITagSuggestions);

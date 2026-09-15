@@ -55,6 +55,7 @@ import {
   useFaceSettingsQueries,
   useInstallAIModelCandidateMutation,
   useRequestSemanticJobMutation,
+  useRequestVideoSemanticJobMutation,
   useRequestFaceJobMutation,
   useScanAIModelCandidatesMutation,
   useSemanticSettingsQueries,
@@ -63,11 +64,12 @@ import {
 } from "../queries";
 import styles from "./AISettingsPage.module.css";
 import { AIModelDownloadsPanel } from "./AIModelDownloadsPanel";
-import { AIOverview } from "./AIOverview";
+import { AIModelProxyPanel } from "./AIModelProxyPanel";
+import { AISettingsOverview } from "./AISettingsOverview";
 
 type AIView = "overview" | "libraries" | "models" | "tasks" | "faces";
-const views: AIView[] = ["overview", "models", "libraries", "faces", "tasks"];
 type Confirmation =
+  | { kind: "videoRebuild"; library: LibrarySummary }
   | { kind: "rebuild"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
   | { kind: "clear"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
   | { kind: "direct"; candidate: AIModelCandidate }
@@ -109,6 +111,7 @@ export function AISettingsPage({
   const activate = useActivateAIModelMutation();
   const updateSettings = useUpdateSemanticSettingsMutation();
   const requestJob = useRequestSemanticJobMutation();
+  const requestVideo = useRequestVideoSemanticJobMutation();
   const clear = useClearSemanticDataMutation();
   const cancel = useCancelAIOperationMutation();
   const updateFaces = useUpdateFaceSettingsMutation();
@@ -117,9 +120,27 @@ export function AISettingsPage({
   const clearFaceManual = useClearManualFaceRelationshipsMutation();
 
   function navigateView(item: AIView) {
-    const next = new URLSearchParams(searchParams);
-    if (item === "overview") next.delete("view"); else next.set("view", item);
-    setSearchParams(next);
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      if (item === "overview") next.delete("view"); else next.set("view", item);
+      return next;
+    });
+  }
+
+  function selectLibrary(id: string) {
+    setSearchParams(current => { const next = new URLSearchParams(current); next.set("library", id); return next; });
+  }
+
+  function toggleSemantic(library: LibrarySummary, settings: SemanticSettingsSnapshot, enabled: boolean) {
+    void updateSettings.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id })
+      .then(() => toast.show({ message: t("ai.settingSaved"), tone: "success" }))
+      .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }));
+  }
+
+  function toggleFace(library: LibrarySummary, settings: FaceSettingsSnapshot, enabled: boolean) {
+    void updateFaces.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id })
+      .then(() => toast.show({ message: t("ai.settingSaved"), tone: "success" }))
+      .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }));
   }
 
   function rememberOperation(operation: AIModelOperation) {
@@ -156,58 +177,43 @@ export function AISettingsPage({
       storageHref={paths.storageSettings}
     >
       <div className={styles.main}>
-        <header className={styles.heading}>
+        <div className={styles.headerRow}><header className={styles.heading}>
           <p>{t("ai.eyebrow")}</p>
           <h1>{t("ai.title")}</h1>
           <span>{t("ai.description")}</span>
-        </header>
+        </header><div className={styles.headerActions}>
+          <span>{t(downloadsQuery.isPending ? "ai.loadingStatus" : downloadsQuery.isError || downloadsQuery.data?.runtimeAvailable === undefined ? "ai.settings.runtimeUnknown" : downloadsQuery.data.runtimeAvailable ? "ai.settings.runtimeReady" : "ai.settings.runtimeMissing")}</span>
+          <Button variant="primary" onClick={() => navigateView("tasks")}><Play size={18} aria-hidden="true" />{t("ai.settings.progress")}</Button>
+        </div></div>
 
-        <div className={styles.tabs} role="tablist" aria-label={t("ai.sections")}>
-          {views.map((item, index) => (
-            <Button
-              aria-selected={view === item}
-              aria-controls="ai-settings-panel"
-              id={`ai-tab-${item}`}
-              tabIndex={view === item ? 0 : -1}
-              key={item}
-              onClick={() => navigateView(item)}
-              onKeyDown={(event) => {
-                const next = event.key === "ArrowRight" ? (index + 1) % views.length : event.key === "ArrowLeft" ? (index + views.length - 1) % views.length : event.key === "Home" ? 0 : event.key === "End" ? views.length - 1 : -1;
-                if (next < 0) return;
-                event.preventDefault();
-                const target = views[next]!; navigateView(target);
-                document.getElementById(`ai-tab-${target}`)?.focus();
-              }}
-              role="tab"
-              variant={view === item ? "secondary" : "quiet"}
-            >
-              {t(`ai.tab.${item}`)}
-            </Button>
-          ))}
-        </div>
+        {view !== "overview" && <nav className={styles.actions} aria-label={t("ai.sections")}><Button onClick={() => navigateView("overview")}>{t("ai.settings.back")}</Button><h2>{t(view === "models" ? "ai.settings.legacyMaintenance" : `ai.tab.${view}`)}</h2></nav>}
 
-        <div id="ai-settings-panel" role="tabpanel" aria-labelledby={`ai-tab-${view}`} tabIndex={0} className={styles.panel}>
+        <div id="ai-settings-panel" className={styles.panel}>
         {view === "overview" && (librariesQuery.isError || modelsQuery.isError || downloadsQuery.isError || semanticQueries.some((query) => query.isError)) &&
           <ErrorState message={t("ai.overview.loadFailed")} onRetry={() => { void librariesQuery.refetch(); void modelsQuery.refetch(); void downloadsQuery.refetch(); semanticQueries.forEach((query) => void query.refetch()); }} />}
         {view === "overview" && (librariesQuery.isPending || modelsQuery.isPending || downloadsQuery.isPending || semanticQueries.some((query) => query.isPending)) && <LoadingState label={t("ai.loadingStatus")} />}
-        {view === "overview" && !librariesQuery.isPending && !librariesQuery.isError && !modelsQuery.isPending && !modelsQuery.isError && !downloadsQuery.isPending && !downloadsQuery.isError && semanticQueries.every((query) => !query.isPending && !query.isError) && <AIOverview
+        {view === "overview" && !librariesQuery.isPending && !librariesQuery.isError && !modelsQuery.isPending && !modelsQuery.isError && !downloadsQuery.isPending && !downloadsQuery.isError && <AISettingsOverview
           runtimeAvailable={downloadsQuery.data?.runtimeAvailable}
-          activeModel={Boolean(modelsQuery.data?.activeModelId)}
-          modelCount={modelsQuery.data?.items.length ?? 0}
-          totalLibraries={libraries.length}
-          partialLibraries={Boolean(librariesQuery.hasNextPage)}
-          enabledLibraries={semanticQueries.filter((query) => query.data?.enabled).length}
-          completed={semanticQueries.reduce((sum, query) => sum + (query.data?.coverage.completed ?? 0), 0)}
-          eligible={semanticQueries.reduce((sum, query) => sum + (query.data?.coverage.eligible ?? 0), 0)}
+          libraries={libraries} semantic={semanticQueries} faces={faceQueries}
+          models={modelsQuery.data?.items ?? []} activeModelId={modelsQuery.data?.activeModelId ?? null} activeFaceModelId={modelsQuery.data?.activeFaceModelId ?? null}
+          selectedId={searchParams.get("library")} onSelect={selectLibrary}
+          onManage={(id) => setSearchParams(current => { const next = new URLSearchParams(current); next.set("library", id); next.set("view", "libraries"); return next; })}
+          pending={requestVideo.isPending || updateSettings.isPending || updateFaces.isPending || requestJob.isPending || requestFaces.isPending || clear.isPending || clearFaceDerived.isPending || clearFaceManual.isPending}
+          onVideoJob={(library, mode) => {
+            if (mode === "all") { setConfirmation({ kind: "videoRebuild", library }); return; }
+            void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: library.id, mode }), "ai.jobStarted");
+          }}
+          onSemantic={toggleSemantic} onFace={toggleFace}
+          hasMore={Boolean(librariesQuery.hasNextPage)} loadingMore={librariesQuery.isFetchingNextPage} onMore={() => void librariesQuery.fetchNextPage()}
           onView={navigateView}
         />}
 
         {view === "libraries" && (
           <LibrariesPanel
-            libraries={libraries}
+            libraries={searchParams.has("library") ? libraries.filter(item => item.id === searchParams.get("library")) : libraries}
             librariesPending={librariesQuery.isPending}
             librariesError={librariesQuery.isError}
-            queries={semanticQueries}
+            queries={searchParams.has("library") ? semanticQueries.filter((_, index) => libraries[index]?.id === searchParams.get("library")) : semanticQueries}
             actionPending={updateSettings.isPending || requestJob.isPending || clear.isPending}
             onClear={(library, settings) => setConfirmation({ kind: "clear", library, settings })}
             onMissing={(library) => void runAction(() => requestJob.mutateAsync({
@@ -217,13 +223,7 @@ export function AISettingsPage({
               mode: "missing",
             }), "ai.jobStarted")}
             onRebuild={(library, settings) => setConfirmation({ kind: "rebuild", library, settings })}
-            onToggle={(library, settings, enabled) => void updateSettings.mutateAsync({
-              csrfToken: session.csrfToken,
-              enabled,
-              etag: settings.etag,
-              libraryId: library.id,
-            }).then(() => toast.show({ message: t("ai.settingSaved"), tone: "success" }))
-              .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
+            onToggle={toggleSemantic}
             onRetry={() => void librariesQuery.refetch()}
           />
         )}
@@ -235,6 +235,7 @@ export function AISettingsPage({
             onCancel={(operation) => void cancel.mutateAsync({ csrfToken: session.csrfToken, etag: operation.etag, operationId: operation.id })
               .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
           />
+          <AIModelProxyPanel csrfToken={session.csrfToken} />
           <ModelsPanel
             runtimeAvailable={downloadsQuery.data?.runtimeAvailable ?? false}
             candidateScan={candidateScan}
@@ -268,9 +269,7 @@ export function AISettingsPage({
             libraries={libraries}
             queries={faceQueries}
             pending={updateFaces.isPending || requestFaces.isPending || clearFaceDerived.isPending || clearFaceManual.isPending}
-            onToggle={(library, settings, enabled) => void updateFaces.mutateAsync({
-              csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id,
-            }).catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
+            onToggle={toggleFace}
             onJob={(library, mode) => void runAction(() => requestFaces.mutateAsync({
               csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: library.id, mode,
             }), "ai.jobStarted")}
@@ -288,6 +287,12 @@ export function AISettingsPage({
           <TasksPanel
             cancelPending={cancel.isPending}
             operationIds={trackedOperationIds}
+            removableIds={operationIds}
+            onForget={(id) => setOperationIds((current) => {
+              const next = current.filter((value) => value !== id);
+              writeAIOperationIds(next);
+              return next;
+            })}
             queries={operationQueries}
             onCancel={(operation) => void cancel.mutateAsync({
               csrfToken: session.csrfToken,
@@ -302,7 +307,7 @@ export function AISettingsPage({
 
       <ConfirmationDialog
         confirmation={confirmation}
-        pending={install.isPending || requestJob.isPending || clear.isPending}
+        pending={install.isPending || requestJob.isPending || requestVideo.isPending || clear.isPending}
         onClose={() => setConfirmation(null)}
         onConfirm={() => {
           if (!confirmation) return;
@@ -313,6 +318,8 @@ export function AISettingsPage({
               idempotencyKey: createRequestKey(),
               storageMode: "direct",
             }), "ai.installStarted");
+          } else if (confirmation.kind === "videoRebuild") {
+            void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: confirmation.library.id, mode: "all" }), "ai.jobStarted");
           } else if (confirmation.kind === "rebuild") {
             void runAction(() => requestJob.mutateAsync({
               csrfToken: session.csrfToken,
@@ -386,6 +393,7 @@ function LibrariesPanel({
         {query?.isPending && <LoadingState label={t("ai.loadingStatus")} />}
         {query?.isError && <ErrorState message={t("ai.statusFailed")} onRetry={() => void query.refetch()} />}
         {settings && <>
+          {settings.coverageRecorded === false ? <InlineStatus>{t("ai.image.unrecorded")}</InlineStatus> : <>
           <div className={styles.metrics}>
             <Metric label={t("ai.state")} value={t(`ai.state.${settings.state}`)} />
             <Metric label={t("ai.coverage")} value={`${number.format(settings.coverage.completed)} / ${number.format(settings.coverage.eligible)}`} />
@@ -399,6 +407,7 @@ function LibrariesPanel({
               stale: number.format(settings.coverage.stale),
             })}</span>
           </div>
+          </>}
           {settings.state === "degraded" && <InlineStatus tone="warning">{t("ai.degradedNotice")}</InlineStatus>}
           {library.status === "offline" && <InlineStatus tone="warning">{t("ai.offlinePreserved")}</InlineStatus>}
           <div className={styles.actions}>
@@ -542,11 +551,13 @@ function FaceSettingsPanel({ libraries, onDerived, onJob, onManual, onToggle, pe
   </div>;
 }
 
-function TasksPanel({ cancelPending, onCancel, operationIds, queries }: {
+function TasksPanel({ cancelPending, onCancel, onForget, operationIds, removableIds, queries }: {
   cancelPending: boolean;
   onCancel: (operation: AIModelOperation & { etag: string }) => void;
   operationIds: string[];
-  queries: Array<{ data: (AIModelOperation & { etag: string }) | undefined; isError: boolean; isPending: boolean; refetch: () => unknown }>;
+  removableIds: string[];
+  onForget: (id: string) => void;
+  queries: Array<{ data: (AIModelOperation & { etag: string }) | undefined; error?: unknown; isError: boolean; isPending: boolean; refetch: () => unknown }>;
 }) {
   const { locale, t } = useLocale();
   if (operationIds.length === 0) return <EmptyState title={t("ai.noTasks")} description={t("ai.noTasksDescription")} />;
@@ -554,6 +565,12 @@ function TasksPanel({ cancelPending, onCancel, operationIds, queries }: {
     const query = queries[index];
     const operation = query?.data;
     if (query?.isPending) return <div className={styles.card} key={id}><LoadingState label={t("ai.loadingTask")} /></div>;
+    if (query?.isError && query.error instanceof ApiError && query.error.status === 404 && query.error.code === "ai_operation_not_found") {
+      return <div className={styles.card} key={id}>
+        <EmptyState title={t("ai.taskNotFound")} description={t("ai.taskNotFoundDescription")} />
+        {removableIds.includes(id) && <Button onClick={() => onForget(id)}>{t("ai.forgetTask")}</Button>}
+      </div>;
+    }
     if (query?.isError) return <div className={styles.card} key={id}><ErrorState message={t("ai.taskFailedToLoad")} onRetry={() => void query.refetch()} /></div>;
     if (!operation) return null;
     const percent = operation.totalItems && operation.totalItems > 0 ? Math.min(100, operation.completedItems / operation.totalItems * 100) : null;

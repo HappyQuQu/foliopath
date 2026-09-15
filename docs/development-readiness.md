@@ -1,5 +1,11 @@
 # FolioPath 开发就绪评审
 
+2026-09-14 ADR-0019/CR-2026-030 接受独立 AI 服务方向，目前通过本地离线协议 spike。
+旧 INT Backend Ready 不自动覆盖新 HTTP/模型代次合同；允许继续合同设计与隔离验证，
+正式主应用和 UI 集成仍须先补齐新切片 Backend Ready。
+已接受[传输子片合同](architecture/independent-ml-transport-contract.md)，允许独立 adapter
+实现及隔离测试，不扩展至模型身份准入、持久化或主应用组合。
+
 ## 当前结论
 
 [FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)是独立的

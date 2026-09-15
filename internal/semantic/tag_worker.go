@@ -46,6 +46,7 @@ func (p *TagJobProcessor) Process(ctx context.Context, job TagJob) error {
 	if job.ID == "" || job.LibraryID < 1 || len(job.GenerationID) < 8 || len(job.VocabularySnapshotID) < 8 || job.State != JobRunning || job.ClaimedRevision < 1 {
 		return ErrInvalidTagJob
 	}
+	defer p.BackgroundAdmissionCancelled(ctx, job)
 	if p.embeddings != nil {
 		if err := p.embeddings.EnsureTagEmbeddings(ctx, job.GenerationID, job.VocabularySnapshotID); err != nil {
 			return p.fail(ctx, job, "model_unavailable", err)
@@ -91,6 +92,17 @@ func (p *TagJobProcessor) Process(ctx context.Context, job TagJob) error {
 	}
 	_, err = p.queue.FinishTagJob(ctx, job, JobSucceeded, "", p.now().UTC())
 	return err
+}
+
+// BackgroundAdmissionCancelled leaves shutdown work recoverable unless a user
+// cancellation has already been accepted by the queue's canonical state owner.
+func (p *TagJobProcessor) BackgroundAdmissionCancelled(ctx context.Context, job TagJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = p.queue.FinishTagJob(cleanup, job, JobCancelled, "", p.now().UTC())
 }
 
 func (p *TagJobProcessor) fail(ctx context.Context, job TagJob, code string, cause error) error {

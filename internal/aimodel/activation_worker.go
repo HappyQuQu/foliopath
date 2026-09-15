@@ -41,19 +41,40 @@ type AvailabilityMarker interface {
 	MarkUnavailable(context.Context, string, int64) error
 }
 
+// DeploymentActivationRuntime owns service identity verification and routes the
+// commit through the space-bound repository. It must never open local model files.
+type DeploymentActivationRuntime interface {
+	LoadAndValidateDeployment(context.Context, Model) (RuntimeMetadata, error)
+	CommitDeploymentActivation(context.Context, ActivationCommit) (Operation, error)
+}
+
+type DeploymentFaceMetadata struct {
+	FaceRuntimeMetadata
+	DetectorContentHash, EmbedderContentHash, ThresholdProfileHash string
+}
+
+// DeploymentFaceActivationRuntime verifies the service's complete face identity
+// and routes commit through a matching space-bound repository, never local files.
+type DeploymentFaceActivationRuntime interface {
+	LoadAndValidateFaceDeployment(context.Context, Model) (DeploymentFaceMetadata, error)
+	CommitFaceDeploymentActivation(context.Context, FaceActivationCommit) (Operation, error)
+}
+
 type ActivationWorker struct {
-	queue         ActivationRepository
-	models        *Service
-	operations    *OperationService
-	catalog       *Catalog
-	source        ActivationPackageSource
-	runtime       InferenceRuntime
-	faceRuntime   FaceInferenceRuntime
-	availability  AvailabilityMarker
-	notifications <-chan struct{}
-	pollInterval  time.Duration
-	now           func() time.Time
-	newID         IDGenerator
+	queue          ActivationRepository
+	models         *Service
+	operations     *OperationService
+	catalog        *Catalog
+	source         ActivationPackageSource
+	runtime        InferenceRuntime
+	faceRuntime    FaceInferenceRuntime
+	deployment     DeploymentActivationRuntime
+	faceDeployment DeploymentFaceActivationRuntime
+	availability   AvailabilityMarker
+	notifications  <-chan struct{}
+	pollInterval   time.Duration
+	now            func() time.Time
+	newID          IDGenerator
 }
 
 func NewActivationWorker(
@@ -137,6 +158,24 @@ func (worker *ActivationWorker) Run(ctx context.Context) error {
 	}
 }
 
+// EnableDeploymentRuntime is composition-time only, before Run starts. Runtime
+// replacement is deliberately forbidden; reconfiguration requires a new worker.
+func (worker *ActivationWorker) EnableDeploymentRuntime(runtime DeploymentActivationRuntime) error {
+	if runtime == nil || worker.deployment != nil {
+		return errors.New("invalid deployment activation runtime")
+	}
+	worker.deployment = runtime
+	return nil
+}
+
+func (worker *ActivationWorker) EnableFaceDeploymentRuntime(runtime DeploymentFaceActivationRuntime) error {
+	if runtime == nil || worker.faceDeployment != nil {
+		return errors.New("invalid face deployment activation runtime")
+	}
+	worker.faceDeployment = runtime
+	return nil
+}
+
 func validateClaimedActivationWork(work ActivationWork) error {
 	if work.ModelID == "" || work.ExpectedAvailabilityRevision < 1 ||
 		len(work.IdempotencyKey) < 8 || len(work.IdempotencyKey) > 128 ||
@@ -186,10 +225,11 @@ func (worker *ActivationWorker) process(parent context.Context, work ActivationW
 }
 
 type activationLoadResult struct {
-	model    Model
-	manifest Manifest
-	semantic *RuntimeMetadata
-	face     *FaceRuntimeMetadata
+	model       Model
+	manifest    Manifest
+	semantic    *RuntimeMetadata
+	face        *FaceRuntimeMetadata
+	faceService *DeploymentFaceMetadata
 }
 
 func (worker *ActivationWorker) load(ctx context.Context, work ActivationWork) (activationLoadResult, error) {
@@ -199,6 +239,26 @@ func (worker *ActivationWorker) load(ctx context.Context, work ActivationWork) (
 	}
 	if model.State != StateAvailable || model.AvailabilityRevision != work.ExpectedAvailabilityRevision {
 		return activationLoadResult{}, ErrModelUnavailable
+	}
+	if model.StorageMode == StorageService {
+		if model.Package.Purpose == PurposeFaceDetectionEmbedding {
+			if worker.faceDeployment == nil {
+				return activationLoadResult{}, ErrInferenceRuntimeUnavailable
+			}
+			metadata, err := worker.faceDeployment.LoadAndValidateFaceDeployment(ctx, model)
+			if err != nil {
+				return activationLoadResult{}, err
+			}
+			return activationLoadResult{model: model, face: &metadata.FaceRuntimeMetadata, faceService: &metadata}, nil
+		}
+		if worker.deployment == nil {
+			return activationLoadResult{}, ErrInferenceRuntimeUnavailable
+		}
+		metadata, err := worker.deployment.LoadAndValidateDeployment(ctx, model)
+		if err != nil {
+			return activationLoadResult{}, err
+		}
+		return activationLoadResult{model: model, semantic: &metadata}, nil
 	}
 	manifest, exists := worker.catalog.Manifest(model.Package.PackageID)
 	if !exists {
@@ -253,15 +313,41 @@ func (worker *ActivationWorker) commit(
 		if ValidateGeneration(generation) != nil {
 			return ErrModelIncompatible
 		}
-		_, err := worker.queue.CommitAIModelActivation(ctx, ActivationCommit{
+		commit := ActivationCommit{
 			OperationID: operation.ID, ExpectedRevision: operation.Revision,
 			ExpectedAvailabilityRevision: work.ExpectedAvailabilityRevision,
 			Generation:                   generation, UpdatedAt: now,
-		})
+		}
+		if loaded.model.StorageMode == StorageService {
+			if worker.deployment == nil {
+				return ErrInferenceRuntimeUnavailable
+			}
+			_, err := worker.deployment.CommitDeploymentActivation(ctx, commit)
+			return err
+		}
+		_, err := worker.queue.CommitAIModelActivation(ctx, commit)
 		return err
 	case PurposeFaceDetectionEmbedding:
 		if loaded.face == nil {
 			return ErrModelIncompatible
+		}
+		if loaded.model.StorageMode == StorageService {
+			if worker.faceDeployment == nil || loaded.faceService == nil {
+				return ErrInferenceRuntimeUnavailable
+			}
+			metadata := loaded.faceService
+			generation := FaceGeneration{ID: id, ModelID: work.ModelID, PackageID: loaded.model.Package.PackageID,
+				DetectorContentHash: metadata.DetectorContentHash, EmbedderContentHash: metadata.EmbedderContentHash,
+				EmbeddingDimension: metadata.EmbeddingDimension, TransformVersion: FaceTransformVersion,
+				ThresholdProfile: metadata.ThresholdProfile, ThresholdProfileHash: metadata.ThresholdProfileHash,
+				State: GenerationActive, CreatedAt: now, ActivatedAt: &now, UpdatedAt: now}
+			if ValidateFaceGeneration(generation) != nil {
+				return ErrModelIncompatible
+			}
+			_, err := worker.faceDeployment.CommitFaceDeploymentActivation(ctx, FaceActivationCommit{
+				OperationID: operation.ID, ExpectedRevision: operation.Revision, ExpectedAvailabilityRevision: work.ExpectedAvailabilityRevision,
+				Generation: generation, UpdatedAt: now})
+			return err
 		}
 		repository, ok := worker.queue.(FaceActivationRepository)
 		if !ok {

@@ -1,79 +1,40 @@
-# UIF-402 Design QA
-
-## Comparison target
-
-- Prototype/source authority:
-  `web/qa/visual-reference-manifest.json` and the twelve latest pages under
-  `prototypes/apple-redesign`.
-- Same-state source/production comparison:
-  `docs/evidence/uif-401/index.html`.
-- Regression implementation:
-  `web/tests/e2e/visual-regression.spec.ts`.
-- Linux baseline inventory and reproduction record:
-  `docs/evidence/uif-402/README.md`.
-
-UIF-401 remains the visual source comparison. UIF-402 does not reinterpret the
-prototype or accept new functionality; it turns the approved current MVP
-regions into stable regression assets.
-
-## Captured states
-
-- One canonical global Header.
-- Management Center: General, Libraries, Scanning and cache, Account.
-- Browse: top, document bottom, and open right-side preview.
-- Search: populated current-library result state.
-- Viewer: available image and preserved offline-source state.
-
-Every new capture uses a fixed Linux Chromium environment at `1280 × 800`,
-English, dark theme, and reduced motion. The authenticated account, library,
-directory tree, settings, cache, media metadata, ETags, dates, counts, and
-synthetic media bytes are deterministic.
-
-## Combined visual review
-
-The UIF-401 source captures and UIF-402 baselines were reviewed together at one
-equal scale for General, Libraries, Storage, Account, Browse, Search, and
-Viewer. The expected language and viewport-height differences do not change the
-shared composition:
-
-- the same global Header remains the only top-level Header;
-- management navigation remains one non-duplicated left rail with four
-  independent routes;
-- Browse keeps the filter on the right, the directory hierarchy on the left,
-  a single vertical document scroll, and the preview in the right workspace;
-- Search remains a dedicated result page entered from the global search;
-- Viewer keeps the approved full-screen toolbar, media stage, close,
-  previous/next, fit/zoom/1:1, fullscreen, and information behavior.
-
-No visible P0, P1, or P2 regression was found. No placeholder logo, emoji, CSS
-drawing, handwritten SVG, or mock-only production control was introduced.
-
-## Stability controls
-
-- All API responses are intercepted at the real generated-client HTTP boundary;
-  feature code is not altered to consume test-only state.
-- The committed `tests/fixtures/media/viewer-blue-violet.png` is used for
-  thumbnails and original-image responses.
-- Image completion, decode, and paint frames are awaited before capture.
-- The preview selection/focus transition is allowed to settle before capture.
-- No screenshot mask is used.
-- Baselines were generated in Linux, then the full visual file was run again
-  without `--update-snapshots`: `9 passed`.
-
-## Scope guard
-
-The latest prototype Storage page still contains Post-MVP task-center,
-missing-cache backfill, full rebuild, and maintenance concepts. UIF-402 does
-not add those unsupported controls to production. Their contracts and delivery
-remain governed by the separate Post-MVP feature records, so visual fidelity
-does not create false backend capability.
-
-## Follow-up
-
-- UIF-403 owns the complete real backend vertical chain.
-- UIF-404 owns the release browser/accessibility matrix.
-- UIF-405 owns candidate 100k/10k capacity evidence.
-- UIF-406～408 own full repository verification, documentation convergence, and
-  Integrated Slice sign-off.
+# 智能设置正式组件视觉复核 — 2026-09-14
 
 final result: passed
+
+## 范围与证据
+
+- 来源：`spikes/int001-ui-settings/evidence/desktop-final.png`（方案一，1487×1058）。
+- 实现：`docs/evidence/int-001/settings-ui-2026-09-14/desktop.png`（1472×1125）、`mobile.png`（375×1642）。完整页面高度包含底部仅 Storybook 存在的合成数据标识。
+- 浏览器：本地 Storybook 正式 `AISettingsPage`，合成查询数据；不是运行中的完整后端。
+- CSS 视口：桌面 1487×1058、手机 390×844；截图为完整页面，按 CSS 像素比较，无缩放处理。手机可用内容宽 375px（滚动条占宽），scrollWidth=clientWidth=375。
+- 桌面源图与最终实现图在同一次图片工具输入中打开比较；手机另行检查。整图文字/控件可读，无需裁切放大。
+- 状态差异明确保留：来源是新服务已连接的演示；正式组件使用现有契约的未就绪/无活动模型状态，不能伪造 CLIP、buffalo_l、连接时间或 50% 进度。因此本次验收为布局适配，不是数据状态逐像素等同，也不是独立 AI 接入验收。
+
+## 比较历史与结果
+
+1. 初轮 P2：预览悬浮标识可能覆盖页面；人物维护独占一行增加主区高度。修复：标识移到 Storybook 文档流末尾，维护入口移入折叠部署详情。
+2. 复拍发现滚动位置造成固定头部的完整页截图错位；刷新后从顶部重新捕获，不把截图伪影当作应用布局。
+3. 最终源图/实现同输入复核：无剩余 P0/P1/P2。能力、媒体库、部署详情顺序一致；手机文字和开关无重叠，无横向溢出。
+
+## 五项视觉检查
+
+- 字体：复用项目字体、字号与字重 token，标题层级明确，中英文使用既有翻译边界。
+- 间距：复用中央间距、圆角和管理壳；白色双行卡片、分隔线、侧栏与原型同方向。真实状态文字导致局部尺寸不同，接受；不宣称 2px 几何一致。
+- 颜色：复用浅底、白色表面、蓝色强调及禁用 token，无新的主题或硬编码色板。
+- 图像：该页无照片或生成位图；保留已有品牌和 Phosphor 图标，无自制图形替代资产。
+- 文案：正式状态来自领域适配器，不把演示服务/模型写死。Storybook 另标明合成数据。
+
+## 验证
+
+- 浏览器：媒体库切换更新开关标签；Enter 展开部署详情；进度入口进入任务空态；返回恢复概览；未就绪开关禁用。控制台 error 列表为空。
+- `npm ci` 成功（报告 2 个 moderate 漏洞，未强制更新依赖）。
+- `npm run test`：51 文件 / 197 项通过，包括所选媒体库、独立 face ETag、离线保留进度、错误时隐藏旧控件、兼容入口。
+- `npm run build`（含类型检查）、`npm run generate:check`、`npm run check:architecture`、`make arch-check` 通过。
+- 构建仍有大于 500kB chunk 提示，未在 UI 适配中扩张为打包架构改造。
+- 本轮未运行完整 Go、集成或 E2E 套件，也未在真实后端浏览器中执行保存/分析。深色/英文全矩阵不计为本轮已验证。
+
+## 后续
+
+- 继续独立 AI 服务身份/代次契约和主应用接入，再做本地真实端到端验证。
+- 不改原媒体；未连接 server222，未部署或推送。

@@ -122,7 +122,10 @@ func (runtime *Runtime) embedDetection(
 		return face.Candidate{}, false, runtimeError(err)
 	}
 	width, height := x1-x0, y1-y0
-	quality := detection.Score * min(float32(1), min(width, height)/64)
+	quality, err := face.SizeWeightedDetectionQuality(detection.Score, width, height)
+	if err != nil {
+		return face.Candidate{}, false, err
+	}
 	return face.Candidate{
 		Box: face.Box{X: x0 / float32(image.Width), Y: y0 / float32(image.Height),
 			Width: width / float32(image.Width), Height: height / float32(image.Height)},

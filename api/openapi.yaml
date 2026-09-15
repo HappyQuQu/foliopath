@@ -2453,6 +2453,121 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/ai/model-proxy:
+    get:
+      tags: [AI models]
+      operationId: getAIModelProxy
+      summary: Get administrator model download proxy settings
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+        '500': [internal_error]
+      x-requirements: [FR-INT-017, FR-INT-019, NFR-INT-007, NFR-INT-009]
+      responses:
+        '200':
+          description: Administrator-only proxy settings or fixed-source test result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelProxySnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      tags: [AI models]
+      operationId: saveAIModelProxy
+      summary: Save model download proxy settings with revision conflict protection
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '412': [precondition_failed]
+        '429': [rate_limited]
+        '500': [internal_error]
+      x-requirements: [FR-INT-017, FR-INT-019, NFR-INT-007, NFR-INT-009]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIModelProxySettings'
+      responses:
+        '200':
+          description: Administrator-only proxy settings or fixed-source test result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelProxySnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+
+  /api/v1/ai/model-proxy/test:
+    post:
+      tags: [AI models]
+      operationId: testAIModelProxy
+      summary: Test unsaved proxy settings using a fixed verified source without installing
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '409': [model_download_active]
+        '429': [rate_limited]
+        '500': [internal_error]
+      x-requirements: [FR-INT-017, FR-INT-019, NFR-INT-007, NFR-INT-009]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIModelProxySettings'
+      responses:
+        '200':
+          description: Administrator-only proxy settings or fixed-source test result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelProxyTestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '409':
+          description: A connectivity test is already running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/ai/model-downloads:
     get:
       tags: [AI models]
@@ -3414,6 +3529,10 @@ paths:
         A video score is the maximum frame score from one complete 10-frame
         plan, or from one complete 4-frame fallback. Ties use frame ordinal
         then asset ID. Partial or mixed plans never enter results.
+        After a successful scan removes videos, coverage retains only proven
+        current completed plans. Unattributable aggregate degraded/failed/stale
+        counts are reset to pending for surviving videos until backfill runs;
+        historical operation outcomes are unchanged.
       x-requirements: [FR-INT-006, FR-INT-007, FR-INT-008, NFR-INT-001, NFR-INT-004, NFR-INT-005]
       x-error-codes:
         '400': [invalid_request, invalid_cursor]
@@ -3446,6 +3565,44 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/ai/video-semantic:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [Semantic search]
+      operationId: getLibraryVideoSemanticStatus
+      summary: Read recorded video indexing progress without inference
+      description: >-
+        Returns recorded library-wide coverage for the current active generation.
+        Offline libraries and disabled analysis retain recorded coverage. Null coverage
+        means no progress exists for this generation, not zero eligible or completion.
+        This read does not call inference, start jobs, or indicate model health.
+        Unclassified remainder is pending. Successful removal scans may reset unknown
+        degraded/failed/stale attribution to pending until backfill recomputes it.
+      security:
+        - cookieAuth: []
+      x-requirements: [FR-INT-006, FR-INT-007, FR-INT-016]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Recorded progress, including disabled or offline libraries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoSemanticStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -6766,6 +6923,53 @@ components:
           minimum: 100
           maximum: 60000
 
+    AIModelProxySettings:
+      type: object
+      additionalProperties: false
+      required: [mode, proxyUrl, revision]
+      properties:
+        mode:
+          type: string
+          enum: [inherit, direct, custom]
+        proxyUrl:
+          type: string
+          maxLength: 2048
+          description: Credential-free proxy origin; empty unless custom. Never a download URL.
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+
+    AIModelProxySnapshot:
+      type: object
+      additionalProperties: false
+      required: [mode, proxyUrl, revision, deploymentConfigured, effectiveMode]
+      properties:
+        mode:
+          type: string
+          enum: [inherit, direct, custom]
+        proxyUrl:
+          type: string
+          maxLength: 2048
+          description: Credential-free proxy origin; empty unless custom. Never a download URL.
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+        deploymentConfigured:
+          type: boolean
+        effectiveMode:
+          type: string
+          enum: [direct, proxy]
+
+    AIModelProxyTestResult:
+      type: object
+      additionalProperties: false
+      required: [available]
+      properties:
+        available:
+          type: boolean
+
     AIModelDownloadPage:
       type: object
       additionalProperties: false
@@ -6885,7 +7089,8 @@ components:
           enum: [amd64, arm64]
         storageMode:
           type: string
-          enum: [managed, direct]
+          description: Service models are deployment-owned; legacy file installation and activation endpoints do not accept them.
+          enum: [managed, direct, service]
         state:
           type: string
           enum: [installed, available, unavailable]
@@ -7045,9 +7250,20 @@ components:
 
     SemanticLibrarySettings:
       type: object
+      description: >-
+        Recorded image indexing settings and coverage for the active generation.
+        Model unavailability does not erase or hide recorded coverage. The state and
+        coverage describe indexing, not model health; enabling analysis still requires
+        an available active model.
       additionalProperties: false
       required: [libraryId, enabled, state, revision, activeGenerationId, coverage]
       properties:
+        coverageRecorded:
+          type: boolean
+          description: >-
+            Whether coverage has a stored progress row for the active generation.
+            False means unknown, not zero candidates or complete; coverage.complete
+            is false in this case. Omitted only by older servers.
         libraryId:
           $ref: '#/components/schemas/ResourceID'
         enabled:
@@ -7375,6 +7591,26 @@ components:
               type: integer
               format: int32
               enum: [4, 10]
+
+    VideoSemanticStatus:
+      type: object
+      additionalProperties: false
+      required: [libraryId, enabled, offline, activeGenerationId, coverage]
+      properties:
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        enabled:
+          type: boolean
+        offline:
+          type: boolean
+        activeGenerationId:
+          $ref: '#/components/schemas/NullableResourceID'
+        coverage:
+          oneOf:
+            - $ref: '#/components/schemas/DerivedCoverage'
+            - type: object
+              nullable: true
+              enum: [null]
 
     DerivedCoverage:
       type: object

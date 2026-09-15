@@ -95,6 +95,29 @@ func (service *Service) RegisterInstalled(
 		sourceIdentity == "" || len(sourceIdentity) > 256 {
 		return Model{}, false, ErrInvalidModel
 	}
+	return service.register(ctx, verified, storageMode, sourceIdentity)
+}
+
+// RegisterDeployment records a deployment-verified semantic model, never a file
+// installation. The caller must have verified the identity before calling.
+// ContentHash/SourceIdentity are the space fingerprint, not a URL or path.
+func (service *Service) RegisterDeployment(ctx context.Context, verified VerifiedPackage) (Model, bool, error) {
+	if ValidatePackage(verified) != nil || verified.Purpose != PurposeSemanticImageText {
+		return Model{}, false, ErrInvalidModel
+	}
+	return service.register(ctx, verified, StorageService, verified.ContentHash)
+}
+
+// RegisterFaceDeployment is internal-only. The caller must independently verify
+// the face service and bind its threshold/transform contract in ContentHash.
+func (service *Service) RegisterFaceDeployment(ctx context.Context, verified VerifiedPackage) (Model, bool, error) {
+	if ValidatePackage(verified) != nil || verified.Purpose != PurposeFaceDetectionEmbedding {
+		return Model{}, false, ErrInvalidModel
+	}
+	return service.register(ctx, verified, StorageService, verified.ContentHash)
+}
+
+func (service *Service) register(ctx context.Context, verified VerifiedPackage, storageMode StorageMode, sourceIdentity string) (Model, bool, error) {
 	id, err := service.newID()
 	if err != nil {
 		return Model{}, false, fmt.Errorf("generate AI model ID: %w", err)
@@ -116,6 +139,9 @@ func (service *Service) RegisterInstalled(
 	}
 	if err := ValidateModel(registered); err != nil {
 		return Model{}, false, err
+	}
+	if (storageMode == StorageService || registered.StorageMode == StorageService) && registered.StorageMode != storageMode {
+		return Model{}, false, ErrRepositoryState
 	}
 	return registered, created, nil
 }

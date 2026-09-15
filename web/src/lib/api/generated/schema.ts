@@ -200,6 +200,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/model-proxy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get administrator model download proxy settings */
+        get: operations["getAIModelProxy"];
+        /** Save model download proxy settings with revision conflict protection */
+        put: operations["saveAIModelProxy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-proxy/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test unsaved proxy settings using a fixed verified source without installing */
+        post: operations["testAIModelProxy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/models": {
         parameters: {
             query?: never;
@@ -1144,6 +1179,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/ai/video-semantic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read recorded video indexing progress without inference
+         * @description Returns recorded library-wide coverage for the current active generation. Offline libraries and disabled analysis retain recorded coverage. Null coverage means no progress exists for this generation, not zero eligible or completion. This read does not call inference, start jobs, or indicate model health. Unclassified remainder is pending. Successful removal scans may reset unknown degraded/failed/stale attribution to pending until backfill recomputes it.
+         */
+        get: operations["getLibraryVideoSemanticStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/ai/video-semantic/jobs": {
         parameters: {
             query?: never;
@@ -1583,6 +1641,10 @@ export interface paths {
          * @description A video score is the maximum frame score from one complete 10-frame
          *     plan, or from one complete 4-frame fallback. Ties use frame ordinal
          *     then asset ID. Partial or mixed plans never enter results.
+         *     After a successful scan removes videos, coverage retains only proven
+         *     current completed plans. Unattributable aggregate degraded/failed/stale
+         *     counts are reset to pending for surviving videos until backfill runs;
+         *     historical operation outcomes are unchanged.
          */
         get: operations["searchVideosBySemantics"];
         put?: never;
@@ -1798,8 +1860,11 @@ export interface components {
             purpose: "semantic_image_text" | "face_detection_embedding";
             /** @enum {string} */
             state: "installed" | "available" | "unavailable";
-            /** @enum {string} */
-            storageMode: "managed" | "direct";
+            /**
+             * @description Service models are deployment-owned; legacy file installation and activation endpoints do not accept them.
+             * @enum {string}
+             */
+            storageMode: "managed" | "direct" | "service";
             version: string;
         };
         AIModelCandidate: {
@@ -1885,6 +1950,28 @@ export interface components {
             /** @enum {string} */
             readiness: "package_pending" | "adapter_pending";
             sourceLabel: string;
+        };
+        AIModelProxySettings: {
+            /** @enum {string} */
+            mode: "inherit" | "direct" | "custom";
+            /** @description Credential-free proxy origin; empty unless custom. Never a download URL. */
+            proxyUrl: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        AIModelProxySnapshot: {
+            deploymentConfigured: boolean;
+            /** @enum {string} */
+            effectiveMode: "direct" | "proxy";
+            /** @enum {string} */
+            mode: "inherit" | "direct" | "custom";
+            /** @description Credential-free proxy origin; empty unless custom. Never a download URL. */
+            proxyUrl: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        AIModelProxyTestResult: {
+            available: boolean;
         };
         AITagSuggestion: {
             asset: components["schemas"]["Asset"];
@@ -2783,9 +2870,12 @@ export interface components {
             /** @enum {string} */
             mode: "missing" | "all";
         };
+        /** @description Recorded image indexing settings and coverage for the active generation. Model unavailability does not erase or hide recorded coverage. The state and coverage describe indexing, not model health; enabling analysis still requires an available active model. */
         SemanticLibrarySettings: {
             activeGenerationId: components["schemas"]["NullableResourceID"];
             coverage: components["schemas"]["SemanticCoverage"];
+            /** @description Whether coverage has a stored progress row for the active generation. False means unknown, not zero candidates or complete; coverage.complete is false in this case. Omitted only by older servers. */
+            coverageRecorded?: boolean;
             enabled: boolean;
             libraryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
@@ -3037,6 +3127,13 @@ export interface components {
          *     after normalization. Authentication compares only `username_key`.
          */
         Username: string;
+        VideoSemanticStatus: {
+            activeGenerationId: components["schemas"]["NullableResourceID"];
+            coverage: components["schemas"]["DerivedCoverage"] | (never | null);
+            enabled: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            offline: boolean;
+        };
     };
     responses: {
         /** @description The request syntax, cursor, query combination, or encoded input is invalid. */
@@ -3749,6 +3846,99 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxySnapshot"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    saveAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelProxySettings"];
+            };
+        };
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxySnapshot"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            412: components["responses"]["PreconditionFailed"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    testAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelProxySettings"];
+            };
+        };
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxyTestResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description A connectivity test is already running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };
@@ -5575,6 +5765,33 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryVideoSemanticStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded progress, including disabled or offline libraries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoSemanticStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
         };
     };

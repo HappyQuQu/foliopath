@@ -304,6 +304,8 @@ func aiOperationETag(operation aimodel.Operation) string {
 
 func writeAIModelError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, aimodel.ErrInvalidProxySettings):
+		writePublicError(writer, request, http.StatusBadRequest, codeInvalidRequest, "The proxy settings are invalid.")
 	case errors.Is(err, aimodel.ErrDownloadUnavailable):
 		writePublicError(writer, request, http.StatusConflict, "model_download_unavailable", "The model download source is unavailable.")
 	case errors.Is(err, aimodel.ErrDownloadActive):

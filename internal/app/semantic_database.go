@@ -161,6 +161,15 @@ func (service *databaseService) RefreshVideoJobLease(ctx context.Context, job se
 	return service.store.RefreshVideoJobLease(ctx, job, now, lease)
 }
 
+func (service *databaseService) GetVideoStatus(ctx context.Context, libraryID int64) (semantic.VideoStatus, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return semantic.VideoStatus{}, errAIRepositoryNotReady
+	}
+	return service.store.GetVideoStatus(ctx, libraryID)
+}
+
 func (service *databaseService) GetVideoJobProgress(ctx context.Context, generationID string, libraryID int64) (semantic.VideoJobProgress, bool, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()

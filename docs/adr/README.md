@@ -1,5 +1,11 @@
 # FolioPath 架构决策记录
 
+[ADR-0020：FolioPath 专用 AI 镜像](0020-ai-runtime-delivery-proposal.md)：用户已选择方案 A，方向接受、实现与发行验证进行中。
+
+[ADR-0019：独立 AI 服务](0019-independent-machine-learning-service.md)：用户已接受方向，生产集成进行中。
+
+[ADR-0018：管理员模型代理设置](0018-admin-model-proxy-settings.md)（Accepted for implementation）。
+
 ADR 记录已经改变或将改变系统结构的决定。它回答“为什么这样设计”，不替代
 [系统架构](../architecture.md)、产品需求、OpenAPI、迁移或测试规范。
 
@@ -34,3 +40,4 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0014：SigLIP SentencePiece tokenizer runtime 与模型包 v2](0014-siglip-sentencepiece-tokenizer-runtime.md)（已接受 fail-closed 后端实现；发行链接、模型激活与发布仍等待质量/双架构/供应链 Gate）
 - [ADR-0015：人脸组合模型包与独立 generation 激活](0015-face-model-package-and-generation-activation.md)（已接受 fail-closed 后端实现；模型激活与发布仍等待 S2C 质量/隐私/双架构准入）
 - [ADR-0016：部署管理员模型下载目录](0016-admin-model-download-catalog.md)（已接受下载与 UI 扩展；不提供默认下载源、不解除 AI Release No-Go）
+- [ADR-0017：显式模型下载代理](0017-explicit-model-download-proxy.md)（部署配置；保留 HTTPS/hash 校验，代理承担目标 DNS/IP 策略）

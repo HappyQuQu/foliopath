@@ -74,7 +74,7 @@ var blockedPrefixes = []netip.Prefix{
 }
 
 func (source *Source) OpenDownload(parent context.Context, location string, redirectHosts []string, size int64) (io.ReadCloser, error) {
-	if !aimodel.ValidDownloadURL(location) || size <= 0 || size > aimodel.MaxPackageBytes {
+	if !validTarget(location) || size <= 0 || size > aimodel.MaxPackageBytes {
 		return nil, aimodel.ErrDownloadUnavailable
 	}
 	ctx, cancel := context.WithTimeout(parent, 30*time.Minute)
@@ -87,7 +87,7 @@ func (source *Source) OpenDownload(parent context.Context, location string, redi
 	request.Header.Set("User-Agent", "FolioPath-model-downloader")
 	host := request.URL.Hostname()
 	client := &http.Client{Transport: source.transport, CheckRedirect: func(next *http.Request, via []*http.Request) error {
-		if len(via) >= 5 || !aimodel.ValidDownloadURL(next.URL.String()) ||
+		if len(via) >= 5 || !validTarget(next.URL.String()) ||
 			(next.URL.Hostname() != host && !slices.Contains(redirectHosts, next.URL.Hostname())) {
 			return aimodel.ErrDownloadUnavailable
 		}

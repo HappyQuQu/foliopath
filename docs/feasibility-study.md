@@ -1,5 +1,9 @@
 # FolioPath 可行性研究
 
+2026-09-14 独立 ML 探针证明已有 222 缓存可在本地 Linux/arm64 官方 v3.1.0 服务离线加载，
+详见 [记录](evidence/int-001/independent-ml-local-2026-09-14.md)。这仅支持 ADR-0019 继续合同设计，
+不是新架构 Backend Ready 或中文检索/人脸质量证明。
+
 ## 结论与状态
 
 FolioPath 在既定范围内具备实现可行性，**Stage 0 Gate 已通过并允许进入 Stage 1**。

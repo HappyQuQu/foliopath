@@ -156,6 +156,7 @@ func (processor *TagReviewClearProcessor) Process(ctx context.Context, job TagRe
 	if job.ID == "" || job.LibraryID < 1 || job.OperationID == "" || job.State != JobRunning || job.ClaimedRevision < 1 {
 		return ErrInvalidTagReviewClear
 	}
+	defer processor.BackgroundAdmissionCancelled(ctx, job)
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -173,6 +174,17 @@ func (processor *TagReviewClearProcessor) Process(ctx context.Context, job TagRe
 			return err
 		}
 	}
+}
+
+// BackgroundAdmissionCancelled finalizes only a persisted user cancellation.
+// Unrequested shutdown work remains available for lease recovery.
+func (processor *TagReviewClearProcessor) BackgroundAdmissionCancelled(ctx context.Context, job TagReviewClearJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = processor.queue.FinishTagReviewClear(cleanup, job, JobCancelled, "", processor.now().UTC())
 }
 
 func (job TagReviewClearJob) OperationKind() aimodel.OperationKind {

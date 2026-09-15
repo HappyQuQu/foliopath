@@ -258,6 +258,10 @@ func (s *Store) FinishTagJob(ctx context.Context, job semantic.TagJob, outcome s
 			WHERE job.id=? AND job.claimed_revision=? AND job.operation_id=?`, job.ID, job.ClaimedRevision, job.OperationID).Scan(&state, &operationState, &completed, &total); err != nil {
 			return semantic.ErrTagJobConflict
 		}
+		// Resolve accepted cancellation in the same transaction as finalization.
+		if state == "cancelling" && operationState == "cancelling" {
+			outcome, code = semantic.JobCancelled, "cancelled"
+		}
 		if outcome == semantic.JobSucceeded && (state != "running" || operationState != "running" || completed != total) ||
 			outcome == semantic.JobCancelled && (state != "cancelling" || operationState != "cancelling") ||
 			outcome == semantic.JobFailed && state != "running" && state != "cancelling" {

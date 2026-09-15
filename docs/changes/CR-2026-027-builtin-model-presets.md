@@ -27,3 +27,13 @@
 - 未通过：`go test ./tests/integration -run TestAIModelDownload -count=1` 返回 insufficient_space。
   本机可用约 21 GiB，低于 managed store 保留磁盘容量 10% 的门槛；未降低安全余量或删除用户数据。
 - 未执行全套 Go/浏览器 E2E、真实模型下载/推理和 server222 部署。历史 S4 状态不变。
+
+## 2026-09-10 跟进
+
+`go test ./tests/integration -run TestAIModelDownload -count=1` 重跑通过；磁盘余量限制不再触发，
+未更改安全阈值。HF Immich SigLIP 1 文件的接口不符合现有 runtime 合同；server222 直连 HF 超时。
+详见[源核对证据](../evidence/int-001/siglip-download-source-check-2026-09-10.md)。真实模型闭环仍未完成。
+
+继续推进：以隔离 spike 完成真实上游文件校验、确定性 ABI 转换、固定 token 参考检查，并新增 opt-in
+`inferencecandidate` native Go 测试。Linux/amd64 图像/文本和联合 runtime validation 通过；没有更改
+production runtime 合同、下载目录或激活授权。固定托管源/正式镜像/实际搜图仍待完成，详见同一证据。

@@ -28,6 +28,7 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	aimodel.ProxySettingsRepository
 	aimodel.Repository
 	aimodel.OperationRepository
 	aimodel.InstallQueue
@@ -43,6 +44,7 @@ type databaseStore interface {
 	semantic.BackfillCatalog
 	semantic.EmbeddingRepository
 	semantic.GenerationRuntimeRepository
+	semantic.DeploymentActivationRepository
 	semantic.LibrarySettingsRepository
 	semantic.VectorSearchRepository
 	semantic.SearchSnapshotRepository
@@ -53,6 +55,7 @@ type databaseStore interface {
 	semantic.TagSuggestionListRepository
 	semantic.VideoEmbeddingRepository
 	semantic.VideoJobQueue
+	semantic.VideoStatusRepository
 	semantic.VideoJobCatalog
 	semantic.VideoVectorSearchRepository
 	semantic.VideoSearchSnapshotRepository

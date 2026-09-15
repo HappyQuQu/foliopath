@@ -155,6 +155,22 @@ func (service *ActivationAdmissionService) StartActivation(
 	model Model,
 	idempotencyKey string,
 ) (ActivationResult, error) {
+	if model.StorageMode == StorageService {
+		return ActivationResult{}, ErrModelIncompatible
+	}
+	return service.startActivation(ctx, model, idempotencyKey)
+}
+
+// StartDeploymentActivation is internal deployment admission; the browser/file
+// activation endpoint must continue to use StartActivation.
+func (service *ActivationAdmissionService) StartDeploymentActivation(ctx context.Context, model Model, idempotencyKey string) (ActivationResult, error) {
+	if model.StorageMode != StorageService {
+		return ActivationResult{}, ErrModelIncompatible
+	}
+	return service.startActivation(ctx, model, idempotencyKey)
+}
+
+func (service *ActivationAdmissionService) startActivation(ctx context.Context, model Model, idempotencyKey string) (ActivationResult, error) {
 	if ValidateModel(model) != nil || len(idempotencyKey) < 8 || len(idempotencyKey) > 128 {
 		return ActivationResult{}, ErrInvalidModel
 	}

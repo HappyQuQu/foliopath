@@ -1,5 +1,145 @@
 # FolioPath 文档
 
+最新（09-16）：[远程人脸激活调度](evidence/int-001/face-deployment-worker-2026-09-16.md)，独立运行时分支及 service 人脸模型迁移已实现；尚非主进程真实激活。
+
+最新：[人脸安全图片适配](evidence/int-001/face-runtime-adapter-2026-09-15.md)，四格式真实离线零人脸及 face/faceonnx 回归通过；代次准入与主进程组合仍待完成。
+
+最新：[Go 人脸服务传输](evidence/int-001/face-go-transport-2026-09-15.md)，共享并发但隔离模型身份，本地 Docker 合同与真实零人脸请求通过；主应用人脸任务仍待组合。
+
+最新：[独立人脸服务合同与验证](evidence/int-001/face-service-contract-2026-09-15.md)，可选 buffalo_l 私有接口及本地 Docker 零人脸推理通过；主应用组合、非空识别和人物验收仍未完成。
+
+最新：[跨库审核清理隔离](evidence/int-001/tag-review-cross-library-2026-09-15.md)，混合请求失效、另一库审核和正式标签保留的 SQLite 回归通过。
+
+最新：[新词条编码请求取消恢复](evidence/int-001/tag-text-request-cancellation-2026-09-15.md)，本地实际服务等待取消及重试通过，明确非 ONNX 内核中断证据。
+
+最新：[标签非空评分与提交取消](evidence/int-001/tag-job-processing-cancellation-2026-09-15.md)，合成向量验证提交边界，未扩展为真实推理验收。
+
+最新：[标签生成实际等待取消](evidence/int-001/tag-job-runtime-cancellation-2026-09-15.md)，非空任务取消及恢复通过，正式标签保留。
+
+最新：[标签生成取消边界](evidence/int-001/tag-job-cancellation-2026-09-15.md)，准入取消与终态优先修复通过，非空实际运行仍待复验。
+
+最新：[非空自动标签审核闭环](evidence/int-001/tag-review-chain-2026-09-15.md)，实际模型建议→接受→清理成功，正式标签保留。
+
+最新：[自动标签生成首次接入](evidence/int-001/tag-generation-wiring-2026-09-15.md)，实际任务成功 1/1；零建议不等于非空审核闭环完成。
+
+最新缺口：[自动标签生成未接入主应用](evidence/int-001/tag-generation-gap-2026-09-15.md)，本地正式任务接口 404；审核清理测试不能代表自动标签功能完成。
+
+最新：[标签审核清理实际镜像验收](evidence/int-001/tag-clear-runtime-2026-09-15.md)，新本地镜像取消及重试通过，非空批次仍属组合测试证据。
+
+最新：[标签审核清理批次取消](evidence/int-001/tag-clear-batch-2026-09-15.md)，非空批次取消收尾及正式标签保留通过。
+
+最新：[标签审核清理准入取消](evidence/int-001/tag-clear-admission-2026-09-15.md)，用户取消有界收尾、停机保留恢复；非空批次交错待补。
+
+最新：[取消修复运行镜像回归](evidence/int-001/cancellation-runtime-refresh-2026-09-15.md)，图片/视频/扫描/清理四类本地实际链路通过。
+
+最新：[清理批次取消修复](evidence/int-001/clear-batch-cancellation-2026-09-15.md)，部分/最终删除批次后取消均通过；不回滚此前已删除的派生数据。
+
+最新：[图片处理器终态组合回归](evidence/int-001/image-processor-terminal-2026-09-15.md)，已提交向量保留、编码失败后取消通过；清理终态交错仍待修复。
+
+最新：[图片终态取消优先](evidence/int-001/image-terminal-cancellation-2026-09-15.md)，修复后续成功/失败收尾对已接受取消的错误处理，Docker 回归通过。
+
+最新：[扫描与清理实际混合取消验收](evidence/int-001/scan-clear-admission-runtime-2026-09-15.md)，新本地 Docker 镜像已验证取消及恢复，批次交错仍待覆盖。
+
+最新：[扫描准入取消收尾](evidence/int-001/scan-admission-cancellation-2026-09-15.md)，复用扫描既有取消规则，保留可靠索引；实际混合场景仍待验证。
+
+最新：[语义清理准入取消](evidence/int-001/clear-admission-cancellation-2026-09-15.md)，区分用户取消与停机，扫描未改动。
+
+最新：[图片等待资源取消实际验收](evidence/int-001/image-admission-runtime-2026-09-15.md)，混合脚本支持图片/视频双向取消。
+
+最新：[图片回填准入取消收尾](evidence/int-001/image-admission-cancellation-2026-09-15.md)，复用通知及原 CAS，扫描状态机未修改。
+
+最新：[实际混合任务等待期取消](evidence/int-001/mixed-admission-runtime-2026-09-15.md)，真实图片运行、视频取消和后续恢复通过。
+
+最新：[视频资源等待期取消收尾](evidence/int-001/video-admission-cancellation-2026-09-15.md)，包含失败复现、修复及其他任务类型边界。
+
+最新：[后台资源取消准入回归](evidence/int-001/background-admission-2026-09-15.md)，共享额度与取消检查通过，实际混合任务和等待期取消收尾待验收。
+
+最新：[旧任务记录实际浏览器验收](evidence/int-001/missing-task-records-runtime-2026-09-15.md)，本地镜像、中英提示和刷新持久化通过。
+
+最新：[旧任务记录提示修复](evidence/int-001/missing-task-records-2026-09-15.md)，明确不存在与临时失败分开，移除仅影响浏览器记录。
+
+最新：[浏览器多库差异进度验收](evidence/int-001/multilib-browser-2026-09-15.md)，含切换/刷新及旧任务残留待修项。
+
+最新：[多库视频调度与取消隔离](evidence/int-001/multilib-cancellation-2026-09-15.md)，含真实 Docker API、重试和按库检索验证。
+
+最新：[视频运行中取消实际镜像验收](evidence/int-001/video-cancellation-runtime-2026-09-15.md)，两种取消路径及后续补齐已在本地浏览器验证。
+
+最新：[视频取消收尾与跨库隔离回归](evidence/int-001/video-cancellation-2026-09-15.md)，修复取消与完成/失败竞态，保留停机恢复语义。
+
+最新：[视频操作按钮与实际浏览器闭环](evidence/int-001/video-actions-ui-2026-09-15.md)，含补齐、确认重建和覆盖率真实性。
+
+最新：[图片未记录到真实回填的实际镜像验收](evidence/int-001/image-unrecorded-runtime-2026-09-15.md)，新数据卷中验证未知→真实 1/1，图片与视频状态分离。
+
+最新：[图片未记录状态](evidence/int-001/image-unrecorded-2026-09-15.md)，与已验收的离线保留进度区分。
+
+最新：[图片模型离线不清零覆盖率](evidence/int-001/image-offline-coverage-2026-09-15.md)，包含实际离线/恢复和拒绝新任务验证。
+
+最新：[视频状态实际镜像及自动恢复验收](evidence/int-001/video-status-runtime-2026-09-15.md)，含自动刷新修复及图片离线 0/0 的未完成项。
+
+最新：[视频只读状态与界面接通](evidence/int-001/video-status-ui-2026-09-15.md)，含未知/离线/降级语义与本地 Docker 回归边界。
+
+最新：[独立服务开关与图片进度范围修复](evidence/int-001/settings-service-toggle-2026-09-15.md)，含 Docker 回归与尚未接通的视频 UI 边界。
+
+最新：[视频删除真实闭环和设置提示复核](evidence/int-001/video-removal-app-ui-2026-09-15.md)，包含人脸路由未接入的真实边界。
+
+最新：[视频移除后的保守覆盖率](evidence/int-001/video-removal-2026-09-15.md)，明确区分待处理重算与逐资产失败归属。
+
+最新：[视频源变化/新增候选](evidence/int-001/video-invalidation-2026-09-15.md)，删除与精确失败归属另列未完成。
+
+最新：[图片新增/移除覆盖率](evidence/int-001/semantic-membership-2026-09-15.md)，与视频尚未完成的计数更新区分记录。
+
+最新：[扫描后图片覆盖率修复](evidence/int-001/semantic-invalidation-2026-09-15.md)，含本地 Docker 过期/恢复闭环及未覆盖边界。
+
+最新：[主进程图片/视频链路](evidence/int-001/app-chain-2026-09-15.md)，包含实际发现的路由缺陷、测试环境缺项及覆盖率待修项。
+
+2026-09-15 最新：[主进程部署配置与离线恢复](evidence/int-001/deployment-startup-2026-09-15.md)。run.go 已接入；下列独立子片的“尚未接入”为当时状态，不再代表当前组合进度。发行、完整产品链路仍待验收。
+
+2026-09-15：[共享激活 worker 与 app 适配验证](evidence/int-001/deployment-worker-adapter-2026-09-15.md)，独立适配通过，正式启动配置尚未接入。
+
+2026-09-15：[服务代次原子激活](evidence/int-001/deployment-activation-2026-09-15.md)事务及真实推理链路已验证；主应用调度未接入。
+
+2026-09-15：[service 模型记录及迁移验证](evidence/int-001/service-model-record-2026-09-15.md)，仅记录与隔离合同完成，主应用激活仍未接入。
+
+2026-09-15：[视频流式编码与真实四帧持久化检索](evidence/int-001/remote-video-stream-2026-09-15.md)已验证；主应用配置与服务代次激活仍待完成。
+
+方向已接受：[ADR-0020 专用 AI 镜像](adr/0020-ai-runtime-delivery-proposal.md)，[内部服务合同](architecture/independent-ml-service-contract.md)。
+
+2026-09-15：[真实离线 AI 回填、数据库重开与检索](evidence/int-001/independent-ml-persisted-chain-2026-09-15.md)已在本地 Docker 通过；生产部署准入仍待完成。
+
+2026-09-15：[旧运行时空间隔离修补](evidence/int-001/independent-ml-legacy-boundary-2026-09-15.md)，本地 Docker 回归通过，独立 AI 主应用接入仍未完成。
+
+SQLite 全包竞态已在本地 Docker 完整复验通过（首次超时后改为 15 分钟预算）；[完整记录](evidence/int-001/local-docker-regression-2026-09-15.md)。主应用独立 AI 接入仍待完成。
+
+本地 Docker 测试入口与本轮结果：[2026-09-15 Docker 回归](evidence/int-001/local-docker-regression-2026-09-15.md)。
+
+2026-09-15：[流式回填与 SQLite 事务提交](evidence/int-001/independent-ml-stream-backfill-2026-09-15.md)已验证；app 仍未切换独立 AI。
+
+独立 AI：[查询/图片共同代次校验](evidence/int-001/independent-ml-bound-encoder-2026-09-14.md)已通过单元与真实 SQLite 组合测试，app/worker 尚未切换。
+
+独立 AI 数据增量：[空间绑定持久化合同](architecture/independent-ml-generation-contract.md)与 migration 38 已实现；不代表新查询/回填已接通。
+
+2026-09-14：[四格式安全编码到真实离线 ML 链路](evidence/int-001/independent-ml-encoded-chain-2026-09-14.md)通过，主应用代次/查询/回填仍未接入。
+
+独立 AI 图片入口：[流式输入与编码合同](architecture/independent-ml-image-contract.md)。独立 imagevips 适配不代表查询/回填或代次迁移完成。
+
+2026-09-14：[独立 ML 缓存/容器复核](evidence/int-001/independent-ml-cache-audit-2026-09-14.md)，仅本地基线和隔离推理，不代表生产身份准入。
+
+独立 AI 增量：[代次兼容性合同](architecture/independent-ml-generation-contract.md)已实现纯检查及合成测试；模型事实核验和生产接入仍待完成。
+
+2026-09-14 正式智能设置已按方案一重排既有接口消费者；[视觉与测试记录](../design-qa.md)。不代表新独立 AI 服务已接入。
+
+2026-09-14 AI 新方向：[ADR-0019](adr/0019-independent-machine-learning-service.md) /
+[CR-2026-030](changes/CR-2026-030-independent-machine-learning-service.md)。独立服务本地探针已验证；
+生产接入未完成。模型商店旧路线暂停，历史交付状态不能当成新架构验收。
+
+内部通信子片：[独立 ML 传输合同](architecture/independent-ml-transport-contract.md)，
+Go adapter 位于 `internal/inference/remoteml`；尚未接入主应用代次。
+验证记录：[Go 传输子片](evidence/int-001/independent-ml-go-transport-2026-09-14.md)。
+选定的 AI 设置[方案一交互原型](../spikes/int001-ui-settings/README.md)已本地运行，
+与生产代码导入图隔离；参见其[视觉检查](../spikes/int001-ui-settings/design-qa.md)。
+
+最新模型代理界面扩展：[CR-2026-029](changes/CR-2026-029-admin-model-proxy-settings.md)；属于 POST-MVP-5，不代表已部署。
+
 本目录保存 FolioPath 的产品基线、架构约束、交付计划和验收证据。文档按用途分层：
 先从本页找到当前权威入口，再进入专题索引；不要从文件数量或日期推断文档是否仍然有效。
 

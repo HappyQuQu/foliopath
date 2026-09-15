@@ -1,5 +1,9 @@
 # FolioPath 风险登记册
 
+ADR-0019 新增开放风险（Owner：inference/semantic/安全）：CLIP 512 维与现有 SigLIP 768 维
+合同不匹配，buffalo_l 不等同于 YuNet/AuraFace，不能静默复用旧 generation。独立服务还引入
+网络失败和上游镜像/下载供应链边界；目前只有离线合成探针，生产接入须继续验收。
+
 ## 使用方式
 
 本表用于开发前和每个阶段出口评审。概率与影响是当前缺少实现证据时的定性判断，不是统计结果。RQ-001～RQ-014 已全部确认 A；新的产品变更统一进入[需求确认清单](requirements-checklist.md)，验证计划见[可行性研究](feasibility-study.md)。

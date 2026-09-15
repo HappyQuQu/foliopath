@@ -68,9 +68,10 @@ func (s *Store) GetSemanticGenerationRuntime(ctx context.Context, generationID s
 	}
 	var value semantic.GenerationRuntime
 	err := s.db.QueryRowContext(ctx, `
-        SELECT id, model_id, embedding_dimension, state
-        FROM semantic_generations WHERE id = ?`, generationID).Scan(
-		&value.ID, &value.ModelID, &value.EmbeddingDimension, &value.State,
+        SELECT g.id, g.model_id, g.embedding_dimension, g.state, COALESCE(s.fingerprint, '')
+        FROM semantic_generations g LEFT JOIN semantic_generation_spaces s ON s.generation_id=g.id
+        WHERE g.id = ?`, generationID).Scan(
+		&value.ID, &value.ModelID, &value.EmbeddingDimension, &value.State, &value.SpaceFingerprint,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return semantic.GenerationRuntime{}, semantic.ErrSemanticGenerationUnavailable

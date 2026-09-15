@@ -1,0 +1,24 @@
+# Candidate override: same two-unit topology, no public AI port.
+services:
+  encoded-probe:
+    environment:
+      FOLIOPATH_TEST_ML_IDENTITY: ${FOLIOPATH_TEST_ML_IDENTITY:?Set the independently read candidate image identity}
+  persisted-probe:
+    environment:
+      FOLIOPATH_TEST_ML_IDENTITY: ${FOLIOPATH_TEST_ML_IDENTITY:?Set the independently read candidate image identity}
+  machine-learning:
+    image: foliopath-inference:candidate
+    build:
+      context: ../..
+      dockerfile: services/inference/Dockerfile
+    read_only: true
+    tmpfs:
+      - /verified-cache:size=1073741824
+      - /tmp:size=134217728
+    mem_limit: 4g
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:3003/ping', timeout=2).read() == b'pong'"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 60s

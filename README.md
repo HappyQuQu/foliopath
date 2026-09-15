@@ -1,5 +1,39 @@
 # FolioPath
 
+Candidate AI tag generation is wired to the existing controlled-vocabulary API and a bounded worker.
+It requires indexed image embeddings and uses the same generation's text encoder. Up to five suggestions
+above confidence 0.65 (cosine 0.30) require manual review; this cutoff is not quality-calibrated.
+A local Docker synthetic-image run verified non-empty suggestion acceptance, idempotent review replay,
+and review-record clearing while preserving the formal tag. General model quality remains unverified.
+
+AI settings offers missing-only video indexing and a separately confirmed full video rebuild.
+Both use the existing bounded job queue; task completion does not imply full coverage when videos are degraded.
+
+AI settings now has a separate recorded video-progress view for the selected library.
+Unrecorded coverage remains unknown; degraded results do not count as completed.
+This read-only view does not start inference or establish model health.
+
+ADR-0020 (2026-09-15) selects a FolioPath-owned AI image. The [local candidate](services/inference/README.md)
+verifies a private model snapshot and exposes an identity contract; it is not yet
+approved for release. Candidate main-process configuration/activation is now wired through
+`FOLIOPATH_AI_DEPLOYMENT`; see [local startup verification](docs/evidence/int-001/deployment-startup-2026-09-15.md).
+
+AI architecture direction (2026-09-14): an optional independent inference service
+with deployment-driven model configuration is being evaluated under
+[ADR-0019](docs/adr/0019-independent-machine-learning-service.md). The offline
+[local probe](spikes/int001-remote-ml/README.md) works with copied Immich caches;
+production application integration is not complete. AI settings now use the selected
+capabilities/library-progress layout against existing APIs; legacy model operations
+remain under Deployment details / Compatibility model maintenance. No demo states
+or hard-coded candidate model identities are used. The default Compose deployment is unchanged.
+
+Model downloads optionally use an explicit trusted HTTP/HTTPS proxy via
+`FOLIOPATH_MODEL_DOWNLOAD_PROXY` (for example `http://192.168.2.231:7890`).
+Ambient proxy variables are ignored; credentials are not supported. Administrators can also
+select inherit/direct/custom under AI settings → Models, test without saving, and persist
+an override without restart. New file connections use the saved setting; in-flight transfers
+are unchanged. See [deployment](docs/deployment.md).
+
 The experimental AI model page includes built-in informational presets, separate from installable downloads.
 Presets marked pending are not yet downloadable or supported; custom verified download catalogs remain optional.
 

@@ -1,5 +1,8 @@
 # FolioPath 架构
 
+POST-MVP-5 [ADR-0019](adr/0019-independent-machine-learning-service.md) 已接受可选独立 AI 服务方向。
+MVP 主应用仍是 Go/React/SQLite；新 AI 模式的 production integration 尚未完成。
+
 ## 状态
 
 本文是首个可用版本的架构概览。完整的系统上下文、模块所有权、交付治理、前端子系统、需求追踪和

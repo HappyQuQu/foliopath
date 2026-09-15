@@ -1,0 +1,46 @@
+.overview { display: grid; }
+.section { padding: var(--space-6) 0; border-bottom: var(--border-width) solid var(--color-border); }
+.sectionHeading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-5); margin-bottom: var(--space-5); }
+.section h2 { margin: 0 0 var(--space-2); font-size: var(--font-size-5); }
+.section h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-4); }
+.section p { margin: 0; color: var(--color-text-muted); }
+.selection { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; font-size: var(--font-size-2); color: var(--color-text-muted); }
+.selection select { min-width: var(--space-12); }
+.rows { border-radius: var(--radius-1); padding: 0 var(--space-6); background: var(--color-surface); }
+.capability { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: var(--space-6); align-items: center; padding: var(--space-6) 0; }
+.capability + .capability { border-top: var(--border-width) solid var(--color-border); }
+.icon { width: var(--size-brand-mark-lg); height: var(--size-brand-mark-lg); border-radius: var(--radius-round); display: grid; place-items: center; color: var(--color-accent); background: var(--color-accent-soft); }
+.model { display: grid; gap: var(--space-1); padding-left: var(--space-6); border-left: var(--border-width) solid var(--color-border); }
+.model span, .model small { font-size: var(--font-size-2); color: var(--color-text-muted); }
+.model strong { font-weight: 500; overflow-wrap: anywhere; }
+.toggle { display: flex; align-items: center; gap: var(--space-3); white-space: nowrap; color: var(--color-text-muted); font-size: var(--font-size-2); }
+.section .state { padding-bottom: var(--space-3); font-size: var(--font-size-2); border-bottom: var(--border-width) solid var(--color-border); }
+.library { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: var(--space-5); align-items: center; padding: var(--space-5) 0; }
+.library + .library { border-top: var(--border-width) solid var(--color-border); }
+.coverage { display: grid; gap: var(--space-2); font-size: var(--font-size-2); color: var(--color-text-muted); }
+.coverage progress { width: 100%; height: var(--space-3); border: 0; border-radius: var(--radius-round); overflow: hidden; appearance: none; background: var(--color-surface-hover); }
+.coverage progress::-webkit-progress-bar { background: var(--color-surface-hover); }
+.coverage progress::-webkit-progress-value { background: var(--color-accent); border-radius: var(--radius-round); }
+.coverage progress::-moz-progress-bar { background: var(--color-accent); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-4); color: var(--color-text-muted); font-size: var(--font-size-2); }
+.deployment { padding: var(--space-5) 0; border-bottom: var(--border-width) solid var(--color-border); }
+.deployment summary { cursor: pointer; font-weight: 500; }
+.deployment[open] summary { margin-bottom: var(--space-4); }
+.deployment p { color: var(--color-text-muted); }
+.footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-4) 0; font-size: var(--font-size-2); color: var(--color-text-muted); }
+.footer span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.footer svg { flex-shrink: 0; }
+@media (max-width: 70rem) {
+  .sectionHeading { align-items: start; flex-direction: column; }
+  .capability { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); }
+  .model { grid-column: 2; grid-row: 2; border: 0; padding: 0; }
+  .toggle { grid-column: 3; grid-row: 1; }
+}
+@media (max-width: 45rem) {
+  .rows { padding: 0 var(--space-4); }
+  .icon { width: var(--space-12); height: var(--space-12); }
+  .toggle { flex-direction: column; gap: var(--space-1); }
+  .model { grid-column: 2 / -1; }
+  .library { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); }
+  .coverage { grid-column: 2 / -1; grid-row: 2; }
+}

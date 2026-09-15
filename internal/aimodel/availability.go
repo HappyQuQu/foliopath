@@ -37,6 +37,9 @@ func (service *AvailabilityService) Refresh(ctx context.Context) (AvailabilitySu
 		if err := ctx.Err(); err != nil {
 			return summary, err
 		}
+		if model.StorageMode == StorageService {
+			continue // Deployment admission owns service availability, not file inspection.
+		}
 		summary.Checked++
 		desired := StateUnavailable
 		if manifest, reviewed := service.catalog.Manifest(model.Package.PackageID); reviewed {

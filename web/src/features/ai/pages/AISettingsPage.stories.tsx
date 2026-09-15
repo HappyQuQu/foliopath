@@ -28,9 +28,11 @@ function SettingsStory({ children, route, configured }: { children: ReactNode; r
     const libraries = [{ id: "lib_family", name: "家庭影像", status: "ready" }, { id: "lib_travel", name: "旅行记录", status: "ready" }];
     client.setQueryData(["libraries", "list"], { pages: [{ items: libraries, nextCursor: null }], pageParams: [undefined] });
     client.setQueryData(aiKeys.models, { items: [], activeModelId: null, activeFaceModelId: null, revision: 1 });
+    client.setQueryData(aiKeys.proxy, { mode: "inherit", proxyUrl: "", revision: 1, deploymentConfigured: true, effectiveMode: "proxy" });
     for (const [index, library] of libraries.entries()) {
       const data = { libraryId: library.id, enabled: configured, state: configured ? "building" : "disabled", revision: 1, activeGenerationId: null, etag: '"semantic-r1"', coverage: { completed: configured ? 1240 + index * 120 : 0, eligible: 2490 + index * 150, failed: 0, stale: 0, complete: false, revision: 1 } };
-      client.setQueryData(aiKeys.semantic(library.id), data);
+      client.setQueryData(aiKeys.semantic(library.id), { ...data, coverageRecorded: configured });
+      client.setQueryData(aiKeys.videoStatus(library.id), { libraryId: library.id, enabled: configured, offline: false, activeGenerationId: null, coverage: null });
       client.setQueryData(aiKeys.faces(library.id), { ...data, enabled: false, state: "disabled" });
     }
     const base = { sourceLabel: "示例模型来源", purpose: "semantic_image_text", version: "1.0", licenseId: "Apache-2.0", packageSizeBytes: 768 * 1024 ** 2, compatibility: "compatible", installedModelId: null };
@@ -46,5 +48,5 @@ function SettingsStory({ children, route, configured }: { children: ReactNode; r
     ] }));
     return client;
   });
-  return <ThemeProvider><QueryClientProvider client={client}><ToastProvider><MemoryRouter initialEntries={[route]}>{children}</MemoryRouter></ToastProvider></QueryClientProvider></ThemeProvider>;
+  return <ThemeProvider><QueryClientProvider client={client}><ToastProvider><MemoryRouter initialEntries={[route]}>{children}<aside role="note" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)", padding: "var(--space-2)", fontSize: "var(--font-size-2)" }}>组件预览 · 合成数据 / Component preview · synthetic data</aside></MemoryRouter></ToastProvider></QueryClientProvider></ThemeProvider>;
 }

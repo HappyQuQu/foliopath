@@ -7,32 +7,56 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/HappyQuQu/foliopath/internal/aimodel/downloadhttp"
+
 	"net/netip"
 )
 
 const (
-	allowedMediaRoot     = "/library"
-	persistentDataRoot   = "/app/data"
-	allowedModelRoot     = "/models"
-	defaultListen        = "127.0.0.1:8080"
-	listenEnvironment    = "FOLIOPATH_LISTEN"
-	proxiesEnvironment   = "FOLIOPATH_TRUSTED_PROXIES"
-	listenArgument       = "--listen"
-	applicationEnvPrefix = "FOLIOPATH_"
+	allowedMediaRoot      = "/library"
+	persistentDataRoot    = "/app/data"
+	allowedModelRoot      = "/models"
+	defaultListen         = "127.0.0.1:8080"
+	listenEnvironment     = "FOLIOPATH_LISTEN"
+	proxiesEnvironment    = "FOLIOPATH_TRUSTED_PROXIES"
+	modelProxyEnvironment = "FOLIOPATH_MODEL_DOWNLOAD_PROXY"
+	listenArgument        = "--listen"
+	applicationEnvPrefix  = "FOLIOPATH_"
 )
 
 var errInvalidConfiguration = errors.New("invalid application configuration")
 
 type configuration struct {
-	listenAddress  string
-	mediaRoot      string
-	dataRoot       string
-	modelRoot      string
-	trustedProxies string
-	requireProxy   bool
+	deployment         *deploymentConfiguration
+	listenAddress      string
+	mediaRoot          string
+	dataRoot           string
+	modelRoot          string
+	trustedProxies     string
+	requireProxy       bool
+	modelDownloadProxy string
 }
 
 func loadConfiguration(input Input) (configuration, error) {
+	deployment, err := deploymentFromEnvironment(input.Environ)
+	if err != nil {
+		return configuration{}, err
+	}
+	modelProxy := ""
+	foundModelProxy := false
+	for _, entry := range input.Environ {
+		name, value, hasValue := strings.Cut(entry, "=")
+		if name != modelProxyEnvironment {
+			continue
+		}
+		if !hasValue || foundModelProxy {
+			return configuration{}, errInvalidConfiguration
+		}
+		if _, err := downloadhttp.ParseProxyURL(value); err != nil {
+			return configuration{}, errInvalidConfiguration
+		}
+		modelProxy, foundModelProxy = value, true
+	}
 	trustedProxies, proxiesSet, err := trustedProxiesFromEnvironment(input.Environ)
 	if err != nil {
 		return configuration{}, err
@@ -61,12 +85,14 @@ func loadConfiguration(input Input) (configuration, error) {
 	}
 
 	return configuration{
-		listenAddress:  listen,
-		mediaRoot:      allowedMediaRoot,
-		dataRoot:       persistentDataRoot,
-		modelRoot:      allowedModelRoot,
-		trustedProxies: trustedProxies,
-		requireProxy:   requireProxy,
+		deployment:         deployment,
+		listenAddress:      listen,
+		mediaRoot:          allowedMediaRoot,
+		dataRoot:           persistentDataRoot,
+		modelRoot:          allowedModelRoot,
+		trustedProxies:     trustedProxies,
+		requireProxy:       requireProxy,
+		modelDownloadProxy: modelProxy,
 	}, nil
 }
 
@@ -87,7 +113,7 @@ func listenFromEnvironment(environ []string) (string, bool, error) {
 				name,
 			)
 		}
-		if name == proxiesEnvironment {
+		if name == proxiesEnvironment || name == modelProxyEnvironment || name == deploymentEnvironment {
 			continue
 		}
 		if name != listenEnvironment {

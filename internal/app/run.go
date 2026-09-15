@@ -21,6 +21,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
+	"github.com/HappyQuQu/foliopath/internal/inference/remoteml"
 	"github.com/HappyQuQu/foliopath/internal/inference/sentencepiece"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
@@ -432,7 +433,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct managed AI model store: %w", err)
 	}
-	aiDownloadSource := &aimodel.DownloadSource{Catalog: downloadCatalog, Remote: downloadhttp.New(), Offline: aiSource}
+	aiRemote, err := aimodel.NewProxySettingsService(database, downloadhttp.ProxySettingsTransport{}, configuration.modelDownloadProxy)
+	if err != nil {
+		return nil, fmt.Errorf("construct model download transport: %w", err)
+	}
+	aiDownloadSource := &aimodel.DownloadSource{Catalog: downloadCatalog, Remote: aiRemote, Offline: aiSource}
 	aiInstaller, err := aimodel.NewInstaller(aiModels, aiDownloadSource, managedModels)
 	if err != nil {
 		return nil, fmt.Errorf("construct AI model installer: %w", err)
@@ -483,10 +488,36 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic text inference sessions: %w", err)
 	}
+	var deployment *deploymentBootstrap
+	var remoteEncoder *semantic.BoundEncoder
+	var textEncoder semantic.TextEncoder = semanticTextSessions
+	if configuration.deployment != nil {
+		config := *configuration.deployment
+		client, createErr := remoteml.NewConfigured(config.Origin, config.Identity)
+		if createErr != nil {
+			return nil, createErr
+		}
+		activationRuntime, createErr := newDeploymentActivationRuntime(client, database, config.space())
+		if createErr != nil {
+			return nil, createErr
+		}
+		if createErr := aiActivationWorker.EnableDeploymentRuntime(activationRuntime); createErr != nil {
+			return nil, createErr
+		}
+		remoteEncoder, createErr = semantic.NewBoundEncoder(database, imagevips.New(), client, config.space())
+		if createErr != nil {
+			return nil, createErr
+		}
+		textEncoder = remoteEncoder
+		deployment = &deploymentBootstrap{client: client, models: aiModels, admission: aiActivationAdmission, config: config}
+	}
 	semanticProcessor, err := semantic.NewBackfillProcessor(
 		database, semanticContentSource{content: contentService}, imagevips.New(), semanticSessions,
 		database, database, nil, 0,
 	)
+	if remoteEncoder != nil {
+		semanticProcessor, err = semantic.NewStreamBackfillProcessor(database, semanticContentSource{content: contentService}, remoteEncoder, database, database, nil, 0)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic backfill processor: %w", err)
 	}
@@ -555,6 +586,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	videoSemanticProcessor, err := semantic.NewVideoProcessor(semanticStoryboardSource{
 		repository: database, cache: cachePublisher, splitter: imagevips.New(), waker: mediaSignal,
 	}, imagevips.New(), semanticSessions, database, nil)
+	if remoteEncoder != nil {
+		videoSemanticProcessor, err = semantic.NewStreamVideoProcessor(semanticStoryboardSource{
+			repository: database, cache: cachePublisher, splitter: imagevips.New(), waker: mediaSignal,
+		}, remoteEncoder, database, nil)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("construct video semantic processor: %w", err)
 	}
@@ -582,6 +618,34 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct tag vocabulary service: %w", err)
 	}
+	tagSignal := jobs.NewSignal()
+	tagEmbeddings, err := semantic.NewControlledTagEmbeddingBuilder(database, textEncoder, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+	tagPlans, err := semantic.NewControlledTagPlanBuilder(database, nil, nil, semantic.DefaultTagSuggestionThreshold)
+	if err != nil {
+		return nil, err
+	}
+	tagProcessor, err := semantic.NewTagJobProcessor(database, database, tagPlans, nil, tagEmbeddings)
+	if err != nil {
+		return nil, err
+	}
+	limitedTagProcessor, err := resourcecontrol.LimitBackground(resourceController, tagProcessor)
+	if err != nil {
+		return nil, err
+	}
+	tagWorker, err := jobs.NewWorkerPool(tagJobQueue{database: database}, limitedTagProcessor, tagSignal, jobs.WorkerOptions{Workers: 1})
+	if err != nil {
+		return nil, err
+	}
+	tagJobs, err := semantic.NewTagJobService(database, database, tagSignal, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := semanticService.EnableTagJobs(tagJobs, tagVocabulary); err != nil {
+		return nil, err
+	}
 	tagSuggestionList, err := semantic.NewTagSuggestionListService(database, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct tag suggestion list service: %w", err)
@@ -590,11 +654,11 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct tag review service: %w", err)
 	}
-	semanticSearch, err := semantic.NewSearchService(database, database, semanticTextSessions, nil)
+	semanticSearch, err := semantic.NewSearchService(database, database, textEncoder, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic image search: %w", err)
 	}
-	videoSemanticSearch, err := semantic.NewVideoSearchService(database, database, semanticTextSessions, nil)
+	videoSemanticSearch, err := semantic.NewVideoSearchService(database, database, textEncoder, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic video search: %w", err)
 	}
@@ -606,8 +670,12 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct managed AI model orphan service: %w", err)
 	}
+	aiWorkers := []aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticTextSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker, tagWorker}
+	if deployment != nil {
+		aiWorkers = append(aiWorkers, deployment)
+	}
 	aiWorkerComponent, err := newAIWorkerComponent(
-		[]aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticTextSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker}, aiOperations, aiOrphans, managedModels,
+		aiWorkers, aiOperations, aiOrphans, managedModels,
 	)
 	if err != nil {
 		return nil, err
@@ -642,6 +710,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		SemanticSearch:   semanticSearch,
 
 		AITagVocabulary:   tagVocabulary,
+		AITagJobs:         semanticService,
 		AITagSuggestions:  tagSuggestionList,
 		AITagReviews:      idempotentTagReviews,
 		AITagReviewClear:  semanticService,
@@ -652,7 +721,13 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct model downloads: %w", err)
 	}
 	routeDependencies.AIModelDownloads = aiDownloads
+	routeDependencies.ModelProxy = aiRemote
 	routeDependencies.VideoSemanticSearch = videoSemanticSearch
+	videoStatus, err := semantic.NewVideoStatusService(database)
+	if err != nil {
+		return nil, err
+	}
+	routeDependencies.VideoSemanticStatus = videoStatus
 	routes, err := api.NewRoutes(routeDependencies)
 	if err != nil {
 		return nil, err

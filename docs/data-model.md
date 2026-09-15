@@ -1,5 +1,28 @@
 # FolioPath 数据模型
 
+2026-09-16：migration 40 允许 `ai_models.storage_mode=service` 的人脸模型；继续要求非 installed 状态和 source_identity=content_hash。只新增迁移，不修改 39。旧本地人脸激活提交拒绝 service，后续须由身份绑定入口提交；不因此自动创建人脸代次。回退 39 遇到人脸 service 记录会由约束失败关闭，不能删除记录强行回退。
+
+2026-09-15 视频删除覆盖率：只有成功扫描可按剩余完整当前故事板重算汇总。
+ready 不高于删除前计数，避免全量重建提前复用旧结果；无法归属到具体资产的旧
+degraded/failed/stale 汇总重置为待处理差额，历史操作记录不变。无新表/迁移。
+这不是按资产记录失败结果，精确归属仍未实现。
+
+服务代次激活（2026-09-15）在既有激活事务内创建 building 行、绑定服务空间、转 active，
+旧 active 退役、全局活动指针与操作成功一起提交。身份必须匹配 service 模型 content_hash，
+维度与模型可用性 revision 均复核；无额外 migration。旧向量保留，失败整体回滚。
+已有文件激活提交不能用于 service；此能力尚未由 app 调度。
+
+2026-09-15 migration 39：ai_models.storage_mode 增加 service，使用与 migration 35 相同的
+事务表重建流程保留旧列、行和引用。服务模型仅 semantic_image_text、available/unavailable，
+source_identity 必须等于 content_hash（已核验空间指纹），不能存路径/URL。
+package_size_bytes 为部署固定模型字节量，不代表主应用本地磁盘占用。
+普通文件安装/刷新/激活不拥有此类型；内部注册不自动创建或切换代次。
+带 service 行的降级拒绝并保留数据；不承诺旧版本可直接打开新数据，回退使用升级前备份。
+
+POST-MVP-5 / ADR-0018：迁移 00037 新增 model_proxy_settings singleton（id=1）。mode 为 inherit/direct/custom，
+proxy_url 只在 custom 非空，revision 每次保存递增；同一 SQLite 写入门串行，旧 revision 返回冲突。
+配置是 /app/data 应用状态，不属于媒体库；重启不覆盖，不存代理凭据。
+
 ## 原则
 
 - 文件系统决定媒体是否存在以及目录如何组织。
@@ -516,3 +539,10 @@ intent，二次确认后按 bounded transaction 删除应用状态；两种 clea
 未来只追加 migration 必须覆盖 fresh、24→新版本 upgrade、重复启动、每个 DDL/回填故障点回滚、FK/
 `integrity_check`、active snapshot/generation 唯一、可靠 asset/library cascade、offline 保留、derived/manual
 clear 分离、person 跨库隔离、cannot-link merge rollback，以及升级前数据库与对应应用版本的配对恢复。
+## 独立 AI 代次空间绑定增量（2026-09-14）
+
+CR-2026-030 / ADR-0019 / POST-MVP-5：migration 38 增加
+`semantic_generation_spaces(generation_id, fingerprint)`，外键指向 semantic_generations，
+删除代次级联删除；旧代次不自动填充。绑定记录不可更新，绑定后模型、维度、变换与索引版本
+不能原地修改。SQLite 适配仅接受 building、同维度且无图片/视频/标签向量的初次绑定；
+相同绑定可在 building 状态幂等重试。未激活新模型，未迁移旧 embedding。

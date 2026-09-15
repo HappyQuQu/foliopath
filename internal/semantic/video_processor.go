@@ -7,11 +7,10 @@ import (
 )
 
 type VideoProcessor struct {
-	storyboards  CompleteStoryboardSource
-	preprocessor ImagePreprocessor
-	encoder      ImageEncoder
-	repository   VideoEmbeddingRepository
-	now          func() time.Time
+	storyboards CompleteStoryboardSource
+	encoder     StreamImageEncoder
+	repository  VideoEmbeddingRepository
+	now         func() time.Time
 }
 
 func NewVideoProcessor(
@@ -24,10 +23,20 @@ func NewVideoProcessor(
 	if storyboards == nil || preprocessor == nil || encoder == nil || repository == nil {
 		return nil, errors.New("video semantic processor dependencies are required")
 	}
+	return NewStreamVideoProcessor(storyboards, legacyStreamEncoder{preprocessor, encoder}, repository, now)
+}
+
+// NewStreamVideoProcessor shares complete-plan ownership with the legacy path.
+// Remote encoders must enforce generation admission, e.g. BoundEncoder.
+func NewStreamVideoProcessor(storyboards CompleteStoryboardSource, encoder StreamImageEncoder,
+	repository VideoEmbeddingRepository, now func() time.Time) (*VideoProcessor, error) {
+	if storyboards == nil || encoder == nil || repository == nil {
+		return nil, errors.New("video semantic processor dependencies are required")
+	}
 	if now == nil {
 		now = time.Now
 	}
-	return &VideoProcessor{storyboards: storyboards, preprocessor: preprocessor, encoder: encoder, repository: repository, now: now}, nil
+	return &VideoProcessor{storyboards: storyboards, encoder: encoder, repository: repository, now: now}, nil
 }
 
 // Process embeds every frame from one complete published storyboard. Any
@@ -62,11 +71,7 @@ func (processor *VideoProcessor) BuildPlan(ctx context.Context, generationID str
 		if err := ctx.Err(); err != nil {
 			return VideoEmbeddingPlan{}, err
 		}
-		tensor, err := processor.preprocessor.PrepareSemanticImage(ctx, frame.Image, frame.Format)
-		if err != nil {
-			return VideoEmbeddingPlan{}, err
-		}
-		vector, err := processor.encoder.EncodeSemanticImage(ctx, generationID, tensor)
+		vector, err := processor.encoder.EncodeSemanticStream(ctx, generationID, frame.Image, frame.Format)
 		if err != nil {
 			return VideoEmbeddingPlan{}, err
 		}

@@ -42,6 +42,7 @@ type LibrarySettings struct {
 	Revision           int64
 	ActiveGenerationID string
 	Coverage           Coverage
+	CoverageRecorded   bool
 }
 
 type LibrarySettingsRepository interface {

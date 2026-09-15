@@ -286,6 +286,41 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 go test -count=1 -tags=libvips \
       ./internal/media/imagevips
 
+# Opt-in synthetic probe only; not included in the release runtime stage.
+FROM build AS remote-ml-image-probe
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go test -c -race -tags=libvips,remotemlprobe \
+      -o /out/remote-image-probe.test ./internal/inference/remoteml \
+    && CGO_ENABLED=1 go test -c -race -o /out/face.test ./internal/face \
+    && CGO_ENABLED=1 go test -c -race -o /out/faceonnx.test ./internal/inference/faceonnx
+ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib
+ENTRYPOINT ["/out/remote-image-probe.test"]
+CMD ["-test.run", "^TestEncodedImageServiceProbe$", "-test.v", "-test.timeout=2m"]
+
+# Local Docker regression binaries; never part of the shipped runtime.
+FROM remote-ml-image-probe AS remote-ml-regression
+COPY api ./api
+COPY tests/contract ./tests/contract
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    export PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+      CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" CGO_ENABLED=1; \
+    go test -c -race -tags=libvips -o /out/sqlite.test ./internal/store/sqlite \
+    && go test -c -race -tags=libvips -o /out/semantic.test ./internal/semantic \
+    && go test -c -race -o /out/resourcecontrol.test ./internal/resourcecontrol \
+    && go test -c -race -tags=libvips -o /out/imagevips.test ./internal/media/imagevips \
+    && go test -c -race -tags=libvips -o /out/app.test ./internal/app \
+    && go test -c -race -tags=libvips -o /out/api.test ./internal/api \
+    && go test -c -race -tags=libvips -o /out/aimodel.test ./internal/aimodel \
+    && go test -c -race -o /out/contract.test ./tests/contract \
+    && go test -c -race -tags=libvips,remotemlprobe -o /out/remote-sqlite-probe.test ./internal/store/sqlite
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["/out/semantic.test -test.timeout=3m && /out/imagevips.test -test.timeout=3m && /out/sqlite.test -test.v -test.timeout=15m"]
+
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS runtime-assemble
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
