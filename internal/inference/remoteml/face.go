@@ -29,6 +29,41 @@ type DetectedFace struct {
 	Embedding []float32
 }
 
+func (f *FaceClient) Identity() ServiceIdentity { return f.identity }
+
+// VerifyIdentity uses the same admission budget as CLIP and face predictions.
+func (f *FaceClient) VerifyIdentity(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case f.client.slots <- struct{}{}:
+		defer func() { <-f.client.slots }()
+	default:
+		return ErrBusy
+	}
+	return f.client.verifyIdentityAt(ctx, f.identity, "/api/v1/face/identity")
+}
+
+// WaitVerifyIdentity is for the single activation worker. Waiting for the shared
+// request budget is not an activation failure. The caller owns cancellation;
+// the HTTP identity request retains the client's bounded timeout.
+func (f *FaceClient) WaitVerifyIdentity(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case f.client.slots <- struct{}{}:
+		defer func() { <-f.client.slots }()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return f.client.verifyIdentityAt(ctx, f.identity, "/api/v1/face/identity")
+}
+
 // BindFace requires an independently configured face identity. Fetching identity
 // from the service and trusting it on first use is not an activation mechanism.
 func (c *Client) BindFace(expected ServiceIdentity) (*FaceClient, error) {
@@ -92,6 +127,25 @@ func (f *FaceClient) Detect(parent context.Context, encoded []byte) ([]DetectedF
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
+		if response.StatusCode == http.StatusServiceUnavailable &&
+			response.Header.Get("X-FolioPath-Runtime") == f.identity.RuntimeContractSHA256 &&
+			response.Header.Get("X-FolioPath-Cache") == f.identity.CacheManifestSHA256 {
+			// Only the fixed, bounded service error contract can request retry.
+			data, err := io.ReadAll(io.LimitReader(response.Body, 1025))
+			if err == nil && len(data) <= 1024 {
+				var body struct {
+					Error string `json:"error"`
+				}
+				decoder := json.NewDecoder(bytes.NewReader(data))
+				decoder.DisallowUnknownFields()
+				if decoder.Decode(&body) == nil && decoder.Decode(new(any)) == io.EOF && body.Error == "busy" {
+					return nil, ErrBusy
+				}
+			}
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		return nil, ErrUnavailable
 	}
 	if response.Header.Get("X-FolioPath-Runtime") != f.identity.RuntimeContractSHA256 ||

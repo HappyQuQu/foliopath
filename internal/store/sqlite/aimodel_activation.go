@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 )
 
@@ -204,31 +205,50 @@ func (s *Store) commitSemanticActivation(ctx context.Context, commit aimodel.Act
 }
 
 func (s *Store) CommitFaceModelActivation(ctx context.Context, commit aimodel.FaceActivationCommit) (aimodel.Operation, error) {
+	return s.commitFaceActivation(ctx, commit, nil)
+}
+
+func (s *Store) CommitFaceDeploymentActivation(ctx context.Context, commit face.DeploymentActivationCommit) (aimodel.Operation, error) {
+	return s.commitFaceActivation(ctx, commit.Activation, &commit.Identity)
+}
+
+func (s *Store) commitFaceActivation(ctx context.Context, commit aimodel.FaceActivationCommit, identity *face.DeploymentIdentity) (aimodel.Operation, error) {
 	if commit.OperationID == "" || commit.ExpectedRevision < 1 || commit.ExpectedAvailabilityRevision < 1 ||
 		commit.UpdatedAt.IsZero() || aimodel.ValidateFaceGeneration(commit.Generation) != nil {
 		return aimodel.Operation{}, aimodel.ErrInvalidTransition
 	}
+	fingerprint := ""
+	if identity != nil {
+		var err error
+		fingerprint, err = identity.Fingerprint()
+		if err != nil || !identity.MatchesGeneration(commit.Generation) {
+			return aimodel.Operation{}, face.ErrDeploymentIdentity
+		}
+	}
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
-		var modelID, operationState string
+		var modelID, operationState, operationKind string
 		var operationRevision int64
-		if err := tx.QueryRowContext(ctx, `SELECT model_id, state, revision FROM ai_model_operations WHERE id = ?`, commit.OperationID).
-			Scan(&modelID, &operationState, &operationRevision); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT model_id, state, revision, kind FROM ai_model_operations WHERE id = ?`, commit.OperationID).
+			Scan(&modelID, &operationState, &operationRevision, &operationKind); err != nil {
 			return err
 		}
 		if operationRevision != commit.ExpectedRevision {
 			return aimodel.ErrPreconditionFailed
 		}
-		if operationState != string(aimodel.OperationRunning) || modelID != commit.Generation.ModelID {
+		if operationKind != string(aimodel.OperationModelActivate) || operationState != string(aimodel.OperationRunning) || modelID != commit.Generation.ModelID {
 			return aimodel.ErrInvalidTransition
 		}
-		var modelState, modelPurpose, packageID, storageMode string
+		var modelState, modelPurpose, packageID, storageMode, contentHash, sourceIdentity string
 		var availabilityRevision int64
-		if err := tx.QueryRowContext(ctx, `SELECT state, availability_revision, purpose, package_id, storage_mode FROM ai_models WHERE id = ?`, modelID).
-			Scan(&modelState, &availabilityRevision, &modelPurpose, &packageID, &storageMode); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT state, availability_revision, purpose, package_id, storage_mode, content_hash, source_identity FROM ai_models WHERE id = ?`, modelID).
+			Scan(&modelState, &availabilityRevision, &modelPurpose, &packageID, &storageMode, &contentHash, &sourceIdentity); err != nil {
 			return err
 		}
-		if storageMode == string(aimodel.StorageService) {
-			return aimodel.ErrModelIncompatible // Requires the separate identity-bound service commit.
+		if (storageMode == string(aimodel.StorageService)) != (identity != nil) {
+			return aimodel.ErrModelIncompatible
+		}
+		if identity != nil && (contentHash != fingerprint || sourceIdentity != fingerprint) {
+			return face.ErrDeploymentIdentity
 		}
 		if availabilityRevision != commit.ExpectedAvailabilityRevision {
 			return aimodel.ErrPreconditionFailed

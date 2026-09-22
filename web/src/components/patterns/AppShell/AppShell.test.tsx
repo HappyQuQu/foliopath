@@ -1,12 +1,26 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { ToastProvider } from "../../ui/Toast/ToastProvider";
 import { AppShell } from "./AppShell";
+
+it.each([
+  ["/libraries/lib_1/search?q=old&mode=semantic", "/libraries/lib_1/search?q=blue+%26+%E8%93%9D&mode=semantic"],
+  ["/libraries/lib_1/search?directoryId=dir_1&scope=directory", "/libraries/lib_1/search?directoryId=dir_1&scope=directory&q=blue+%26+%E8%93%9D"],
+])("replaces the global query without losing search context: %s", async (searchHref, expected) => {
+  const user = userEvent.setup();
+  function Location() { const location = useLocation(); return <output data-testid="search-location">{location.pathname}{location.search}</output>; }
+  render(<ThemeProvider><ToastProvider><MemoryRouter>
+    <AppShell active="search" homeHref="/" identity="管理员" searchHref={searchHref} settingsHref="/settings/general" title="搜索"><Location /></AppShell>
+  </MemoryRouter></ToastProvider></ThemeProvider>);
+  await user.type(screen.getByRole("searchbox"), "blue & 蓝");
+  await user.keyboard("{Enter}");
+  expect(screen.getByTestId("search-location")).toHaveTextContent(expected);
+});
 
 it("closes mobile navigation with Escape and restores focus", async () => {
   const user = userEvent.setup();
@@ -110,6 +124,17 @@ it("uses only the global header on pages without a directory sidebar", async () 
     "href",
     "/settings/general?libraryId=lib_1",
   );
+});
+
+it("exposes people as a direct global destination when configured", () => {
+  render(
+    <ThemeProvider><ToastProvider><MemoryRouter initialEntries={["/libraries/lib_1/browse"]}>
+      <AppShell active="browse" homeHref="/" identity="管理员" peopleHref="/intelligence?view=clusters" searchHref="/search" settingsHref="/settings/general" title="浏览">
+        <h1>内容</h1>
+      </AppShell>
+    </MemoryRouter></ToastProvider></ThemeProvider>,
+  );
+  expect(screen.getByRole("link", { name: "人物" })).toHaveAttribute("href", "/intelligence?view=clusters");
 });
 
 it("opens the global account menu and supports direct logout", async () => {

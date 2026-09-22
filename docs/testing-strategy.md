@@ -1,5 +1,40 @@
 # FolioPath 测试策略
 
+P5 F03/G02：`make test-ai-delivery` 要求显式旧/新镜像变量，复用正式 Compose 及仅测试用 internal-web 覆盖，验证无外网运行、停写备份、新代次、人工数据保留、重启及配对回退，然后在新镜像上验证鉴权/CSRF、路径边界、API/日志/诊断隐私和两类人脸清除。测试控制器通过 Docker 内部网络访问，不为离线测试重新打开服务端出网。`make test-ai-compose` 为 F02 故障矩阵；两者只使用自产临时数据。`make arch-check` 的人脸隐私规则同时覆盖 remoteml adapter。
+
+P5 F02：同一 `ai_compose_smoke.mjs --faults` 启用语义/人脸合成分析，逐项注入缺失缓存、等长损坏缓存及错误身份，验证不可用错误、结果保留、原代次恢复与重新分析。semantic 离线代次字段按合同为 null、覆盖率必须保留，恢复后核对原 ID；不拿离线 null 当丢库。坏模型只创建于临时副本，不改已有复制缓存，不连接 server222。
+
+P6 最终复核已在 2026-09-17 对同一工作树执行 `make fmt`、`make arch-check`、`make generate-check`、容器化 `make lint`、`make test`、`make test-integration` 和本地 Docker `make test-e2e`；首次 E2E 发现 embed 占位文件缺失并修复后重跑通过。供应链同时生成双镜像 SPDX 并扫描漏洞，最终 Release No-Go；详见 [P6 证据](evidence/int-001/p6-final-verification-2026-09-17.md)。
+
+P5 F01：`make arch-check` 包含 `TestAIComposeDeploymentBoundaries`。独立运行 `FOLIOPATH_TEST_MODEL_CACHE=/absolute/copied-cache node tests/release/ai_compose_smoke.mjs` 检查根 AI Compose 实际启动、AI 缺席时核心初始化、离线模型激活、资源/挂载/网络以及重启后的管理员持久化。仅合成媒体和独立临时数据，固定本地镜像，不操作 server222；不替代 F02 全部故障、G02 完整安全复核或 P6 全量回归。
+
+大图读取取消回归：`TestRemoteSemanticCancellationDuringRead` 要求首次 Read 取消后只读取一次，普通读错误不能覆盖取消；`TestRemoteSemanticChunkedReadAndNoProgress` 覆盖单次 ≤64 KiB、短暂空读、连续 100 次空读失败关闭，以及末尾数据与 EOF 同时返回。继续保留 1 GiB 的大图/渐进 JPEG 回归；这是块间协作取消，不是中断已阻塞的系统调用。[修复记录](changes/FIX-2026-09-17-semantic-read-cancellation.md)。
+
+语义预处理升级回归：`p4-semantic-upgrade-probe.mjs` 用两版固定镜像和独立合成旧库，验证新旧代次不同、旧完成数不归入新代次、两库回填、人工标签/人物保留、重启持久化及升级前停写备份配对回退。共享短视频 fixture 的已知降级要求升级前后均为 2 eligible / 1 completed / 1 degraded / 0 failed，不能写作视频完整通过；真实 100 样本另行记录。
+
+P4 remote-image-v2 回归须包含 JPEG 倍率边界（使用向上取整尺寸）、180 MP 源拒绝边界、108 MP 合成输入、渐进 JPEG、伪格式及非 JPEG 原像素拒绝策略；deployment 测试必须确认 v1/v2 指纹不同。真实匿名副本仅用于用户授权的独立 Docker 诊断，不加入默认测试或仓库。详见[修复记录](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+大图内存回归：`internal/media/imagevips/face_large_libvips_test.go` 在 Linux Docker 中以 `-tags=libvips -race` 验证合成 81 MP PNG/JPEG、EXIF 方向及 >100 MP 既有 shrink 输出。渐进 JPEG 需显式提供合成 fixture；未提供时 skip，不记通过。独立真实样本诊断不进入默认测试。新 `p4-large` 测试配置分配 app 1024 MiB / AI 2304 MiB、CPU 1+3、无 swap，总预算不变；旧 `p4-native` 768/2560 MiB 保留复现。两者不可混写成同配置。[修复证据](evidence/int-001/p4-face-memory-2026-09-16.md)。
+
+2026-09-16 最新用户调整：本轮 P4 使用每环境约 100 个媒体总样本，来源为本地 `/Volumes/r0data/picture/temp` 和 server222 `/mnt/r0data/picture/`，只读独立测试。原大规模要求延期；小样本报告不替代正式质量验证器和发布门禁。[数量、采样、人工真值及双架构边界](changes/CR-2026-09-16-p4-small-sample-validation.md)。
+
+P4 原生 amd64 例外：用户明确授权 server222 临时停服隔离测试，使用 `tests/release/p4-server222-maintenance.sh`，不是部署或远程 CI。原四服务及镜像 ID 必须恢复并核验健康；测试仅使用合成媒体、独立数据卷、只读模型缓存。构建代理显式配置且不传给运行时。`p4-native` 双容器资源配置为 app 1 CPU/768 MiB、AI 3 CPU/2560 MiB、无 swap；功能通过不能代替质量/排名误差或长期容量。[维护与结果](evidence/int-001/p4-server222-native-2026-09-16.md)。以下历史“仅本地”约束在此次明确授权范围内更新。
+
+P4 基础目录容量探针 `tests/release/capacity_smoke.sh`：保持 100k 媒体/10k 目录、4 CPU/4 GiB 和既有 250 ms 搜索预算，同时测库内/全局稀疏查询 `asset-000` 与宽查询 `asset`，每类 30 次。标准 sticky `/tmp` 不再假设镜像 UID；媒体挂载仍只读。该探针不配置 AI 服务，因此不能关闭 E01 联合预算或模型质量。[执行与失败记录](evidence/int-001/p4-quality-capacity-2026-09-16.md)。
+
+D04 完整 AI 界面入口：`FOLIOPATH_P3_APP_IMAGE=foliopath-app:p23-final FOLIOPATH_P3_D04=1 FOLIOPATH_D04_VISUAL=1 node spikes/int001-remote-ml/p3-browser-probe.mjs`。三浏览器 × 五类真实非空审核页面 × 两语言 × 两主题 × 四断点（240 状态），另有设置 48 状态；桌面真实键盘及移动 Chromium 触控模拟分开执行，不代表物理设备或 VoiceOver。32 个 Chromium 固定视觉参考只在显式 `FOLIOPATH_D04_UPDATE=1` 时更新；检查截图后必须新建环境、不带 UPDATE 独立复跑，更新参考本身不能算通过。标签首屏与人物完整页面分别截图，随机人物 ID 局部遮罩，不遮挡功能区域。浏览器探针使用 6095，必须待上一轮退出并清理完成再启动；故障探针使用 6097。
+
+P3 当前版矩阵入口：`p3-business-probe.mjs`、`p3-recovery-probe.mjs`、`p3-fault-probe.mjs`、`p3-browser-probe.mjs`（均在 `spikes/int001-remote-ml`）。准备与端口见该目录 README；原媒体隔离、临时卷、固定模型只读。真实 AI 超时测试等待 HTTP deadline，不声称能中断 ONNX 内核；停机与用户取消分开，恢复必须证明同代次可重新入队。三浏览器真实工作流、48 个设置页面状态及 400 项目录虚拟化与 mocked viewer 回归分开记账。Chromium 解码能力按 runner 实测，不把 codec-unavailable 记为播放通过。[最新执行证据](evidence/int-001/p2-p3-final-recheck-2026-09-16.md)。
+
+P2 非空验证入口：`node spikes/int001-remote-ml/face-business-probe.mjs`。先构建本地 `foliopath-app:face-worker`、`foliopath-inference:face-candidate` 和 `foliopath-face-browser:local`（后者见 `spikes/int001-remote-ml/browser-test.Dockerfile`）。探针用临时双库、独立数据卷和私网，应用仅回环 6094；只复制仓库虚构双人 fixture，不访问真实媒体库。正式 API 检验逐脸审核/撤销、换代、清理与隔离，Docker Chromium 消费实际结果。重复图只验证功能，不评估召回/precision；固定质量真值、容量和三浏览器矩阵仍为后续门禁。
+
+P1 busy 回归必须分别覆盖激活等待本地槽、分析本地槽满和服务端 503 busy，不得用一种忙状态替代三者。传输测试检查错误身份/限长/格式拒绝；队列测试要求同一 operation 恢复成功，不只证明返回 busy 或重新入队。见 [复查修复证据](evidence/int-001/face-busy-repair-2026-09-16.md)。
+
+P1 人脸主进程验证入口：`node spikes/int001-remote-ml/face-startup-probe.mjs`。
+先构建 `foliopath-app:face-worker` 和固定的 `foliopath-inference:face-candidate`；探针创建唯一临时网络/数据卷，媒体只读挂载仓库 `tests/fixtures/media`，AI 不公开端口。
+检查离线启动、双模型激活、服务停启、HTTP 建库/扫描/分析、幂等重放及强杀主应用后的真实租约恢复；最后移除自己创建的容器、网络和合成测试数据卷。
+必须保留“纯色夹具零人脸”和“非空人脸/质量通过”的区别。SQLite 回归另检查离线/退役代次不能提交、聚类或成功结束，用户取消与进程退出的区别，以及共享请求槽忙时有界恢复。
+
 图片源变更回归：app-chain.mjs 可启用 FOLIOPATH_TEST_INVALIDATION=1，仅允许
 指定格式的临时合成目录，修改夹具时间戳后通过扫描 API 验证 coverage 与检索同步
 失效并回填恢复。严禁指向真实图库。仓储测试另覆盖重复 upsert 和失败扫描保留。
@@ -308,7 +343,10 @@ WCH-S1 冻结的进程内上限是：每实例最多 32,768 个目录 watch、8,
 ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补齐运行、取消、部分不可读
 和离线等无法稳定定时制造的 UI 状态。它同时断言长名称/路径、同操作快速双击只提交一次、
 对话框焦点恢复、390/768/1024/1440px 横向溢出和 axe serious/critical；搜索、预览和
-查看器已在 Stage 3～4 扩展同一入口。Stage 5 的 `make test-web-release-e2e` 另以完全
+查看器已在 Stage 3～4 扩展同一入口。Compose 驱动的智能设置默认页还必须断言智能搜索、
+人物分析和部署说明可见，高级维护默认收起且没有模型下载入口，并执行同一 overflow/axe
+检查。测试专用 Dockerfile 必须在镜像内创建 embed 占位文件，不能依赖被 `.dockerignore`
+排除或可能被前端 clean 删除的工作树 `dist/.gitkeep`。Stage 5 的 `make test-web-release-e2e` 另以完全
 模拟的稳定 API 状态运行 Firefox、WebKit 和 Linux Chromium 视觉回归，避免多引擎争用
 唯一首次管理员 fixture；真实 MP4 Range/206 仍由 Chromium 负责，三个桌面引擎共同验证
 键盘/焦点、unsupported codec、offline/deleted、overflow 和 axe serious/critical。

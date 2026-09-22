@@ -1107,7 +1107,7 @@ func TestMediaJobsAndCachePolicyHaveCanonicalOwners(t *testing.T) {
 		{
 			relative: "internal/thumbnail/jobs.go",
 			contents: []string{
-				"MediaWorkerCount = 2",
+				"MediaWorkerCount = 1",
 				"MaxJobAttempts   = 3",
 				"type ClaimedProcessor struct",
 			},

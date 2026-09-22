@@ -1,11 +1,7 @@
 import {
   ArrowsClockwise,
-  CheckCircle,
-  Database,
-  HardDrive,
   Play,
   Trash,
-  WarningCircle,
 } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -18,14 +14,12 @@ import {
   EmptyState,
   ErrorState,
   InlineStatus,
+  Input,
   LoadingState,
   Switch,
   useToast,
 } from "../../../components/ui";
 import type {
-  AIModel,
-  AIModelCandidate,
-  AIModelCandidateScan,
   AIModelOperation,
   FaceSettingsSnapshot,
   SemanticSettingsSnapshot,
@@ -43,36 +37,30 @@ import { paths } from "../../../routes/paths";
 import { useLibrariesQuery } from "../../libraries";
 import {
   operationIsActive,
-  useActivateAIModelMutation,
   useAIOperationQueries,
   useAIModelsQuery,
   useAIModelDownloadsQuery,
-  useDownloadAIModelMutation,
   useCancelAIOperationMutation,
   useClearDerivedFaceDataMutation,
   useClearManualFaceRelationshipsMutation,
   useClearSemanticDataMutation,
   useFaceSettingsQueries,
-  useInstallAIModelCandidateMutation,
   useRequestSemanticJobMutation,
   useRequestVideoSemanticJobMutation,
   useRequestFaceJobMutation,
-  useScanAIModelCandidatesMutation,
   useSemanticSettingsQueries,
   useUpdateSemanticSettingsMutation,
   useUpdateFaceSettingsMutation,
 } from "../queries";
 import styles from "./AISettingsPage.module.css";
-import { AIModelDownloadsPanel } from "./AIModelDownloadsPanel";
-import { AIModelProxyPanel } from "./AIModelProxyPanel";
 import { AISettingsOverview } from "./AISettingsOverview";
+import { VideoSemanticProgress } from "./VideoSemanticProgress";
 
-type AIView = "overview" | "libraries" | "models" | "tasks" | "faces";
+type AIView = "overview" | "libraries" | "tasks" | "faces";
 type Confirmation =
   | { kind: "videoRebuild"; library: LibrarySummary }
   | { kind: "rebuild"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
   | { kind: "clear"; library: LibrarySummary; settings: SemanticSettingsSnapshot }
-  | { kind: "direct"; candidate: AIModelCandidate }
   | null;
 
 export function AISettingsPage({
@@ -96,8 +84,6 @@ export function AISettingsPage({
   const faceQueries = useFaceSettingsQueries(libraries.map((library) => library.id));
   const modelsQuery = useAIModelsQuery();
   const downloadsQuery = useAIModelDownloadsQuery();
-  const download = useDownloadAIModelMutation();
-  const [candidateScan, setCandidateScan] = useState<AIModelCandidateScan | null>(null);
   const [operationIds, setOperationIds] = useState(readAIOperationIds);
   const trackedOperationIds = useMemo(() => [...new Set([
     ...(downloadsQuery.data?.items.flatMap((item) => item.operation ? [item.operation.id] : []) ?? []),
@@ -106,9 +92,6 @@ export function AISettingsPage({
   const operationQueries = useAIOperationQueries(trackedOperationIds);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const toast = useToast();
-  const scan = useScanAIModelCandidatesMutation();
-  const install = useInstallAIModelCandidateMutation();
-  const activate = useActivateAIModelMutation();
   const updateSettings = useUpdateSemanticSettingsMutation();
   const requestJob = useRequestSemanticJobMutation();
   const requestVideo = useRequestVideoSemanticJobMutation();
@@ -131,16 +114,44 @@ export function AISettingsPage({
     setSearchParams(current => { const next = new URLSearchParams(current); next.set("library", id); return next; });
   }
 
-  function toggleSemantic(library: LibrarySummary, settings: SemanticSettingsSnapshot, enabled: boolean) {
-    void updateSettings.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id })
-      .then(() => toast.show({ message: t("ai.settingSaved"), tone: "success" }))
-      .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }));
+  async function toggleSemantic(library: LibrarySummary, settings: SemanticSettingsSnapshot, enabled: boolean) {
+    try {
+      await updateSettings.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id });
+      if (enabled) {
+        const operation = await requestJob.mutateAsync({
+          csrfToken: session.csrfToken,
+          idempotencyKey: createRequestKey(),
+          libraryId: library.id,
+          mode: "missing",
+        });
+        rememberOperation(operation);
+        toast.show({ message: t("ai.jobStarted"), tone: "success" });
+        return;
+      }
+      toast.show({ message: t("ai.settingSaved"), tone: "success" });
+    } catch (error) {
+      toast.show({ message: actionErrorMessage(error, t), tone: "danger" });
+    }
   }
 
-  function toggleFace(library: LibrarySummary, settings: FaceSettingsSnapshot, enabled: boolean) {
-    void updateFaces.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id })
-      .then(() => toast.show({ message: t("ai.settingSaved"), tone: "success" }))
-      .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }));
+  async function toggleFace(library: LibrarySummary, settings: FaceSettingsSnapshot, enabled: boolean) {
+    try {
+      await updateFaces.mutateAsync({ csrfToken: session.csrfToken, enabled, etag: settings.etag, libraryId: library.id });
+      if (enabled) {
+        const operation = await requestFaces.mutateAsync({
+          csrfToken: session.csrfToken,
+          idempotencyKey: createRequestKey(),
+          libraryId: library.id,
+          mode: "missing",
+        });
+        rememberOperation(operation);
+        toast.show({ message: t("ai.jobStarted"), tone: "success" });
+        return;
+      }
+      toast.show({ message: t("ai.settingSaved"), tone: "success" });
+    } catch (error) {
+      toast.show({ message: actionErrorMessage(error, t), tone: "danger" });
+    }
   }
 
   function rememberOperation(operation: AIModelOperation) {
@@ -182,29 +193,21 @@ export function AISettingsPage({
           <h1>{t("ai.title")}</h1>
           <span>{t("ai.description")}</span>
         </header><div className={styles.headerActions}>
-          <span>{t(downloadsQuery.isPending ? "ai.loadingStatus" : downloadsQuery.isError || downloadsQuery.data?.runtimeAvailable === undefined ? "ai.settings.runtimeUnknown" : downloadsQuery.data.runtimeAvailable ? "ai.settings.runtimeReady" : "ai.settings.runtimeMissing")}</span>
-          <Button variant="primary" onClick={() => navigateView("tasks")}><Play size={18} aria-hidden="true" />{t("ai.settings.progress")}</Button>
+          <Button variant="quiet" onClick={() => navigateView("tasks")}><ArrowsClockwise size={18} aria-hidden="true" />{t("ai.settings.progress")}</Button>
         </div></div>
 
-        {view !== "overview" && <nav className={styles.actions} aria-label={t("ai.sections")}><Button onClick={() => navigateView("overview")}>{t("ai.settings.back")}</Button><h2>{t(view === "models" ? "ai.settings.legacyMaintenance" : `ai.tab.${view}`)}</h2></nav>}
+        {view !== "overview" && <nav className={styles.actions} aria-label={t("ai.sections")}><Button onClick={() => navigateView("overview")}>{t("ai.settings.back")}</Button><h2>{t(`ai.tab.${view}`)}</h2></nav>}
 
         <div id="ai-settings-panel" className={styles.panel}>
-        {view === "overview" && (librariesQuery.isError || modelsQuery.isError || downloadsQuery.isError || semanticQueries.some((query) => query.isError)) &&
-          <ErrorState message={t("ai.overview.loadFailed")} onRetry={() => { void librariesQuery.refetch(); void modelsQuery.refetch(); void downloadsQuery.refetch(); semanticQueries.forEach((query) => void query.refetch()); }} />}
-        {view === "overview" && (librariesQuery.isPending || modelsQuery.isPending || downloadsQuery.isPending || semanticQueries.some((query) => query.isPending)) && <LoadingState label={t("ai.loadingStatus")} />}
-        {view === "overview" && !librariesQuery.isPending && !librariesQuery.isError && !modelsQuery.isPending && !modelsQuery.isError && !downloadsQuery.isPending && !downloadsQuery.isError && <AISettingsOverview
-          runtimeAvailable={downloadsQuery.data?.runtimeAvailable}
+        {view === "overview" && (librariesQuery.isError || modelsQuery.isError || semanticQueries.some((query) => query.isError)) &&
+          <ErrorState message={t("ai.overview.loadFailed")} onRetry={() => { void librariesQuery.refetch(); void modelsQuery.refetch(); semanticQueries.forEach((query) => void query.refetch()); }} />}
+        {view === "overview" && (librariesQuery.isPending || modelsQuery.isPending || semanticQueries.some((query) => query.isPending)) && <LoadingState label={t("ai.loadingStatus")} />}
+        {view === "overview" && !librariesQuery.isPending && !librariesQuery.isError && !modelsQuery.isPending && !modelsQuery.isError && <AISettingsOverview
           libraries={libraries} semantic={semanticQueries} faces={faceQueries}
           models={modelsQuery.data?.items ?? []} activeModelId={modelsQuery.data?.activeModelId ?? null} activeFaceModelId={modelsQuery.data?.activeFaceModelId ?? null}
           selectedId={searchParams.get("library")} onSelect={selectLibrary}
-          onManage={(id) => setSearchParams(current => { const next = new URLSearchParams(current); next.set("library", id); next.set("view", "libraries"); return next; })}
           pending={requestVideo.isPending || updateSettings.isPending || updateFaces.isPending || requestJob.isPending || requestFaces.isPending || clear.isPending || clearFaceDerived.isPending || clearFaceManual.isPending}
-          onVideoJob={(library, mode) => {
-            if (mode === "all") { setConfirmation({ kind: "videoRebuild", library }); return; }
-            void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: library.id, mode }), "ai.jobStarted");
-          }}
           onSemantic={toggleSemantic} onFace={toggleFace}
-          hasMore={Boolean(librariesQuery.hasNextPage)} loadingMore={librariesQuery.isFetchingNextPage} onMore={() => void librariesQuery.fetchNextPage()}
           onView={navigateView}
         />}
 
@@ -223,45 +226,14 @@ export function AISettingsPage({
               mode: "missing",
             }), "ai.jobStarted")}
             onRebuild={(library, settings) => setConfirmation({ kind: "rebuild", library, settings })}
+            onVideoJob={(library, mode) => {
+              if (mode === "all") { setConfirmation({ kind: "videoRebuild", library }); return; }
+              void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: library.id, mode }), "ai.jobStarted");
+            }}
             onToggle={toggleSemantic}
             onRetry={() => void librariesQuery.refetch()}
+            videoReady={modelsQuery.data?.items.some((item) => item.id === modelsQuery.data?.activeModelId && item.active && item.state !== "unavailable" && item.storageMode === "service") ?? false}
           />
-        )}
-
-        {view === "models" && (
-          <div className={styles.cardList}>
-          <AIModelDownloadsPanel query={downloadsQuery} pending={download.isPending || cancel.isPending}
-            onDownload={(downloadId) => void runAction(() => download.mutateAsync({ downloadId, csrfToken: session.csrfToken, idempotencyKey: createRequestKey() }), "ai.download.started")}
-            onCancel={(operation) => void cancel.mutateAsync({ csrfToken: session.csrfToken, etag: operation.etag, operationId: operation.id })
-              .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
-          />
-          <AIModelProxyPanel csrfToken={session.csrfToken} />
-          <ModelsPanel
-            runtimeAvailable={downloadsQuery.data?.runtimeAvailable ?? false}
-            candidateScan={candidateScan}
-            models={modelsQuery.data?.items ?? []}
-            modelsError={modelsQuery.isError}
-            modelsPending={modelsQuery.isPending}
-            scanError={scan.isError}
-            actionPending={scan.isPending || install.isPending || activate.isPending}
-            onActivate={(model) => void runAction(() => activate.mutateAsync({
-              csrfToken: session.csrfToken,
-              idempotencyKey: createRequestKey(),
-              model,
-            }), "ai.activationStarted")}
-            onDirect={(candidate) => setConfirmation({ kind: "direct", candidate })}
-            onManaged={(candidate) => void runAction(() => install.mutateAsync({
-              candidateId: candidate.id,
-              csrfToken: session.csrfToken,
-              idempotencyKey: createRequestKey(),
-              storageMode: "managed",
-            }), "ai.installStarted")}
-            onRetry={() => void modelsQuery.refetch()}
-            onScan={() => void scan.mutateAsync(session.csrfToken)
-              .then(setCandidateScan)
-              .catch((error) => toast.show({ message: actionErrorMessage(error, t), tone: "danger" }))}
-          />
-          </div>
         )}
 
         {view === "faces" && (
@@ -307,18 +279,11 @@ export function AISettingsPage({
 
       <ConfirmationDialog
         confirmation={confirmation}
-        pending={install.isPending || requestJob.isPending || requestVideo.isPending || clear.isPending}
+        pending={requestJob.isPending || requestVideo.isPending || clear.isPending}
         onClose={() => setConfirmation(null)}
         onConfirm={() => {
           if (!confirmation) return;
-          if (confirmation.kind === "direct") {
-            void runAction(() => install.mutateAsync({
-              candidateId: confirmation.candidate.id,
-              csrfToken: session.csrfToken,
-              idempotencyKey: createRequestKey(),
-              storageMode: "direct",
-            }), "ai.installStarted");
-          } else if (confirmation.kind === "videoRebuild") {
+          if (confirmation.kind === "videoRebuild") {
             void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: confirmation.library.id, mode: "all" }), "ai.jobStarted");
           } else if (confirmation.kind === "rebuild") {
             void runAction(() => requestJob.mutateAsync({
@@ -351,7 +316,9 @@ function LibrariesPanel({
   onRebuild,
   onRetry,
   onToggle,
+  onVideoJob,
   queries,
+  videoReady,
 }: {
   actionPending: boolean;
   libraries: LibrarySummary[];
@@ -362,7 +329,9 @@ function LibrariesPanel({
   onRebuild: (library: LibrarySummary, settings: SemanticSettingsSnapshot) => void;
   onRetry: () => void;
   onToggle: (library: LibrarySummary, settings: SemanticSettingsSnapshot, enabled: boolean) => void;
+  onVideoJob: (library: LibrarySummary, mode: "missing" | "all") => void;
   queries: Array<{ data: SemanticSettingsSnapshot | undefined; isError: boolean; isPending: boolean; refetch: () => unknown }>;
+  videoReady: boolean;
 }) {
   const { locale, t } = useLocale();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
@@ -426,87 +395,10 @@ function LibrariesPanel({
             </Button>
           </div>
           </details>
+          <VideoSemanticProgress library={library} disabled={actionPending || !videoReady || !settings.enabled || library.status === "offline" || settings.state === "clearing"} onJob={(mode) => onVideoJob(library, mode)} />
         </>}
       </article>;
     })}
-  </div>;
-}
-
-function ModelsPanel({
-  runtimeAvailable,
-  actionPending,
-  candidateScan,
-  models,
-  modelsError,
-  modelsPending,
-  scanError,
-  onActivate,
-  onDirect,
-  onManaged,
-  onRetry,
-  onScan,
-}: {
-  runtimeAvailable: boolean;
-  actionPending: boolean;
-  candidateScan: AIModelCandidateScan | null;
-  models: AIModel[];
-  modelsError: boolean;
-  modelsPending: boolean;
-  scanError: boolean;
-  onActivate: (model: AIModel) => void;
-  onDirect: (candidate: AIModelCandidate) => void;
-  onManaged: (candidate: AIModelCandidate) => void;
-  onRetry: () => void;
-  onScan: () => void;
-}) {
-  const { locale, t } = useLocale();
-  const bytes = useMemo(() => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }), [locale]);
-  if (modelsPending) return <LoadingState label={t("ai.loadingModels")} />;
-  if (modelsError) return <ErrorState message={t("ai.modelsFailed")} onRetry={onRetry} />;
-  return <div className={styles.cardList}>
-    <section className={styles.card}>
-      <header className={styles.cardHeader}>
-        <div><h2>{t("ai.installedModels")}</h2><p>{t("ai.installedDescription")}</p></div>
-      </header>
-      {models.length === 0 ? <InlineStatus>{t("ai.noInstalledModels")}</InlineStatus> :
-        <div className={styles.rows}>{models.map((model) => <div className={styles.modelRow} key={model.id}>
-          <div className={styles.modelIcon}><Database aria-hidden="true" size={22} /></div>
-          <div className={styles.modelInfo}>
-            <strong>{t(`ai.purpose.${model.purpose}`)} · {model.version}</strong>
-            <span>{model.architecture} · {formatBytes(model.packageSizeBytes, bytes)} · {model.licenseId}</span>
-          </div>
-          <div className={styles.modelState}>
-            <InlineStatus tone={model.active ? "success" : model.state === "unavailable" ? "danger" : "info"}>
-              {model.active ? t("ai.modelActive") : t(`ai.modelState.${model.state}`)}
-            </InlineStatus>
-            {!model.active && <Button disabled={actionPending || !runtimeAvailable || model.state === "unavailable"} onClick={() => onActivate(model)} size="small">{t("ai.activate")}</Button>}
-          </div>
-        </div>)}</div>}
-    </section>
-    <details className={`${styles.card} ${styles.details}`}>
-      <summary>{t("ai.offlineImport")}</summary>
-      <header className={styles.cardHeader}>
-        <div><h2>{t("ai.modelDirectory")}</h2><p>{t("ai.modelDirectoryDescription")}</p></div>
-        <Button disabled={actionPending} onClick={onScan} variant="primary"><HardDrive aria-hidden="true" size={17} />{t("ai.scanModels")}</Button>
-      </header>
-      {scanError && <InlineStatus tone="danger">{t("ai.modelScanFailed")}</InlineStatus>}
-      {candidateScan && <>
-        <p className={styles.scanSummary}>{formatMessage(t("ai.scanSummary"), { count: String(candidateScan.candidates.length), time: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(candidateScan.scannedAt)) })}</p>
-        {candidateScan.truncated && <InlineStatus tone="warning">{t("ai.scanTruncated")}</InlineStatus>}
-        <div className={styles.rows}>{candidateScan.candidates.map((candidate) => <div className={styles.modelRow} key={candidate.id}>
-          <div className={styles.modelIcon}>{candidate.compatibility === "compatible" ? <CheckCircle aria-hidden="true" size={22} /> : <WarningCircle aria-hidden="true" size={22} />}</div>
-          <div className={styles.modelInfo}>
-            <strong>{t(`ai.purpose.${candidate.purpose}`)} · {candidate.version}</strong>
-            <span>{candidate.architecture} · {formatBytes(candidate.packageSizeBytes, bytes)} · {candidate.licenseId}</span>
-            <span>{t(`ai.compatibility.${candidate.compatibility}`)}</span>
-          </div>
-          {candidate.compatibility === "compatible" && <div className={styles.actions}>
-            <Button disabled={actionPending} onClick={() => onManaged(candidate)} size="small" variant="primary">{t("ai.copyManaged")}</Button>
-            <Button disabled={actionPending} onClick={() => onDirect(candidate)} size="small" variant="quiet">{t("ai.useDirect")}</Button>
-          </div>}
-        </div>)}</div>
-      </>}
-    </details>
   </div>;
 }
 
@@ -521,6 +413,7 @@ function FaceSettingsPanel({ libraries, onDerived, onJob, onManual, onToggle, pe
 }) {
   const { t } = useLocale();
   const [counts, setCounts] = useState({ assignmentCount: 0, constraintCount: 0, personCount: 0 });
+  const [confirmation, setConfirmation] = useState<{ kind: "derived" | "manual"; library: LibrarySummary; settings: FaceSettingsSnapshot } | null>(null);
   return <div className={styles.cardList}>
     <InlineStatus>{t("ai.faceDescription")}</InlineStatus>
     <Link className={styles.textLink} to={paths.intelligence}>{t("ai.reviewWorkspace")}</Link>
@@ -541,13 +434,25 @@ function FaceSettingsPanel({ libraries, onDerived, onJob, onManual, onToggle, pe
           <Button disabled={pending || !settings.enabled} onClick={() => onJob(library, "missing")}>{t("ai.fillMissing")}</Button>
         </div><details className={styles.details}><summary>{t("ai.maintenance")}</summary><div className={styles.actions}>
           <Button disabled={pending || !settings.enabled} onClick={() => onJob(library, "all")}>{t("ai.rebuildAll")}</Button>
-          <Button disabled={pending} variant="danger" onClick={() => onDerived(library, settings)}>{t("ai.clearFaceDerived")}</Button>
+          <Button disabled={pending} variant="danger" onClick={() => setConfirmation({ kind: "derived", library, settings })}>{t("ai.clearFaceDerived")}</Button>
         </div><InlineStatus tone="warning">{t("ai.faceManualWarning")}</InlineStatus>
-        <div className={styles.actions}>{(["personCount", "assignmentCount", "constraintCount"] as const).map((key) => <label key={key}>{t(`ai.${key}`)} <input min="0" type="number" value={counts[key]} onChange={(event) => setCounts((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} /></label>)}
-          <Button disabled={pending} variant="danger" onClick={() => onManual(library, settings, counts)}>{t("ai.clearFaceManual")}</Button>
+        <div className={styles.actions}>
+          <Button disabled={pending} variant="danger" onClick={() => { setCounts({ assignmentCount: 0, constraintCount: 0, personCount: 0 }); setConfirmation({ kind: "manual", library, settings }); }}>{t("ai.clearFaceManual")}</Button>
         </div></details></>}
       </article>;
     })}
+    <Dialog open={confirmation !== null} onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+      title={t(confirmation?.kind === "manual" ? "ai.clearFaceManual" : "ai.clearFaceDerived")}
+      description={confirmation?.library.name ?? ""}
+      actions={<><DialogCloseButton onClick={() => setConfirmation(null)} /><Button variant="danger" disabled={pending || Object.values(counts).some((value) => !Number.isSafeInteger(value) || value < 0)} onClick={() => {
+        if (!confirmation) return;
+        if (confirmation.kind === "manual") onManual(confirmation.library, confirmation.settings, counts);
+        else onDerived(confirmation.library, confirmation.settings);
+        setConfirmation(null);
+      }}>{t(confirmation?.kind === "manual" ? "ai.clearFaceManual" : "ai.clearFaceDerived")}</Button></>}>
+      <p>{t(confirmation?.kind === "manual" ? "ai.faceManualWarning" : "ai.faceDerivedWarning")}</p>
+      {confirmation?.kind === "manual" && (["personCount", "assignmentCount", "constraintCount"] as const).map((key) => <label key={key}>{t(`ai.${key}`)}<Input min="0" step="1" type="number" value={counts[key]} onChange={(event) => setCounts((current) => ({ ...current, [key]: Number(event.target.value) }))} /></label>)}
+    </Dialog>
   </div>;
 }
 
@@ -602,7 +507,7 @@ function ConfirmationDialog({ confirmation, onClose, onConfirm, pending }: { con
 
 function Metric({ label, value }: { label: string; value: string }) { return <div className={styles.metric}><span>{label}</span><strong>{value}</strong></div>; }
 function coveragePercent(settings: SemanticSettingsSnapshot) { return settings.coverage.eligible === 0 ? 0 : Math.min(100, settings.coverage.completed / settings.coverage.eligible * 100); }
-function parseView(value: string | null): AIView { return value === "libraries" || value === "models" || value === "tasks" || value === "faces" ? value : "overview"; }
+function parseView(value: string | null): AIView { return value === "libraries" || value === "tasks" || value === "faces" ? value : "overview"; }
 function formatBytes(value: number, format: Intl.NumberFormat) { return value >= 1024 ** 3 ? `${format.format(value / 1024 ** 3)} GiB` : `${format.format(value / 1024 ** 2)} MiB`; }
 function operationTone(operation: AIModelOperation): "info" | "success" | "warning" | "danger" { return operation.state === "succeeded" ? "success" : operation.state === "failed" ? "danger" : operation.state === "cancelled" ? "warning" : "info"; }
 function formatMessage(message: string, values: Record<string, string>) { return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, value), message); }

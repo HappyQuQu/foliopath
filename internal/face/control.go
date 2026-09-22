@@ -36,7 +36,7 @@ func (service *ControlService) Update(ctx context.Context, libraryID int64, enab
 }
 
 func (service *ControlService) RequestFaceJob(ctx context.Context, libraryID int64, mode JobMode, key string) (aimodel.Operation, bool, error) {
-	settings, err := service.settings.Get(ctx, libraryID)
+	settings, err := service.settings.JobSettings(ctx, libraryID)
 	if err != nil {
 		return aimodel.Operation{}, false, err
 	}

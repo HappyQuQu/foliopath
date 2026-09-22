@@ -114,6 +114,40 @@ test("administrator, library-management, and browsing vertical slice", async ({
   const libraryId = browsePath.split("/").at(-2);
   expect(libraryId).toBeTruthy();
   const statusPath = `/settings/libraries/${libraryId}/status`;
+
+  await page.goto(`/settings/ai?library=${libraryId}`);
+  await expect(
+    page.getByRole("heading", { name: "AI capabilities" }),
+  ).toBeVisible();
+  await expect(page.getByText("Smart search", { exact: true })).toBeVisible();
+  await expect(page.getByText("People analysis", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Models are managed by Docker Compose", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Download model", exact: true }),
+  ).toHaveCount(0);
+  const advancedMaintenance = page.getByText("Advanced maintenance", {
+    exact: true,
+  });
+  await expect(advancedMaintenance).toBeVisible();
+  await expect(advancedMaintenance.locator("xpath=..")).not.toHaveAttribute(
+    "open",
+  );
+  await page.goto(`/settings/ai?view=models&library=${libraryId}`);
+  await expect(
+    page.getByRole("heading", { name: "AI capabilities" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Download model", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Offline import", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("Advanced: custom download source", { exact: true }),
+  ).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+
   await page.goto(statusPath);
   await expect(
     page.getByRole("heading", { name: "Library status" }),

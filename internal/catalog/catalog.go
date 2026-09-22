@@ -221,6 +221,9 @@ type AssetListParams struct {
 	Query AssetQuery
 	After *AssetPosition
 	Limit int
+	// MatchCount is the authenticated, unfiltered-kind count for this query.
+	// Repositories may use it as a plan hint, never as a filtering condition.
+	MatchCount int64
 }
 
 type Repository interface {
@@ -526,9 +529,10 @@ func (service *Service) listAssetQuery(
 		return AssetPage{}, errors.New("catalog repository returned invalid asset counts")
 	}
 	items, err := service.repository.ListAssetPage(ctx, AssetListParams{
-		Query: query,
-		After: after,
-		Limit: limit + 1,
+		Query:      query,
+		After:      after,
+		Limit:      limit + 1,
+		MatchCount: counts.All,
 	})
 	if err != nil {
 		return AssetPage{}, err

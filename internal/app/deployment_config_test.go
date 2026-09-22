@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,13 +14,34 @@ import (
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/inference/remoteml"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
+	"github.com/HappyQuQu/foliopath/internal/semantic"
 	"github.com/HappyQuQu/foliopath/internal/store/sqlite"
 )
 
 func deploymentConfigFixture() deploymentConfiguration {
 	return deploymentConfiguration{Origin: "http://machine-learning:3003", ModelBytes: 123, LicenseID: "unreviewed-test", Identity: remoteml.ServiceIdentity{Version: 1, Protocol: "foliopath-ml-v1", Model: remoteml.ModelName, Dimension: 512, CacheManifestSHA256: strings.Repeat("a", 64), RuntimeContractSHA256: strings.Repeat("b", 64)}}
+}
+
+func TestSemanticPreprocessingUpgradeChangesGenerationIdentity(t *testing.T) {
+	current := deploymentConfigFixture().space()
+	expected := sha256.Sum256([]byte(semantic.RemoteImagePreprocessingContract))
+	if current.PreprocessingSHA256 != hex.EncodeToString(expected[:]) {
+		t.Fatal("deployment does not bind canonical preprocessing contract")
+	}
+	old := current
+	v1 := sha256.Sum256([]byte("foliopath-remote-image-v1:jpeg,png,webp,gif:first-frame:autorotate:srgb:no-alpha:uchar:lanczos3:aspect-longedge1024:png-strip:source32MiB:pixels16000000:output8MiB"))
+	old.PreprocessingSHA256 = hex.EncodeToString(v1[:])
+	before, err := old.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := current.Fingerprint()
+	if err != nil || before == after {
+		t.Fatalf("old vectors could alias new preprocessing: %v", err)
+	}
 }
 
 func TestDeploymentConfigurationIsOptionalStrictAndOffline(t *testing.T) {
@@ -39,8 +62,47 @@ func TestDeploymentConfigurationIsOptionalStrictAndOffline(t *testing.T) {
 }
 
 func TestDeploymentBootstrapOfflineRecoveryAndIdempotency(t *testing.T) {
+	t.Run("semantic", func(t *testing.T) { testDeploymentBootstrap(t, false) })
+	t.Run("face", func(t *testing.T) { testDeploymentBootstrap(t, true) })
+}
+
+func faceDeploymentConfigFixture() *faceDeploymentConfiguration {
+	i := deploymentConfigFixture().Identity
+	i.Protocol = "foliopath-face-v1"
+	i.Model = "buffalo_l"
+	return &faceDeploymentConfiguration{Identity: i, DetectorSHA256: strings.Repeat("c", 64), EmbedderSHA256: strings.Repeat("d", 64),
+		ModelBytes: 123, LicenseID: "test-only", Threshold: face.ThresholdProfile{SchemaVersion: 1, ProfileID: "test-only", CoreSimilarity: .8, EdgeSimilarity: .6, MinCoreSize: 2, QualitySummarySHA256: strings.Repeat("e", 64)}}
+}
+
+func TestFaceDeploymentConfigurationRejectsMismatches(t *testing.T) {
+	config := deploymentConfigFixture()
+	config.Face = faceDeploymentConfigFixture()
+	raw, _ := json.Marshal(config)
+	if _, err := deploymentFromEnvironment([]string{deploymentEnvironment + "=" + string(raw)}); err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range []func(*faceDeploymentConfiguration){
+		func(c *faceDeploymentConfiguration) { c.Identity.CacheManifestSHA256 = strings.Repeat("0", 64) },
+		func(c *faceDeploymentConfiguration) { c.Identity.Protocol = "foliopath-ml-v1" },
+		func(c *faceDeploymentConfiguration) { c.DetectorSHA256 = "" },
+		func(c *faceDeploymentConfiguration) { c.Threshold.QualitySummarySHA256 = "" },
+		func(c *faceDeploymentConfiguration) { c.ModelBytes = 0 },
+	} {
+		config.Face = faceDeploymentConfigFixture()
+		change(config.Face)
+		raw, _ := json.Marshal(config)
+		if _, err := deploymentFromEnvironment([]string{deploymentEnvironment + "=" + string(raw)}); err == nil {
+			t.Fatal("invalid face config accepted")
+		}
+	}
+}
+
+func testDeploymentBootstrap(t *testing.T, withFace bool) {
 	ctx := context.Background()
 	config := deploymentConfigFixture()
+	if withFace {
+		config.Face = faceDeploymentConfigFixture()
+	}
 	var online atomic.Bool
 	var block atomic.Bool
 	entered := make(chan struct{}, 2)
@@ -58,7 +120,11 @@ func TestDeploymentBootstrapOfflineRecoveryAndIdempotency(t *testing.T) {
 			w.WriteHeader(503)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(config.Identity)
+		if withFace && r.URL.Path == "/api/v1/face/identity" {
+			_ = json.NewEncoder(w).Encode(config.Face.Identity)
+		} else {
+			_ = json.NewEncoder(w).Encode(config.Identity)
+		}
 	}))
 	defer server.Close()
 	config.Origin = server.URL
@@ -80,7 +146,13 @@ func TestDeploymentBootstrapOfflineRecoveryAndIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bootstrap := deploymentBootstrap{client, models, admission, config}
+	bootstrap := deploymentBootstrap{client: client, models: models, admission: admission, config: config}
+	if withFace {
+		bootstrap.faceClient, err = client.BindFace(config.Face.Identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := bootstrap.reconcile(ctx); err == nil {
 		t.Fatal("offline service accepted")
 	}
@@ -138,5 +210,38 @@ func TestDeploymentBootstrapOfflineRecoveryAndIdempotency(t *testing.T) {
 	model, err = models.Get(ctx, id)
 	if err != nil || model.State != aimodel.StateAvailable {
 		t.Fatal("service did not recover")
+	}
+	changed := config
+	changed.Identity.RuntimeContractSHA256 = strings.Repeat("0", 64)
+	if withFace {
+		faceConfig := *config.Face
+		faceConfig.Identity.RuntimeContractSHA256 = changed.Identity.RuntimeContractSHA256
+		changed.Face = &faceConfig
+	}
+	replacementClient, err := remoteml.NewConfigured(changed.Origin, changed.Identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer replacementClient.Close()
+	replacement := deploymentBootstrap{client: replacementClient, models: models, admission: admission, config: changed}
+	if withFace {
+		replacement.faceClient, err = replacementClient.BindFace(changed.Face.Identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := replacement.reconcile(ctx); err == nil {
+		t.Fatal("wrong replacement identity accepted")
+	}
+	model, err = models.Get(ctx, id)
+	if err != nil || model.State != aimodel.StateUnavailable {
+		t.Fatal("unconfigured previous identity falsely available", model, err)
+	}
+	if err := bootstrap.reconcile(ctx); err != nil {
+		t.Fatal(err)
+	}
+	model, err = models.Get(ctx, id)
+	if err != nil || model.State != aimodel.StateAvailable {
+		t.Fatal("restoring original deployment did not recover", model, err)
 	}
 }

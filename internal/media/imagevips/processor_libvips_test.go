@@ -11,6 +11,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -171,10 +172,23 @@ func TestProcessorUsesShrinkOnLoadAndOrientationForLargeJPEG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	input, err := os.CreateTemp(t.TempDir(), "large-oriented-*.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := input.Write(encoded); err != nil {
+		input.Close()
+		t.Fatal(err)
+	}
+	if _, err := input.Seek(0, io.SeekStart); err != nil {
+		input.Close()
+		t.Fatal(err)
+	}
+	defer input.Close()
 
 	result, err := New().Process(
 		context.Background(),
-		bytes.NewReader(encoded),
+		input,
 		media.FormatJPEG,
 	)
 	if err != nil {

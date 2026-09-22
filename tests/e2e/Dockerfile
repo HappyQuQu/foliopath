@@ -21,6 +21,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY cmd ./cmd
 COPY internal ./internal
 COPY migrations ./migrations
+# Production frontend builds clean the ignored embed directory. This smoke
+# image does not build the SPA, so create a deterministic non-generated
+# placeholder instead of depending on a developer worktree's .gitkeep.
+RUN mkdir -p internal/webassets/dist \
+    && touch internal/webassets/dist/smoke-placeholder
 RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 go build -tags=libvips -trimpath \
     -ldflags="-s -w -X main.version=${VERSION}" \

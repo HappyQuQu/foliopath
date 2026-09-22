@@ -192,6 +192,8 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		registerFaceReadRoutes(mux, dependencies.FaceSettings, dependencies.FaceClusters, dependencies.FacePeople,
 			dependencies.FacePerson, dependencies.FaceAssetFaces, dependencies.FacePersonAssets,
 			dependencies.FaceClusterDetails, dependencies.Catalog)
+	} else if dependencies.FaceSettings != nil {
+		registerFaceSettingsReadRoute(mux, dependencies.FaceSettings)
 	}
 	if dependencies.FaceSettings != nil && dependencies.FaceJobs != nil && dependencies.FaceClears != nil {
 		registerFaceControlRoutes(mux, dependencies.FaceSettings, dependencies.FaceJobs, dependencies.FaceClears)

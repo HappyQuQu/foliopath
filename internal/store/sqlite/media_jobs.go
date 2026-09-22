@@ -277,8 +277,9 @@ func (s *Store) ClaimNextMediaJob(
 		now := s.nowMS()
 		var fingerprint, variant string
 		err := tx.QueryRowContext(ctx, `
-            -- Keep one of the two media workers available for grid/poster work.
-            -- This is owned by the variant contract rather than numeric priority.
+			-- Never admit a second storyboard while one is active. This is owned
+			-- by the variant contract rather than numeric priority and remains
+			-- valid if the production worker count changes again.
             WITH eligible_priority AS (
                 SELECT MIN(priority) AS priority
                 FROM media_jobs
@@ -465,19 +466,10 @@ func (s *Store) RecoverExpiredMediaJobs(
 			}
 			summary.Interrupted++
 		}
-		var remaining int
-		if err := tx.QueryRowContext(ctx, `
-            SELECT EXISTS (
-                SELECT 1 FROM media_jobs
-                WHERE status = 'running' AND lease_expires_at_ms <= ?
-            )`,
-			now,
-		).Scan(&remaining); err != nil {
-			return fmt.Errorf("check bounded media recovery: %w", err)
-		}
-		if remaining != 0 {
-			return errors.New("expired media job recovery exceeded worker bound")
-		}
+		// A sequence of process crashes can leave more expired leases than the
+		// live worker count. Recover one worker-sized batch per call; the periodic
+		// recovery loop drains the remainder without turning recoverable state into
+		// a process-wide startup failure.
 		return nil
 	})
 	return summary, err

@@ -5,6 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { InlineStatus } from "./InlineStatus";
 
 describe("InlineStatus", () => {
+  it("uses the canonical base style for informational status", () => {
+    render(<InlineStatus>尚未记录</InlineStatus>);
+    expect(screen.getByRole("status").className).not.toContain("undefined");
+  });
   it("exposes danger feedback as an alert", () => {
     render(<InlineStatus tone="danger">操作失败</InlineStatus>);
     expect(screen.getByRole("alert")).toHaveTextContent("操作失败");

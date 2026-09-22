@@ -53,6 +53,10 @@
 
 ## Routine fixes
 
+### 2026-09-22
+
+- [智能设置真实浏览器回归与 E2E embed 自包含](FIX-2026-09-22-ai-settings-browser-e2e.md)
+
 ### 2026-09-09
 
 - [server222 智能功能前端部署一致性](FIX-2026-09-09-aifeature-deployment-integrity.md)

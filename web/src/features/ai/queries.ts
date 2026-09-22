@@ -52,12 +52,12 @@ export const aiKeys = {
   semantic: (libraryId: string) => ["ai", "semantic", libraryId] as const,
   faces: (libraryId: string) => ["ai", "faces", libraryId] as const,
   operation: (operationId: string) => ["ai", "operation", operationId] as const,
-  suggestions: (libraryId: string, status: string) => ["ai", "suggestions", libraryId, status] as const,
-  people: (query: string) => ["ai", "people", query] as const,
+  suggestions: (libraryId: string, status: string, cursor = "") => ["ai", "suggestions", libraryId, status, cursor] as const,
+  people: (query: string, cursor = "") => ["ai", "people", query, cursor] as const,
   person: (personId: string) => ["ai", "person", personId] as const,
-  personAssets: (personId: string) => ["ai", "person-assets", personId] as const,
-  clusters: (libraryId: string, kind: string) => ["ai", "clusters", libraryId, kind] as const,
-  cluster: (libraryId: string, clusterId: string) => ["ai", "cluster", libraryId, clusterId] as const,
+  personAssets: (personId: string, cursor = "") => ["ai", "person-assets", personId, cursor] as const,
+  clusters: (libraryId: string, kind: string, cursor = "") => ["ai", "clusters", libraryId, kind, cursor] as const,
+  cluster: (libraryId: string, clusterId: string, cursor = "") => ["ai", "cluster", libraryId, clusterId, cursor] as const,
 };
 
 export function useAIModelsQuery() {
@@ -155,39 +155,39 @@ export function useFaceSettingsQueries(libraryIds: string[]) {
   return useQueries({ queries: libraryIds.map((libraryId) => ({ queryKey: aiKeys.faces(libraryId), queryFn: () => getLibraryFaceSettings(libraryId) })) });
 }
 
-export function useAITagSuggestionsQuery(libraryId: string, status: "pending" | "accepted" | "dismissed") {
+export function useAITagSuggestionsQuery(libraryId: string, status: "pending" | "accepted" | "dismissed", cursor = "") {
   return useQuery({
     enabled: Boolean(libraryId),
-    queryKey: aiKeys.suggestions(libraryId, status),
-    queryFn: () => listAITagSuggestions({ libraryId, status }),
+    queryKey: aiKeys.suggestions(libraryId, status, cursor),
+    queryFn: () => listAITagSuggestions({ libraryId, status, cursor }),
   });
 }
 
-export function usePeopleQuery(query: string) {
-  return useQuery({ queryKey: aiKeys.people(query), queryFn: () => listPeople({ ...(query ? { query } : {}) }) });
+export function usePeopleQuery(query: string, cursor = "") {
+  return useQuery({ queryKey: aiKeys.people(query, cursor), queryFn: () => listPeople({ cursor, ...(query ? { query } : {}) }) });
 }
 
 export function usePersonQuery(personId: string) {
   return useQuery({ enabled: Boolean(personId), queryKey: aiKeys.person(personId), queryFn: () => getPerson(personId) });
 }
 
-export function usePersonAssetsQuery(personId: string) {
-  return useQuery({ enabled: Boolean(personId), queryKey: aiKeys.personAssets(personId), queryFn: () => listPersonAssets({ personId }) });
+export function usePersonAssetsQuery(personId: string, cursor = "") {
+  return useQuery({ enabled: Boolean(personId), queryKey: aiKeys.personAssets(personId, cursor), queryFn: () => listPersonAssets({ personId, cursor }) });
 }
 
-export function useFaceClustersQuery(libraryId: string, kind: "core" | "edge") {
+export function useFaceClustersQuery(libraryId: string, kind: "core" | "edge", cursor = "") {
   return useQuery({
     enabled: Boolean(libraryId),
-    queryKey: aiKeys.clusters(libraryId, kind),
-    queryFn: () => listFaceClusters({ kind, libraryId }),
+    queryKey: aiKeys.clusters(libraryId, kind, cursor),
+    queryFn: () => listFaceClusters({ kind, libraryId, cursor }),
   });
 }
 
-export function useFaceClusterQuery(libraryId: string, clusterId: string) {
+export function useFaceClusterQuery(libraryId: string, clusterId: string, cursor = "") {
   return useQuery({
     enabled: Boolean(libraryId && clusterId),
-    queryKey: aiKeys.cluster(libraryId, clusterId),
-    queryFn: () => getFaceCluster({ clusterId, libraryId }),
+    queryKey: aiKeys.cluster(libraryId, clusterId, cursor),
+    queryFn: () => getFaceCluster({ clusterId, libraryId, cursor }),
   });
 }
 

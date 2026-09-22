@@ -14,6 +14,7 @@ export function AppShell({
   identity,
   logoutPending = false,
   onLogout,
+  peopleHref,
   searchHref,
   settingsHref,
   sidebarContent,
@@ -28,6 +29,7 @@ export function AppShell({
   librariesHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
+  peopleHref?: string | undefined;
   searchHref: string;
   settingsHref: string;
   showIdentityLabel?: boolean;
@@ -70,6 +72,7 @@ export function AppShell({
         identity={identity}
         logoutPending={logoutPending}
         onLogout={onLogout}
+        peopleHref={peopleHref}
         searchHref={searchHref}
         settingsHref={settingsHref}
       />

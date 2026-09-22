@@ -1,5 +1,11 @@
 # FolioPath 安全模型
 
+P5 根 `compose.ai.yaml` 落实既有双服务边界：AI 仅 internal 网络、无端口或媒体/数据库卷，只读缓存；主应用单只读媒体根和专用状态，默认回环端口。两侧只读根、cap_drop ALL、no-new-privileges、禁 swap，缺失 bind 源不自动创建。主应用保留对外网络用于正常 Web 接入，不声称整套部署完全禁出网；AI 不继承代理，不联网下载。配置/实际挂载检查不等于 G02 全部安全项通过。
+
+P4 大 JPEG 语义预处理修复：仅 JPEG 使用经源尺寸校验的 decoder shrink-on-load，首次 native load 前选倍率并在加载后验证 ≤16 MP；不把 180 MP JPEG 源尺寸预算当完整解码预算。JPEG 源字节预算 64 MiB，其他格式 32 MiB；输出 8 MiB、长边 1024 不变，其他格式仍拒绝 >16 MP。原图只读、失败关闭、既有有界任务并发不变。该限制不保证所有恶意压缩输入的恒定内存，仍须容器资源限制及回归。[变更记录](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+P2 人脸组操作门禁由 face owner 持有，未质量校准时正式 app 的 `assign_cluster` 与带 sourceCluster 的创建人物均拒绝，不能只禁用 UI。逐脸人工归类仍须认证、CSRF、revision 和幂等保护。非空验收使用生成的虚构人物 fixture，不读取开发者真实媒体；AI 仅接收主应用编码内容，无媒体/数据库挂载。测试 profile 和成功下载不代表生产质量或模型授权已通过。
+
 2026-09-15 候选启动组合：部署环境独占 AI origin 和预期身份配置，浏览器不能提供
 目标地址。每次发送图片/文本前先核验身份，响应仍验证身份头。共享两请求预算已满
 不修改模型可用性。主应用本地测试端口限回环；AI 服务不发布端口。此为可信部署兼容
@@ -233,7 +239,8 @@ MPEG-TS 兼容仅向已由 scanner 按现有视频扩展名索引的候选提供
 转码或原文件写入。`.ts/.mts/.m2ts` 不进入支持合同，服务端成功也不推断浏览器
 可播放。
 应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；
-两个媒体 worker 是进程级唯一任务并发。FFmpeg/ffprobe 使用单 decoder/filter thread、
+一个媒体 worker 是进程级唯一任务并发，避免两个约 100 MP JPEG 在 1 GiB 限额内同时求值。
+FFmpeg/ffprobe 使用单 decoder/filter thread、
 probe 与 poster 各自 60 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
 调用，不能承诺在任意 C 调用中间抢占或隔离 native crash；当前在求值前拒绝超限输入，并在
 返回后的第一个安全点重新检查取消。改变到进程隔离需要先接受 ADR。
@@ -402,8 +409,9 @@ Backend Ready。CR-2026-022 没有取消 `INT-015` 隐私和合法数据要求�
 - D 只读消费 thumbnail/media owner 发布的完整 active storyboard，不接受 API 路径或直接调用 FFmpeg。
   query 正文仍不得写日志/cursor；返回只含 asset ID、有限 score 和命中帧 ordinal/timestamp/plan size。
 - E 默认关闭且按库明确告知。embedding、observation、crop cache、anonymous cluster 归为高敏感可重建
-  数据；person name、manual assignment/exclusion/cannot-link/audit 归为不可重建应用状态。SQLite、API、日志、
-  诊断和支持包均不得包含 embedding、crop bytes/path、精确 bbox、原始模型错误或推测身份属性。
+  数据；person name、manual assignment/exclusion/cannot-link/audit 归为不可重建应用状态。向量仅存受控的
+  应用数据库，不进入公共 API、日志、诊断或支持包；经认证的人脸审核 API 可按既有合同返回相对框、
+  人物管理 API 可返回人工姓名。不得把内部向量、裁剪字节/宿主路径、原始模型错误或推测身份属性泄露到外部。
 - 每个 SQLite 连接强制 `secure_delete=ON`；清除验收在成功删除并 truncate WAL 后扫描活动 DB/WAL/SHM
   的唯一 canary。该边界不承诺擦除 operator backup、storage snapshot、文件系统 journal 或合同明确保留的
   应用状态，相关副本仍由部署者按保留/销毁策略处理。

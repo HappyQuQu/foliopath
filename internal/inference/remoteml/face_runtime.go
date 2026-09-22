@@ -3,6 +3,7 @@ package remoteml
 import (
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/png"
 	"io"
@@ -60,7 +61,13 @@ func (r *FaceRuntime) AnalyzeFaces(ctx context.Context, source io.ReadSeeker, fo
 	}
 	detections, err := r.client.Detect(ctx, w.buffer.Bytes())
 	if err != nil {
-		return nil, err
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if errors.Is(err, ErrBusy) {
+			return nil, errors.Join(face.ErrRuntimeBusy, err)
+		}
+		return nil, errors.Join(face.ErrRuntimeUnavailable, err)
 	}
 	result := make([]face.Candidate, len(detections))
 	for i, detection := range detections {

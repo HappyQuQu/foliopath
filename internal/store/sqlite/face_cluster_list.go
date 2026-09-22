@@ -16,14 +16,15 @@ func (s *Store) GetFaceClusterSnapshot(ctx context.Context, libraryID int64) (fa
 	var value face.FaceClusterSnapshot
 	value.LibraryID = libraryID
 	var state string
-	err := s.db.QueryRowContext(ctx, `SELECT settings.state,settings.active_generation_id,settings.coverage_revision FROM face_library_settings settings JOIN libraries library ON library.id=settings.library_id AND library.status='ready' WHERE settings.library_id=? AND settings.enabled=1`, libraryID).Scan(&state, &value.GenerationID, &value.Revision)
+	var published bool
+	err := s.db.QueryRowContext(ctx, `SELECT settings.state,COALESCE(build.generation_id,settings.active_generation_id),settings.coverage_revision,build.id IS NOT NULL FROM face_library_settings settings JOIN libraries library ON library.id=settings.library_id AND library.status='ready' LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE settings.library_id=? AND settings.enabled=1`, libraryID).Scan(&state, &value.GenerationID, &value.Revision, &published)
 	if errors.Is(err, sql.ErrNoRows) {
 		return face.FaceClusterSnapshot{}, face.ErrFaceNotReady
 	}
 	if err != nil {
 		return face.FaceClusterSnapshot{}, err
 	}
-	if state != "ready" && state != "degraded" {
+	if state != "ready" && state != "degraded" && !(published && (state == "building" || state == "awaiting_model")) {
 		return face.FaceClusterSnapshot{}, face.ErrFaceNotReady
 	}
 	err = s.db.QueryRowContext(ctx, `SELECT eligible_count,completed_count,failed_count,stale_count,revision FROM face_library_progress WHERE generation_id=? AND library_id=?`, value.GenerationID, libraryID).Scan(&value.Coverage.Eligible, &value.Coverage.Completed, &value.Coverage.Failed, &value.Coverage.Stale, &value.Coverage.Revision)
@@ -32,7 +33,7 @@ func (s *Store) GetFaceClusterSnapshot(ctx context.Context, libraryID int64) (fa
 	} else if err != nil {
 		return face.FaceClusterSnapshot{}, err
 	}
-	value.GroupAssignmentAllowed = false
+	value.GroupAssignmentAllowed = face.GroupAssignmentAllowed()
 	return value, nil
 }
 func (s *Store) ListFaceClusterViews(ctx context.Context, query face.FaceClusterListQuery) ([]face.FaceClusterView, error) {

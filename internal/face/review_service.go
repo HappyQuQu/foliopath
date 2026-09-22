@@ -53,7 +53,11 @@ func (service *ReviewService) Review(ctx context.Context, idempotencyKey string,
 	}
 	switch request.Action {
 	case "assign_face":
+		if (request.SourcePersonID == "") != (request.ExpectedSourceRevision == 0) || request.ExpectedSourceRevision < 0 {
+			return ReviewResult{}, ErrInvalidReview
+		}
 		return service.repository.AssignFace(ctx, AssignFaceCommand{
+			SourcePersonID: request.SourcePersonID, ExpectedSourceRevision: request.ExpectedSourceRevision,
 			EventID: eventID, RequestHash: requestHash, AnchorID: derivedReviewResourceID("fanchor", eventID, request.FaceID),
 			FaceID: request.FaceID, PersonID: request.PersonID, ExpectedFaceRevision: request.ExpectedFaceRevision,
 			ExpectedPersonRevision: request.ExpectedPersonRevision, CreatedAt: createdAt,

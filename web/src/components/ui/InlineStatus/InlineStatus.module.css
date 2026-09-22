@@ -4,7 +4,7 @@
   gap: var(--space-3);
   align-items: start;
   padding: var(--space-3);
-  color: var(--color-text-muted);
+  color: var(--color-text);
   border: 0;
   border-radius: var(--radius-2);
   background: var(--color-surface-subtle);

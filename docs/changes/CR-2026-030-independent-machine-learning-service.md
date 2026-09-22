@@ -1,5 +1,19 @@
 # CR-2026-030：从模型商店转向独立 AI 服务
 
+2026-09-16 最终 P2：A04～A08、D02 全部功能验收通过；FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2，Owner face/SQLite/app/API/web。补齐非空人工闭环、精确重绑、清理依赖顺序、旧可见代次和正式 UI；不变更 ADR-0019/0020 边界，不自动开放整组归类。[固定镜像证据及失败复验记录](../evidence/int-001/face-business-p2-2026-09-16.md)。总清单 9/34 关闭，P3/P4/P5/P6 未完成；以下同日条目为历史增量。
+
+2026-09-16 P2/A05：已补齐正式人物/匿名组读写服务的 app 组合，复用既有合同与事务，不扩展范围；[本地验证记录](../evidence/int-001/face-people-composition-2026-09-16.md)。非空操作与完整 UI 仍待验收，P2 未完成。
+
+2026-09-16 P1 复查更正与修复：先前验收遗漏激活本地忙和推理服务端忙，曾撤回完成结论。现已补齐可取消预算等待、身份约束的限长 busy 解析、同操作恢复成功验证；本地最终镜像探针通过后重新关闭 A02/A03。Owner app/remoteml/face，FR-INT-009 / NFR-INT-002、004 / POST-MVP-5 S2，无架构边界变更。[证据](../evidence/int-001/face-busy-repair-2026-09-16.md)。
+
+2026-09-16 P1 收口：A01～A03 已完成；Owner face/app/SQLite/API，FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2。最终本地 Docker 正式任务和强杀恢复通过；新增专属恢复、可用性事务校验及共享预算接入，未改变部署单元或公共合同。P2/质量/发布未完成。[证据](../evidence/int-001/face-worker-p1-2026-09-16.md)。以下同日条目为较早增量记录。
+
+2026-09-16 A03 增量：FR-INT-009 / NFR-INT-004，POST-MVP-5 S2，Owner face/SQLite。代次绑定处理器和内部读取合同已实现、Docker 回归通过；未接主进程，不宣称正式分析可用。[证据](../evidence/int-001/face-generation-binding-2026-09-16.md)。
+
+2026-09-16 A02：FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2，Owner app/aimodel/face。主进程可选人脸配置与启动激活接通；本地实际离线/激活/停服/恢复/重启通过，测试 profile 不等于质量结论。[证据](../evidence/int-001/face-startup-2026-09-16.md)。
+
+2026-09-16 用户授权按 [解决方案](../features/intelligent-media-discovery-completion-plan.md) 继续完成功能。FR-INT-009 / NFR-INT-004，POST-MVP-5 S2，Owner face/SQLite/app：A01 完整身份与原子提交已验证，A02 app 适配实现但未接启动。[证据](../evidence/int-001/face-deployment-commit-2026-09-16.md)。
+
 2026-09-16 人脸激活调度：FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2，Owner aimodel/SQLite。
 复用原调度，独立服务人脸运行时及迁移 40 已实现，文件提交失败关闭。[合同与验证范围](../evidence/int-001/face-deployment-worker-2026-09-16.md)；尚未由 app 装配，不代表真实激活/入库。
 

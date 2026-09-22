@@ -11,14 +11,17 @@ import (
 )
 
 type deploymentBootstrap struct {
-	client    *remoteml.Client
-	models    *aimodel.Service
-	admission *aimodel.ActivationAdmissionService
-	config    deploymentConfiguration
+	client     *remoteml.Client
+	models     *aimodel.Service
+	admission  *aimodel.ActivationAdmissionService
+	config     deploymentConfiguration
+	faceClient *remoteml.FaceClient
 }
 
 func (b *deploymentBootstrap) Run(ctx context.Context) error {
-	defer b.client.Close()
+	if b.faceClient == nil {
+		defer b.client.Close()
+	}
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	for {
@@ -35,6 +38,14 @@ func (b *deploymentBootstrap) Run(ctx context.Context) error {
 }
 
 func (b *deploymentBootstrap) reconcile(ctx context.Context) error {
+	pkg := b.config.model()
+	verify := b.client.VerifyIdentity
+	register := b.models.RegisterDeployment
+	if b.faceClient != nil {
+		pkg = b.config.Face.model()
+		verify = b.faceClient.VerifyIdentity
+		register = b.models.RegisterFaceDeployment
+	}
 	snapshot, err := b.models.List(ctx)
 	if err != nil {
 		return err
@@ -42,12 +53,23 @@ func (b *deploymentBootstrap) reconcile(ctx context.Context) error {
 	var current *aimodel.Model
 	for i := range snapshot.Items {
 		model := &snapshot.Items[i]
-		if model.StorageMode == aimodel.StorageService && model.Package.ContentHash == b.config.model().ContentHash {
+		if model.StorageMode != aimodel.StorageService || model.Package.Purpose != pkg.Purpose {
+			continue
+		}
+		if model.Package.ContentHash == pkg.ContentHash {
 			current = model
-			break
+			continue
+		}
+		// Only the configured identity has a runtime in this process. A previous
+		// deployment must not remain advertised as available if the replacement
+		// fails verification; retain its generation and all derived/manual data.
+		if model.State == aimodel.StateAvailable {
+			if _, err := b.models.SetAvailability(ctx, model.ID, model.AvailabilityRevision, false); err != nil {
+				return err
+			}
 		}
 	}
-	if err := b.client.VerifyIdentity(ctx); err != nil {
+	if err := verify(ctx); err != nil {
 		// A saturated local inference budget is not evidence of service failure.
 		if errors.Is(err, remoteml.ErrBusy) {
 			return err
@@ -58,7 +80,7 @@ func (b *deploymentBootstrap) reconcile(ctx context.Context) error {
 		}
 		return err
 	}
-	model, _, err := b.models.RegisterDeployment(ctx, b.config.model())
+	model, _, err := register(ctx, pkg)
 	if err != nil {
 		return err
 	}
@@ -68,7 +90,11 @@ func (b *deploymentBootstrap) reconcile(ctx context.Context) error {
 			return err
 		}
 	}
-	if snapshot.ActiveModelID == model.ID {
+	activeID := snapshot.ActiveModelID
+	if b.faceClient != nil {
+		activeID = snapshot.ActiveFaceModelID
+	}
+	if activeID == model.ID {
 		return nil
 	}
 	// Three durable attempts per model availability revision, including across

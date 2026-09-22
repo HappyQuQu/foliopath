@@ -83,3 +83,11 @@ func (service *PersonMutationService) Rename(ctx context.Context, id, name strin
 func (service *PersonMutationService) Delete(ctx context.Context, id string, expectedRevision int64) error {
 	return service.people.DeletePerson(ctx, DeletePersonCommand{ID: id, ExpectedRevision: expectedRevision, DeletedAt: service.now().UTC()})
 }
+
+// GetPerson exposes the same canonical person record used by mutations.
+func (service *PersonMutationService) GetPerson(ctx context.Context, id string) (Person, error) {
+	if !validReviewID(id) {
+		return Person{}, ErrInvalidPerson
+	}
+	return service.people.GetPerson(ctx, id)
+}

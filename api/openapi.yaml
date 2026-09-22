@@ -3755,6 +3755,11 @@ paths:
       tags: [People]
       operationId: requestFaceAnalysisJob
       summary: Request bounded missing-only or full face analysis and clustering
+      description: |
+        An enabled library awaiting a previously unavailable model can be retried
+        after that same model generation recovers. Admission rechecks availability
+        and the library revision; retry never enables a disabled library. A new
+        idempotency key creates the retry; the old key retains its recorded result.
       security:
         - cookieAuth: []
           csrfToken: []
@@ -7953,15 +7958,35 @@ components:
         - $ref: '#/components/schemas/SplitFaceReview'
       discriminator:
         propertyName: action
+        mapping:
+          assign_face: '#/components/schemas/AssignFaceReview'
+          assign_cluster: '#/components/schemas/AssignClusterReview'
+          exclude_face: '#/components/schemas/ExcludeFaceReview'
+          cannot_link: '#/components/schemas/CannotLinkFaceReview'
+          merge_people: '#/components/schemas/MergePeopleReview'
+          split_face: '#/components/schemas/SplitFaceReview'
 
     AssignFaceReview:
       type: object
+      description: |
+        Assign an unbound face, or atomically move a bound face when both
+        sourcePersonId and expectedSourceRevision identify its current owner.
+        The source fields must be supplied together. Omitting them never steals
+        a bound assignment. A detached needs-review lineage may be reassigned;
+        its previous owner revision is captured transactionally for guarded undo.
+        Existing cannot-link constraints are preserved and block owner transfer.
       additionalProperties: false
       required: [action, faceId, personId, expectedFaceRevision, expectedPersonRevision]
       properties:
         action:
           type: string
           enum: [assign_face]
+        sourcePersonId:
+          $ref: '#/components/schemas/ResourceID'
+        expectedSourceRevision:
+          type: integer
+          format: int64
+          minimum: 1
         faceId:
           $ref: '#/components/schemas/ResourceID'
         personId:
@@ -8183,6 +8208,7 @@ components:
         - face_disabled
         - face_model_unavailable
         - face_not_ready
+        - library_offline
         - face_cursor_stale
         - face_not_found
         - cluster_not_found

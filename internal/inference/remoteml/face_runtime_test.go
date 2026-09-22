@@ -9,11 +9,77 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
+
+func TestFaceRuntimeRemoteBusyContract(t *testing.T) {
+	for _, scenario := range []string{"busy", "unavailable", "wrong-identity", "missing-identity", "oversized", "malformed", "unknown-field", "trailing", "wrong-status"} {
+		t.Run(scenario, func(t *testing.T) {
+			expected := faceIdentityFixture()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "GET" {
+					_ = json.NewEncoder(w).Encode(expected)
+					return
+				}
+				if scenario != "missing-identity" {
+					w.Header().Set("X-FolioPath-Runtime", expected.RuntimeContractSHA256)
+					w.Header().Set("X-FolioPath-Cache", expected.CacheManifestSHA256)
+				}
+				if scenario == "wrong-identity" {
+					w.Header().Set("X-FolioPath-Runtime", strings.Repeat("0", 64))
+				}
+				status := 503
+				if scenario == "wrong-status" {
+					status = 500
+				}
+				w.WriteHeader(status)
+				body := `{"error":"busy"}`
+				switch scenario {
+				case "unavailable":
+					body = `{"error":"unavailable"}`
+				case "oversized":
+					body += strings.Repeat(" ", 1025)
+				case "malformed":
+					body = "{"
+				case "unknown-field":
+					body = `{"error":"busy","other":1}`
+				case "trailing":
+					body += ` {}`
+				}
+				_, _ = io.WriteString(w, body)
+			}))
+			defer server.Close()
+			client, err := New(server.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			bound, err := client.BindFace(expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			runtime, err := NewFaceRuntime(faceDecoderStub{decoded: face.DecodedImage{Width: 1, Height: 1, RGB: []byte{0, 0, 0}}}, bound)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = runtime.AnalyzeFaces(context.Background(), bytes.NewReader(nil), media.FormatPNG, 1024)
+			if scenario == "busy" {
+				if !errors.Is(err, face.ErrRuntimeBusy) || errors.Is(err, face.ErrRuntimeUnavailable) {
+					t.Fatal(err)
+				}
+			} else if !errors.Is(err, face.ErrRuntimeUnavailable) || errors.Is(err, face.ErrRuntimeBusy) {
+				t.Fatal(err)
+			}
+			if len(client.slots) != 0 {
+				t.Fatal("leaked shared slot")
+			}
+		})
+	}
+}
 
 type faceDecoderStub struct {
 	decoded face.DecodedImage
@@ -78,6 +144,40 @@ func TestFaceRuntimeReconstructsPixelsAndQuality(t *testing.T) {
 	}
 	if result[0].Quality != .45 || result[0].Detection != .9 || result[0].Embedding[0] != 1 {
 		t.Fatal(result)
+	}
+}
+
+func TestFaceRuntimeServiceFailureIsNotPerAssetFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusServiceUnavailable) }))
+	defer server.Close()
+	client, err := New(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	bound, err := client.BindFace(faceIdentityFixture())
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := NewFaceRuntime(faceDecoderStub{decoded: face.DecodedImage{Width: 1, Height: 1, RGB: []byte{0, 0, 0}}}, bound)
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := runtime.AnalyzeFaces(context.Background(), bytes.NewReader(nil), media.FormatPNG, 1024)
+	if !errors.Is(err, face.ErrRuntimeUnavailable) || len(items) != 0 {
+		t.Fatal(items, err)
+	}
+	for i := 0; i < cap(client.slots); i++ {
+		client.slots <- struct{}{}
+	}
+	defer func() {
+		for len(client.slots) > 0 {
+			<-client.slots
+		}
+	}()
+	_, err = runtime.AnalyzeFaces(context.Background(), bytes.NewReader(nil), media.FormatPNG, 1024)
+	if !errors.Is(err, face.ErrRuntimeBusy) || errors.Is(err, face.ErrRuntimeUnavailable) {
+		t.Fatal(err)
 	}
 }
 

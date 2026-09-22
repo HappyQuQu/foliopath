@@ -19,6 +19,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
 	"github.com/HappyQuQu/foliopath/internal/inference/remoteml"
@@ -489,6 +490,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct semantic text inference sessions: %w", err)
 	}
 	var deployment *deploymentBootstrap
+	var faceDeployment *deploymentBootstrap
+	var faceService *face.ControlService
+	var faceWorkers []aiBackgroundWorker
 	var remoteEncoder *semantic.BoundEncoder
 	var textEncoder semantic.TextEncoder = semanticTextSessions
 	if configuration.deployment != nil {
@@ -510,6 +514,70 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		}
 		textEncoder = remoteEncoder
 		deployment = &deploymentBootstrap{client: client, models: aiModels, admission: aiActivationAdmission, config: config}
+		if config.Face != nil {
+			faceClient, err := client.BindFace(config.Face.Identity)
+			if err != nil {
+				return nil, err
+			}
+			faceRuntime, err := newFaceDeploymentActivationRuntime(faceClient, database, config.Face.space())
+			if err != nil {
+				return nil, err
+			}
+			if err := aiActivationWorker.EnableFaceDeploymentRuntime(faceRuntime); err != nil {
+				return nil, err
+			}
+			faceDeployment = &deploymentBootstrap{client: client, models: aiModels, admission: aiActivationAdmission, config: config, faceClient: faceClient}
+			analysisRuntime, err := remoteml.NewFaceRuntime(imagevips.New(), faceClient)
+			if err != nil {
+				return nil, err
+			}
+			analyzer, err := face.NewProcessor(faceContentSource{content: contentService}, analysisRuntime)
+			if err != nil {
+				return nil, err
+			}
+			processor, err := face.NewDeploymentJobProcessor(database, database, analyzer, database, database, config.Face.space(), nil, 64)
+			if err != nil {
+				return nil, err
+			}
+			limited, err := resourcecontrol.LimitBackground(resourceController, processor)
+			if err != nil {
+				return nil, err
+			}
+			faceSignal, clearSignal := jobs.NewSignal(), jobs.NewSignal()
+			worker, err := jobs.NewWorkerPool(faceJobQueue{database}, limited, faceSignal, jobs.WorkerOptions{Workers: 1})
+			if err != nil {
+				return nil, err
+			}
+			clearProcessor, err := face.NewClearProcessor(database, nil, 0)
+			if err != nil {
+				return nil, err
+			}
+			limitedClear, err := resourcecontrol.LimitBackground(resourceController, clearProcessor)
+			if err != nil {
+				return nil, err
+			}
+			clearWorker, err := jobs.NewWorkerPool(faceClearQueue{database}, limitedClear, clearSignal, jobs.WorkerOptions{Workers: 1})
+			if err != nil {
+				return nil, err
+			}
+			settings, err := face.NewSettingsService(database, nil)
+			if err != nil {
+				return nil, err
+			}
+			admission, err := face.NewJobService(database, database, faceSignal, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+			clears, err := face.NewClearService(database, clearSignal, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+			faceService, err = face.NewControlService(settings, admission, clears, aiOperations)
+			if err != nil {
+				return nil, err
+			}
+			faceWorkers = []aiBackgroundWorker{worker, clearWorker}
+		}
 	}
 	semanticProcessor, err := semantic.NewBackfillProcessor(
 		database, semanticContentSource{content: contentService}, imagevips.New(), semanticSessions,
@@ -674,14 +742,21 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if deployment != nil {
 		aiWorkers = append(aiWorkers, deployment)
 	}
+	if faceDeployment != nil {
+		aiWorkers = append(aiWorkers, faceDeployment)
+	}
+	aiWorkers = append(aiWorkers, faceWorkers...)
 	aiWorkerComponent, err := newAIWorkerComponent(
 		aiWorkers, aiOperations, aiOrphans, managedModels,
 	)
 	if err != nil {
 		return nil, err
 	}
-	aiManagement, err := aimodel.NewManagementService(aiModels, aiScanner, aiOperations, aiAdmission, aiActivationAdmission, aiAvailability,
-		aimodel.OperationCancellers{Semantic: semanticService})
+	cancellers := aimodel.OperationCancellers{Semantic: semanticService}
+	if faceService != nil {
+		cancellers.Face = faceService
+	}
+	aiManagement, err := aimodel.NewManagementService(aiModels, aiScanner, aiOperations, aiAdmission, aiActivationAdmission, aiAvailability, cancellers)
 	if err != nil {
 		return nil, fmt.Errorf("construct AI model management service: %w", err)
 	}
@@ -715,6 +790,14 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		AITagReviews:      idempotentTagReviews,
 		AITagReviewClear:  semanticService,
 		VideoSemanticJobs: semanticService,
+	}
+	if faceService != nil {
+		routeDependencies.FaceSettings = faceService
+		routeDependencies.FaceJobs = faceService
+		routeDependencies.FaceClears = faceService
+		if err := composeFaceResults(&routeDependencies, database); err != nil {
+			return nil, fmt.Errorf("construct face results: %w", err)
+		}
 	}
 	aiDownloads, err := aimodel.NewDownloadService(downloadCatalog, aiModels, aiAdmission, database, aiRuntimeIncluded)
 	if err != nil {

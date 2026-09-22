@@ -14,6 +14,7 @@ import {
   MagnifyingGlass,
   Square,
   Tag,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -1060,7 +1061,7 @@ export function DirectoryNavigation({
   selectedDirectoryId,
   selectedPathIds,
 }: {
-  activeQuickAccess?: "allMedia" | "favorites" | "tags";
+  activeQuickAccess?: "allMedia" | "people" | "favorites" | "tags";
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
   favoriteCount?: number;
@@ -1283,7 +1284,10 @@ export function DirectoryNavigation({
         )}
       </div>
       <p className={styles.treeLabel}>{t("curation.quickAccess")}</p>
-      <nav aria-label={t("curation.quickAccess")} className={styles.tree}>
+      <nav
+        aria-label={t("curation.quickAccess")}
+        className={`${styles.tree} ${styles.quickAccess}`}
+      >
         <Link
           aria-current={allMediaSelected ? "page" : undefined}
           className={`${styles.treeLink} ${styles.treeAllMedia} ${allMediaSelected ? styles.treeLinkCurrent : ""}`}
@@ -1294,6 +1298,14 @@ export function DirectoryNavigation({
         >
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
+        </Link>
+        <Link
+          aria-current={activeQuickAccess === "people" ? "page" : undefined}
+          className={`${styles.treeLink} ${activeQuickAccess === "people" ? styles.treeLinkCurrent : ""}`}
+          to={`${paths.intelligence}?${new URLSearchParams({ view: "clusters", libraryId }).toString()}`}
+        >
+          <UsersThree aria-hidden="true" size={18} />
+          <span>{t("shell.people")}</span>
         </Link>
         <Link
           aria-current={activeQuickAccess === "favorites" ? "page" : undefined}
@@ -1318,8 +1330,13 @@ export function DirectoryNavigation({
       {quickAccessDetail}
       {!hideDirectoryTree && (
         <>
-          <p className={styles.treeLabel}>{t("browse.directory")}</p>
-          <nav aria-label={t("browse.directoryNavigation")} className={styles.tree}>
+          <p className={`${styles.treeLabel} ${styles.directoryLabel}`}>
+            {t("browse.directory")}
+          </p>
+          <nav
+            aria-label={t("browse.directoryNavigation")}
+            className={`${styles.tree} ${styles.directoryTree}`}
+          >
             <div
               className={styles.treeRow}
               style={{ "--tree-depth": 0 } as CSSProperties}

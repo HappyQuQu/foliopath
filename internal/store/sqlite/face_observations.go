@@ -89,8 +89,43 @@ func (s *Store) replaceFaceObservationsTx(ctx context.Context, tx *sql.Tx, batch
 		}
 		query += " AND id NOT IN (" + strings.Join(placeholders, ",") + ")"
 	}
-	_, err := tx.ExecContext(ctx, query, args...)
-	return err
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return err
+	}
+	return rebindUnboundFaceLineagesTx(ctx, tx, batch)
+}
+
+// A cleared observation may be restored only by an exact, unique source/box
+// match. Existing bindings (including another visible generation) are untouched.
+// Each batch has at most MaxCandidatesPerAsset items and each lineage is unique.
+func rebindUnboundFaceLineagesTx(ctx context.Context, tx *sql.Tx, batch face.ObservationBatch) error {
+	for _, item := range batch.Items {
+		box := quantizeBox(item.Box)
+		var matches int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM face_observations
+			WHERE generation_id=? AND library_id=? AND asset_id=? AND source_fingerprint=?
+			AND box_x_ppm=? AND box_y_ppm=? AND box_width_ppm=? AND box_height_ppm=?`,
+			batch.GenerationID, batch.LibraryID, batch.AssetID, item.SourceFingerprint, box[0], box[1], box[2], box[3]).Scan(&matches); err != nil {
+			return err
+		}
+		if matches != 1 {
+			continue
+		}
+		args := []any{item.ID, batch.UpdatedAt.UnixMilli(), batch.LibraryID, batch.AssetID, item.SourceFingerprint, box[0], box[1], box[2], box[3]}
+		if _, err := tx.ExecContext(ctx, `UPDATE person_face_anchors
+			SET current_face_id=?,state=CASE WHEN state='excluded' THEN state ELSE 'bound' END,
+			revision=revision+1,updated_at_ms=MAX(updated_at_ms,?)
+			WHERE library_id=? AND asset_id=? AND source_fingerprint=? AND box_x_ppm=? AND box_y_ppm=?
+			AND box_width_ppm=? AND box_height_ppm=? AND current_face_id IS NULL`, args...); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE face_exclusions SET current_face_id=?,revision=revision+1,updated_at_ms=MAX(updated_at_ms,?)
+			WHERE library_id=? AND asset_id=? AND source_fingerprint=? AND box_x_ppm=? AND box_y_ppm=?
+			AND box_width_ppm=? AND box_height_ppm=? AND current_face_id IS NULL`, args...); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) ListFaceObservations(ctx context.Context, generationID string, libraryID, assetID int64) ([]face.StoredObservation, error) {

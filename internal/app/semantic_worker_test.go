@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 )
@@ -55,5 +56,14 @@ func TestSemanticContentSourceUsesVerifiedContentBoundaryAndLibraryScope(t *test
 	_ = asset.File.Close()
 	if _, err := source.OpenSemanticAsset(context.Background(), 4, 7); !errors.Is(err, semantic.ErrSemanticSourceChanged) {
 		t.Fatalf("cross-library error = %v", err)
+	}
+	faceSource := faceContentSource{content: content}
+	faceAsset, err := faceSource.OpenFaceAsset(context.Background(), 3, 7)
+	if err != nil || faceAsset.File == nil || faceAsset.SourceFingerprint != fingerprint.String() || faceAsset.Format != media.FormatJPEG {
+		t.Fatal(faceAsset, err)
+	}
+	_ = faceAsset.File.Close()
+	if _, err := faceSource.OpenFaceAsset(context.Background(), 4, 7); !errors.Is(err, face.ErrSourceChanged) {
+		t.Fatal("cross-library face source", err)
 	}
 }

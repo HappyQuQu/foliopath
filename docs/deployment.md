@@ -1,6 +1,20 @@
 # FolioPath 候选部署与运维
 
-2026-09-16 人脸接入开发：migration 40 扩展内部 service 模型记录，尚无主进程人脸部署配置入口。升级前备份 `/app/data`；一旦存在人脸 service 记录，不支持直接降回 39，应恢复升级前备份，禁止为了降级删除模型/代次。当前开发验证只运行本地临时 Docker 测试库，未升级现有运行环境。
+P5 新交付入口：根 [`compose.ai.yaml`](../compose.ai.yaml) 为独立双服务候选配置，不叠加根单容器 Compose。配置、离线镜像/身份准备和运行限制见 [AI Compose 部署说明](ai-compose.md)。P5 5/5 已通过本地工程验收，[最终证据](evidence/int-001/p5-delivery-security-2026-09-17.md)。下文旧 spike 配置仅保留为历史验证，不再作为正式双服务入口；P6 发行批准不因 P5 完成而自动通过。
+
+P4 大 JPEG 兼容候选采用语义预处理 `remote-image-v2`，因此即使 AI 模型文件不变，主应用的 semantic 空间身份也会改变；升级后须按新代次重新分析图片/视频及生成标签建议，不能将旧向量强行重标为新代次。人脸输入身份不变。这不是自动更新线上部署；旧镜像回退仍配对升级前备份。[修复范围](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+P3 排障补充：AI 中断/超时的失败任务保留历史；服务和精确身份恢复后直接提交新重试，无需切换库开关。若修改 `FOLIOPATH_AI_DEPLOYMENT` 身份，新身份验证失败会使同用途旧 service 模型不可用，而不是继续展示假可用；不会删除旧索引或人工关系。恢复正确配置后等待 availability 刷新再重试。迁移 40 存在 service 人脸记录时禁止有损降级，回退必须使用对应旧镜像和升级前停止写入后的备份，不把升级后的数据库直接交给旧版本。
+
+### 可选人脸启动配置（2026-09-16，开发候选）
+
+现有 `FOLIOPATH_AI_DEPLOYMENT` JSON 可增加 `face` 对象：`identity`（version=1、protocol=`foliopath-face-v1`、model=`buffalo_l`、dimension=512 及 runtime/cache hash）、`detector_sha256`、`embedder_sha256`、`threshold`、`model_bytes`、`license_id`。
+`threshold` 使用现有 schemaVersion/profileId/coreSimilarity/edgeSimilarity/minCoreSize/qualitySummarySha256 合同，必须显式提供，不能照抄测试阈值作为质量结论。CLIP 与人脸需绑定同一个服务的 runtime/cache 身份；人脸候选镜像用 `FOLIOPATH_INCLUDE_FACE=1` 构建。
+省略 face 时不启用人脸；格式/兼容性错误会拒绝启动，运行期服务离线只影响 AI。配置启用模型准入、代次激活及有界分析/清理 worker；每库仍须通过既有鉴权 API 显式启用并提交分析任务。人物管理与正式界面已有 P2/P3 本地功能验收，非空人脸质量尚未校准，测试 profile 不可视为生产阈值。示例探针仅用于临时测试，见 [启动证据](evidence/int-001/face-startup-2026-09-16.md)及 [P3 记录](evidence/int-001/p3-acceptance-2026-09-16.md)。
+
+人脸分析和清理各一个 worker，与其他后台任务共享资源控制；远程请求与 CLIP 共用客户端并发上限。激活时本地槽满会等待而不消耗失败次数，等待可取消；取得槽后身份 HTTP 校验仍受超时限制。分析中本地槽满或身份匹配的服务端 busy 均保留 claim，由既有人脸队列在租约过期后恢复（默认约两分钟，最多三次 claim），不将图片计为失败或把模型标离线。真正远程不可用会停止当前分析，按库进入等待模型状态；服务恢复后可重新启用/提交任务。媒体仍仅从主应用只读 `/library` 读取，AI 服务不挂载媒体或数据库。
+
+2026-09-16 人脸接入开发：migration 40 扩展内部 service 模型记录，现已补充上述可选主进程配置入口。升级前备份 `/app/data`；一旦存在人脸 service 记录，不支持直接降回 39，应恢复升级前备份，禁止为了降级删除模型/代次。当前开发验证只运行本地临时 Docker 测试库，未升级现有运行环境。
 
 候选主进程现支持 `FOLIOPATH_AI_DEPLOYMENT` JSON，字段为 `origin`、`identity`、
 `model_bytes`、`license_id`，严格解析并在启动时拒绝不合法配置。身份需从固定候选
@@ -27,7 +41,9 @@ AI 初始离线不阻塞普通图库；每 30 秒核验，恢复后复用活动�
 `spikes/int001-remote-ml/compose.yaml`，固定镜像、仅私网、无端口、只读复制模型。
 这是 ML 服务 + 测试客户端，不是主应用已接入的正式 Compose；根 compose.yaml 尚未改变。
 
-## 模型下载代理（POST-MVP-5 / ADR-0017）
+## 模型下载代理（POST-MVP-5 / ADR-0017，旧兼容路线）
+
+本节仅适用于旧内置模型下载维护能力，不用于独立 AI Compose 的固定缓存恢复；当前双服务主线见 [AI Compose 部署说明](ai-compose.md)。保留既有 API 兼容性，不表示模型商店仍是主线。
 
 支持显式设置 `FOLIOPATH_MODEL_DOWNLOAD_PROXY=http://192.168.2.231:7890`。
 在支持 ADR-0017 的镜像中为 FolioPath 服务增加此环境变量并重新创建容器后生效。
@@ -63,6 +79,8 @@ provenance 和安全/合规签署阻断。
 Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据不能替代新候选复验。
 
 ## 模型下载目录
+
+以下为旧兼容维护说明；独立 AI 双服务使用部署配置和只读固定缓存，不要求创建本节目录，不会自动转换或下载缺失权重。
 
 [CR-2026-026](changes/CR-2026-026-ai-model-download-and-ui.md) / [ADR-0016](adr/0016-admin-model-download-catalog.md)
 增加“智能功能 → 模型”的下载操作。**仓库没有默认托管模型下载源，根 Dockerfile 也没有编入 AI
@@ -103,7 +121,7 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 
 ## 部署目标
 
-- 一个容器、一个应用进程、一个 HTTP 端口。
+- 核心模式一个容器、一个应用进程、一个 HTTP 端口；可选 AI 模式为主应用 + 独立 AI 两个容器，仅主应用发布 HTTP 端口。
 - 用户通常只映射一个只读媒体根目录和一个可写数据目录。
 - 新增 `/library` 下的媒体库只需在 Web 设置中操作，不修改 Compose。
 - 媒体原件始终只读；数据库、设置、任务状态和缓存全部位于 `/app/data`。

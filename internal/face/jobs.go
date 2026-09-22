@@ -214,6 +214,7 @@ func NewJobProcessor(queue JobQueue, catalog JobCatalog, analyzer JobAnalyzer, c
 }
 
 func (p *JobProcessor) Process(ctx context.Context, job AnalysisJob) error {
+	defer p.BackgroundAdmissionCancelled(ctx, job)
 	if job.ID == "" || job.State != "running" || job.ClaimedRevision < 1 {
 		return ErrInvalidFaceJob
 	}
@@ -254,6 +255,9 @@ func (p *JobProcessor) Process(ctx context.Context, job AnalysisJob) error {
 				return err
 			}
 			_, err = p.queue.FinishFaceJob(ctx, job, true, "", p.now().UTC())
+			if errors.Is(err, ErrFaceModelUnavailable) {
+				return p.failWithCode(ctx, job, "model_unavailable", err)
+			}
 			return err
 		}
 		for _, candidate := range page.Items {
@@ -267,6 +271,11 @@ func (p *JobProcessor) Process(ctx context.Context, job AnalysisJob) error {
 				// A process shutdown or caller cancellation must leave the durable claim
 				// recoverable; do not turn it into an ordinary per-asset failure.
 				return ctx.Err()
+			}
+			if errors.Is(analyzeErr, ErrRuntimeBusy) {
+				// Leave the claim recoverable by the existing bounded lease/retry
+				// policy; contention is neither a bad asset nor an offline model.
+				return analyzeErr
 			}
 			if errors.Is(analyzeErr, ErrRuntimeUnavailable) {
 				// A missing or faulted generation-bound runtime affects the whole job.
@@ -299,10 +308,28 @@ func (p *JobProcessor) Process(ctx context.Context, job AnalysisJob) error {
 			}
 			progress, err = p.queue.CommitFaceJobProgress(ctx, commit)
 			if err != nil {
+				if errors.Is(err, ErrFaceModelUnavailable) {
+					return p.failWithCode(ctx, job, "model_unavailable", err)
+				}
 				return p.fail(ctx, job, err)
 			}
 		}
 	}
+}
+
+// Only a persisted cancellation can be finalized. Shutdown claims remain
+// recoverable because FinishFaceJob rejects cancellation of running jobs.
+func (p *JobProcessor) BackgroundAdmissionCancelled(ctx context.Context, job AnalysisJob) {
+	finishFaceAdmissionCancellation(ctx, p.queue, job, p.now)
+}
+
+func finishFaceAdmissionCancellation(ctx context.Context, queue JobQueue, job AnalysisJob, now func() time.Time) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = queue.FinishFaceJob(cleanup, job, false, "cancelled", now().UTC())
 }
 
 func (p *JobProcessor) refreshControl(ctx context.Context, job AnalysisJob) (bool, error) {

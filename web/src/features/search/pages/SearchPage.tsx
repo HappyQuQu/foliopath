@@ -220,6 +220,7 @@ export function SearchPage({
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
+      peopleHref={`${paths.intelligence}?view=clusters`}
       searchHref={`${libraryId ? paths.librarySearch(libraryId) : paths.search}?${canonicalSearch}`}
       settingsHref={
         libraryId

@@ -3,6 +3,7 @@ import {
   GearSix,
   MagnifyingGlass,
   SignOut,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -20,6 +21,7 @@ export function GlobalHeader({
   identity,
   logoutPending = false,
   onLogout,
+  peopleHref,
   searchHref,
   settingsHref,
 }: {
@@ -27,6 +29,7 @@ export function GlobalHeader({
   identity: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
+  peopleHref?: string | undefined;
   searchHref: string;
   settingsHref: string;
 }) {
@@ -76,7 +79,9 @@ export function GlobalHeader({
     event.preventDefault();
     const normalized = query.trim();
     if (!normalized) return;
-    navigate(`${searchHref}?${new URLSearchParams({ q: normalized })}`);
+    const target = new URL(searchHref, window.location.href);
+    target.searchParams.set("q", normalized);
+    navigate(`${target.pathname}${target.search}${target.hash}`);
   }
 
   return (
@@ -103,6 +108,16 @@ export function GlobalHeader({
       </form>
 
       <div className={styles.headerActions}>
+        {peopleHref && (
+          <Link
+            aria-current={location.pathname === "/intelligence" ? "page" : undefined}
+            className={styles.peopleLink}
+            to={peopleHref}
+          >
+            <UsersThree aria-hidden="true" size={19} />
+            <span>{t("shell.people")}</span>
+          </Link>
+        )}
         <LocaleToggle />
         <ThemeToggle />
         {headerAddon}

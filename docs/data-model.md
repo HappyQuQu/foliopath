@@ -1,5 +1,15 @@
 # FolioPath 数据模型
 
+2026-09-16 A05 归属修复：重新归类复用 person_face_anchors 的同一 ID，不删除历史引用。现有审核事务内校验/推进旧人物和目标人物 revision，更新归属并写 undo 快照；快照新增可选 beforePersonId，沿用 sourcePersonId/sourcePersonRevision 记录旧人物的提交后版本。旧快照缺省 owner 时使用原 payload.personId。撤销同时校验双方版本和 anchor，不覆盖后续编辑；cannot-link 转移失败保留原状态。无新表或迁移。[证据](evidence/int-001/face-reassignment-2026-09-16.md)。
+
+P3 恢复补修不新增表：同代次等待模型的库经既有设置 revision/可用性事务重入 building，再创建新任务；旧失败任务和幂等决定保留。部署配置不再匹配的旧 service 模型只改变 availability，不退役/删除原代次、进度、人物或人工关系。迁移 40 有 service 人脸记录时降级拒绝，不能用删记录方式绕过。
+
+2026-09-16 P2（FR-INT-009 / CR-2026-030，Owner face/SQLite）：无新增表。新任务可将库的目标代次推进至当前部署代次，禁止在该库已有活动分析任务或清理中重定向。读取使用已发布 `active_cluster_build_id` 的代次，不以正在构建的目标代次隐藏旧结果。重建按有界 keyset 批次核对人工 anchor/exclusion 的库、资产、源指纹和量化框；仅唯一精确匹配重新绑定，源变化留待人工复核，不用 embedding 猜测身份。手工清理先分批移除本库 undo snapshot，再按引用叶节点删除审核事件，避免 RESTRICT 外键阻止清理；保留全局人物名称与其他库状态。
+
+2026-09-16 P1：service 人脸代次在任务准入、进度提交、聚类可见切换及成功终态事务内复核模型可用性；不新增表。通用 AI 操作启动恢复不再处理四类人脸操作，由 face_analysis_jobs/face_clear_jobs 的既有租约和有界尝试负责恢复，避免操作行被提前失败而任务行仍可运行。
+
+2026-09-16：远程人脸代次通过 `model_id` 关联 service 模型的完整兼容指纹（运行时/缓存/输入与质量规则/组件/阈值 profile），同时核对 FaceGeneration 组件与 profile hash。注册模型的 content_hash/source_identity 必须一致；沿用原激活事务，不新增表。失败不退役旧代次，成功也不提前切换各库可见聚类或 CLIP 指针。见 [提交证据](evidence/int-001/face-deployment-commit-2026-09-16.md)。
+
 2026-09-16：migration 40 允许 `ai_models.storage_mode=service` 的人脸模型；继续要求非 installed 状态和 source_identity=content_hash。只新增迁移，不修改 39。旧本地人脸激活提交拒绝 service，后续须由身份绑定入口提交；不因此自动创建人脸代次。回退 39 遇到人脸 service 记录会由约束失败关闭，不能删除记录强行回退。
 
 2026-09-15 视频删除覆盖率：只有成功扫描可按剩余完整当前故事板重算汇总。

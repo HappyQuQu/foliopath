@@ -214,6 +214,11 @@ type faceClearJSON struct {
 // composition while the release gate remains No-Go. Adapter tests can exercise
 // the accepted wire contract without making face data reachable at runtime.
 func registerFaceReadRoutes(mux *http.ServeMux, settings FaceSettingsService, clusters FaceClusterService, people PeopleListService, persons PersonQueryService, assetFaces AssetFacesQueryService, personAssets PersonAssetsQueryService, clusterDetails FaceClusterDetailQueryService, catalogService CatalogService) {
+	registerFaceSettingsReadRoute(mux, settings)
+	registerFaceResultReadRoutes(mux, clusters, people, persons, assetFaces, personAssets, clusterDetails, catalogService)
+}
+
+func registerFaceSettingsReadRoute(mux *http.ServeMux, settings FaceSettingsService) {
 	mux.HandleFunc("GET /api/v1/libraries/{libraryId}/ai/faces", func(w http.ResponseWriter, r *http.Request) {
 		id, err := parseResourceID(r.PathValue("libraryId"), "lib_")
 		if err != nil {
@@ -228,6 +233,9 @@ func registerFaceReadRoutes(mux *http.ServeMux, settings FaceSettingsService, cl
 		w.Header().Set("ETag", faceSettingsETag(id, value.Revision))
 		writeJSON(w, http.StatusOK, faceSettingsResponse(value))
 	})
+}
+
+func registerFaceResultReadRoutes(mux *http.ServeMux, clusters FaceClusterService, people PeopleListService, persons PersonQueryService, assetFaces AssetFacesQueryService, personAssets PersonAssetsQueryService, clusterDetails FaceClusterDetailQueryService, catalogService CatalogService) {
 	mux.HandleFunc("GET /api/v1/libraries/{libraryId}/ai/face-clusters", func(w http.ResponseWriter, r *http.Request) {
 		id, err := parseResourceID(r.PathValue("libraryId"), "lib_")
 		role, cursor, limit, queryErr := parseFaceClusterQuery(r.URL.Query())
@@ -419,8 +427,8 @@ func writeFaceOperation(w http.ResponseWriter, operation aimodel.Operation, repl
 	writeJSON(w, http.StatusAccepted, aiOperationWire(operation))
 }
 
-// registerFaceMutationRoutes remains outside production composition until the
-// S2C release gate accepts the final model, quality, privacy, and native evidence.
+// The optional face deployment composes these existing review contracts.
+// Its group-review dependency remains fail-closed until quality acceptance.
 func registerFaceMutationRoutes(mux *http.ServeMux, reviews FaceReviewMutationService) {
 	mux.HandleFunc("POST /api/v1/ai/face-reviews", func(w http.ResponseWriter, r *http.Request) {
 		key := r.Header.Get("Idempotency-Key")
@@ -722,7 +730,9 @@ func writeFaceError(w http.ResponseWriter, r *http.Request, err error) {
 		status, code, message = http.StatusConflict, "face_model_unavailable", "The face model is unavailable."
 	case errors.Is(err, face.ErrFaceDisabled):
 		status, code, message = http.StatusConflict, "face_disabled", "Face analysis is disabled."
-	case errors.Is(err, face.ErrFaceNotReady), errors.Is(err, face.ErrFaceProjectionStale), errors.Is(err, face.ErrFaceClusterCursorStale), errors.Is(err, face.ErrPeopleCursorStale):
+	case errors.Is(err, face.ErrFaceProjectionStale), errors.Is(err, face.ErrFaceClusterCursorStale), errors.Is(err, face.ErrPeopleCursorStale):
+		status, code, message = http.StatusConflict, "face_cursor_stale", "The results changed. Restart pagination."
+	case errors.Is(err, face.ErrFaceNotReady):
 		status, code, message = http.StatusConflict, "face_not_ready", "Face analysis is not ready."
 	}
 	writePublicError(w, r, status, code, message)

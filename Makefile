@@ -16,6 +16,15 @@ fmt-check:
 arch-check:
 	$(GO) test ./tests/architecture/...
 
+.PHONY: test-ai-compose test-ai-delivery
+test-ai-compose:
+	node tests/release/ai_compose_smoke.mjs --faults
+
+test-ai-delivery:
+	@test -n "$(FOLIOPATH_TEST_APP_IMAGE)" || (echo "FOLIOPATH_TEST_APP_IMAGE (old image) is required" >&2; exit 2)
+	@test -n "$(FOLIOPATH_TEST_UPGRADE_IMAGE)" || (echo "FOLIOPATH_TEST_UPGRADE_IMAGE is required" >&2; exit 2)
+	node tests/release/ai_compose_smoke.mjs --delivery --offline
+
 release-docs-check:
 	$(GO) test -run '^TestReleaseDocumentationMatchesCandidateBoundaries$$' \
 		./tests/architecture/...

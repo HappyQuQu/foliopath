@@ -338,13 +338,16 @@ func (s *Store) ListAssetPage(
         LEFT JOIN thumbnails storyboard
           ON storyboard.asset_id = a.id
          AND storyboard.variant = 'storyboard'`)
-	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" {
+	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" && params.MatchCount < 10_000 {
+		// Build the FTS candidate set once. A correlated MATCH probe per ordered
+		// asset becomes expensive when sparse matches are near the end of the index.
+		// Broad matches use the ordered scan with the exact predicates below;
+		// materializing a large FTS set costs more than reading the first page.
 		builder.WriteString(`
-		WHERE EXISTS (
-			SELECT 1
+		WHERE a.id IN (
+			SELECT rowid
 			FROM asset_search
-			WHERE asset_search.rowid = a.id
-			  AND asset_search MATCH ?
+			WHERE asset_search MATCH ?
 		)`)
 		args = append(args, anchor)
 	} else {
@@ -501,15 +504,16 @@ func (s *Store) CountAssets(
 	builder.WriteString(`
         SELECT COUNT(*),
                COALESCE(SUM(CASE WHEN a.kind IN ('image', 'animated') THEN 1 ELSE 0 END), 0),
-               COALESCE(SUM(CASE WHEN a.kind = 'video' THEN 1 ELSE 0 END), 0)
-        FROM assets a`)
+               COALESCE(SUM(CASE WHEN a.kind = 'video' THEN 1 ELSE 0 END), 0)`)
 	if anchor := ftsAnchor(query.SearchTerms); anchor != "" {
+		// Keep FTS as the driving table even with a library predicate. Otherwise
+		// SQLite may probe MATCH once per library asset via its library index.
 		builder.WriteString(`
-        JOIN asset_search ON asset_search.rowid = a.id
-        WHERE asset_search MATCH ?`)
+        FROM asset_search CROSS JOIN assets a
+        WHERE asset_search.rowid = a.id AND asset_search MATCH ?`)
 		args = append(args, anchor)
 	} else {
-		builder.WriteString(` WHERE 1 = 1`)
+		builder.WriteString(` FROM assets a WHERE 1 = 1`)
 	}
 	switch query.ScopeKind {
 	case catalog.ScopeGlobal:

@@ -1,16 +1,15 @@
 .main {
-  width: 100%;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: var(--space-10);
+  width: calc(100% - clamp(var(--space-8), 7vw, 5.75rem));
+  min-width: 0;
+  margin: var(--space-10) auto 6.25rem;
 }
 
 .heading {
   margin-bottom: 0;
 }
 
-.headerRow { display: flex; align-items: start; justify-content: space-between; gap: var(--space-6); padding-bottom: var(--space-8); border-bottom: var(--border-width) solid var(--color-border); }
-.headerActions { display: flex; flex-direction: column; align-items: end; gap: var(--space-5); color: var(--color-text-muted); font-size: var(--font-size-2); }
+.headerRow { display: flex; align-items: start; justify-content: space-between; gap: var(--space-6); margin-bottom: var(--space-3); }
+.headerActions { display: flex; align-items: center; gap: var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-2); }
 @media (max-width: 45rem) {
   .headerRow { flex-direction: column; }
   .headerActions { align-items: start; }
@@ -27,7 +26,7 @@
 
 .heading h1 {
   margin: 0;
-  font-size: var(--font-size-7);
+  font-size: clamp(1.75rem, 4vw, 2.375rem);
   line-height: var(--line-height-tight);
   letter-spacing: -0.04em;
 }
@@ -78,8 +77,7 @@
   font-size: var(--font-size-5);
 }
 
-.cardHeader p,
-.scanSummary {
+.cardHeader p {
   margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
@@ -157,19 +155,6 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
-.modelRow {
-  min-height: 4.75rem;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) 0;
-}
-
-.modelRow + .modelRow {
-  border-top: var(--border-width) solid var(--color-border);
-}
-
 .modelIcon {
   width: 2.5rem;
   height: 2.5rem;
@@ -180,18 +165,6 @@
   background: var(--color-accent-soft);
 }
 
-.modelInfo,
-.modelState {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.modelInfo span {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-}
-
-.modelInfo { min-width: 0; overflow-wrap: anywhere; }
 .panel { outline: none; }
 .panel:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
 .welcome {
@@ -234,15 +207,6 @@
 .details .actions { margin-top: var(--space-4); }
 .setupEmpty h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-4); }
 .setupEmpty p { margin: 0 0 var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-2); }
-.downloadRow + .downloadRow { border-top: var(--border-width) solid var(--color-border); }
-.downloadRow { padding-bottom: var(--space-4); }
-.downloadProgress { display: grid; gap: var(--space-2); margin-left: var(--space-12); }
-.progressLabels { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--font-size-2); }
-.downloadProgress progress { width: 100%; height: var(--space-2); border: 0; border-radius: var(--radius-round); overflow: hidden; accent-color: var(--color-accent); background: var(--color-surface-hover); }
-.downloadProgress progress::-webkit-progress-bar { background: var(--color-surface-hover); }
-.downloadProgress progress::-webkit-progress-value { background: var(--color-accent); border-radius: var(--radius-round); }
-.downloadProgress p { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-1); }
-
 @media (max-width: 64rem) {
   .welcome { align-items: flex-start; flex-direction: column; }
   .featureGrid { grid-template-columns: 1fr; }
@@ -256,13 +220,8 @@
   .overviewStats small { display: block; font-size: var(--font-size-2); }
   .setupSteps { grid-template-columns: 1fr; }
   .sectionHeading { align-items: flex-start; flex-direction: column; }
-  .downloadProgress { margin-left: 0; }
   .tabs { flex-wrap: nowrap; overflow-x: auto; }
   .tabs > button { white-space: nowrap; flex-shrink: 0; }
-}
-
-.modelState {
-  justify-items: end;
 }
 
 @media (max-width: 64rem) {
@@ -273,25 +232,20 @@
 
 @media (max-width: 45rem) {
   .main {
-    padding: var(--space-6) var(--space-4) var(--space-8);
+    width: calc(100% - var(--space-8));
+    margin-top: var(--space-8);
   }
 
   .heading h1 {
     font-size: var(--font-size-6);
   }
 
-  .cardHeader,
-  .modelRow {
+  .cardHeader {
     align-items: stretch;
     flex-direction: column;
   }
 
   .cardHeader > svg { display: none; }
-  .modelRow { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
-  .modelRow > button, .modelRow > .modelState, .modelRow > .actions,
-  .modelRow > :nth-child(3) { grid-column: 1 / -1; }
-
-  .modelState,
   .actions {
     justify-items: stretch;
     justify-content: stretch;

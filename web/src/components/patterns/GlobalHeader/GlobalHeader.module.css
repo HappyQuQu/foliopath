@@ -6,7 +6,7 @@
   left: 0;
   height: var(--size-header);
   display: grid;
-  grid-template-columns: minmax(7.5rem, 1fr) minmax(17.5rem, 45rem) minmax(7.5rem, 1fr);
+  grid-template-columns: minmax(7.5rem, 1fr) minmax(17.5rem, 38rem) minmax(18rem, 1fr);
   align-items: center;
   gap: var(--space-4);
   padding: 0 var(--space-4);
@@ -92,6 +92,33 @@
   align-items: center;
   justify-self: end;
   gap: var(--space-2);
+}
+
+.peopleLink {
+  min-height: 2.375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  color: var(--color-text-muted);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-round);
+  text-decoration: none;
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.peopleLink:hover,
+.peopleLink[aria-current="page"] {
+  color: var(--color-accent);
+  border-color: var(--color-border);
+  background: var(--color-accent-soft);
+}
+
+.peopleLink:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--space-1);
 }
 
 .account {
@@ -217,12 +244,23 @@
 
   .wordmark,
   .identity,
+  .peopleLink span,
   .search button {
     display: none;
   }
 
   .trigger {
     padding: 0;
+  }
+}
+
+@media (min-width: 48.01rem) and (max-width: 70rem) {
+  .header {
+    grid-template-columns: minmax(7.5rem, 1fr) minmax(17.5rem, 32rem) minmax(12rem, 1fr);
+  }
+
+  .peopleLink span {
+    display: none;
   }
 }
 

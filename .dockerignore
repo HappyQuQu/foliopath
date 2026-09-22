@@ -3,6 +3,7 @@
 .artifacts
 .env
 .env.*
+ai.env
 build
 data
 foliopath-data

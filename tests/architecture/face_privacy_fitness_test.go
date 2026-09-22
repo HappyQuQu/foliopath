@@ -60,6 +60,7 @@ func assertPackagesDoNotLogFaceData(t *testing.T, root string) {
 	patterns := []string{
 		filepath.Join(root, "internal", "face", "*.go"),
 		filepath.Join(root, "internal", "inference", "faceonnx", "*.go"),
+		filepath.Join(root, "internal", "inference", "remoteml", "*.go"),
 		filepath.Join(root, "internal", "inference", "onnx", "*.go"),
 		filepath.Join(root, "internal", "store", "sqlite", "face*.go"),
 	}

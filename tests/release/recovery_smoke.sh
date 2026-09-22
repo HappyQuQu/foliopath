@@ -174,6 +174,18 @@ chmod 0666 "${corrupt_root}/foliopath.db"
 assert_startup_fails "corrupt database" \
 	--mount "type=bind,src=${corrupt_root},dst=/app/data"
 
+# Refuse unwritable data without erasing the backed-up administrator database.
+database_before=$(sha256sum "${restore_root}/foliopath.db" | cut -d ' ' -f 1)
+assert_startup_fails "read-only data" \
+	--mount "type=bind,src=${restore_root},dst=/app/data,readonly"
+assert_startup_fails "data permissions" \
+	--tmpfs /app/data:rw,noexec,nosuid,size=16m,mode=000
+database_after=$(sha256sum "${restore_root}/foliopath.db" | cut -d ' ' -f 1)
+test "${database_before}" = "${database_after}"
+start_application "${restore_root}"
+assert_initialized
+stop_application
+
 sentinel_after=$(sha256sum "${media_root}/sentinel.txt" | cut -d ' ' -f 1)
 test "${sentinel_after}" = "${sentinel_before}"
 printf '%s\n' "candidate recovery smoke passed"

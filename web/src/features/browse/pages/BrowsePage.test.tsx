@@ -321,6 +321,7 @@ it("separates quick-access all media from the library root directory", async () 
   });
   const quickAccess = screen.getByRole("navigation", { name: "快速访问" });
   const allMedia = within(quickAccess).getByRole("link", { name: "全部媒体" });
+  const people = within(quickAccess).getByRole("link", { name: "人物" });
   const libraryRoot = await within(tree).findByRole("link", {
     name: "家庭影像",
   });
@@ -330,6 +331,10 @@ it("separates quick-access all media from the library root directory", async () 
     "/libraries/lib_family/browse?recursive=1&view=all",
   );
   expect(allMedia).not.toHaveAttribute("aria-current");
+  expect(people).toHaveAttribute(
+    "href",
+    "/intelligence?view=clusters&libraryId=lib_family",
+  );
   expect(libraryRoot).toHaveAttribute("aria-current", "page");
 
   await user.click(allMedia);

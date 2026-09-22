@@ -21,6 +21,8 @@ type ReviewResult struct {
 }
 
 type AssignFaceCommand struct {
+	SourcePersonID                                   string
+	ExpectedSourceRevision                           int64
 	EventID, RequestHash, AnchorID, FaceID, PersonID string
 	ExpectedFaceRevision, ExpectedPersonRevision     int64
 	CreatedAt                                        time.Time

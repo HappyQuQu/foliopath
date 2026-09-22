@@ -326,6 +326,21 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 			}
 			done = remaining == 0
 		} else {
+			// Undo snapshots reference both original and undo events with RESTRICT.
+			// Remove this library's bounded snapshot page before deleting audit leaves.
+			// Snapshots are not counted in the operation's public impact totals.
+			snapshots, snapshotErr := tx.ExecContext(ctx, `DELETE FROM face_review_undo_snapshots
+				WHERE event_id IN (SELECT snapshot.event_id FROM face_review_undo_snapshots snapshot
+				JOIN face_audit_events event ON event.id=snapshot.event_id
+				WHERE event.library_id=? ORDER BY snapshot.event_id LIMIT ?)`, job.LibraryID, limit)
+			if snapshotErr != nil {
+				return snapshotErr
+			}
+			if count, err := snapshots.RowsAffected(); err != nil {
+				return err
+			} else if count > 0 {
+				return nil
+			}
 			result, err = tx.ExecContext(ctx, `DELETE FROM face_exclusions WHERE rowid IN (SELECT rowid FROM face_exclusions WHERE library_id=? ORDER BY id LIMIT ?)`, job.LibraryID, limit)
 			if err == nil {
 				deleted, _ = result.RowsAffected()
@@ -337,7 +352,11 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 				}
 			}
 			if err == nil && deleted == 0 {
-				result, err = tx.ExecContext(ctx, `DELETE FROM face_audit_events WHERE rowid IN (SELECT rowid FROM face_audit_events WHERE library_id=? ORDER BY id LIMIT ?)`, job.LibraryID, limit)
+				result, err = tx.ExecContext(ctx, `DELETE FROM face_audit_events WHERE rowid IN (
+					SELECT event.rowid FROM face_audit_events event WHERE event.library_id=?
+					AND NOT EXISTS(SELECT 1 FROM face_audit_events child WHERE child.undo_of_event_id=event.id)
+					AND NOT EXISTS(SELECT 1 FROM face_review_undo_snapshots snapshot WHERE snapshot.consumed_by_event_id=event.id)
+					ORDER BY event.id LIMIT ?)`, job.LibraryID, limit)
 				if err == nil {
 					deleted, _ = result.RowsAffected()
 				}
@@ -350,6 +369,9 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 				return err
 			}
 			done = remaining == 0
+		}
+		if !done && deleted == 0 {
+			return face.ErrFaceClearConflict
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE face_clear_jobs SET deleted_count=deleted_count+?,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, deleted, now.UnixMilli(), job.ID); err != nil {
 			return err

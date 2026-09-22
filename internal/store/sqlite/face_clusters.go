@@ -27,6 +27,11 @@ func (s *Store) RebuildFaceClusters(ctx context.Context, generationID string, li
 	if err := s.requireRunnableFaceClustering(ctx, s.db, generationID, libraryID, jobID, claimedRevision); err != nil {
 		return err
 	}
+	if _, err := s.reconcileFaceBindings(ctx, generationID, libraryID, updatedAt, func(tx *sql.Tx) error {
+		return s.requireRunnableFaceClustering(ctx, tx, generationID, libraryID, jobID, claimedRevision)
+	}); err != nil {
+		return err
+	}
 	rows, err := s.db.QueryContext(ctx, `SELECT observation.id,observation.vector
 		FROM face_observations observation
 		WHERE observation.generation_id=? AND observation.library_id=?
@@ -189,6 +194,9 @@ func (s *Store) requireRunnableFaceClustering(ctx context.Context, reader faceCl
 	}
 	if activeGeneration != generationID || generationState != "active" {
 		return face.ErrFaceModelUnavailable
+	}
+	if err := requireFaceServiceAvailable(ctx, reader, generationID); err != nil {
+		return err
 	}
 	if jobID != "" {
 		var jobState, jobGeneration string

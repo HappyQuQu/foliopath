@@ -150,3 +150,43 @@ func TestAIOperationRecoveryLeavesRestartSafeSemanticWorkToSemanticQueue(t *test
 		t.Fatalf("semantic operation = %#v, %v", stored, err)
 	}
 }
+
+func TestAIOperationRecoveryLeavesFaceWorkToFaceQueues(t *testing.T) {
+	for _, kind := range []aimodel.OperationKind{aimodel.OperationFaceMissing, aimodel.OperationFaceRebuild, aimodel.OperationFaceDerivedClear, aimodel.OperationFaceManualClear} {
+		for _, cancelled := range []bool{false, true} {
+			t.Run(string(kind)+map[bool]string{false: "/running", true: "/cancelling"}[cancelled], func(t *testing.T) {
+				store, _ := openTestStore(t)
+				now := time.Now().UTC()
+				service, err := aimodel.NewOperationService(store, func() time.Time { return now }, func() (string, error) { return "aio_face_restart_safe", nil })
+				if err != nil {
+					t.Fatal(err)
+				}
+				op, err := service.Create(context.Background(), kind, "", 0, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				op, err = service.Start(context.Background(), op.ID, op.Revision, aimodel.PhaseBuilding)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if cancelled {
+					if _, err := store.db.Exec(`UPDATE ai_model_operations SET state='cancelling' WHERE id=?`, op.ID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				count, err := service.RecoverInterrupted(context.Background())
+				if err != nil || count != 0 {
+					t.Fatal(count, err)
+				}
+				stored, err := service.Get(context.Background(), op.ID)
+				want := aimodel.OperationRunning
+				if cancelled {
+					want = aimodel.OperationCancelling
+				}
+				if err != nil || stored.State != want || stored.Revision != op.Revision {
+					t.Fatal(stored, err)
+				}
+			})
+		}
+	}
+}

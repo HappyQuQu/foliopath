@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -96,7 +97,7 @@ func (s *Store) CreatePersonFromCluster(ctx context.Context, command face.Create
 }
 
 func (s *Store) AssignFace(ctx context.Context, command face.AssignFaceCommand) (face.ReviewResult, error) {
-	if !validAssignFace(command) {
+	if !validAssignFace(command) || (command.SourcePersonID == "") != (command.ExpectedSourceRevision == 0) || command.ExpectedSourceRevision < 0 || (command.SourcePersonID != "" && (!validResourceID(command.SourcePersonID) || command.SourcePersonID == command.PersonID)) {
 		return face.ReviewResult{}, face.ErrInvalidReview
 	}
 	var result face.ReviewResult
@@ -105,6 +106,17 @@ func (s *Store) AssignFace(ctx context.Context, command face.AssignFaceCommand) 
 			return err
 		} else if replayed {
 			result = reviewResult(command.EventID, "assign_face", []string{command.PersonID}, revision, true)
+			var raw string
+			if err := tx.QueryRowContext(ctx, `SELECT after_json FROM face_review_undo_snapshots WHERE event_id=?`, command.EventID).Scan(&raw); err != nil {
+				return err
+			}
+			var previous faceUndoPayload
+			if err := json.Unmarshal([]byte(raw), &previous); err != nil {
+				return err
+			}
+			if previous.SourcePersonID != "" {
+				result.AffectedPersonIDs = append(result.AffectedPersonIDs, previous.SourcePersonID)
+			}
 			result.Replayed = true
 			return nil
 		}
@@ -116,6 +128,10 @@ func (s *Store) AssignFace(ctx context.Context, command face.AssignFaceCommand) 
 			return err
 		}
 		undo, err := captureFaceAssignmentUndo(ctx, tx, observation, command.AnchorID)
+		if err != nil {
+			return err
+		}
+		sourceRevision, err := reassignFaceAnchor(ctx, tx, undo, command, command.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -132,13 +148,64 @@ func (s *Store) AssignFace(ctx context.Context, command face.AssignFaceCommand) 
 		if err := finalizeFaceAssignmentUndo(ctx, tx, &undo); err != nil {
 			return err
 		}
-		if err := writeFaceUndoSnapshot(ctx, tx, command.EventID, faceUndoPayload{Action: "assign_face", PersonID: command.PersonID, PersonRevision: command.ExpectedPersonRevision + 1, Assignments: []faceAssignmentUndo{undo}}, command.CreatedAt); err != nil {
+		payload := faceUndoPayload{Action: "assign_face", PersonID: command.PersonID, PersonRevision: command.ExpectedPersonRevision + 1, Assignments: []faceAssignmentUndo{undo}}
+		if sourceRevision != 0 {
+			payload.SourcePersonID, payload.SourcePersonRevision = undo.BeforePersonID, sourceRevision
+		}
+		if err := writeFaceUndoSnapshot(ctx, tx, command.EventID, payload, command.CreatedAt); err != nil {
 			return err
 		}
 		result = reviewResult(command.EventID, "assign_face", []string{command.PersonID}, command.ExpectedPersonRevision+1, true)
+		if payload.SourcePersonID != "" {
+			result.AffectedPersonIDs = append(result.AffectedPersonIDs, payload.SourcePersonID)
+		}
 		return nil
 	})
 	return result, wrapReview("assign face", err)
+}
+
+// Only a detached lineage may be reassigned without a source-person request
+// revision. Bound transfers require the explicit current owner and revision.
+// The caller owns the write transaction and captures undo before this transition.
+func reassignFaceAnchor(ctx context.Context, tx *sql.Tx, before faceAssignmentUndo, command face.AssignFaceCommand, at time.Time) (int64, error) {
+	target := command.PersonID
+	if command.SourcePersonID != "" && (!before.AnchorExisted || command.SourcePersonID != before.BeforePersonID) {
+		return 0, face.ErrReviewConflict
+	}
+	if !before.AnchorExisted || before.BeforePersonID == target {
+		return 0, nil
+	}
+	detached := before.BeforeCurrentFace == "" && before.BeforeState == "needs_review"
+	bound := before.BeforeCurrentFace == command.FaceID && before.BeforeState == "bound" && command.SourcePersonID != ""
+	if !detached && !bound {
+		return 0, face.ErrReviewConflict
+	}
+	var links int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM face_cannot_links WHERE left_anchor_id=? OR right_anchor_id=?`, before.AnchorID, before.AnchorID).Scan(&links); err != nil {
+		return 0, err
+	}
+	if links != 0 {
+		return 0, face.ErrReviewConflict
+	}
+	var revision int64
+	err := tx.QueryRowContext(ctx, `SELECT revision FROM people WHERE id=? AND state='active'`, before.BeforePersonID).Scan(&revision)
+	if err := requireFaceReviewState(err, revision > 0); err != nil {
+		return 0, err
+	}
+	if command.SourcePersonID != "" && command.ExpectedSourceRevision != revision {
+		return 0, face.ErrReviewConflict
+	}
+	if err := bumpPerson(ctx, tx, before.BeforePersonID, revision, at); err != nil {
+		return 0, err
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE person_face_anchors SET person_id=?,revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND person_id=? AND revision=? AND state=? AND current_face_id IS ?`, target, at.UnixMilli(), before.AnchorID, before.BeforePersonID, before.BeforeAnchorRevision, before.BeforeState, nullableString(before.BeforeCurrentFace))
+	if err != nil {
+		return 0, err
+	}
+	if n, err := res.RowsAffected(); err != nil || n != 1 {
+		return 0, face.ErrReviewConflict
+	}
+	return revision + 1, nil
 }
 
 func (s *Store) AssignCluster(ctx context.Context, command face.AssignClusterCommand) (face.ReviewResult, error) {

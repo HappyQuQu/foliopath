@@ -102,6 +102,28 @@ them.
   prose is not considered fully enforced until its planned executable check exists
   and is included in the documented local verification surface.
 
+## Requirements, prototypes, and implementation consistency
+
+- Treat an explicitly accepted prototype as acceptance evidence for an approved
+  requirement, not as an independent product branch. Record the requirement/change
+  ID and distinguish synthetic fixture data from supported production behavior.
+- Before implementation, map every visible control, state, label, navigation target,
+  and scope boundary (for example global versus per-library) to its owning product
+  requirement and backend contract. A prototype must not imply a writable setting or
+  successful action that the accepted contract cannot provide.
+- Update accepted requirements, user flows, UI design, stable Storybook states,
+  production components, and regression tests in the same change whenever their
+  shared behavior changes. Do not declare the slice complete while those artifacts
+  describe different information architecture or semantics.
+- Once a design is accepted, its stable Storybook story must render the production
+  component with clearly labelled synthetic contract fixtures. Remove or archive the
+  disposable duplicate screen; do not maintain a second implementation that can
+  drift from production.
+- Document every intentional difference between requirement, accepted prototype, and
+  production implementation, including the missing contract or deferred Gate. Add an
+  executable regression or architecture check when the consistency rule can be
+  automated.
+
 ## Filesystem safety
 
 - All media filesystem access must go through `internal/files`.
@@ -204,6 +226,13 @@ them.
   useful alt text in gallery and viewer flows.
 - Default to an adaptive grid and offer a remembered masonry layout. Desktop uses a
   fixed directory sidebar; mobile uses a directory drawer. Keep motion restrained.
+- Every product page must adapt to the full workspace available after persistent
+  navigation. Do not wrap an entire desktop page in an arbitrary fixed `max-width`
+  that leaves large unused side gutters. Keep readable line-length limits on prose,
+  forms, or focused tasks only; let page shells, dashboards, settings summaries,
+  tables, and collections use fluid width and add responsive columns where useful.
+  Verify changed pages at narrow mobile, tablet, ordinary desktop, and at least a
+  1920px-wide desktop viewport; wide-screen evidence is required when layout changes.
 - Search defaults to the current library and can switch to the current directory
   (optionally recursive) or all libraries. Directories sort naturally by name;
   recursive/search views default to descending file modification time.

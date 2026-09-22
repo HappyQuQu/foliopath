@@ -27,6 +27,19 @@ type application struct {
 	shutdownTimeout time.Duration
 }
 
+type componentStopError struct {
+	name string
+	err  error
+}
+
+func (failure componentStopError) Error() string {
+	return fmt.Sprintf("component %q stopped: %v", failure.name, failure.err)
+}
+
+func (failure componentStopError) Unwrap() error {
+	return failure.err
+}
+
 func newApplication(components []component, shutdownTimeout time.Duration) (*application, error) {
 	if shutdownTimeout <= 0 {
 		return nil, fmt.Errorf("%w: shutdown timeout must be positive", errInvalidComponent)
@@ -81,9 +94,15 @@ func (application *application) run(ctx context.Context) error {
 
 	runErr := waitForStop(ctx, started)
 	if runErr != nil {
+		var failure componentStopError
+		attributes := []any{}
+		if errors.As(runErr, &failure) {
+			attributes = append(attributes, slog.String("component", failure.name))
+		}
 		application.logger.ErrorContext(
 			ctx,
 			"application.component_stopped",
+			attributes...,
 		)
 	}
 	shutdownErr := application.shutdown(started)
@@ -123,7 +142,7 @@ func monitor(candidate component, ctx context.Context, failures chan<- error) {
 			err = errComponentStopped
 		}
 		select {
-		case failures <- fmt.Errorf("component %q stopped: %w", candidate.name, err):
+		case failures <- componentStopError{name: candidate.name, err: err}:
 		case <-ctx.Done():
 		}
 	case <-ctx.Done():

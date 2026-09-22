@@ -22,9 +22,31 @@ type LibrarySettings struct {
 	Coverage           FaceCoverage
 }
 type LibrarySettingsRepository interface {
+	GetActiveFaceGeneration(context.Context) (string, error)
 	GetFaceLibrarySettings(context.Context, int64) (LibrarySettings, error)
 	UpdateFaceLibrarySettings(context.Context, int64, bool, int64, time.Time) (LibrarySettings, error)
 }
+
+// JobSettings selects the deployed active generation for new work. The
+// repository's revision guard protects a concurrent administrator update.
+func (s *SettingsService) JobSettings(ctx context.Context, libraryID int64) (LibrarySettings, error) {
+	settings, err := s.Get(ctx, libraryID)
+	if err != nil || !settings.Enabled {
+		return settings, err
+	}
+	generation, err := s.repository.GetActiveFaceGeneration(ctx)
+	if err != nil {
+		return LibrarySettings{}, err
+	}
+	// A failed inference can leave the library awaiting the same generation.
+	// Re-enter through the revision-guarded settings owner, which verifies model
+	// availability transactionally; never bypass admission's fail-closed guard.
+	if generation != settings.ActiveGenerationID || settings.State == "awaiting_model" {
+		return s.Update(ctx, libraryID, true, settings.Revision)
+	}
+	return settings, nil
+}
+
 type SettingsService struct {
 	repository LibrarySettingsRepository
 	now        func() time.Time

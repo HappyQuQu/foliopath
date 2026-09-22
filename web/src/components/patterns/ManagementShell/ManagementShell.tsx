@@ -86,6 +86,7 @@ export function ManagementShell({
   logsHref = "/settings/logs",
   logoutPending,
   onLogout,
+  peopleHref = "/intelligence?view=clusters",
   searchHref,
   storageHref,
 }: {
@@ -101,6 +102,7 @@ export function ManagementShell({
   logsHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
+  peopleHref?: string | undefined;
   searchHref: string;
   storageHref: string;
 }) {
@@ -122,6 +124,7 @@ export function ManagementShell({
       identity={identity}
       logoutPending={logoutPending}
       onLogout={onLogout}
+      peopleHref={peopleHref}
       searchHref={searchHref}
       settingsHref={generalHref}
       title={t("management.title")}

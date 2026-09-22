@@ -1,5 +1,56 @@
 # FolioPath 需求—架构追踪
 
+2026-09-22 / CR-2026-030 / FR-INT-009～014 / POST-MVP-5：web AI 与共享应用壳在既有公开合同内
+重构人物日常入口和智能设置层级。媒体浏览左侧“快速访问”直接进入人物待整理视图，人物工作区
+保留同一导航与媒体库上下文；匿名组复用正式
+`previewAssetIds` 和缩略图端点形成预览拼图；设置页保留逐库设置 owner，只移除嵌套高级维护入口，
+图片、视频和人物维护仍复用既有页面与任务合同。无新 API、持久化、部署单元或人脸判断策略；
+延迟的质量、容量与发行门禁不变。
+
+2026-09-17 / POST-MVP-5 P6 G01/G03/G04 / CR-2026-030 / NFR-INT-004、006、007：最终七项工程检查完成，当前两个 arm64 镜像生成 SPDX SBOM 并执行 High/Critical 扫描，模型 revision/hash、许可/notices、provenance 和延期门禁均按实际状态复核。没有改变业务 owner、部署单元、API 或持久化；最终 Release No-Go，不以核对完成替代漏洞处置、模型授权、双架构、质量容量或外部签署。[证据](../evidence/int-001/p6-final-verification-2026-09-17.md)。
+
+2026-09-17 / POST-MVP-5 P5 F03/F04/G02 / CR-2026-030 / NFR-INT-004、006：deployment/test/docs 负责正式 Compose 配对安装升级回退、运行说明和双服务安全验证。新增仅测试控制器与离线网络覆盖，不增加部署单元或产品 API。既有 `TestFacePrivacyProjectionRemainsClosed` 扩展检查 remoteml 日志边界；SQLite secure_delete、鉴权和 Linux openat2 回归保持原 owner。构建及实际镜像证据分别记录，不将 P5 写作 P6 发行批准。
+
+2026-09-17 / CR-2026-030 / POST-MVP-5 P5 F02：deployment/test 复用根 Compose smoke 增加模型缓存与身份失败/恢复矩阵；模型可用性和代次准入仍由 app/aimodel/semantic/face 原 owner 决定，无新 API、持久化或默认阈值。测试独立运行于本地 Docker，UI 既有不可用门禁由 AISettingsPage 专项回归覆盖。[实施记录](../changes/P5-2026-09-17-deployment-delivery.md)。
+
+2026-09-17 / CR-2026-030 / POST-MVP-5 P5 F01：deployment/test 拥有根 `compose.ai.yaml` 交付配置及合成 smoke；沿用 ADR-0019/0020 两服务边界。`TestAIComposeDeploymentBoundaries` 纳入 `make arch-check` 检查部署单元、核心不依赖 AI 健康、AI 私网/只读缓存/无媒体数据卷等静态约束；Docker smoke 检查解析后及实际运行配置。无新 API 或持久化合同。[实施记录](../changes/P5-2026-09-17-deployment-delivery.md)。
+
+2026-09-17 / FR-INT-002 / NFR-INT-002、003 / P4：imagevips 语义源读取修复取消后仍继续读取的问题，保留单次源缓冲和原像素/字节预算，增加块间取消与连续无进展保护。无模型输出、空间身份或 API 变化；回归先失败后修复验证。[记录](../changes/FIX-2026-09-17-semantic-read-cancellation.md)。
+
+2026-09-17 P4 升级补验：FR-INT-002、005，Owner app/semantic/测试；两版实际镜像、合成旧库通过新代次零继承完成数、两库回填、人工状态保持、重启和升级前备份配对回退。共享短视频降级基线须保持，不计完整质量。新增 opt-in `p4-semantic-upgrade-probe.mjs`，未改变生产合同。[证据](../evidence/int-001/p4-semantic-large-jpeg-2026-09-17.md)。
+
+2026-09-17 / CR-2026-030 / FR-INT-002、005 / NFR-INT-002、003：P4 大 JPEG 兼容由 imagevips 负责有界解码，semantic 拥有版本化输入合同，app 将其绑定空间身份。公共 API/部署/持久化边界不变；合成回归与固定样本结果分别记录，未验证不关闭 Gate。[变更记录](../changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+2026-09-16 大图内存修复：FR-INT-009 / NFR-INT-002、003，POST-MVP-5 P4，Owner imagevips/app/测试。第一次 native open 前执行既有 JPEG shrink 策略，关闭 operation cache；不改变 input-v1、像素限制、API 或部署边界。合成 race 回归、固定副本序列及容量复验分别记录，36 项语义超限不得算通过；完整 Gate 保持开放。[修复与证据](../evidence/int-001/p4-face-memory-2026-09-16.md)。
+
+2026-09-16 早前小样本独立验证：CR-2026-030 / NFR-INT-002、003 / P4，Owner app/测试；采样复用 internal/files 的 Linux 只读 openat2 边界，临时匿名副本与原媒体隔离，无新生产合同或部署单元。探针结果判定独立检查覆盖率，不以 settled job 冒充成功。当时本地通过、远端 OOM；最新修复见上条，完整 Gate 仍不关闭。[早前证据](../evidence/int-001/p4-small-sample-2026-09-16.md)。
+
+2026-09-16 P4 原生测试：CR-2026-030 / NFR-INT-002、003 / E01、E03、E04，Owner app/测试。新增显式授权的 server222 维护测试入口、固定资源配置和 run label 清理；不是新增产品部署单元，不改变媒体/数据库边界。原服务停服后隔离构建测试，退出恢复同镜像并验证健康；原生功能与容量子项不替代完整质量/跨架构/长期验收。[维护证据](../evidence/int-001/p4-server222-native-2026-09-16.md)。
+
+2026-09-16 P4 启动：CR-2026-030 / NFR-INT-002、003 / POST-MVP-5 / E01，Owner catalog/SQLite/测试；修正容量探针临时目录 UID 假设。既有 catalog 计数作为仓储查询计划提示，SQLite 分别优化稀疏/宽匹配和计数连接；无新计数缓存、表、公开合同或媒体边界。三组专项 race 及固定镜像 100k/10k 基础目录容量通过；联合 AI 负载、独立质量数据/原生双架构仍未完成。[变更](../changes/FIX-2026-09-16-sparse-catalog-search-capacity.md)、[执行记录](../evidence/int-001/p4-quality-capacity-2026-09-16.md)。
+
+2026-09-16 最终全项复查：CR-2026-030 / FR-INT-007、009、011、013、016 / POST-MVP-5 S2/S3，Owner face/SQLite/app/API/web AI。在既有 owner 内修复人物路由切换/移出后的焦点和卡片本地化，无新合同、持久化或部署边界；复用共享 Button/Input 和 token。237 前端单测、选定后端 race、最终本地双容器完整业务/故障/恢复/备份回滚及三浏览器、32 张独立视觉比较通过，生成/类型/架构检查通过。**P2 6/6、P3 9/9；D04 关闭，18/34**。P4～P6 保留。[最终证据](../evidence/int-001/p2-p3-final-recheck-2026-09-16.md) 优先于以下历史状态。
+
+2026-09-16 最新修复：CR-2026-030 / FR-INT-011、013 / POST-MVP-5 S2/S3，Owner face/SQLite/API/web AI。AssignFaceReview 增加可选配对源人物/版本，既有事务原子转移 anchor、双方版本与撤销快照，无新表或部署边界；前端沿用共享审核与查询 owner。最终 Docker race/业务、234 前端单测、完整三浏览器在线/离线通过；架构及生成检查通过。A05/D03 重新关闭，D04 保留，当前 **17/34**。[最新证据](../evidence/int-001/face-reassignment-2026-09-16.md) 优先于早前复查/验收结论。
+
+2026-09-16 P3 修复：CR-2026-030 / FR-INT-009、010、016 / NFR-INT-002、006，POST-MVP-5 S2/S3，Owner face/settings、SQLite、web 共享 InlineStatus。修复服务恢复后同代次 awaiting_model 阻止正式重试；仍由既有设置 owner 及事务可用性/revision 检查拥有转换，disabled 不变。修复浅色普通提示对比度；无新部署、表或端点，OpenAPI 仅澄清重试语义。新增 migration 40 拒绝有损降级、真实双容器故障/审核/浏览器证据。[P3 执行记录](../evidence/int-001/p3-acceptance-2026-09-16.md)。质量/容量/发行门禁不变。
+
+同轮补修：app 的部署 bootstrap 标记不再匹配当前配置的同用途 service 模型不可用，保留代次和数据；验证错误配置不留下假可用状态，恢复原配置可恢复。共享 GlobalHeader 修复带 query 的目标二次拼接，统一替换 q 并保留调用方范围。均为已有生命周期/搜索合同内修复，不新增 owner 或产品范围。
+
+2026-09-16 P2 完成：CR-2026-030 / FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2，Owner face/SQLite/app/API/web。正式非空分析、人工审核、按库可见代次、精确人工重绑、有界清理与浏览器闭环通过。合同仅修复既有 action discriminator 和缺漏 error enum；无新端点/表/部署单元。门禁 owner 仍在 face；arch-check、合同、Docker race、全前端 226 单测和固定双容器 Chromium 通过。[证据](../evidence/int-001/face-business-p2-2026-09-16.md)。质量/容量/发布不关闭；以下同日记录为此前增量。
+
+2026-09-16 P2/A05 增量：CR-2026-030 / FR-INT-009，POST-MVP-5 S2，Owner app/face/SQLite/API。可选 face 部署组合既有人物/匿名组查询与人工审核服务；生命周期由 app 数据库适配器管理，业务策略仍归 face。无新 API/数据合同。[验证与未完成边界](../evidence/int-001/face-people-composition-2026-09-16.md)；非空与浏览器验收未关闭。
+
+2026-09-16 P1 复查修复：FR-INT-009 / NFR-INT-002、004，CR-2026-030，POST-MVP-5 S2，Owner app/remoteml/face。激活在共享槽满时可取消等待；身份匹配的服务端 busy 使用既有有界恢复。修正先前覆盖遗漏，Docker 专项和最终镜像探针通过，不新增状态机或 API。[证据](../evidence/int-001/face-busy-repair-2026-09-16.md)。
+
+2026-09-16 P1 完成：CR-2026-030 / FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2，Owner face/app/SQLite/API。主进程组合有界分析/清理 worker 与共享资源预算，启用既有每库控制合同；事务内可用性检查、取消/停机区分及专属恢复 owner 已落实。Docker 正式任务与强杀后租约恢复通过；P2 读写人物服务与非空质量未验收。[证据](../evidence/int-001/face-worker-p1-2026-09-16.md)。以下同日条目保留为较早增量记录。
+
+2026-09-16 CR-2026-030 / FR-INT-009 / NFR-INT-004，POST-MVP-5 S2，Owner face/SQLite：A03 新增部署代次绑定处理器，复用原 JobProcessor 状态机，按完整指纹/维度/活动状态/可用性在推理前后检查；SQLite 单条关联查询提供内部身份合同。Docker 回归与 arch-check 通过，无 API/表结构变更；主进程组合及最终事务边界尚待补齐。[证据](../evidence/int-001/face-generation-binding-2026-09-16.md)。
+
+2026-09-16 CR-2026-030 / FR-INT-009 / NFR-INT-002、004，Owner app/aimodel/face：可选部署 face 配置、共享准入/重试、身份绑定事务在 run.go 实例化。真实本地镜像双模型激活、停服恢复/重启通过，A02 关闭；A03 分析 worker 未组合。[证据](../evidence/int-001/face-startup-2026-09-16.md)。
+
+2026-09-16 CR-2026-030 / FR-INT-009 / NFR-INT-004：face 完整部署身份、SQLite 原子激活提交已验证，app 独立身份/提交适配实现；无新表或部署单元。P1/A01 关闭，A02 配置/启动待接通。[合同与证据](../evidence/int-001/face-deployment-commit-2026-09-16.md)。
+
 2026-09-16 CR-2026-030 / FR-INT-009 / NFR-INT-002、004，POST-MVP-5 S2：aimodel 原激活 worker 增加独立服务人脸分支；SQLite migration 40 扩展内部模型记录，旧文件提交拒绝 service。[合同与验证](../evidence/int-001/face-deployment-worker-2026-09-16.md)。app 真实身份/阈值准入和身份绑定代次提交尚未实现。
 
 2026-09-15 CR-2026-030 / FR-INT-009 / NFR-INT-002、004、005，POST-MVP-5 S2：imagevips 解码→remoteml FaceRuntime→face.Candidate，质量启发式由 face 唯一持有、旧 faceonnx 复用。无阈值调整。

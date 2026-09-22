@@ -4,7 +4,8 @@ ADR-0020 selects a thin project-owned service over a fixed Immich ML runtime.
 This is a local candidate, not release approval. The default selects
 `ViT-B-32__openai`; `--build-arg FOLIOPATH_INCLUDE_FACE=1` additionally selects
 `buffalo_l` for the private face-v1 endpoints. Neither implements the old SigLIP contract.
-The face endpoints are not yet connected to the main application's face jobs.
+The face endpoints are connected to the optional main-application face jobs;
+functional evidence does not establish model quality or release approval.
 See the [contract and verification boundary](../../docs/evidence/int-001/face-service-contract-2026-09-15.md).
 Changing this selection or wrapper code changes compatibility identity; never reuse
 the previous deployment identity. Keep experiments under a separate image tag.
@@ -20,8 +21,10 @@ docker run --rm --network none --read-only --tmpfs /tmp --tmpfs /verified-cache:
 The embedded manifest selects the copied CLIP cache baseline. Startup verifies
 each pinned file and copies it to private tmpfs; extra source files are not exposed
 to inference. Missing, changed and symlinked files fail startup. The baseline is
-local byte evidence, not upstream provenance. Snapshot plus runtime requires the
-candidate's 4 GiB memory budget; do not treat it as whole-product capacity proof.
+local byte evidence, not upstream provenance. The standalone Compose uses the
+P4 small-sample AI budget of 2304 MiB including its private snapshot (application
+1024 MiB separately). Older probes below use a 4 GiB AI-only limit; neither is
+whole-product large-capacity proof.
 
 Build and verify locally:
 
@@ -49,4 +52,6 @@ not test actual video decoding or production activation.
 The runtime contract hash covers the base digest and adapter sources; it is NOT
 the final OCI image digest. Real deployment must also pin the delivered image.
 No model download, database, original media mount, Docker socket or public AI port.
-No production application integration is enabled by these commands.
+These historical probes do not launch the application. The standalone two-service
+deployment entry point is now [compose.ai.yaml](../../compose.ai.yaml); see the
+[deployment guide](../../docs/ai-compose.md). Release approval remains separate.

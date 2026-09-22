@@ -36,6 +36,7 @@ type faceMergeAnchorUndo struct {
 }
 
 type faceAssignmentUndo struct {
+	BeforePersonID        string             `json:"beforePersonId,omitempty"`
 	AnchorID              string             `json:"anchorId"`
 	AnchorExisted         bool               `json:"anchorExisted"`
 	BeforeCurrentFace     string             `json:"beforeCurrentFace,omitempty"`
@@ -58,7 +59,7 @@ type faceExclusionUndo struct {
 func captureFaceAssignmentUndo(ctx context.Context, tx *sql.Tx, lineage faceLineage, proposedAnchor string) (faceAssignmentUndo, error) {
 	value := faceAssignmentUndo{AnchorID: proposedAnchor, AfterCurrentFace: lineage.ID, LibraryID: lineage.LibraryID, AssetID: lineage.AssetID, Fingerprint: lineage.Fingerprint, X: lineage.X, Y: lineage.Y, Width: lineage.Width, Height: lineage.Height}
 	var current sql.NullString
-	err := tx.QueryRowContext(ctx, `SELECT id,current_face_id,state,revision,created_at_ms FROM person_face_anchors WHERE library_id=? AND asset_id=? AND source_fingerprint=? AND box_x_ppm=? AND box_y_ppm=? AND box_width_ppm=? AND box_height_ppm=?`, lineage.LibraryID, lineage.AssetID, lineage.Fingerprint, lineage.X, lineage.Y, lineage.Width, lineage.Height).Scan(&value.AnchorID, &current, &value.BeforeState, &value.BeforeAnchorRevision, &value.BeforeAnchorCreatedAt)
+	err := tx.QueryRowContext(ctx, `SELECT id,current_face_id,state,revision,created_at_ms,person_id FROM person_face_anchors WHERE library_id=? AND asset_id=? AND source_fingerprint=? AND box_x_ppm=? AND box_y_ppm=? AND box_width_ppm=? AND box_height_ppm=?`, lineage.LibraryID, lineage.AssetID, lineage.Fingerprint, lineage.X, lineage.Y, lineage.Width, lineage.Height).Scan(&value.AnchorID, &current, &value.BeforeState, &value.BeforeAnchorRevision, &value.BeforeAnchorCreatedAt, &value.BeforePersonID)
 	if err == nil {
 		value.AnchorExisted = true
 		if current.Valid {
@@ -140,6 +141,11 @@ func (s *Store) UndoFaceReview(ctx context.Context, command face.UndoReviewComma
 		affected := []string{}
 		switch action {
 		case "assign_face", "assign_cluster":
+			if payload.SourcePersonID != "" {
+				if err := requirePersonRevision(ctx, tx, payload.SourcePersonID, payload.SourcePersonRevision); err != nil {
+					return err
+				}
+			}
 			var personRevision int64
 			err := tx.QueryRowContext(ctx, `SELECT revision FROM people WHERE id=? AND state='active'`, payload.PersonID).Scan(&personRevision)
 			if err := requireFaceReviewState(err, personRevision == payload.PersonRevision); err != nil {
@@ -162,7 +168,11 @@ func (s *Store) UndoFaceReview(ctx context.Context, command face.UndoReviewComma
 			for index := len(payload.Assignments) - 1; index >= 0; index-- {
 				item := payload.Assignments[index]
 				if item.AnchorExisted {
-					res, err := tx.ExecContext(ctx, `UPDATE person_face_anchors SET current_face_id=?,state=?,revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND revision=?`, nullableString(item.BeforeCurrentFace), item.BeforeState, command.CreatedAt.UnixMilli(), item.AnchorID, item.AfterAnchorRevision)
+					beforePerson := item.BeforePersonID
+					if beforePerson == "" { // Snapshots written before reassignment support.
+						beforePerson = payload.PersonID
+					}
+					res, err := tx.ExecContext(ctx, `UPDATE person_face_anchors SET person_id=?,current_face_id=?,state=?,revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE id=? AND revision=?`, beforePerson, nullableString(item.BeforeCurrentFace), item.BeforeState, command.CreatedAt.UnixMilli(), item.AnchorID, item.AfterAnchorRevision)
 					if err != nil {
 						return err
 					}
@@ -189,6 +199,12 @@ func (s *Store) UndoFaceReview(ctx context.Context, command face.UndoReviewComma
 				return err
 			}
 			affected = []string{payload.PersonID}
+			if payload.SourcePersonID != "" {
+				if err := bumpPerson(ctx, tx, payload.SourcePersonID, payload.SourcePersonRevision, command.CreatedAt); err != nil {
+					return err
+				}
+				affected = append(affected, payload.SourcePersonID)
+			}
 		case "exclude_face":
 			if len(payload.Assignments) != 1 {
 				return face.ErrReviewConflict

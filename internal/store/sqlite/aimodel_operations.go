@@ -123,7 +123,8 @@ func (s *Store) RecoverInterruptedAIOperations(ctx context.Context, now time.Tim
 				revision = revision + 1, updated_at_ms = MAX(created_at_ms, ?),
 				finished_at_ms = MAX(created_at_ms, ?), lease_expires_ms = NULL
 			WHERE state IN ('running', 'cancelling')
-			  AND kind NOT IN ('semantic_missing', 'semantic_rebuild', 'semantic_clear')`,
+			  AND kind NOT IN ('semantic_missing', 'semantic_rebuild', 'semantic_clear',
+                  'face_missing', 'face_rebuild', 'face_derived_clear', 'face_manual_clear')`,
 			now.UTC().UnixMilli(), now.UTC().UnixMilli(),
 		)
 		if err != nil {

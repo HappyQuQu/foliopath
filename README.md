@@ -1,5 +1,17 @@
 # FolioPath
 
+可选 AI 双容器交付候选：使用独立 [`compose.ai.yaml`](compose.ai.yaml)，由 Compose 配置预加载镜像和只读模型缓存，不使用模型商店。**P5 5/5 本地工程交付验收通过，P6 3/3 核对完成**；当前发布结论仍为 **No-Go**，原因包括候选漏洞、模型授权/provenance 及延期质量容量门禁。见 [配置说明](docs/ai-compose.md)、[P5 证据](docs/evidence/int-001/p5-delivery-security-2026-09-17.md)和 [P6 最终复核](docs/evidence/int-001/p6-final-verification-2026-09-17.md)。
+
+P4 大 JPEG 语义兼容修复候选：在源媒体预算内先进行 JPEG 解码缩小，再分析；工作像素/输出限制不放宽，非 JPEG 上限不变。预处理升级会形成新语义代次，需要重新分析及生成建议。验证结果见[修复记录](docs/changes/FIX-2026-09-17-semantic-large-jpeg.md)，不是发布完成。
+
+P4 **本轮验收通过，已完成**（2026-09-17 用户确认）：按约 100 样本工程范围收口，人工质量校准及原规模联合容量要求延期，不记测试通过；不代表发行完成。见 [P4 收口台账](docs/features/intelligent-media-discovery-p4-closeout.md)。
+
+2026-09-16 最新复查：P2 6/6、P3 9/9 按既定范围修复复验通过，包括人物移动、标签冲突/分页、键盘焦点、三浏览器及独立视觉回归、完整故障恢复和备份回滚。剩余清单 18/34 关闭、16 项保留；质量、容量与发布仍未完成。[最终证据与边界](docs/evidence/int-001/p2-p3-final-recheck-2026-09-16.md)。
+
+P3 修复：AI 中断后，模型恢复即可直接重试人脸分析；部署身份不匹配不再保留虚假的“模型可用”状态，旧索引和人物关系保留。共享搜索栏支持在已有搜索/目录条件下替换关键词，普通文件名搜索不依赖 AI 服务。[本地 Docker 验收与测试边界](docs/evidence/int-001/p3-acceptance-2026-09-16.md)。
+
+开发候选：独立 AI 部署支持可选人脸模型身份、代次准入、有界分析、匿名组和人工人物管理，详见[配置说明](docs/deployment.md)。P2 非空人物功能已通过本地 Docker 正式 API/Chromium 验收；清理/重建保留人工关系与原媒体。测试使用生成的虚构人脸，不代表质量校准，自动整组归类仍禁用。质量、容量和发布未完成；当前进度见[剩余任务](docs/features/intelligent-media-discovery-remaining-tasks.md)。
+
 Candidate AI tag generation is wired to the existing controlled-vocabulary API and a bounded worker.
 It requires indexed image embeddings and uses the same generation's text encoder. Up to five suggestions
 above confidence 0.65 (cosine 0.30) require manual review; this cutoff is not quality-calibrated.

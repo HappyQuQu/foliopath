@@ -7,7 +7,6 @@ import { ToastProvider } from "../../../components/ui";
 import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { AISettingsPage } from "./AISettingsPage";
-import type { AIModelDownloadPage } from "../../../lib/api/ai";
 import { ApiError } from "../../../lib/api/errors";
 import { readAIOperationIds, writeAIOperationIds } from "../../../lib/storage/preferences";
 
@@ -15,8 +14,11 @@ const mocks = vi.hoisted(() => ({
   activate: vi.fn(),
   cancel: vi.fn(),
   clear: vi.fn(),
+  clearFace: vi.fn(),
+  clearManualFace: vi.fn(),
   install: vi.fn(),
   job: vi.fn(),
+  faceJob: vi.fn(),
   scan: vi.fn(),
   update: vi.fn(),
   download: vi.fn(),
@@ -86,12 +88,12 @@ vi.mock("../queries", () => ({
   useDownloadAIModelMutation: () => ({ isPending: false, mutateAsync: mocks.download }),
   useCancelAIOperationMutation: () => ({ isPending: false, mutateAsync: mocks.cancel }),
   useClearSemanticDataMutation: () => ({ isPending: false, mutateAsync: mocks.clear }),
-  useClearDerivedFaceDataMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
-  useClearManualFaceRelationshipsMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useClearDerivedFaceDataMutation: () => ({ isPending: false, mutateAsync: mocks.clearFace }),
+  useClearManualFaceRelationshipsMutation: () => ({ isPending: false, mutateAsync: mocks.clearManualFace }),
   useFaceSettingsQueries: mocks.faces,
   useInstallAIModelCandidateMutation: () => ({ isPending: false, mutateAsync: mocks.install }),
   useRequestSemanticJobMutation: () => ({ isPending: false, mutateAsync: mocks.job }),
-  useRequestFaceJobMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useRequestFaceJobMutation: () => ({ isPending: false, mutateAsync: mocks.faceJob }),
   useScanAIModelCandidatesMutation: () => ({ isPending: false, mutateAsync: mocks.scan }),
   useSemanticSettingsQueries: mocks.semantic,
   useUpdateSemanticSettingsMutation: () => ({ isPending: false, mutateAsync: mocks.update }),
@@ -103,8 +105,11 @@ beforeEach(() => {
   mocks.update.mockResolvedValue(settings);
   mocks.updateFace.mockResolvedValue(settings);
   mocks.job.mockResolvedValue(operation("semantic_missing"));
+  mocks.faceJob.mockResolvedValue({ ...operation("semantic_missing"), id: "aio_face", kind: "face_missing" });
   mocks.videoJob.mockResolvedValue({ ...operation("semantic_missing"), id: "aio_video", kind: "video_semantic_missing" });
   mocks.clear.mockResolvedValue(operation("semantic_clear"));
+  mocks.clearFace.mockResolvedValue(operation("semantic_clear"));
+  mocks.clearManualFace.mockResolvedValue(operation("semantic_clear"));
   mocks.cancel.mockResolvedValue({ ...operation("semantic_missing"), state: "cancelling" });
   mocks.downloads.mockReturnValue({ items: [], runtimeAvailable: false });
   mocks.models.mockReturnValue({ items: [], activeModelId: null, activeFaceModelId: null, revision: 0 });
@@ -188,77 +193,33 @@ it("keeps full rebuild and semantic clearing behind distinct safety confirmation
   }));
 });
 
-it("scans only the fixed model directory and confirms direct-use availability risk", async () => {
-  const user = userEvent.setup();
-  mocks.scan.mockResolvedValue({
-    candidates: [{
-      architecture: "arm64",
-      compatibility: "compatible",
-      id: "candidate_test",
-      licenseId: "Apache-2.0",
-      packageSizeBytes: 1024 ** 2,
-      purpose: "semantic_image_text",
-      version: "1.0.0",
-    }],
-    revision: 1,
-    scannedAt: "2026-09-02T00:00:00Z",
-    truncated: false,
-  });
+it("routes the retired model-store deep link to the Compose-managed overview", () => {
   renderPage("/settings/ai?view=models");
-
-  await user.click(screen.getByText("离线导入 · 扫描模型目录"));
-  expect(screen.getByText(/不接收路径、网址或浏览器上传/)).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "扫描模型目录" }));
-  await user.click(await screen.findByRole("button", { name: "直接使用" }));
-
-  expect(screen.getByRole("heading", { name: "直接使用此模型？" })).toBeVisible();
-  expect(screen.getByText(/挂载持续存在且内容哈希不变/)).toBeVisible();
+  expect(screen.getByRole("heading", { name: "当前媒体库的功能" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "全局 AI 服务" })).toBeVisible();
+  expect(screen.getByText("服务与模型")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "下载模型" })).not.toBeInTheDocument();
+  expect(screen.queryByText("离线导入 · 扫描模型目录")).not.toBeInTheDocument();
+  expect(screen.queryByText("高级：自定义下载来源")).not.toBeInTheDocument();
 });
 
-it("offers real downloads by catalog ID and surfaces missing inference separately", async () => {
-  const user = userEvent.setup();
-  const page: AIModelDownloadPage = { runtimeAvailable: false, items: [{
-    id: "download_vision", name: "视觉理解测试模型", sourceLabel: "测试来源", purpose: "semantic_image_text", version: "1.0", licenseId: "MIT", packageSizeBytes: 1024 ** 2,
-    compatibility: "compatible", installedModelId: null, operation: null,
-  }] };
-  mocks.downloads.mockReturnValue(page);
-  renderPage("/settings/ai?view=models");
-  expect(screen.getByText(/当前镜像未包含 AI 推理组件/)).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "下载模型" }));
-  expect(mocks.download).toHaveBeenCalledWith({ downloadId: "download_vision", csrfToken: "csrf-token-that-is-long-enough", idempotencyKey: expect.any(String) });
-  expect(await screen.findByText("下载已加入后台队列，可在模型卡片查看进度。")).toBeVisible();
-});
-
-it("restores server download progress and cancels with its current validator", async () => {
-  const user = userEvent.setup();
-  mocks.downloads.mockReturnValue({ runtimeAvailable: true, items: [{
-    id: "download_vision", name: "视觉理解测试模型", sourceLabel: "测试来源", purpose: "semantic_image_text", version: "1.0", licenseId: "MIT", packageSizeBytes: 1024 ** 2,
-    compatibility: "compatible", installedModelId: null, operation: { ...operation("semantic_missing"), kind: "model_install", state: "running", phase: "copying", id: "aio_server_task", revision: 4, etag: '"aio_server_task-r4"', completedItems: 512 * 1024, totalItems: 1024 ** 2 },
-  }] });
-  renderPage("/settings/ai?view=models");
-  expect(screen.getByRole("progressbar", { name: "视觉理解测试模型 下载进度" })).toHaveAttribute("value", "524288");
-  expect(mocks.operations).toHaveBeenCalledWith(expect.arrayContaining(["aio_server_task"]));
-  await user.click(screen.getByRole("button", { name: "取消任务" }));
-  expect(mocks.cancel).toHaveBeenCalledWith({ csrfToken: "csrf-token-that-is-long-enough", etag: '"aio_server_task-r4"', operationId: "aio_server_task" });
-});
-
-it("uses the selected design with truthful status and collapsed compatibility maintenance", async () => {
+it("keeps daily actions directly available in their capability sections", async () => {
   const user = userEvent.setup();
   renderPage("/settings/ai");
-  expect(screen.getByRole("heading", { name: "AI 能力" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "图片语义分析进度" })).toBeVisible();
-  expect(screen.getByText(/不包含视频和人物分析/)).toBeVisible();
-  expect(screen.getByRole("progressbar", { name: "家庭照片 图片语义分析进度 覆盖率" })).toHaveAttribute("value", "8");
-  expect(screen.getByText("兼容维护：内置运行时未就绪")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "当前媒体库的功能" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "全局 AI 服务" })).toBeVisible();
+  expect(screen.getByText(/8 \/ 12 张已处理/)).toBeVisible();
+  expect(screen.getByText("服务与模型")).toBeVisible();
   expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   expect(screen.queryByText("CLIP ViT-B-32")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "下载模型" })).not.toBeInTheDocument();
-  const details = screen.getByText("部署详情");
-  expect(details.closest("details")).not.toHaveAttribute("open");
-  await user.click(details);
-  expect(screen.getByText(/内置运行时状态仅用于兼容模型维护/)).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "兼容模型维护" }));
-  expect(screen.getByText("暂无可直接下载的兼容模型包")).toBeVisible();
+  expect(screen.queryByText("高级维护")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /打开智能搜索/ })).toBeVisible();
+  await user.click(screen.getByText("人物分析"));
+  expect(screen.getByRole("link", { name: /查看人物/ })).toHaveAttribute("href", "/intelligence?view=clusters&libraryId=lib_test");
+  expect(screen.getByRole("button", { name: "索引维护" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "分析维护" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "兼容模型维护" })).not.toBeInTheDocument();
 });
 
 it("changes only the URL-selected library with its current ETag", async () => {
@@ -278,10 +239,12 @@ it("does not enable missing models", () => {
   mocks.semantic.mockReturnValue([{ data: { ...settings, enabled: false }, isPending: false, isError: false }]);
   renderPage("/settings/ai");
   expect(screen.getByRole("switch", { name: "切换 家庭照片 的图片语义搜索" })).toBeDisabled();
+  expect(screen.getByText("智能搜索模型尚未就绪，请检查 AI 容器配置。")).toBeVisible();
 });
 
-it("keeps unrecorded video coverage unknown instead of complete", () => {
+it("keeps unrecorded video coverage unknown instead of complete", async () => {
   renderPage("/settings/ai");
+  await userEvent.click(screen.getByRole("button", { name: "索引维护" }));
   expect(screen.getByText("当前模型代次尚无视频进度记录，不能判定分析已完成。")).toBeVisible();
   expect(screen.queryByRole("progressbar", { name: "家庭照片 视频语义分析进度" })).not.toBeInTheDocument();
 });
@@ -290,6 +253,7 @@ it("submits video missing work through its own endpoint and confirms full rebuil
   const user = userEvent.setup();
   mocks.models.mockReturnValue({ items: [{ id: "model_service", active: true, state: "available", storageMode: "service", purpose: "semantic_image_text", version: "foliopath-ml-v1" }], activeModelId: "model_service", activeFaceModelId: null, revision: 1 });
   renderPage("/settings/ai");
+  await user.click(screen.getByRole("button", { name: "索引维护" }));
   await user.click(screen.getByRole("button", { name: "补齐视频索引" }));
   expect(mocks.videoJob).toHaveBeenCalledWith(expect.objectContaining({ csrfToken: "csrf-token-that-is-long-enough", libraryId: library.id, mode: "missing", idempotencyKey: expect.any(String) }));
   expect(mocks.job).not.toHaveBeenCalled();
@@ -304,8 +268,9 @@ it("submits video missing work through its own endpoint and confirms full rebuil
   expect(mocks.videoJob).toHaveBeenLastCalledWith(expect.objectContaining({ libraryId: library.id, mode: "all" }));
 });
 
-it("disables video work when the active model is missing", () => {
+it("disables video work when the active model is missing", async () => {
   renderPage("/settings/ai");
+  await userEvent.click(screen.getByRole("button", { name: "索引维护" }));
   expect(screen.getByRole("button", { name: "补齐视频索引" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "重建视频索引" })).toBeDisabled();
 });
@@ -313,14 +278,15 @@ it("disables video work when the active model is missing", () => {
 it.each(["/settings/ai", "/settings/ai?view=libraries"])("shows unrecorded image progress honestly in %s", (path) => {
   mocks.semantic.mockReturnValue([{ data: { ...settings, coverageRecorded: false, coverage: { ...settings.coverage, completed: 0, eligible: 0, failed: 0, stale: 0, complete: false } }, isPending: false, isError: false }]);
   renderPage(path);
-  expect(screen.getByText("当前模型代次尚无图片进度记录，不能判定分析已完成。")).toBeVisible();
+  expect(screen.getByText(path === "/settings/ai" ? "尚无处理记录" : "当前模型代次尚无图片进度记录，不能判定分析已完成。")).toBeVisible();
   expect(screen.queryByText("0 / 0")).not.toBeInTheDocument();
   expect(screen.queryByRole("progressbar", { name: "家庭照片 图片语义分析进度 覆盖率" })).not.toBeInTheDocument();
 });
 
-it("separates recorded video completion, degradation and pending work", () => {
+it("separates recorded video completion, degradation and pending work", async () => {
   mocks.video.mockReturnValue({ data: { libraryId: library.id, enabled: true, offline: true, activeGenerationId: "aig_test", coverage: { eligible: 6, completed: 1, degraded: 1, failed: 1, stale: 1, revision: 2, complete: false } }, isPending: false, isError: false });
   renderPage("/settings/ai");
+  await userEvent.click(screen.getByRole("button", { name: "索引维护" }));
   expect(screen.getByRole("progressbar", { name: "家庭照片 视频语义分析进度" })).toHaveAttribute("value", "1");
   expect(screen.getByText("待处理 2 · 降级 1 · 失败 1 · 待更新 1")).toBeVisible();
   expect(screen.getByText("已完成 1 / 6")).toBeVisible();
@@ -351,7 +317,38 @@ it.each([
     expect(toggle).toBeEnabled();
     await user.click(toggle);
     expect(mocks.update).toHaveBeenCalledWith({ csrfToken: "csrf-token-that-is-long-enough", enabled: true, etag: settings.etag, libraryId: library.id });
+    expect(mocks.job).toHaveBeenCalledWith(expect.objectContaining({
+      csrfToken: "csrf-token-that-is-long-enough",
+      idempotencyKey: expect.any(String),
+      libraryId: library.id,
+      mode: "missing",
+    }));
   }
+});
+
+it("starts missing face analysis when the simple capability switch is enabled", async () => {
+  const user = userEvent.setup();
+  mocks.models.mockReturnValue({
+    items: [{ id: "face_service", active: true, state: "available", storageMode: "service", purpose: "face_detection_embedding", version: "foliopath-ml-v1" }],
+    activeModelId: null,
+    activeFaceModelId: "face_service",
+    revision: 1,
+  });
+  renderPage("/settings/ai");
+  await user.click(screen.getByRole("switch", { name: "切换 家庭照片 的本地人脸分析" }));
+  expect(mocks.updateFace).toHaveBeenCalledWith({
+    csrfToken: "csrf-token-that-is-long-enough",
+    enabled: true,
+    etag: settings.etag,
+    libraryId: library.id,
+  });
+  expect(mocks.faceJob).toHaveBeenCalledWith(expect.objectContaining({
+    csrfToken: "csrf-token-that-is-long-enough",
+    idempotencyKey: expect.any(String),
+    libraryId: library.id,
+    mode: "missing",
+  }));
+  expect(mocks.operations).toHaveBeenLastCalledWith(expect.arrayContaining(["aio_face"]));
 });
 
 it("updates face settings with the face ETag rather than the semantic ETag", async () => {
@@ -367,7 +364,25 @@ it("disables capability changes for an offline library but preserves coverage", 
   mocks.libraries.mockReturnValue([{ ...library, status: "offline" }]);
   renderPage("/settings/ai");
   expect(screen.getByRole("switch", { name: "切换 家庭照片 的图片语义搜索" })).toBeDisabled();
-  expect(screen.getByRole("progressbar", { name: "家庭照片 图片语义分析进度 覆盖率" })).toHaveAttribute("value", "8");
+  expect(screen.getByText(/8 \/ 12 张已处理/)).toBeVisible();
+});
+
+it("requires explicit confirmation for both face clears and restores focus on cancel", async () => {
+  const user = userEvent.setup();
+  renderPage("/settings/ai?view=faces");
+  await user.click(screen.getByText("索引维护"));
+  for (const name of ["清除可重建人脸数据", "清除人物应用状态"]) {
+    const trigger = screen.getByRole("button", { name });
+    await user.click(trigger);
+    const dialog = screen.getByRole("dialog", { name });
+    expect(mocks.clearFace).not.toHaveBeenCalled();
+    expect(mocks.clearManualFace).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "取消" }));
+    expect(trigger).toHaveFocus();
+  }
+  await user.click(screen.getByRole("button", { name: "清除可重建人脸数据" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "清除可重建人脸数据" }));
+  expect(mocks.clearFace).toHaveBeenCalledWith(expect.objectContaining({ libraryId: library.id, etag: settings.etag }));
 });
 
 it("keeps failed coverage unknown rather than displaying stale success", () => {
@@ -383,30 +398,12 @@ it("preserves the selected library when opening analysis maintenance", async () 
   mocks.libraries.mockReturnValue([library, second]);
   mocks.semantic.mockReturnValue([settings, { ...settings, libraryId: second.id }].map(data => ({ data, isPending: false, isError: false })));
   renderPage("/settings/ai");
-  await user.click(screen.getAllByRole("button", { name: "管理分析" })[1]!);
+  await user.selectOptions(screen.getByRole("combobox", { name: "当前媒体库" }), second.id);
+  await user.click(screen.getByRole("button", { name: "索引维护" }));
   expect(screen.getByRole("heading", { name: "旅行照片" })).toBeVisible();
   expect(screen.queryByRole("heading", { name: "家庭照片" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "返回智能功能" }));
+  await user.click(screen.getByRole("button", { name: "返回智能分析" }));
   expect(screen.getByRole("combobox", { name: "当前媒体库" })).toHaveValue(second.id);
-});
-
-it("shows server-owned presets without presenting them as downloadable models", async () => {
-  const user = userEvent.setup();
-  mocks.downloads.mockReturnValue({ runtimeAvailable: false, items: [], presets: [
-    { id: "preset_example", name: "候选语义模型", sourceLabel: "测试来源", purpose: "semantic_image_text", readiness: "package_pending" },
-    { id: "preset_face", name: "候选人脸模型", sourceLabel: "测试来源", purpose: "face_detection_embedding", readiness: "adapter_pending" },
-  ] });
-  renderPage("/settings/ai?view=models");
-  expect(screen.getByRole("heading", { name: "项目预设 · 待接入" })).toBeVisible();
-  expect(screen.getByText("候选语义模型")).toBeVisible();
-  expect(screen.getByText("待准备兼容包")).toBeVisible();
-  expect(screen.getByText("待适配")).toBeVisible();
-  expect(screen.queryByRole("button", { name: "下载模型" })).not.toBeInTheDocument();
-  const advanced = screen.getByText("高级：自定义下载来源");
-  expect(advanced.closest("details")).not.toHaveAttribute("open");
-  await user.click(advanced);
-  expect(advanced.closest("details")).toHaveAttribute("open");
-  expect(mocks.download).not.toHaveBeenCalled();
 });
 
 it("shows server-restored download tasks even with no browser task history", () => {

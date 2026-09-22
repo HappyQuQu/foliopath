@@ -148,6 +148,7 @@ func (s *ClearService) request(ctx context.Context, libraryID, expectedRevision 
 	return ClearResult{Job: stored.Job, Created: created, Replayed: !created}, nil
 }
 func (p *ClearProcessor) Process(ctx context.Context, job ClearJob) error {
+	defer p.BackgroundAdmissionCancelled(ctx, job)
 	if job.ID == "" || job.State != "running" || job.ClaimedRevision < 1 {
 		return ErrInvalidFaceClear
 	}
@@ -174,6 +175,15 @@ func (p *ClearProcessor) Process(ctx context.Context, job ClearJob) error {
 			return err
 		}
 	}
+}
+
+func (p *ClearProcessor) BackgroundAdmissionCancelled(ctx context.Context, job ClearJob) {
+	if ctx.Err() == nil {
+		return
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, _ = p.queue.FinishFaceClear(cleanup, job, false, "cancelled", p.now().UTC())
 }
 func (j ClearJob) OperationKind() aimodel.OperationKind {
 	switch j.Kind {

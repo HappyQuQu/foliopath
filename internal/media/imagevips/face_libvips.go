@@ -3,8 +3,13 @@
 package imagevips
 
 import (
+	"bytes"
 	"context"
+	"image/jpeg"
 	"io"
+	"os"
+	"runtime"
+	"strconv"
 
 	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -30,11 +35,50 @@ func (*Processor) DecodeFaceImage(
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return face.DecodedImage{}, face.ErrInvalidInput
 	}
-	encoded, err := io.ReadAll(io.LimitReader(source, maxBytes+1))
-	if err != nil || int64(len(encoded)) > maxBytes || media.ValidateSourceSize(format, int64(len(encoded))) != nil {
+	size, err := source.Seek(0, io.SeekEnd)
+	if err != nil || size < 1 || size > maxBytes || media.ValidateSourceSize(format, size) != nil {
 		return face.DecodedImage{}, face.ErrInvalidInput
 	}
-	image, err := vips.LoadImageFromBuffer(encoded, imageImportParams())
+	if _, err := source.Seek(0, io.SeekStart); err != nil {
+		return face.DecodedImage{}, face.ErrInvalidInput
+	}
+	sourceFile, fileStream := source.(*os.File)
+	fileStream = fileStream && runtime.GOOS == "linux" && format == media.FormatJPEG
+	var encoded []byte
+	if !fileStream {
+		encoded, err = io.ReadAll(io.LimitReader(source, maxBytes+1))
+		if err != nil || int64(len(encoded)) != size {
+			return face.DecodedImage{}, face.ErrInvalidInput
+		}
+	}
+	params := imageImportParams()
+	if format == media.FormatJPEG {
+		headerSource := io.Reader(source)
+		if !fileStream {
+			headerSource = bytes.NewReader(encoded)
+		}
+		header, headerErr := jpeg.DecodeConfig(headerSource)
+		if headerErr != nil || media.ValidateImageDimensions(format, header.Width, header.Height) != nil {
+			return face.DecodedImage{}, face.ErrInvalidInput
+		}
+		// Select the existing shrink policy before the first native load. Some
+		// JPEG loaders allocate working memory even while opening the image.
+		if int64(header.Width)*int64(header.Height) > media.MaxDecodedPixels {
+			params.JpegShrinkFactor.Set(jpegShrinkFactor(header.Width, header.Height))
+		}
+	}
+	var image *vips.ImageRef
+	if fileStream {
+		if _, err := source.Seek(0, io.SeekStart); err != nil {
+			return face.DecodedImage{}, face.ErrInvalidInput
+		}
+		image, err = vips.LoadImageFromFile(
+			"/proc/self/fd/"+strconv.FormatUint(uint64(sourceFile.Fd()), 10),
+			params,
+		)
+	} else {
+		image, err = vips.LoadImageFromBuffer(encoded, params)
+	}
 	if err != nil {
 		return face.DecodedImage{}, face.ErrInvalidInput
 	}
@@ -46,16 +90,6 @@ func (*Processor) DecodeFaceImage(
 	if expected, ok := expectedImageType(format); !ok || image.OriginalFormat() != expected ||
 		media.ValidateImageDimensions(format, image.Width(), image.Height()) != nil {
 		return face.DecodedImage{}, face.ErrInvalidInput
-	}
-	if format == media.FormatJPEG && int64(image.Width())*int64(image.Height()) > media.MaxDecodedPixels {
-		width, height := image.Width(), image.Height()
-		image.Close()
-		params := imageImportParams()
-		params.JpegShrinkFactor.Set(jpegShrinkFactor(width, height))
-		image, err = vips.LoadImageFromBuffer(encoded, params)
-		if err != nil {
-			return face.DecodedImage{}, face.ErrInvalidInput
-		}
 	}
 	if err := image.ToColorSpace(vips.InterpretationSRGB); err != nil {
 		return face.DecodedImage{}, face.ErrInvalidOutput

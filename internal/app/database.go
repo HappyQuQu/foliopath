@@ -14,6 +14,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/auth"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
@@ -28,6 +29,21 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	face.DeploymentActivationRepository
+	face.DeploymentGenerationRepository
+	face.JobQueue
+	face.JobCatalog
+	face.ClusterRebuilder
+	face.LibrarySettingsRepository
+	face.ClearQueue
+	face.FaceClusterListRepository
+	face.PeopleListRepository
+	face.PeopleRepository
+	face.ReviewRepository
+	face.CoreClusterFaceRepository
+	face.AssetFacesRepository
+	face.PersonAssetRepository
+	face.FaceClusterDetailRepository
 	aimodel.ProxySettingsRepository
 	aimodel.Repository
 	aimodel.OperationRepository

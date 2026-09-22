@@ -8,6 +8,12 @@ import { applyFaceReview, downloadAIModel, listAIModelDownloads, getLibraryFaceS
 vi.mock("./client", () => ({ apiClient: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn() } }));
 
 describe("intelligence API adapters", () => {
+  it("preserves both owners' revision guards for an atomic face move", async () => {
+    vi.mocked(apiClient.POST).mockResolvedValue({ data: { action: "assign_face", affectedPersonIds: ["person-target", "person-source"], reviewId: "review-move", revision: 3, undoable: true }, response: new Response() } as never);
+    const review = { action: "assign_face" as const, faceId: "face-1", expectedFaceRevision: 1, personId: "person-target", expectedPersonRevision: 2, sourcePersonId: "person-source", expectedSourceRevision: 4 };
+    await applyFaceReview({ csrfToken: "csrf", idempotencyKey: "move-key", review });
+    expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/ai/face-reviews", expect.objectContaining({ body: review }));
+  });
   beforeEach(() => { vi.mocked(apiClient.GET).mockReset(); vi.mocked(apiClient.POST).mockReset(); });
 
   it("requests video work by library ID with CSRF and idempotency", async () => {
@@ -48,9 +54,9 @@ describe("intelligence API adapters", () => {
 
   it("never sends paths or face geometry in a face review", async () => {
     vi.mocked(apiClient.POST).mockResolvedValue({ data: { action: "exclude_face", affectedPersonIds: [], reviewId: "r1", revision: 1, undoable: true }, response: new Response() } as never);
-    await applyFaceReview({ csrfToken: "csrf", idempotencyKey: "key", review: { action: "ExcludeFaceReview", faceId: "f1", expectedFaceRevision: 2 } });
+    await applyFaceReview({ csrfToken: "csrf", idempotencyKey: "key", review: { action: "exclude_face", faceId: "f1", expectedFaceRevision: 2 } });
     const body = (vi.mocked(apiClient.POST).mock.calls[0]?.[1] as { body?: unknown } | undefined)?.body;
-    expect(body).toEqual({ action: "ExcludeFaceReview", faceId: "f1", expectedFaceRevision: 2 });
+    expect(body).toEqual({ action: "exclude_face", faceId: "f1", expectedFaceRevision: 2 });
     expect(JSON.stringify(body)).not.toMatch(/path|region|embedding|crop/i);
   });
 

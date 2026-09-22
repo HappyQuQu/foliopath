@@ -43,6 +43,26 @@ func (stub *reviewServiceRepositoryStub) UndoFaceReview(_ context.Context, comma
 
 type reviewClusterStub struct{ ids []string }
 
+func TestReviewServiceMoveSourceGuard(t *testing.T) {
+	repository := &reviewServiceRepositoryStub{}
+	service, _ := NewReviewService(repository, reviewClusterStub{}, time.Now)
+	request := ReviewRequest{Action: "assign_face", FaceID: "face_move_source", PersonID: "person_move_target", ExpectedFaceRevision: 1, ExpectedPersonRevision: 2, SourcePersonID: "person_move_source", ExpectedSourceRevision: 3}
+	if _, err := service.Review(context.Background(), "move-source-key-001", request); err != nil {
+		t.Fatal(err)
+	}
+	if repository.assignFace.SourcePersonID != request.SourcePersonID || repository.assignFace.ExpectedSourceRevision != 3 {
+		t.Fatal("source guard not dispatched")
+	}
+	request.ExpectedSourceRevision = 0
+	if _, err := service.Review(context.Background(), "move-source-key-002", request); !errors.Is(err, ErrInvalidReview) {
+		t.Fatalf("missing source revision: %v", err)
+	}
+	request.SourcePersonID, request.ExpectedSourceRevision = "", 3
+	if _, err := service.Review(context.Background(), "move-source-key-003", request); !errors.Is(err, ErrInvalidReview) {
+		t.Fatalf("missing source ID: %v", err)
+	}
+}
+
 func (stub reviewClusterStub) ListCoreClusterFaceIDs(context.Context, string, int64, int) ([]string, error) {
 	return append([]string(nil), stub.ids...), nil
 }

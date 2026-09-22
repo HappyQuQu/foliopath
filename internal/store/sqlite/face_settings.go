@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+func (s *Store) GetActiveFaceGeneration(ctx context.Context) (string, error) {
+	var id string
+	err := s.db.QueryRowContext(ctx, "SELECT id FROM face_generations WHERE state='active'").Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", face.ErrFaceModelUnavailable
+	}
+	return id, err
+}
+
 func (s *Store) GetFaceLibrarySettings(ctx context.Context, libraryID int64) (face.LibrarySettings, error) {
 	if libraryID < 1 {
 		return face.LibrarySettings{}, face.ErrFaceLibraryNotFound
@@ -52,14 +61,19 @@ func (s *Store) UpdateFaceLibrarySettings(ctx context.Context, libraryID int64, 
 			return err
 		}
 		var currentEnabled int
+		var currentState string
+		var currentGeneration sql.NullString
 		currentRevision := int64(1)
-		err := tx.QueryRowContext(ctx, `SELECT enabled,revision FROM face_library_settings WHERE library_id=?`, libraryID).Scan(&currentEnabled, &currentRevision)
+		err := tx.QueryRowContext(ctx, `SELECT enabled,revision,state,active_generation_id FROM face_library_settings WHERE library_id=?`, libraryID).Scan(&currentEnabled, &currentRevision, &currentState, &currentGeneration)
 		missing := errors.Is(err, sql.ErrNoRows)
 		if err != nil && !missing {
 			return err
 		}
 		if currentRevision != expectedRevision {
 			return face.ErrFaceSettingsConflict
+		}
+		if currentState == "clearing" {
+			return face.ErrFaceNotReady
 		}
 		if !enabled {
 			if err := cancelFaceAnalysisForDisabledLibrary(ctx, tx, libraryID, now); err != nil {
@@ -77,6 +91,18 @@ func (s *Store) UpdateFaceLibrarySettings(ctx context.Context, libraryID int64, 
 				return err
 			}
 			generation = id
+			if currentGeneration.Valid && currentGeneration.String != id {
+				var running bool
+				if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM face_analysis_jobs WHERE library_id=? AND state IN ('queued','running','cancelling'))`, libraryID).Scan(&running); err != nil {
+					return err
+				}
+				if running {
+					return face.ErrFaceJobConflict
+				}
+			}
+			if err := requireFaceServiceAvailable(ctx, tx, id); err != nil {
+				return err
+			}
 			state = "building"
 		}
 		next := currentRevision + 1

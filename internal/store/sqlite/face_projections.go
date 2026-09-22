@@ -87,21 +87,22 @@ func (s *Store) ListAssetFaceViews(ctx context.Context, assetID int64) ([]face.A
 	var libraryID int64
 	var generation, state, libraryState string
 	var enabled int
-	err := s.db.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status FROM assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState)
+	var published bool
+	err := s.db.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(build.generation_id,settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status,build.id IS NOT NULL FROM assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState, &published)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, face.ErrInvalidFaceProjection
 	}
 	if err != nil {
 		return nil, err
 	}
-	if enabled != 1 || generation == "" || libraryState != "ready" || (state != "ready" && state != "degraded") {
+	if enabled != 1 || generation == "" || libraryState != "ready" || (state != "ready" && state != "degraded" && !(published && (state == "building" || state == "awaiting_model"))) {
 		return nil, face.ErrFaceNotReady
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT observation.id,observation.asset_id,observation.box_x_ppm,observation.box_y_ppm,observation.box_width_ppm,observation.box_height_ppm,observation.revision,
 		COALESCE(anchor.person_id,''),CASE WHEN anchor.id IS NOT NULL THEN 'assigned' WHEN exclusion.id IS NOT NULL THEN 'excluded' WHEN member.role='core' THEN 'anonymous_core' WHEN member.role='edge' THEN 'anonymous_edge' ELSE 'unclustered' END
 		FROM face_observations observation
-		LEFT JOIN person_face_anchors anchor ON anchor.current_face_id=observation.id AND anchor.state='bound'
-		LEFT JOIN face_exclusions exclusion ON exclusion.current_face_id=observation.id
+		LEFT JOIN person_face_anchors anchor ON anchor.library_id=observation.library_id AND anchor.asset_id=observation.asset_id AND anchor.source_fingerprint=observation.source_fingerprint AND anchor.box_x_ppm=observation.box_x_ppm AND anchor.box_y_ppm=observation.box_y_ppm AND anchor.box_width_ppm=observation.box_width_ppm AND anchor.box_height_ppm=observation.box_height_ppm AND anchor.state='bound'
+		LEFT JOIN face_exclusions exclusion ON exclusion.library_id=observation.library_id AND exclusion.asset_id=observation.asset_id AND exclusion.source_fingerprint=observation.source_fingerprint AND exclusion.box_x_ppm=observation.box_x_ppm AND exclusion.box_y_ppm=observation.box_y_ppm AND exclusion.box_width_ppm=observation.box_width_ppm AND exclusion.box_height_ppm=observation.box_height_ppm
 		LEFT JOIN face_cluster_members member ON member.face_id=observation.id
 		LEFT JOIN face_cluster_builds build ON build.id=member.build_id AND build.state='active'
 		WHERE observation.generation_id=? AND observation.library_id=? AND observation.asset_id=? AND (member.build_id IS NULL OR build.id IS NOT NULL)

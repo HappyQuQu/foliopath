@@ -273,6 +273,15 @@ func TestManualFaceClearRequiresExactImpactAndRetainsDerivedAndPeople(t *testing
 	if _, err := service.RequestManual(context.Background(), libraryID, 1, "face-manual-clear-bad", face.ManualClearCounts{}); err == nil {
 		t.Fatal("incorrect impact counts succeeded")
 	}
+	// Exercise the RESTRICT cycle between an event, its snapshot and its undo.
+	reviews, _ := face.NewReviewService(store, store, func() time.Time { return now })
+	excluded, err := reviews.Review(context.Background(), "manual-clear-exclude", face.ReviewRequest{Action: "exclude_face", FaceID: "face_manual_001", ExpectedFaceRevision: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reviews.Undo(context.Background(), "manual-clear-undo", excluded.EventID, excluded.Revision); err != nil {
+		t.Fatal(err)
+	}
 	requested, err := service.RequestManual(context.Background(), libraryID, 1, "face-manual-clear-001", face.ManualClearCounts{People: 1, Assignments: 1, Constraints: 0})
 	if err != nil || !requested.Created {
 		t.Fatalf("requested=%+v err=%v", requested, err)

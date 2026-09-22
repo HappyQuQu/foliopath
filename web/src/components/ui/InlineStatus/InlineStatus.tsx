@@ -30,7 +30,7 @@ export function InlineStatus({
 
   return (
     <div
-      className={`${styles.status} ${styles[tone]}`}
+      className={[styles.status, styles[tone]].filter(Boolean).join(" ")}
       role={tone === "danger" ? "alert" : "status"}
     >
       <Icon aria-hidden="true" size={19} weight="fill" />

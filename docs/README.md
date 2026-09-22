@@ -1,5 +1,35 @@
 # FolioPath 文档
 
+当前 P6：**3/3 核对完成，Release No-Go**；七项完整工程检查通过，供应链和最终范围已复核，但漏洞、模型授权/provenance 及延期质量容量门禁仍未通过。见 [P6 最终复核](evidence/int-001/p6-final-verification-2026-09-17.md)。P5 仍为 **5/5 交付通过**，见 [P5 证据](evidence/int-001/p5-delivery-security-2026-09-17.md)和 [AI Compose 配置说明](ai-compose.md)。按后续用户指示，当前工作树已完成 [server222 原生 amd64 双容器部署](evidence/int-001/server222-p6-deployment-2026-09-17.md)；私有部署不改变 Release No-Go。
+
+当前 P4：**本轮验收通过，已完成**（2026-09-17 用户确认）。[约 100 样本冻结候选收口台账](features/intelligent-media-discovery-p4-closeout.md)记录通过范围；人工质量校准与原规模要求延期，不记测试通过。
+
+最新：[冻结候选工程验证](evidence/int-001/p4-frozen-candidate-2026-09-17.md)已完成本地/原生功能、8 组跨架构排序观察、升级回退和有限故障恢复。P5/P6 工程阶段均已执行，正式发行仍为 No-Go。
+
+## 历史增量记录（状态以以上当前台账为准）
+
+最新修复：[大图语义读取取消响应](changes/FIX-2026-09-17-semantic-read-cancellation.md)。先复现取消后仍读完源文件，再修复块间取消及无进展保护；9 项本地 race 和 100 样本功能回归通过。最新候选的 amd64/升级回退尚未重跑，以下双架构结论对应上一固定镜像，不混写。
+
+2026-09-17 最新：[大 JPEG 语义修复及升级补验](evidence/int-001/p4-semantic-large-jpeg-2026-09-17.md)。本地与 server222 原生同一 100 样本完整功能通过，原 36 项语义失败消除；两版镜像合成旧库升级/重启/配对备份回退通过。质量、稳定性与发行未完成，P4 仍 0/8。以下保留早前结果。
+
+最新：[大图内存修复双架构复验](evidence/int-001/p4-face-memory-2026-09-16.md)。新测试内存分配下，本地/server222 同样本人脸 90/90、视频 10/10，无 OOM，原服务健康恢复；36 张图片语义超限仍失败，整体门禁未通过。保留[早前 OOM 失败](evidence/int-001/p4-small-sample-2026-09-16.md)，不是发布或完整质量通过。
+
+当前 P4 执行范围：[约 100 样本验证调整](changes/CR-2026-09-16-p4-small-sample-validation.md)。使用用户指定的本地/远端只读目录，大规模验收延期而非通过；原完整口径进度不变。
+
+P4 已开始：[质量与容量执行记录](evidence/int-001/p4-quality-capacity-2026-09-16.md)，0/8 关闭；基础目录容量修复复验通过，联合 AI/向量/长期稳定性与外部质量数据缺口分开记录，总计仍 18/34。用户已授权 server222 临时停服进行原生 amd64 隔离测试：[维护及测试记录](evidence/int-001/p4-server222-native-2026-09-16.md)，不是部署更新。
+
+最新已完成：[P2/P3 全项复查与修复验收](evidence/int-001/p2-p3-final-recheck-2026-09-16.md)。P2 6/6、P3 9/9；最终本地 Docker 镜像业务/故障/恢复/备份回滚、237 单测、三浏览器及 32 张独立视觉比较通过。当前 **18/34 关闭、16 项保留**，质量/容量/发布未完成。以下均为历史增量。
+
+历史：[人物移动修复与完整复验](evidence/int-001/face-reassignment-2026-09-16.md)。人物原子移动、移出后重新归类修复，234 单测、Docker race/业务及三浏览器在线/离线通过，当时 A05/D03 重新关闭、P3 8/9、17/34。D04 已在上方最新复查关闭。
+
+P2 较早增量：[人物/匿名组生产服务组合](evidence/int-001/face-people-composition-2026-09-16.md)，当时非空闭环未验收，不代表当前状态。
+
+此前：[P1 复查遗漏修复与复验](evidence/int-001/face-busy-repair-2026-09-16.md)。两条 busy 遗漏修复，专项回归及本地镜像探针通过后重新关闭 A02/A03；当时清单 3/34 关闭。保留首次关闭被撤回的记录。
+
+AI 实施方案：[未完成项解决方案与执行计划](features/intelligent-media-discovery-completion-plan.md)，按 P1～P6 覆盖剩余 34 项，先接人脸主链路。
+
+当前 AI 开发入口：[未完成任务清单与进度总表](features/intelligent-media-discovery-remaining-tasks.md)（2026-09-16，34 个剩余工作包；旧清单保留为历史，暂停/豁免事项单列）。
+
 最新（09-16）：[远程人脸激活调度](evidence/int-001/face-deployment-worker-2026-09-16.md)，独立运行时分支及 service 人脸模型迁移已实现；尚非主进程真实激活。
 
 最新：[人脸安全图片适配](evidence/int-001/face-runtime-adapter-2026-09-15.md)，四格式真实离线零人脸及 face/faceonnx 回归通过；代次准入与主进程组合仍待完成。

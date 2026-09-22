@@ -1025,7 +1025,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Request bounded missing-only or full face analysis and clustering */
+        /**
+         * Request bounded missing-only or full face analysis and clustering
+         * @description An enabled library awaiting a previously unavailable model can be retried
+         *     after that same model generation recovers. Admission rechecks availability
+         *     and the library revision; retry never enables a disabled library. A new
+         *     idempotency key creates the retry; the old key retains its recorded result.
+         */
         post: operations["requestFaceAnalysisJob"];
         delete?: never;
         options?: never;
@@ -2128,7 +2134,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "AssignClusterReview";
+            action: "assign_cluster";
             clusterId: components["schemas"]["ResourceID"];
             /** Format: int64 */
             expectedClusterRevision: number;
@@ -2136,18 +2142,29 @@ export interface components {
             expectedPersonRevision: number;
             personId: components["schemas"]["ResourceID"];
         };
+        /**
+         * @description Assign an unbound face, or atomically move a bound face when both
+         *     sourcePersonId and expectedSourceRevision identify its current owner.
+         *     The source fields must be supplied together. Omitting them never steals
+         *     a bound assignment. A detached needs-review lineage may be reassigned;
+         *     its previous owner revision is captured transactionally for guarded undo.
+         *     Existing cannot-link constraints are preserved and block owner transfer.
+         */
         AssignFaceReview: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "AssignFaceReview";
+            action: "assign_face";
             /** Format: int64 */
             expectedFaceRevision: number;
             /** Format: int64 */
             expectedPersonRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
             faceId: components["schemas"]["ResourceID"];
             personId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
         };
         AuthStatus: {
             /**
@@ -2231,7 +2248,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "CannotLinkFaceReview";
+            action: "cannot_link";
             /** Format: int64 */
             expectedLeftRevision: number;
             /** Format: int64 */
@@ -2376,7 +2393,7 @@ export interface components {
          * @description Stable machine-readable code. New public codes require a contract change.
          * @enum {string}
          */
-        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
+        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "library_offline" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
         ErrorResponse: {
             error: components["schemas"]["Error"];
         };
@@ -2385,7 +2402,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "ExcludeFaceReview";
+            action: "exclude_face";
             /** Format: int64 */
             expectedFaceRevision: number;
             faceId: components["schemas"]["ResourceID"];
@@ -2668,7 +2685,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "MergePeopleReview";
+            action: "merge_people";
             conflictsAcknowledged: boolean;
             /** Format: int64 */
             expectedSourceRevision: number;
@@ -2998,7 +3015,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            action: "SplitFaceReview";
+            action: "split_face";
             /** Format: int64 */
             expectedFaceRevision: number;
             /** Format: int64 */

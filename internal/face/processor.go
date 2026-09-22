@@ -21,6 +21,7 @@ var (
 	ErrInvalidOutput      = errors.New("invalid face output")
 	ErrSourceChanged      = errors.New("face source changed")
 	ErrRuntimeUnavailable = errors.New("face runtime unavailable")
+	ErrRuntimeBusy        = errors.New("face runtime busy")
 )
 
 type Box struct {

@@ -1,5 +1,118 @@
 # Independent ML service probe
 
+`p4-small-probe.mjs` now records the fixed anonymous manifest digest and public
+search results by anonymous sample name (not database IDs). Compare paired runs
+with `node spikes/int001-remote-ml/p4-rank-compare.mjs LEFT.json RIGHT.json`.
+The comparison reports rank equality and public video score/frame differences;
+it does not invent a tolerance, export embeddings, or approve model quality.
+
+## Semantic preprocessing upgrade and paired rollback
+
+`p4-semantic-upgrade-probe.mjs` uses synthetic media only. Set
+`FOLIOPATH_P3_APP_IMAGE` to the old candidate, `FOLIOPATH_P4_UPGRADE_IMAGE` to the
+new candidate, `FOLIOPATH_TEST_RESOURCE_PROFILE=p4-large`, and
+`FOLIOPATH_P4_UPGRADE_REPORT` to an absolute ignored report path. It creates an
+isolated old database, manual tag/person relation, and stopped-volume backup;
+then verifies changed semantic generation, no inherited completed-vector count,
+rebuild in both libraries, restart persistence and old-image/preupgrade-backup
+rollback. The existing short-video fixture remains degraded before and after;
+the probe requires that exact baseline rather than declaring all videos complete.
+It never opens an existing user database or deploys an image.
+
+### Large-image memory diagnostic
+
+`facedecode` is opt-in (`FOLIOPATH_FACE_SAMPLE_DIAGNOSTIC=1`), reads only anonymous sample copies through `internal/files` on a read-only `/library`, and processes at most 100 inputs. Its trim/thread-cleanup switches are diagnostic experiments, not production behavior. Never run it against an original media mount. `p4-large` gives the app 1024 MiB and inference 2304 MiB with 1+3 CPUs and no swap; `p4-native` retains 768/2560 MiB. Record the profile with every result. See [memory evidence](../../docs/evidence/int-001/p4-face-memory-2026-09-16.md); semantic size-limit failures remain failures.
+
+## Opt-in 100-sample diagnostic
+
+`sampleprep` must run inside Linux Docker with the explicitly authorized source
+mounted read-only at `/library`, a new output directory at `/output`, and
+`FOLIOPATH_ALLOW_SAMPLE_READ=100-readonly`. It uses `internal/files`, bounded
+candidate selection and anonymous copies, never source mutations. Do not add
+real media to CI fixtures. `FOLIOPATH_SAMPLE_AUDIT=1` only reads headers from
+an already-isolated sample mount and outputs aggregate pixel counts.
+
+`p4-small-probe.mjs` uses `FOLIOPATH_SMALL_SAMPLE_ROOT` (a generated
+`/tmp/foliopath-p4-small.*` directory), `FOLIOPATH_SMALL_MANIFEST` and
+`FOLIOPATH_SMALL_REPORT`. It reuses the P3 synthetic bootstrap, creates a separate
+100-sample library and checks actual coverage, search and copy hashes. Resource
+profile `p4-native` remains explicit. It removes its test environment, retaining
+the anonymous sample and report for review. This is not a quality benchmark.
+Run `node --test spikes/int001-remote-ml/p4-small-result.test.mjs` for result-gate
+regression. See `docs/evidence/int-001/p4-small-sample-2026-09-16.md` for retained
+remote OOM failures; do not assume the current remote sample passes.
+
+## P4 explicitly authorized native amd64 maintenance
+
+The user authorized temporary service shutdown on server222 for isolated testing,
+followed by restoration of the same four original containers and image IDs.
+`tests/release/p4-server222-maintenance.sh` is opt-in, never a CI/default target.
+It builds native images using an explicit build-only proxy and an isolated,
+memory-limited BuildKit, then stops the builder before measurements. Only synthetic
+media and temporary test volumes are used; the existing model cache is read-only.
+The P3 environment accepts `FOLIOPATH_TEST_RESOURCE_PROFILE=p4-native` (app
+1 CPU/768 MiB; AI 3 CPU/2560 MiB; no swap), `FOLIOPATH_TEST_MODEL_CACHE`, and
+`FOLIOPATH_P3_AI_IMAGE` for this test. Exact-run labels permit failure cleanup
+without targeting original services or volumes. This is not deployment permission.
+See `docs/evidence/int-001/p4-server222-native-2026-09-16.md` for actual results;
+the older local-only statements below describe their original P2/P3 runs.
+
+## P3 recovery and current UI acceptance
+
+Build `foliopath-app:p3` from the repository Dockerfile, the face inference image,
+and `foliopath-p3-browser:local` from `browser-test.Dockerfile`. The browser image
+installs Chromium, Firefox and WebKit; it is a test runner, not a deployment unit.
+Build `foliopath-release-http-client:local` from `tests/fixtures/http-client/Dockerfile`
+for stopped-volume copies. Then run:
+
+```sh
+node spikes/int001-remote-ml/p3-business-probe.mjs
+node spikes/int001-remote-ml/p3-recovery-probe.mjs
+node spikes/int001-remote-ml/p3-fault-probe.mjs
+node spikes/int001-remote-ml/p3-browser-probe.mjs
+```
+
+These use loopback ports 6098, 6096, 6097, 6095 respectively, isolated temporary
+synthetic fixtures/volumes/networks, and the existing model cache read-only.
+Host FFmpeg is used only to prepare a synthetic three-second video; all application,
+inference and browser assertions execute in local Docker. Real lease expiry can
+take several minutes. Keep the final image tag stable during acceptance; each run
+also holds a private image tag until cleanup. No server222 or real-media tests.
+Use `FOLIOPATH_P3_APP_IMAGE=foliopath-app:p23-final` to select the final candidate.
+Add `FOLIOPATH_P3_D04=1 FOLIOPATH_D04_VISUAL=1` to the browser command for
+the real people/tag keyboard, mobile-touch, locale/theme/viewport matrix and
+32 Chromium screenshot comparisons. Only generate references intentionally with
+`FOLIOPATH_D04_UPDATE=1`; inspect them, then run again without UPDATE in a new
+environment. Never count reference generation as a regression pass. Wait for the
+previous browser probe to exit and clean up before reusing port 6095.
+See `docs/evidence/int-001/p2-p3-final-recheck-2026-09-16.md` for final results,
+retained failures, conditional skips and boundaries.
+
+## Non-empty face business acceptance (P2)
+
+`node spikes/int001-remote-ml/face-business-probe.mjs` creates and removes its own
+temporary synthetic media tree, Docker network, database volume and containers.
+It never uses server222 or a real media directory. The fixture's provenance and
+full generation prompt are in `tests/fixtures/ai-faces/README.md`.
+Only the model cache `/Volumes/extended/foliopath/model-cache` is reused read-only.
+The app is loopback-only on 6094; the inference service has no published port.
+
+Prerequisites: build the inference face candidate as below, then:
+
+```sh
+docker build -t foliopath-app:face-worker .
+docker build --target web -t foliopath-web-check:local .
+docker build -f spikes/int001-remote-ml/browser-test.Dockerfile -t foliopath-face-browser:local .
+node spikes/int001-remote-ml/face-business-probe.mjs
+```
+
+The harness pins the app image ID for the whole run, including forced restart.
+It drives the authenticated API and real Chromium UI, including manual review,
+pagination, clearing confirmations, generation switching, cancellation and source
+reconciliation. Browser screenshots go to ignored `test-results/face-real`.
+Two repeated synthetic faces prove non-empty plumbing, not accuracy or calibration.
+The test-only threshold profile deliberately does not enable whole-group assignment.
+
 ## Persisted real-service probe
 
 The opt-in `persisted-probe` runs the existing backfill processor with native

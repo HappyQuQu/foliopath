@@ -9,7 +9,10 @@ import (
 )
 
 const (
-	MediaWorkerCount = 2
+	// Keep only one native media decode in flight. Two high-quality 100 MP JPEG
+	// thumbnails can otherwise exceed the supported 1 GiB application limit
+	// even when libvips uses decoder-level shrink-on-load.
+	MediaWorkerCount = 1
 	MaxJobAttempts   = 3
 )
 

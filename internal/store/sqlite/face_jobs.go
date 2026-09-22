@@ -67,6 +67,12 @@ func (s *Store) FaceJobLibraryState(ctx context.Context, libraryID int64, genera
 	} else if generationState != "active" {
 		return face.JobLibraryModelUnavailable, nil
 	}
+	if err := requireFaceServiceAvailable(ctx, s.db, generationID); err != nil {
+		if errors.Is(err, face.ErrFaceModelUnavailable) {
+			return face.JobLibraryModelUnavailable, nil
+		}
+		return "", err
+	}
 	return face.JobLibraryReady, nil
 }
 
@@ -153,6 +159,9 @@ func (s *Store) CreateFaceJob(ctx context.Context, value face.JobAdmission) (fac
 		}
 		if activeGeneration != value.Job.GenerationID {
 			return face.ErrFaceModelUnavailable
+		}
+		if err := requireFaceServiceAvailable(ctx, tx, value.Job.GenerationID); err != nil {
+			return err
 		}
 		var generationState string
 		if err := tx.QueryRowContext(ctx, `SELECT state FROM face_generations WHERE id=?`, value.Job.GenerationID).Scan(&generationState); errors.Is(err, sql.ErrNoRows) {
@@ -335,6 +344,9 @@ func (s *Store) CommitFaceJobProgress(ctx context.Context, commit face.JobProgre
 		if commit.Batch.GenerationID != generationID || commit.Batch.LibraryID != libraryID || commit.Batch.AssetID != commit.NextCheckpointID {
 			return face.ErrInvalidFaceJob
 		}
+		if err := requireFaceServiceAvailable(ctx, tx, generationID); err != nil {
+			return err
+		}
 		current, err := scanFaceJobProgress(tx.QueryRowContext(ctx, faceJobProgressSelect, generationID, libraryID))
 		if errors.Is(err, sql.ErrNoRows) {
 			return face.ErrFaceJobConflict
@@ -439,6 +451,9 @@ func (s *Store) FinishFaceJob(ctx context.Context, job face.AnalysisJob, succeed
 			return face.ErrFaceJobConflict
 		}
 		if succeeded {
+			if err := requireFaceServiceAvailable(ctx, tx, generationID); err != nil {
+				return err
+			}
 			progress, err := scanFaceJobProgress(tx.QueryRowContext(ctx, faceJobProgressSelect, generationID, libraryID))
 			if errors.Is(err, sql.ErrNoRows) {
 				return face.ErrFaceJobConflict

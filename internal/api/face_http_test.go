@@ -16,6 +16,16 @@ import (
 
 type faceHTTPSettingsStub struct{ value face.LibrarySettings }
 
+func TestFaceCursorErrorsRemainDistinctFromNotReady(t *testing.T) {
+	for _, err := range []error{face.ErrFaceProjectionStale, face.ErrFaceClusterCursorStale, face.ErrPeopleCursorStale} {
+		response := httptest.NewRecorder()
+		writeFaceError(response, httptest.NewRequest(http.MethodGet, "/", nil), err)
+		if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), `"code":"face_cursor_stale"`) {
+			t.Fatalf("cursor response: %d %s", response.Code, response.Body.String())
+		}
+	}
+}
+
 func (s faceHTTPSettingsStub) Get(context.Context, int64) (face.LibrarySettings, error) {
 	return s.value, nil
 }
