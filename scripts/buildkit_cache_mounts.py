@@ -34,7 +34,8 @@ def dancefile(base, target, mode):
     test -n "$CACHE_NONCE" && cp -a /restore/. {target}/
 """
     return header + f"""RUN --mount=type=cache,target={target} \
-    test -n "$CACHE_NONCE" && mkdir /export && cp -a {target}/. /export/
+    test -n "$CACHE_NONCE" && mkdir /export && cp -a {target}/. /export/ \
+    && find /export -type d -exec chmod u+w {{}} +
 FROM scratch
 COPY --from=cache /export/ /
 """

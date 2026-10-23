@@ -27,12 +27,22 @@ try:
         for name in MOUNTS:
             (root / name).mkdir()
             (root / name / "foliopath-roundtrip").write_text("before")
+            # Go module directories are 0555. A non-root Linux local exporter
+            # must still be able to create their children in a fresh snapshot.
+            module = root / name / "readonly-module" / "nested"
+            module.mkdir(parents=True)
+            (module / "source.go").write_text("package fixture\n")
+            module.chmod(0o555)
+            module.parent.chmod(0o555)
         transfer("inject", root, ROOT / "Dockerfile", run)
         for name in MOUNTS:
             (root / name / "foliopath-roundtrip").write_text("after")
         transfer("extract", root, ROOT / "Dockerfile", run)
         for name in MOUNTS:
             assert (root / name / "foliopath-roundtrip").read_text() == "before"
+            module = root / name / "readonly-module" / "nested"
+            assert (module / "source.go").read_text() == "package fixture\n"
+            assert module.stat().st_mode & 0o200
         print("Three real BuildKit cache mounts restored successfully on an isolated builder")
 finally:
     subprocess.run(["docker", "buildx", "rm", builder], check=False)
