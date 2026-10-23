@@ -282,6 +282,7 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 		return 0, false, face.ErrInvalidFaceClear
 	}
 	var deleted int64
+	var diagnosticDeleted int64
 	done := false
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		var state, kind string
@@ -320,8 +321,16 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 			if err != nil {
 				return err
 			}
+			if deleted == 0 {
+				result, err = tx.ExecContext(ctx, `DELETE FROM face_asset_failures WHERE rowid IN (SELECT rowid FROM face_asset_failures WHERE library_id=? ORDER BY asset_id LIMIT ?)`, job.LibraryID, limit)
+				if err != nil {
+					return err
+				}
+				// Diagnostic rows are not part of the public clear impact total.
+				diagnosticDeleted, _ = result.RowsAffected()
+			}
 			var remaining int
-			if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM face_cluster_builds WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_observations WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_results WHERE library_id=?)`, job.LibraryID, job.LibraryID, job.LibraryID).Scan(&remaining); err != nil {
+			if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM face_cluster_builds WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_observations WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_results WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_failures WHERE library_id=?)`, job.LibraryID, job.LibraryID, job.LibraryID, job.LibraryID).Scan(&remaining); err != nil {
 				return err
 			}
 			done = remaining == 0
@@ -370,7 +379,7 @@ func (s *Store) DeleteFaceClearBatch(ctx context.Context, job face.ClearJob, lim
 			}
 			done = remaining == 0
 		}
-		if !done && deleted == 0 {
+		if !done && deleted == 0 && diagnosticDeleted == 0 {
 			return face.ErrFaceClearConflict
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE face_clear_jobs SET deleted_count=deleted_count+?,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, deleted, now.UnixMilli(), job.ID); err != nil {
@@ -415,7 +424,7 @@ func (s *Store) FinishFaceClear(ctx context.Context, job face.ClearJob, succeede
 		if succeeded {
 			var remaining int
 			if face.ClearKind(kind) == face.ClearDerived {
-				if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM face_cluster_builds WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_observations WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_results WHERE library_id=?)`, job.LibraryID, job.LibraryID, job.LibraryID).Scan(&remaining); err != nil {
+				if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM face_cluster_builds WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_observations WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_results WHERE library_id=?) OR EXISTS(SELECT 1 FROM face_asset_failures WHERE library_id=?)`, job.LibraryID, job.LibraryID, job.LibraryID, job.LibraryID).Scan(&remaining); err != nil {
 					return err
 				}
 				if _, err := tx.ExecContext(ctx, `DELETE FROM face_library_progress WHERE library_id=?`, job.LibraryID); err != nil {

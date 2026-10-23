@@ -176,7 +176,9 @@ func TestCancellationTimeoutAndSlotRelease(t *testing.T) {
 			t.Fatal("request did not enter")
 		}
 	}
-	if _, err := c.EncodeText(context.Background(), "test"); err != ErrBusy {
+	capacityCtx, capacityCancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer capacityCancel()
+	if _, err := c.EncodeImage(capacityCtx, []byte("bounded background payload")); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
 	}
 	cancel()

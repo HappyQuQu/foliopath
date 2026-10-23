@@ -90,7 +90,7 @@ func (b *deploymentJobBinding) admit(ctx context.Context) error {
 
 func (b *deploymentJobBinding) FaceJobLibraryState(ctx context.Context, libraryID int64, generationID string) (JobLibraryState, error) {
 	state, err := b.JobCatalog.FaceJobLibraryState(ctx, libraryID, generationID)
-	if err != nil || state != JobLibraryReady {
+	if err != nil || state != JobLibraryReady && state != JobLibraryScanning {
 		return state, err
 	}
 	if generationID != b.generationID {

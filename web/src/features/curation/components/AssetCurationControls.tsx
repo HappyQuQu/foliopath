@@ -1,9 +1,12 @@
-import { Heart, Plus, X } from "@phosphor-icons/react";
-import { useId, useState, type FormEvent } from "react";
+import { Heart, LockKey, Plus, X } from "@phosphor-icons/react";
+import { useId, useRef, useState, type FormEvent } from "react";
 
 import { Button, ErrorState, IconButton, Input, LoadingState } from "../../../components/ui";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { useTagDisplay } from "../../../lib/i18n/tagDisplay";
+import { ApiError } from "../../../lib/api/errors";
 import {
+  useAddManualAssetTagMutation,
   useAssetCurationQuery,
   useCreateAndAssignTagMutation,
   useFavoriteMutation,
@@ -19,7 +22,14 @@ export function AssetCurationControls({
   assetId: string;
   csrfToken: string;
 }) {
+  return <SingleAssetCurationControls key={assetId} assetId={assetId} csrfToken={csrfToken} />;
+}
+
+function SingleAssetCurationControls({ assetId, csrfToken }: { assetId: string; csrfToken: string }) {
   const { t } = useLocale();
+  const { tagName: displayName } = useTagDisplay();
+  const headingId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const availableTagsHeadingId = useId();
   const newTagHintId = useId();
   const [tagName, setTagName] = useState("");
@@ -27,14 +37,18 @@ export function AssetCurationControls({
   const tagsQuery = useTagsQuery();
   const favoriteMutation = useFavoriteMutation();
   const createMutation = useCreateAndAssignTagMutation();
+  const addMutation = useAddManualAssetTagMutation();
   const replaceMutation = useReplaceAssetTagsMutation();
-  const tagMutationPending = createMutation.isPending || replaceMutation.isPending;
+  const tagMutationPending = createMutation.isPending || replaceMutation.isPending || addMutation.isPending;
   const mutationPending = tagMutationPending || favoriteMutation.isPending;
 
   function submitTag(event: FormEvent) {
     event.preventDefault();
     const name = tagName.trim();
     if (!name || mutationPending || (stateQuery.data?.tags.length ?? 20) >= 20) return;
+    // Move focus before pending state disables the initiating control. Never restore
+    // it from an asynchronous callback after the user has moved elsewhere.
+    headingRef.current?.focus();
     createMutation.mutate(
       { assetId, csrfToken, name },
       { onSuccess: () => setTagName("") },
@@ -61,29 +75,31 @@ export function AssetCurationControls({
 
   function addExistingTag(tagId: string) {
     if (mutationPending || selectedTagIds.has(tagId) || atTagLimit) return;
-    replaceMutation.mutate({
+    headingRef.current?.focus();
+    addMutation.mutate({
       assetId,
       csrfToken,
       revision: state.revision,
-      tagIds: [...state.tags.map((tag) => tag.id), tagId],
+      tagId,
     });
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="asset-curation-heading">
+    <section className={styles.panel} aria-labelledby={headingId}>
       <div className={styles.heading}>
-        <h3 id="asset-curation-heading">{t("curation.organize")}</h3>
+        <h3 id={headingId} ref={headingRef} tabIndex={-1}>{t("curation.organize")}</h3>
         <Button
           aria-pressed={state.favorite}
           disabled={mutationPending}
           loading={favoriteMutation.isPending}
-          onClick={() =>
+          onClick={() => {
+            headingRef.current?.focus();
             favoriteMutation.mutate({
               assetId,
               csrfToken,
               favorite: !state.favorite,
-            })
-          }
+            });
+          }}
           size="small"
           variant="secondary"
         >
@@ -97,18 +113,28 @@ export function AssetCurationControls({
         )}
         {state.tags.map((tag) => (
           <span className={styles.tag} key={tag.id}>
-            {tag.name}
+            <span className={styles.tagName}>{displayName(tag)}</span>
+            <small title={t(tag.source === "ai" ? "curation.aiSourceHint" : "curation.manualSourceHint")}>{t(tag.source === "ai" ? "curation.aiSource" : "curation.manualSource")}</small>
+            {tag.source === "ai" && <IconButton
+              disabled={mutationPending}
+              label={t("curation.keepManualTag").replace("{name}", displayName(tag))}
+              onClick={() => {
+                headingRef.current?.focus();
+                addMutation.mutate({ assetId, csrfToken, revision: state.revision, tagId: tag.id });
+              }}
+            ><LockKey aria-hidden="true" size={13} /></IconButton>}
             <IconButton
               disabled={mutationPending}
-              label={t("curation.removeTag").replace("{name}", tag.name)}
-              onClick={() =>
+              label={t("curation.removeTag").replace("{name}", displayName(tag))}
+              onClick={() => {
+                headingRef.current?.focus();
                 replaceMutation.mutate({
                   assetId,
                   csrfToken,
                   revision: state.revision,
                   tagIds: state.tags.filter((item) => item.id !== tag.id).map((item) => item.id),
-                })
-              }
+                });
+              }}
             >
               <X aria-hidden="true" size={13} />
             </IconButton>
@@ -119,6 +145,7 @@ export function AssetCurationControls({
         aria-labelledby={availableTagsHeadingId}
         className={styles.availableSection}
       >
+        <p className={styles.emptyTags}>{t("curation.automaticProtection")}</p>
         <h4 id={availableTagsHeadingId}>{t("curation.availableTags")}</h4>
         {tagsQuery.isPending ? (
           <LoadingState label={t("curation.loadingState")} />
@@ -133,7 +160,7 @@ export function AssetCurationControls({
               {availableTags.map((tag) => (
                 <li key={tag.id}>
                   <Button
-                    aria-label={t("curation.addExistingTag").replace("{name}", tag.name)}
+                    aria-label={t("curation.addExistingTag").replace("{name}", displayName(tag))}
                     className={styles.availableTag}
                     disabled={mutationPending || atTagLimit}
                     onClick={() => addExistingTag(tag.id)}
@@ -141,7 +168,7 @@ export function AssetCurationControls({
                     variant="secondary"
                   >
                     <Plus aria-hidden="true" size={15} />
-                    {tag.name}
+                    {displayName(tag)}
                   </Button>
                 </li>
               ))}
@@ -196,8 +223,8 @@ export function AssetCurationControls({
           {t("curation.createTag")}
         </Button>
       </form>
-      {(createMutation.isError || replaceMutation.isError || favoriteMutation.isError) && (
-        <p className={styles.error} role="alert">{t("curation.updateFailed")}</p>
+      {(createMutation.isError || replaceMutation.isError || addMutation.isError || favoriteMutation.isError) && (
+        <p className={styles.error} role="alert">{t([createMutation.error, replaceMutation.error, addMutation.error].some(error => error instanceof ApiError && error.code === "precondition_failed") ? "curation.revisionConflict" : "curation.updateFailed")}</p>
       )}
     </section>
   );

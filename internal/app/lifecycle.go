@@ -85,6 +85,7 @@ func (application *application) run(ctx context.Context) error {
 				ctx,
 				"application.component_start_failed",
 				slog.String("component", candidate.name),
+				slog.Group("failure", runtimeFailureAttributes(err)...),
 			)
 			startErr := fmt.Errorf("start component %q: %w", candidate.name, err)
 			return errors.Join(startErr, application.shutdown(started))
@@ -96,6 +97,7 @@ func (application *application) run(ctx context.Context) error {
 	if runErr != nil {
 		var failure componentStopError
 		attributes := []any{}
+		attributes = append(attributes, slog.Group("failure", runtimeFailureAttributes(runErr)...))
 		if errors.As(runErr, &failure) {
 			attributes = append(attributes, slog.String("component", failure.name))
 		}
@@ -109,6 +111,7 @@ func (application *application) run(ctx context.Context) error {
 	if shutdownErr != nil {
 		application.logger.Error(
 			"application.shutdown_failed",
+			slog.Group("failure", runtimeFailureAttributes(shutdownErr)...),
 		)
 	}
 	application.logger.Info("application.stopped")

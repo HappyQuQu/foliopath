@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
@@ -13,7 +13,7 @@ import {
 } from "../../../components/patterns/MediaPreview/MediaPreview";
 import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
 import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
-import { Button, EmptyState, ErrorState } from "../../../components/ui";
+import { Button, EmptyState, ErrorState, LoadingState } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   assetContentUrl,
@@ -21,8 +21,8 @@ import {
   type AssetKind,
   type AssetSort,
 } from "../../../lib/api/catalog";
-import type { Tag } from "../../../lib/api/curation";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { useTagDisplay } from "../../../lib/i18n/tagDisplay";
 import {
   mediaAvailability,
   mediaAvailabilityPresentation,
@@ -40,13 +40,13 @@ import {
   defaultBrowseUrlState,
   DirectoryNavigation,
 } from "../../browse";
-import { useLibrariesQuery } from "../../libraries";
+import { useLibrariesQuery, useLibraryQuery } from "../../libraries";
 import { AssetCurationControls } from "../components/AssetCurationControls";
+import { LibraryTagCloud } from "../components/LibraryTagCloud";
 import {
   useFavoriteMutation,
   useFavoritesQuery,
   useTagAssetsQuery,
-  useTagsQuery,
 } from "../queries";
 import styles from "./CurationPage.module.css";
 
@@ -62,6 +62,7 @@ export function CurationPage({
   tagId?: string;
 }) {
   const { locale, t } = useLocale();
+  const { tagName, language } = useTagDisplay();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,10 +74,17 @@ export function CurationPage({
     [librariesQuery.data],
   );
   const requestedLibraryId = searchParams.get("libraryId");
-  const currentLibrary =
-    libraries.find((library) => library.id === requestedLibraryId) ??
-    libraries.find((library) => library.status === "ready") ??
-    libraries[0];
+  const hasRequestedLibrary = searchParams.has("libraryId");
+  const listedLibrary = libraries.find(library => library.id === requestedLibraryId);
+  // Resolve deep links beyond the picker page without falling back to another library.
+  const requestedLibraryQuery = useLibraryQuery(
+    requestedLibraryId && !listedLibrary && !librariesQuery.isPending ? requestedLibraryId : "",
+  );
+  const currentLibrary = hasRequestedLibrary
+    ? listedLibrary ?? requestedLibraryQuery.data?.library
+    : libraries.find(library => library.status === "ready") ?? libraries[0];
+  const selectableLibraries = currentLibrary && !libraries.some(library => library.id === currentLibrary.id)
+    ? [...libraries, currentLibrary] : libraries;
   const libraryId = currentLibrary?.id;
   const kind = searchParams.get("kind") === "image" || searchParams.get("kind") === "video"
     ? searchParams.get("kind") as "image" | "video"
@@ -96,20 +104,24 @@ export function CurationPage({
     order: "desc" as const,
     sort,
   };
-  const tagsQuery = useTagsQuery();
-  const favoritesQuery = useFavoritesQuery(queryOptions);
+  const favoritesQuery = useFavoritesQuery(queryOptions, Boolean(libraryId) && !showingTags);
   const favoriteCount = favoritesQuery.data?.pages[0]?.counts.all;
-  const tagAssetsQuery = useTagAssetsQuery(tagId, queryOptions);
+  const tagAssetsQuery = useTagAssetsQuery(tagId, queryOptions, Boolean(libraryId) && showingTags);
+  const selectedTagName = useMemo(() => {
+    if (!libraryId || !tagId) return undefined;
+    for (const page of tagAssetsQuery.data?.pages ?? []) {
+      for (const item of page.items) {
+        const tag = item.curation.tags.find(tag => tag.id === tagId);
+        if (tag) return tagName(tag);
+      }
+    }
+    return undefined;
+  }, [libraryId, tagId, tagAssetsQuery.data, language, locale]);
   const favoriteMutation = useFavoriteMutation();
-  const tags = useMemo(
-    () => tagsQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [tagsQuery.data],
-  );
-  const selectedTag = tags.find((tag) => tag.id === tagId);
   const activeQuery = tagId ? tagAssetsQuery : favoritesQuery;
   const assets = useMemo(
-    () => activeQuery.data?.pages.flatMap((page) => page.items.map((item) => item.asset)) ?? [],
-    [activeQuery.data],
+    () => !libraryId || (showingTags && !tagId) ? [] : activeQuery.data?.pages.flatMap((page) => page.items.map((item) => item.asset)) ?? [],
+    [activeQuery.data, libraryId, showingTags, tagId],
   );
   const mediaItems = useMemo(
     () => mapItems(assets, locale),
@@ -118,7 +130,7 @@ export function CurationPage({
   const selectedPathIds = useMemo(() => new Set<string>(), []);
   const preview = useMediaPreviewController({
     items: assets,
-    resetKey: showingTags ? `tag:${tagId ?? "index"}` : "favorites",
+    resetKey: `${libraryId ?? "none"}:${kind}:${showingTags ? `tag:${tagId ?? "index"}` : "favorites"}`,
   });
   const previewAsset = preview.previewItem;
   const previewItem = useMemo<MediaPreviewItem | undefined>(
@@ -149,15 +161,15 @@ export function CurationPage({
     [locale, previewAsset, t],
   );
   const heading = showingTags
-    ? selectedTag?.name ?? t("curation.tags")
+    ? tagId ? selectedTagName ?? t("tagCloud.filtered") : t("curation.tags")
     : t("curation.favorites");
 
   useEffect(() => {
-    if (!libraryId || requestedLibraryId === libraryId) return;
+    if (!libraryId || hasRequestedLibrary) return;
     const next = new URLSearchParams(searchParams);
     next.set("libraryId", libraryId);
     setSearchParams(next, { replace: true });
-  }, [libraryId, requestedLibraryId, searchParams, setSearchParams]);
+  }, [hasRequestedLibrary, libraryId, searchParams, setSearchParams]);
 
   useEffect(() => {
     const returnState = readViewerReturnState(location.state);
@@ -189,9 +201,11 @@ export function CurationPage({
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
+      navigationKey={`${libraryId ?? "none"}:${showingTags ? tagId ?? "tags" : "favorites"}:${kind}`}
       onLogout={onLogout}
       searchHref={paths.search}
       settingsHref={paths.generalSettings}
+      topbarContent={<span>{currentLibrary?.name ?? heading}</span>}
       sidebarContent={
         libraryId ? (
           <DirectoryNavigation
@@ -200,21 +214,18 @@ export function CurationPage({
             currentLibraryName={currentLibrary?.name}
             {...(favoriteCount !== undefined ? { favoriteCount } : {})}
             hideDirectoryTree
-            libraries={libraries}
+            libraries={selectableLibraries}
             libraryId={libraryId}
             onLibraryChange={(nextLibraryId) => {
-              const next = new URLSearchParams(searchParams);
-              next.set("libraryId", nextLibraryId);
-              setSearchParams(next);
+              const next = new URLSearchParams({ libraryId: nextLibraryId });
+              if (showingTags) next.set("kind", "image");
+              navigate(`${showingTags ? paths.tags : paths.favorites}?${next.toString()}`);
             }}
             quickAccessDetail={
               showingTags ? (
-                <TagWall
-                  tags={tags}
-                  hasMoreTags={tagsQuery.hasNextPage}
+                <LibraryTagCloud
+                  key={libraryId}
                   libraryId={libraryId}
-                  loadingMoreTags={tagsQuery.isFetchingNextPage}
-                  onLoadMoreTags={() => void tagsQuery.fetchNextPage()}
                   {...(tagId ? { selectedTagId: tagId } : {})}
                 />
               ) : undefined
@@ -230,6 +241,9 @@ export function CurationPage({
           <p>{t("curation.quickAccess")}</p>
           <h1 id="curation-heading">{heading}</h1>
           <span>{t("curation.loadedCount").replace("{count}", String(assets.length))}</span>
+          {showingTags && tagId && <Button size="small" variant="secondary" onClick={() => {
+            navigate(`${paths.tags}?${searchParams.toString()}`);
+          }}>{t("tagCloud.clearFilter")}</Button>}
         </header>
         <div className={styles.filters} role="region" aria-label={t("curation.filters")}>
           <div className={styles.kindGroup}>
@@ -272,10 +286,20 @@ export function CurationPage({
           style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
         >
         <div className={styles.results}>
-          {showingTags && !tagId ? (
+          {!libraryId ? (
+            librariesQuery.isPending || (Boolean(requestedLibraryId) && requestedLibraryQuery.isPending) ? <LoadingState /> :
+            librariesQuery.isError || hasRequestedLibrary ? <>
+              <ErrorState message={t("tagCloud.libraryFailed")} onRetry={() => {
+                void librariesQuery.refetch();
+                if (requestedLibraryId) void requestedLibraryQuery.refetch();
+              }} />
+              <Button variant="secondary" onClick={() => navigate(paths.libraries)}>{t("tagCloud.openLibraries")}</Button>
+            </> : <EmptyState title={t("tagCloud.noLibrary")} description={t("tagCloud.chooseDescription")}
+              action={<Button onClick={() => navigate(paths.libraries)}>{t("tagCloud.openLibraries")}</Button>} />
+          ) : showingTags && !tagId ? (
             <EmptyState
-              description={t("curation.selectTagDescription")}
-              title={t("curation.selectTag")}
+              description={t("tagCloud.chooseDescription")}
+              title={t("tagCloud.choose")}
             />
           ) : activeQuery.isPending ? (
             <MediaCollectionSkeleton label={t("curation.loadingAssets")} />
@@ -413,63 +437,6 @@ export function CurationPage({
       </section>
     </AppShell>
   );
-}
-
-function TagWall({
-  hasMoreTags,
-  libraryId,
-  loadingMoreTags,
-  onLoadMoreTags,
-  selectedTagId,
-  tags,
-}: {
-  hasMoreTags: boolean;
-  libraryId: string;
-  loadingMoreTags: boolean;
-  onLoadMoreTags: () => void;
-  selectedTagId?: string;
-  tags: Tag[];
-}) {
-  const { t } = useLocale();
-  const maximumCount = Math.max(1, ...tags.map((tag) => tag.assetCount));
-  return (
-    <section className={styles.tagWall} aria-labelledby="tag-wall-heading">
-      <h2 id="tag-wall-heading">{t("curation.allTags")}</h2>
-      <nav aria-label={t("curation.allTags")}>
-        {tags.map((tag) => (
-          <Link
-            aria-current={selectedTagId === tag.id ? "page" : undefined}
-            className={styles.tagCloudLink}
-            data-weight={tagWeight(tag.assetCount, maximumCount)}
-            key={tag.id}
-            to={`${paths.tag(tag.id)}?${new URLSearchParams({ libraryId }).toString()}`}
-          >
-            <span>{tag.name}</span>
-            <small aria-label={t("curation.tagAssetCount").replace("{count}", String(tag.assetCount))}>
-              {tag.assetCount}
-            </small>
-          </Link>
-        ))}
-        {tags.length === 0 && <span className={styles.noTags}>{t("curation.noTags")}</span>}
-        {hasMoreTags && (
-          <Button
-            loading={loadingMoreTags}
-            onClick={onLoadMoreTags}
-            size="small"
-            variant="quiet"
-          >
-            {t("curation.loadMoreTags")}
-          </Button>
-        )}
-      </nav>
-    </section>
-  );
-}
-
-function tagWeight(count: number, maximumCount: number): 1 | 2 | 3 | 4 | 5 {
-  if (maximumCount <= 1) return 1;
-  const normalized = Math.log1p(count) / Math.log1p(maximumCount);
-  return Math.min(5, Math.max(1, Math.ceil(normalized * 5))) as 1 | 2 | 3 | 4 | 5;
 }
 
 function mapItems(assets: Asset[], locale: string): MediaCollectionItem[] {

@@ -1,5 +1,129 @@
 # FolioPath 候选部署与运维
 
+## 可选大 PNG 语义输入（ADR-0028）
+
+支持候选中的 `FOLIOPATH_AI_DEPLOYMENT.image_preprocessing="png-v4"`（JSON 字段，不是独立环境变量），
+缺省/空值保持 v3，未知值失败关闭。仅语义 PNG 扩到 64 MiB / 40 MP；人物/自动标签与 AI 镜像无需改动。
+预处理变化创建新语义代次；旧向量保留但不计新覆盖，需要显式重新分析。等待现有任务终态、停主应用完整
+备份 data/私有配置后再切换；保留所有现有 Compose 覆盖，特别是用户选择的 unlimited-memory 与 multilingual。
+回退使用匹配镜像/配置/停写全备份，不能仅改回字段就承诺恢复旧活动代次。
+本地 6010 已获“终态后切换”授权，尚未执行；实际测试与操作顺序见[记录](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+## 有活动分析任务的计划升级（ADR-0027）
+
+新版本正常 SIGTERM/SIGINT 时，图片语义/人物/自动标签 worker 等处理器和 heartbeat 退出后，
+以原 claim fence 交回同一任务，记录 schema 44 审计并撤销该次 claim 消耗；不清零历史 crash 次数。
+取消、终态和旧 fence 不复活；强杀/OOM 仍按原 3 次上限恢复。退出非零或超时不能当交接成功。
+先确认主应用已停止、完整备份 `/app/data` 与匹配配置，再替换镜像；不要删库或重新全量提交来升级。
+
+从不支持此逻辑的旧版本首升，必须在确认 Docker owner 停止/完整备份后，由 Linux 离线工具
+`spikes/job-handoff` 对停写精确 claim 快照执行一次 canonical 交接，不能仅假定旧 SIGTERM 已交回。
+工具不进入生产镜像或浏览器 API，不得对运行中的 owner 使用写模式；失败可能已完成 schema 升级，
+回退需用完整停写备份和旧镜像/配置。不要从宿主打开原挂载 SQLite（停止后也优先用容器核对）。
+旧策略任务在运行时保持旧 AI/身份，新类别策略另行切换。当前 6010 部署/备份与续跑证据见
+[交接修复记录](changes/FIX-2026-10-23-planned-job-handoff.md)。
+
+## 中文标签候选（ADR-0026）
+
+主应用本地化展示兼容原 92 类服务，不需改旧标签或重跑；153 类识别扩充另需使用固定
+`services/inference/Dockerfile.photo-tags` 覆盖已核验的多语言镜像，离线 `python -m photo_policy`
+读取新独立标签身份并仅更新部署 JSON 的 tag.identity。搜索/人物字段保持原值，仍只有两个服务。
+语言选择归浏览器，不写 Compose。不得只改策略名称而沿用旧摘要；启用库的新身份补齐保留人工和抑制。
+更换运行服务前遵循下方停主应用/完整备份、AI healthy 后再恢复的顺序；不要用反复重启打断原库任务。
+本地测试候选与 6010 当前部署状态分别见 [CR-2026-033](changes/CR-2026-033-localized-photo-tags.md)。
+
+## 多语言语义覆盖（ADR-0025）
+
+XLM-Roberta-Large-Vit-B-16Plus 640 维需固定覆盖镜像、字节清单与新语义索引，不能只改模型名。
+AI 不挂 DB/媒体；新增 volume 仅为可丢弃 scratch，不是备份真相。更新保留 multilingual 及不限内存覆盖。
+有在途任务时，先停主应用完成全备份，再更新 AI 等 healthy 后启动主应用，避免恢复任务早于 AI 就绪。
+保留旧镜像/配置/完整 data；回退也不重标向量。仅新语义需要补齐，人物/人工标签不清理。
+操作、资源与剩余门禁见[CR-2026-032](changes/CR-2026-032-multilingual-semantic-model.md)。
+
+## 本地 6010 不限容器内存（2026-10-23 用户选择）
+
+后续 [ADR-0024 大图共享准入/回收候选](changes/FIX-2026-10-23-main-face-memory.md) 已通过固定合成 Docker，
+四库终态后已完成停写全备份并单次替换 6010 主应用为 c9f28d7a；保留本节的不限额覆盖和原 AI/身份，
+没有为升级重复提交/清除原分析。健康/容器内完整性/原任务终态复核通过，详见链接中的备份与操作记录。
+本地候选部署不是所有容量/长期或发行批准。
+
+本地 `foliopath-ai-original-review` 使用 `compose.ai.yaml` 加
+`compose.ai.unlimited-memory.yaml`，显式取消主应用与 AI 的 RAM/swap 容器上限；
+不是默认发行预算改变，也不宣称已修复解码内存峰值。Docker Desktop/宿主总容量仍生效。
+CPU/并发、输入大小、PID、超时、tmpfs、只读媒体和内部网络不变。
+后续同实例更新必须保留该覆盖文件；操作及验证见[AI Compose 说明](ai-compose.md#操作者显式取消容器内存上限)。
+下文基准 1024/2304 MiB 和历史测试结果仍属于有界配置，不能套到当前不限额部署。
+
+## 在线 SQLite 检查（ADR-0023，2026-10-23）
+
+Docker Desktop 的 macOS/Windows 宿主机不得直接打开运行中的 bind-mounted SQLite 数据库，即使只执行
+quick_check 或使用 mode=ro，也不能假定与 Linux VM 共用锁域。隔离合成库已复现 I/O 短读（522）并使
+scan-worker fail-closed 退出。请在拥有数据的主应用容器内执行：
+
+```sh
+docker exec foliopath-ai-original-review-foliopath-1 /app/foliopath database-check
+```
+
+成功仅输出 `database check passed`；失败非零退出并输出固定错误，不输出原始 SQL、表名或路径。
+该命令固定 `/app/data/foliopath.db`、Linux-only、mode=ro、15 秒上限，在一个只读快照执行 quick_check 和
+foreign_key_check，不启动应用/worker/模型，不迁移、checkpoint、VACUUM 或尝试修复。readiness 快检不改变。
+不要给命令传主机路径；不要在 AI 服务挂载数据库。备份须先停止主应用，再完整复制其数据目录；
+仅已停止写入的独立备份副本可以在宿主机检查。下文此前宿主机检查结果只作为历史记录，不能照抄为在线操作。
+[故障复现与本地验收](changes/FIX-2026-10-23-scan-worker-exit.md)。
+
+本机 6010 后续已更新主镜像 `sha256:0a0244c0f3d5d9d637cf4ed48746d8d273e723e0a1b136c3ce07bf9325b0c917`，
+AI 保持原镜像，无迁移（43 不变）。停写备份以 `backup-6010-scan-worker-verified-20261023-FBogJQ` 为准；
+较早的 o6klZU 目录未作可靠备份使用。详情及首轮备份检查失败原因见修复记录。离线 WAL 库的只读数据库连接
+可能仍需要目录允许 WAL/SHM sidecar，完全只读目录不等于可以忽略 WAL；不要对活跃数据使用 immutable=1。
+
+## 人物失败诊断升级（2026-10-23 / ADR-0022）
+
+迁移 43 增加派生失败记录，不改原媒体、人工标签或人物关系。必须保留 `/app/data` 的完整停写备份；
+回退需先停止新主应用，再配对恢复旧镜像、旧 env 和完整旧数据，不能把 schema 43 数据直接交给旧程序，
+也不能通过手删新表降级。AI 服务镜像/模型身份本次不变。
+
+原 6010 使用 `foliopath-ai-original-review` 项目更新，备份为
+`/Volumes/extended/foliopath/backup-6010-face-diagnostics-20261023-Q9Ah1V`（旧 env＋schema 42 全数据，
+备份 immutable quick_check=ok）。新库 quick_check=ok、外键检查为空、schema 43、4 库/8,719 媒体；
+最终主镜像为 `sha256:ce6911fb7c63f4974f21043bdd5463ac33d0a80cce65e598180f6a4731e9f7b5`，
+AI 为 `sha256:fa7750b57500031a3282181e3b728646717885b339a0640a76b121468165e0b8`。
+初检双服务 healthy、restart=0/OOM=false；最终主应用 scan-worker 退出后自动重启 1 次，现恢复 healthy，
+主应用 restart=1、AI=0/OOM=false。底层原因未查明，持续运行验收未通过；数据库仍完整、8,719 项保留。
+未向原库发起分析/清理，未实际执行回退。固定镜像与回归见
+[本次记录](changes/FIX-2026-10-23-ai-failure-diagnostics.md)。本机部署不代表 server222 更新或发行批准。
+
+## 自动标签候选升级（2026-10-22 / ADR-0021）
+
+本节描述 [CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) 当前实现的部署合同，不声明
+任何现有环境已更新或发行已批准。仍使用根 `compose.ai.yaml` 的两个服务，不增加 worker 部署。
+主应用 1024 MiB / AI 2304 MiB、AI 私有快照 tmpfs 1200 MiB、禁 swap 与只读挂载预算保持不变；
+有界推理子进程属于 AI 容器内部，不是第三个服务。
+
+- 用 `services/inference/Dockerfile` 的 `FOLIOPATH_INCLUDE_TAG=1` 显式构建可选 JoyTag 能力；默认不含。
+  这不下载或内置模型权重。只读缓存须具有固定 `tagging/JoyTag/` 三个文件，摘要及完整准备步骤见
+  [AI 镜像说明](../services/inference/README.md#bounded-inference-and-automatic-tags-adr-0021)。
+- 主应用 `FOLIOPATH_AI_DEPLOYMENT` 可增加 `tag: { identity: ... }`；identity 包括 version=1、
+  protocol=`foliopath-tag-v1`、model=`JoyTag`、model/policy/runtime/cache SHA-256。tag 缓存身份独立于
+  CLIP/face，runtime 必须匹配同一服务。请从固定候选镜像离线导出预期身份，不接受未验证的在线响应。
+  未配置模型时原有标签和普通图库仍可用，自动标签显示等待；没有界面模型下载或按库模型选择。
+- 运行时代码/固定 manifest 改变会改变搜索、人脸及标签兼容身份，即使模型文件相同也不能沿用
+  原部署 JSON 或把旧索引重标为新代次。更新配对 app/AI 镜像和预期身份后，按新身份重新分析；
+  旧索引/人物应用状态依各 owner 保留规则处理，旧完成数不计入新身份，禁止直接改数据库绕过验证。
+- 自动标签的 model identity 还包含主应用图片预处理合同。已启用库有界补齐新图、源变更和新模型；
+  每库一个活动任务、全局最多 32。关闭/取消保留已提交标签；任务失败、取消或最多三次领取尝试
+  耗尽会阻止同模型自动重入，重启/服务恢复不会解除。管理员确认重新识别（all）或显式重新启用
+  后恢复调度；同源同模型已记录的逐图失败需 all 重试，不能靠每 30 秒调度无限重试。
+- 正常推理槽暂忙不封锁模型：同图最多 3 次尝试（1/2 秒可取消等待），仍忙则原任务延后 30 秒，
+  释放后台资源后自动继续；保留同一 operation 和已提交进度，不消耗崩溃恢复次数，不生成任务风暴。
+  暂忙探测不把已验证模型标为失联；从未验证成功的模型仍显示等待。
+- 升级前按 SQLite WAL 安全方式备份 `/app/data`；migrations 41/42 包含标签来源、人工删除抑制和
+  有界任务，不能当缓存丢弃。旧关联升级为 manual；源变更只使 AI 关联失效。回退必须配对旧镜像
+  与升级前停写备份，不能把已升级数据库直接交给旧镜像或主动降级删除人工保护状态。
+
+推理按请求冷验证/复制/加载并回收，吞吐和峰值须在同预算实测；参考
+[ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md)，最终 Docker/原件 hash/重启证据由 CR 汇总。
+下文 P3 的“直接重试”仅适用于原搜索/人物任务；自动标签的失败/取消恢复以上述规则为准。
+
 P5 新交付入口：根 [`compose.ai.yaml`](../compose.ai.yaml) 为独立双服务候选配置，不叠加根单容器 Compose。配置、离线镜像/身份准备和运行限制见 [AI Compose 部署说明](ai-compose.md)。P5 5/5 已通过本地工程验收，[最终证据](evidence/int-001/p5-delivery-security-2026-09-17.md)。下文旧 spike 配置仅保留为历史验证，不再作为正式双服务入口；P6 发行批准不因 P5 完成而自动通过。
 
 P4 大 JPEG 兼容候选采用语义预处理 `remote-image-v2`，因此即使 AI 模型文件不变，主应用的 semantic 空间身份也会改变；升级后须按新代次重新分析图片/视频及生成标签建议，不能将旧向量强行重标为新代次。人脸输入身份不变。这不是自动更新线上部署；旧镜像回退仍配对升级前备份。[修复范围](changes/FIX-2026-09-17-semantic-large-jpeg.md)。

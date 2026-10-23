@@ -536,6 +536,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add or explicitly retain one tag as manual
+         * @description Adds a manual association or promotes an existing AI association to manual and clears same-name suppression. Changes require the current curation revision; an already-manual association may return idempotently without a mutation. No body is accepted.
+         */
+        put: operations["addManualAssetTag"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/{assetId}/thumbnail": {
         parameters: {
             query?: never;
@@ -931,6 +951,58 @@ export interface paths {
         patch: operations["renameLibrary"];
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/ai/automatic-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get automatic image tagging settings and recorded coverage */
+        get: operations["getLibraryAutomaticTagSettings"];
+        /**
+         * Enable automatic incremental tagging for one library
+         * @description Enabling schedules missing/new/changed images with a bounded background reconciler.
+         *     Disabling cancels pending work and fences subsequent commits, but preserves existing
+         *     tags and manual removal suppression. Same-source/model failures are not retried forever.
+         */
+        put: operations["updateLibraryAutomaticTagSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/automatic-tags/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Process missing images or explicitly reprocess automatic tags
+         * @description Creates a bounded restart-safe operation. Manual tags and per-image removal suppression
+         *     survive every run. A successful empty model result only removes old AI associations.
+         *     Full reprocessing can retry recorded failures; it never erases manual curation.
+         *     Cancellation uses the existing AI operation endpoint and preserves committed results.
+         */
+        post: operations["requestLibraryAutomaticTagJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/ai/face-clusters": {
         parameters: {
             query?: never;
@@ -1031,6 +1103,13 @@ export interface paths {
          *     after that same model generation recovers. Admission rechecks availability
          *     and the library revision; retry never enables a disabled library. A new
          *     idempotency key creates the retry; the old key retains its recorded result.
+         *     Missing-only work includes current-source persisted failures even when an
+         *     older successful result exists. Per-asset diagnostic details describe the
+         *     current attempt; legacy reasons cannot be reconstructed. An in-flight job
+         *     waits at most 60 seconds per transient catalog scan, rechecking control and
+         *     lease every second, then fails with library_scanning if scanning continues.
+         *     New admission still requires a ready library; offline/disabled/model failures
+         *     do not wait or restart automatically.
          */
         post: operations["requestFaceAnalysisJob"];
         delete?: never;
@@ -1735,7 +1814,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List manual tags in stable name order */
+        /**
+         * List manual tags in stable name order
+         * @description Without libraryId or kind, returns the global tag vocabulary, including
+         *     tags with no associated assets. When either filter is supplied, returns
+         *     only tags carried by matching assets; assetCount counts distinct asset
+         *     IDs within that scope. Use kind=image,animated for an image-only tag cloud;
+         *     kind=image alone does not include animated images. Cursors are bound to
+         *     library scope, normalized media kinds, normalized search, and the curation
+         *     revision. Unknown libraries fail explicitly and never fall back globally.
+         */
         get: operations["listTags"];
         put?: never;
         /**
@@ -1924,10 +2012,10 @@ export interface components {
             completedItems: number;
             createdAt: components["schemas"]["Timestamp"];
             /** @enum {string|null} */
-            errorCode: "model_candidate_stale" | "download_failed" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "vocabulary_unavailable" | "storyboard_not_ready" | "face_model_unavailable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "operation_interrupted" | "cancelled" | "internal_error" | null;
+            errorCode: "model_candidate_stale" | "download_failed" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "model_invalid_output" | "vocabulary_unavailable" | "storyboard_not_ready" | "face_model_unavailable" | "library_not_ready" | "library_scanning" | "library_offline" | "face_disabled" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "operation_interrupted" | "cancelled" | "internal_error" | null;
             id: components["schemas"]["ResourceID"];
             /** @enum {string} */
-            kind: "model_install" | "model_activate" | "semantic_missing" | "semantic_rebuild" | "semantic_clear" | "tag_suggestion_missing" | "tag_suggestion_rebuild" | "tag_review_clear" | "video_semantic_missing" | "video_semantic_rebuild" | "face_missing" | "face_rebuild" | "face_derived_clear" | "face_manual_clear";
+            kind: "model_install" | "model_activate" | "semantic_missing" | "semantic_rebuild" | "semantic_clear" | "tag_suggestion_missing" | "tag_suggestion_rebuild" | "tag_review_clear" | "automatic_tags_missing" | "automatic_tags_rebuild" | "video_semantic_missing" | "video_semantic_rebuild" | "face_missing" | "face_rebuild" | "face_derived_clear" | "face_manual_clear";
             /** @enum {string} */
             phase: "queued" | "scanning" | "verifying" | "copying" | "loading" | "building" | "detecting" | "clustering" | "validating" | "clearing" | "finalizing" | "completed";
             /** Format: int64 */
@@ -2102,7 +2190,7 @@ export interface components {
             favoritedAt: string | null;
             /** Format: int64 */
             revision: number;
-            tags: components["schemas"]["Tag"][];
+            tags: components["schemas"]["AssetTag"][];
         };
         AssetFace: {
             assetId: components["schemas"]["ResourceID"];
@@ -2128,6 +2216,18 @@ export interface components {
             counts: components["schemas"]["AssetCounts"];
             items: components["schemas"]["Asset"][];
             nextCursor: components["schemas"]["NullableCursor"];
+        };
+        /** @description A per-image association; manual source wins over automatic updates. Global tag vocabulary has no source. */
+        AssetTag: {
+            /** Format: int64 */
+            assetCount: number;
+            createdAt: components["schemas"]["Timestamp"];
+            id: components["schemas"]["ResourceID"];
+            localization?: components["schemas"]["TagLocalization"];
+            name: string;
+            /** @enum {string} */
+            source: "manual" | "ai";
+            updatedAt: components["schemas"]["Timestamp"];
         };
         AssignClusterReview: {
             /**
@@ -2179,6 +2279,34 @@ export interface components {
         AutomaticDiscoveryErrorCode: "watch_unavailable" | "watch_resource_limit" | "watch_overflow" | "source_unavailable" | "internal_error" | null;
         /** @enum {string} */
         AutomaticDiscoveryStatus: "active" | "degraded" | "unsupported" | "disabled";
+        AutomaticTagLibrarySettings: {
+            activeOperationId: components["schemas"]["NullableResourceID"];
+            coverage: {
+                /** Format: int64 */
+                completed: number;
+                /** Format: int64 */
+                eligible: number;
+                /** Format: int64 */
+                failed: number;
+                /** Format: int64 */
+                revision: number;
+                /** Format: int64 */
+                stale: number;
+            };
+            enabled: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            model: {
+                displayName: string;
+                identity: string;
+                /** @enum {string} */
+                protocol: "foliopath-tag-v1";
+            } | null;
+            offline: boolean;
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "awaiting_model" | "building" | "ready" | "degraded";
+        };
         /**
          * @description One indexed location in a root-to-current breadcrumb chain. The root
          *     uses the media-library display name and an empty relative path.
@@ -2407,6 +2535,8 @@ export interface components {
             expectedFaceRevision: number;
             faceId: components["schemas"]["ResourceID"];
         };
+        /** @enum {string} */
+        FaceAssetFailureCode: "media_unreadable" | "invalid_media" | "inference_invalid_output" | "inference_timeout" | "analysis_failed";
         FaceCluster: {
             id: components["schemas"]["ResourceID"];
             /** @enum {string} */
@@ -2439,10 +2569,50 @@ export interface components {
             items: components["schemas"]["FaceCluster"][];
             nextCursor: components["schemas"]["NullableCursor"];
         };
+        /** @description Current-generation, current-attempt bounded diagnostic summary; no raw exceptions or host paths. Legacy failures may lack details. New attempts replace previous attempt details. */
+        FaceFailureDiagnostics: {
+            latestTask: {
+                /** @description Safe terminal task code; never a raw exception. library_scanning means bounded scan waiting expired. */
+                errorCode: string | null;
+                operationId: components["schemas"]["ResourceID"];
+                /** @enum {string} */
+                state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+                /** Format: date-time */
+                updatedAt: string;
+            } | null;
+            reasons: {
+                code: components["schemas"]["FaceAssetFailureCode"];
+                /** Format: int64 */
+                count: number;
+            }[];
+            /** Format: int64 */
+            recordedFailures: number;
+            /** @description At most 20 failed assets ordered by asset ID; a diagnostic sample, not a complete log listing. */
+            samples: {
+                assetId: components["schemas"]["ResourceID"];
+                code: components["schemas"]["FaceAssetFailureCode"];
+                name: string;
+                /**
+                 * Format: int64
+                 * @description Current catalog source size. Zero with invalid_media identifies an empty original; absent on older servers.
+                 */
+                sizeBytes?: number;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+            /**
+             * Format: int64
+             * @description Historical coverage failures without persisted per-asset reasons; retry is needed to collect reasons.
+             */
+            unrecordedFailures: number;
+        };
         FaceLibrarySettings: {
             activeGenerationId: components["schemas"]["NullableResourceID"];
             coverage: components["schemas"]["DerivedCoverage"];
+            diagnostics?: components["schemas"]["FaceFailureDiagnostics"];
             enabled: boolean;
+            /** @description Whether this library's bound face generation matches the deployment's active generation, computed in the same read snapshot. Omitted when either generation is unavailable. False means coverage belongs to historical model results; a missing job will use the current model without deleting manual relationships. */
+            generationCurrent?: boolean;
             libraryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
             revision: number;
@@ -2791,6 +2961,7 @@ export interface components {
         RenamePersonRequest: {
             name: string;
         };
+        /** @description Differential manual edit with revision CAS. Unchanged associations retain their source. Removed names are persistently suppressed for this image; explicitly added names become manual and clear same-name suppression. AI reruns cannot undo these changes. */
         ReplaceAssetTagsRequest: {
             tagIds: components["schemas"]["ResourceID"][];
         };
@@ -3101,8 +3272,15 @@ export interface components {
             assetCount: number;
             createdAt: components["schemas"]["Timestamp"];
             id: components["schemas"]["ResourceID"];
+            localization?: components["schemas"]["TagLocalization"];
             name: string;
             updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description Reviewed AI category display metadata only; never rewrites name, tag ID, manual text or curation. Omitted for unknown/manual associations and mixed/manual/unassigned global tags. Locale is a browser preference, not an inference setting. */
+        TagLocalization: {
+            en: string;
+            key: string;
+            zhCN: string;
         };
         TagNameRequest: {
             /** @description Raw input before server-owned Unicode normalization; normalized display length is at most 32 code points. */
@@ -3484,7 +3662,7 @@ export interface components {
         SortParameter: "name" | "modifiedAt" | "size";
         /** @description Opaque application tag ID. It contains no media path information. */
         TagIDParameter: components["schemas"]["ResourceID"];
-        /** @description Optional normalized literal substring filter over tag display names. */
+        /** @description Optional normalized literal substring filter over original tag names and reviewed Chinese/English aliases of AI categories associated in the requested library/media-kind scope. Manual names remain unchanged. Expansion is applied before keyset pagination. */
         TagSearchParameter: string;
         /**
          * @description Bounded, server-defined transform variant. `grid` is the static image
@@ -4501,6 +4679,43 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    addManualAssetTag: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+                /** @description Opaque application tag ID. It contains no media path information. */
+                tagId: components["parameters"]["TagIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current asset curation with manual association ownership. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCuration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getAssetThumbnail: {
         parameters: {
             query?: {
@@ -5195,6 +5410,130 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             422: components["responses"]["UnprocessableEntity"];
             428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryAutomaticTagSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-library settings; deployment model is read-only, not a user vocabulary. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticTagLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibraryAutomaticTagSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved settings with a new optimistic-concurrency revision. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticTagLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestLibraryAutomaticTagJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Required when mode is all.
+                     * @enum {string}
+                     */
+                    confirmation?: "reprocess_automatic_tags";
+                    /** @enum {string} */
+                    mode: "missing" | "all";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted or coalesced; totalItems is null until the bounded traversal finishes. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };
@@ -6759,9 +7098,13 @@ export interface operations {
                  *     the server never falls back to the first page.
                  */
                 cursor?: components["parameters"]["CursorParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
                 /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
                 limit?: components["parameters"]["LimitParameter"];
-                /** @description Optional normalized literal substring filter over tag display names. */
+                /** @description Optional normalized literal substring filter over original tag names and reviewed Chinese/English aliases of AI categories associated in the requested library/media-kind scope. Manual names remain unchanged. Expansion is applied before keyset pagination. */
                 q?: components["parameters"]["TagSearchParameter"];
             };
             header?: never;
@@ -6781,6 +7124,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

@@ -16,6 +16,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Information: Story = {};
 
+export const PlainListStatus: Story = { args: { appearance: "plain", tone: "warning", children: "部分失败" } };
+
 export const Dismissible: Story = {
   args: {
     onDismiss: () => undefined,

@@ -9,6 +9,7 @@ from PIL import Image
 
 import face_contract
 import server
+from scheduler import Busy
 
 
 def picture(size=(32, 24)):
@@ -58,24 +59,22 @@ class FaceContractTests(unittest.TestCase):
         client = TestClient(server.application)
         self.assertEqual(client.get("/api/v1/face/identity").status_code, 503)
         self.assertEqual(client.post("/api/v1/face/predict").status_code, 503)
-        with patch.object(server, "face_identity", {"protocol": "foliopath-face-v1"}), patch.object(server, "upstream") as upstream:
-            upstream.predict = AsyncMock(return_value=JSONResponse(result()))
+        with patch.object(server, "face_identity", {"protocol": "foliopath-face-v1"}), patch.object(server, "run_inference", AsyncMock(return_value=face_contract.normalize(result(), 32, 24))) as infer:
             response = client.post("/api/v1/face/predict", files={"image": ("image.png", picture())})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()["faces"][0]["embedding"][0], 1)
-            self.assertEqual(json.loads(upstream.get_entries.call_args.args[0]), face_contract.ENTRIES)
+            self.assertEqual(infer.call_args.args[1], "face")
             for payload in (b"corrupt", picture((1601, 1))):
                 self.assertEqual(client.post("/api/v1/face/predict", files={"image": ("image.png", payload)}).status_code, 400)
-            upstream.predict.side_effect = RuntimeError("private path")
+            infer.side_effect = RuntimeError("private path")
             response = client.post("/api/v1/face/predict", files={"image": ("image.png", picture())})
             self.assertEqual(response.json(), {"error": "unavailable"})
             self.assertEqual(response.status_code, 503)
-        self.assertEqual(server.active, 0)
 
     def test_shared_admission(self):
         client = TestClient(server.application)
-        with patch.object(server, "face_identity", {"version": 1}), patch.object(server, "active", 2):
-            self.assertEqual(client.post("/api/v1/face/predict").json(), {"error": "busy"})
+        with patch.object(server, "face_identity", {"version": 1}), patch.object(server, "run_inference", AsyncMock(side_effect=Busy())):
+            self.assertEqual(client.post("/api/v1/face/predict", files={"image": ("image.png", picture())}).json(), {"error": "busy"})
 
 
 if __name__ == "__main__":

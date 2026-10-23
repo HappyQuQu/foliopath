@@ -44,6 +44,33 @@ func TestSemanticPreprocessingUpgradeChangesGenerationIdentity(t *testing.T) {
 	}
 }
 
+func TestPNGProfileBindsOnlySemanticIdentityAndRejectsUnknown(t *testing.T) {
+	legacy := deploymentConfigFixture()
+	legacy.Face = faceDeploymentConfigFixture()
+	legacy.Tag = &tagDeploymentConfiguration{Identity: remoteml.TagIdentity{Version: 1, Protocol: "foliopath-tag-v1", Model: "JoyTag", ModelSHA256: strings.Repeat("a", 64), PolicySHA256: strings.Repeat("c", 64), RuntimeContractSHA256: legacy.Identity.RuntimeContractSHA256, CacheManifestSHA256: strings.Repeat("d", 64)}}
+	changed := legacy
+	changed.ImagePreprocessing = semantic.RemoteImagePNG
+	raw, _ := json.Marshal(changed)
+	parsed, err := deploymentFromEnvironment([]string{deploymentEnvironment + "=" + string(raw)})
+	if err != nil || parsed.ImagePreprocessing != semantic.RemoteImagePNG {
+		t.Fatalf("reviewed profile rejected: %v", err)
+	}
+	want := sha256.Sum256([]byte(semantic.RemotePNGPreprocessingContract))
+	if parsed.space().PreprocessingSHA256 != hex.EncodeToString(want[:]) || legacy.model().ContentHash == parsed.model().ContentHash {
+		t.Fatal("new profile aliases legacy semantic space")
+	}
+	if legacy.Tag.fingerprint() != parsed.Tag.fingerprint() || legacy.Face.space() != parsed.Face.space() {
+		t.Fatal("semantic profile changed independent tag/face identity")
+	}
+	for _, invalid := range []semantic.RemoteImageProfile{"latest", "png-v5", "png-v4 "} {
+		changed.ImagePreprocessing = invalid
+		raw, _ := json.Marshal(changed)
+		if _, err := deploymentFromEnvironment([]string{deploymentEnvironment + "=" + string(raw)}); err == nil {
+			t.Fatalf("unknown profile accepted: %q", invalid)
+		}
+	}
+}
+
 func TestDeploymentConfigurationIsOptionalStrictAndOffline(t *testing.T) {
 	config := deploymentConfigFixture()
 	raw, _ := json.Marshal(config)

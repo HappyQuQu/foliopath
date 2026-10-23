@@ -151,8 +151,9 @@ export function SearchPage({
       t("search.source"),
       semanticVideoMatches,
       t("search.videoMatch"),
+      t(state.mode === "semantic" ? "search.matchSemantic" : "search.matchLiteral"),
     ),
-    [assets, locale, semanticVideoMatches, t],
+    [assets, locale, semanticVideoMatches, state.mode, t],
   );
   const canonicalSearch = serializeSearchUrlState(state);
 
@@ -222,6 +223,10 @@ export function SearchPage({
       onLogout={onLogout}
       peopleHref={`${paths.intelligence}?view=clusters`}
       searchHref={`${libraryId ? paths.librarySearch(libraryId) : paths.search}?${canonicalSearch}`}
+      searchInput={{
+        label: t(state.mode === "semantic" ? "search.semanticInputLabel" : "search.inputLabel"),
+        placeholder: t(state.mode === "semantic" ? "search.semanticPlaceholder" : "search.placeholder"),
+      }}
       settingsHref={
         libraryId
           ? paths.generalSettingsForLibrary(libraryId)
@@ -271,7 +276,7 @@ export function SearchPage({
         <div className={styles.results}>
           {!state.q && (
             <EmptyState
-              description={t("search.startDescription")}
+              description={t(state.mode === "semantic" ? "search.semanticStartDescription" : "search.startDescription")}
               icon={MagnifyingGlass}
               title={t("search.startTitle")}
             />
@@ -349,6 +354,7 @@ export function SearchPage({
                       String(assets.length),
                     )}
                   </span>
+                  <span>{t(state.mode === "semantic" ? "search.semanticResultsDescription" : "search.literalResultsDescription")}</span>
                 </div>
                 {resultsQuery.isFetchNextPageError && (
                   <InlineStatus tone="danger">
@@ -665,6 +671,7 @@ function mapSearchItems(
   sourceTemplate: string,
   videoMatches: Record<string, SemanticVideoMatch>,
   videoMatchTemplate: string,
+  retrievalLabel: string,
 ): MediaCollectionItem[] {
   const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -674,13 +681,11 @@ function mapSearchItems(
     const storyboard = mediaStoryboard(asset);
     const videoMatch = videoMatches[asset.id];
     return {
-      ...(videoMatch
-        ? {
-            contextLabel: videoMatchTemplate
-              .replace("{time}", formatDuration(videoMatch.timestampMs))
-              .replace("{plan}", String(videoMatch.planSize)),
-          }
-        : {}),
+      contextLabel: videoMatch
+        ? `${retrievalLabel} · ${videoMatchTemplate
+            .replace("{time}", formatDuration(videoMatch.timestampMs))
+            .replace("{plan}", String(videoMatch.planSize))}`
+        : retrievalLabel,
       favorite: asset.favorite ?? false,
       height: asset.height,
       id: asset.id,

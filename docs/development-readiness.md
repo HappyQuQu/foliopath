@@ -1,5 +1,9 @@
 # FolioPath 开发就绪评审
 
+2026-10-23 PNG 语义兼容切片：ADR-0028 接受显式版本化输入合同，Go/native 与真实模型合成 Docker
+已通过，允许候选交付；原库部署验收尚未完成。用户授权当前任务终态、完整停写备份后再切换及重算图片语义。
+不授权中断现有任务、重标旧向量、升级标签策略或跳过质量/容量/发行门禁。[切片证据](changes/FIX-2026-10-23-semantic-large-png.md)。
+
 2026-09-14 ADR-0019/CR-2026-030 接受独立 AI 服务方向，目前通过本地离线协议 spike。
 旧 INT Backend Ready 不自动覆盖新 HTTP/模型代次合同；允许继续合同设计与隔离验证，
 正式主应用和 UI 集成仍须先补齐新切片 Backend Ready。
@@ -121,8 +125,10 @@ ADR 流程。
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
   `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；
   合并与发布前在本地运行适用入口。
-- `.node-version`、`packageManager` 和 lockfile 固定 Node 22.22.2/npm 10.9.7；strict
-  TypeScript、生成文件漂移检查与 high-severity npm audit 已在本地通过。
+- `.node-version`、`packageManager` 和 lockfile 当前固定 Node 24.22.1 LTS/npm 11.19.1，CI 与
+  Docker 构建阶段同步；本轮验证以[工具链维护记录](changes/FIX-2026-10-23-node24-lts.md)为准。
+  Node 24 本机/Docker 均 67/414 测试通过，types/生成/构建通过；当前 high/critical 依赖审计失败，
+  综合 check/安全/发行仍未通过。既有 Node 22 的证据不冒充本轮执行。
 
 仍待阶段 1 固定或补齐：
 

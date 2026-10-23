@@ -1,0 +1,6 @@
+# Extend a verified local runtime. Do not overwrite legacy identity source bytes.
+ARG FOLIOPATH_INFERENCE_BASE
+FROM ${FOLIOPATH_INFERENCE_BASE}
+COPY services/inference/photo_*.py /opt/foliopath-inference/
+COPY internal/curation/tag_categories.json /opt/foliopath-inference/photo_categories.json
+CMD ["python", "-m", "photo_runtime"]

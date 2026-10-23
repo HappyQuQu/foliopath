@@ -1,5 +1,5 @@
 import { X } from "@phosphor-icons/react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { Button } from "../Button/Button";
@@ -13,6 +13,7 @@ export interface DialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
   title: string;
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function Dialog({
@@ -22,6 +23,7 @@ export function Dialog({
   onOpenChange,
   open,
   title,
+  fallbackFocusRef,
 }: DialogProps) {
   const { t } = useLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -61,7 +63,9 @@ export function Dialog({
       }}
       onClose={() => {
         if (open) onOpenChange(false);
-        restoreFocusRef.current?.focus();
+        const trigger = restoreFocusRef.current;
+        if (trigger?.isConnected && !trigger.matches(":disabled")) trigger.focus();
+        if (!trigger?.isConnected || trigger.matches(":disabled") || document.activeElement !== trigger) fallbackFocusRef?.current?.focus();
       }}
     >
       <header className={styles.header}>

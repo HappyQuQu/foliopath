@@ -126,11 +126,6 @@
   gap: var(--space-2);
 }
 
-.list {
-  display: grid;
-  gap: var(--space-3);
-}
-
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -140,33 +135,133 @@
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
+.libraryWorkspace {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.librarySummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 46rem);
+  margin: 0;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.librarySummaryItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+}
+
+.librarySummaryItem + .librarySummaryItem {
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.librarySummaryIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  color: var(--color-accent);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-soft);
+}
+
+.librarySummaryItem dd,
+.librarySummaryItem dt {
+  display: block;
+  margin: 0;
+}
+
+.librarySummaryItem dd {
+  font-size: var(--font-size-5);
+  font-weight: 700;
+  line-height: var(--line-height-tight);
+}
+
+.librarySummaryItem dt {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.librarySummaryWarning .librarySummaryIcon {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.libraryTable {
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-3);
+  background: var(--color-surface);
+}
+
+.libraryTableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+
+.libraryTableHeader h2,
+.libraryTableHeader p {
+  margin: 0;
+}
+
+.libraryTableHeader h2 {
+  font-size: var(--font-size-4);
+}
+
+.libraryTableHeader p,
+.libraryTableHeader > span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
+}
+
+.libraryTableHeader p {
+  margin-top: var(--space-1);
+}
+
+.libraryTableHeader > span {
+  flex: 0 0 auto;
+}
+
+.list {
+  display: grid;
+}
+
 .libraryGroup {
   min-width: 0;
 }
 
+.libraryGroup + .libraryGroup {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
 .library {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  grid-template-columns: minmax(13rem, 1.05fr) minmax(25rem, 1.7fr) auto;
   align-items: center;
-  gap: var(--space-4);
+  gap: clamp(var(--space-5), 3vw, var(--space-8));
   padding: var(--space-5);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-2);
   background: var(--color-surface);
-  transition:
-    box-shadow var(--motion-normal) var(--ease-standard),
-    transform var(--motion-normal) var(--ease-standard);
+  transition: background var(--motion-fast) var(--ease-standard);
 }
 
-.library:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-0.0625rem);
-}
-
+.library:hover,
 .libraryExpanded {
-  border-radius: var(--radius-2) var(--radius-2) 0 0;
-  box-shadow: var(--shadow-1);
-  transform: none;
+  background: var(--color-surface-hover);
 }
 
 .libraryIcon {
@@ -179,24 +274,58 @@
   background: var(--color-accent-soft);
 }
 
+.libraryIdentity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
 .libraryDetails {
   min-width: 0;
 }
 
-.library h2 {
+.library h3 {
   margin: 0 0 var(--space-1);
   overflow-wrap: anywhere;
   font-size: var(--font-size-4);
 }
 
-.library p {
-  margin: 0 0 var(--space-2);
+.libraryDetails p {
+  margin: 0;
+  overflow: hidden;
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.library p span:first-child {
-  overflow-wrap: anywhere;
+.libraryFacts {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 0.8fr) minmax(10rem, 1fr) minmax(11rem, 1.3fr);
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.libraryFacts > div {
+  min-width: 0;
+}
+
+.libraryFacts > div > span,
+.libraryFacts > div > strong {
+  display: block;
+}
+
+.libraryFacts > div > span {
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.libraryFacts > div > strong {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  line-height: var(--line-height-normal);
 }
 
 .status {
@@ -281,11 +410,8 @@
 
 .statusPreview {
   padding: var(--space-5);
-  border: var(--border-width) solid var(--color-border);
-  border-top: 0;
-  border-radius: 0 0 var(--radius-2) var(--radius-2);
+  border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface-subtle);
-  box-shadow: var(--shadow-1);
 }
 
 .statusPreviewBody {
@@ -426,6 +552,27 @@
   }
 }
 
+@media (max-width: 76rem) {
+  .library {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .libraryFacts {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .libraryFacts > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .rowActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
 @media (max-width: 40rem) {
   .page,
   .statePage {
@@ -442,12 +589,37 @@
     width: 100%;
   }
 
+  .librarySummary {
+    grid-template-columns: 1fr;
+  }
+
+  .librarySummaryItem + .librarySummaryItem {
+    border-top: var(--border-width) solid var(--color-border);
+    border-left: 0;
+  }
+
+  .libraryTableHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
   .library {
-    grid-template-columns: 3rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .libraryFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .libraryFacts > div:last-child {
+    grid-column: 1 / -1;
   }
 
   .rowActions {
-    grid-column: 1 / -1;
+    grid-column: auto;
+    grid-row: auto;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

@@ -1,0 +1,18 @@
+# Incremental local native candidate; not a full release/supply-chain build.
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS web
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
+COPY web ./
+RUN mkdir -p /src/internal/webassets && npm run build
+
+FROM foliopath:local-face-diagnostic-builder@sha256:41cdae585410a8ad7fa5dc18d8f0940c3825343233ee3973a189fe903bc428b3 AS build
+COPY go.mod go.sum /src/
+COPY cmd /src/cmd
+COPY internal /src/internal
+COPY migrations /src/migrations
+RUN rm -r /src/internal/webassets/dist
+COPY --from=web /src/internal/webassets/dist /src/internal/webassets/dist
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig LD_LIBRARY_PATH=/opt/glib/lib CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" CGO_ENABLED=1 go build -tags=libvips -trimpath -ldflags="-s -w -X main.version=localized-tag-candidate" -o /out/foliopath ./cmd/foliopath
+FROM foliopath:local-multilingual-app-20261023@sha256:1806724d1f019bec88cc4092f9630e8223849034aff3ed709c54e0f51edfea83
+COPY --from=build /out/foliopath /app/foliopath

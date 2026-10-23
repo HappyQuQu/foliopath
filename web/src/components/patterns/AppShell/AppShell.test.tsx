@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 
@@ -58,6 +59,20 @@ it("closes mobile navigation with Escape and restores focus", async () => {
   expect(openButton).toHaveFocus();
 });
 
+it("forwards search guidance without interpreting feature URL modes in the shared shell", async () => {
+  const user = userEvent.setup();
+  function Location() { const location = useLocation(); return <output>{location.pathname}{location.search}</output>; }
+  render(<ThemeProvider><ToastProvider><MemoryRouter>
+    <AppShell active="search" homeHref="/" identity="管理员" searchHref="/libraries/lib_1/search?mode=semantic&scope=library"
+      searchInput={{ label: "Describe visual content", placeholder: "Cars by the sea" }} settingsHref="/settings/general" title="搜索"><Location /></AppShell>
+  </MemoryRouter></ToastProvider></ThemeProvider>);
+  const input = screen.getByRole("searchbox", { name: "Describe visual content" });
+  expect(input).toHaveAttribute("placeholder", "Cars by the sea");
+  await user.type(input, "汽车");
+  await user.keyboard("{Enter}");
+  expect(screen.getByRole("status")).toHaveTextContent("/libraries/lib_1/search?mode=semantic&scope=library&q=%E6%B1%BD%E8%BD%A6");
+});
+
 it("keeps the directory sidebar without duplicate product navigation", async () => {
   const user = userEvent.setup();
   render(
@@ -92,6 +107,28 @@ it("keeps the directory sidebar without duplicate product navigation", async () 
     "href",
     "/settings/general",
   );
+});
+
+it("closes an open drawer when its destination changes without remounting the shell", () => {
+  function Workspace() {
+    const [destination, setDestination] = useState("library:tags");
+    const [search, setSearch] = useState("");
+    return <AppShell active="browse" homeHref="/" identity="管理员" searchHref="/search" settingsHref="/settings/general"
+      navigationKey={destination} title="标签" topbarContent={<span>标签</span>}
+      sidebarContent={<><button onClick={() => setSearch("travel")}>Search tags</button><button onClick={() => setDestination("library:travel")}>Choose travel</button></>}>
+      <output>{search}</output>
+    </AppShell>;
+  }
+  render(<ThemeProvider><ToastProvider><MemoryRouter><Workspace /></MemoryRouter></ToastProvider></ThemeProvider>);
+  const open = screen.getByLabelText("打开导航");
+  fireEvent.click(open);
+  fireEvent.click(screen.getByText("Search tags"));
+  expect(open).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(screen.getByText("Choose travel"));
+  expect(open).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByLabelText("打开导航")).toBe(open);
+  expect(open).toHaveFocus();
+  expect(screen.getByText("travel")).toBeInTheDocument();
 });
 
 it("uses only the global header on pages without a directory sidebar", async () => {

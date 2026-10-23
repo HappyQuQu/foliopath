@@ -19,7 +19,7 @@ func New() *Processor {
 	return &Processor{}
 }
 
-func (*Processor) PrepareRemoteSemanticImage(context.Context, io.ReadSeeker, media.Format) ([]byte, error) {
+func prepareRemoteSemanticImage(context.Context, io.ReadSeeker, media.Format, semantic.RemoteImageProfile) ([]byte, error) {
 	return nil, semantic.ErrImagePreprocessUnavailable
 }
 

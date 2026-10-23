@@ -1061,7 +1061,7 @@ export function DirectoryNavigation({
   selectedDirectoryId,
   selectedPathIds,
 }: {
-  activeQuickAccess?: "allMedia" | "people" | "favorites" | "tags";
+  activeQuickAccess?: "allMedia" | "people" | "favorites" | "tags" | "suggestions";
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
   favoriteCount?: number;

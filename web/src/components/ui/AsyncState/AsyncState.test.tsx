@@ -10,6 +10,19 @@ import {
   OfflineState,
 } from "./AsyncState";
 
+it("preserves announcements and keyboard recovery in compact task states", async () => {
+  const retry = vi.fn();
+  const user = userEvent.setup();
+  render(<><LoadingState density="compact" label="正在载入任务" /><ErrorState density="compact" message="任务连接失败" onRetry={retry} /><EmptyState density="compact" title="暂无任务" description="稍后显示结果" /></>);
+  expect(screen.getByRole("status")).toHaveTextContent("正在载入任务");
+  expect(screen.getByRole("alert")).toHaveTextContent("任务连接失败");
+  await user.tab();
+  expect(screen.getByRole("button", { name: "重新尝试" })).toHaveFocus();
+  await user.keyboard("{Enter}");
+  expect(retry).toHaveBeenCalledOnce();
+  expect(screen.getByText("暂无任务")).toBeVisible();
+});
+
 it("announces loading progress without an urgent alert", () => {
   render(<LoadingState label="正在载入媒体" />);
 

@@ -36,7 +36,10 @@ func (r *FaceRuntime) AnalyzeFaces(ctx context.Context, source io.ReadSeeker, fo
 	}
 	decoded, err := r.decoder.DecodeFaceImage(ctx, source, format, maxBytes, face.MaxDecodeDimension)
 	if err != nil {
-		return nil, err
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, errors.Join(face.ErrInvalidInput, err)
 	}
 	if decoded.Width < 1 || decoded.Height < 1 || decoded.Width > face.MaxDecodeDimension ||
 		decoded.Height > face.MaxDecodeDimension || len(decoded.RGB) != decoded.Width*decoded.Height*3 {

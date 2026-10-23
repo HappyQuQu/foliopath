@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -37,7 +38,7 @@ func TestFaceServiceRetryRecoversAwaitingSameModel(t *testing.T) {
 		t.Fatalf("offline retry bypassed availability: %v", err)
 	}
 	after, _ := store.GetFaceLibrarySettings(ctx, library)
-	if before != after {
+	if !reflect.DeepEqual(before, after) {
 		t.Fatal("rejected retry changed settings")
 	}
 	if _, err := store.SetAIModelAvailability(ctx, model.ID, unavailable.AvailabilityRevision, aimodel.StateAvailable, now); err != nil {

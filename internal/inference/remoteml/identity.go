@@ -24,7 +24,9 @@ type ServiceIdentity struct {
 }
 
 func (i ServiceIdentity) valid() bool {
-	return i.Version == 1 && i.Protocol == "foliopath-ml-v1" && i.Model == ModelName && i.Dimension == Dimension &&
+	modelSupported := i.Model == ModelName && i.Dimension == Dimension ||
+		i.Model == MultilingualModelName && i.Dimension == MultilingualDimension
+	return i.Version == 1 && i.Protocol == "foliopath-ml-v1" && modelSupported &&
 		identityDigest(i.CacheManifestSHA256) && identityDigest(i.RuntimeContractSHA256)
 }
 

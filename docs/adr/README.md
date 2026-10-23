@@ -1,5 +1,19 @@
 # FolioPath 架构决策记录
 
+[ADR-0028：显式版本化的大 PNG 语义输入](0028-versioned-png-semantic-input.md)（实现授权，合成验证与原库切换分开验收）。
+
+[ADR-0026：稳定标签类别与独立扩充策略](0026-localized-tag-policy.md)（Accepted for implementation；功能证据见 CR-2026-033，不关闭质量/发行门禁）。
+
+[ADR-0025：多语言语义模型与能力身份隔离](0025-multilingual-semantic-model.md)（方向接受，实现/本地联验；发行与质量另计）。
+
+[ADR-0024：大图 native 工作内存共享准入](0024-shared-large-image-native-admission.md)（Accepted for implementation；固定合成回归单列，不等于容量/发行通过）。
+
+[ADR-0023：SQLite 在线维护共享同一内核锁域](0023-same-kernel-sqlite-maintenance.md)（Accepted；本地复现/维护路径验收通过，不等于长期或发行通过）。
+
+[ADR-0022：人物扫描有界等待与脱敏失败诊断](0022-bounded-face-scan-wait-and-diagnostics.md)（Accepted；本地工程验证完成，质量/容量/发行未关闭）。
+
+[ADR-0021：有界模型进程与自动标签原子提交](0021-bounded-inference-and-automatic-tags.md)（Accepted for implementation；验证进行中）。
+
 [ADR-0020：FolioPath 专用 AI 镜像](0020-ai-runtime-delivery-proposal.md)：用户已选择方案 A，方向接受、实现与发行验证进行中。
 
 [ADR-0019：独立 AI 服务](0019-independent-machine-learning-service.md)：用户已接受方向，生产集成进行中。
@@ -24,6 +38,7 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 
 ## 当前记录
 
+- [ADR-0027：计划停机交回分析任务](0027-planned-analysis-job-handoff.md)
 - [ADR-0001：Go、React 与 SQLite 模块化单体](0001-go-react-sqlite.md)
 - [ADR-0002：单一允许根目录与多媒体库](0002-library-path-model.md)
 - [ADR-0003：扫描 generation 一致性](0003-scan-consistency.md)

@@ -31,10 +31,12 @@ func (s *Store) FaceJobLibraryState(ctx context.Context, libraryID int64, genera
 		}
 		return "", err
 	}
+	scanning := status == "scanning"
 	switch status {
 	case "offline":
 		return face.JobLibraryOffline, nil
 	case "ready":
+	case "scanning":
 	default:
 		return face.JobLibraryNotReady, nil
 	}
@@ -73,8 +75,13 @@ func (s *Store) FaceJobLibraryState(ctx context.Context, libraryID int64, genera
 		}
 		return "", err
 	}
+	if scanning {
+		return face.JobLibraryScanning, nil
+	}
 	return face.JobLibraryReady, nil
 }
+
+const faceMissingCandidate = `(NOT EXISTS(SELECT 1 FROM face_asset_results result WHERE result.generation_id=? AND result.library_id=asset.library_id AND result.asset_id=asset.id AND result.source_fingerprint=asset.source_fingerprint) OR EXISTS(SELECT 1 FROM face_asset_failures failure WHERE failure.generation_id=? AND failure.library_id=asset.library_id AND failure.asset_id=asset.id AND failure.source_fingerprint=asset.source_fingerprint))`
 
 func (s *Store) CountFaceJobCandidates(ctx context.Context, libraryID int64, generationID string, mode face.JobMode) (face.JobCandidateCounts, error) {
 	if libraryID < 1 || len(generationID) < 8 || (mode != face.JobMissing && mode != face.JobAll) {
@@ -88,7 +95,7 @@ func (s *Store) CountFaceJobCandidates(ctx context.Context, libraryID int64, gen
 		value.Pending = value.Eligible
 		return value, nil
 	}
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND NOT EXISTS(SELECT 1 FROM face_asset_results result WHERE result.generation_id=? AND result.library_id=asset.library_id AND result.asset_id=asset.id AND result.source_fingerprint=asset.source_fingerprint)`, libraryID, generationID).Scan(&value.Pending); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND `+faceMissingCandidate, libraryID, generationID, generationID).Scan(&value.Pending); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -102,10 +109,8 @@ func (s *Store) ListFaceJobCandidates(ctx context.Context, libraryID int64, gene
 		WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.id>?`
 	args := []any{libraryID, checkpointID}
 	if mode == face.JobMissing {
-		query += ` AND NOT EXISTS(SELECT 1 FROM face_asset_results result
-			WHERE result.generation_id=? AND result.library_id=asset.library_id
-			AND result.asset_id=asset.id AND result.source_fingerprint=asset.source_fingerprint)`
-		args = append(args, generationID)
+		query += ` AND ` + faceMissingCandidate
+		args = append(args, generationID, generationID)
 	}
 	query += ` ORDER BY asset.id LIMIT ?`
 	args = append(args, limit+1)
@@ -311,6 +316,12 @@ func (s *Store) GetFaceJobProgress(ctx context.Context, generationID string, lib
 }
 
 func (s *Store) CommitFaceJobProgress(ctx context.Context, commit face.JobProgressCommit) (face.JobProgress, error) {
+	if commit.FailedCount == 1 && commit.FailureCode == "" {
+		commit.FailureCode = "analysis_failed"
+	}
+	if commit.FailedCount == 1 && !face.ValidFailureCode(commit.FailureCode) || commit.FailedCount != 1 && commit.FailureCode != "" {
+		return face.JobProgress{}, face.ErrInvalidFaceJob
+	}
 	if commit.JobID == "" || commit.ClaimedRevision < 1 || commit.ExpectedProgressRevision < 1 || commit.ExpectedCheckpointID < 0 || commit.NextCheckpointID <= commit.ExpectedCheckpointID || len(commit.SourceFingerprint) < 1 || len(commit.SourceFingerprint) > 256 || commit.UpdatedAt.IsZero() || commit.FailedCount < 0 || commit.StaleCount < 0 || commit.FailedCount > 1 || commit.StaleCount > 1 || commit.FailedCount+commit.StaleCount > 1 {
 		return face.JobProgress{}, face.ErrInvalidFaceJob
 	}
@@ -386,6 +397,14 @@ func (s *Store) CommitFaceJobProgress(ctx context.Context, commit face.JobProgre
 				return err
 			}
 			if _, err := tx.ExecContext(ctx, `INSERT INTO face_asset_results(generation_id,library_id,asset_id,source_fingerprint,face_count,revision,updated_at_ms) VALUES(?,?,?,?,?,1,?) ON CONFLICT(generation_id,library_id,asset_id) DO UPDATE SET source_fingerprint=excluded.source_fingerprint,face_count=excluded.face_count,revision=face_asset_results.revision+1,updated_at_ms=excluded.updated_at_ms`, generationID, libraryID, commit.NextCheckpointID, commit.SourceFingerprint, len(commit.Batch.Items), commit.UpdatedAt.UnixMilli()); err != nil {
+				return err
+			}
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM face_asset_failures WHERE generation_id=? AND library_id=? AND asset_id=?`, generationID, libraryID, commit.NextCheckpointID); err != nil {
+			return err
+		}
+		if commit.FailedCount == 1 && currentSource == commit.SourceFingerprint {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO face_asset_failures(generation_id,library_id,asset_id,job_id,source_fingerprint,error_code,updated_at_ms) VALUES(?,?,?,?,?,?,?)`, generationID, libraryID, commit.NextCheckpointID, commit.JobID, commit.SourceFingerprint, commit.FailureCode, commit.UpdatedAt.UnixMilli()); err != nil {
 				return err
 			}
 		}

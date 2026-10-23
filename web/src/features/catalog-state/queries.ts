@@ -1,5 +1,4 @@
 import {
-  type InfiniteData,
   type QueryClient,
   useQuery,
   useQueryClient,
@@ -47,15 +46,24 @@ export async function refreshChangedCatalogQueries(
   queryKeys: readonly (readonly unknown[])[],
 ) {
   for (const queryKey of queryKeys) {
-    queryClient.setQueriesData<InfiniteData<unknown, unknown>>(
+    queryClient.setQueriesData<unknown>(
       { queryKey },
-      (current) =>
-        current && current.pages.length > 1
-          ? {
-              pageParams: current.pageParams.slice(0, 1),
-              pages: current.pages.slice(0, 1),
-            }
-          : current,
+      (current: unknown) => {
+        // A prefix can contain both ordinary and infinite queries (for example
+        // the global tag vocabulary and a library's single-page tag cloud).
+        if (
+          !current || typeof current !== "object" ||
+          !("pages" in current) || !Array.isArray(current.pages) ||
+          !("pageParams" in current) || !Array.isArray(current.pageParams) ||
+          current.pages.length <= 1
+        ) return current;
+
+        return {
+          ...current,
+          pageParams: current.pageParams.slice(0, 1),
+          pages: current.pages.slice(0, 1),
+        };
+      },
     );
   }
   await Promise.all(

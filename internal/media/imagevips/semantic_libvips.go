@@ -28,6 +28,16 @@ func (*Processor) PrepareSemanticImage(
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return nil, semantic.ErrInvalidImageInput
 	}
+	if largeImageSourceNeedsReclaim(source, format) {
+		finish, err := beginLargeImageDecode(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer finish()
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+	}
 	encoded, err := io.ReadAll(io.LimitReader(source, media.MaxImageSourceBytes+1))
 	if err != nil || media.ValidateSourceSize(format, int64(len(encoded))) != nil {
 		return nil, semantic.ErrInvalidImageInput

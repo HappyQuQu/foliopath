@@ -2,11 +2,12 @@ import hashlib
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from cache_snapshot import InvalidCache, canonical_manifest, snapshot
 import server
+from scheduler import Busy
 
 IDENTITY = {"version": 1, "runtime_contract_sha256": "a" * 64, "cache_manifest_sha256": "b" * 64}
 
@@ -68,8 +69,10 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(response.status_code, 413)
 
     def test_busy(self):
-        with patch.object(server, "identity", IDENTITY), patch.object(server, "active", 2):
-            self.assertEqual(self.client.post("/predict", content=b"x").status_code, 503)
+        with patch.object(server, "identity", IDENTITY), patch.object(server, "run_inference", AsyncMock(side_effect=Busy())):
+            response = self.client.post("/predict", data={"entries": '{"clip":{"textual":{"modelName":"ViT-B-32__openai"}}}', "text": "hello"})
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.json(), {"error": "busy"})
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/autotag"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/face"
@@ -29,6 +30,9 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	HandoffSemanticBackfill(context.Context, semantic.BackfillJob, time.Time) (bool, error)
+	HandoffFaceJob(context.Context, face.AnalysisJob, time.Time) (bool, error)
+	autotag.Repository
 	face.DeploymentActivationRepository
 	face.DeploymentGenerationRepository
 	face.JobQueue

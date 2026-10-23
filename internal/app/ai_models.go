@@ -140,7 +140,9 @@ type aiWorkerComponent struct {
 		Reconcile(context.Context) (files.ManagedModelReconcileReport, error)
 	}
 	mu      sync.Mutex
-	cancel  context.CancelFunc
+	cancel  context.CancelCauseFunc
+	parent  context.Context
+	runErr  error
 	done    chan error
 	stopped chan struct{}
 }
@@ -163,33 +165,38 @@ func newAIWorkerComponent(workers []aiBackgroundWorker, operations *aimodel.Oper
 	return component{name: "ai-model-workers", start: service.start, done: service.done, stop: service.stop}, nil
 }
 
-func (service *aiWorkerComponent) start(context.Context) error {
+func (service *aiWorkerComponent) start(parent context.Context) error {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	if service.cancel != nil {
 		return errors.New("AI model install worker already running")
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancelCause(context.WithoutCancel(parent))
 	if _, err := service.operations.RecoverInterrupted(ctx); err != nil {
-		cancel()
+		cancel(nil)
 		return err
 	}
 	report, err := service.store.Reconcile(ctx)
 	if err != nil {
-		cancel()
+		cancel(nil)
 		return err
 	}
 	if _, err := service.orphans.Reconcile(ctx, report.FinalContentHashes, !report.Truncated); err != nil {
-		cancel()
+		cancel(nil)
 		return err
 	}
 	service.cancel = cancel
+	service.parent = parent
 	var wait sync.WaitGroup
 	wait.Add(len(service.workers))
 	for _, worker := range service.workers {
 		go func() {
 			defer wait.Done()
-			service.done <- worker.Run(ctx)
+			err := worker.Run(ctx)
+			service.mu.Lock()
+			service.runErr = errors.Join(service.runErr, err)
+			service.mu.Unlock()
+			service.done <- err
 		}()
 	}
 	go func() {
@@ -202,15 +209,21 @@ func (service *aiWorkerComponent) start(context.Context) error {
 func (service *aiWorkerComponent) stop(ctx context.Context) error {
 	service.mu.Lock()
 	cancel := service.cancel
+	var cause error
+	if service.parent != nil {
+		cause = context.Cause(service.parent)
+	}
 	service.cancel = nil
 	service.mu.Unlock()
 	if cancel == nil {
 		return nil
 	}
-	cancel()
+	cancel(cause)
 	select {
 	case <-service.stopped:
-		return nil
+		service.mu.Lock()
+		defer service.mu.Unlock()
+		return service.runErr
 	case <-ctx.Done():
 		return ctx.Err()
 	}

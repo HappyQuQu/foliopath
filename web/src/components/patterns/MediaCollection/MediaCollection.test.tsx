@@ -328,6 +328,7 @@ it("activates a media preview without hiding the source-directory link", () => {
           name: "ready.jpg",
           sourceHref: "/source",
           sourceLabel: "Source: photos",
+          contextLabel: "Visual semantic search",
           thumbnailStatus: "ready",
           thumbnailUrl: "/ready.webp",
           width: 1200,
@@ -343,6 +344,8 @@ it("activates a media preview without hiding the source-directory link", () => {
   );
 
   const trigger = screen.getByRole("button", { name: "Preview ready.jpg" });
+  expect(screen.getByText("Visual semantic search")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Source: photos" })).toBeVisible();
   expect(trigger).toHaveAttribute("aria-pressed", "true");
   trigger.click();
   expect(activate).toHaveBeenCalledWith(

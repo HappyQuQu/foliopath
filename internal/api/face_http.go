@@ -64,12 +64,14 @@ type FacePersonMutationService interface {
 }
 
 type faceSettingsWireResponse struct {
-	LibraryID          string           `json:"libraryId"`
-	Enabled            bool             `json:"enabled"`
-	State              string           `json:"state"`
-	Revision           int64            `json:"revision"`
-	ActiveGenerationID *string          `json:"activeGenerationId"`
-	Coverage           faceCoverageJSON `json:"coverage"`
+	LibraryID          string              `json:"libraryId"`
+	Enabled            bool                `json:"enabled"`
+	State              string              `json:"state"`
+	Revision           int64               `json:"revision"`
+	ActiveGenerationID *string             `json:"activeGenerationId"`
+	GenerationCurrent  *bool               `json:"generationCurrent,omitempty"`
+	Coverage           faceCoverageJSON    `json:"coverage"`
+	Diagnostics        faceDiagnosticsJSON `json:"diagnostics"`
 }
 
 type faceCoverageJSON struct {
@@ -589,7 +591,7 @@ func faceSettingsResponse(value face.LibrarySettings) faceSettingsWireResponse {
 	if value.ActiveGenerationID != "" {
 		generation = &value.ActiveGenerationID
 	}
-	return faceSettingsWireResponse{LibraryID: libraryID(value.LibraryID), Enabled: value.Enabled, State: value.State, Revision: value.Revision, ActiveGenerationID: generation, Coverage: faceCoverageResponse(value.Coverage)}
+	return faceSettingsWireResponse{LibraryID: libraryID(value.LibraryID), Enabled: value.Enabled, State: value.State, Revision: value.Revision, ActiveGenerationID: generation, GenerationCurrent: value.GenerationCurrent, Coverage: faceCoverageResponse(value.Coverage), Diagnostics: faceDiagnosticsResponse(value.Diagnostics)}
 }
 func faceCoverageResponse(value face.FaceCoverage) faceCoverageJSON {
 	return faceCoverageJSON{Eligible: value.Eligible, Completed: value.Completed, Degraded: 0, Failed: value.Failed, Stale: value.Stale, Complete: value.Complete(), Revision: value.Revision}

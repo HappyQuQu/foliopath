@@ -51,3 +51,5 @@
   border-color: transparent;
   background: transparent;
 }
+
+.plain { padding: 0; background: transparent; border-radius: 0; gap: var(--space-2); }

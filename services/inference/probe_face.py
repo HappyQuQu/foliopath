@@ -15,5 +15,5 @@ with TestClient(server.application) as client:
     print(identity.json(), flush=True)
     response = client.post("/api/v1/face/predict", files={"image": ("synthetic.png", stream.getvalue())})
     assert response.status_code == 200 and response.json() == {"faces": []}, response.text
-    assert server.upstream.settings.max_batch_size.facial_recognition == 1
+    assert server.scheduler.completed == 1 and not server.scheduler.processes
     print("REAL_OFFLINE_FACE_EMPTY_PASS", flush=True)

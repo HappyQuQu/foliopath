@@ -1,5 +1,30 @@
 # 可选 AI 双服务部署入口
 
+## 可选 PNG 输入 profile（ADR-0028）
+
+已验证的新主应用支持在私有 `FOLIOPATH_AI_DEPLOYMENT` JSON 中增加 `"image_preprocessing":"png-v4"`。
+省略保持旧 v3；不要替换模型/face/tag identity。新 profile 仅扩展语义 PNG 至 64 MiB / 40 MP，仍有界解码；
+AI 无需重建，自动标签输入限制不变。切换会建立新语义代次，必须在现有任务终态、停写全备份和明确重算授权后执行。
+旧向量不挪用、不清理；6010 本轮只有候选验证与终态后切换授权，没有即时部署。保留原三份 Compose 覆盖。
+详细步骤、固定镜像与验收边界见[修复记录](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+## 已核验本地增量：153 类标签（CR-2026-033）
+
+中文/英文/双语是浏览器展示偏好，不增加 Compose 字段或模型商店；原 92 类结果也能通过新主应用展示。
+153 类识别须使用 `services/inference/Dockerfile.photo-tags` 覆盖固定多语言镜像：
+
+```sh
+docker build --pull=false -f services/inference/Dockerfile.photo-tags \
+  --build-arg FOLIOPATH_INFERENCE_BASE=foliopath:local-multilingual-20261023@sha256:3631b43219c74bc4e18df503d53e144e9bc86f80bc9490efa1d1e65d356ea903 \
+  -t foliopath-inference:photo-tags-v2 .
+docker run --rm --network none --entrypoint python foliopath-inference:photo-tags-v2 -m photo_policy
+```
+
+该 profile 只把最后命令的结果填入 `FOLIOPATH_AI_DEPLOYMENT.tag.identity`，不要用旧 `image_identity --tag`
+替代（其有意保留 legacy 身份）。保留其他 identity、模型缓存、原媒体只读挂载及当前 multilingual/unlimited
+覆盖；更新遵循停写全备份、AI healthy 再启动主应用，不用重建/清理真实库作为验证。新身份会补齐已启用库，
+不是“翻译需要重跑”。候选/测试/6010 是否更新以 [CR-2026-033](changes/CR-2026-033-localized-photo-tags.md) 为准。
+
 POST-MVP-5 / P5 / ADR-0019、0020。根 `compose.ai.yaml` 是独立双服务配置，**不要与 `compose.yaml` 叠加**。这是交付候选，不是镜像已公开发布或质量已校准；不自动修改现有部署。
 
 ## 准备
@@ -48,7 +73,32 @@ docker run --rm --network none --read-only --entrypoint python "$FOLIOPATH_AI_IM
 
 将输出作为 JSON 的 `identity` 对象，补 `origin`、与实际模型对应的 `model_bytes`、真实 `license_id`；字段含义见部署合同，未知许可不能冒称已批准。人脸是可选 `face` 对象，必须明确填写模型摘要和阈值合同；不能将 P3 测试阈值当作生产质量结论。Compose 本身不注入人脸测试阈值，也不恢复模型商店。
 
-当前镜像支持 `ViT-B-32__openai`，人脸构建可选 `buffalo_l`；不是任意 HF/ONNX 模型加载器，也不能把旧 SigLIP 包当作该缓存。镜像内 `/opt/foliopath-inference/cache-manifest.json` 是逐文件大小/SHA-256 的核验依据，来源基线保存在仓库 `spikes/int001-remote-ml/cache-baseline.json`。这是复制缓存的字节基线，不是上游授权或来源签名；模型权重不随本项目镜像发布，公开分发许可及供应链材料仍属 P6。目录只读，额外未列入清单的文件不会进入推理快照。
+基础镜像支持 `ViT-B-32__openai`（512 维），ADR-0025 的可选覆盖镜像支持
+`XLM-Roberta-Large-Vit-B-16Plus`（640 维）；人脸构建可选 `buffalo_l`。
+不是任意 HF/ONNX 加载器，旧 SigLIP/512 维索引不冒充新结果。
+基础清单 `/opt/foliopath-inference/cache-manifest.json`，多语言独立清单 `multilingual-manifest.json`，
+分别来自 `spikes/int001-remote-ml/cache-baseline.json` 与 `multilingual/cache-baseline.json`。
+这是字节核验，不是授权/来源签名或发行批准；权重不随镜像公开发布。只读树中未列入清单的文件不进入推理快照。
+
+### 多语言覆盖镜像（ADR-0025）
+
+`services/inference/Dockerfile.multilingual` 的 `FOLIOPATH_INFERENCE_BASE` 必须是核验过的
+legacy `repository@sha256:…`；Dockerfile FROM 不接受裸 `sha256:…` image ID。
+新语义预期身份通过无网络镜像命令 `python -m multilingual_contract` 独立读取，
+填入私有部署 JSON 的 identity，model_bytes=2729566266。保留 face/tag 原身份，不能以新语义身份覆盖它们，
+也不能从在线服务反填受信摘要。模型和权重不在界面下载/选择。
+
+固定 179 文件约 2.73 GB（十进制）。`spikes/int001-remote-ml/multilingual/fetch_model.py`
+仅获取固定源/revision 并核对 Git/LFS 摘要，缓存置于仓库外；旧模型保留供 legacy 字节合同校验。
+必须叠加 `compose.ai.multilingual.yaml`，将 `/verified-cache` 改为专用可丢弃 disk scratch volume，
+不是媒体、DB 或模型真相；启动拒绝未知内容/symlink，仅清理已知遗留工作目录。
+该覆盖不改变 RAM/swap。大模型用独立 4 GiB AI 预算测量，不是基础 2304 MiB 通过。
+原 6010 用户选择不限额：base + unlimited-memory + multilingual，RAM/swap 仍为 0。
+
+有在途任务时先停主应用完成全数据备份；**先更新 AI 并等 healthy，再启动主应用**，
+防止已恢复的标签任务早于 AI 就绪后终止。不为核心浏览添加 depends_on。
+激活后逐库提交新空间的图片语义 missing，旧结果保留；运行中不标完成。
+详见[本次验证与切换记录](changes/CR-2026-032-multilingual-semantic-model.md)。
 
 ## 启动与检查
 
@@ -70,6 +120,27 @@ docker compose -f compose.ai.yaml logs --tail 50 machine-learning
 全库复验中该组合两次以 exit 137 被 Docker 恢复。设为 `1` 后两类任务通过既有全局 admission
 串行执行，前台内容读取仍使用独立额度。不要靠关闭重启策略或扩大 swap 掩盖峰值；若改回 2～4，
 必须在实际库和目标内存上重新完成联合容量与稳定性验证。
+
+### 操作者显式取消容器内存上限
+
+2026-10-23 用户要求本地 6010 不再限制容器内存。可在原配置之后叠加专用覆盖文件：
+
+```sh
+docker compose --env-file ai.env -p foliopath-ai-original-review \
+  -f compose.ai.yaml -f compose.ai.unlimited-memory.yaml config --quiet
+docker compose --env-file ai.env -p foliopath-ai-original-review \
+  -f compose.ai.yaml -f compose.ai.unlimited-memory.yaml up -d
+```
+
+覆盖只将两个服务的 `mem_limit`/`memswap_limit` 置 0，不增加 CPU/并发，不移除 PID、输入大小、
+推理期限、tmpfs 或只读/内部网络保护。后续更新仍须使用两个 `-f`，否则会恢复基准限制。
+已有容器需要重建才可可靠清除原上限；当前 Docker 实测 `docker update --memory 0` 会保留旧值，
+不能以命令 exit 0 冒称已取消。更新前保留停写完整备份，不删卷，不重复发起补齐任务。
+
+应核对两个容器 `HostConfig.Memory=0`，并在 AI 容器确认 cgroup `memory.max=max`。
+没有单容器限额不等于无限物理内存：Docker Desktop VM/宿主总量和可用 swap 仍约束进程，可能影响其他应用或发生整机 OOM。
+本机这次是操作者选择的运行配置，不是默认 1 GiB/2304 MiB 预算的修复、容量通过或发行批准；
+基准 Compose 与资源验收不变。需要恢复基准时，在安全停写/备份后仅使用 `compose.ai.yaml` 重建。
 
 ## 模型异常与恢复（F02）
 

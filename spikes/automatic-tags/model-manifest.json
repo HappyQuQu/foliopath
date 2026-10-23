@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "feasibility-only-not-activated",
+  "repository": "fancyfeast/joytag",
+  "revision": "6b7f16331a6ccf0fdce37d5a9564715f6e772b22",
+  "license": "Apache-2.0 (author model card; preserve license and notices before distribution)",
+  "files": [
+    {
+      "name": "model.onnx",
+      "bytes": 366116154,
+      "sha256": "f85b7130e6e549b5b0822537007b7482e8c4c8e754c8d9a5bee08e27050e1097"
+    },
+    {
+      "name": "config.json",
+      "bytes": 330,
+      "sha256": "b53ee29a8f0d6353331f455fd640c70ef45e5bd979b656f7b9983cffa3724562",
+      "git_blob": "ce0dab109bc5f9b55494d29667fa1e421f42e530"
+    },
+    {
+      "name": "top_tags.txt",
+      "bytes": 76752,
+      "sha256": "32b1963a234af848643b2bbf47d8eff1f1c7889406810c57b980f41b2b9e01d0",
+      "git_blob": "a3131d7ccefe5f2b15cf49f2cc15eb1a9c6b110a"
+    }
+  ]
+}

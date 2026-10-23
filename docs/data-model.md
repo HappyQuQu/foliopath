@@ -1,5 +1,28 @@
 # FolioPath 数据模型
 
+ADR-0028 不增加表或迁移：可选 PNG v4 输入合同进入 semantic `PreprocessingSHA256`，通过既有激活事务
+生成新代次、退役旧代次。旧 embeddings 保留原 generation，新代次覆盖从 0 开始；不复制/重标向量。
+仅语义身份变更，face/tag identity 与人工整理不变。缺省 v3 无迁移；模型配置回退不保证重激活旧 generation，
+需匹配完整停写备份。语义视频/候选建议也绑定 generation，不能把旧结果视为新输入版本已完成。
+见[兼容性与实测](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+ADR-0027 / migration 44：`analysis_job_handoffs` 按 kind/job/claim 唯一记录计划停机交接前的
+attempt/checkpoint/completed；operation 删除级联，每个 operation 最多保留最近 10 条。
+在同一 fenced 写事务中记录审计、交回 job/operation 为 queued 并撤销该次 claim 的一次 attempt charge，
+不清零历史、不修改 checkpoint、模型/代次、标签/人工关系或已提交向量。重复/旧 fence、取消和终态不重排。
+离线首升仅对停写精确快照做有界整批交接，不对历史失败任务补造计划停机事实。
+
+CR-2026-033 无新表或迁移：标签 name/normalized_name、ID、人工来源和抑制记录保持原状。
+`Tag.localization` 是 curation 固定类别 JSON 加可验证 AI 关联的只读投影，不是持久改名；全局
+没有 AI 或存在人工关联时不翻译。单图按关联来源返回元数据。SQL 在 keyset 分页之前展开有限别名并保持
+库/种类约束；人工中文/英文同义保护在原有 fenced AI 合并事务内查询，不把别名数当作关联数量。
+浏览器偏好使用原有 storage owner，不写 `/app/data` 或触发模型任务。
+
+2026-10-23 / FR-INT-009/016 / migration 43：face_asset_failures 保存 generation/library/asset 主键、当前失败 job、源指纹、
+固定原因码和时间；与现有 checkpoint 同一 fenced 短事务提交。成功删该图失败标记，源变化不将旧错误当作当前源错误。
+按最新 job 隔离当前尝试展示，旧未恢复标记仍参与 missing 选择，不能被旧成功 result 屏蔽；库/资产/任务/generation 删除级联，
+derived-clear 有界删除且不增加原公开影响计数。最近任务/进度/诊断在同一读快照读取；历史 coverage 无原因不会补造明细。
+
 2026-09-16 A05 归属修复：重新归类复用 person_face_anchors 的同一 ID，不删除历史引用。现有审核事务内校验/推进旧人物和目标人物 revision，更新归属并写 undo 快照；快照新增可选 beforePersonId，沿用 sourcePersonId/sourcePersonRevision 记录旧人物的提交后版本。旧快照缺省 owner 时使用原 payload.personId。撤销同时校验双方版本和 anchor，不覆盖后续编辑；cannot-link 转移失败保留原状态。无新表或迁移。[证据](evidence/int-001/face-reassignment-2026-09-16.md)。
 
 P3 恢复补修不新增表：同代次等待模型的库经既有设置 revision/可用性事务重入 building，再创建新任务；旧失败任务和幂等决定保留。部署配置不再匹配的旧 service 模型只改变 availability，不退役/删除原代次、进度、人物或人工关系。迁移 40 有 service 人脸记录时降级拒绝，不能用删记录方式绕过。
@@ -384,6 +407,11 @@ library/global content revision 与任务水位。文件系统 I/O、媒体探�
 
 ## Post-MVP/4 收藏与标签持久化
 
+2026-10-22 CR-2026-031 T1：不改已有表。`GET /tags` 可按库及媒体种类联结 `asset_tags` 与 `assets`，
+以 distinct asset ID 统计，过滤时不返回零关联标签；无过滤保持全局词表兼容。图片包含 image/animated，
+不含 video；游标绑定库、规范化种类、搜索与 curation revision。后续 T3 只追加以下 migration41/42，
+旧人工关联（含人工接受的建议）不得重新解释为模型结果。
+
 migration 21 追加 `curation_state`、`asset_favorites`、`tags` 与 `asset_tags`。收藏和资产标签
 使用 `(library_id, asset_id)` 复合外键指向 catalog asset，并在可靠资产删除或媒体库移除时
 级联清理；offline、失败、取消和部分扫描不删除可靠 asset，因此也不删除整理数据。
@@ -395,6 +423,39 @@ migration 21 追加 `curation_state`、`asset_favorites`、`tags` 与 `asset_tag
 媒体 tuple 使用 keyset，不使用 OFFSET。
 
 数据库迁移只向前自动执行，已发布迁移不得修改。备份 SQLite WAL 数据库时必须使用 SQLite 认可的在线备份或先完成安全 checkpoint/停机流程，不能只复制主数据库文件而忽略相关状态。缩略图缓存可重建，可以与不可丢的配置、管理员凭据和应用设置采用不同备份策略。
+
+### 自动标签与人工保护（CR-2026-031 / ADR-0021）
+
+权威定义为 migrations 41/42、`internal/curation`、`internal/autotag` 与
+[`api/openapi.yaml`](../api/openapi.yaml)；设计理由见 [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md)。
+
+- migration41 扩展唯一可见关联 `asset_tags`：`source=manual|ai`，AI 必须带模型身份、源 fingerprint、
+  finite score；manual 的三个 AI 字段必须为空。旧行默认 manual，旧建议数据不自动转正。
+- `asset_tag_suppressions` 以 `(library_id,asset_id,normalized_name)` 为键，不依赖 tag ID 或模型代次。
+  人工移除写抑制；显式添加清同名抑制并升为 manual；替换列表按差量保留未变来源。全局删除只保护
+  当前关联图片；全局改名（含同规范名的字形修改）保护旧名并将既有 AI 升为 manual。实际资产/库删除
+  级联清除，离线不清除；同一资产源 fingerprint/kind 改变只清 AI 关联，人工与抑制保留。
+- 合并只替换当前图 AI，人工优先，总计最多 20；相同规范名去重。成功零标签可清旧 AI，失败不能伪装
+  成零标签。全局 `curation-rN` CAS 兼容保留；已是 manual 的单个添加可幂等返回，发生来源或关联变更
+  必须当前 revision。单图及整理列表在同一读取快照内读取 revision 和关联，避免混合提交。
+- migration42 增加 `autotag_library_settings`（enabled/revision/coverage_revision/blocked_model_identity）、
+  `autotag_jobs`（operation、model、mode、checkpoint、准入上界、claim、attempt、lease、next_attempt_ms）、
+  `autotag_job_requests`（哈希幂等键）及 `autotag_asset_runs`（每图最近源/模型/outcome）。
+  每库最多一个活动任务、全局最多 32；missing 只选没有同源同模型运行记录的图片，all 可重试已有记录。
+- 任务级失败或取消持久记录被阻止的模型身份；同模型自动准入不建新任务，显式 missing 返回冲突。
+  显式 all 或重新启用清此限制；新模型身份不匹配旧限制，可重新处理。逐图失败仍由 all 重试。
+  停机不冒充用户取消，保留 running 供租约恢复；最多三次 claim，耗尽终态失败并阻止自动重入。
+- 推理暂忙不属于上述失败：单图 3 次尝试仍忙后，原 job/operation 进入 queued，`next_attempt_ms`
+  持久延后 30 秒；不变更标签、run、checkpoint、计数或 blocked identity。原子增加 claim fencing、
+  退还本次领取的 attempt（保留历史崩溃计数），到期领取才恢复；关闭/取消仍立即拦截，重启不跳过等待。
+- SQLite 一个短写事务校验开关、running 状态、operation、claim、checkpoint、上界、模型与租约，
+  复核当前资产 fingerprint/kind 后合并 curation，再写 run/checkpoint/operation 计数。实际媒体打开
+  与推理在事务外，worker 在推理前后经原有媒体边界重开验证；错误不得留下半次合并。
+- coverage 按当前部署模型身份及源 fingerprint 统计；旧模型 ready 不能算新模型完成。模型变更不会
+  把旧 AI 来源直接改成新身份；后续成功单图合并替换旧 AI，人工与删除抑制始终保留。
+
+这些来源与抑制属于需要备份的应用状态，不是可随意清掉的推理缓存。最终镜像/重启证据由
+[CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) 汇总，schema 存在不等于发布通过。
 
 ## POST-MVP-5 revision 1：模型与图片语义数据合同
 

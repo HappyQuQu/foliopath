@@ -45,13 +45,16 @@ import {
 
 export const aiKeys = {
   all: ["ai"] as const,
+  automaticTags: (libraryId: string) => ["ai", "automatic-tags", libraryId] as const,
   videoStatus: (libraryId: string) => ["ai", "video-status", libraryId] as const,
   models: ["ai", "models"] as const,
   downloads: ["ai", "downloads"] as const,
+  tagVocabulary: ["ai", "tag-vocabulary"] as const,
   proxy: ["ai", "model-proxy"] as const,
   semantic: (libraryId: string) => ["ai", "semantic", libraryId] as const,
   faces: (libraryId: string) => ["ai", "faces", libraryId] as const,
   operation: (operationId: string) => ["ai", "operation", operationId] as const,
+  suggestionsRoot: ["ai", "suggestions"] as const,
   suggestions: (libraryId: string, status: string, cursor = "") => ["ai", "suggestions", libraryId, status, cursor] as const,
   people: (query: string, cursor = "") => ["ai", "people", query, cursor] as const,
   person: (personId: string) => ["ai", "person", personId] as const,
@@ -91,10 +94,7 @@ export function useSemanticSettingsQueries(libraryIds: string[]) {
     queries: libraryIds.map((libraryId) => ({
       queryKey: aiKeys.semantic(libraryId),
       queryFn: () => getLibrarySemanticSettings(libraryId),
-      refetchInterval: (query: Query<SemanticSettingsSnapshot>) =>
-        query.state.data && ["building", "clearing"].includes(query.state.data.state)
-          ? 1_500
-          : 10_000,
+      refetchInterval: analysisSettingsRefetchInterval,
     })),
   });
 }
@@ -117,6 +117,7 @@ export function useAIOperationQueries(operationIds: string[]) {
     void client.invalidateQueries({ queryKey: ["ai", "semantic"] });
     void client.invalidateQueries({ queryKey: ["ai", "video-status"] });
     void client.invalidateQueries({ queryKey: ["ai", "faces"] });
+    void client.invalidateQueries({ queryKey: aiKeys.suggestionsRoot });
   }, [client, finished]);
   return queries;
 }
@@ -152,7 +153,17 @@ export const useClearDerivedFaceDataMutation = mutationWithInvalidation(clearDer
 export const useClearManualFaceRelationshipsMutation = mutationWithInvalidation(clearManualFaceRelationships);
 
 export function useFaceSettingsQueries(libraryIds: string[]) {
-  return useQueries({ queries: libraryIds.map((libraryId) => ({ queryKey: aiKeys.faces(libraryId), queryFn: () => getLibraryFaceSettings(libraryId) })) });
+  return useQueries({
+    queries: libraryIds.map((libraryId) => ({
+      queryKey: aiKeys.faces(libraryId),
+      queryFn: () => getLibraryFaceSettings(libraryId),
+      refetchInterval: analysisSettingsRefetchInterval,
+    })),
+  });
+}
+
+function analysisSettingsRefetchInterval(query: { state: { data?: Pick<SemanticSettingsSnapshot, "state"> | undefined } }) {
+  return query.state.data && ["building", "clearing"].includes(query.state.data.state) ? 1_500 : 10_000;
 }
 
 export function useAITagSuggestionsQuery(libraryId: string, status: "pending" | "accepted" | "dismissed", cursor = "") {

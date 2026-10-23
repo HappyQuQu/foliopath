@@ -19,7 +19,9 @@ type LibrarySettings struct {
 	State              string
 	Revision           int64
 	ActiveGenerationID string
+	GenerationCurrent  *bool
 	Coverage           FaceCoverage
+	Diagnostics        FailureDiagnostics
 }
 type LibrarySettingsRepository interface {
 	GetActiveFaceGeneration(context.Context) (string, error)

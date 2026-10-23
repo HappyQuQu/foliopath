@@ -43,6 +43,16 @@ func (*Processor) DecodeFaceImage(
 		return face.DecodedImage{}, face.ErrInvalidInput
 	}
 	sourceFile, fileStream := source.(*os.File)
+	if largeImageSourceNeedsReclaim(source, format) {
+		finish, err := beginLargeImageDecode(ctx)
+		if err != nil {
+			return face.DecodedImage{}, err
+		}
+		defer finish()
+		if err := ctx.Err(); err != nil {
+			return face.DecodedImage{}, err
+		}
+	}
 	fileStream = fileStream && runtime.GOOS == "linux" && format == media.FormatJPEG
 	var encoded []byte
 	if !fileStream {

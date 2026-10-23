@@ -16,6 +16,11 @@ import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
 import { useHeaderAddon } from "./HeaderAddonContext";
 
+export interface GlobalSearchInputLabels {
+  label: string;
+  placeholder: string;
+}
+
 export function GlobalHeader({
   homeHref,
   identity,
@@ -23,6 +28,7 @@ export function GlobalHeader({
   onLogout,
   peopleHref,
   searchHref,
+  searchInput,
   settingsHref,
 }: {
   homeHref: string;
@@ -31,6 +37,7 @@ export function GlobalHeader({
   onLogout?: (() => Promise<void>) | undefined;
   peopleHref?: string | undefined;
   searchHref: string;
+  searchInput?: GlobalSearchInputLabels | undefined;
   settingsHref: string;
 }) {
   const { t } = useLocale();
@@ -94,13 +101,13 @@ export function GlobalHeader({
       <form className={styles.search} onSubmit={submitSearch} role="search">
         <MagnifyingGlass aria-hidden="true" size={18} />
         <label className={styles.visuallyHidden} htmlFor="global-search">
-          {t("search.inputLabel")}
+          {searchInput?.label ?? t("search.inputLabel")}
         </label>
         <input
           autoComplete="off"
           id="global-search"
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={t("search.globalPlaceholder")}
+          placeholder={searchInput?.placeholder ?? t("search.globalPlaceholder")}
           type="search"
           value={query}
         />
@@ -111,6 +118,7 @@ export function GlobalHeader({
         {peopleHref && (
           <Link
             aria-current={location.pathname === "/intelligence" ? "page" : undefined}
+            aria-label={t("shell.people")}
             className={styles.peopleLink}
             to={peopleHref}
           >

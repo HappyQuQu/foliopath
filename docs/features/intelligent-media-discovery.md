@@ -1,6 +1,41 @@
 # FTR-INT-001：本地智能媒体发现
 
-## 状态与归属
+当前实现与界面由 [CR-2026-030](../changes/CR-2026-030-independent-machine-learning-service.md)、
+[2026-10-22 信息架构修复](../changes/FIX-2026-10-22-ai-information-architecture.md)及
+[CR-2026-031 自动标签](../changes/CR-2026-031-automatic-photo-tags.md)共同定义：可选独立 AI 服务由
+Compose 管理，设置采用“功能设置 / 处理任务 / 服务与模型”，人物与正式图片标签分别提供入口。
+最新完成/待验证项见[当前进度](intelligent-media-discovery-remaining-tasks.md)。
+
+## 当前自动标签增量：FR-AUTOTAG-001～003
+
+目标 `POST-MVP-5`，Owner 为 `internal/autotag`（按库开关/有界任务）、`internal/curation`（人工保护）、
+SQLite 原子组合、app/media/remoteml 安全输入与身份，以及 AI scheduler 的请求级模型进程；依据
+[ADR-0021](../adr/0021-bounded-inference-and-automatic-tags.md)、OpenAPI 和 migrations 41/42。
+
+- T1/T2 的库内 distinct 图片计数、标签云和筛选继续保留；T3/T4 已接入独立模型直接添加标签，
+  不要求候选词表或人工批准，旧建议保留兼容但不能被重新解释成自动结果。
+- 自动标签默认关闭、按库开启，模型/策略由部署全局固定。AI/人工来源可见，人工标签优先，单图移除
+  持久抑制同名模型输出，显式添加恢复为人工；重跑、模型换代或标签 ID 重建不能绕过保护。
+- 新图/源变化/模型变化有界补齐；missing 不重试同源同模型的已有失败，all 需确认。任务失败/取消
+  阻止同模型自动反复入队，明确恢复后再处理；关闭不删既有标签。来源、人工合并与 checkpoint 同事务。
+- 固定 JoyTag 类别名为英文，不随 UI 语言改变，最多 20 个可见标签、分数不是概率；图片/动图支持，
+  不新增视频打标、OCR、混合检索、身份推断或自由生成式描述。
+
+生产后端/集成/contract/arch 已用 `CGO_ENABLED=0` + 扩展盘临时目录通过；最终前端 63 文件 387 测试、
+types/生成/架构检查与 Storybook 通过。模型共驻 OOM 是旧方案事实；
+[请求级进程实测](../../spikes/automatic-tags/SCHEDULED-RESULT.md) 18 请求在 2304 MiB 下峰值
+2084.23 MiB、无 OOM，真实 TCP 中断回收通过。最终镜像双服务 smoke `fp-auto-tags-83f1e5ee` 全部通过：
+推理中重启、取消后 35 秒无重试/标签变化、AI 故障后显式恢复、关闭持久化、原件 hash 和无 OOM。
+真实 UI 的开关、人工标签增删/提升、重跑及重启恢复已复验，四档宽度无溢出，最终新 tab 无 console error；
+共享 catalog-state 的普通/infinite 查询形状误判已修复并增加混合缓存与真实异步回归。
+详见 [CR 最终证据](../changes/CR-2026-031-automatic-photo-tags.md)。6010 后续已更新，最新人物失败诊断见
+[切片记录](../changes/FIX-2026-10-23-ai-failure-diagnostics.md)；普通照片质量、
+容量、AMD64、完整浏览器矩阵、无限定 `make lint` / `make test` 和发行均不由本轮通过代替。
+
+以下至文末保留 revision 2 冻结时的模型导入/单容器、建议审批及阶段结论作为历史基线；后续变更以
+上述 CR/ADR 为准，不表示当前仍有模型商店、face 未组合，或自动标签尚未实现。
+
+## 状态与归属（revision 2 历史基线）
 
 - 状态：**POST-MVP-5 revision 2 Frozen**；S1/S1R2 Contract Ready，S2A/S2B/S2C
   **Backend Ready / Release No-Go**
@@ -13,9 +48,10 @@
 - Frozen scope：[POST-MVP-5 scope revision 2](../releases/POST-MVP-5-scope-r2.md)
 - 被替代范围：[POST-MVP-5 scope revision 1](../releases/POST-MVP-5-scope.md)
 - 历史草案：[POST-MVP-5 scope manifest proposal draft 1](../releases/POST-MVP-5-scope-proposal.md)
-- 静态交互原型：[浏览页集成入口](../../prototypes/apple-redesign/03-browse.html)、
+- 历史静态交互原型：[浏览页集成入口](../../prototypes/apple-redesign/03-browse.html)、
   [智能搜索与人物复核](../../prototypes/apple-redesign/12-ai-features.html)、
   [智能功能与模型管理](../../prototypes/apple-redesign/13-settings-ai.html)
+- 当前稳定原型：生产 `AISettingsPage`、`AIReviewPage`、`CurationPage/LibraryTagCloud` 的 Storybook，使用明确标注的合成合同数据；旧隔离工作区仅为设计存档，不是生产验收来源。
 - 产品负责人：产品用户
 - A+B capability owners：`internal/aimodel`、`internal/semantic` 及其 ports、`internal/jobs`、
   `internal/catalog`、`internal/files`、`internal/api`、SQLite adapter 与 `internal/app` composition；

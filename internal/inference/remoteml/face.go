@@ -72,7 +72,10 @@ func (c *Client) BindFace(expected ServiceIdentity) (*FaceClient, error) {
 		!identityDigest(expected.CacheManifestSHA256) || !identityDigest(expected.RuntimeContractSHA256) {
 		return nil, ErrIdentityMismatch
 	}
-	if c.identity != nil && (c.identity.CacheManifestSHA256 != expected.CacheManifestSHA256 ||
+	// ADR-0025: multilingual semantic code/cache is independently pinned; face
+	// retains the separately configured legacy worker identity and verifies it
+	// before every input. Legacy paired-image validation remains unchanged.
+	if c.identity != nil && c.identity.Model != MultilingualModelName && (c.identity.CacheManifestSHA256 != expected.CacheManifestSHA256 ||
 		c.identity.RuntimeContractSHA256 != expected.RuntimeContractSHA256) {
 		return nil, ErrIdentityMismatch
 	}

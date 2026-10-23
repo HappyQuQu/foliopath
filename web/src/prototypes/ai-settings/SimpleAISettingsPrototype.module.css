@@ -1,0 +1,69 @@
+.page { width: 100%; min-width: 0; padding: var(--space-10) var(--space-10) var(--space-8); }
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); margin-bottom: var(--space-8); }
+.eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-2); margin-bottom: var(--space-3); }
+.eyebrow span { color: var(--color-accent); background: var(--color-accent-soft); border-radius: var(--radius-1); padding: var(--space-1) var(--space-2); }
+.header h1 { margin: 0; font-size: var(--font-size-6); line-height: var(--line-height-tight); letter-spacing: -0.035em; }
+.header h1:focus { outline: none; }
+.header p { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--font-size-3); }
+.scope { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-5); }
+.scope label { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-3); font-weight: 600; white-space: nowrap; }
+.scope select { min-width: 14rem; }
+.scope > span, .footnote { color: var(--color-text-muted); font-size: var(--font-size-2); }
+.page > [role="status"], .page > [role="alert"] { margin-bottom: var(--space-4); }
+.panel { width: 100%; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-3); background: var(--color-surface); overflow: hidden; }
+.featureRow { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-6); }
+.featureRow + .featureRow { border-top: var(--border-width) solid var(--color-border); }
+.featureIcon { display: grid; place-items: center; flex: none; width: var(--space-10); height: var(--space-10); border-radius: var(--radius-2); color: var(--color-accent); background: var(--color-accent-soft); }
+.featureText { flex: 1; min-width: 0; }
+.featureText h2, .modelInfo h2, .maintenance h2 { margin: 0; font-size: var(--font-size-4); line-height: var(--line-height-normal); }
+.featureText p, .maintenance p { margin: var(--space-1) 0 0; color: var(--color-text-muted); font-size: var(--font-size-2); line-height: var(--line-height-relaxed); }
+.featureAction { display: flex; flex-direction: column; align-items: start; gap: var(--space-2); margin-top: var(--space-2); }
+.proposalHint { color: var(--color-text-muted); font-size: var(--font-size-2); line-height: var(--line-height-relaxed); margin: 0; }
+.tagLink { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-accent); font-size: var(--font-size-2); line-height: var(--line-height-relaxed); text-underline-offset: var(--space-1); }
+.tagLink:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.control { display: flex; align-items: center; justify-content: end; gap: var(--space-5); flex: none; }
+.status { color: var(--color-text-muted); font-size: var(--font-size-2); }
+.footnote { margin: var(--space-3) var(--space-1) var(--space-6); }
+.advanced { border-top: var(--border-width) solid var(--color-border); }
+.advanced summary { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; padding: var(--space-5) 0; list-style: none; color: var(--color-text-muted); font-size: var(--font-size-3); }
+.advanced summary::-webkit-details-marker { display: none; }
+.advanced summary > svg:last-child { margin-left: auto; transition: transform var(--motion-fast) var(--ease-standard); }
+.advanced[open] summary > svg:last-child { transform: rotate(180deg); }
+.advanced summary:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.summaryHint { margin-left: var(--space-2); font-size: var(--font-size-2); }
+.advancedBody { border: var(--border-width) solid var(--color-border); border-radius: var(--radius-2); background: var(--color-surface); padding: var(--space-5); }
+.modelInfo, .maintenance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.modelInfo span, .modelList { color: var(--color-text-muted); font-size: var(--font-size-2); }
+.modelList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); margin: var(--space-5) 0; }
+.modelList div { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+.modelList dd { color: var(--color-text); margin: 0; overflow-wrap: anywhere; }
+.maintenance { border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-5); margin-top: var(--space-5); }
+.maintenance > div { flex: 1; min-width: 12rem; }
+.footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-2); padding-top: var(--space-4); margin-top: var(--space-4); }
+.footer span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.footer span:first-child svg { color: var(--color-success); }
+.prototypeNote { color: var(--color-text-muted); font-size: var(--font-size-1); margin-top: var(--space-8); }
+.progressBody { display: grid; gap: var(--space-6); }
+.progressItem { display: grid; gap: var(--space-3); font-size: var(--font-size-2); }
+.progressItem > div { display: flex; justify-content: space-between; gap: var(--space-4); }
+.progressItem > span { color: var(--color-text-muted); }
+.progressItem progress { accent-color: var(--color-accent); width: 100%; height: var(--space-2); }
+@media (max-width: 64rem) {
+  .page { padding: var(--space-6); }
+  .featureRow { padding: var(--space-5); }
+  .control { gap: var(--space-3); }
+  .featureText p { max-width: 40ch; }
+  .summaryHint { display: none; }
+}
+@media (max-width: 45rem) {
+  .page { padding: var(--space-5) var(--space-4); }
+  .header { align-items: start; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .scope { align-items: stretch; flex-direction: column; gap: var(--space-2); }
+  .scope label { flex-wrap: wrap; }
+  .scope label > span { flex: 1; min-width: 0; }
+  .scope select { min-width: 0; width: 100%; }
+  .featureRow { flex-wrap: wrap; align-items: start; gap: var(--space-3); padding: var(--space-4); }
+  .featureText { flex-basis: calc(100% - var(--space-10) - var(--space-3)); }
+  .control { width: 100%; padding-left: calc(var(--space-10) + var(--space-3)); justify-content: space-between; }
+  .modelList { grid-template-columns: minmax(0, 1fr); }
+}

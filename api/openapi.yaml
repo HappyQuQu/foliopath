@@ -26,7 +26,7 @@ x-foliopath-contract:
   targetVersion: POST-MVP-5
   scopeRevision: 2
   baselineEvent: CR-2026-021
-  additiveChanges: [CR-2026-026]
+  additiveChanges: [CR-2026-026, CR-2026-031]
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -68,6 +68,8 @@ tags:
     description: Indexed media metadata, thumbnails, and read-only original content.
   - name: Curation
     description: Application-only favorites and manual tags that never modify original media.
+  - name: Automatic tags
+    description: Per-library automatic image tags with manual priority and persistent removal suppression.
   - name: AI models
     description: Deployment-approved model downloads, offline discovery, installation, availability, and activation.
   - name: Semantic search
@@ -2051,6 +2053,56 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/assets/{assetId}/tags/{tagId}:
+    put:
+      tags: [Curation]
+      operationId: addManualAssetTag
+      summary: Add or explicitly retain one tag as manual
+      description: Adds a manual association or promotes an existing AI association to manual and clears same-name suppression. Changes require the current curation revision; an already-manual association may return idempotently without a mutation. No body is accepted.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTOTAG-002, FR-CUR-005]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [asset_not_found, tag_not_found]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+        - $ref: '#/components/parameters/TagIDParameter'
+        - $ref: '#/components/parameters/IfMatchHeader'
+      responses:
+        '200':
+          description: Current asset curation with manual association ownership.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetCuration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/assets/{assetId}/tags:
     put:
       tags: [Curation]
@@ -2110,14 +2162,25 @@ paths:
       tags: [Curation]
       operationId: listTags
       summary: List manual tags in stable name order
-      x-requirements: [FR-CUR-003, NFR-CUR-001]
+      description: |
+        Without libraryId or kind, returns the global tag vocabulary, including
+        tags with no associated assets. When either filter is supplied, returns
+        only tags carried by matching assets; assetCount counts distinct asset
+        IDs within that scope. Use kind=image,animated for an image-only tag cloud;
+        kind=image alone does not include animated images. Cursors are bound to
+        library scope, normalized media kinds, normalized search, and the curation
+        revision. Unknown libraries fail explicitly and never fall back globally.
+      x-requirements: [FR-CUR-003, FR-AUTOTAG-003, NFR-CUR-001]
       x-error-codes:
         '400': [invalid_request, invalid_cursor]
         '401': [authentication_required, session_expired]
+        '404': [library_not_found]
         '429': [rate_limited]
         '500': [internal_error]
       parameters:
         - $ref: '#/components/parameters/TagSearchParameter'
+        - $ref: '#/components/parameters/OptionalLibraryIDParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
         - $ref: '#/components/parameters/CursorParameter'
         - $ref: '#/components/parameters/LimitParameter'
       responses:
@@ -2131,6 +2194,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -3415,6 +3480,176 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/libraries/{libraryId}/ai/automatic-tags:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [Automatic tags]
+      operationId: getLibraryAutomaticTagSettings
+      summary: Get automatic image tagging settings and recorded coverage
+      x-requirements: [FR-AUTOTAG-001, FR-AUTOTAG-002]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [library_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Per-library settings; deployment model is read-only, not a user vocabulary.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomaticTagLibrarySettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Automatic tags]
+      operationId: updateLibraryAutomaticTagSettings
+      summary: Enable automatic incremental tagging for one library
+      description: |
+        Enabling schedules missing/new/changed images with a bounded background reconciler.
+        Disabling cancels pending work and fences subsequent commits, but preserves existing
+        tags and manual removal suppression. Same-source/model failures are not retried forever.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTOTAG-001, FR-AUTOTAG-002]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [library_not_found]
+        '409': [model_unavailable, source_offline]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Saved settings with a new optimistic-concurrency revision.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomaticTagLibrarySettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/libraries/{libraryId}/ai/automatic-tags/jobs:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    post:
+      tags: [Automatic tags]
+      operationId: requestLibraryAutomaticTagJob
+      summary: Process missing images or explicitly reprocess automatic tags
+      description: |
+        Creates a bounded restart-safe operation. Manual tags and per-image removal suppression
+        survive every run. A successful empty model result only removes old AI associations.
+        Full reprocessing can retry recorded failures; it never erases manual curation.
+        Cancellation uses the existing AI operation endpoint and preserves committed results.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      x-requirements: [FR-AUTOTAG-001, FR-AUTOTAG-002]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [library_not_found]
+        '409': [ai_disabled, model_unavailable, source_offline, idempotency_conflict, operation_conflict]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mode]
+              properties:
+                mode:
+                  type: string
+                  enum: [missing, all]
+                confirmation:
+                  type: string
+                  enum: [reprocess_automatic_tags]
+                  description: Required when mode is all.
+      responses:
+        '202':
+          description: Accepted or coalesced; totalItems is null until the bounded traversal finishes.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/IdempotencyReplayed'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/libraries/{libraryId}/ai/tag-suggestions/jobs:
     parameters:
       - $ref: '#/components/parameters/LibraryIDParameter'
@@ -3760,6 +3995,13 @@ paths:
         after that same model generation recovers. Admission rechecks availability
         and the library revision; retry never enables a disabled library. A new
         idempotency key creates the retry; the old key retains its recorded result.
+        Missing-only work includes current-source persisted failures even when an
+        older successful result exists. Per-asset diagnostic details describe the
+        current attempt; legacy reasons cannot be reconstructed. An in-flight job
+        waits at most 60 seconds per transient catalog scan, rechecking control and
+        lease every second, then fails with library_scanning if scanning continues.
+        New admission still requires a ready library; offline/disabled/model failures
+        do not wait or restart automatically.
       security:
         - cookieAuth: []
           csrfToken: []
@@ -4632,7 +4874,7 @@ components:
       name: q
       in: query
       required: false
-      description: Optional normalized literal substring filter over tag display names.
+      description: Optional normalized literal substring filter over original tag names and reviewed Chinese/English aliases of AI categories associated in the requested library/media-kind scope. Manual names remain unchanged. Expansion is applied before keyset pagination.
       schema:
         type: string
         minLength: 1
@@ -6665,6 +6907,25 @@ components:
           maximum: 320
           nullable: true
 
+    TagLocalization:
+      type: object
+      additionalProperties: false
+      description: Reviewed AI category display metadata only; never rewrites name, tag ID, manual text or curation. Omitted for unknown/manual associations and mixed/manual/unassigned global tags. Locale is a browser preference, not an inference setting.
+      required: [key, zhCN, en]
+      properties:
+        key:
+          type: string
+          maxLength: 32
+          pattern: '^[a-z]+(_[a-z]+)*$'
+        zhCN:
+          type: string
+          minLength: 1
+          maxLength: 32
+        en:
+          type: string
+          minLength: 1
+          maxLength: 32
+
     Tag:
       type: object
       additionalProperties: false
@@ -6684,6 +6945,34 @@ components:
           $ref: '#/components/schemas/Timestamp'
         updatedAt:
           $ref: '#/components/schemas/Timestamp'
+        localization:
+          $ref: '#/components/schemas/TagLocalization'
+
+    AssetTag:
+      type: object
+      additionalProperties: false
+      description: A per-image association; manual source wins over automatic updates. Global tag vocabulary has no source.
+      required: [id, name, assetCount, createdAt, updatedAt, source]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+        assetCount:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+        source:
+          type: string
+          enum: [manual, ai]
+        localization:
+          $ref: '#/components/schemas/TagLocalization'
 
     TagPage:
       type: object
@@ -6720,6 +7009,10 @@ components:
     ReplaceAssetTagsRequest:
       type: object
       additionalProperties: false
+      description: >-
+        Differential manual edit with revision CAS. Unchanged associations retain their source.
+        Removed names are persistently suppressed for this image; explicitly added names become
+        manual and clear same-name suppression. AI reruns cannot undo these changes.
       required: [tagIds]
       properties:
         tagIds:
@@ -6746,7 +7039,7 @@ components:
           type: array
           maxItems: 20
           items:
-            $ref: '#/components/schemas/Tag'
+            $ref: '#/components/schemas/AssetTag'
         revision:
           type: integer
           format: int64
@@ -7201,6 +7494,8 @@ components:
             - tag_suggestion_missing
             - tag_suggestion_rebuild
             - tag_review_clear
+            - automatic_tags_missing
+            - automatic_tags_rebuild
             - video_semantic_missing
             - video_semantic_rebuild
             - face_missing
@@ -7238,9 +7533,14 @@ components:
             - model_source_unavailable
             - model_source_unsafe
             - model_unavailable
+            - model_invalid_output
             - vocabulary_unavailable
             - storyboard_not_ready
             - face_model_unavailable
+            - library_not_ready
+            - library_scanning
+            - library_offline
+            - face_disabled
             - insufficient_space
             - source_offline
             - source_missing
@@ -7252,6 +7552,66 @@ components:
           $ref: '#/components/schemas/Timestamp'
         updatedAt:
           $ref: '#/components/schemas/Timestamp'
+
+    AutomaticTagLibrarySettings:
+      type: object
+      additionalProperties: false
+      required: [libraryId, enabled, revision, state, offline, model, coverage, activeOperationId]
+      properties:
+        libraryId:
+          $ref: '#/components/schemas/ResourceID'
+        enabled:
+          type: boolean
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+        state:
+          type: string
+          enum: [disabled, awaiting_model, building, ready, degraded]
+        offline:
+          type: boolean
+        model:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [identity, displayName, protocol]
+          properties:
+            identity:
+              type: string
+              pattern: '^[a-f0-9]{64}$'
+            displayName:
+              type: string
+            protocol:
+              type: string
+              enum: [foliopath-tag-v1]
+        coverage:
+          type: object
+          additionalProperties: false
+          required: [eligible, completed, failed, stale, revision]
+          properties:
+            eligible:
+              type: integer
+              format: int64
+              minimum: 0
+            completed:
+              type: integer
+              format: int64
+              minimum: 0
+            failed:
+              type: integer
+              format: int64
+              minimum: 0
+            stale:
+              type: integer
+              format: int64
+              minimum: 0
+            revision:
+              type: integer
+              format: int64
+              minimum: 0
+        activeOperationId:
+          $ref: '#/components/schemas/NullableResourceID'
 
     SemanticLibrarySettings:
       type: object
@@ -7672,8 +8032,89 @@ components:
           minimum: 1
         activeGenerationId:
           $ref: '#/components/schemas/NullableResourceID'
+        generationCurrent:
+          type: boolean
+          description: Whether this library's bound face generation matches the deployment's active generation, computed in the same read snapshot. Omitted when either generation is unavailable. False means coverage belongs to historical model results; a missing job will use the current model without deleting manual relationships.
         coverage:
           $ref: '#/components/schemas/DerivedCoverage'
+        diagnostics:
+          $ref: '#/components/schemas/FaceFailureDiagnostics'
+
+    FaceFailureDiagnostics:
+      type: object
+      additionalProperties: false
+      description: Current-generation, current-attempt bounded diagnostic summary; no raw exceptions or host paths. Legacy failures may lack details. New attempts replace previous attempt details.
+      required: [latestTask, recordedFailures, unrecordedFailures, reasons, samples]
+      properties:
+        latestTask:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [operationId, state, errorCode, updatedAt]
+          properties:
+            operationId:
+              $ref: '#/components/schemas/ResourceID'
+            state:
+              type: string
+              enum: [queued, running, cancelling, succeeded, failed, cancelled]
+            errorCode:
+              type: string
+              nullable: true
+              maxLength: 128
+              description: Safe terminal task code; never a raw exception. library_scanning means bounded scan waiting expired.
+            updatedAt:
+              type: string
+              format: date-time
+        recordedFailures:
+          type: integer
+          format: int64
+          minimum: 0
+        unrecordedFailures:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Historical coverage failures without persisted per-asset reasons; retry is needed to collect reasons.
+        reasons:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, count]
+            properties:
+              code:
+                $ref: '#/components/schemas/FaceAssetFailureCode'
+              count:
+                type: integer
+                format: int64
+                minimum: 1
+        samples:
+          type: array
+          maxItems: 20
+          description: At most 20 failed assets ordered by asset ID; a diagnostic sample, not a complete log listing.
+          items:
+            type: object
+            additionalProperties: false
+            required: [assetId, name, code, updatedAt]
+            properties:
+              assetId:
+                $ref: '#/components/schemas/ResourceID'
+              name:
+                type: string
+              sizeBytes:
+                type: integer
+                format: int64
+                minimum: 0
+                description: Current catalog source size. Zero with invalid_media identifies an empty original; absent on older servers.
+              code:
+                $ref: '#/components/schemas/FaceAssetFailureCode'
+              updatedAt:
+                type: string
+                format: date-time
+
+    FaceAssetFailureCode:
+      type: string
+      enum: [media_unreadable, invalid_media, inference_invalid_output, inference_timeout, analysis_failed]
 
     FaceLibrarySettingsUpdate:
       type: object

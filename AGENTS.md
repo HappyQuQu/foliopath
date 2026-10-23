@@ -45,6 +45,13 @@ them.
   The main application retains SQLite, auth, media access and bounded job ownership;
   the AI service gets no media/database mount and no default public port. Internal
   contracts and model-generation compatibility must precede production integration.
+- ADR-0021 accepts one bounded, request-scoped inference subprocess inside the AI
+  container, not a third deployment unit. Reap it before releasing admission; retain
+  the existing resource budget until measured evidence supports a change. Automatic
+  tagging owns a separate model identity and bounded job capability. Curation owns
+  manual-tag priority and persistent removal suppression; merge tags and advance the
+  automatic-tag checkpoint in one fenced SQLite transaction. Never reinterpret old
+  candidate suggestions as automatic tags or silently relabel old index identities.
 - `cmd/foliopath` is a minimal process entry point. Dependency composition,
   lifecycle, and graceful shutdown belong in `internal/app`.
 - Put business capabilities under `internal/` (`auth`, `settings`, `library`,
@@ -170,11 +177,28 @@ them.
   and expose skipped counts.
 - Make jobs restart-safe and idempotent. Write derived files to a temporary file and
   atomically rename them into place.
+- ADR-0027: only signal-marked planned shutdown may hand back automatic-tag,
+  image-semantic and face claims after both processor and heartbeat exit. Release
+  the exact fenced claim in one audited transaction, undoing only its attempt
+  charge and preserving all committed progress and identities. Cancellation wins;
+  crashes retain the three-attempt limit. Legacy bootstrap handoff is offline-only
+  after verified owner stop/full backup and requires an exact bounded snapshot.
+- ADR-0022 permits an in-flight face job to wait at most 60 seconds per transient
+  catalog scan, without holding a transaction; recheck cancellation, availability,
+  and the existing lease every second. New admission still requires a ready library.
+  Persist only fixed per-asset failure codes with the fenced checkpoint. Keep an
+  unresolved failure eligible for missing-only retry even when an older successful
+  result exists; never invent historical failure reasons or return raw exceptions.
 
 ## SQLite
 
 - Use SQLite in WAL mode for a single FolioPath instance. Do not place `/app/data` on
   SMB or NFS unless support is explicitly designed and documented.
+- ADR-0023: never open a live Docker Desktop SQLite database from the macOS/Windows
+  host, even for an integrity query. Online checks must share the owning container's
+  Linux kernel and lock domain: use `docker exec <app> /app/foliopath database-check`.
+  Do not run migrations, checkpoints, or host SQLite against active data. Stop the
+  owner before copying a complete backup; host inspection is for detached backups.
 - Every directory, asset, thumbnail, and scan row is scoped by `library_id`; enforce
   uniqueness for normalized relative paths within a library.
 - Serialize writes, batch scan mutations, keep transactions bounded, and set a busy
@@ -209,6 +233,30 @@ them.
   video.
 - Apply timeouts, cancellation, input-size safeguards, and bounded concurrency to all
   subprocesses. Treat media files and metadata as untrusted input.
+- ADR-0024: imagevips owns one process-wide, cancellable large-image native-memory
+  admission shared by thumbnails, face and semantic preprocessing. Acquire before
+  compressed/native working allocations and release only after ImageRef/thread
+  cleanup and idle-memory reclamation. Do not replace it with per-feature/library
+  gates, change pixels/model identities, or add reads to caller-owned cancellation
+  and no-progress streams merely to classify a resource lane.
+- ADR-0025: deployment may select only the reviewed English 512-dimensional or
+  XLM-Roberta-Large-Vit-B-16Plus 640-dimensional semantic profile. Verify model,
+  dimension and identity together; never relabel old vectors. Keep legacy face/tag
+  identities and workers separate from the multilingual overlay while sharing one
+  inference scheduler. Its bounded snapshots use dedicated disposable disk scratch,
+  never media/database storage; large-model tests do not prove the small-model budget.
+- ADR-0028: semantic image preprocessing defaults to the unchanged v3 contract.
+  The explicit deployment profile `png-v4` permits bounded 64 MiB / 40 MP PNG
+  inputs with pre-load header checks and the same native-memory admission. Bind
+  this profile to a distinct semantic identity; never relabel old vectors or
+  switch in-flight jobs implicitly. Face and automatic-tag preprocessing remain
+  unchanged; the tag fingerprint continues to bind v3.
+- ADR-0026: curation owns the reviewed automatic-category catalog and exact
+  Chinese/English aliases. Localized display must never rename stored tags or infer
+  manual provenance. The photo-tag overlay binds its allowed keys and execution
+  sources to an independent tag identity, retains legacy semantic/face identities,
+  and reuses the one inference scheduler, transform owner and bounded child.
+  Display-language preferences never trigger reprocessing; category changes do.
 - Derive cache keys from asset identity plus source fingerprint and transform version
   so stale thumbnails cannot be reused.
 - Default the thumbnail cache quota to 10 GiB, make it UI-configurable, evict
@@ -217,6 +265,11 @@ them.
 
 ## Frontend
 
+- Use the latest verified Node.js 24 LTS patch for local tools, CI and Docker
+  build/test stages. Pin its exact version in `.node-version`, align package
+  engines/npm packageManager and the generated lockfile, use that version file in
+  CI, and pin Docker tags plus verified multi-platform digests. Do not use floating
+  `latest`/`lts` tags or rewrite historical verification evidence when upgrading.
 - Use React, TypeScript, Vite, React Router, TanStack Query, and TanStack Virtual.
 - Keep server state in TanStack Query and navigable library, directory, search, sort,
   and cursor state in the URL. Do not add Redux without an accepted ADR.

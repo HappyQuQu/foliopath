@@ -73,6 +73,12 @@ func limitRequests(
 
 func requestRatePolicyFor(method, path string) (requestRatePolicy, bool) {
 	switch {
+	case method == http.MethodGet && libraryAIPath(path, "/ai/automatic-tags"):
+		return requestRatePolicy{operation: "automatic_tags_read", limit: 60}, true
+	case method == http.MethodPut && libraryAIPath(path, "/ai/automatic-tags"):
+		return requestRatePolicy{operation: "automatic_tags_write", limit: 20}, true
+	case method == http.MethodPost && libraryAIPath(path, "/ai/automatic-tags/jobs"):
+		return requestRatePolicy{operation: "automatic_tags_job", limit: 10}, true
 	case method == http.MethodPost && path == "/api/v1/auth/setup":
 		return requestRatePolicy{operation: "setup", limit: 10}, true
 	case method == http.MethodPost && path == "/api/v1/auth/login":

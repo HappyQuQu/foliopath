@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"os"
 	"runtime"
@@ -16,9 +17,9 @@ import (
 	"github.com/davidbyttow/govips/v2/vips"
 )
 
-// PrepareRemoteSemanticImage emits upright, metadata-free RGB PNG. It does not
+// prepareRemoteSemanticImage emits upright, metadata-free RGB PNG. It does not
 // perform CLIP normalization/cropping, which belongs to the pinned ML runtime.
-func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.ReadSeeker, format media.Format) ([]byte, error) {
+func prepareRemoteSemanticImage(ctx context.Context, source io.ReadSeeker, format media.Format, profile semantic.RemoteImageProfile) ([]byte, error) {
 	expected, ok := expectedImageType(format)
 	if !ok || source == nil {
 		return nil, semantic.ErrInvalidImageInput
@@ -30,12 +31,17 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 		return nil, semantic.ErrInvalidImageInput
 	}
 	maxSourceBytes := semantic.RemoteImageMaxSourceBytes
+	maxPixels := int64(semantic.RemoteImageMaxPixels)
+	largePNG := profile == semantic.RemoteImagePNG && format == media.FormatPNG
 	if format == media.FormatJPEG {
 		maxSourceBytes = semantic.RemoteJPEGMaxSourceBytes
+	} else if largePNG {
+		maxSourceBytes = semantic.RemotePNGMaxSourceBytes
+		maxPixels = semantic.RemotePNGMaxPixels
 	}
 	// The already-opened stream is seekable. Validate size before allocating. On
-	// production Linux, large JPEGs stay behind the openat2-anchored descriptor
-	// and libvips reads /proc/self/fd directly; non-file test/development streams
+	// production Linux, JPEG and explicit v4 PNG stay behind the openat2-anchored
+	// descriptor and libvips reads /proc/self/fd; non-file test/development streams
 	// retain the exact-buffer fallback.
 	size, err := source.Seek(0, io.SeekEnd)
 	if err != nil || size < 1 || size > int64(maxSourceBytes) {
@@ -48,11 +54,21 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 		return nil, err
 	}
 	var encoded []byte
+	if largeImageSourceNeedsReclaim(source, format) {
+		finish, err := beginLargeImageDecode(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer finish()
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+	}
 	importParams := imageImportParams()
 	width, height := 0, 0
 	jpegShrink := 1
 	sourceFile, fileStream := source.(*os.File)
-	fileStream = fileStream && runtime.GOOS == "linux" && format == media.FormatJPEG
+	fileStream = fileStream && runtime.GOOS == "linux" && (format == media.FormatJPEG || largePNG)
 	if !fileStream {
 		encoded, err = readRemoteSemanticSource(ctx, source, int(size))
 		if err != nil {
@@ -76,6 +92,21 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 		jpegShrink = shrink
 		importParams.JpegShrinkFactor.Set(shrink)
 	}
+	if largePNG {
+		headerSource := io.Reader(source)
+		if !fileStream {
+			headerSource = bytes.NewReader(encoded)
+		}
+		header, headerErr := png.DecodeConfig(io.LimitReader(headerSource, semantic.RemotePNGMaxHeaderBytes))
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if headerErr != nil || media.ValidateImageDimensions(format, header.Width, header.Height) != nil ||
+			int64(header.Width)*int64(header.Height) > maxPixels {
+			return nil, semantic.ErrInvalidImageInput
+		}
+		width, height = header.Width, header.Height
+	}
 	load := func(params *vips.ImportParams) (*vips.ImageRef, error) {
 		if fileStream {
 			if _, seekErr := source.Seek(0, io.SeekStart); seekErr != nil {
@@ -92,10 +123,15 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 	if err != nil {
 		return nil, semantic.ErrInvalidImageInput
 	}
-	if format != media.FormatJPEG {
+	if format != media.FormatJPEG && !largePNG {
 		width, height = image.Width(), image.Height()
 	}
-	if !validRemoteSemanticImage(image, expected, format, width, height) {
+	if largePNG && (media.ValidateImageDimensions(format, image.Width(), image.Height()) != nil ||
+		!((image.Width() == width && image.Height() == height) || (image.Width() == height && image.Height() == width))) {
+		image.Close()
+		return nil, semantic.ErrInvalidImageInput
+	}
+	if !validRemoteSemanticImage(image, expected, format, width, height, maxPixels) {
 		image.Close()
 		return nil, semantic.ErrInvalidImageInput
 	}
@@ -118,7 +154,7 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 		return nil, semantic.ErrImagePreprocessFailed
 	}
 	defer recovered.Close()
-	if !validRemoteSemanticImage(recovered, expected, format, width, height) {
+	if !validRemoteSemanticImage(recovered, expected, format, width, height, maxPixels) {
 		return nil, semantic.ErrInvalidImageInput
 	}
 	output, err = encodeRemoteSemanticImage(ctx, recovered)
@@ -131,9 +167,9 @@ func (*Processor) PrepareRemoteSemanticImage(ctx context.Context, source io.Read
 	return output, nil
 }
 
-func validRemoteSemanticImage(image *vips.ImageRef, expected vips.ImageType, format media.Format, width, height int) bool {
+func validRemoteSemanticImage(image *vips.ImageRef, expected vips.ImageType, format media.Format, width, height int, maxPixels int64) bool {
 	return image != nil && image.OriginalFormat() == expected && media.ValidateImageDimensions(format, width, height) == nil &&
-		int64(image.Width())*int64(image.Height()) <= semantic.RemoteImageMaxPixels
+		int64(image.Width())*int64(image.Height()) <= maxPixels
 }
 
 func encodeRemoteSemanticImage(ctx context.Context, image *vips.ImageRef) ([]byte, error) {

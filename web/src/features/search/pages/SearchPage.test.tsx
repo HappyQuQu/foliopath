@@ -235,13 +235,37 @@ it("switches to semantic mode through the canonical URL and fixed relevance quer
   expect(await screen.findByText("画面语义覆盖：已分析 8 / 可分析 12，失败 1")).toBeVisible();
   expect(screen.queryByLabelText("日期")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("排序")).not.toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "描述画面内容" })).toHaveValue("夜景");
+  expect(screen.getByText("画面语义检索")).toBeVisible();
+  expect(screen.queryByText("文件名或路径检索")).not.toBeInTheDocument();
+});
+
+it("explains empty semantic search without requesting filename results or inventing OCR", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?mode=semantic&scope=directory&directoryId=dir_japan&recursive=1");
+  const input = screen.getByRole("searchbox", { name: "描述画面内容" });
+  expect(input).toHaveAttribute("placeholder", "描述画面，例如：汽车、海边日落、蓝色头发");
+  expect(screen.getByText("用中文或英文描述想找的画面。只检索所选范围内已分析的图片或视频关键帧，不按文件名匹配。")).toBeVisible();
+  expect(searchSemanticAssets).not.toHaveBeenCalled();
+  expect(searchLibraryAssets).not.toHaveBeenCalled();
+  await user.type(input, "车");
+  await user.keyboard("{Enter}");
+  expect(await screen.findByText("画面语义检索")).toBeVisible();
+  expect(searchSemanticAssets).toHaveBeenCalledWith({ libraryId: "lib_family", directoryId: "dir_japan", recursive: true, q: "车" });
+  expect(searchLibraryAssets).not.toHaveBeenCalled();
+  expect(screen.getByText("按画面相似度排序，不代表关键词精确命中。图片文字识别（OCR）尚未接入。")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "文件名" }));
+  expect(await screen.findByText("文件名或路径检索")).toBeVisible();
+  expect(screen.getByRole("searchbox", { name: "搜索文件名或路径" })).toHaveValue("车");
+  expect(screen.queryByText("画面语义检索")).not.toBeInTheDocument();
+  expect(searchLibraryAssets).toHaveBeenCalledWith(expect.objectContaining({ libraryId: "lib_family", directoryId: "dir_japan", recursive: true, q: "车" }));
 });
 
 it("shows the best matching storyboard frame for semantic video results", async () => {
   renderSearch("/libraries/lib_family/search?q=散步&mode=semantic&kind=video");
 
   expect(await screen.findByText("京都散步.mp4")).toBeVisible();
-  expect(screen.getByText("命中 0:42 · 10 帧故事板")).toBeVisible();
+  expect(screen.getByText("画面语义检索 · 命中 0:42 · 10 帧故事板")).toBeVisible();
   expect(searchSemanticVideos).toHaveBeenCalledWith({
     libraryId: "lib_family",
     q: "散步",

@@ -28,6 +28,7 @@ type ManagementService struct {
 	availability *AvailabilityService
 	semantic     SemanticOperationCanceller
 	face         FaceOperationCanceller
+	autotag      AutomaticTagOperationCanceller
 }
 
 type SemanticOperationCanceller interface {
@@ -39,8 +40,13 @@ type FaceOperationCanceller interface {
 }
 
 type OperationCancellers struct {
-	Semantic SemanticOperationCanceller
-	Face     FaceOperationCanceller
+	Semantic      SemanticOperationCanceller
+	Face          FaceOperationCanceller
+	AutomaticTags AutomaticTagOperationCanceller
+}
+
+type AutomaticTagOperationCanceller interface {
+	CancelAutomaticTagOperation(context.Context, string, int64) (Operation, error)
 }
 
 func NewManagementService(
@@ -64,7 +70,7 @@ func NewManagementService(
 	}
 	return &ManagementService{
 		models: models, scanner: scanner, operations: operations, install: install, activation: activation,
-		availability: availability, semantic: owners.Semantic, face: owners.Face,
+		availability: availability, semantic: owners.Semantic, face: owners.Face, autotag: owners.AutomaticTags,
 	}, nil
 }
 
@@ -195,6 +201,12 @@ func (service *ManagementService) CancelOperation(
 			return Operation{}, ErrInvalidTransition
 		}
 		return service.face.CancelFaceOperation(ctx, operationID, revision)
+	}
+	if operation.Kind == OperationAutomaticTagsMissing || operation.Kind == OperationAutomaticTagsRebuild {
+		if service.autotag == nil {
+			return Operation{}, ErrInvalidTransition
+		}
+		return service.autotag.CancelAutomaticTagOperation(ctx, operationID, revision)
 	}
 	return service.operations.RequestCancel(ctx, operationID, revision)
 }

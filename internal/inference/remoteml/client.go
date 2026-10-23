@@ -20,11 +20,13 @@ import (
 )
 
 const (
-	ModelName        = "ViT-B-32__openai"
-	Dimension        = 512
-	MaxImageBytes    = semantic.RemoteImageMaxBytes
-	maxResponseBytes = 64 << 10
-	requestTimeout   = 30 * time.Second
+	ModelName             = "ViT-B-32__openai"
+	Dimension             = 512
+	MultilingualModelName = "XLM-Roberta-Large-Vit-B-16Plus"
+	MultilingualDimension = 640
+	MaxImageBytes         = semantic.RemoteImageMaxBytes
+	maxResponseBytes      = 64 << 10
+	requestTimeout        = 30 * time.Second
 )
 
 var (
@@ -96,14 +98,21 @@ func (c *Client) predict(parent context.Context, kind, text string, encoded []by
 	if err := parent.Err(); err != nil {
 		return nil, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return nil, ErrBusy
-	}
 	ctx, cancel := context.WithTimeout(parent, c.timeout)
 	defer cancel()
+	// Foreground search and the bounded background worker set share the same
+	// transport. A foreground query must not fail immediately under background
+	// load, nor make the next image look corrupt by briefly taking its slot.
+	// Waiting consumes the existing total deadline and adds no worker/model slot.
+	select {
+	case c.slots <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	defer func() { <-c.slots }()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if c.identity != nil {
 		if err := c.verifyIdentity(ctx, *c.identity); err != nil {
 			return nil, err
@@ -112,7 +121,11 @@ func (c *Client) predict(parent context.Context, kind, text string, encoded []by
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	// Fixed keys and model, never interpolated user input.
-	entries := `{"clip":{"` + kind + `":{"modelName":"` + ModelName + `"}}}`
+	model, dimension := ModelName, Dimension
+	if c.identity != nil {
+		model, dimension = c.identity.Model, c.identity.Dimension
+	}
+	entries := `{"clip":{"` + kind + `":{"modelName":"` + model + `"}}}`
 	if err := w.WriteField("entries", entries); err != nil {
 		return nil, ErrInvalidInput
 	}
@@ -170,17 +183,17 @@ func (c *Client) predict(parent context.Context, kind, text string, encoded []by
 	}
 	// Pointers reject JSON null elements, which float32 unmarshalling treats as zero.
 	var values []*float32
-	if json.Unmarshal([]byte(response.Clip), &values) != nil || len(values) != Dimension {
+	if json.Unmarshal([]byte(response.Clip), &values) != nil || len(values) != dimension {
 		return nil, ErrInvalidResponse
 	}
-	vector := make([]float32, Dimension)
+	vector := make([]float32, dimension)
 	for i, value := range values {
 		if value == nil {
 			return nil, ErrInvalidResponse
 		}
 		vector[i] = *value
 	}
-	normalized, err := semantic.NormalizeEmbedding(vector, Dimension)
+	normalized, err := semantic.NormalizeEmbedding(vector, dimension)
 	if err != nil {
 		return nil, ErrInvalidResponse
 	}

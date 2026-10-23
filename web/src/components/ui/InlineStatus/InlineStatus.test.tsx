@@ -5,6 +5,15 @@ import { describe, expect, it, vi } from "vitest";
 import { InlineStatus } from "./InlineStatus";
 
 describe("InlineStatus", () => {
+  it("preserves warning announcements and keyboard dismissal on a plain list surface", async () => {
+    const dismiss = vi.fn();
+    const user = userEvent.setup();
+    render(<InlineStatus appearance="plain" tone="warning" onDismiss={dismiss}>部分失败</InlineStatus>);
+    expect(screen.getByRole("status")).toHaveTextContent("部分失败");
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(dismiss).toHaveBeenCalledOnce();
+  });
   it("uses the canonical base style for informational status", () => {
     render(<InlineStatus>尚未记录</InlineStatus>);
     expect(screen.getByRole("status").className).not.toContain("undefined");

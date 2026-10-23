@@ -17,6 +17,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/aimodel/downloadhttp"
 	"github.com/HappyQuQu/foliopath/internal/api"
 	"github.com/HappyQuQu/foliopath/internal/auth"
+	"github.com/HappyQuQu/foliopath/internal/autotag"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
 	"github.com/HappyQuQu/foliopath/internal/face"
@@ -60,12 +61,21 @@ type Input struct {
 // Run owns the process root context. All concrete dependency construction and
 // lifecycle wiring stays below this boundary.
 func Run(input Input) error {
-	ctx, stop := signal.NotifyContext(
+	signalContext, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
 	defer stop()
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	go func() {
+		select {
+		case <-signalContext.Done():
+			cancel(jobs.ErrPlannedShutdown)
+		case <-ctx.Done():
+		}
+	}()
 
 	return run(ctx, input)
 }
@@ -73,6 +83,9 @@ func Run(input Input) error {
 func run(ctx context.Context, input Input) error {
 	if ctx == nil {
 		return errors.New("application context is nil")
+	}
+	if len(input.Args) == 1 && input.Args[0] == "database-check" {
+		return checkDatabase(ctx)
 	}
 
 	application, err := compose(input)
@@ -495,6 +508,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	var faceWorkers []aiBackgroundWorker
 	var remoteEncoder *semantic.BoundEncoder
 	var textEncoder semantic.TextEncoder = semanticTextSessions
+	automaticRuntime := &automaticTagRuntime{content: contentService, preprocessor: imagevips.New()}
 	if configuration.deployment != nil {
 		config := *configuration.deployment
 		client, createErr := remoteml.NewConfigured(config.Origin, config.Identity)
@@ -508,12 +522,24 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		if createErr := aiActivationWorker.EnableDeploymentRuntime(activationRuntime); createErr != nil {
 			return nil, createErr
 		}
-		remoteEncoder, createErr = semantic.NewBoundEncoder(database, imagevips.New(), client, config.space())
+		remoteImages, createErr := imagevips.NewRemoteImagePreprocessor(config.ImagePreprocessing)
+		if createErr != nil {
+			return nil, createErr
+		}
+		remoteEncoder, createErr = semantic.NewBoundEncoder(database, remoteImages, client, config.space())
 		if createErr != nil {
 			return nil, createErr
 		}
 		textEncoder = remoteEncoder
 		deployment = &deploymentBootstrap{client: client, models: aiModels, admission: aiActivationAdmission, config: config}
+		if config.Tag != nil {
+			tagClient, err := client.BindTag(config.Tag.Identity)
+			if err != nil {
+				return nil, err
+			}
+			automaticRuntime.client = tagClient
+			automaticRuntime.model = &autotag.Model{Identity: config.Tag.fingerprint(), DisplayName: config.Tag.Identity.Model, Protocol: config.Tag.Identity.Protocol}
+		}
 		if config.Face != nil {
 			faceClient, err := client.BindFace(config.Face.Identity)
 			if err != nil {
@@ -739,6 +765,20 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		return nil, fmt.Errorf("construct managed AI model orphan service: %w", err)
 	}
 	aiWorkers := []aiBackgroundWorker{aiInstallWorker, aiActivationWorker, semanticSessions, semanticTextSessions, semanticWorker, semanticClearWorker, tagReviewClearWorker, videoSemanticWorker, tagWorker}
+	automaticSignal := jobs.NewSignal()
+	automaticService, err := autotag.New(database, automaticRuntime, automaticSignal)
+	if err != nil {
+		return nil, err
+	}
+	automaticProcessor, err := resourcecontrol.LimitBackground(resourceController, autotag.Processor{Repository: database, Analyzer: automaticRuntime})
+	if err != nil {
+		return nil, err
+	}
+	automaticWorker, err := jobs.NewWorkerPool(autotag.Queue{Repository: database}, automaticProcessor, automaticSignal, jobs.WorkerOptions{Workers: 1})
+	if err != nil {
+		return nil, err
+	}
+	aiWorkers = append(aiWorkers, automaticWorker, automaticService)
 	if deployment != nil {
 		aiWorkers = append(aiWorkers, deployment)
 	}
@@ -752,7 +792,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, err
 	}
-	cancellers := aimodel.OperationCancellers{Semantic: semanticService}
+	cancellers := aimodel.OperationCancellers{Semantic: semanticService, AutomaticTags: automaticService}
 	if faceService != nil {
 		cancellers.Face = faceService
 	}
@@ -785,6 +825,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		SemanticSearch:   semanticSearch,
 
 		AITagVocabulary:   tagVocabulary,
+		AutomaticTags:     automaticService,
 		AITagJobs:         semanticService,
 		AITagSuggestions:  tagSuggestionList,
 		AITagReviews:      idempotentTagReviews,

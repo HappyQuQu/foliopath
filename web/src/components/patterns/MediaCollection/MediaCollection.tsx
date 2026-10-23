@@ -682,7 +682,7 @@ function estimatedCardHeight(
   columnWidth: number,
 ): number {
   const ratio = layout === "masonry" && item ? safeAspectRatio(item) : 4 / 3;
-  return columnWidth / ratio + 54;
+  return columnWidth / ratio + (item?.contextLabel ? 74 : 54);
 }
 
 function safeAspectRatio(item: MediaCollectionItem): number {

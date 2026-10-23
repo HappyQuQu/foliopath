@@ -36,6 +36,8 @@ export function AIReviewPage({ logoutPending, onLogout, session }: {
   const libraryId = params.get("libraryId") ?? libraries[0]?.id ?? "";
   const currentLibrary = libraries.find((library) => library.id === libraryId);
   const view = parseView(params.get("view"));
+  const reviewingTags = view === "tags";
+  const title = t(reviewingTags ? "intelligence.tags" : "intelligence.title");
   const personId = params.get("person") ?? "";
   const clusterId = params.get("cluster") ?? "";
   const assetId = params.get("asset") ?? "";
@@ -56,26 +58,27 @@ export function AIReviewPage({ logoutPending, onLogout, session }: {
 
   return <AppShell active="settings" homeHref={paths.root} identity={session.administrator.displayName}
     logoutPending={logoutPending} onLogout={onLogout} searchHref={paths.search}
-    settingsHref={paths.generalSettings} title={t("intelligence.title")}
+    settingsHref={paths.generalSettings} title={title}
     sidebarContent={libraryId ? <DirectoryNavigation
-      activeQuickAccess="people"
+      activeQuickAccess={reviewingTags ? "suggestions" : "people"}
       browseState={defaultBrowseUrlState()}
       {...(currentLibrary ? { currentLibraryName: currentLibrary.name } : {})}
       hideDirectoryTree
       libraries={libraries}
       libraryId={libraryId}
-      onLibraryChange={(nextLibraryId) => setParams({ view: "clusters", libraryId: nextLibraryId })}
+      onLibraryChange={(nextLibraryId) => setParams({ view: reviewingTags ? "tags" : "clusters", libraryId: nextLibraryId })}
       selectedPathIds={new Set<string>()}
     /> : undefined}
-    topbarContent={<span>{t("shell.people")}</span>}>
+    topbarContent={<span>{title}</span>}>
     <div className={styles.main}>
-      <header className={styles.heading}><div><p className={styles.eyebrow}><Sparkle aria-hidden="true" size={16} />{t("ai.overview.eyebrow")}</p><h1 ref={headingRef} tabIndex={-1}>{t("intelligence.title")}</h1><p>{t("intelligence.description")}</p></div>
-        <Link className={styles.settingsLink} to={paths.aiSettings}><SlidersHorizontal aria-hidden="true" size={18} />{t("intelligence.manageModels")}<ArrowRight aria-hidden="true" size={16} /></Link>
+      <header className={styles.heading}><div><p className={styles.eyebrow}><Sparkle aria-hidden="true" size={16} />{t("ai.overview.eyebrow")}</p><h1 ref={headingRef} tabIndex={-1}>{title}</h1><p>{t(reviewingTags ? "intelligence.tagsDescription" : "intelligence.description")}</p></div>
+        <Link className={styles.settingsLink} to={`${paths.aiSettings}${libraryId ? `?library=${encodeURIComponent(libraryId)}` : ""}`}><SlidersHorizontal aria-hidden="true" size={18} />{t("intelligence.manageModels")}<ArrowRight aria-hidden="true" size={16} /></Link>
       </header>
-      <div className={styles.tabs} role="group" aria-label={t("intelligence.title")}>
-        {(["clusters", "people", "tags", ...(assetId || view === "faces" ? ["faces" as const] : [])] as const).map((item) => <Button key={item}
+      {!reviewingTags && <div className={styles.tabs} role="group" aria-label={t("intelligence.title")}>
+        {(["clusters", "people", ...(assetId || view === "faces" ? ["faces" as const] : [])] as const).map((item) => <Button key={item}
           aria-pressed={view === item} variant={view === item ? "secondary" : "quiet"} onClick={() => navigate(item)}>{t(`intelligence.${item}`)}</Button>)}
-      </div>
+      </div>}
+      {view === "people" && <p className={styles.scopeNote}>{t("intelligence.peopleGlobalScope")}</p>}
       {libraries.length > 0 && (view === "tags" || view === "clusters") && <label className={styles.libraryFilter}>{t("intelligence.library")}
         <Select value={libraryId} onChange={(event) => setParams({ view, libraryId: event.target.value })}>
           {libraries.map((library) => <option value={library.id} key={library.id}>{library.name}</option>)}
@@ -87,7 +90,7 @@ export function AIReviewPage({ logoutPending, onLogout, session }: {
       {view === "people" && (personId ? <PersonPanel key={personId} personId={personId} session={session} onBack={() => navigate("people")} /> : <PeoplePanel session={session} onOpen={(id) => navigate("people", { person: id })} />)}
       {view === "clusters" && !faceLibraryOffline && (clusterId ? <ClusterPanel key={`${libraryId}:${clusterId}:${params.get("cursor") ?? ""}`} clusterId={clusterId} libraryId={libraryId} session={session} onBack={() => navigate("clusters")} /> : <ClustersPanel libraryId={libraryId} onOpen={(id) => navigate("clusters", { cluster: id })} />)}
       {view === "faces" && !faceLibraryOffline && <FacesPanel key={assetId} assetId={assetId} onAsset={(id) => navigate("faces", { asset: id })} session={session} />}
-      <details className={styles.privacy}><summary>{t("intelligence.privacyTitle")}</summary><p>{t("intelligence.privacy")}</p></details>
+      {!reviewingTags && <details className={styles.privacy}><summary>{t("intelligence.privacyTitle")}</summary><p>{t("intelligence.privacy")}</p></details>}
     </div>
   </AppShell>;
 }
@@ -101,20 +104,51 @@ function TagReviewPanel({ libraryId, session }: { libraryId: string; session: Au
   const currentFilterRef = useRef<HTMLButtonElement>(null);
   const query = useAITagSuggestionsQuery(libraryId, status, params.get("cursor") ?? "");
   const items = query.data?.items ?? [];
-  const curations = useQueries({ queries: items.map((item) => ({ queryKey: curationKeys.asset(item.asset.id), queryFn: () => getAssetCuration(item.asset.id) })) });
+  const assetIds = [...new Set(items.map(item => item.asset.id))];
+  const curations = useQueries({ queries: assetIds.map((id) => ({ enabled: status === "pending", queryKey: curationKeys.asset(id), queryFn: () => getAssetCuration(id) })) });
   const review = useReviewAITagSuggestionsMutation();
-  const selectionReady = items.every((item, index) => !selected.includes(item.id) || (curations[index]?.data && !curations[index]?.isFetching));
+  const curationFor = (item: AITagSuggestion) => curations[assetIds.indexOf(item.asset.id)];
+  const failedCurations = curations.filter(curation => curation.isError);
+  const selectionReady = items.every((item) => !selected.includes(item.id) || (curationFor(item)?.data && !curationFor(item)?.isFetching && !curationFor(item)?.isError));
   async function submit(action: "accept" | "dismiss") {
     if (submitting || !selectionReady) return;
-    const ready = items.flatMap((suggestion, index) => selected.includes(suggestion.id) && curations[index]?.data
-      ? [{ suggestion, curationRevision: curations[index].data.revision }] : []);
+    const ready = items.filter(item => selected.includes(item.id) && curationFor(item)?.data);
     if (!ready.length) return;
     const submitFocus = document.activeElement;
+    const saved = new Set<string>();
+    const blockedAssets = new Set<string>();
+    const revisions = new Map(assetIds.map((id, index) => [id, curations[index]?.data?.revision ?? 0]));
     setSubmitting(true);
     try {
-      const result = await review.mutateAsync({ action, csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), items: ready });
-      const saved = new Set(result.items.filter((item) => item.outcome === "accepted" || item.outcome === "dismissed").map((item) => item.suggestionId));
-      setSelected((ids) => ids.filter((id) => !saved.has(id)));
+      // Accepting a tag changes this photo's curation revision. Keep only one
+      // suggestion per photo in each batch, and never auto-retry a conflict.
+      let remainingItems = ready;
+      while (remainingItems.length) {
+        const batchAssets = new Set<string>();
+        const batch = remainingItems.filter(item => {
+          if (blockedAssets.has(item.asset.id) || (action === "accept" && batchAssets.has(item.asset.id))) return false;
+          batchAssets.add(item.asset.id);
+          return true;
+        });
+        if (!batch.length) break;
+        const result = await review.mutateAsync({ action, csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), items: batch.map(suggestion => ({ suggestion, curationRevision: revisions.get(suggestion.asset.id)! })) });
+        const outcomes = new Map(result.items.map(item => [item.suggestionId, item.outcome]));
+        for (const suggestion of batch) {
+          const outcome = outcomes.get(suggestion.id);
+          if (outcome === "accepted" || outcome === "dismissed") saved.add(suggestion.id);
+          else blockedAssets.add(suggestion.asset.id);
+        }
+        setSelected(ids => ids.filter(id => !saved.has(id)));
+        const submitted = new Set(batch.map(item => item.id));
+        remainingItems = remainingItems.filter(item => !submitted.has(item.id) && !blockedAssets.has(item.asset.id));
+        if (action === "accept" && remainingItems.length) {
+          for (const assetId of new Set(remainingItems.map(item => item.asset.id))) {
+            const refreshed = await curations[assetIds.indexOf(assetId)]!.refetch();
+            if (!refreshed.data || refreshed.isError) blockedAssets.add(assetId);
+            else revisions.set(assetId, refreshed.data.revision);
+          }
+        }
+      }
       const remaining = selected.filter((id) => !saved.has(id)).length;
       // The selected-only action bar disappears after the last successful item.
       // Restore a stable nearby control, but do not steal focus moved meanwhile.
@@ -130,20 +164,44 @@ function TagReviewPanel({ libraryId, session }: { libraryId: string; session: Au
   if (query.isPending) return <LoadingState label={t("common.loading")} />;
   if (query.isError) return <ReviewErrorState error={query.error} onRetry={() => void query.refetch()} />;
   const coverage = query.data.coverage;
-  return <section><div className={styles.filters}>{(["pending", "accepted", "dismissed"] as const).map((item) => <Button key={item} ref={status === item ? currentFilterRef : undefined} variant={status === item ? "secondary" : "quiet"} onClick={() => { const next = new URLSearchParams(params); next.delete("cursor"); if (item === "pending") next.delete("status"); else next.set("status", item); setParams(next); setSelected([]); }}>{t(`intelligence.${item}`)}</Button>)}</div>
-    <p className={styles.meta}>{t("intelligence.coverage").replace("{completed}", String(coverage.completed)).replace("{eligible}", String(coverage.eligible)).replace("{failed}", String(coverage.failed)).replace("{degraded}", String(coverage.degraded))}</p>
-    {!coverage.complete && <InlineStatus tone="warning">{t("intelligence.incomplete")}</InlineStatus>}
-    {status === "pending" && selected.length > 0 && <div className={styles.actions}><Button disabled={review.isPending || submitting || !selectionReady} onClick={() => void submit("accept")}>{t("intelligence.accept")}</Button><Button disabled={review.isPending || submitting || !selectionReady} variant="secondary" onClick={() => void submit("dismiss")}>{t("intelligence.dismiss")}</Button></div>}
-    {items.length === 0 ? <EmptyState title={t("intelligence.noSuggestions")} description={t(coverage.complete ? "intelligence.allReviewed" : "intelligence.incomplete")} /> : <div className={styles.grid}>{items.map((item) => <SuggestionCard item={item} key={item.id} selected={selected.includes(item.id)} onSelect={(checked) => setSelected((current) => checked ? [...current, item.id].slice(0, 100) : current.filter((id) => id !== item.id))} />)}</div>}
+  const groups = assetIds.map(assetId => items.filter(item => item.asset.id === assetId));
+  const allSelected = items.length > 0 && items.every(item => selected.includes(item.id));
+  return <section aria-label={t("intelligence.tags")}>
+    <div className={styles.tagToolbar}>
+      <div className={styles.filters} role="group" aria-label={t("intelligence.reviewStatus")}>{(["pending", "accepted", "dismissed"] as const).map((item) => <Button key={item} ref={status === item ? currentFilterRef : undefined} aria-pressed={status === item} aria-disabled={submitting || undefined} variant={status === item ? "secondary" : "quiet"} onClick={() => { if (submitting) return; const next = new URLSearchParams(params); next.delete("cursor"); if (item === "pending") next.delete("status"); else next.set("status", item); setParams(next); setSelected([]); }}>{t(`intelligence.${item}`)}</Button>)}</div>
+      <Link className={styles.settingsLink} to={`${paths.tags}?libraryId=${encodeURIComponent(libraryId)}`}>{t("intelligence.manageTags")}<ArrowRight aria-hidden="true" size={16} /></Link>
+    </div>
+    <div className={styles.tagCoverage}>
+      <div><strong>{t("intelligence.tagAnalysis")}</strong><span>{t("intelligence.coverage").replace("{completed}", String(coverage.completed)).replace("{eligible}", String(coverage.eligible)).replace("{failed}", String(coverage.failed)).replace("{degraded}", String(coverage.degraded))}</span></div>
+      <progress aria-label={t("intelligence.tagAnalysis")} max={Math.max(1, coverage.eligible)} value={coverage.completed} />
+    </div>
+    {items.length > 0 && !coverage.complete && <InlineStatus tone="warning">{t("intelligence.tagIncomplete")}</InlineStatus>}
+    {items.length > 0 && <p className={styles.meta}>{t(status === "pending" ? "intelligence.tagReviewHint" : status === "accepted" ? "intelligence.acceptedHint" : "intelligence.dismissedHint")}</p>}
+    {status === "pending" && failedCurations.length > 0 && <ErrorState message={t("intelligence.tagMetadataFailed")} onRetry={() => { void Promise.all(failedCurations.map(curation => curation.refetch())); }} />}
+    {status === "pending" && items.length > 0 && <div className={styles.tagSelection}>
+      <label className={styles.selectPage}><input type="checkbox" checked={allSelected} disabled={submitting} onChange={event => setSelected(event.target.checked ? items.map(item => item.id) : [])} />{t("intelligence.selectPage")}</label>
+      <span aria-live="polite">{t("intelligence.selectedCount").replace("{count}", String(selected.length))}</span>
+      {selected.length > 0 && <div className={styles.tagActions}><Button variant="primary" disabled={review.isPending || submitting || !selectionReady} onClick={() => void submit("accept")}>{t("intelligence.accept")}</Button><Button disabled={review.isPending || submitting || !selectionReady} variant="secondary" onClick={() => void submit("dismiss")}>{t("intelligence.dismiss")}</Button></div>}
+    </div>}
+    {items.length === 0 ? <EmptyState title={t(status === "pending" ? "intelligence.noPendingSuggestions" : status === "accepted" ? "intelligence.noAcceptedSuggestions" : "intelligence.noDismissedSuggestions")} description={t(status !== "pending" ? "intelligence.emptyReviewed" : coverage.eligible === 0 ? "intelligence.noTagImages" : coverage.complete ? "intelligence.noMatchingSuggestions" : "intelligence.tagIncomplete")} /> : <>
+      <p className={styles.resultSummary}>{t("intelligence.pageSuggestions").replace("{count}", String(items.length)).replace("{photos}", String(groups.length))}</p>
+      <div className={styles.tagGrid}>{groups.map(group => <SuggestionCard items={group} key={group[0]!.asset.id} selected={selected} disabled={submitting} onSelect={(id, checked) => setSelected(current => checked ? [...new Set([...current, id])].slice(0, 100) : current.filter(value => value !== id))} />)}</div>
+    </>}
     <ReviewPagination nextCursor={query.data.nextCursor} />
   </section>;
 }
 
-function SuggestionCard({ item, onSelect, selected }: { item: AITagSuggestion; onSelect: (selected: boolean) => void; selected: boolean }) {
+function SuggestionCard({ items, onSelect, selected, disabled }: { items: AITagSuggestion[]; onSelect: (id: string, selected: boolean) => void; selected: string[]; disabled: boolean }) {
   const { t } = useLocale();
-  return <article className={styles.card}><img className={styles.media} src={item.asset.thumbnail.url ?? assetContentUrl(item.asset.id)} alt={item.asset.name} />
-    <p className={styles.meta}>{t("intelligence.aiSuggestion")}</p><h2>{item.tag.name}</h2><p>{t("intelligence.confidence").replace("{value}", String(Math.round(item.confidence * 100)))}</p>
-    {item.status === "pending" && <label className={styles.check}><input type="checkbox" checked={selected} onChange={(event) => onSelect(event.target.checked)} />{t("intelligence.select").replace("{name}", item.asset.name)}</label>}
+  const asset = items[0]!.asset;
+  return <article className={styles.suggestionCard}>
+    <img className={styles.suggestionImage} loading="lazy" src={asset.thumbnail.url ?? assetContentUrl(asset.id)} alt={asset.name} />
+    <div className={styles.suggestionBody}><h2 title={asset.name}>{asset.name}</h2>
+      <div className={styles.suggestedTags}>{items.map(item => <label key={item.id} className={styles.suggestedTag} data-selected={selected.includes(item.id) || undefined}>
+        {item.status === "pending" && <input type="checkbox" checked={selected.includes(item.id)} disabled={disabled} aria-label={`${t("intelligence.select").replace("{name}", asset.name)} · ${item.tag.name}`} onChange={event => onSelect(item.id, event.target.checked)} />}
+        <strong>{item.tag.name}</strong><span>{t("intelligence.confidence").replace("{value}", String(Math.round(item.confidence * 100)))}</span>
+      </label>)}</div>
+    </div>
   </article>;
 }
 

@@ -71,6 +71,7 @@ type RouteDependencies struct {
 	AITagReviews        AITagReviewService
 	AITagReviewClear    AITagReviewClearService
 	AITagJobs           AITagJobService
+	AutomaticTags       AutomaticTagService
 	FaceSettings        FaceSettingsService
 	FaceClusters        FaceClusterService
 	FacePeople          PeopleListService
@@ -185,6 +186,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.AITagJobs != nil {
 		registerAITagJobRoute(mux, dependencies.AITagJobs)
+	}
+	if dependencies.AutomaticTags != nil {
+		registerAutomaticTagRoutes(mux, dependencies.AutomaticTags)
 	}
 	if dependencies.FaceSettings != nil && dependencies.FaceClusters != nil && dependencies.FacePeople != nil &&
 		dependencies.FacePerson != nil && dependencies.FaceAssetFaces != nil && dependencies.FacePersonAssets != nil &&

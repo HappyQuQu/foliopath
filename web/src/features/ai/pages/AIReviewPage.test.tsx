@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -9,6 +9,7 @@ import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { AIReviewPage } from "./AIReviewPage";
 import { ApiError } from "../../../lib/api/errors";
+import { getAssetCuration } from "../../../lib/api/curation";
 
 const mocks = vi.hoisted(() => ({ review: vi.fn(), create: vi.fn(), clusters: vi.fn(), cluster: vi.fn(), libraryStatus: "ready" }));
 const suggestion = {
@@ -17,12 +18,12 @@ const suggestion = {
   reviewedAt: null, revision: 2, status: "pending" as const,
   tag: { name: "海滩", tagId: "tag-1" }, vocabularyRevision: 1,
 };
-const tagPage = vi.hoisted(() => ({ nextCursor: null as string | null, second: false, query: vi.fn() }));
+const tagPage = vi.hoisted(() => ({ nextCursor: null as string | null, second: false, sameAsset: false, empty: false, complete: false, query: vi.fn() }));
 
 vi.mock("../../libraries", () => ({ useLibrariesQuery: () => ({ data: { pages: [{ items: [{ id: "lib-1", name: "照片", status: mocks.libraryStatus }] }] }, isPending: false, refetch: vi.fn() }) }));
 vi.mock("../../../lib/api/curation", () => ({ getAssetCuration: vi.fn().mockResolvedValue({ assetId: "asset-1", favorite: false, favoritedAt: null, revision: 7, tags: [] }) }));
 vi.mock("../queries", () => ({
-  useAITagSuggestionsQuery: (...args: unknown[]) => { tagPage.query(...args); return { data: { items: [suggestion, ...(tagPage.second ? [{ ...suggestion, id: "suggestion-2", asset: { ...suggestion.asset, id: "asset-2", name: "第二张.jpg" } }] : [])], nextCursor: tagPage.nextCursor, coverage: { complete: false, completed: 8, eligible: 10, failed: 1, degraded: 1, stale: 1, revision: 1 } }, isError: false, isPending: false, refetch: vi.fn() }; },
+  useAITagSuggestionsQuery: (...args: unknown[]) => { tagPage.query(...args); return { data: { items: tagPage.empty ? [] : [suggestion, ...(tagPage.second ? [{ ...suggestion, id: "suggestion-2", asset: { ...suggestion.asset, id: "asset-2", name: "第二张.jpg" } }] : []), ...(tagPage.sameAsset ? [{ ...suggestion, id: "suggestion-blue", tag: { name: "蓝色", tagId: "tag-blue" } }] : [])], nextCursor: tagPage.nextCursor, coverage: { complete: tagPage.complete, completed: 8, eligible: 10, failed: 1, degraded: 1, stale: 1, revision: 1 } }, isError: false, isPending: false, refetch: vi.fn() }; },
   useReviewAITagSuggestionsMutation: () => ({ isPending: false, mutateAsync: mocks.review }),
   usePeopleQuery: () => ({ data: { items: [], nextCursor: null }, isError: false, isPending: false, refetch: vi.fn() }),
   usePersonQuery: () => ({ isPending: true }), usePersonAssetsQuery: () => ({ isPending: true }),
@@ -33,7 +34,84 @@ vi.mock("../queries", () => ({
 }));
 
 beforeEach(() => { mocks.libraryStatus = "ready"; mocks.review.mockReset(); mocks.review.mockResolvedValue({ items: [] }); mocks.clusters.mockReturnValue({ isPending: true }); mocks.cluster.mockReturnValue({ isPending: true }); window.localStorage.setItem("foliopath.preferences.v1", '{"locale":"zh-CN"}'); });
-beforeEach(() => { tagPage.nextCursor = null; tagPage.second = false; tagPage.query.mockClear(); });
+beforeEach(() => { tagPage.nextCursor = null; tagPage.second = false; tagPage.sameAsset = false; tagPage.empty = false; tagPage.complete = false; tagPage.query.mockClear(); vi.mocked(getAssetCuration).mockReset().mockResolvedValue({ assetId: "asset-1", favorite: false, favoritedAt: null, revision: 7, tags: [] }); });
+
+it("keeps the legacy review deep link but removes it from normal navigation", () => {
+  renderPage();
+  expect(screen.getByRole("heading", { name: "标签建议", level: 1 })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "标签建议" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /^标签$/ })).toHaveAttribute("href", "/tags?libraryId=lib-1");
+  expect(screen.getByRole("link", { name: "分析设置" })).toHaveAttribute("href", "/settings/ai?library=lib-1");
+  expect(screen.queryByRole("button", { name: "待整理" })).not.toBeInTheDocument();
+  expect(screen.queryByText("关于本地处理与人物归类")).not.toBeInTheDocument();
+});
+
+it("groups several suggestions for the same photo and shows the page selection count", async () => {
+  tagPage.sameAsset = true;
+  const user = userEvent.setup(); renderPage();
+  expect(screen.getAllByRole("img", { name: "海边.jpg" })).toHaveLength(1);
+  expect(screen.getByText("本页 2 条建议 · 1 张照片")).toBeVisible();
+  await user.click(screen.getByRole("checkbox", { name: "选择本页全部建议" }));
+  expect(screen.getByText("已选 2 条")).toBeVisible();
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 蓝色" })).toBeChecked();
+});
+
+it("recovers failed photo tag state without discarding the review selection", async () => {
+  vi.mocked(getAssetCuration).mockRejectedValueOnce(new Error("network unavailable"));
+  const user = userEvent.setup(); renderPage();
+  expect(await screen.findByText(/部分照片的标签状态未能载入/)).toBeVisible();
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
+  expect(screen.getByRole("button", { name: "采纳所选" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "忽略所选" })).toBeDisabled();
+  expect(mocks.review).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "重新尝试" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "采纳所选" })).toBeEnabled());
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" })).toBeChecked();
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
+  expect(mocks.review).toHaveBeenCalledWith(expect.objectContaining({ items: [{ curationRevision: 7, suggestion }] }));
+});
+
+it("accepts multiple tags on one photo using refreshed revisions after its own first acceptance", async () => {
+  tagPage.sameAsset = true;
+  mocks.review.mockImplementation(async (request) => {
+    const item = request.items[0];
+    vi.mocked(getAssetCuration).mockResolvedValue({ assetId: "asset-1", favorite: false, favoritedAt: null, revision: 8, tags: [] });
+    return { items: [{ suggestionId: item.suggestion.id, outcome: "accepted", revision: 3 }] };
+  });
+  const user = userEvent.setup(); renderPage();
+  await user.click(screen.getByRole("checkbox", { name: "选择本页全部建议" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
+  await waitFor(() => expect(mocks.review).toHaveBeenCalledTimes(2));
+  expect(mocks.review.mock.calls[0]?.[0].items).toEqual([{ suggestion, curationRevision: 7 }]);
+  expect(mocks.review.mock.calls[1]?.[0].items).toEqual([expect.objectContaining({ suggestion: expect.objectContaining({ id: "suggestion-blue" }), curationRevision: 8 })]);
+  expect(screen.getByText("已选 0 条")).toBeVisible();
+});
+
+it("does not rebase subsequent tags on a photo whose first tag conflicts", async () => {
+  tagPage.sameAsset = true;
+  mocks.review.mockResolvedValue({ items: [{ suggestionId: suggestion.id, outcome: "conflict", revision: 2 }] });
+  const user = userEvent.setup(); renderPage();
+  await user.click(screen.getByRole("checkbox", { name: "选择本页全部建议" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
+  expect(mocks.review).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("已选 2 条")).toBeVisible();
+  expect(screen.getByText(/已保存 0 项，2 项未确认保存/)).toBeVisible();
+});
+
+it.each([["pending", "暂无待处理的标签建议"], ["accepted", "还没有已采纳的建议"], ["dismissed", "还没有已忽略的建议"]])("uses a truthful empty state for %s suggestions", (status, title) => {
+  tagPage.empty = true; tagPage.complete = true;
+  renderPage(`/intelligence?view=tags&libraryId=lib-1&status=${status}`);
+  expect(screen.getByText(title)).toBeVisible();
+  expect(screen.queryByText(/建议已处理完/)).not.toBeInTheDocument();
+});
+
+it("explains an incomplete empty list once without irrelevant selection instructions", () => {
+  tagPage.empty = true;
+  renderPage();
+  expect(screen.getAllByText(/标签分析尚未全部完成/)).toHaveLength(1);
+  expect(screen.queryByText(/勾选适合照片的标签后批量采纳/)).not.toBeInTheDocument();
+});
 
 it("uses real library availability instead of interpreting offline as no faces", () => {
   mocks.libraryStatus = "offline";
@@ -66,35 +144,35 @@ it.each([
 
 it("separates AI suggestions from manual tags and submits exact revisions", async () => {
   const user = userEvent.setup(); renderPage();
-  expect(screen.getByText("AI 建议（尚非人工标签）")).toBeVisible();
+  expect(screen.getByText(/采纳后才会加入你的标签/)).toBeVisible();
   expect(screen.getByText("分析覆盖 8/10；失败 1，降级 1")).toBeVisible();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
-  await user.click(screen.getByRole("button", { name: "接受建议" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
   expect(mocks.review).toHaveBeenCalledWith(expect.objectContaining({ action: "accept", items: [{ curationRevision: 7, suggestion }] }));
 });
 
 it("keeps local processing details available on demand", async () => {
   const user = userEvent.setup();
-  renderPage();
+  renderPage("/intelligence?view=clusters&libraryId=lib-1");
   await user.click(screen.getByText("关于本地处理与人物归类"));
   expect(screen.getByText(/不会识别现实身份、不会联网查人，也不会训练或发布模型/)).toBeVisible();
 });
 
-it.each([["接受建议", "accepted"], ["忽略建议", "dismissed"]])("restores focus after %s removes the review controls", async (label, outcome) => {
+it.each([["采纳所选", "accepted"], ["忽略所选", "dismissed"]])("restores focus after %s removes the review controls", async (label, outcome) => {
   mocks.review.mockResolvedValue({ items: [{ suggestionId: suggestion.id, outcome, revision: 3 }] });
   const user = userEvent.setup(); renderPage();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
   await user.click(screen.getByRole("button", { name: label }));
   expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "待审核" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "待处理" })).toHaveFocus();
 });
 
 it("does not steal focus moved elsewhere while a tag review is pending", async () => {
   let finish!: (value: unknown) => void;
   mocks.review.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   const user = userEvent.setup(); renderPage();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
-  await user.click(screen.getByRole("button", { name: "接受建议" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
   const search = screen.getByRole("searchbox");
   await user.click(search);
   await act(async () => { finish({ items: [{ suggestionId: suggestion.id, outcome: "accepted", revision: 3 }] }); });
@@ -104,34 +182,34 @@ it("does not steal focus moved elsewhere while a tag review is pending", async (
 it("does not report saved when the tag review returns an HTTP-success item conflict", async () => {
   mocks.review.mockResolvedValue({ items: [{ suggestionId: suggestion.id, outcome: "conflict", revision: suggestion.revision }] });
   const user = userEvent.setup(); renderPage();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
-  await user.click(screen.getByRole("button", { name: "接受建议" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
   expect(mocks.review).toHaveBeenCalled();
   expect(screen.queryByText("审核已保存。")).not.toBeInTheDocument();
   expect(screen.getByText(/已保存 0 项，1 项未确认保存/)).toBeVisible();
-  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" })).toBeChecked();
 });
 
 it("retains only conflicted selections in a mixed response", async () => {
   tagPage.second = true;
   mocks.review.mockResolvedValue({ items: [{ suggestionId: suggestion.id, outcome: "accepted", revision: 3 }, { suggestionId: "suggestion-2", outcome: "conflict", revision: 2 }] });
   const user = userEvent.setup(); renderPage();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
-  await user.click(screen.getByRole("checkbox", { name: "选择 第二张.jpg" }));
-  await user.click(screen.getByRole("button", { name: "接受建议" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 第二张.jpg · 海滩" }));
+  await user.click(screen.getByRole("button", { name: "采纳所选" }));
   expect(screen.getByText(/已保存 1 项，1 项未确认保存/)).toBeVisible();
-  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg" })).not.toBeChecked();
-  expect(screen.getByRole("checkbox", { name: "选择 第二张.jpg" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "选择 第二张.jpg · 海滩" })).toBeChecked();
 });
 
 it("uses the URL cursor and clears it when status changes", async () => {
   tagPage.nextCursor = "opaque-next-page";
   const user = userEvent.setup(); renderPage();
-  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg" }));
+  await user.click(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" }));
   await user.click(screen.getByRole("button", { name: "下一页" }));
   expect(tagPage.query).toHaveBeenLastCalledWith("lib-1", "pending", "opaque-next-page");
-  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg" })).not.toBeChecked();
-  await user.click(screen.getByRole("button", { name: "已接受" }));
+  expect(screen.getByRole("checkbox", { name: "选择 海边.jpg · 海滩" })).not.toBeChecked();
+  await user.click(screen.getByRole("button", { name: "已采纳" }));
   expect(tagPage.query).toHaveBeenLastCalledWith("lib-1", "accepted", "");
 });
 
@@ -149,7 +227,7 @@ it("allows creating the first person without enabling automatic group assignment
   await user.click(screen.getByRole("button", { name: "新建人物" }));
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ name: "人工人物" }));
   expect(mocks.create.mock.calls[0]?.[0]).not.toHaveProperty("sourceCluster");
-  expect(screen.getByRole("heading", { name: "人物", level: 1 })).toHaveFocus();
+  await waitFor(() => expect(screen.getByRole("heading", { name: "人物", level: 1 })).toHaveFocus());
 });
 
 it("opens the people workspace by default and shows real preview thumbnails", () => {

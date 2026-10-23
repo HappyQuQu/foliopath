@@ -17,11 +17,23 @@ import (
 const deploymentEnvironment = "FOLIOPATH_AI_DEPLOYMENT"
 
 type deploymentConfiguration struct {
-	Origin     string                       `json:"origin"`
-	Identity   remoteml.ServiceIdentity     `json:"identity"`
-	ModelBytes int64                        `json:"model_bytes"`
-	LicenseID  string                       `json:"license_id"`
-	Face       *faceDeploymentConfiguration `json:"face,omitempty"`
+	Origin             string                       `json:"origin"`
+	Identity           remoteml.ServiceIdentity     `json:"identity"`
+	ModelBytes         int64                        `json:"model_bytes"`
+	LicenseID          string                       `json:"license_id"`
+	ImagePreprocessing semantic.RemoteImageProfile  `json:"image_preprocessing,omitempty"`
+	Face               *faceDeploymentConfiguration `json:"face,omitempty"`
+	Tag                *tagDeploymentConfiguration  `json:"tag,omitempty"`
+}
+
+type tagDeploymentConfiguration struct {
+	Identity remoteml.TagIdentity `json:"identity"`
+}
+
+func (c tagDeploymentConfiguration) fingerprint() string {
+	identity, _ := c.Identity.Fingerprint()
+	digest := sha256.Sum256([]byte("foliopath-autotag-input-v1\x00" + identity + "\x00" + semantic.RemoteImagePreprocessingContract))
+	return hex.EncodeToString(digest[:])
 }
 
 type faceDeploymentConfiguration struct {
@@ -62,6 +74,9 @@ func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, erro
 		if decoder.Decode(&config) != nil || decoder.Decode(new(any)) != io.EOF {
 			return nil, errInvalidConfiguration
 		}
+		if _, ok := config.ImagePreprocessing.Contract(); !ok {
+			return nil, errInvalidConfiguration
+		}
 		client, err := remoteml.NewConfigured(config.Origin, config.Identity)
 		if err != nil {
 			return nil, errInvalidConfiguration
@@ -70,6 +85,12 @@ func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, erro
 			_, bindErr := client.BindFace(config.Face.Identity)
 			_, identityErr := config.Face.space().Fingerprint()
 			if bindErr != nil || identityErr != nil || aimodel.ValidatePackage(config.Face.model()) != nil {
+				client.Close()
+				return nil, errInvalidConfiguration
+			}
+		}
+		if config.Tag != nil {
+			if _, err := client.BindTag(config.Tag.Identity); err != nil {
 				client.Close()
 				return nil, errInvalidConfiguration
 			}
@@ -85,7 +106,8 @@ func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, erro
 
 func (c deploymentConfiguration) space() semantic.SpaceIdentity {
 	// Versioned algorithm contract, not a claim about the deployed main image.
-	digest := sha256.Sum256([]byte(semantic.RemoteImagePreprocessingContract))
+	contract, _ := c.ImagePreprocessing.Contract() // validated by deploymentFromEnvironment
+	digest := sha256.Sum256([]byte(contract))
 	return semantic.SpaceIdentity{Version: 1, Protocol: c.Identity.Protocol, Model: c.Identity.Model, Dimension: c.Identity.Dimension,
 		RuntimeSHA256: c.Identity.RuntimeContractSHA256, CacheManifestSHA256: c.Identity.CacheManifestSHA256, PreprocessingSHA256: hex.EncodeToString(digest[:])}
 }

@@ -1,5 +1,95 @@
 # FolioPath
 
+The local 6010 app now aligns search guidance and result-card labels with the actual filename/path or visual-semantic mode.
+Compact screens keep search and utility actions on separate rows with usable input width and keyboard order.
+Data and running-job checkpoints were preserved during the update. Mixed-source search and OCR remain unimplemented.
+See [verification and deployment boundary](docs/changes/FIX-2026-10-23-search-mode-guidance.md);
+[large PNG input compatibility](docs/changes/FIX-2026-10-23-semantic-large-png.md) now has a tested,
+opt-in `image_preprocessing: "png-v4"` candidate (64 MiB / 40 MP). It is **not yet deployed to 6010**.
+The user approved switching after existing jobs finish and a full stopped backup, then recomputing the image-semantic
+index under a new identity. Old vectors and manual curation remain; automatic-tag input is unchanged.
+
+Development and Docker build/test tooling use Node.js **24.22.1 LTS** and npm **11.19.1**.
+CI follows `.node-version`; Docker sources pin the matching tag and digest. Both local and Docker
+frontend suites pass 414 tests; the existing dependency security audit remains unresolved.
+The Go/Python runtime services do not need Node. See [toolchain verification](docs/changes/FIX-2026-10-23-node24-lts.md).
+
+An optional pinned multilingual profile now supports `XLM-Roberta-Large-Vit-B-16Plus` (640 dimensions).
+The local 6010 instance uses it; rebuilding its new-space image index is still in progress.
+Face and automatic-tag identities remain independent; stored category keys stay stable.
+See [model setup and actual verification limits](docs/changes/CR-2026-032-multilingual-semantic-model.md).
+
+The updated local 6010 app supports Chinese, English and bilingual AI labels and
+category lookup. This browser preference does not rename existing tags or reprocess
+photos; manual names stay literal. Its independent JoyTag photo policy expands 92
+to 153 reviewed classes without changing search/face identities; that policy is still
+candidate-only on 6010 while its existing 92-class jobs continue. See
+[local Docker evidence and deployment status](docs/changes/CR-2026-033-localized-photo-tags.md).
+Feature smoke tests do not establish model accuracy or release approval.
+
+Planned shutdown now hands back exact image-semantic, face and automatic-tag claims
+after their processor and heartbeat stop, preserving job IDs and committed progress.
+The existing crash limit is unchanged. Local 6010 was fully backed up and upgraded
+to schema 44, and its original tasks resumed. See [handoff and deployment evidence](docs/changes/FIX-2026-10-23-planned-job-handoff.md).
+
+The large-image native-memory repair candidate shares one cancellable working slot across thumbnails and AI
+preprocessing, with deterministic cleanup; the reproduced synthetic Docker cases pass without changing model pixels.
+It replaced the local 6010 application after all four backfill jobs reached terminal state; constrained capacity/long-term
+gates remain open. The 8,493 attempted items include 41 source failures, not 8,493 successes. See [repair evidence](docs/changes/FIX-2026-10-23-main-face-memory.md) and
+[per-image source failures](docs/changes/FIX-2026-10-23-face-source-diagnosis.md).
+
+Operators may explicitly opt out of per-container RAM/swap caps by layering
+[`compose.ai.unlimited-memory.yaml`](compose.ai.unlimited-memory.yaml) after the base AI Compose file.
+The local 6010 instance uses this option at the user's request; host/VM memory still limits it.
+This is not an OOM fix or constrained-budget acceptance. See [instructions](docs/ai-compose.md#操作者显式取消容器内存上限).
+
+People-analysis failures now have an expandable, privacy-safe summary: task interruption is distinguished
+from individual image failures, with fixed reasons and up to 20 samples. Missing-only retry preserves successful
+results and manual curation; old failures without recorded reasons remain explicitly unknown. In-flight face
+tasks wait up to 60 seconds for transient scans. The earlier schema-43 diagnostics upgrade preserved
+existing media and curation. See [verification and limits](docs/changes/FIX-2026-10-23-ai-failure-diagnostics.md)
+and [current progress](docs/features/intelligent-media-discovery-remaining-tasks.md); no release approval is implied.
+The earlier 6010 check reproduced a scan-worker exit. A later isolated reproduction confirmed that opening a
+live Docker Desktop WAL database from macOS can trigger I/O short reads and stop the worker. Online checks now
+run inside the application container with `docker exec <app> /app/foliopath database-check` (read-only, bounded,
+fixed output); never open the live file from the host. See [the repair and verification limits](docs/changes/FIX-2026-10-23-scan-worker-exit.md).
+This fixes the reproduced maintenance path, not every possible I/O failure or an unlimited-duration stability claim.
+
+Automatic photo tagging and manual-tag protection are now implemented under the accepted
+[CR-2026-031 plan](docs/changes/CR-2026-031-automatic-photo-tags.md) and
+[ADR-0021](docs/adr/0021-bounded-inference-and-automatic-tags.md). A separate per-library switch enables
+bounded tagging with a deployment-pinned JoyTag model, without a candidate vocabulary or approval queue.
+Photo tags show AI/manual provenance; manual additions survive reprocessing, and removed tags stay suppressed
+until explicitly restored. A library-scoped sidebar cloud counts distinct still images and animations, excludes
+videos, and filters that library. These T1/T2 cloud features are now joined by the T3/T4 tagging implementation;
+they are not a claim that every deployment has been upgraded.
+
+The earlier co-resident model experiment exceeded the memory budget. The new request-scoped inference child
+passed [18 real requests](spikes/automatic-tags/SCHEDULED-RESULT.md) at the unchanged 2304 MiB limit, peaking at
+2084.23 MiB with no OOM; true TCP disconnect also reaped the child. Production Go packages, integration,
+contract and architecture tests passed with `CGO_ENABLED=0` and an extended-volume temporary directory;
+63 frontend files / 387 tests, types, generation, architecture checks and Storybook passed. The final local
+two-service smoke passed on the final image pair: restart during inference, cancellation without tag changes
+or automatic retries for 35 seconds, AI outage/recovery, disabled-state persistence, unchanged original hashes
+and no OOM. Real UI tests also covered per-library switches, manual add/remove/promotion, reprocessing and
+restart persistence; 390/768/1440/1920px layouts had no overflow and the final fresh browser tab had zero errors.
+This is not a claim that unrestricted `make lint` / `make test`, general-photo quality, capacity, AMD64,
+the full browser matrix or release acceptance passed. These are the earlier automatic-tag test results;
+the existing 6010 instance was subsequently updated, as recorded in current progress.
+Exact images, retained test environment and prior failures are recorded in
+[the final CR evidence](docs/changes/CR-2026-031-automatic-photo-tags.md) and
+[current progress](docs/features/intelligent-media-discovery-remaining-tasks.md).
+
+AI settings uses three stable sections: **Features / Processing tasks / Service & models**.
+Search, people and automatic-tag switches stay scoped to the selected library; model configuration is global
+and read-only. People and photo tags have separate result entry points. Recent operations combine saved browser
+records, the selected library's active tagging operation and restored downloads, not a complete server job list.
+Disabling or cancelling preserves committed tags. Terminal failure/cancellation blocks automatic readmission
+for the same model until an explicit recovery action; confirmed full reprocessing can retry recorded image
+failures without undoing manual edits. Legacy vocabulary/review APIs remain compatible, but are no longer the
+main tagging workflow. See the [deployment contract](docs/deployment.md) and
+[UI scope record](docs/changes/FIX-2026-10-22-ai-information-architecture.md).
+
 可选 AI 双容器交付候选：使用独立 [`compose.ai.yaml`](compose.ai.yaml)，由 Compose 配置预加载镜像和只读模型缓存，不使用模型商店。**P5 5/5 本地工程交付验收通过，P6 3/3 核对完成**；当前发布结论仍为 **No-Go**，原因包括候选漏洞、模型授权/provenance 及延期质量容量门禁。见 [配置说明](docs/ai-compose.md)、[P5 证据](docs/evidence/int-001/p5-delivery-security-2026-09-17.md)和 [P6 最终复核](docs/evidence/int-001/p6-final-verification-2026-09-17.md)。
 
 P4 大 JPEG 语义兼容修复候选：在源媒体预算内先进行 JPEG 解码缩小，再分析；工作像素/输出限制不放宽，非 JPEG 上限不变。预处理升级会形成新语义代次，需要重新分析及生成建议。验证结果见[修复记录](docs/changes/FIX-2026-09-17-semantic-large-jpeg.md)，不是发布完成。
@@ -12,7 +102,8 @@ P3 修复：AI 中断后，模型恢复即可直接重试人脸分析；部署�
 
 开发候选：独立 AI 部署支持可选人脸模型身份、代次准入、有界分析、匿名组和人工人物管理，详见[配置说明](docs/deployment.md)。P2 非空人物功能已通过本地 Docker 正式 API/Chromium 验收；清理/重建保留人工关系与原媒体。测试使用生成的虚构人脸，不代表质量校准，自动整组归类仍禁用。质量、容量和发布未完成；当前进度见[剩余任务](docs/features/intelligent-media-discovery-remaining-tasks.md)。
 
-Candidate AI tag generation is wired to the existing controlled-vocabulary API and a bounded worker.
+The historical controlled-vocabulary suggestion flow remains available for compatibility; it is separate from automatic tagging.
+Candidate suggestion generation is wired to the existing controlled-vocabulary API and a bounded worker.
 It requires indexed image embeddings and uses the same generation's text encoder. Up to five suggestions
 above confidence 0.65 (cosine 0.30) require manual review; this cutoff is not quality-calibrated.
 A local Docker synthetic-image run verified non-empty suggestion acceptance, idempotent review replay,
@@ -30,24 +121,24 @@ verifies a private model snapshot and exposes an identity contract; it is not ye
 approved for release. Candidate main-process configuration/activation is now wired through
 `FOLIOPATH_AI_DEPLOYMENT`; see [local startup verification](docs/evidence/int-001/deployment-startup-2026-09-15.md).
 
-AI architecture direction (2026-09-14): an optional independent inference service
-with deployment-driven model configuration is being evaluated under
+The accepted AI architecture uses an optional independent inference service
+with deployment-driven model configuration under
 [ADR-0019](docs/adr/0019-independent-machine-learning-service.md). The offline
 [local probe](spikes/int001-remote-ml/README.md) works with copied Immich caches;
-production application integration is not complete. AI settings now use the selected
-capabilities/library-progress layout against existing APIs; legacy model operations
-remain under Deployment details / Compatibility model maintenance. No demo states
-or hard-coded candidate model identities are used. The default Compose deployment is unchanged.
+the candidate application now integrates this service. AI settings consume existing APIs;
+legacy download/proxy/import interfaces are no longer exposed in the current product UI.
+Compatibility APIs remain, and no demo states or hard-coded candidate model identities are used.
+The default Compose deployment is unchanged.
 
 Model downloads optionally use an explicit trusted HTTP/HTTPS proxy via
 `FOLIOPATH_MODEL_DOWNLOAD_PROXY` (for example `http://192.168.2.231:7890`).
 Ambient proxy variables are ignored; credentials are not supported. Administrators can also
-select inherit/direct/custom under AI settings → Models, test without saving, and persist
-an override without restart. New file connections use the saved setting; in-flight transfers
+use the retained compatibility API to select inherit/direct/custom, test without saving, and persist
+an override without restart. There is no model-proxy form in the current UI. New file connections use the saved setting; in-flight transfers
 are unchanged. See [deployment](docs/deployment.md).
 
-The experimental AI model page includes built-in informational presets, separate from installable downloads.
-Presets marked pending are not yet downloadable or supported; custom verified download catalogs remain optional.
+The historical model-catalog contract distinguishes informational presets from installable downloads.
+It does not provide a model store in the current Compose-driven UI.
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> · <strong>English</strong> · <a href="CHANGELOG.md">Changelog</a>
@@ -203,12 +294,11 @@ original media.
 
 These capabilities remain disabled for release until the final reviewed model packages, governed
 quality results, native `linux/amd64` and `linux/arm64` evidence, joint 4 CPU/4 GiB capacity,
-supply-chain evidence, and required approvals pass the S4 gate. The intelligence settings now include
-an overview, a model download catalog with persistent progress/cancel/retry, library analysis, and tasks.
-Downloads require a deployment-administered catalog of exact HTTPS files and hashes; no default hosted
-model source is configured. The current default image does not include AI inference, and downloading
-a model does not enable analysis. See [model download setup](docs/deployment.md#模型下载目录).
-Offline import through optional read-only `/models:ro` remains available. Missing, changed, corrupt, incompatible, or
+supply-chain evidence, and required approvals pass the S4 gate. Current settings separate per-library
+features and processing tasks from globally shared, deployment-managed model details; they do not expose
+a model store, proxy form, or offline-import UI. Use the optional [AI Compose setup](docs/ai-compose.md).
+Historical download/import APIs remain compatible but are not the current product setup flow.
+Missing, changed, corrupt, incompatible, or
 unreviewed packages make only the dependent intelligent capability unavailable; normal browsing
 continues. See the [frozen revision 2 scope](docs/releases/POST-MVP-5-scope-r2.md),
 [deployment contract](docs/deployment.md#post-mvp-5-revision-2-cde-deployment-and-recovery-contract),

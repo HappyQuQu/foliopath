@@ -1,5 +1,123 @@
 # FolioPath 需求—架构追踪
 
+2026-10-23 / FR-INT-002/003/009 / POST-MVP-5 / CR-2026-032 / ADR-0028：semantic 唯一拥有 PNG profile
+与身份合同，imagevips 共享大图准入/输出 owner，app 仅组合显式语义 preprocessor，标签继续默认 v3。
+无 API/schema/UI 变更；`TestPNGProfileKeepsSemanticAndTagInputOwnersSeparate` 纳入 arch-check。
+默认/未知值/hash 分离、native 边界及真实模型合成 Docker 通过；原库迁移尚未执行，用户已授权终态后备份切换。
+证据与剩余 Gate 见[记录](../changes/FIX-2026-10-23-semantic-large-png.md)，不关闭质量/容量/跨架构/发行。
+
+2026-10-23 / FR-INT-002/003、FR-UI-006/010 / POST-MVP-5 / INT-S3 既有消费者修复：
+search feature 从唯一 URL mode 提供输入/空状态/检索方式说明，GlobalHeader/AppShell 只转发本地化文案，
+MediaCollection 复用 contextLabel，不增加 feature 依赖或另一套卡片。普通/语义 OpenAPI 不变，
+生产 SearchPage 稳定 Story 与专项回归同步；不声称混合排序、逐字段归因或 OCR 已完成。
+实施与实际验证见[修复记录](../changes/FIX-2026-10-23-search-mode-guidance.md)。
+同轮续验 FR-UI-001/002/003：GlobalHeader 拥有窄屏两行布局/人物可访问名称，tokens 唯一拥有响应式 Header 高度；
+所有固定/粘性偏移继续消费同一 token。FullHeader Story 与 search-guidance E2E 覆盖完整工具栏、输入有效宽度、
+视觉/键盘顺序及页面不被遮挡，不只检查 scrollWidth。无新 API、部署单元或状态所有者。
+
+2026-10-23 / NFR-OPS-001 / Node 24 LTS 工具链维护：`.node-version` 唯一拥有本地/CI 版本，
+package engines/npm pin 与 lock 元数据同步，两个 Docker web 阶段共享固定 tag/digest；浏览器测试基镜像有版本校验。
+`TestNode24LTSToolchainsStayAligned` 纳入 arch-check，67/414 本机/Docker 回归通过；
+不修改产品/API/部署单元，现有 npm 高危审计仍失败。实际镜像及边界见[记录](../changes/FIX-2026-10-23-node24-lts.md)。
+
+2026-10-23 / FR-INT-016、FR-AUTOTAG-001/002、NFR-OPS-001 / POST-MVP-5 / ADR-0027：
+app 唯一拥有信号原因，jobs 在处理器/heartbeat 回收后交接；各能力 queue 调用唯一 SQLite fenced 事务，
+migration 44 审计精确旧 claim、attempt/checkpoint/completed，保留同一任务及所有整理。仅计划停机撤销该次
+claim 消耗，取消与终态不复活；异常 3 次上限不变。首次旧版本交接工具离线运行，不进入浏览器/生产启动图。
+`TestPlannedAnalysisHandoffHasOneFencedOwner` 纳入 arch-check；实现/专项与部署验证见
+[维护记录](../changes/FIX-2026-10-23-planned-job-handoff.md)，不改变模型质量/容量/发行门禁。
+
+CR-2026-033 / FR-AUTOTAG-004～005 / POST-MVP-5 / ADR-0026：curation 唯一拥有类别/别名和人工保护；
+SQLite 投影/分页与 fenced 合并，API/OpenAPI 可选 localization；Web API adapter/i18n/storage 分别拥有
+数据、显示规则和浏览器偏好，生产组件/稳定 Story 同步。photo overlay 独立策略身份、复用旧 transform/
+scheduler/child；无 schema 迁移。`TestLocalizedTagsHaveOneCatalogAndSeparateCapabilityIdentity` 已纳入
+`make arch-check`，契约、Go/race、前端与本地 Docker 的实际证据和部署区别见
+[记录](../changes/CR-2026-033-localized-photo-tags.md)，不关闭质量/容量/跨架构/发行 Gate。
+
+CR-2026-032 / FR-INT-002/009/017/019 / POST-MVP-5 / ADR-0025：remoteml 拥有固定模型/维度准入，
+inference 多语言覆盖层拥有 XLM 640 维与独立清单身份，legacy scheduler 唯一拥有所有能力的进程准入/回收。
+face/tag 身份不变；Go、Python 和合成 Docker 已通过，现库切换与新索引/质量门禁分开见[记录](../changes/CR-2026-032-multilingual-semantic-model.md)。
+
+2026-10-23 / FR-INT-009/016、R-006/R-024 / POST-MVP-5 / ADR-0024：imagevips 唯一拥有进程级大图 native
+单槽/可取消等待与回收，缩略图、人物、远程/旧语义调用同 owner；既有 app/jobs worker/事务/租约不变。
+资源头探测不改变产品格式判定/像素身份，自定义 reader 保留原取消/无进展预算；测试覆盖准入取消、像素/引用、
+纯合成大图压力与完整 HTTP/扫描/推理联验。四库终态后已单次部署 6010，容量/长期/发行风险仍开放；
+实际通过/失败和部署状态见[内存记录](../changes/FIX-2026-10-23-main-face-memory.md)。
+
+2026-10-23 / FR-INT-009/016 / POST-MVP-5：[人物原库补齐维护](../changes/FIX-2026-10-23-face-library-retry.md)。
+SQLite 在同一只读快照投影 generationCurrent 与样本源大小，不改变状态/迁移；face 公开类型、API/OpenAPI
+可选字段、生成客户端与生产/稳定 Story 同步。Go 覆盖新旧/未知代次、GET 不变更、大小/脱敏/兼容，
+前端覆盖历史状态和零/缺省大小，合成 Docker 检查真实损坏/空输入与失败专属重试。原库长任务终态单独记实。
+
+2026-10-23 / FR-SCN-004/006、NFR-OPS-001 / MVP 维护 / ADR-0023：修复跨 macOS/Linux 锁域在线检查故障路径。
+jobs 唯一拥有 worker 失败阶段包装；app 拥有闭集故障投影、命令调度/平台和超时；SQLite adapter 拥有 mode=ro
+完整性快照，cmd 只转发和输出固定结果。未改变扫描状态机/重试/事务、API、migration、部署边界或 UI/原型。
+临时合成 Docker 复现 522/claim 自动重启；读取消并发、命令只读/缺失/损坏/外键/平台/脱敏与最终负载回归
+见[修复记录](../changes/FIX-2026-10-23-scan-worker-exit.md)。不把原无原因码历史逐次归因，也不吞掉真实 I/O 错误。
+
+2026-10-23 / FR-INT-009/016 / POST-MVP-5 / ADR-0022：人物解析诊断与有界扫描等待功能专项通过，
+原 6010 最终镜像复现 scan-worker 退出/自动重启 1 次，持续运行验收未全通过。
+`internal/face` 唯一拥有固定失败分类、在途任务最多 60 秒等待与取消/续租策略；SQLite migration 43
+拥有失败标记与 checkpoint 的同事务 fence，旧成功不能隐藏较新失败，设置读取为同一快照。
+API 仅投影脱敏、当前代次最近任务与最多 20 样本；OpenAPI 的可选 diagnostics 和 operation 错误码为权威合同。
+AI feature 的 FaceFailureDetails/FaceAnalysisStatus 复用于生产与稳定 Story，原 missing mutation/共享 Dialog
+继续拥有提交与焦点，不另造重试状态机。65/409 前端、后端/race/合同/架构/生成、合成 Docker 和原 6010
+只读详情复核证据见[切片记录](../changes/FIX-2026-10-23-ai-failure-diagnostics.md)；历史未知原因、真实 scanner 长时序、
+旧 scan-worker 应用重启及完整发行仍非本切片通过范围。
+
+2026-10-23 / 同下述任务页 Gate：补验 402 项前端、最终镜像合成 Docker 自动标签联验通过。
+共享 Dialog 唯一拥有禁用/移除触发点的焦点回落策略，能力组件只传稳定标题 ref；AIProcessingRow 继续拥有四行布局，
+表头和行共享操作列尺寸变量。异常态/英文/原生确认焦点测试与 TaskStatusUnavailable、DisabledTriggerFocus 生产组件 Story 同步。
+无 API/持久化变更；旧候选 scan-worker 自动退出原因仍待查，详情见任务页补验记录。
+
+2026-10-22 / FR-INT-001/009/016、FR-AUTOTAG-001 / POST-MVP-5：已选任务页方案在既有合同内实施。
+`web/features/ai` 的 AIProcessingRow 唯一负责四类处理行呈现，任务/确认逻辑仍归原各能力组件与 queries；
+共享 AsyncState 的 compact 和 InlineStatus 的 plain 外观由 UI owner 提供及测试，未建立第二套控件。
+稳定 TaskWorkspacePrototype 直接复用正式组件和明确合成只读 fixture；scope、未知进度、切库、
+404 旧记录折叠/本地移除、确认/焦点等回归已补充，无新 API、迁移或部署单元。
+验证和实际部署状态见[任务页改版记录](../changes/FIX-2026-10-22-ai-task-workspace.md)：64 文件/395 前端测试、
+类型/生成/架构、Storybook、最终 Docker 与 6010 四宽度及焦点复验通过，未关闭其他 AI 门禁。
+
+2026-10-22 / `CR-2026-031` / `FR-AUTOTAG-001～003` / POST-MVP-5：按
+[ADR-0021](../adr/0021-bounded-inference-and-automatic-tags.md) 落地自动标签生产合同与实现。
+`internal/autotag` 唯一拥有按库设置、准入/取消/租约/有界增量调度；`internal/curation` 拥有来源、
+规范化、人工优先和持久删除抑制；SQLite composition 在同一 fenced 短事务合并标签和任务进度。
+`internal/app` 组合只读媒体前后验证、独立 tag 身份、共享后台额度与既有 worker；AI 容器调度器拥有
+一个请求级子进程/一个等待的模型生命周期，保持两个部署单元与原内存预算。
+OpenAPI 新增按库 automatic-tags GET/PUT/jobs 及显式单标签添加，migrations 41/42 保存来源/抑制/
+任务；前端复用 AI/curation owner、生成客户端和共享控件。失败/取消 fence 防止同模型自动重新入队；
+模型身份变化不继承旧索引完成数，人工状态不失效。原词表建议保留兼容，不自动转成 AI 标签。
+下方 FR-INT revision 2 行保留当时冻结范围；自动标签及请求级进程的接受增量以 FR-AUTOTAG / ADR-0021 行为准。
+curation/SQLite/API/app/架构及定向 race 已实际执行；最终完整检查、Docker、模型质量/发行状态由
+[CR](../changes/CR-2026-031-automatic-photo-tags.md) 的证据统一记录，本映射不替代最终 Gate。
+
+同日收尾：T3 人工保护、T4 有界模型/任务和 T5 本地合成 Docker 功能联验通过；最终固定镜像、
+真实故障/重启/取消/原件 hash 证据见 CR 末尾，普通照片质量与发行 Gate 未关闭。
+`web/features/catalog-state` 保持缓存失效唯一 owner，修复普通 tag-cloud 与 infinite 词表共享前缀时
+的形状误判；混合缓存及 active QueryObserver/InfiniteQueryObserver 异步刷新回归执行通过。
+curation 控件负责稳定键盘焦点，新增操作消失/异步不抢焦点/切图回归。最终前端 63 文件 387 项、
+生成/架构、四宽度真实界面通过，测试采用正式组件，不将原型替身或历史测试数作为新实现证据。
+
+2026-10-22 / `CR-2026-031` / `FR-AUTOTAG-003`、`FR-CUR-003/006`：curation 拥有库/媒体种类规范化
+及游标作用域，SQLite 拥有库内 distinct 资产聚合，API 只解析参数和映射统一错误。
+`GET /tags` 新增可选 libraryId/kind，保留未过滤全局词表；无新 migration 或事务归属变化。
+T1 Backend Ready：curation/API/SQLite/contract 全量和 architecture 通过；生成客户端已同步。
+T2 Consumer Ready：正式库内标签云与手动编辑失效刷新、共享 AppShell 可选导航关闭机制、固定数量
+档位、游标/错误/深链接边界均有回归；专项 44 项、全前端 345 项通过，最终本地 Docker 真实 API
+与四档宽度验证通过，6010 已更新。以上是 T1/T2 历史证据：当时来源保护/自动任务未实现、模型共驻
+发生 OOM；本轮 T3/ADR-0021 变化见上条，不能以旧统计/UI 通过关闭新自动标注 Gate。
+[证据与限制](../changes/CR-2026-031-automatic-photo-tags.md)。
+
+2026-10-22 / `CR-2026-030` / `FR-INT-001/003/004/005/006～016` / POST-MVP-5 S3：`web/features/ai`
+在现有 OpenAPI 合同内统一“功能设置 / 处理任务 / 服务与模型”固定导航，当前库动作与全局模型、
+跨库可恢复 operation 记录分开。人物与标签结果入口分离，前端接通已有词表与逐库建议生成合同，
+保留原词表/审核/版本 owner；图片/人物进度
+共用 queries 层有界刷新规则，operation 终态触发建议缓存更新。无新 API、状态机、持久化或部署边界。
+全前端 293 项、类型/生成/架构与 Storybook 构建通过；后端标签合同专项及独立临时目录中的集成测试通过。
+本地 Docker、四档宽度与中英/浅深抽查已复验。完整 `make test` 仍因本机 facedecode spike 缺少
+pkg-config/libvips 未通过，不把默认测试的环境失败隐去；既有 S4 Release No-Go 不变。
+[本轮映射与验证](../changes/FIX-2026-10-22-ai-information-architecture.md)。
+
 2026-09-22 / CR-2026-030 / FR-INT-009～014 / POST-MVP-5：web AI 与共享应用壳在既有公开合同内
 重构人物日常入口和智能设置层级。媒体浏览左侧“快速访问”直接进入人物待整理视图，人物工作区
 保留同一导航与媒体库上下文；匿名组复用正式
@@ -347,6 +465,7 @@ composition 只能读取固定配置并保留 face/Release No-Go；下载/集成
 
 | 需求族 | 目标版本 | 范围状态 | Change Record | Capability / adapter | 计划 API 或用户流程 | 数据与派生状态 | 决策与约束 | 主要风险 | 必需验证 | Roadmap 阶段 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FR-AUTOTAG-001～003` 自动图片标签与标签云 | `POST-MVP-5` | CR/ADR accepted；生产合同与实现，最终验收见 CR | [CR-2026-031](../changes/CR-2026-031-automatic-photo-tags.md) | autotag：按库设置/有界任务；curation：标签/人工保护；SQLite：原子组合；app/files/media/remoteml：安全输入/身份；AI scheduler：请求级模型进程；Web AI/curation | 自动直接标签、单图来源与增删、当前库 distinct 图片标签云；GET/PUT automatic-tags、POST jobs、显式单标签 PUT；无候选词审批前置 | migrations 41/42；asset_tags 来源、asset_tag_suppressions、autotag settings/jobs/requests/runs；全局 curation revision | [ADR-0021](../adr/0021-bounded-inference-and-automatic-tags.md)；原件只读、双服务、同预算、人工优先、取消/失败不自动重入 | 原生内存/冷加载、模型质量/来源、源 race、人工保护、并发/升级 | 规范化/迁移/人工保护/race、原子进度/租约/失败 fence、真实文件前后验证、同预算进程回收、合成 Docker API/重启/原件 hash；最终结果仅见 CR | T1/T2 历史证据；T3/T4 最终验收另记，不自动关闭发布 Gate |
 | `FR-DEP-001～004` 部署与设置 | `MVP-2026-07-23` | Frozen r1；[CR-2026-013 root runtime](../changes/CR-2026-013-root-runtime-bind-data.md)重新打开身份候选；既有 S5-001/002/004 历史证据保留 | `BASELINE-2026-07-23`、`CR-2026-013` | `internal/app`、`internal/api`、`internal/webassets`、`internal/store/sqlite`；根 `Dockerfile`、`compose.yaml` 与容器适配器 | 启动/初始化、嵌入 SPA、`/health/live`、`/health/ready`、`/api/v1/status`、设置读写 | migrations、`settings`、运行版本与健康状态；Vite 产物仅在构建期嵌入 | [ADR-0001](../adr/0001-go-react-sqlite.md)、[ADR-0009](../adr/0009-linux-openat2-single-media-root.md)、[ADR-0012](../adr/0012-root-runtime-bind-data.md)、[部署](../deployment.md) | R-002、R-004、R-008、R-011、R-014、R-016、R-022 | 历史非 root 双架构证据不证明当前身份；root 候选必须以 Docker 自动创建的 root-owned `/app/data` bind 复验数据库、只读根/媒体、health、SIGTERM、Compose/代理、恢复与供应链 | 1、5 |
 | `FR-AUTH-001～004`、`FR-DEP-005` 认证与 LAN 部署 | `MVP-2026-07-23` | Frozen r2；认证 Integrated Done；LAN HTTP implemented；密码最低长度可用性修复 | [CR-2026-002](../changes/CR-2026-002-authenticated-lan-http.md)；[FIX-2026-07-29](../changes/FIX-2026-07-29-admin-password-minimum.md) | `internal/auth` 拥有规则；`internal/api` 拥有 transport/HTTP；`internal/app` 拥有监听配置；Compose 拥有宿主绑定 | 首次 setup（8～128 Unicode 字符密码）、login、session、logout；受保护业务 API；受信 LAN HTTP 与可选严格 HTTPS 代理 | 认证数据不变；transport 不持久化，未受信转发头清除 | [ADR-0005](../adr/0005-built-in-single-admin-auth.md)、[ADR-0010](../adr/0010-authenticated-lan-http.md)、[安全模型](../security.md) | R-010、R-011、R-016 | 8 字符 ASCII/中文接受、7 字符拒绝、前后端 Unicode 计数一致；Argon2id、限流、错误脱敏、session/CSRF 回归保持。直连 HTTP 使用实际 peer/Host，显式可信代理配置继续严格校验 HTTPS 并拒绝旁路 | 1（Integrated Done）、5 |
 | `FR-AUTH-005`、`FR-UI-009` 管理中心独立功能页与账户维护 | `MVP-2026-07-23` | Frozen r3；[UIF-S4 Integrated Slice Done](../gates/MVP-2026-07-23/uif-s4-integrated-slice-done.md) Go | [CR-2026-006](../changes/CR-2026-006-management-center-pages.md) | `internal/auth` 拥有当前密码验证、密码哈希与其他会话撤销；`internal/settings` 拥有受控偏好；既有 library/scanner/thumbnail capability 保持规则所有权；`web` settings routes 只通过生成 client/adapter 组合 | 独立 general/libraries/storage/account 路由；账户资料/密码；媒体库、扫描、缓存 operation 复用 | 单管理员显示名称/密码哈希/会话；settings revision；原型 local state 不进入生产 import graph | ADR-0005、ADR-0007；[用户流程第 8 节](../user-flows.md)；[界面设计](../ui-design.md)；[UIF 当前状态](../releases/MVP-2026-07-23-uif-integration-status.md)；[UIF-408 evidence](../evidence/uif-408/README.md) | R-010、R-012、R-015、R-016 | 账户 OpenAPI/事务/ETag、四独立路由、generated client、真实改名/改密/退出/重登、四档逐页视觉、浏览器/可访问性、容量与完整仓库验证通过；物理辅助功能仍由 Stage 5 持有 | `UIF-S4 Integrated Done → Stage 5 No-Go` |

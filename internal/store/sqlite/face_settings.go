@@ -22,8 +22,13 @@ func (s *Store) GetFaceLibrarySettings(ctx context.Context, libraryID int64) (fa
 	if libraryID < 1 {
 		return face.LibrarySettings{}, face.ErrFaceLibraryNotFound
 	}
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return face.LibrarySettings{}, err
+	}
+	defer tx.Rollback()
 	var exists int
-	if err := s.db.QueryRowContext(ctx, `SELECT 1 FROM libraries WHERE id=?`, libraryID).Scan(&exists); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM libraries WHERE id=?`, libraryID).Scan(&exists); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return face.LibrarySettings{}, face.ErrFaceLibraryNotFound
 		}
@@ -32,7 +37,7 @@ func (s *Store) GetFaceLibrarySettings(ctx context.Context, libraryID int64) (fa
 	value := face.LibrarySettings{LibraryID: libraryID, State: "disabled", Revision: 1, Coverage: face.FaceCoverage{Revision: 1}}
 	var enabled int
 	var generation sql.NullString
-	err := s.db.QueryRowContext(ctx, `SELECT enabled,state,revision,active_generation_id,coverage_revision FROM face_library_settings WHERE library_id=?`, libraryID).Scan(&enabled, &value.State, &value.Revision, &generation, &value.Coverage.Revision)
+	err = tx.QueryRowContext(ctx, `SELECT enabled,state,revision,active_generation_id,coverage_revision FROM face_library_settings WHERE library_id=?`, libraryID).Scan(&enabled, &value.State, &value.Revision, &generation, &value.Coverage.Revision)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return face.LibrarySettings{}, err
 	}
@@ -40,11 +45,28 @@ func (s *Store) GetFaceLibrarySettings(ctx context.Context, libraryID int64) (fa
 		value.Enabled = enabled == 1
 		if generation.Valid {
 			value.ActiveGenerationID = generation.String
-			progressErr := s.db.QueryRowContext(ctx, `SELECT eligible_count,completed_count,failed_count,stale_count,revision FROM face_library_progress WHERE generation_id=? AND library_id=?`, generation.String, libraryID).Scan(&value.Coverage.Eligible, &value.Coverage.Completed, &value.Coverage.Failed, &value.Coverage.Stale, &value.Coverage.Revision)
+			progressErr := tx.QueryRowContext(ctx, `SELECT eligible_count,completed_count,failed_count,stale_count,revision FROM face_library_progress WHERE generation_id=? AND library_id=?`, generation.String, libraryID).Scan(&value.Coverage.Eligible, &value.Coverage.Completed, &value.Coverage.Failed, &value.Coverage.Stale, &value.Coverage.Revision)
 			if progressErr != nil && !errors.Is(progressErr, sql.ErrNoRows) {
 				return face.LibrarySettings{}, progressErr
 			}
 		}
+	}
+	if err := readFaceDiagnostics(ctx, tx, &value); err != nil {
+		return face.LibrarySettings{}, err
+	}
+	if value.ActiveGenerationID != "" {
+		var active string
+		err := tx.QueryRowContext(ctx, `SELECT id FROM face_generations WHERE state='active'`).Scan(&active)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return face.LibrarySettings{}, err
+		}
+		if err == nil {
+			current := active == value.ActiveGenerationID
+			value.GenerationCurrent = &current
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return face.LibrarySettings{}, err
 	}
 	return value, nil
 }

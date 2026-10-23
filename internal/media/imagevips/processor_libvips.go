@@ -40,6 +40,16 @@ func (*Processor) Process(
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return media.ProcessingResult{}, media.ErrProcessingFailed
 	}
+	if largeImageSourceNeedsReclaim(source, format) {
+		finish, err := beginLargeImageDecode(ctx)
+		if err != nil {
+			return media.ProcessingResult{}, err
+		}
+		defer finish()
+		if err := ctx.Err(); err != nil {
+			return media.ProcessingResult{}, err
+		}
+	}
 	if format == media.FormatJPEG {
 		if _, err := imageSourceSize(source, format); err != nil {
 			return media.ProcessingResult{}, err

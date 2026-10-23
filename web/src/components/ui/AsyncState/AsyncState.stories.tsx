@@ -22,6 +22,10 @@ export const Loading: Story = {
   args: { label: "正在确认安全状态…" },
 };
 
+export const Compact = {
+  render: () => <><LoadingState density="compact" label="正在载入任务…" /><ErrorState density="compact" message="任务暂时不可用" onRetry={() => undefined} /><EmptyState density="compact" title="暂无可用任务记录" description="启动处理后显示进度与结果。" /></>,
+};
+
 export const Error = {
   render: () => (
     <ErrorState

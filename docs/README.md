@@ -1,6 +1,83 @@
 # FolioPath 文档
 
-当前 P6：**3/3 核对完成，Release No-Go**；七项完整工程检查通过，供应链和最终范围已复核，但漏洞、模型授权/provenance 及延期质量容量门禁仍未通过。见 [P6 最终复核](evidence/int-001/p6-final-verification-2026-09-17.md)。P5 仍为 **5/5 交付通过**，见 [P5 证据](evidence/int-001/p5-delivery-security-2026-09-17.md)和 [AI Compose 配置说明](ai-compose.md)。按后续用户指示，当前工作树已完成 [server222 原生 amd64 双容器部署](evidence/int-001/server222-p6-deployment-2026-09-17.md)；私有部署不改变 Release No-Go。
+2026-10-23：[大 PNG 语义输入修复](changes/FIX-2026-10-23-semantic-large-png.md) / [ADR-0028](adr/0028-versioned-png-semantic-input.md)：
+显式新 profile 的 native/真实模型合成 Docker 通过，旧向量与人工标签保留；原 6010 尚未切换。
+用户同意在当前任务结束、完整备份后切换并重算图片语义索引，不打断现有任务、不重标旧向量。
+20:00 coser 语义 1379/6202 成功、13 失败；标签 ready=4407、failed=15，仍在运行。下文为此前快照。
+
+2026-10-23：[搜索模式提示与中文索引续验](changes/FIX-2026-10-23-search-mode-guidance.md)：
+搜索输入/结果卡说明与手机 Header 已修复，Docker 三浏览器五宽度 30 项通过；
+原 6010 已停写全备份后更新 81887939，原数据与任务断点保留，不冒充融合搜索或 OCR。
+新发现 [13 张大 PNG 的语义输入上限](changes/INV-2026-10-23-semantic-png-limits.md)，
+定位时尚未修复；后续候选见上方记录，中文索引和旧 92 类标签仍在续跑。
+
+2026-10-23：[Node 24 LTS 工具链统一](changes/FIX-2026-10-23-node24-lts.md)：本地版本已为
+24.22.1，项目/CI/Docker 构建 pin 同步，附实际验证与运行阶段边界，不重启 6010 的在途任务。
+
+2026-10-23 16:47–16:51：[计划升级任务交接修复](changes/FIX-2026-10-23-planned-job-handoff.md)通过
+Go/race、旧版迁移和 3 次真实 Docker 正常重启回归；原 6010 已完整备份后更新 e10d3bef/schema 44，
+原任务 ID/断点续跑、数据摘要和原会话保留，中文标签页面实测通过。旧 AI/92 类身份保留，153 类尚未启用。
+
+2026-10-23：[CR-2026-033 中文标签与实用类别](changes/CR-2026-033-localized-photo-tags.md)：
+中文/英文/双语展示和别名检索，人工原文/同义保护，独立 153 类策略；本地候选与 6010 部署分开记录。
+16:17 更新前发现的第三次运行阻碍已由上方 ADR-0027 修复；不是清零重试计数或重建原任务。
+
+2026-10-23：[CR-2026-032 多语言语义模型](changes/CR-2026-032-multilingual-semantic-model.md)。
+按用户 Immich 配置接入 XLM-Roberta-Large-Vit-B-16Plus（640 维），不冒用旧 512 维索引；
+真实权重合成 Docker/定向回归已通过，6010 已切换；四库新索引运行/排队，不标全库质量完成。
+
+2026-10-23 最新：[剩余 27 张逐图失败原因](changes/FIX-2026-10-23-face-source-diagnosis.md)已定位；
+[ADR-0024](adr/0024-shared-large-image-native-admission.md) 大图共享准入/回收候选通过完整合成 Docker，
+四库 8,493 项已全部尝试（8,452 成功/41 源错误），终态后已备份并单次更新原 6010，容量/长期门禁保留。
+跟进已结束；源文件恢复要求与最后新增三张诊断见[最终记录](changes/FIX-2026-10-23-face-library-retry.md)。
+
+2026-10-23 07:44 用户要求本地 6010 不限制内存：两服务通过显式
+[`compose.ai.unlimited-memory.yaml`](../compose.ai.unlimited-memory.yaml) 取消容器 RAM/swap cap，
+默认验收预算不变；不是内存峰值修复，宿主/VM 总量仍受限。[操作与验证](changes/FIX-2026-10-23-main-face-memory.md)。
+
+2026-10-23 06:48 新风险：[主应用人物解码内存 OOM](changes/FIX-2026-10-23-main-face-memory.md)。
+已由内核确认 06:31 主应用超 1 GiB 后自动重启，AI 服务未重启，人物补齐已断点续跑；内存修复尚未通过，
+不能用当前健康状态或此前 AI 子进程共驻结果盖过本次失败。
+
+2026-10-23 当前：[6010 四库人物补齐](changes/FIX-2026-10-23-face-library-retry.md)已按用户授权启动，
+共 8,493 项当前代次工作；旧模型完成数不可替代现模型进度。新增历史代次/空源诊断提示，运行结果与验证分开记录。
+后台每 30 分钟跟进，未变化保持安静；下文“未重跑原库”是此前维护切片历史，不代表本轮未启动。
+
+2026-10-23 后续：[scan-worker 修复](changes/FIX-2026-10-23-scan-worker-exit.md)复现了宿主机跨内核访问活跃 WAL
+数据库引发的 522 短读；[ADR-0023](adr/0023-same-kernel-sqlite-maintenance.md) 固定容器内只读维护方式与日志脱敏。
+6010 已更新 0a0244c0，4 库/8,719 媒体保留，原件与 AI 分析未操作。最终 180 秒混合负载/恢复检查通过：
+771 扫描、34,642 读取请求、321 容器内检查，自动重启 0；不替代完整 lint/test、长期、质量/容量/发行门禁，
+下文为前一切片历史状态。
+
+2026-10-23：[人物失败诊断与扫描等待](changes/FIX-2026-10-23-ai-failure-diagnostics.md)功能实现/专项通过，
+但最终 6010 再现 scan-worker 退出自动重启 1 次，当前恢复 healthy、数据库正常；持续运行验收未全通过。
+409 项前端、后端/race/合同/生成、集成及合成 Docker 人物/自动标签联验通过；6010 已升级 schema 43，
+原库失败详情只读复核通过。历史未知原因不补造，其他 AI 逐图诊断、质量/容量和发行仍未通过。
+
+2026-10-23：[任务页补验](changes/FIX-2026-10-22-ai-task-workspace.md#补验与修复2026-10-23)完成紧凑异常态、英文布局与真实重跑焦点修复；402 项前端及最终镜像本地 Docker 自动标签完整联验通过，6010 已更新。另保留旧候选一次 scan-worker 退出原因待查，不宣称发行通过。
+
+2026-10-22：[智能分析任务页统一列表](changes/FIX-2026-10-22-ai-task-workspace.md)按用户选择的第 1 张设计实施，
+接受态原型复用正式组件；395 项前端回归、本地 Docker 与原 6010 页面复验通过。质量/容量/发行门禁不变。
+
+当前实施：[CR-2026-031 自动图片标签与库内标签云](changes/CR-2026-031-automatic-photo-tags.md)。
+2026-10-22 用户接受 [V2 原型](changes/PROTOTYPE-2026-10-22-ai-settings-simplification.md)，并授权先实施
+自动标签、单图增删与标签云。T1/T2 库内统计和生产标签云已扩展到 T3/T4：独立按库自动标签、AI/人工来源、
+删除抑制/手动恢复及有界任务已实现，合同归 [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md)。
+生产 Go/集成/contract/arch 的 `CGO_ENABLED=0` + 扩展盘临时目录命令通过；最终前端 63 文件 387 测试、
+types/生成/架构检查与 Storybook 通过，不等于无限定 `make lint` / `make test` 全过。
+[同预算模型实测](../spikes/automatic-tags/SCHEDULED-RESULT.md) 18 请求峰值 2084.23 / 2304 MiB、无 OOM，
+真实 TCP 断连回收通过。最终镜像双服务故障 smoke `fp-auto-tags-83f1e5ee` 全部通过，含推理中重启、
+取消后 35 秒标签不变且不重试、真实停 AI/显式恢复、关闭持久化及原件 hash 不变。真实 UI 的按库开关、
+人工增删/转人工、重新识别和重启后来源保留通过；四档宽度无溢出，最终新 tab console error 为 0。
+早轮脚本 PID 列错误及普通标签云缓存形状错误已修复并重跑，历史不抹除，详见 CR。
+**6010 后续已更新；普通照片质量、容量、AMD64、完整浏览器矩阵与发行验收未完成。** 最终结论统一见 CR 和
+[当前进度](features/intelligent-media-discovery-remaining-tasks.md)，原型不是功能证据。
+
+当前界面工作：[智能分析入口与作用域简化](changes/FIX-2026-10-22-ai-information-architecture.md)
+（2026-10-22，历史层级修复）。固定功能设置、处理任务、服务与模型三个页签；本轮 CR-2026-031 接通正式图片标签入口，旧词表/审核不再是设置主流程；
+本轮逐项证据见[进度表](features/intelligent-media-discovery-remaining-tasks.md)。历史发行结论保持下述状态。
+
+历史 P6（2026-09-17 冻结候选）：**3/3 核对完成，Release No-Go**；当时七项完整工程检查通过，供应链和最终范围已复核，但漏洞、模型授权/provenance 及延期质量容量门禁仍未通过。见 [P6 最终复核](evidence/int-001/p6-final-verification-2026-09-17.md)。同候选 P5 为 **5/5 交付通过**，见 [P5 证据](evidence/int-001/p5-delivery-security-2026-09-17.md)和 [AI Compose 配置说明](ai-compose.md)。当时已完成 [server222 原生 amd64 双容器部署](evidence/int-001/server222-p6-deployment-2026-09-17.md)，不表示本轮自动标签代码已部署；私有部署不改变 Release No-Go。
 
 当前 P4：**本轮验收通过，已完成**（2026-09-17 用户确认）。[约 100 样本冻结候选收口台账](features/intelligent-media-discovery-p4-closeout.md)记录通过范围；人工质量校准与原规模要求延期，不记测试通过。
 

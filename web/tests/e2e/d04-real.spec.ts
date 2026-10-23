@@ -100,10 +100,10 @@ test("D04 real people and tags: keyboard, touch, locale/theme and responsive mat
   }
   await page.evaluate(() => localStorage.setItem("foliopath.preferences.v1", JSON.stringify({ locale: "en", theme: "light" })));
   await navigate(page, `/intelligence?view=tags&libraryId=${reviews}`);
-  const check = page.getByRole("checkbox").first();
+  const check = page.getByRole("checkbox", { name: /^Select .* · / }).first();
   if (mobile) await check.tap(); else { await tabTo(page, check); await page.keyboard.press("Space"); }
-  const dismiss = page.getByRole("button", { name: "Dismiss suggestion", exact: true });
-  if (mobile) await dismiss.tap(); else { await page.keyboard.press("Shift+Tab"); await expect(dismiss).toBeFocused(); await page.keyboard.press("Enter"); }
+  const dismiss = page.getByRole("button", { name: "Dismiss selected", exact: true });
+  if (mobile) await dismiss.tap(); else { await tabTo(page, dismiss); await page.keyboard.press("Enter"); }
   await expect(page.getByRole("button", { name: "Pending", exact: true })).toBeFocused();
   await expect(page.getByText("Review saved.")).toBeVisible();
   await navigate(page, personURL);

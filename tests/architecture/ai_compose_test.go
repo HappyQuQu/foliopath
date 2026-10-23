@@ -60,3 +60,26 @@ func TestAIComposeDeploymentBoundaries(t *testing.T) {
 		}
 	}
 }
+
+func TestAIComposeUnlimitedMemoryOverrideOnlyChangesMemoryCaps(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join(repositoryRoot(t), "compose.ai.unlimited-memory.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config map[string]map[string]map[string]int64
+	if _, err := yaml.Unmarshal(content, &config, yaml.DecodeOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	services := config["services"]
+	if len(config) != 1 || len(services) != 2 {
+		t.Fatal("operator override must only contain the two existing services")
+	}
+	for _, name := range []string{"foliopath", "machine-learning"} {
+		settings := services[name]
+		memory, memoryOK := settings["mem_limit"]
+		swap, swapOK := settings["memswap_limit"]
+		if len(settings) != 2 || !memoryOK || !swapOK || memory != 0 || swap != 0 {
+			t.Errorf("%s override must only remove RAM/swap caps", name)
+		}
+	}
+}

@@ -24,9 +24,11 @@ test("real settings, search, review, people and task history", async ({ page }, 
   test.setTimeout(120_000);
   const [one, two] = process.env.FOLIOPATH_P3_LIBRARIES!.split(",");
   await page.goto("/settings/ai");
-  await expect(page.getByRole("heading", { name: "AI capabilities" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Features for this library" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Download model", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Service and models", exact: true }).click();
   await expect(page.getByText("foliopath-face-v1", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Feature settings", exact: true }).click();
   await page.getByRole("combobox", { name: "Current library" }).selectOption(two);
   await expect(page).toHaveURL(new RegExp("library=" + two));
   await page.reload();
@@ -39,9 +41,9 @@ test("real settings, search, review, people and task history", async ({ page }, 
     await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   }
   await page.goto(`/intelligence?view=tags&libraryId=${one}`);
-  const accept = page.getByRole("button", { name: "Accept suggestion", exact: true }).first();
+  const accept = page.getByRole("button", { name: "Accept selected", exact: true }).first();
   if (info.project.name === "chromium") {
-    await page.getByRole("checkbox", { name: "Select gradient.png" }).check();
+    await page.getByRole("checkbox", { name: /^Select gradient\.png · / }).first().check();
     await accept.click();
     await expect(accept).toHaveCount(0);
   }
@@ -119,30 +121,31 @@ test("real large catalog stays virtualized while loading cursor pages", async ({
 test("real tag pagination and stale curation conflict recover without false success", async ({ page }, info) => {
   const library = JSON.parse(process.env.FOLIOPATH_P3_REVIEW_LIBRARIES!)[info.project.name];
   await page.goto(`/intelligence?view=tags&libraryId=${library}`);
-  await expect(page.getByRole("checkbox")).toHaveCount(50);
+  const suggestionChecks = page.getByRole("checkbox", { name: /^Select .* · / });
+  await expect(suggestionChecks).toHaveCount(50);
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect(page).toHaveURL(/cursor=/);
   await page.reload();
-  await expect(page.getByRole("checkbox")).toHaveCount(2);
+  await expect(suggestionChecks).toHaveCount(2);
   await page.getByRole("button", { name: "First page", exact: true }).click();
-  await expect(page.getByRole("checkbox")).toHaveCount(50);
-  const check = page.getByRole("checkbox").first();
+  await expect(suggestionChecks).toHaveCount(50);
+  const check = suggestionChecks.first();
   await check.check();
-  const label = await check.locator("..").innerText();
-  await expect(page.getByRole("button", { name: "Accept suggestion", exact: true })).toBeEnabled();
+  const label = await check.getAttribute("aria-label");
+  await expect(page.getByRole("button", { name: "Accept selected", exact: true })).toBeEnabled();
   const suggestions = await (await page.request.get(`/api/v1/libraries/${library}/ai/tag-suggestions`)).json();
-  const suggestion = suggestions.items.find((item: { asset: { name: string } }) => label === `Select ${item.asset.name}`);
+  const suggestion = suggestions.items.find((item: { asset: { name: string }; tag: { name: string } }) => label === `Select ${item.asset.name} · ${item.tag.name}`);
   expect(suggestion).toBeTruthy();
   const session = await (await page.request.get("/api/v1/auth/session")).json();
   const favorite = await page.request.put(`/api/v1/assets/${suggestion.asset.id}/favorite`, { headers: { "X-CSRF-Token": session.csrfToken, Origin: new URL(page.url()).origin }, data: { favorite: true } });
   expect(favorite.ok()).toBe(true);
   const response = page.waitForResponse(r => r.url().endsWith("/ai/tag-suggestion-reviews") && r.request().method() === "POST");
-  await page.getByRole("button", { name: "Accept suggestion", exact: true }).click();
+  await page.getByRole("button", { name: "Accept selected", exact: true }).click();
   expect((await (await response).json()).items[0].outcome).toBe("conflict");
   await expect(page.getByText("Saved 0; 1 not confirmed saved. Check the refreshed state before retrying.")).toBeVisible();
   await expect(check).toBeChecked();
   const retry = page.waitForResponse(r => r.url().endsWith("/ai/tag-suggestion-reviews") && r.request().method() === "POST");
-  await page.getByRole("button", { name: "Accept suggestion", exact: true }).click();
+  await page.getByRole("button", { name: "Accept selected", exact: true }).click();
   expect((await (await retry).json()).items[0].outcome).toBe("accepted");
   await expect(page.getByRole("button", { name: "Pending", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Accepted", exact: true }).click();

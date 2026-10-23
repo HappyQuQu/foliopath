@@ -12,6 +12,7 @@ export interface InlineStatusProps {
   dismissLabel?: string;
   onDismiss?: () => void;
   tone?: InlineStatusTone;
+  appearance?: "surface" | "plain";
 }
 
 export function InlineStatus({
@@ -19,6 +20,7 @@ export function InlineStatus({
   dismissLabel,
   onDismiss,
   tone = "info",
+  appearance = "surface",
 }: InlineStatusProps) {
   const { t } = useLocale();
   const Icon =
@@ -30,7 +32,7 @@ export function InlineStatus({
 
   return (
     <div
-      className={[styles.status, styles[tone]].filter(Boolean).join(" ")}
+      className={[styles.status, styles[tone], appearance === "plain" && styles.plain].filter(Boolean).join(" ")}
       role={tone === "danger" ? "alert" : "status"}
     >
       <Icon aria-hidden="true" size={19} weight="fill" />

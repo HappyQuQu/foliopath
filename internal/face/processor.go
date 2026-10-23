@@ -22,6 +22,7 @@ var (
 	ErrSourceChanged      = errors.New("face source changed")
 	ErrRuntimeUnavailable = errors.New("face runtime unavailable")
 	ErrRuntimeBusy        = errors.New("face runtime busy")
+	ErrMediaUnreadable    = errors.New("face media unreadable")
 )
 
 type Box struct {
@@ -85,7 +86,7 @@ func (processor *Processor) Analyze(ctx context.Context, libraryID, assetID int6
 	}
 	asset, err := processor.assets.OpenFaceAsset(ctx, libraryID, assetID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(ErrMediaUnreadable, err)
 	}
 	if asset.File == nil {
 		return nil, ErrInvalidInput

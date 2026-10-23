@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { IconButton } from "../../ui/Button/IconButton";
-import { GlobalHeader } from "../GlobalHeader/GlobalHeader";
+import { GlobalHeader, type GlobalSearchInputLabels } from "../GlobalHeader/GlobalHeader";
 import styles from "./AppShell.module.css";
 
 export type AppSection = "browse" | "libraries" | "search" | "settings";
@@ -13,9 +13,11 @@ export function AppShell({
   homeHref,
   identity,
   logoutPending = false,
+  navigationKey,
   onLogout,
   peopleHref,
   searchHref,
+  searchInput,
   settingsHref,
   sidebarContent,
   topbarContent,
@@ -28,9 +30,12 @@ export function AppShell({
   identity: string;
   librariesHref?: string;
   logoutPending?: boolean | undefined;
+  /** Selected workspace destination; omit transient sidebar search/pagination state. */
+  navigationKey?: string;
   onLogout?: (() => Promise<void>) | undefined;
   peopleHref?: string | undefined;
   searchHref: string;
+  searchInput?: GlobalSearchInputLabels | undefined;
   settingsHref: string;
   showIdentityLabel?: boolean;
   sidebarContent?: ReactNode;
@@ -41,6 +46,16 @@ export function AppShell({
   const [navigationOpen, setNavigationOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousNavigationKey = useRef(navigationKey);
+
+  useEffect(() => {
+    if (previousNavigationKey.current === navigationKey) return;
+    previousNavigationKey.current = navigationKey;
+    if (navigationOpen) {
+      setNavigationOpen(false);
+      menuButtonRef.current?.focus();
+    }
+  }, [navigationKey, navigationOpen]);
 
   useEffect(() => {
     if (!navigationOpen) return;
@@ -74,6 +89,7 @@ export function AppShell({
         onLogout={onLogout}
         peopleHref={peopleHref}
         searchHref={searchHref}
+        searchInput={searchInput}
         settingsHref={settingsHref}
       />
 

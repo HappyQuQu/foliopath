@@ -21,6 +21,7 @@ type JobLibraryState string
 
 const (
 	JobLibraryReady            JobLibraryState = "ready"
+	JobLibraryScanning         JobLibraryState = "scanning"
 	JobLibraryOffline          JobLibraryState = "offline"
 	JobLibraryNotReady         JobLibraryState = "not_ready"
 	JobLibraryDisabled         JobLibraryState = "disabled"
@@ -85,6 +86,7 @@ type JobProgressCommit struct {
 	SourceFingerprint                                                                 string
 	Batch                                                                             ObservationBatch
 	FailedCount, StaleCount                                                           int64
+	FailureCode                                                                       string
 	UpdatedAt                                                                         time.Time
 }
 type JobQueue interface {
@@ -116,13 +118,14 @@ type JobService struct {
 	newID   func(string) (string, error)
 }
 type JobProcessor struct {
-	queue    JobQueue
-	catalog  JobCatalog
-	analyzer JobAnalyzer
-	clusters ClusterRebuilder
-	profile  ClusterProfile
-	now      func() time.Time
-	pageSize int
+	queue              JobQueue
+	catalog            JobCatalog
+	analyzer           JobAnalyzer
+	clusters           ClusterRebuilder
+	profile            ClusterProfile
+	now                func() time.Time
+	pageSize           int
+	scanWait, scanPoll time.Duration
 }
 
 func NewJobService(queue JobQueue, catalog JobCatalog, wake interface{ Wake() }, now func() time.Time, newID func(string) (string, error)) (*JobService, error) {
@@ -159,7 +162,7 @@ func (s *JobService) Request(ctx context.Context, libraryID int64, generationID 
 	case JobLibraryReady:
 	case JobLibraryOffline:
 		return JobResult{}, ErrFaceLibraryOffline
-	case JobLibraryNotReady:
+	case JobLibraryNotReady, JobLibraryScanning:
 		return JobResult{}, ErrFaceNotReady
 	case JobLibraryDisabled:
 		return JobResult{}, ErrFaceDisabled
@@ -293,6 +296,7 @@ func (p *JobProcessor) Process(ctx context.Context, job AnalysisJob) error {
 					commit.StaleCount = 1
 				} else {
 					commit.FailedCount = 1
+					commit.FailureCode = FailureCode(analyzeErr)
 				}
 			} else {
 				commit.Batch.Items = make([]ObservationItem, len(observations))
@@ -333,6 +337,45 @@ func finishFaceAdmissionCancellation(ctx context.Context, queue JobQueue, job An
 }
 
 func (p *JobProcessor) refreshControl(ctx context.Context, job AnalysisJob) (bool, error) {
+	stopped, err := p.refreshControlOnce(ctx, job)
+	if !errors.Is(err, errScanInProgress) {
+		return stopped, err
+	}
+	wait, poll := p.scanWait, p.scanPoll
+	if wait <= 0 {
+		wait = time.Minute
+	}
+	if poll <= 0 {
+		poll = time.Second
+	}
+	deadline := time.NewTimer(wait)
+	defer deadline.Stop()
+	ticker := time.NewTicker(poll)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return true, ctx.Err()
+		case <-deadline.C:
+			// One final cancellation/state check wins over the timeout.
+			stopped, err = p.refreshControlOnce(ctx, job)
+			if !errors.Is(err, errScanInProgress) {
+				return stopped, err
+			}
+			_, err = p.queue.FinishFaceJob(ctx, job, false, "library_scanning", p.now().UTC())
+			return true, err
+		case <-ticker.C:
+			stopped, err = p.refreshControlOnce(ctx, job)
+			if !errors.Is(err, errScanInProgress) {
+				return stopped, err
+			}
+		}
+	}
+}
+
+var errScanInProgress = errors.New("face analysis waiting for catalog scan")
+
+func (p *JobProcessor) refreshControlOnce(ctx context.Context, job AnalysisJob) (bool, error) {
 	cancelled, err := p.queue.RefreshFaceJobLease(ctx, job, p.now().UTC(), 2*time.Minute)
 	if err != nil {
 		return true, err
@@ -352,6 +395,8 @@ func (p *JobProcessor) stopIfLibraryUnavailable(ctx context.Context, job Analysi
 	switch state {
 	case JobLibraryReady:
 		return false, nil
+	case JobLibraryScanning:
+		return true, errScanInProgress
 	case JobLibraryOffline:
 		_, err = p.queue.FinishFaceJob(ctx, job, false, "library_offline", p.now().UTC())
 		return true, err

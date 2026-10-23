@@ -1,5 +1,113 @@
 # FolioPath 测试策略
 
+## PNG 语义输入版本（ADR-0028）
+
+`remote_png_libvips_test.go` 使用合成 17 MP / >32 MiB PNG、40 MP 边界、越界/截断/有界 palette 头，
+检查 FD 与内存流输出一致、alpha/16 位、共享准入、取消/空读和引用回收；不读取真实媒体。
+`deployment_config_test.go` 固定新语义身份与默认 v3、face/tag 不变；架构测试约束唯一 owner。
+真实模型脚本 `tests/release/multilingual_semantic_smoke.mjs` 增加 `FOLIOPATH_TEST_PNG_PROFILE=1`，
+并提供 Linux `FOLIOPATH_TEST_SEMANTIC_AUDIT`（由 `spikes/semantic-png/audit` 编译），仅在独立合成 owner
+读取旧代次保留数量和 cgroup。测试新空代次→大 PNG 入库、中英文查询、旧标签限制/人工标签、并发搜索和重启。
+从不在宿主打开活跃数据库；原库验证和合成测试分开。实际镜像、通过/跳过和峰值见[记录](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+## 搜索模式提示（既有 FR-INT-003 消费者）
+
+`web/tests/e2e/search-guidance.spec.ts` 对真实生产 bundle 使用明确合成只读 API fixtures，
+在 Chromium/Firefox/WebKit、320/390/768/1440/1920、中浅/英深组合检查模式提示、卡片检索方式、
+中文重提、目录/递归保留、唯一实际请求端点、无未模拟请求/写入、无页面异常和横向溢出。
+完整 Header 必须同时有通知/人物等入口；窄屏验证有效输入宽度、可见提交、输入→提交→人物的键盘和视觉顺序，
+标题在固定 Header 下方。三行卡片文字检查实际高度/不重叠/不裁切；纯“不溢出”不足以验收。
+这是 UI/路由回归，不是合成真实模型 smoke、中文召回、OCR 或双主题全矩阵。
+模型链路及真实库只读核对另外记录，不以 fixture 返回成功冒充后端/识别质量通过。
+
+## 计划升级交接（ADR-0027）
+
+Go 覆盖自动标签/语义/人物第三次 claim、已提交进度与 operation ID 不变、旧 fence/重复拒绝、
+取消优先、离线清单不匹配整批回滚、交接后的第三次崩溃仍终结，以及 worker 回收顺序/交接错误上报。
+`spikes/job-handoff/docker_smoke.py` 仅建独立合成库，真实旧二进制两次 SIGKILL 恢复到第三次运行，
+停写备份/精确交接后更新候选，再反复真实 SIGTERM/重启，最后 SIGKILL 验证旧上限仍生效。
+只对停止的合成 fixture 调整租约到期时间以缩短等待，不修改 attempt 计数；不可在原库这样加速。
+必须记录实际镜像、SQL 审计/断点、源 hash 和容器内 database-check；这不是完整质量/容量/发行验收。
+
+## 本地化自动标签（CR-2026-033 / ADR-0026）
+
+`tests/release/localized_tags_smoke.mjs` 在本地独立双服务与合成媒体验证新策略真实推理、至少一个新增类别、
+中文别名/库隔离、原名与 ID 不变、人工中文同义优先/移除抑制、显式人工恢复、重跑/重启、源 hash 和
+容器内 database-check。新 overlay 还须实测现有 XLM 中文查询及 legacy 人脸推理，不只断言身份字符串。
+Go 覆盖只读投影/分页/人工保护，Python 校验全部类别存在于固定模型词表、输出 fail-closed 与共享调度；
+前端覆盖跨消费者同步、刷新保留、原文回退与四档宽度。实际结果/未执行门禁见 CR，不将功能冒称质量校准。
+
+## 多语言语义回归（ADR-0025）
+
+`tests/release/multilingual_semantic_smoke.mjs` 使用临时合成媒体与固定真实权重，验证
+640 维索引、中文/英文查询、损坏负例、库隔离、幂等、持久化、人工标签及 legacy face/tag。
+必须验证索引/标签同时运行时的前台查询，且后台不能因前台占槽而把正常图片计为失败。
+AI 4 GiB/disk scratch 和基础 2304 MiB/tmpfs 不是同一档，记录 peak 与实际镜像。
+Go 检查模型/维度、总期限/取消/释放与身份错误；Python 检查快照、协议、旧能力与准入。
+两张合成图排序仅为链路证据，不冒称真实汽车召回率、中文质量或完整发行验收。
+
+## 大图 native 工作集回归（ADR-0024，2026-10-23）
+
+必须区分单解码探针与完整应用：独立探针通过不能覆盖缩略图和 AI 预处理并行的峰值。
+`spikes/int001-remote-ml/facememory` 生成纯程序高熵 96.8 MP JPEG，并保留 256 MiB 合成堆，
+在 1 CPU/1 GiB/无额外 swap 下检查重复调用、像素 SHA-256、native refs、exit/OOM。
+`tests/release/face_diagnostics_smoke.mjs` 可用 `FOLIOPATH_TEST_FACE_MEMORY_FIXTURE` 指向该固定生成文件，
+仅接受固定字节摘要，覆盖真实扫描/缩略图/人物推理、失败专属重试、显式重启和原件 hash。
+自动重启计数必须在显式重启前为 0；不能仅用当前 OOMKilled=false 宣称没有自动重启。
+真实故障图片只可作已授权的只读手工诊断，禁止混入这个自动化资源/质量回归。
+
+2026-10-23 人物补齐维护：Go/合同检查代次比较为只读、可选字段兼容与样本大小；前端不把缺省大小当零，
+不把旧模型 ready 当当前完成。face_diagnostics_smoke 增加合成空 JPEG，验证与非空损坏输入分别保留大小，
+missing 只重试两张失败图、重放/重启保留及原件 hash 不变。原 6010 四库任务属于用户授权运行，
+不是自动化测试用例；实际数量/长任务结果见[本轮记录](changes/FIX-2026-10-23-face-library-retry.md)。
+
+2026-10-23 / ADR-0023：`tests/release/scan_worker_smoke.mjs` 只建独立合成库，约 100 图片、4 库，
+在固定 1 CPU/1 GiB 主应用同时发起扫描、读取/客户端取消与容器内 database-check，验证无组件退出/自动重启、
+手动重启恢复、原件 hash 不变；缺失/损坏库的维护命令用独立只读数据挂载验证非零且无泄露。
+Go/race 覆盖错误链/脱敏、只读/外键/取消、并发 WAL 与快照；不访问真实媒体。危险的宿主机 SQLite 并发
+仅对一次性合成目录作故障复现，绝不能把它作为正常健康检查，更不能对真实库复现。
+最终计数、固定镜像及全量检查的实际环境限制见 [scan-worker 记录](changes/FIX-2026-10-23-scan-worker-exit.md)。
+
+2026-10-23 / ADR-0022 人物失败诊断：Go/race 覆盖扫描等待的恢复/超时/取消/离线/禁用/模型失联，
+SQLite 检查 checkpoint 原子性、旧成功后的失败候选、样本上限、历史未知/源变化和逐批清理；API 检查脱敏和 opaque ID。
+`tests/release/face_diagnostics_smoke.mjs` 只创建独立合成 Docker 数据，真实损坏 JPEG、模型推理、只重试失败图、
+重放、重启/隔离和原件 hash；扫描分支采用测试库状态注入，不等同于真实 scanner 完整并发验收。
+前端 65 文件/409 项、四档宽度与英文深色手机、生产 Story 和真实重试焦点通过。完整命令/镜像见
+[切片记录](changes/FIX-2026-10-23-ai-failure-diagnostics.md)。本机无限定 lint/test 仍缺 native pkg-config/libvips，
+集成用扩展盘 TMPDIR 通过，不能隐去默认内部盘安全余量失败；runtime E2E smoke 不代替完整浏览器矩阵。
+
+## 自动标签验证边界（2026-10-22 / CR-2026-031）
+
+按 [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md) 分开记录功能、资源回收、模型质量与
+发行证据；下列为当前已实现的回归入口和验收要求，不是最终 Docker 或发布通过声明：
+
+- `internal/curation/automatic_tags_test.go` 与 SQLite `curation_automatic_tags_test.go` 覆盖规范化、
+  同名去重、人工优先/最多 20、移除抑制/恢复、重复重跑、全局改名/删除含 tag ID 重建、旧建议接受
+  迁移为 manual、源 fingerprint/kind 失效、重启保留、离线/删除 cascade、事务回滚和并发读取快照。
+- `internal/store/sqlite/autotag_test.go` 覆盖合并与 checkpoint/operation 同事务、missing/all、
+  幂等键/跨库、全局 32 队列和准入上界、取消/关闭拒绝迟到写、旧 claim 拒绝、关机租约恢复/最多三次
+  尝试。必须另测服务失败、非法输出、恢复耗尽和取消连续多轮自动准入仍不创建新任务，以及取消进行中
+  显式重新启用不被迟到取消重新封锁；不能只验证单个 job 的 attempt 上限。
+- `internal/autotag/autotag_test.go` 与 SQLite `autotag_busy_test.go` 覆盖暂忙三次/1+2 秒可取消退避、
+  同 operation 持久延后 30 秒、checkpoint/标签不变、五轮暂忙不吃崩溃预算、历史崩溃计数保留、
+  旧 claim 拒绝、关闭/取消及重开数据库不跳过等待；已验证 ready 不因暂忙丢失，未知状态不伪装 ready。
+- `internal/app/autotag_runtime_test.go` 使用临时合成文件验证库隔离、推理前拒绝已知旧源、推理后
+  重开检出真实文件变化；配置与 `remoteml/tag_test.go` 验证独立身份、共享预算、响应限制和重定向拒绝。
+  `tests/contract/automatic_tags_contract_test.go` 检查公开合同与人工 owner；客户端须从 OpenAPI 生成。
+- `services/inference/test_scheduler.py`、`test_runtime_manifest.py`、`test_tag.py` 及原搜索/人脸
+  测试覆盖固定子集/hash、输出过滤、一个运行/一个等待、真实断连/超时/回收；实际镜像同预算至少三轮
+  text → image → face → tag 序列、最大输入与过载，逐轮检查无 OOM/残留子进程，不以 Python 单测推定
+  原生内存释放。入口和限制见 [AI 镜像说明](../services/inference/README.md)。
+- `tests/release/automatic_tags_smoke.mjs` 需显式提供 `FOLIOPATH_TEST_APP_IMAGE`、
+  `FOLIOPATH_TEST_AI_IMAGE`、`FOLIOPATH_TEST_MODEL_CACHE`，只允许本地 Docker；独立临时双服务/媒体库
+  与合成媒体验证鉴权/CSRF、产生真实标签、人工保护、重跑、取消/重启及原件 hash，不改真实库或 server222。
+  标签云仍使用 `tag_cloud_smoke.mjs` 与前端范围/计数/分页/四档宽度回归；不得只凭标签总数判断自动分析成功。
+
+定向命令：`GOTOOLCHAIN=go1.26.5 go test -count=1 ./internal/curation ./internal/store/sqlite ./internal/api ./internal/app ./internal/autotag ./tests/contract ./tests/architecture`；
+并发命令：`GOTOOLCHAIN=go1.26.5 go test -race -count=1 ./internal/curation ./internal/store/sqlite -run 'TestAutomatic|TestCuration'`。
+测试只用临时/合成输入，最终执行结果、镜像/身份/资源配置与未完成 Gate 由
+[CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) 汇总；不得继承下面旧 P5/P6 的通过结论。
+
 P5 F03/G02：`make test-ai-delivery` 要求显式旧/新镜像变量，复用正式 Compose 及仅测试用 internal-web 覆盖，验证无外网运行、停写备份、新代次、人工数据保留、重启及配对回退，然后在新镜像上验证鉴权/CSRF、路径边界、API/日志/诊断隐私和两类人脸清除。测试控制器通过 Docker 内部网络访问，不为离线测试重新打开服务端出网。`make test-ai-compose` 为 F02 故障矩阵；两者只使用自产临时数据。`make arch-check` 的人脸隐私规则同时覆盖 remoteml adapter。
 
 P5 F02：同一 `ai_compose_smoke.mjs --faults` 启用语义/人脸合成分析，逐项注入缺失缓存、等长损坏缓存及错误身份，验证不可用错误、结果保留、原代次恢复与重新分析。semantic 离线代次字段按合同为 null、覆盖率必须保留，恢复后核对原 ID；不拿离线 null 当丢库。坏模型只创建于临时副本，不改已有复制缓存，不连接 server222。

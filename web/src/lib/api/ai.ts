@@ -26,6 +26,8 @@ export type SemanticLibrarySettings = components["schemas"]["SemanticLibrarySett
 export type AITagSuggestion = components["schemas"]["AITagSuggestion"];
 export type AITagSuggestionPage = components["schemas"]["AITagSuggestionPage"];
 export type AITagSuggestionReviewResponse = components["schemas"]["AITagSuggestionReviewResponse"];
+export type AITagVocabulary = components["schemas"]["AITagVocabulary"];
+export interface AITagVocabularySnapshot extends AITagVocabulary { etag: string }
 export type AssetFace = components["schemas"]["AssetFace"];
 export type FaceCluster = components["schemas"]["FaceCluster"];
 export type FaceClusterDetailPage = components["schemas"]["FaceClusterDetailPage"];
@@ -34,6 +36,25 @@ export type FaceReviewRequest = components["schemas"]["FaceReviewRequest"];
 export type FaceReviewResult = components["schemas"]["FaceReviewResult"];
 export type FaceLibrarySettings = components["schemas"]["FaceLibrarySettings"];
 export interface FaceSettingsSnapshot extends FaceLibrarySettings { etag: string }
+export type AutomaticTagSettings = components["schemas"]["AutomaticTagLibrarySettings"];
+export interface AutomaticTagSnapshot extends AutomaticTagSettings { etag: string }
+
+export async function getAutomaticTagSettings(libraryId: string): Promise<AutomaticTagSnapshot> {
+  return unwrapWithEtag(apiClient.GET("/api/v1/libraries/{libraryId}/ai/automatic-tags", { params: { path: { libraryId } } }));
+}
+export async function updateAutomaticTagSettings(input: { libraryId: string; enabled: boolean; etag: string; csrfToken: string }): Promise<AutomaticTagSnapshot> {
+  return unwrapWithEtag(apiClient.PUT("/api/v1/libraries/{libraryId}/ai/automatic-tags", {
+    body: { enabled: input.enabled }, headers: { "X-CSRF-Token": input.csrfToken },
+    params: { path: { libraryId: input.libraryId }, header: { "If-Match": input.etag } },
+  }));
+}
+export async function requestAutomaticTagJob(input: { libraryId: string; mode: "missing" | "all"; csrfToken: string; idempotencyKey: string }): Promise<AIOperationSnapshot> {
+  return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/automatic-tags/jobs", {
+    body: { mode: input.mode, ...(input.mode === "all" ? { confirmation: "reprocess_automatic_tags" as const } : {}) },
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: { path: { libraryId: input.libraryId }, header: { "Idempotency-Key": input.idempotencyKey } },
+  }));
+}
 export type Person = components["schemas"]["Person"];
 export type PersonAssetPage = components["schemas"]["PersonAssetPage"];
 export type PersonPage = components["schemas"]["PersonPage"];
@@ -203,6 +224,38 @@ export async function listAITagSuggestions(input: {
         ...(input.cursor ? { cursor: input.cursor } : {}),
         ...(input.status ? { status: input.status } : {}),
       },
+    },
+  }));
+}
+
+export async function getAITagVocabulary(): Promise<AITagVocabularySnapshot> {
+  return unwrapWithEtag(apiClient.GET("/api/v1/ai/tag-vocabulary"));
+}
+
+export async function replaceAITagVocabulary(input: {
+  csrfToken: string;
+  etag: string;
+  tagIds: string[];
+}): Promise<AITagVocabularySnapshot> {
+  return unwrapWithEtag(apiClient.PUT("/api/v1/ai/tag-vocabulary", {
+    body: { tagIds: input.tagIds },
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: { header: { "If-Match": input.etag } },
+  }));
+}
+
+export async function requestAITagSuggestionJob(input: {
+  csrfToken: string;
+  idempotencyKey: string;
+  libraryId: string;
+  mode: "missing" | "all";
+}): Promise<AIOperationSnapshot> {
+  return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/tag-suggestions/jobs", {
+    body: { mode: input.mode },
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: {
+      header: { "Idempotency-Key": input.idempotencyKey },
+      path: { libraryId: input.libraryId },
     },
   }));
 }

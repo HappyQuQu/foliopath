@@ -2,6 +2,8 @@ const preferenceNamespace = "foliopath.preferences.v1";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
+export type TagLanguagePreference = "interface" | "zh-CN" | "en" | "bilingual";
+const tagPreferenceEvent = "foliopath:tag-language";
 export type MediaLayoutPreference = "grid" | "masonry";
 export type MediaSortPreference =
   | "contextual"
@@ -15,6 +17,7 @@ export type MediaSortPreference =
 interface Preferences {
   aiOperationIds?: string[];
   locale?: LocalePreference;
+  tagLanguage?: TagLanguagePreference;
   mediaLayout?: MediaLayoutPreference;
   mediaSort?: MediaSortPreference;
   dismissedCompletedNotifications?: string[];
@@ -86,6 +89,25 @@ export function writeLocalePreference(locale: LocalePreference): void {
 export function clearLocalePreference(): void {
   const { locale: _locale, ...preferences } = readPreferences();
   writePreferences(preferences);
+}
+
+export function readTagLanguagePreference(): TagLanguagePreference {
+  const value = readPreferences().tagLanguage;
+  return value === "zh-CN" || value === "en" || value === "bilingual" ? value : "interface";
+}
+
+export function writeTagLanguagePreference(tagLanguage: TagLanguagePreference): void {
+  writePreferences({ ...readPreferences(), tagLanguage });
+  window.dispatchEvent(new Event(tagPreferenceEvent));
+}
+
+export function subscribeTagLanguagePreference(listener: () => void): () => void {
+  window.addEventListener(tagPreferenceEvent, listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    window.removeEventListener(tagPreferenceEvent, listener);
+    window.removeEventListener("storage", listener);
+  };
 }
 
 export function readMediaLayoutPreference(): MediaLayoutPreference {

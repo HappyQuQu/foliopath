@@ -24,16 +24,18 @@ type CurationService interface {
 	RenameTag(context.Context, int64, string) (curation.Tag, error)
 	DeleteTag(context.Context, int64) error
 	ReplaceAssetTags(context.Context, int64, int64, []int64) (curation.AssetState, error)
+	AddAssetTag(context.Context, int64, int64, int64) (curation.AssetState, error)
 	ListTags(context.Context, curation.TagListRequest) (curation.TagPage, error)
 	ListAssets(context.Context, curation.AssetListRequest) (curation.CuratedAssetPage, error)
 }
 
 type tagResponse struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	AssetCount int64  `json:"assetCount"`
-	CreatedAt  string `json:"createdAt"`
-	UpdatedAt  string `json:"updatedAt"`
+	ID           string                    `json:"id"`
+	Name         string                    `json:"name"`
+	AssetCount   int64                     `json:"assetCount"`
+	CreatedAt    string                    `json:"createdAt"`
+	UpdatedAt    string                    `json:"updatedAt"`
+	Localization *curation.TagLocalization `json:"localization,omitempty"`
 }
 
 type tagPageResponse struct {
@@ -41,12 +43,17 @@ type tagPageResponse struct {
 	NextCursor *string       `json:"nextCursor"`
 }
 
+type assetTagResponse struct {
+	tagResponse
+	Source string `json:"source"`
+}
+
 type assetCurationResponse struct {
-	AssetID     string        `json:"assetId"`
-	Favorite    bool          `json:"favorite"`
-	FavoritedAt *string       `json:"favoritedAt"`
-	Tags        []tagResponse `json:"tags"`
-	Revision    int64         `json:"revision"`
+	AssetID     string             `json:"assetId"`
+	Favorite    bool               `json:"favorite"`
+	FavoritedAt *string            `json:"favoritedAt"`
+	Tags        []assetTagResponse `json:"tags"`
+	Revision    int64              `json:"revision"`
 }
 
 type curatedAssetResponse struct {
@@ -73,6 +80,36 @@ type replaceAssetTagsRequest struct {
 }
 
 func registerCurationRoutes(mux *http.ServeMux, service CurationService) {
+	mux.HandleFunc("PUT /api/v1/assets/{assetId}/tags/{tagId}", func(writer http.ResponseWriter, request *http.Request) {
+		assetID, err := parseResourceID(request.PathValue("assetId"), "ast_")
+		if err != nil {
+			writeCurationError(writer, request, curation.ErrAssetNotFound)
+			return
+		}
+		tagID, err := parseResourceID(request.PathValue("tagId"), "tag_")
+		if err != nil {
+			writeCurationError(writer, request, curation.ErrTagNotFound)
+			return
+		}
+		revision, err := parseCurationIfMatch(request.Header.Get("If-Match"))
+		if err != nil {
+			writeCurationError(writer, request, err)
+			return
+		}
+		if request.Body != nil {
+			data, readErr := io.ReadAll(http.MaxBytesReader(writer, request.Body, 1))
+			if readErr != nil || len(data) != 0 {
+				writeCurationError(writer, request, curation.ErrInvalidRequest)
+				return
+			}
+		}
+		state, err := service.AddAssetTag(request.Context(), assetID, revision, tagID)
+		if err != nil {
+			writeCurationError(writer, request, err)
+			return
+		}
+		writeAssetCuration(writer, http.StatusOK, state)
+	})
 	mux.HandleFunc("GET /api/v1/favorites", func(writer http.ResponseWriter, request *http.Request) {
 		query, err := parseCuratedAssetQuery(request.URL.RawQuery, true, 0)
 		if err != nil {
@@ -268,11 +305,15 @@ func parseTagListQuery(raw string) (curation.TagListRequest, error) {
 		return curation.TagListRequest{}, curation.ErrInvalidRequest
 	}
 	for key, entries := range values {
-		if (key != "q" && key != "cursor" && key != "limit") || len(entries) != 1 {
+		if (key != "q" && key != "libraryId" && key != "kind" && key != "cursor" && key != "limit") || len(entries) != 1 {
 			return curation.TagListRequest{}, curation.ErrInvalidRequest
 		}
 	}
-	request := curation.TagListRequest{}
+	libraryID, kinds, err := parseCurationScope(values)
+	if err != nil {
+		return curation.TagListRequest{}, err
+	}
+	request := curation.TagListRequest{LibraryID: libraryID, Kinds: kinds}
 	if value, ok := values["q"]; ok {
 		if value[0] == "" {
 			return curation.TagListRequest{}, curation.ErrInvalidRequest
@@ -304,21 +345,11 @@ func parseCuratedAssetQuery(raw string, favorites bool, tagID int64) (curation.A
 			return curation.AssetListRequest{}, curation.ErrInvalidRequest
 		}
 	}
-	request := curation.AssetListRequest{FavoriteOnly: favorites, TagID: tagID}
-	if value, ok := values["libraryId"]; ok {
-		request.LibraryID, err = parseResourceID(value[0], "lib_")
-		if err != nil {
-			return curation.AssetListRequest{}, curation.ErrInvalidRequest
-		}
+	libraryID, kinds, err := parseCurationScope(values)
+	if err != nil {
+		return curation.AssetListRequest{}, err
 	}
-	if value, ok := values["kind"]; ok {
-		if value[0] == "" {
-			return curation.AssetListRequest{}, curation.ErrInvalidRequest
-		}
-		for _, kind := range strings.Split(value[0], ",") {
-			request.Kinds = append(request.Kinds, catalog.AssetKind(kind))
-		}
-	}
+	request := curation.AssetListRequest{FavoriteOnly: favorites, TagID: tagID, LibraryID: libraryID, Kinds: kinds}
 	if value, ok := values["sort"]; ok {
 		request.Sort = curation.SortField(value[0])
 	}
@@ -338,6 +369,29 @@ func parseCuratedAssetQuery(raw string, favorites bool, tagID int64) (curation.A
 		}
 	}
 	return request, nil
+}
+
+// Scope syntax is shared by tag statistics and tagged/favorite asset lists.
+// The curation service remains the owner of media-kind validation and ordering.
+func parseCurationScope(values url.Values) (int64, []catalog.AssetKind, error) {
+	var libraryID int64
+	var kinds []catalog.AssetKind
+	if value, ok := values["libraryId"]; ok {
+		var err error
+		libraryID, err = parseResourceID(value[0], "lib_")
+		if err != nil {
+			return 0, nil, curation.ErrInvalidRequest
+		}
+	}
+	if value, ok := values["kind"]; ok {
+		if value[0] == "" {
+			return 0, nil, curation.ErrInvalidRequest
+		}
+		for _, kind := range strings.Split(value[0], ",") {
+			kinds = append(kinds, catalog.AssetKind(kind))
+		}
+	}
+	return libraryID, kinds, nil
 }
 
 func parseCurationIfMatch(value string) (int64, error) {
@@ -365,15 +419,19 @@ func assetCurationWire(state curation.AssetState) assetCurationResponse {
 		value := state.FavoritedAt.UTC().Format(time.RFC3339Nano)
 		favoritedAt = &value
 	}
-	tags := make([]tagResponse, 0, len(state.Tags))
+	tags := make([]assetTagResponse, 0, len(state.Tags))
 	for _, item := range state.Tags {
-		tags = append(tags, tagWire(item))
+		source := string(item.Source)
+		if source == "" {
+			source = "manual"
+		}
+		tags = append(tags, assetTagResponse{tagResponse: tagWire(item), Source: source})
 	}
 	return assetCurationResponse{AssetID: assetIDString(state.AssetID), Favorite: state.Favorite, FavoritedAt: favoritedAt, Tags: tags, Revision: state.Revision}
 }
 
 func tagWire(tag curation.Tag) tagResponse {
-	return tagResponse{ID: "tag_" + strconv.FormatInt(tag.ID, 10), Name: tag.Name, AssetCount: tag.AssetCount, CreatedAt: tag.CreatedAt.UTC().Format(time.RFC3339Nano), UpdatedAt: tag.UpdatedAt.UTC().Format(time.RFC3339Nano)}
+	return tagResponse{ID: "tag_" + strconv.FormatInt(tag.ID, 10), Name: tag.Name, AssetCount: tag.AssetCount, CreatedAt: tag.CreatedAt.UTC().Format(time.RFC3339Nano), UpdatedAt: tag.UpdatedAt.UTC().Format(time.RFC3339Nano), Localization: curation.LocalizeTag(tag)}
 }
 
 func curatedAssetPageWire(page curation.CuratedAssetPage) curatedAssetPageResponse {
