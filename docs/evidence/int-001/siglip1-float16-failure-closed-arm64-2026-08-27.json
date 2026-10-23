@@ -1,0 +1,46 @@
+{
+  "status": "bounded arm64 subproof passed; INT-008 remains open",
+  "models": {
+    "image_bytes": 185966808,
+    "image_sha256": "4d4260477eaf57ce263d8f65656b030384fd6854513896254b9cae9566432b3d",
+    "text_bytes": 220719548,
+    "text_sha256": "19f28e2bdb2e1bfb51ec1733b371899784ae0eb4af14d22980e7a6b89a15ef4f"
+  },
+  "prepared_tensors_sha256": "ab5905ebcfdcc5a17271f4f345419e68b472a20ef70da5b4a67293524821db11",
+  "runs": [
+    {
+      "platform": "macOS/arm64",
+      "onnxruntime": "1.29.0",
+      "cpu_mem_arena": false,
+      "corrupt_models_rejected": 3,
+      "corrupt_model_timeouts": 0,
+      "corrupt_model_signal_terminations": 0,
+      "image_bad_inputs_rejected": 4,
+      "text_bad_inputs_rejected": 4,
+      "normal_inference_recovered": true,
+      "passed": true
+    },
+    {
+      "platform": "native Linux/arm64 container",
+      "onnxruntime": "1.28.0",
+      "cpu_mem_arena": false,
+      "container_cpus": 4,
+      "container_memory_bytes": 4294967296,
+      "container_network": "none",
+      "container_rootfs": "read-only",
+      "corrupt_models_rejected": 3,
+      "corrupt_model_timeouts": 0,
+      "corrupt_model_signal_terminations": 0,
+      "image_bad_inputs_rejected": 4,
+      "text_bad_inputs_rejected": 4,
+      "normal_inference_recovered": true,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Only empty, deterministic-random and truncated protobuf model files were exercised.",
+    "The smoke does not cover adversarial valid graphs, decompression bombs or oversized tensor declarations.",
+    "Native Linux/amd64 and a production C/Go adapter are not tested.",
+    "Adapter-level timeout, cancellation and input-byte admission remain open."
+  ]
+}

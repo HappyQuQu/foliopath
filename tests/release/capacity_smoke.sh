@@ -90,12 +90,13 @@ sentinel_before=$(sha256sum "${sentinel}" | cut -d ' ' -f 1)
 
 docker run --detach \
 	--name "${container}" \
+	--label "foliopath.test.run=${FOLIOPATH_TEST_RUN_ID:-unassigned}" \
 	--cpus 4 \
 	--memory 4g \
 	--read-only \
 	--cap-drop ALL \
 	--security-opt no-new-privileges:true \
-	--tmpfs /tmp:rw,noexec,nosuid,size=256m,uid=65532,gid=65532,mode=0700 \
+	--tmpfs /tmp:rw,noexec,nosuid,size=256m,mode=1777 \
 	--mount "type=bind,src=${data_root},dst=/app/data" \
 	--mount "type=bind,src=${media_root},dst=/library,readonly" \
 	"${image}" >/dev/null
@@ -173,8 +174,10 @@ test "$(printf '%s' "${library_response}" | jq -er '.assetCount')" -eq "${asset_
 browse_url="http://127.0.0.1:8080/api/v1/libraries/${library_id}/assets?recursive=true&limit=100"
 search_url="http://127.0.0.1:8080/api/v1/libraries/${library_id}/assets?q=asset-000&limit=100"
 global_url="http://127.0.0.1:8080/api/v1/assets?q=asset-000&limit=100"
+wide_search_url="http://127.0.0.1:8080/api/v1/libraries/${library_id}/assets?q=asset&limit=100"
+wide_global_url="http://127.0.0.1:8080/api/v1/assets?q=asset&limit=100"
 
-for named_url in "browse:${browse_url}" "search:${search_url}" "global:${global_url}"; do
+for named_url in "browse:${browse_url}" "search:${search_url}" "global:${global_url}" "wide-search:${wide_search_url}" "wide-global:${wide_global_url}"; do
 	name=${named_url%%:*}
 	url=${named_url#*:}
 	response_status=$(docker exec "${http_client}" curl --silent --show-error \
@@ -227,6 +230,8 @@ p95_ms() {
 browse_p95_ms=$(p95_ms "${metrics_root}/browse.seconds")
 search_p95_ms=$(p95_ms "${metrics_root}/search.seconds")
 global_p95_ms=$(p95_ms "${metrics_root}/global.seconds")
+wide_search_p95_ms=$(p95_ms "${metrics_root}/wide-search.seconds")
+wide_global_p95_ms=$(p95_ms "${metrics_root}/wide-global.seconds")
 memory_peak_bytes=$(docker exec "${http_client}" sh -c \
 	'cat /proc/1/root/sys/fs/cgroup/memory.peak 2>/dev/null || cat /proc/1/root/sys/fs/cgroup/memory.current')
 database_bytes=$(find "${data_root}" -maxdepth 1 -type f \
@@ -254,6 +259,8 @@ jq -n \
 	--argjson browseP95Ms "${browse_p95_ms}" \
 	--argjson searchP95Ms "${search_p95_ms}" \
 	--argjson globalP95Ms "${global_p95_ms}" \
+	--argjson wideSearchP95Ms "${wide_search_p95_ms}" \
+	--argjson wideGlobalP95Ms "${wide_global_p95_ms}" \
 	--argjson memoryPeakBytes "${memory_peak_bytes}" \
 	--argjson databaseBytes "${database_bytes}" \
 	--argjson cacheBytes "${cache_bytes}" \
@@ -272,6 +279,8 @@ jq -n \
 		browseP95Ms: $browseP95Ms,
 		searchP95Ms: $searchP95Ms,
 		globalP95Ms: $globalP95Ms,
+		wideSearchP95Ms: $wideSearchP95Ms,
+		wideGlobalP95Ms: $wideGlobalP95Ms,
 		memoryPeakBytes: $memoryPeakBytes,
 		databaseBytes: $databaseBytes,
 		cacheBytes: $cacheBytes,
@@ -289,6 +298,8 @@ if [ "${enforce_budget}" = "1" ]; then
 		.browseP95Ms <= 250 and
 		.searchP95Ms <= 250 and
 		.globalP95Ms <= 250 and
+		.wideSearchP95Ms <= 250 and
+		.wideGlobalP95Ms <= 250 and
 		.memoryPeakBytes <= 1610612736 and
 		.databaseBytes <= 1073741824 and
 		.cacheBytes <= 1073741824

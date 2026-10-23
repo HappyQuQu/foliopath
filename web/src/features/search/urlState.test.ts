@@ -60,6 +60,7 @@ describe("search URL state", () => {
       date: "30d",
       directoryId: "dir_japan",
       kind: "video",
+      mode: "filename",
       order: "asc",
       q: "京都",
       recursive: true,
@@ -68,6 +69,24 @@ describe("search URL state", () => {
     });
     expect(searchUrl("lib_family", state)).toBe(
       "/libraries/lib_family/search?q=%E4%BA%AC%E9%83%BD&scope=directory&directoryId=dir_japan&recursive=1&kind=video&date=30d&sort=name&order=asc",
+    );
+  });
+
+  it("owns semantic mode in the URL and normalizes incompatible filters", () => {
+    const state = parseSearchUrlState(
+      new URLSearchParams("q=%E5%A4%9C%E6%99%AF&mode=semantic&kind=video&date=30d&sort=name&order=asc"),
+      "lib_family",
+    );
+
+    expect(state).toMatchObject({
+      date: "any",
+      kind: "video",
+      mode: "semantic",
+      q: "夜景",
+      scope: "library",
+    });
+    expect(serializeSearchUrlState(state)).toBe(
+      "q=%E5%A4%9C%E6%99%AF&mode=semantic&kind=video",
     );
   });
 

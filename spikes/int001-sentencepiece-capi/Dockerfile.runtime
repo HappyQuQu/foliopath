@@ -1,0 +1,102 @@
+# syntax=docker/dockerfile:1.7
+
+# This INT-001 fixture proves the combined SentencePiece and ONNX Runtime
+# dynamic-library closure. It is not a FolioPath production image.
+# Supply the reviewed source archive as a named build context:
+#   --build-context sentencepiece_source=/directory/containing/the/archive
+#   --build-context onnxruntime_source=/directory/containing/the/archive
+ARG ONNXRUNTIME_ARCHIVE=onnxruntime-linux-aarch64-1.28.0.tgz
+ARG ONNXRUNTIME_ARCHIVE_SHA256=e15ff8b5d85afe6c144d97c6fd432254bf76a219daaf17658087d6ecb3e8f0bb
+ARG RUNTIME_LIBDIR=/usr/lib/aarch64-linux-gnu
+ARG CC_RUNTIME_IMAGE=gcr.io/distroless/cc-debian13:nonroot@sha256:b5c859c8f9538074fa248ea12aad3552d29fb437d2b546ea65504b4af125e59f
+ARG BASE_RUNTIME_IMAGE=gcr.io/distroless/base-nossl-debian13:nonroot@sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d
+FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
+ARG ONNXRUNTIME_ARCHIVE
+ARG ONNXRUNTIME_ARCHIVE_SHA256
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends cmake ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=sentencepiece_source /sentencepiece-0.2.1.tar.gz /tmp/sentencepiece-0.2.1.tar.gz
+RUN echo "c1a59e9259c9653ad0ade653dadff074cd31f0a6ff2a11316f67bee4189a8f1b  /tmp/sentencepiece-0.2.1.tar.gz" | sha256sum --check \
+    && mkdir -p /tmp/sentencepiece-source \
+    && tar --extract --gzip --file /tmp/sentencepiece-0.2.1.tar.gz \
+       --directory /tmp/sentencepiece-source --strip-components=1 \
+    && test "$(cat /tmp/sentencepiece-source/VERSION.txt)" = "0.2.1" \
+    && cmake -S /tmp/sentencepiece-source -B /tmp/sentencepiece-build -G Ninja \
+       -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_INSTALL_PREFIX=/opt/sentencepiece \
+       -DSPM_BUILD_TEST=OFF \
+       -DSPM_ENABLE_SHARED=ON \
+       -DSPM_ENABLE_TCMALLOC=OFF \
+    && cmake --build /tmp/sentencepiece-build --target sentencepiece --parallel 2 \
+    && mkdir -p /opt/sentencepiece/include /opt/sentencepiece/lib \
+    && cp /tmp/sentencepiece-source/src/sentencepiece_processor.h /opt/sentencepiece/include/ \
+    && cp /tmp/sentencepiece-build/src/libsentencepiece.so.0.0.0 /opt/sentencepiece/lib/ \
+    && ln -s libsentencepiece.so.0.0.0 /opt/sentencepiece/lib/libsentencepiece.so.0 \
+    && ln -s libsentencepiece.so.0 /opt/sentencepiece/lib/libsentencepiece.so \
+    && test "$(find /opt/sentencepiece/lib -type f | wc -l)" = "1"
+
+COPY --from=onnxruntime_source /${ONNXRUNTIME_ARCHIVE} /tmp/onnxruntime.tgz
+RUN echo "${ONNXRUNTIME_ARCHIVE_SHA256}  /tmp/onnxruntime.tgz" | sha256sum --check \
+    && mkdir -p /opt/onnxruntime \
+    && tar --extract --gzip --file /tmp/onnxruntime.tgz \
+       --directory /opt/onnxruntime --strip-components=1 \
+    && test "$(cat /opt/onnxruntime/VERSION_NUMBER)" = "1.28.0" \
+    && test "$(cat /opt/onnxruntime/GIT_COMMIT_ID)" = \
+       "da9b5e364c465de65c49d91e696cd6485270757f"
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY internal ./internal
+COPY spikes/int001-sentencepiece-capi ./spikes/int001-sentencepiece-capi
+RUN CGO_ENABLED=1 \
+    CGO_CFLAGS="-I/opt/onnxruntime/include -I/opt/sentencepiece/include" \
+    CGO_CXXFLAGS="-I/opt/sentencepiece/include" \
+    CGO_LDFLAGS="-L/opt/onnxruntime/lib -L/opt/sentencepiece/lib -Wl,-rpath,/opt/onnxruntime/lib:/opt/sentencepiece/lib" \
+    go test -c -trimpath -tags "sentencepiece onnxruntime" \
+      -o /out/int001-text-runtime ./spikes/int001-sentencepiece-capi
+
+FROM ${CC_RUNTIME_IMAGE} AS cc-runtime
+
+FROM ${BASE_RUNTIME_IMAGE}
+ARG RUNTIME_LIBDIR
+LABEL org.opencontainers.image.title="FolioPath INT-001 text runtime closure spike" \
+      org.opencontainers.image.version="sentencepiece-0.2.1-onnxruntime-1.28.0" \
+      org.opencontainers.image.description="Isolated evidence image; not a FolioPath production image"
+
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libstdc++.so.6.0.33 ${RUNTIME_LIBDIR}/libstdc++.so.6.0.33
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libstdc++.so.6 ${RUNTIME_LIBDIR}/libstdc++.so.6
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libgcc_s.so.1 ${RUNTIME_LIBDIR}/libgcc_s.so.1
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libgomp.so.1.0.0 ${RUNTIME_LIBDIR}/libgomp.so.1.0.0
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libgomp.so.1 ${RUNTIME_LIBDIR}/libgomp.so.1
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libz.so.1.3.1 ${RUNTIME_LIBDIR}/libz.so.1.3.1
+COPY --from=cc-runtime ${RUNTIME_LIBDIR}/libz.so.1 ${RUNTIME_LIBDIR}/libz.so.1
+
+COPY --from=cc-runtime /var/lib/dpkg/status.d/gcc-14-base* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libgcc-s1* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libgomp1* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libstdc++6* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/zlib1g* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /usr/share/doc/gcc-14-base /usr/share/doc/gcc-14-base
+COPY --from=cc-runtime /usr/share/doc/libgcc-s1 /usr/share/doc/libgcc-s1
+COPY --from=cc-runtime /usr/share/doc/libgomp1 /usr/share/doc/libgomp1
+COPY --from=cc-runtime /usr/share/doc/libstdc++6 /usr/share/doc/libstdc++6
+COPY --from=cc-runtime /usr/share/doc/zlib1g /usr/share/doc/zlib1g
+
+COPY --from=build /opt/onnxruntime/lib/libonnxruntime.so.1.28.0 /opt/onnxruntime/lib/libonnxruntime.so.1.28.0
+COPY --from=build /opt/onnxruntime/lib/libonnxruntime.so.1 /opt/onnxruntime/lib/libonnxruntime.so.1
+COPY --from=build /opt/onnxruntime/LICENSE /usr/share/licenses/onnxruntime/LICENSE
+COPY --from=build /opt/onnxruntime/ThirdPartyNotices.txt /usr/share/licenses/onnxruntime/ThirdPartyNotices.txt
+COPY --from=build /opt/sentencepiece/lib/libsentencepiece.so.0.0.0 /opt/sentencepiece/lib/libsentencepiece.so.0.0.0
+COPY --from=build /opt/sentencepiece/lib/libsentencepiece.so.0 /opt/sentencepiece/lib/libsentencepiece.so.0
+COPY --from=build /tmp/sentencepiece-source/LICENSE /usr/share/licenses/sentencepiece/LICENSE
+COPY --from=build /out/int001-text-runtime /app/int001-text-runtime
+COPY --from=build /src/spikes/int001-sentencepiece-capi/testdata /app/testdata
+
+ENV LD_LIBRARY_PATH=/opt/onnxruntime/lib:/opt/sentencepiece/lib
+WORKDIR /app
+USER 65532:65532
+ENTRYPOINT ["/app/int001-text-runtime"]

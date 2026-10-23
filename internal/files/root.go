@@ -134,6 +134,29 @@ func (root *Root) Verify(expected Identity) error {
 	return nil
 }
 
+// ReadOnly reports whether the anchored filesystem itself is mounted read-only.
+// Linux uses the already-open root descriptor. Non-Linux adapters fail closed
+// because their development-only path boundary is not release evidence for a
+// direct model source.
+func (root *Root) ReadOnly() (bool, error) {
+	root.mu.RLock()
+	defer root.mu.RUnlock()
+	if root.closed {
+		return false, opError("read-only", "", fs.ErrClosed)
+	}
+	if _, err := root.captureLocked(); err != nil {
+		return false, opError("read-only", "", err)
+	}
+	readOnly, err := anchoredRootReadOnly(root.anchor)
+	if err != nil {
+		return false, opError("read-only", "", err)
+	}
+	if _, err := root.captureLocked(); err != nil {
+		return false, opError("read-only", "", err)
+	}
+	return readOnly, nil
+}
+
 // CaptureAt captures the identity of a user-selected library root relative to
 // the trusted media boundary. Every platform rejects symlinks and
 // cross-filesystem entries; Linux additionally rejects every nested mount

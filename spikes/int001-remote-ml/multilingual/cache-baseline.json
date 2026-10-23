@@ -1,0 +1,897 @@
+[
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/config.json",
+    "size": 197,
+    "sha256": "15576288fbc3bc07b9cd50f159deff6ce18ed5c4ed9613e7f6fadbbc7aa4921d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/LinearTransformation.weight",
+    "size": 2621440,
+    "sha256": "58f4f04df893e6e7e17f3d5084933769d52eebeec2e8a3a13672278c4b403b59"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/model.onnx",
+    "size": 1252042,
+    "sha256": "e8f73e277d5801ee0a5410b449bd18ecb6abbafc0ad65edc3f44b34cbd1c4816"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2826",
+    "size": 4194304,
+    "sha256": "621c1bffbc2db595402f4935808c0170e09ef21dc853ebc2c1dd673dc3189538"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2832",
+    "size": 4194304,
+    "sha256": "6176ae1cd3fe49fb7836148f0b4bd8b3664bed2e7079620395dd8c994561ad83"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2838",
+    "size": 4194304,
+    "sha256": "b469ef8b3759de0e025b31f39231b1c999a3feefc2b1428b12630749bce6d560"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2848",
+    "size": 4194304,
+    "sha256": "ad127426be53f058c34ffeb87c8a0f69856f22623a6e96fd0947102e78921ff1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2849",
+    "size": 16777216,
+    "sha256": "f950ce3fe18ca0ea42754a8e57139a861c252238da59c16fd02477f86fcbc8b0"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2850",
+    "size": 16777216,
+    "sha256": "533482c180b3033544c03d5e874ca5b7aa1519ebd357f93620f793177bfa9154"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2851",
+    "size": 4194304,
+    "sha256": "a599e98c6fb8e574571c642d5c7ac5b608dce91a73d0265fb37327e3e2a44c12"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2857",
+    "size": 4194304,
+    "sha256": "944850d621b32a4c24c389d8e291e02820d4439ff16e47a5500c05d6adac3151"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2863",
+    "size": 4194304,
+    "sha256": "e1701c11b024d752977860e8284765335bdb01ffb8ce76f5de2efbdab6aa4678"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2873",
+    "size": 4194304,
+    "sha256": "6ea9fcfe814406f7c0f14d0953b4cede98610e4092968233c929fbcfd7d569ae"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2874",
+    "size": 16777216,
+    "sha256": "684ec77f91b8d4d13e8e631612dbd34dc0405a64a915ff7e7aa32d94d8bc1c7d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2875",
+    "size": 16777216,
+    "sha256": "02bb21db5ab464767515d1b6f0105f60c709d6aced5be7a8a66c66e78734d46e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2876",
+    "size": 4194304,
+    "sha256": "bbfda1edeb212f030abac56b090aa3c2ebb7b6bdcbc9067447797b2bbcbed919"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2882",
+    "size": 4194304,
+    "sha256": "cc4a8a5e8fcf1f70aa9e2c210b1faecc3baba708df3c922db35ac9a3351818d4"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2888",
+    "size": 4194304,
+    "sha256": "8dcb54f481eab57abc15c12ec10f1528681dbd6f33b7403a22d344c96c7d0eb5"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2898",
+    "size": 4194304,
+    "sha256": "5cc48cb9db976b2b3adf70929881daeefa8305bcf5da2d5822ff1008c83516a4"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2899",
+    "size": 16777216,
+    "sha256": "f78709a55569d3f895012fec441d98e226385a15c4795df44ae0cf926cd699b7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2900",
+    "size": 16777216,
+    "sha256": "7f91c3238aa20bf84f21659d82272726af33f75bb806a71af68c4c4fbaba9e5e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2901",
+    "size": 4194304,
+    "sha256": "1f5c68ee4e5a8ef2745583ef53c8ab0ea3ffa70effa22a8696b2561a29bf5c01"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2907",
+    "size": 4194304,
+    "sha256": "9b8ca975a21f3d886d0163a066af52844a546f84761d0647eb5db6908d87c504"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2913",
+    "size": 4194304,
+    "sha256": "b63959029c4a55365515f978c8ba181e17242fd726c231c7ec8fb0e87d3b24a0"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2923",
+    "size": 4194304,
+    "sha256": "7991553e3486bce87e8933bafdaba3adbfd660f1024bc8aa0875ef82a5848d29"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2924",
+    "size": 16777216,
+    "sha256": "54f5fe149457458eb24700e4345aacf7b366aa2ed4c998e06e4746ff5be054ba"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2925",
+    "size": 16777216,
+    "sha256": "803a34de9ee3910adc9b285f3332db93e5b248d793260addc4d57f409fd39dd7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2926",
+    "size": 4194304,
+    "sha256": "3ac6bafe76e69b20d4e878528baf8216c0f90da858c289363e66988a5cafeb1f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2932",
+    "size": 4194304,
+    "sha256": "b0d4b2ecd45cf1f488ac7f27048aca1b5b8cf2d9935d760697446aeb83416f3e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2938",
+    "size": 4194304,
+    "sha256": "b48f7714db7ba0e62a07526d0842c80d04dbf5c6167890dfd40ae633bb8c4b88"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2948",
+    "size": 4194304,
+    "sha256": "417c423ff507162c9212cb670549d218c3423a67a5e6748992dec840aed06c6f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2949",
+    "size": 16777216,
+    "sha256": "7c33076cda7174544d5773c3fb4f369eb5a23ea3a7244412891b086ee0bb2126"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2950",
+    "size": 16777216,
+    "sha256": "b5d9bb7aae51eea18b93f02dd354b1aba16f1d8bd786b1cc1509b7e28e3f50b1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2951",
+    "size": 4194304,
+    "sha256": "25c60ea44c416641ba95a2e7980fc236573e99e8f18ba7a89de1375546a85d42"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2957",
+    "size": 4194304,
+    "sha256": "48f3bae16560416abfa9e664576005d78ec6bc7099d4b1085e4f8ee0d3bc4f9c"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2963",
+    "size": 4194304,
+    "sha256": "02051b88a098d1e9abb8c213d425cd38df18fbbae0452a54e03367a69d97f4b5"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2973",
+    "size": 4194304,
+    "sha256": "e30e7e6615471fa169487cc2face8dea497d38b4ab83996e0141db771c083544"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2974",
+    "size": 16777216,
+    "sha256": "21d1fe42d044b3bd0ab52eba968c9587be7fbaa5517cd41ece668c59573e0d03"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2975",
+    "size": 16777216,
+    "sha256": "1a3704c06d73aa6ce5c7a9e7985e63d4646146bb323453c1ca488371371f7b35"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2976",
+    "size": 4194304,
+    "sha256": "42c2c01538c328f441879ce7bd97af816a7298cd962eb08339f8f987bdf067f2"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2982",
+    "size": 4194304,
+    "sha256": "3137c9949733c30194e93c85b925a4c200e4d920aa7a4a1594c62ab5ace8d082"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2988",
+    "size": 4194304,
+    "sha256": "8fa788d064c98f2f4d15e20d270560b2de81c1e296d182c7079969eaf4f7b209"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2998",
+    "size": 4194304,
+    "sha256": "8688f4b76861affa06ca9bd410c38559428744f750ef30d63479b56d4721ad67"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_2999",
+    "size": 16777216,
+    "sha256": "f4504662b71569b578648ee3112b785df6e038f47863d8c21ff5538ea2c9eda1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3000",
+    "size": 16777216,
+    "sha256": "9a49ccb646bbb2c89534bd82bb8583d93b25c2068d288509ec14b88e9bb8462d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3001",
+    "size": 4194304,
+    "sha256": "a7f1946c67aa06ca0ca429667ebcdd12a593e046f2d018577024864d0f7b1888"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3007",
+    "size": 4194304,
+    "sha256": "1e7efb886f859adf338c81d2675f8b0eb78628066bf74aab0fe1f46bc2a3b228"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3013",
+    "size": 4194304,
+    "sha256": "da994d0ba51a1df220acb77ef772ad6d0e6459e17e6ffb256159f35101158c95"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3023",
+    "size": 4194304,
+    "sha256": "14b5e361ae259e60786bdbf7ecdc9e78fe0eedc6a505d49148d8c13e146c3437"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3024",
+    "size": 16777216,
+    "sha256": "9b1c802991c1487b92e8c0de1984a5f82804c441e4acdbdcb31080436a9342dd"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3025",
+    "size": 16777216,
+    "sha256": "ab3a80c1913007a251e364c850f977cf9783221324b11cc8ebd4c98bcb1c04dd"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3026",
+    "size": 4194304,
+    "sha256": "16e4f5284a8c08571056482d2dc4ece4e7fa7d0ddbcaa345278d4798cd6ea496"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3032",
+    "size": 4194304,
+    "sha256": "f89fc264e4d059f28a2b093f78e3596f0f6fc2d66c54b09bb4278bbfe3fc1b82"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3038",
+    "size": 4194304,
+    "sha256": "0b03bf41d4caa06a13256a9b8d232bd06137c067c613a3b91c9597d66ceeba8f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3048",
+    "size": 4194304,
+    "sha256": "d71dc972ae78e11de00dea838153bcebae8586a7e0970540e1cbc25b9061c944"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3049",
+    "size": 16777216,
+    "sha256": "3a2981b51259a69033d354c8e45967d989a16db13ae84c10892708c1b073cc4d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3050",
+    "size": 16777216,
+    "sha256": "0eff718c9e7844ec219334860d92a51311772ede4f70c086e3fdcac9a9a1d45d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3051",
+    "size": 4194304,
+    "sha256": "78babc8f143004903eb6928e782bb8ef29657db21a0b93d2e8c801b5e8c5a87e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3057",
+    "size": 4194304,
+    "sha256": "fb0d58e813ded055c9fd6df71ab402332bbf032a09b12798e23073444d8f5fc1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3063",
+    "size": 4194304,
+    "sha256": "fe81abdcabcee731dbac905e0e82adb3dc4bcba040fc392cab563b28ca9fe97e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3073",
+    "size": 4194304,
+    "sha256": "2945889b856f9eec3f51c3167f56c31c9309e259abba31e0dd8f2d2c9cd926c9"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3074",
+    "size": 16777216,
+    "sha256": "af6334c1ebdc271b68aa7d37db48ce3e48e6a80b2d5ff85f9c77680e30095f55"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3075",
+    "size": 16777216,
+    "sha256": "5960a73e59910ac460d1c78b6f419a6b9be8a9216f875e54bdb7208f9b82340f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3076",
+    "size": 4194304,
+    "sha256": "7ad8469d533fc81fea2f5a807b57c31d6aae4ea242ef206b6e31830240b2f25c"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3082",
+    "size": 4194304,
+    "sha256": "bb70841ee780c3db87fe5f693a065d52c53e17cf9e2bf416f379b38f3d355754"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3088",
+    "size": 4194304,
+    "sha256": "7706276d0ccde74f9d1ea36d638eba065042e713899d5ec4bfb12d6e7d358abb"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3098",
+    "size": 4194304,
+    "sha256": "bcc7a4846daaf26c9b3c3de09f1ebdd6e4566cc01e26c39ef8e37917e5dd22cf"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3099",
+    "size": 16777216,
+    "sha256": "426c63fa85d34b6789b278ff0c7d98909b7de07a897ca52cb38a32845e0ddc6f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3100",
+    "size": 16777216,
+    "sha256": "684670990c2cdce714001eee049f92802a2fcb5e99512c770a07c26bc57e01a1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3101",
+    "size": 4194304,
+    "sha256": "5f097e4c1add735f9d5c54aa7b593446a981bca5d1a6e6d564444daa01bb8ec4"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3107",
+    "size": 4194304,
+    "sha256": "73b40f86c1db892fd269b1bfee20b99efb4961d9248f641d87d745215ecbf095"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3113",
+    "size": 4194304,
+    "sha256": "1dc161f612c5de8a89f983bb36f8730766fbc11eed627c2b459e08cce9bca9a9"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3123",
+    "size": 4194304,
+    "sha256": "dffd878723baef616eb52b173403df614974a81892f5fa624096fd6d55476035"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3124",
+    "size": 16777216,
+    "sha256": "8ffe0f24c1545ac9998d9f2d03d36c49d548f2d872a3801cfc9bccb1b75a27f3"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3125",
+    "size": 16777216,
+    "sha256": "4d74684dfcb1a92aa9ff22707c7242ee34be17b7b6d9d35b8c3616814a56b438"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3126",
+    "size": 4194304,
+    "sha256": "f11c36211a737563971ccfb6eeec2f12bb5b50437c09ef6ddf56fc97a5913cb9"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3132",
+    "size": 4194304,
+    "sha256": "d438beb08ab51226415ad4e2c6a6b0b7a139a64924196c8f1bdadaa958e50f6e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3138",
+    "size": 4194304,
+    "sha256": "d3526b3ec9c1038843545a05cee30e4e00879eaca3f1d4ef3dabb1e938b253e1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3148",
+    "size": 4194304,
+    "sha256": "ae37899d540b909829e5e0c7532105391f0af373ac849819c2dc37c176795c17"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3149",
+    "size": 16777216,
+    "sha256": "7ae6a8468d9ffb1347e83c65ed98427c22d0c55270f9ed22f7d4f0c5d8775430"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3150",
+    "size": 16777216,
+    "sha256": "b52ec051b7e50018b9cf511474eb535a34ce2d005a15c4143c48264b5a403d5c"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3151",
+    "size": 4194304,
+    "sha256": "f6d21af4b92b7e003386cbdc00ed16feacb884c7b769ff02c53b5816fb45f912"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3157",
+    "size": 4194304,
+    "sha256": "777d668bd45c34982ad67eb7888caf03971e4b1e9f587a735f83ff4534fa9537"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3163",
+    "size": 4194304,
+    "sha256": "a19e4afba4053d086e232be8a21839e56d6cf4287bd242476ac8c141add42e8e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3173",
+    "size": 4194304,
+    "sha256": "8bb42d78f119e32c07462c82b6a3bd45a68a8609f18ef4605983eb26f020d638"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3174",
+    "size": 16777216,
+    "sha256": "4d02b85dcf6923b1513ab63b3512def5ca3a9d5959fedca60c31a3834b014ca3"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3175",
+    "size": 16777216,
+    "sha256": "161f828cb31aa2db06779a9a452e99e7505584497019d470a742c3fe14c92377"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3176",
+    "size": 4194304,
+    "sha256": "4896fb4a866a02ce2d50c6830b714bc2d86f1396be20fe203e9e6fc63feb528d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3182",
+    "size": 4194304,
+    "sha256": "a23a919abda9ad24a6ab2ed8f867668bcdf20170ad8d2797578595b38f8dd011"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3188",
+    "size": 4194304,
+    "sha256": "edaca8bfa38923406d917db5dbf5957243224e9a72ba7202989b0dc7fbccd83b"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3198",
+    "size": 4194304,
+    "sha256": "e07d771461a835cbd2561134853488b5af17b3bd28499d9e996127fe7262b3ec"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3199",
+    "size": 16777216,
+    "sha256": "321049bb706b4edc1430f1deba8be569a3fe3b8298f35af17b1499e59fc4d759"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3200",
+    "size": 16777216,
+    "sha256": "be4d741bd2cdddf1f582dc7e9fc9023600a73f2781902bf15a32df2e41d6839d"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3201",
+    "size": 4194304,
+    "sha256": "72ec43c138a1b8804d99e269446bcc07607c76b321e8b7c0c980bde8f6040fd7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3207",
+    "size": 4194304,
+    "sha256": "5e0395864ae6e76cbcf7610c5b43ae5b9a062e45fc54b4ea8391fdf48f75aa04"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3213",
+    "size": 4194304,
+    "sha256": "37dc96c024f96dba7ca01c21f8ccb8b3d0735e7d3a90cefa27f2bdd7621ccac1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3223",
+    "size": 4194304,
+    "sha256": "0ecd99775ada7f41af0df9d15c773c8e1d1ef52128eac6ecc1b77d12ab380235"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3224",
+    "size": 16777216,
+    "sha256": "e00a6c57c43fc54bf262695926f6de4cc684c40d89b4cc7fabb477a6bafca772"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3225",
+    "size": 16777216,
+    "sha256": "afd7231295a64ca908c96383e2afdc011324061abe309dd9fcc37fc58f0ee76a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3226",
+    "size": 4194304,
+    "sha256": "f00327d626db9878edcd9ebc6c2a60557cb288d5ace8d4bda1f354b7ac164bbf"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3232",
+    "size": 4194304,
+    "sha256": "3344284bd22fd0ec5782cfe55092229d7fc4273e2c117394e68bd4577f93bbb8"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3238",
+    "size": 4194304,
+    "sha256": "882daebf1193f252e10e5cb3df8834b79e20d697abaf896391fe5adea648fbdb"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3248",
+    "size": 4194304,
+    "sha256": "6ae8a99065f74d039b41ad9a2af306e4dacab3ce82027702bae9ffc030edfaca"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3249",
+    "size": 16777216,
+    "sha256": "356a6573356386a6fbc5fcb6e14f413ea40d7ed90d486122d674d10c19e86b8a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3250",
+    "size": 16777216,
+    "sha256": "bb10bed8601cd46ae23cf286df3d3d7addd59c84a7d8647dc075bf5520907d92"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3251",
+    "size": 4194304,
+    "sha256": "9b2781b9b8a2b1e3dc417a59b5d0c16d167e4b3e803235e44b1e52297d32250a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3257",
+    "size": 4194304,
+    "sha256": "43dab41501557935c34f54ef0755544d66cdb415576dc5fd0ed54c5bc3884a55"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3263",
+    "size": 4194304,
+    "sha256": "6d31e7d7e3b48663d64067059ea7a4eddc8583c6d45b5b094eebc4cc0622577f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3273",
+    "size": 4194304,
+    "sha256": "b8e945cf209e726134e7e20beb06ad77a0c42b95ed63d1fe8acd73767e3fbac7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3274",
+    "size": 16777216,
+    "sha256": "66d8bf717635fc9cc6b9b87e6beb2ae7879ab2afbc6ef708475a252d92feee22"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3275",
+    "size": 16777216,
+    "sha256": "218a5b6d7230cf096591556571b7ce7bd67d9e61f9999347c20de7dcccd332c1"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3276",
+    "size": 4194304,
+    "sha256": "c1aa0d6d4a04958b8adef09a90632c0098bfda6bafd507b18039238b1204400a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3282",
+    "size": 4194304,
+    "sha256": "65ce0e0c5c61750306ede8fd35446126b74a24e10ebc6fbd0326a99d7e0cce13"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3288",
+    "size": 4194304,
+    "sha256": "064e9462a621a008f1fff94b59dfdc887470471ae7d8fd421a9da4fb6d69f9a7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3298",
+    "size": 4194304,
+    "sha256": "226ee6dad8aaaec1aaf34a918fdf6b5fb67d23812a778faaa14682412c135934"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3299",
+    "size": 16777216,
+    "sha256": "73d9d4e870d42c63df6e7303f1df7359b2cd760f8b7469f748d7c3a3ff7b42d7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3300",
+    "size": 16777216,
+    "sha256": "4962913aa534cba659498adb32bc3f5b3e857ab97affc902756a5a7d07eac757"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3301",
+    "size": 4194304,
+    "sha256": "5f7597e31bc3af53602b4c9c2022ab507d245f52bf2974776b17d3aa794c43c2"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3307",
+    "size": 4194304,
+    "sha256": "fcf3a9eedb20a2d6eda280351d7c96ddc51dd0523bc16ae325f12e986b1e9afe"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3313",
+    "size": 4194304,
+    "sha256": "07f5c001a4f51b11634e4097c51d87fe6cf77c30b3eb57b3f60892b5bcc447a7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3323",
+    "size": 4194304,
+    "sha256": "c1f13b5feb2e29ab01e132c31ceddf2e08c74a0dd41fd0359bdc9ea60762d868"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3324",
+    "size": 16777216,
+    "sha256": "6850b27c24ce5bf7ea0ae5d965545c1d39b2bae4483c58013dff755e29e63832"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3325",
+    "size": 16777216,
+    "sha256": "6b7742e9df679bfe96c2e76f1693d144b25d66582b7842d8f40595969b0df882"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3326",
+    "size": 4194304,
+    "sha256": "d85b1b31fa60858d74a5115bbb20489861c6ef4b384bc738a6104dfdf4cfa110"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3332",
+    "size": 4194304,
+    "sha256": "d335b27194ac68bd9438d06fe853fd55c33907e00e5f17fdf10ac1e186d515f8"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3338",
+    "size": 4194304,
+    "sha256": "047d29c90502f19a2bb6e22db0ce27f4283400ef7a48cf18df8916e655b1a556"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3348",
+    "size": 4194304,
+    "sha256": "182ade05804773dd542b51f3200936b43c2f019a2eb8ecd1b95af93ccbc93680"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3349",
+    "size": 16777216,
+    "sha256": "893975075bc86fa087eaec936fcce003770290171f242c16c2e6cf6e7ddd2e1f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3350",
+    "size": 16777216,
+    "sha256": "51ce3edadb7bb8b5f3dfde78e58c31499d471e7eed201722763c3d33db9b0b53"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3351",
+    "size": 4194304,
+    "sha256": "9eaaf1e2a8fbd1d0113cb5373a0959e885969796dbe66def1294c12f4e70b2f5"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3357",
+    "size": 4194304,
+    "sha256": "ebdeed2596d3e5dc773261289ec27824faaf30d4265a8c5dca18f790e762ddea"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3363",
+    "size": 4194304,
+    "sha256": "67269929c4d25e8e4893cec4159096bc8935c38afd09310e969e60e44b71c88e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3373",
+    "size": 4194304,
+    "sha256": "4c20174a77f4bdff6a2de2d88b92c335a21c55135152259515a6dafa23585bb8"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3374",
+    "size": 16777216,
+    "sha256": "3bed12237d0b91fa97b42b637383da2260f85bec57e810696b214563b874ba15"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3375",
+    "size": 16777216,
+    "sha256": "9820d22d200f6bbf659dc24eade799146636769bb8af609ab6bf02ed24ddbc6f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3376",
+    "size": 4194304,
+    "sha256": "7ff92faa60f45b3bd46c2799cdd1dcd207140c52b07704243a46ca5a4e314e4f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3382",
+    "size": 4194304,
+    "sha256": "0a9fd5a09a928e9bb8a00053976a53a1d99cf4fead1580e51d7f35fe9d74fd32"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3388",
+    "size": 4194304,
+    "sha256": "a96dcaec2bccd01971a3db29af8c0f9a5e155a5212088f2c811821a4905e67e3"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3398",
+    "size": 4194304,
+    "sha256": "93b59961b883f2aa3309f27d51c325f0305b7325c148cd4716c2560ae0d91078"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3399",
+    "size": 16777216,
+    "sha256": "6a0ddea407bb767b5640fdc2e06ced18708300f06479cd2be282af864eb82a38"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3400",
+    "size": 16777216,
+    "sha256": "2a2b6e997f845cd37b9e0e026060e0c4974daf8e739c82ea7143f5ae0a06587b"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3401",
+    "size": 4194304,
+    "sha256": "570dafa3bd7153a1a08d9cb7b57c8ec4131e94bf4d9e6dca2a00b42c999c3156"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3407",
+    "size": 4194304,
+    "sha256": "da4c647f1f1db6669ae5507fe2938c0edd5bab662de020b028e61d38d51f704a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3413",
+    "size": 4194304,
+    "sha256": "676ae35aad77a7e02e289e979761a6668f0d71d169ad8838887bf450b60bbe42"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3423",
+    "size": 4194304,
+    "sha256": "a1a43f17eb855d8b75e003eaaef6c55a90c80475560d11b8f22b8dd7e3c3eef7"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3424",
+    "size": 16777216,
+    "sha256": "9ee42f8d943e8c76c3bd637b301d3c069b8f817a8bb7a58dea9d5d8538c77c77"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/onnx__MatMul_3425",
+    "size": 16777216,
+    "sha256": "643f680fd25be2ddce9fcb4b94b09a84f91afad72a63603118e7cc03d890705f"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/sentencepiece.bpe.model",
+    "size": 5069051,
+    "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/special_tokens_map.json",
+    "size": 964,
+    "sha256": "8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/tokenizer.json",
+    "size": 17082734,
+    "sha256": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/tokenizer_config.json",
+    "size": 1178,
+    "sha256": "ccf223ba3d5b3cc7fa6c3bf451f3bb40557a5c92b0aa33f63d17802ff1a96fd9"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.embeddings.position_embeddings.weight",
+    "size": 2105344,
+    "sha256": "3988674adc6ff57a53fea8e39dc339c7bc81c16b0a43010ab59b925145d55b1c"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.embeddings.word_embeddings.weight",
+    "size": 1024008192,
+    "sha256": "c76f3789f79652d64667097f98eb17ef40c907693400bbb86cb8e5a8cc8dcd6a"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.0.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "257bf9ecdb3584d977537633ba1a12428a029d4be81d52e75b7a85e55bc86f19"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.1.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "33043cf2c7ed4f1eb3f2b513d7956cc55111df4b7b63c132094b0b8ebca8fa11"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.10.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "9203e40d7b169c3f38897552d96bdccd80693cc31daa456e6dc5a82ebc482acd"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.11.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "33440cb759efae0f962e43c5624adbd86390cdbeb8c75f91cda8041d8e4b3fd8"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.12.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "488acbe1289580ffa51d24ed1e3c4497ac3e872be76029519401550c365ef73c"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.13.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "317f9e143f36ab0fe985f1c85d503841584fe2d5712540346ff2cc59145753d5"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.14.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "570afbb1a707de83906e8d6c84db80b3b60de32388c57f5327c6c5ea7bf6dd8b"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.15.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "7a5bb50af58cbe16adfe9bbfe193c4fd0c7fc8d65a778b31a8c7de0aa80d4125"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.16.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "e1aa34f6916d180c9f129e44cc65fca7e718020defa86d803c3e1003b2d4deca"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.17.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "8c5de6021dd7ba365e81e8f726bced9c47f4a5696b9252b9e8d619fb672e0372"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.18.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "71677f211166b415f160b6aa291e69d9d391b52a7cb1b9bbf66212153f657cff"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.19.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "844fb2ed38d70afcf7cd527c42fce93123335eefb2567f7fea21251ed66f568e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.2.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "f06cd4bf95d14c27057e1f04be6de4e0dd28fc013e42f9a56985bf233f7b636b"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.20.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "33da0f201e3968ad4a42024bca23534c76982e7f9aaa5fdee2e2d1db192c5ec3"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.21.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "33790baa52b134cbc60c838ca881e9d9883832d60e9c105e91309a343cc66cb8"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.22.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "aafd125a3f314aa8b3f30848847b265fa60895d3939069916c1f6e497bf8be5e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.23.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "6871a5d41f3e28f22f89dc0ea9ace21f51bc98336ee0d7666ca0b5d6cd5d51fd"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.3.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "f8e255546dbf9e1fffc9bbf630ee883ffee01b63703658cda59ab96f4d30a51b"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.4.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "580dda9023842437a05e8cd855bc16e13cbbfd0730d88e87c041ca7d141fcd8e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.5.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "13e9468a9c25460b398abed969725271a4b60611cf21307a95697fce533b3cca"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.6.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "fa1cb26e5668863e36edd1b027cbd74a85bd15bd66a22363723df058df21f16e"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.7.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "b77ff0341be41a6748c790c5064d69ce9b8cbcd48f12d610d93cae7c9daaff46"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.8.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "71497493971cf0aee0407ad340820ce13bf891f313ddb666a1ac271e863bd7f5"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/textual/transformer.encoder.layer.9.intermediate.dense.bias",
+    "size": 16384,
+    "sha256": "68f5d406eeb802d28992ac1e7d422ea28c12cb67dbb7f9471700032e0aad8f60"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/visual/model.onnx",
+    "size": 469072159,
+    "sha256": "564213a3c21b3675aa84a812b6e9caf019b840e6cf4f23d22fa3f6fc4a0008cb"
+  },
+  {
+    "path": "clip/XLM-Roberta-Large-Vit-B-16Plus/visual/preprocess_cfg.json",
+    "size": 197,
+    "sha256": "dfa59918f6c03dc39529e8046a0b9fa6ea7cf7226b4fec87f7825ce57725d99b"
+  }
+]

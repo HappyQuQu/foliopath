@@ -1,0 +1,247 @@
+[
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/.gitignore",
+    "size": 1,
+    "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/.gitattributes.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/.gitattributes.metadata",
+    "size": 101,
+    "sha256": "bdfb72ff1ae1227d01929a72e160742e9c243f8993f238924a0daaf9934d3845"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/README.md.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/README.md.metadata",
+    "size": 100,
+    "sha256": "dd80f6b7db471723a45fb3e9d338b1e3f42602f3004382a5dd14bf4dcf1761d6"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/config.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/config.json.metadata",
+    "size": 101,
+    "sha256": "eaabb110f499ac044e15e26b69fbb41e55100566db2f51025b2f887b265ede31"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/merges.txt.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/merges.txt.metadata",
+    "size": 101,
+    "sha256": "dd8564501459e18479587d08e92753e671dd97bdaa020b08babbdb35ce6aa1f4"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/model.onnx.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/model.onnx.metadata",
+    "size": 125,
+    "sha256": "d222b86cf02729f613dc3a68d97c39f0d2716ad07dbef10d0b004171d6da93d3"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/special_tokens_map.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/special_tokens_map.json.metadata",
+    "size": 101,
+    "sha256": "f0f7cc6616c29beeb920cdf1426361151af34017e940ca635fbe05b219bd6d19"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/tokenizer.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/tokenizer.json.metadata",
+    "size": 100,
+    "sha256": "6b402e28558855ef50e19bb6fa343546bdeac9627d17575063a065546afcfe99"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/tokenizer_config.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/tokenizer_config.json.metadata",
+    "size": 101,
+    "sha256": "09fd79e2d06c4e4185021243d76f66f81869b081392cb5f31f8e2f0908758f48"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/vocab.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/textual/vocab.json.metadata",
+    "size": 100,
+    "sha256": "a18e85fc42e9e8ca3c21923618c65919458551cfdc9371fc791e8339961c1f95"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/visual/model.onnx.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/visual/model.onnx.metadata",
+    "size": 125,
+    "sha256": "af614c061d8c685af6f5f2eefe3fdc22b608028f635bc285111935a48b58fe5a"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/visual/preprocess_cfg.json.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.cache/huggingface/download/visual/preprocess_cfg.json.metadata",
+    "size": 101,
+    "sha256": "61922da136ea1fcab02b633bd65608ef181d13cd1d39e7d64978888f6fc4fe82"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/.gitattributes",
+    "size": 2291,
+    "sha256": "fe9518c29642e173be50548f62500d3f87ab4becc4d0de5e57c4e7fba5b3bf5e"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/README.md",
+    "size": 320,
+    "sha256": "7f3eb44999af7cb7045911d2472f814aed3c03564956bf2191dcfe4ffd379e2e"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/config.json",
+    "size": 196,
+    "sha256": "59a182a6dce0adeb303f3d72d73758d68ba29516d928dd92740465f498290409"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/models--immich-app--ViT-B-32__openai/refs/main",
+    "size": 40,
+    "sha256": "c9af303b6892ad38a0993ade1668ce0ef6be4a000c6b5564d3fb58098dda13c7"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/merges.txt",
+    "size": 524619,
+    "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/model.onnx",
+    "size": 254193396,
+    "sha256": "b80cf0af751533a6712d92247f0ddc0c95208748bc59a1a27f33e67be6864e3b"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/special_tokens_map.json",
+    "size": 588,
+    "sha256": "2cdb3b8331a60c92fc1e55a13e9fd61fd2293c5a51275fdcccd62b780052530e"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/tokenizer.json",
+    "size": 3642073,
+    "sha256": "6d9109cc838977f3ca94a379eec36aecc7c807e1785cd729660ca2fc0171fb35"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/tokenizer_config.json",
+    "size": 736,
+    "sha256": "39bae5313c2da6467866dee758e754d69f0e302a875027b142531cb9c51c7c28"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/textual/vocab.json",
+    "size": 862328,
+    "sha256": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/visual/model.onnx",
+    "size": 351613724,
+    "sha256": "33a3df41ceef21acdf371af00f6dd0456ec1f9eba24d03a7720f9c3734e40859"
+  },
+  {
+    "path": "clip/ViT-B-32__openai/visual/preprocess_cfg.json",
+    "size": 197,
+    "sha256": "c4fd008cd177c58a8fe107b099bac98913eaa6be6114dd59a4b45145c3c7673f"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/.gitignore",
+    "size": 1,
+    "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/.gitattributes.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/.gitattributes.metadata",
+    "size": 101,
+    "sha256": "8625b41cb26326aa1a44cf0c3435ed76b340f16bda5950c35a58d0b34f1684c7"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/README.md.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/README.md.metadata",
+    "size": 101,
+    "sha256": "5e7fa6b80c02ea8a6e108f8626857f19150c5000c0271179311d0c6e0f175ffe"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/detection/model.onnx.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/detection/model.onnx.metadata",
+    "size": 125,
+    "sha256": "aeeb56376666fa9c49d7303f22726636e4848deb0406e4cb503617c1a0a13aa2"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/recognition/model.onnx.lock",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.cache/huggingface/download/recognition/model.onnx.metadata",
+    "size": 124,
+    "sha256": "e91a4a17ce8515e6e2dc4d291fe6f3e3297b8d9488cfe5d68a5ac8b0a9bdc210"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/.gitattributes",
+    "size": 2333,
+    "sha256": "75ba335cf8788deb51b215d50304007dd47980f80a42ea1652f269adc361144c"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/README.md",
+    "size": 582,
+    "sha256": "9a133eb2022cdbfc1fceb70d317668fda5c90edec600c6c775a237d3ee1c4476"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/detection/model.onnx",
+    "size": 16923827,
+    "sha256": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/models--immich-app--buffalo_l/refs/main",
+    "size": 40,
+    "sha256": "451e64f366c305e230237ce61f7e2e6ef1c539ebfe8f1208e202d5e2f66fedea"
+  },
+  {
+    "path": "facial-recognition/buffalo_l/recognition/model.onnx",
+    "size": 174383866,
+    "sha256": "6afbf406aa229a439abbca7436cc42be254d4e3af6200d8b7ae4c1fec0c18f2f"
+  }
+]

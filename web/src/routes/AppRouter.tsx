@@ -36,6 +36,7 @@ import {
   GeneralSettingsPage,
   StorageSettingsPage,
 } from "../features/settings";
+import { AIReviewPage, AISettingsPage } from "../features/ai";
 import { SearchPage, searchKeys } from "../features/search";
 import { MediaViewerPage } from "../features/media";
 import { LogsPage } from "../features/diagnostics";
@@ -68,6 +69,8 @@ export function AppRoutes() {
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
         <Route path={paths.storageSettings} element={<ProtectedStorageRoute />} />
+        <Route path={paths.aiSettings} element={<ProtectedAIRoute />} />
+        <Route path={paths.intelligence} element={<ProtectedAIReviewRoute />} />
         <Route path={paths.accountSettings} element={<ProtectedSettingsAccountRoute />} />
         <Route path={paths.logsSettings} element={<ProtectedLogsRoute />} />
         <Route path={paths.aboutSettings} element={<ProtectedAboutRoute />} />
@@ -279,6 +282,30 @@ function ProtectedSettingsAccountRoute() {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   }
 
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedAIRoute() {
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return <AISettingsPage {...logout} session={sessionQuery.data} />;
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedAIReviewRoute() {
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) return <AIReviewPage {...logout} session={sessionQuery.data} />;
+  if (isAuthenticationError(sessionQuery.error)) return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
   return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
 }
 

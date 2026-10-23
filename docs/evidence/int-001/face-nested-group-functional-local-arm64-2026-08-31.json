@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "evidence_class": "operator-authorized-local-functional-only",
+  "dataset_id": "operator-local-coser-nested-groups-v4",
+  "authorization_ref": "operator-local-functional-2026-08-31",
+  "runtime": {
+    "opencv": "4.12.0",
+    "machine": "arm64",
+    "backend": "OpenCV DNN CPU"
+  },
+  "models": [
+    {
+      "id": "opencv-zoo-yunet-2023mar",
+      "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+    },
+    {
+      "id": "opencv-zoo-sface-2021dec",
+      "sha256": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79"
+    }
+  ],
+  "sampling": {
+    "directory_groups": 180,
+    "group_depth": 2,
+    "max_per_group": 20,
+    "sample_files": 3070,
+    "decoded": 3070,
+    "decode_failures": 0,
+    "images_with_candidates": 1973,
+    "detected_candidates": 1996,
+    "max_candidates_per_image": 2,
+    "valid_embeddings": 1996,
+    "invalid_embeddings": 0
+  },
+  "latency_ms": {
+    "detector_p50": 15.941,
+    "detector_p95": 18.020,
+    "embedding_p50": 8.224,
+    "embedding_p95": 9.462
+  },
+  "pair_evidence": {
+    "functional_groups": 170,
+    "same_pairs": 12848,
+    "different_pairs": 100000,
+    "sampling": "deterministic-balanced-across-group-pairs",
+    "threshold_metrics": [
+      {"threshold": 0.363, "same_pair_recall": 0.982877, "different_pair_false_positive_rate": 0.620440, "false_positive_pairs": 62044},
+      {"threshold": 0.500, "same_pair_recall": 0.939601, "different_pair_false_positive_rate": 0.211500, "false_positive_pairs": 21150},
+      {"threshold": 0.600, "same_pair_recall": 0.838418, "different_pair_false_positive_rate": 0.054730, "false_positive_pairs": 5473},
+      {"threshold": 0.700, "same_pair_recall": 0.599471, "different_pair_false_positive_rate": 0.005410, "false_positive_pairs": 541},
+      {"threshold": 0.800, "same_pair_recall": 0.195439, "different_pair_false_positive_rate": 0.000060, "false_positive_pairs": 6}
+    ]
+  },
+  "raw_images_copied": false,
+  "face_crops_persisted": false,
+  "identity_labels_persisted": false,
+  "embeddings_persisted": false,
+  "identity_ground_truth": false,
+  "quality_or_release_gate": false
+}

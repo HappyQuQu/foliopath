@@ -277,8 +277,9 @@ func (s *Store) ClaimNextMediaJob(
 		now := s.nowMS()
 		var fingerprint, variant string
 		err := tx.QueryRowContext(ctx, `
-            -- Keep one of the two media workers available for grid/poster work.
-            -- This is owned by the variant contract rather than numeric priority.
+			-- Never admit a second storyboard while one is active. This is owned
+			-- by the variant contract rather than numeric priority and remains
+			-- valid if the production worker count changes again.
             WITH eligible_priority AS (
                 SELECT MIN(priority) AS priority
                 FROM media_jobs
@@ -390,26 +391,28 @@ func (s *Store) RefreshMediaJobLease(
 	if err != nil {
 		return err
 	}
-	now := s.nowMS()
-	result, err := s.db.ExecContext(ctx, `
-        UPDATE media_jobs
-        SET heartbeat_at_ms = ?, lease_expires_at_ms = ?
-        WHERE id = ? AND transform_version = ?
-          AND source_fingerprint = ? AND status = 'running'`,
-		now, now+leaseMS, job.ID, job.TransformVersion,
-		job.SourceFingerprint.String(),
-	)
-	if err != nil {
-		return fmt.Errorf("refresh media job lease: %w", err)
-	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("inspect media job lease refresh: %w", err)
-	}
-	if changed != 1 {
-		return thumbnail.ErrJobNotActive
-	}
-	return nil
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		now := s.nowMS()
+		result, err := tx.ExecContext(ctx, `
+            UPDATE media_jobs
+            SET heartbeat_at_ms = ?, lease_expires_at_ms = ?
+            WHERE id = ? AND transform_version = ?
+              AND source_fingerprint = ? AND status = 'running'`,
+			now, now+leaseMS, job.ID, job.TransformVersion,
+			job.SourceFingerprint.String(),
+		)
+		if err != nil {
+			return fmt.Errorf("refresh media job lease: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("inspect media job lease refresh: %w", err)
+		}
+		if changed != 1 {
+			return thumbnail.ErrJobNotActive
+		}
+		return nil
+	})
 }
 
 func (s *Store) RecoverExpiredMediaJobs(
@@ -463,19 +466,10 @@ func (s *Store) RecoverExpiredMediaJobs(
 			}
 			summary.Interrupted++
 		}
-		var remaining int
-		if err := tx.QueryRowContext(ctx, `
-            SELECT EXISTS (
-                SELECT 1 FROM media_jobs
-                WHERE status = 'running' AND lease_expires_at_ms <= ?
-            )`,
-			now,
-		).Scan(&remaining); err != nil {
-			return fmt.Errorf("check bounded media recovery: %w", err)
-		}
-		if remaining != 0 {
-			return errors.New("expired media job recovery exceeded worker bound")
-		}
+		// A sequence of process crashes can leave more expired leases than the
+		// live worker count. Recover one worker-sized batch per call; the periodic
+		// recovery loop drains the remainder without turning recoverable state into
+		// a process-wide startup failure.
 		return nil
 	})
 	return summary, err

@@ -1,5 +1,11 @@
 # FolioPath 变更记录
 
+[CR-2026-030：独立 AI 服务](CR-2026-030-independent-machine-learning-service.md)。
+
+[CR-2026-029：模型下载代理界面设置](CR-2026-029-admin-model-proxy-settings.md)。
+
+- [S3 离线模型管理 UI 合同对齐](CR-2026-023-s3-offline-model-ui-contract-alignment.md)
+
 本目录保存两类只追加记录：
 
 - `CR-*`：用户可见范围、版本归属或高风险切片的 Change Record。
@@ -8,6 +14,10 @@
 记录完成或被替代后仍保留；实现应以当前产品文档、OpenAPI、migration、ADR 和 Gate 为准。
 
 ## Change Records
+
+合并历史中 `CR-2026-033` 分别用于[无缝瀑布流](CR-2026-033-seamless-masonry.md)
+和[本地化图片标签](CR-2026-033-localized-photo-tags.md)。保留原编号、文件和历史证据，
+引用时用主题与完整文件链接区分；二者不是同一需求或验收 Gate。
 
 ### MVP
 
@@ -27,8 +37,17 @@
 
 ### Post-MVP 与未来提案
 
+- [CR-2026-034：画廊大小滑条与来源图标](CR-2026-034-gallery-size-and-source-icon.md)
+- [CR-2026-033：本地化图片标签](CR-2026-033-localized-photo-tags.md)
+- [CR-2026-032：多语言语义模型](CR-2026-032-multilingual-semantic-model.md)
+- [CR-2026-031：自动图片标签](CR-2026-031-automatic-photo-tags.md)
 - [CR-2026-033：无缝瀑布流](CR-2026-033-seamless-masonry.md)
 
+- [CR-2026-028：模型下载显式代理](CR-2026-028-model-download-proxy.md)
+
+- [CR-2026-027：内置模型预设展示](CR-2026-027-builtin-model-presets.md)
+
+- [CR-2026-026：模型下载与智能功能界面优化](CR-2026-026-ai-model-download-and-ui.md)
 - [CR-2026-004：视频故事板悬停预览](CR-2026-004-video-storyboard-preview.md)
 - [CR-2026-005：媒体库自动发现](CR-2026-005-automatic-library-discovery.md)
 - [CR-2026-007：运维与维护原型](CR-2026-007-operations-maintenance-prototype.md)
@@ -36,6 +55,11 @@
 - [CR-2026-014：扫描后派生媒体进度](CR-2026-014-derived-media-progress.md)
 - [CR-2026-015：任务可恢复、日志中心、版本更新与消息中心](CR-2026-015-operations-observability-and-updates.md)
 - [CR-2026-020：收藏与手动标签](CR-2026-020-favorites-and-tags.md)
+- [CR-2026-021：本地智能媒体发现](CR-2026-021-intelligent-media-discovery.md)（`POST-MVP-5`
+  revision 2 已批准，A～E 全部纳入）
+- [CR-2026-022：S2 后端完成与最终发布 Gate 分离](CR-2026-022-s2-backend-release-gate-separation.md)
+- [CR-2026-024：INT-S4 屏幕阅读器验收豁免](CR-2026-024-int-s4-screen-reader-waiver.md)
+- [CR-2026-025：INT-S4 剩余验收未验证关闭](CR-2026-025-int-s4-unverified-closure.md)
 
 ## Routine fixes
 
@@ -44,6 +68,71 @@
 - [Node 24 LTS 与 Docker 构建工具链](FIX-2026-10-23-node24-lts.md)
 
 - [原生发布构建与 digest 验证](FIX-2026-10-23-native-release-builds.md)
+
+### 2026-09-22
+
+- [智能设置真实浏览器回归与 E2E embed 自包含](FIX-2026-09-22-ai-settings-browser-e2e.md)
+
+### 2026-09-09
+
+- [server222 智能功能前端部署一致性](FIX-2026-09-09-aifeature-deployment-integrity.md)
+
+### 2026-09-07
+
+- [媒体任务续租写入串行化](FIX-2026-09-07-media-lease-write-serialization.md)
+
+### 2026-09-02
+
+- [原生容量回归收敛](FIX-2026-09-02-native-capacity-regression.md)
+- [人脸候选原生双架构工作流预检](FIX-2026-09-02-face-native-workflow-preflight.md)
+- [人脸功能证据目录分组口径纠偏](FIX-2026-09-02-face-functional-group-metrics.md)
+- [人脸控制面与取消状态机闭环](FIX-2026-09-02-face-control-and-cancellation.md)
+- [人脸任务 offline admission 收敛](FIX-2026-09-02-face-offline-admission.md)
+- [端到端镜像依赖下载抗瞬断](FIX-2026-09-02-e2e-go-module-download-retry.md)
+
+### 2026-09-01
+
+- [semantic v2 production tokenizer 与文本推理闭环](FIX-2026-09-01-semantic-v2-production-runtime.md)
+- [人脸组合模型包与独立 generation 激活](FIX-2026-09-01-face-composite-model-activation.md)
+- [人脸 core bridge 传递误合并防护](FIX-2026-09-01-face-core-bridge-prevention.md)
+- [coser 私有人脸复核材料准备](FIX-2026-09-01-coser-private-face-review-preparation.md)
+- [S2 durable job 时钟回拨收敛](FIX-2026-09-01-s2-job-clock-rollback.md)
+- [AI 清除设置时钟回拨收敛](FIX-2026-09-01-ai-clear-settings-clock-rollback.md)
+- [人脸设置与任务时钟回拨收敛](FIX-2026-09-01-face-settings-clock-rollback.md)
+- [人脸 LSH 桶边界与 512 维容量收敛](FIX-2026-09-01-face-lsh-bucket-boundary-capacity.md)
+- [人脸 runtime 不可用终止语义](FIX-2026-09-01-face-runtime-unavailable-terminal.md)
+- [人脸检测与嵌入原生 session 边界](FIX-2026-09-01-face-embedding-session-boundary.md)
+- [人脸安全读取投影合同补全](FIX-2026-09-01-face-safe-read-projections.md)
+- [10 万媒体搜索 keyset 有序扫描维护](FIX-2026-08-27-search-keyset-query-plan.md)
+- [固定 libvips 源包获取抗瞬断](FIX-2026-09-01-libvips-source-fetch-retry.md)
+
+### 2026-08-31
+
+- [人脸质量置信区间与偏差证据 Gate](FIX-2026-08-31-face-quality-confidence-gates.md)
+- [S2C 人脸真实质量证据校验入口](FIX-2026-08-31-s2c-face-quality-verifier.md)
+- [POST-MVP-5 原生双架构证据入口](FIX-2026-08-31-native-ai-evidence-entry.md)
+- [S2B 合法质量评分入口](FIX-2026-08-31-s2b-quality-verifier.md)
+- [智能媒体最终供应链证据校验入口](FIX-2026-08-31-intelligent-media-supply-chain-verifier.md)
+- [POST-MVP-5 S2 最终证据交叉绑定](FIX-2026-08-31-s2-evidence-binding.md)
+
+### 2026-08-29
+
+- [AI worker 终态 CAS 竞态收敛](FIX-2026-08-29-ai-worker-terminal-cas-convergence.md)
+- [AI worker claim 返回值失败关闭](FIX-2026-08-29-ai-worker-claim-validation.md)
+- [AI admission 唤醒前校验](FIX-2026-08-29-ai-admission-prewake-validation.md)
+
+### 2026-08-28
+
+- [AI operation 持久化状态校验](FIX-2026-08-28-ai-operation-state-validation.md)
+- [AI 强 ETag 规范匹配](FIX-2026-08-28-canonical-ai-etag.md)
+- [AI JSON 请求体硬上限](FIX-2026-08-28-ai-json-body-limit.md)
+- [限流时钟回拨恢复](FIX-2026-08-28-rate-limit-clock-rollback.md)
+- [Cursor 规范编码与语义 snapshot 失败关闭](FIX-2026-08-28-canonical-cursor-decoding.md)
+- [语义搜索边界失败关闭](FIX-2026-08-28-semantic-search-result-validation.md)
+- [INT-S2A No-Go 生产组合 fitness check](FIX-2026-08-28-int-s2a-no-go-fitness.md)
+- [真实浏览器 E2E harness 与当前界面合同同步](FIX-2026-08-28-browser-e2e-harness.md)
+- [语义推理 session 资源计数](FIX-2026-08-28-semantic-session-resource-accounting.md)
+- [Web 依赖高危 advisory 修复](FIX-2026-08-28-web-dependency-advisories.md)
 
 ### 2026-08-17
 

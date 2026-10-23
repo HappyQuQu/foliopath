@@ -1,0 +1,631 @@
+{
+  "schema_version": 1,
+  "evidence_class": "synthetic-development-only",
+  "environment": {
+    "os": "darwin",
+    "machine": "arm64",
+    "python": "3.12.13",
+    "torch": "2.8.0",
+    "transformers": "4.56.2",
+    "threads": 4,
+    "network_mode": "offline/local_files_only"
+  },
+  "model": {
+    "id": "google/siglip-base-patch16-224",
+    "revision": "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+    "license": "Apache-2.0",
+    "weight_bytes": 812672320,
+    "weight_sha256": "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8",
+    "embedding_dimensions": 768
+  },
+  "load_ms": 607.927,
+  "image_inference_p50_ms": 31.241,
+  "image_inference_p95_ms": 60.373,
+  "text_batch_queries": 16,
+  "text_batch_ms": 128.131,
+  "rss_before_bytes": 314589184,
+  "rss_after_load_bytes": 342376448,
+  "rss_after_images_bytes": 723795968,
+  "metrics": {
+    "zh-CN": {
+      "queries": 8,
+      "recall_at_1": 0.875,
+      "recall_at_3": 0.875,
+      "mrr": 0.90625
+    },
+    "en": {
+      "queries": 8,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "mrr": 1.0
+    },
+    "paired_top1_agreement": 0.875
+  },
+  "results": [
+    {
+      "id": "red-zh",
+      "pair_id": "red",
+      "language": "zh-CN",
+      "text": "舞台上穿红色裙子的人",
+      "first_relevant_rank": 1,
+      "top3": [
+        "red-stage",
+        "blue-outdoor",
+        "white-indoor"
+      ],
+      "top3_scores": [
+        0.087212,
+        0.034999,
+        0.02688
+      ]
+    },
+    {
+      "id": "red-en",
+      "pair_id": "red",
+      "language": "en",
+      "text": "a person in a red dress on a stage",
+      "first_relevant_rank": 1,
+      "top3": [
+        "red-stage",
+        "group-stage",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.067778,
+        -0.005243,
+        -0.013459
+      ]
+    },
+    {
+      "id": "blue-zh",
+      "pair_id": "blue",
+      "language": "zh-CN",
+      "text": "户外穿蓝色衣服的人",
+      "first_relevant_rank": 1,
+      "top3": [
+        "blue-outdoor",
+        "white-indoor",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.083614,
+        0.023926,
+        0.023848
+      ]
+    },
+    {
+      "id": "blue-en",
+      "pair_id": "blue",
+      "language": "en",
+      "text": "a person wearing blue clothes outdoors",
+      "first_relevant_rank": 1,
+      "top3": [
+        "blue-outdoor",
+        "black-night",
+        "white-indoor"
+      ],
+      "top3_scores": [
+        0.071142,
+        -0.001562,
+        -0.013214
+      ]
+    },
+    {
+      "id": "group-zh",
+      "pair_id": "group",
+      "language": "zh-CN",
+      "text": "舞台上的两个人",
+      "first_relevant_rank": 4,
+      "top3": [
+        "red-stage",
+        "white-indoor",
+        "blue-outdoor"
+      ],
+      "top3_scores": [
+        0.068644,
+        0.059866,
+        0.051501
+      ]
+    },
+    {
+      "id": "group-en",
+      "pair_id": "group",
+      "language": "en",
+      "text": "two people standing on a stage",
+      "first_relevant_rank": 1,
+      "top3": [
+        "group-stage",
+        "white-indoor",
+        "red-stage"
+      ],
+      "top3_scores": [
+        0.071701,
+        0.031055,
+        0.022012
+      ]
+    },
+    {
+      "id": "pink-zh",
+      "pair_id": "pink",
+      "language": "zh-CN",
+      "text": "粉色头发的人物特写",
+      "first_relevant_rank": 1,
+      "top3": [
+        "pink-hair-closeup",
+        "red-stage",
+        "group-stage"
+      ],
+      "top3_scores": [
+        0.046061,
+        0.018598,
+        0.017466
+      ]
+    },
+    {
+      "id": "pink-en",
+      "pair_id": "pink",
+      "language": "en",
+      "text": "close-up portrait of a person with pink hair",
+      "first_relevant_rank": 1,
+      "top3": [
+        "pink-hair-closeup",
+        "red-stage",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.03634,
+        -0.014346,
+        -0.033633
+      ]
+    },
+    {
+      "id": "white-zh",
+      "pair_id": "white",
+      "language": "zh-CN",
+      "text": "室内穿白色裙子的人",
+      "first_relevant_rank": 1,
+      "top3": [
+        "white-indoor",
+        "red-stage",
+        "blue-outdoor"
+      ],
+      "top3_scores": [
+        0.081717,
+        0.053079,
+        0.034213
+      ]
+    },
+    {
+      "id": "white-en",
+      "pair_id": "white",
+      "language": "en",
+      "text": "a person in a white dress indoors",
+      "first_relevant_rank": 1,
+      "top3": [
+        "white-indoor",
+        "red-stage",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.047335,
+        0.01465,
+        -0.007998
+      ]
+    },
+    {
+      "id": "night-zh",
+      "pair_id": "night",
+      "language": "zh-CN",
+      "text": "夜晚穿黑色服装的人",
+      "first_relevant_rank": 1,
+      "top3": [
+        "black-night",
+        "red-stage",
+        "group-stage"
+      ],
+      "top3_scores": [
+        0.072057,
+        0.055402,
+        0.033706
+      ]
+    },
+    {
+      "id": "night-en",
+      "pair_id": "night",
+      "language": "en",
+      "text": "a person in a black costume at night",
+      "first_relevant_rank": 1,
+      "top3": [
+        "black-night",
+        "red-stage",
+        "group-stage"
+      ],
+      "top3_scores": [
+        0.082318,
+        0.062165,
+        0.014551
+      ]
+    },
+    {
+      "id": "landscape-zh",
+      "pair_id": "landscape",
+      "language": "zh-CN",
+      "text": "没有人物的绿色风景",
+      "first_relevant_rank": 1,
+      "top3": [
+        "green-landscape",
+        "blue-outdoor",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.060936,
+        0.039043,
+        -0.000274
+      ]
+    },
+    {
+      "id": "landscape-en",
+      "pair_id": "landscape",
+      "language": "en",
+      "text": "a green landscape without people",
+      "first_relevant_rank": 1,
+      "top3": [
+        "green-landscape",
+        "blue-outdoor",
+        "black-night"
+      ],
+      "top3_scores": [
+        0.071568,
+        0.033752,
+        0.001952
+      ]
+    },
+    {
+      "id": "cat-zh",
+      "pair_id": "cat",
+      "language": "zh-CN",
+      "text": "橙色的猫",
+      "first_relevant_rank": 1,
+      "top3": [
+        "orange-cat",
+        "white-indoor",
+        "pink-hair-closeup"
+      ],
+      "top3_scores": [
+        0.104632,
+        -0.013568,
+        -0.013694
+      ]
+    },
+    {
+      "id": "cat-en",
+      "pair_id": "cat",
+      "language": "en",
+      "text": "an orange cat",
+      "first_relevant_rank": 1,
+      "top3": [
+        "orange-cat",
+        "white-indoor",
+        "pink-hair-closeup"
+      ],
+      "top3_scores": [
+        0.096542,
+        -0.026851,
+        -0.031428
+      ]
+    }
+  ],
+  "video_storyboard_proxy": {
+    "frames_per_video": 4,
+    "mean_pooling": {
+      "zh-CN": {
+        "queries": 4,
+        "recall_at_1": 1.0,
+        "recall_at_3": 1.0,
+        "mrr": 1.0
+      },
+      "en": {
+        "queries": 4,
+        "recall_at_1": 1.0,
+        "recall_at_3": 1.0,
+        "mrr": 1.0
+      },
+      "results": [
+        {
+          "id": "video-red-zh",
+          "pair_id": "video-red",
+          "language": "zh-CN",
+          "text": "舞台上穿红色裙子的人",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-red",
+            "video-group",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.037289,
+            0.028634,
+            0.014194
+          ]
+        },
+        {
+          "id": "video-red-en",
+          "pair_id": "video-red",
+          "language": "en",
+          "text": "a person in a red dress on a stage",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-red",
+            "video-group",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.015312,
+            0.011562,
+            -0.030594
+          ]
+        },
+        {
+          "id": "video-blue-zh",
+          "pair_id": "video-blue",
+          "language": "zh-CN",
+          "text": "户外穿蓝色衣服的人",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-blue",
+            "video-red",
+            "video-group"
+          ],
+          "top3_scores": [
+            0.047133,
+            -0.001771,
+            -0.007975
+          ]
+        },
+        {
+          "id": "video-blue-en",
+          "pair_id": "video-blue",
+          "language": "en",
+          "text": "a person wearing blue clothes outdoors",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-blue",
+            "video-red",
+            "video-group"
+          ],
+          "top3_scores": [
+            0.029876,
+            -0.025278,
+            -0.03971
+          ]
+        },
+        {
+          "id": "video-group-zh",
+          "pair_id": "video-group",
+          "language": "zh-CN",
+          "text": "舞台上的两个人",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-group",
+            "video-red",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.052528,
+            0.04063,
+            0.037901
+          ]
+        },
+        {
+          "id": "video-group-en",
+          "pair_id": "video-group",
+          "language": "en",
+          "text": "two people standing on a stage",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-group",
+            "video-red",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.041937,
+            0.005217,
+            0.002636
+          ]
+        },
+        {
+          "id": "video-cat-zh",
+          "pair_id": "video-cat",
+          "language": "zh-CN",
+          "text": "橙色的猫",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-cat",
+            "video-group",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.041676,
+            -0.026103,
+            -0.031868
+          ]
+        },
+        {
+          "id": "video-cat-en",
+          "pair_id": "video-cat",
+          "language": "en",
+          "text": "an orange cat",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-cat",
+            "video-blue",
+            "video-red"
+          ],
+          "top3_scores": [
+            0.034165,
+            -0.039869,
+            -0.041853
+          ]
+        }
+      ]
+    },
+    "max_frame_score": {
+      "zh-CN": {
+        "queries": 4,
+        "recall_at_1": 0.75,
+        "recall_at_3": 1.0,
+        "mrr": 0.875
+      },
+      "en": {
+        "queries": 4,
+        "recall_at_1": 0.75,
+        "recall_at_3": 1.0,
+        "mrr": 0.875
+      },
+      "results": [
+        {
+          "id": "video-red-zh",
+          "pair_id": "video-red",
+          "language": "zh-CN",
+          "text": "舞台上穿红色裙子的人",
+          "first_relevant_rank": 2,
+          "top3": [
+            "video-group",
+            "video-red",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.087212,
+            0.087212,
+            0.034999
+          ]
+        },
+        {
+          "id": "video-red-en",
+          "pair_id": "video-red",
+          "language": "en",
+          "text": "a person in a red dress on a stage",
+          "first_relevant_rank": 2,
+          "top3": [
+            "video-group",
+            "video-red",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.067778,
+            0.067778,
+            -0.015652
+          ]
+        },
+        {
+          "id": "video-blue-zh",
+          "pair_id": "video-blue",
+          "language": "zh-CN",
+          "text": "户外穿蓝色衣服的人",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-blue",
+            "video-cat",
+            "video-group"
+          ],
+          "top3_scores": [
+            0.083614,
+            0.023926,
+            0.023848
+          ]
+        },
+        {
+          "id": "video-blue-en",
+          "pair_id": "video-blue",
+          "language": "en",
+          "text": "a person wearing blue clothes outdoors",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-blue",
+            "video-group",
+            "video-red"
+          ],
+          "top3_scores": [
+            0.071142,
+            -0.001562,
+            -0.001562
+          ]
+        },
+        {
+          "id": "video-group-zh",
+          "pair_id": "video-group",
+          "language": "zh-CN",
+          "text": "舞台上的两个人",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-group",
+            "video-red",
+            "video-blue"
+          ],
+          "top3_scores": [
+            0.068644,
+            0.068644,
+            0.059866
+          ]
+        },
+        {
+          "id": "video-group-en",
+          "pair_id": "video-group",
+          "language": "en",
+          "text": "two people standing on a stage",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-group",
+            "video-blue",
+            "video-cat"
+          ],
+          "top3_scores": [
+            0.071701,
+            0.031055,
+            0.031055
+          ]
+        },
+        {
+          "id": "video-cat-zh",
+          "pair_id": "video-cat",
+          "language": "zh-CN",
+          "text": "橙色的猫",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-cat",
+            "video-blue",
+            "video-group"
+          ],
+          "top3_scores": [
+            0.104632,
+            -0.013568,
+            -0.015397
+          ]
+        },
+        {
+          "id": "video-cat-en",
+          "pair_id": "video-cat",
+          "language": "en",
+          "text": "an orange cat",
+          "first_relevant_rank": 1,
+          "top3": [
+            "video-cat",
+            "video-blue",
+            "video-group"
+          ],
+          "top3_scores": [
+            0.096542,
+            -0.026851,
+            -0.033854
+          ]
+        }
+      ]
+    }
+  },
+  "caveats": [
+    "Eight programmatically drawn images are pipeline smoke, not representative person/cosplay quality evidence.",
+    "PyTorch macOS evidence does not approve an ONNX Linux runtime.",
+    "Video results reuse still-image embeddings as a storyboard proxy; they do not test FFmpeg frame admission or real video distributions.",
+    "Model resource acceptance requires the complete FolioPath process under a 4 GiB limit with concurrent browsing."
+  ]
+}

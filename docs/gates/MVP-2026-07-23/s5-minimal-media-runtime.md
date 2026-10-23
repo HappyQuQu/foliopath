@@ -16,8 +16,8 @@
 
 ## 实现与证据
 
-- libvips 8.16.1 从官方 release tarball 构建，Docker `ADD --checksum` 固定
-  SHA-256 `d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724`。
+- libvips 8.16.1 从官方 release tarball 构建；有界重试下载后以 `sha256sum --check --strict` 固定
+  SHA-256 `d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724`，不匹配时失败关闭。
 - Meson 默认关闭可选能力，仅启用 JPEG、PNG、WebP、EXIF 和内置 GIF；关闭 modules、
   introspection、deprecated、examples、C++、PPM、Analyze 和 Radiance。
 - 产物封装为 `foliopath-libvips` 8.16.1-1 Debian 包，SBOM 可识别，并保留 libvips

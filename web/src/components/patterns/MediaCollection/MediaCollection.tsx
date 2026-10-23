@@ -31,6 +31,7 @@ import styles from "./MediaCollection.module.css";
 export type MediaCollectionLayout = MediaLayoutPreference;
 
 export interface MediaCollectionItem {
+  contextLabel?: string;
   favorite?: boolean;
   height: number | null;
   id: string;
@@ -457,6 +458,7 @@ function MediaCard({
 
   return (
     <article
+      aria-description={item.contextLabel}
       aria-label={`${item.name} · ${kindLabel}`}
       className={styles.card}
       data-previewing={previewing || undefined}
@@ -581,6 +583,7 @@ function MediaCard({
           ) : (
             <span>{item.modifiedLabel}</span>
           )}
+          {item.contextLabel && <span>{item.contextLabel}</span>}
         </div>
       )}
     </article>
@@ -718,7 +721,8 @@ function estimatedCardHeight(
   columnWidth: number,
 ): number {
   const ratio = layout !== "grid" && item ? safeAspectRatio(item) : 4 / 3;
-  return columnWidth / ratio + (layout === "seamless" ? 0 : 54);
+  const identityHeight = layout === "seamless" ? 0 : item?.contextLabel ? 74 : 54;
+  return columnWidth / ratio + identityHeight;
 }
 
 function safeAspectRatio(item: MediaCollectionItem): number {

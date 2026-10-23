@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "evidence_class": "development-only",
+  "environment": {"goos":"darwin","goarch":"arm64","go_version":"go1.26.4","gomaxprocs":4},
+  "engine": "github.com/coder/hnsw",
+  "engine_revision": "36cab6028fed4adc9c3edf2323a06f0a95c1f030",
+  "direct_license": "CC0-1.0",
+  "items": 10000,
+  "dimensions": 128,
+  "queries": 20,
+  "top_k": 20,
+  "seed": 20260825,
+  "runs": [
+    {"m":16,"ef_search":64,"build_ms":6232.599,"query_p95_ms":1.131,"query_p99_ms":1.295,"mean_recall_at_k":0.485,"minimum_recall_at_k":0.25,"index_bytes":7305540,"heap_sys_bytes":62586880},
+    {"m":16,"ef_search":256,"build_ms":19243.021,"query_p95_ms":3.192,"query_p99_ms":3.998,"mean_recall_at_k":0.86,"minimum_recall_at_k":0.70,"index_bytes":7308808,"heap_sys_bytes":62554112},
+    {"m":32,"ef_search":512,"build_ms":51706.254,"query_p95_ms":9.779,"query_p99_ms":10.033,"mean_recall_at_k":1.0,"minimum_recall_at_k":1.0,"index_bytes":7769656,"heap_sys_bytes":96141312}
+  ],
+  "recovery": {
+    "half_truncated_file_rejected_in_all_runs": true,
+    "full_rebuild_search_succeeded_in_all_runs": true,
+    "same_graph_second_export_byte_identical": false
+  },
+  "decision": "do not select for FolioPath yet",
+  "decision_reasons": [
+    "Low/default budgets fail recall badly; 100% synthetic recall required a 51.7 second 10k/128-D build.",
+    "The existing 100k/512-D exact scan is already below the query latency budget, so ANN complexity is not justified yet.",
+    "Import trusts encoded allocation lengths before an application-level bound can be enforced; accidental corruption could cause excessive allocation.",
+    "Exports are not byte deterministic and transitive dependency/native dual-architecture closure is not signed off."
+  ],
+  "caveats": [
+    "Random-vector recall is not semantic embedding recall.",
+    "50k and 100k escalation was intentionally stopped because the 10k candidate did not justify replacing exact scan.",
+    "Cross-compilation is not native architecture execution."
+  ]
+}

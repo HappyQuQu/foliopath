@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "opencv-zoo-yunet-largest-selfie",
+  "status": "ephemeral-smoke-only",
+  "source_url": "https://github.com/opencv/opencv_zoo/raw/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/example_outputs/largest_selfie.jpg",
+  "license": {
+    "id": "MIT",
+    "url": "https://github.com/opencv/opencv_zoo/blob/47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_detection_yunet/LICENSE"
+  },
+  "filename": "yunet-largest-selfie.jpg",
+  "sha256": "ab8413ad9bb4f53068f4fb63c6747e5989991dd02241c923d5595b614ecf2bf6",
+  "size_bytes": 1147146,
+  "restrictions": [
+    "Do not commit the image to FolioPath.",
+    "Use only for pipeline compatibility smoke; no consent or identity ground truth is established.",
+    "Do not use the detection count as a recall or quality claim."
+  ]
+}

@@ -40,6 +40,8 @@ export const paths = {
   mediaPattern: "/libraries/:libraryId/media/:assetId",
   generalSettings: "/settings/general",
   storageSettings: "/settings/storage",
+  aiSettings: "/settings/ai",
+  intelligence: "/intelligence",
   accountSettings: "/settings/account",
   logsSettings: "/settings/logs",
   aboutSettings: "/settings/about",

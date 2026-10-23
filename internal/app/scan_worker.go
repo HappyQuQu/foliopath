@@ -52,6 +52,16 @@ type scanJobQueue struct {
 	database *databaseService
 }
 
+type scanComponentFailure struct {
+	source string
+	err    error
+}
+
+func (failure scanComponentFailure) Error() string {
+	return fmt.Sprintf("scan %s: %v", failure.source, failure.err)
+}
+func (failure scanComponentFailure) Unwrap() error { return failure.err }
+
 func (queue scanJobQueue) RecoverExpired(
 	ctx context.Context,
 ) (jobs.RecoverySummary, error) {
@@ -114,29 +124,29 @@ func (service *scanWorkerComponent) run(ctx context.Context, cancel context.Canc
 			cancel()
 			<-workerDone
 			<-schedulerDone
-			service.done <- fmt.Errorf("admit startup scans: %w", startupErr)
+			service.done <- scanComponentFailure{source: "startup_admission", err: startupErr}
 			return
 		}
 		select {
 		case workerErr := <-workerDone:
 			cancel()
 			<-schedulerDone
-			service.done <- workerErr
+			service.done <- scanComponentFailure{source: "worker", err: workerErr}
 		case schedulerErr := <-schedulerDone:
 			cancel()
 			<-workerDone
-			service.done <- schedulerErr
+			service.done <- scanComponentFailure{source: "scheduler", err: schedulerErr}
 		}
 	case workerErr := <-workerDone:
 		cancel()
 		<-startupDone
 		<-schedulerDone
-		service.done <- workerErr
+		service.done <- scanComponentFailure{source: "worker", err: workerErr}
 	case schedulerErr := <-schedulerDone:
 		cancel()
 		<-startupDone
 		<-workerDone
-		service.done <- schedulerErr
+		service.done <- scanComponentFailure{source: "scheduler", err: schedulerErr}
 	}
 }
 

@@ -232,9 +232,10 @@
 }
 
 .identity {
-  height: 3.25rem;
+  min-height: calc(var(--space-12) + var(--space-1));
   display: grid;
   align-content: center;
+  grid-auto-rows: max-content;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
 }

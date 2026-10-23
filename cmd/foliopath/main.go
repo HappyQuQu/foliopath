@@ -17,6 +17,7 @@ const (
 	usageMessage = `Usage:
   foliopath [serve] [--listen=IP:PORT]
   foliopath healthcheck
+  foliopath database-check
   foliopath version
   foliopath help
 
@@ -75,7 +76,7 @@ func execute(
 	if len(args) > 0 {
 		if args[0] == "serve" {
 			appArgs = args[1:]
-		} else if !strings.HasPrefix(args[0], "-") {
+		} else if !(len(args) == 1 && args[0] == "database-check") && !strings.HasPrefix(args[0], "-") {
 			fmt.Fprintf(stderr, "foliopath: unknown command %q\n", args[0])
 			fmt.Fprint(stderr, usageMessage)
 			return exitUsage
@@ -83,7 +84,11 @@ func execute(
 	}
 
 	if run == nil {
-		fmt.Fprintln(stderr, "foliopath: startup failed")
+		if len(appArgs) == 1 && appArgs[0] == "database-check" {
+			fmt.Fprintln(stderr, "foliopath: database check failed")
+		} else {
+			fmt.Fprintln(stderr, "foliopath: startup failed")
+		}
 		return exitFailure
 	}
 	if err := run(app.Input{
@@ -94,8 +99,15 @@ func execute(
 		// Detailed startup errors belong to the structured application logger.
 		// The process boundary emits a stable message so paths, SQL, or secrets
 		// cannot leak through an unclassified error.
-		fmt.Fprintln(stderr, "foliopath: startup failed")
+		if len(appArgs) == 1 && appArgs[0] == "database-check" {
+			fmt.Fprintln(stderr, "foliopath: database check failed")
+		} else {
+			fmt.Fprintln(stderr, "foliopath: startup failed")
+		}
 		return exitFailure
+	}
+	if len(appArgs) == 1 && appArgs[0] == "database-check" {
+		fmt.Fprintln(stdout, "database check passed")
 	}
 
 	return exitOK

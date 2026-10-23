@@ -90,9 +90,13 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL("/search?q=matrix&scope=all");
 
-  // Browser codec stacks vary. Chromium owns the real MP4/206 assertion, while
-  // all supported engines exercise the product-owned fallback states below.
-  if (chromiumBased) {
+  // Unbranded Playwright Chromium may omit proprietary codecs. Check the actual
+  // runner capability instead of assuming every Chromium build decodes H.264/AAC.
+  const supportsFixture = await page.evaluate(() => {
+    const media = document.createElement("video");
+    return Boolean(media.canPlayType('video/mp4; codecs="avc1.42E01E"') && media.canPlayType('audio/mp4; codecs="mp4a.40.2"'));
+  });
+  if (chromiumBased && supportsFixture) {
     await page.goto(`/libraries/${libraryId}/media/video_range`);
     const video = page
       .getByRole("main", { name: "range-video.mp4" })
@@ -111,6 +115,10 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
     expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(
       true,
     );
+  } else if (chromiumBased) {
+    testInfo.annotations.push({ type: "codec-unavailable", description: "This runner lacks H.264/AAC; playback/206 decoding is not validated here. Product fallback is asserted." });
+    await page.goto(`/libraries/${libraryId}/media/video_range`);
+    await expect(page.getByRole("heading", { name: "This video could not be played." })).toBeVisible();
   }
 
   await page.goto(`/libraries/${libraryId}/media/video_codec`);

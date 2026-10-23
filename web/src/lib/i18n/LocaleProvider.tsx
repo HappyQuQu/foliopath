@@ -13,8 +13,20 @@ import {
   writeLocalePreference,
   type LocalePreference,
 } from "../storage/preferences";
+import { aiEn, aiZh } from "./aiMessages";
+import { aiReviewEn, aiReviewZh } from "./aiReviewMessages";
+import { tagSettingsEn, tagSettingsZh } from "./tagSettingsMessages";
+import { tagCloudEn, tagCloudZh } from "./tagCloudMessages";
+import { automaticTagEn, automaticTagZh } from "./automaticTagMessages";
+import { taskWorkspaceEn, taskWorkspaceZh } from "./taskWorkspaceMessages";
 
 const zhCN = {
+  ...aiZh,
+  ...aiReviewZh,
+  ...tagSettingsZh,
+  ...tagCloudZh,
+  ...automaticTagZh,
+  ...taskWorkspaceZh,
   "account.account": "账户",
   "account.administrator": "管理员",
   "account.changePassword": "修改密码",
@@ -277,6 +289,8 @@ const zhCN = {
   "error.serviceOffline":
     "无法连接 FolioPath 服务。原始媒体未被修改，请确认服务正在运行后重新检查。",
   "libraries.assetCount": "{count} 项",
+  "libraries.assetAndDirectoryCount": "{assets} 项媒体 · {directories} 个目录",
+  "libraries.availableLibraries": "可用媒体库",
   "libraries.browse": "浏览",
   "libraries.actionFailed": "操作没有完成，请重新载入后再试。",
   "libraries.changedElsewhere": "媒体库状态已发生变化，请重新载入后再试。",
@@ -284,6 +298,7 @@ const zhCN = {
   "libraries.create": "新建媒体库",
   "libraries.deploymentHelp": "查看部署帮助",
   "libraries.description": "添加并查看媒体库状态。原始文件不会被修改。",
+  "libraries.contents": "内容",
   "libraries.discoveryActive": "自动发现正常",
   "libraries.discoveryDegraded": "自动发现已降级",
   "libraries.discoveryDisabled": "自动发现已关闭",
@@ -301,11 +316,19 @@ const zhCN = {
   "libraries.loadFailed": "暂时无法读取媒体库列表，请稍后重试。",
   "libraries.loading": "正在载入媒体库…",
   "libraries.loadMore": "载入更多",
+  "libraries.loadedAssets": "已载入媒体",
+  "libraries.loadedCount": "已载入 {count} 个",
+  "libraries.loadedLibraries": "已载入媒体库",
+  "libraries.listDescription": "路径、内容规模、最近扫描和运行状态集中显示。",
+  "libraries.listTitle": "媒体库列表",
+  "libraries.lastScan": "最近扫描",
   "libraries.manageEyebrow": "管理",
   "libraries.mountDescription":
     "完成挂载后返回这里，从 /library 下选择一个目录。",
   "libraries.mountTitle": "在容器中以只读方式挂载媒体目录",
   "libraries.noScanAvailable": "此媒体库还没有扫描记录",
+  "libraries.needsAttention": "需要关注",
+  "libraries.neverScanned": "尚未完成",
   "libraries.newName": "新名称",
   "libraries.nameRequired": "请输入媒体库名称。",
   "libraries.nameTooLong": "媒体库名称不能超过 128 个字符。",
@@ -333,6 +356,10 @@ const zhCN = {
   "libraries.statusPending": "等待首次扫描",
   "libraries.statusReady": "可用",
   "libraries.statusScanning": "扫描中",
+  "libraries.summaryLabel": "媒体库概览",
+  "libraries.totalAssets": "媒体总数",
+  "libraries.totalLibraries": "媒体库总数",
+  "libraries.health": "运行状态",
   "libraries.title": "媒体库",
   "management.general": "配置",
   "management.logs": "系统日志",
@@ -721,6 +748,7 @@ const zhCN = {
   "shell.directorySidebar": "媒体库和目录",
   "shell.libraries": "媒体库",
   "shell.openNavigation": "打开导航",
+  "shell.people": "人物",
   "shell.primaryNavigation": "主导航",
   "shell.search": "搜索",
   "shell.settings": "管理中心",
@@ -789,6 +817,12 @@ export type MessageKey = keyof typeof zhCN;
 export type Locale = LocalePreference;
 
 const en: Record<MessageKey, string> = {
+  ...tagSettingsEn,
+  ...tagCloudEn,
+  ...automaticTagEn,
+  ...taskWorkspaceEn,
+  ...aiEn,
+  ...aiReviewEn,
   "account.account": "Account",
   "account.administrator": "Administrator",
   "account.changePassword": "Change password",
@@ -1079,6 +1113,8 @@ const en: Record<MessageKey, string> = {
   "error.serviceOffline":
     "Unable to reach the FolioPath service. Original media was not modified. Confirm the service is running and check again.",
   "libraries.assetCount": "{count} items",
+  "libraries.assetAndDirectoryCount": "{assets} media · {directories} folders",
+  "libraries.availableLibraries": "Available libraries",
   "libraries.browse": "Browse",
   "libraries.actionFailed":
     "The operation did not complete. Reload and try again.",
@@ -1089,6 +1125,7 @@ const en: Record<MessageKey, string> = {
   "libraries.deploymentHelp": "View deployment help",
   "libraries.description":
     "Add libraries and review their status. Original files are never modified.",
+  "libraries.contents": "Contents",
   "libraries.discoveryActive": "Automatic discovery active",
   "libraries.discoveryDegraded": "Automatic discovery degraded",
   "libraries.discoveryDisabled": "Automatic discovery disabled",
@@ -1112,12 +1149,20 @@ const en: Record<MessageKey, string> = {
     "The library list could not be loaded. Please try again.",
   "libraries.loading": "Loading libraries…",
   "libraries.loadMore": "Load more",
+  "libraries.loadedAssets": "Loaded media",
+  "libraries.loadedCount": "{count} loaded",
+  "libraries.loadedLibraries": "Loaded libraries",
+  "libraries.listDescription": "Paths, content scale, recent scans, and health in one place.",
+  "libraries.listTitle": "Library list",
+  "libraries.lastScan": "Latest scan",
   "libraries.manageEyebrow": "Manage",
   "libraries.mountDescription":
     "After mounting, return here and choose a directory below /library.",
   "libraries.mountTitle":
     "Mount the media directory read-only in the container",
   "libraries.noScanAvailable": "This library has no scan record yet",
+  "libraries.needsAttention": "Needs attention",
+  "libraries.neverScanned": "Not completed yet",
   "libraries.newName": "New name",
   "libraries.nameRequired": "Enter a library name.",
   "libraries.nameTooLong": "The library name must be 128 characters or fewer.",
@@ -1148,6 +1193,10 @@ const en: Record<MessageKey, string> = {
   "libraries.statusPending": "Waiting for first scan",
   "libraries.statusReady": "Available",
   "libraries.statusScanning": "Scanning",
+  "libraries.summaryLabel": "Library overview",
+  "libraries.totalAssets": "Total media",
+  "libraries.totalLibraries": "Total libraries",
+  "libraries.health": "Health",
   "libraries.title": "Libraries",
   "management.general": "Configuration",
   "management.logs": "System logs",
@@ -1567,6 +1616,7 @@ const en: Record<MessageKey, string> = {
   "shell.directorySidebar": "Libraries and directories",
   "shell.libraries": "Libraries",
   "shell.openNavigation": "Open navigation",
+  "shell.people": "People",
   "shell.primaryNavigation": "Primary navigation",
   "shell.search": "Search",
   "shell.settings": "Management Center",

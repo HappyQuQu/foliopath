@@ -2,7 +2,9 @@ import {
   ArrowsClockwise,
   CheckCircle,
   CircleNotch,
+  Database,
   FolderOpen,
+  Images,
   Plus,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -236,6 +238,27 @@ function LibraryList({
     () => new Intl.NumberFormat(locale),
     [locale],
   );
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [locale],
+  );
+  const summary = useMemo(
+    () => ({
+      assets: libraries.reduce((total, library) => total + library.assetCount, 0),
+      available: libraries.filter((library) => library.status === "ready").length,
+      attention: libraries.filter(
+        (library) =>
+          library.status === "offline" ||
+          library.status === "error" ||
+          library.automaticDiscoveryStatus === "degraded",
+      ).length,
+    }),
+    [libraries],
+  );
   const [searchParams] = useSearchParams();
   const [statusLibraryId, setStatusLibraryId] = useState<string | undefined>(
     searchParams.get("status") ?? undefined,
@@ -277,23 +300,84 @@ function LibraryList({
       </div>
 
       {view === "libraries" && (
-        <>
-          <div className={styles.list} role="tabpanel">
-            {libraries.map((library) => (
-              <LibraryRow
-                expanded={statusLibraryId === library.id}
-                key={library.id}
-                library={library}
-                numberFormatter={numberFormatter}
-                onViewStatus={() =>
-                  setStatusLibraryId((current) =>
-                    current === library.id ? undefined : library.id,
-                  )
-                }
-                session={session}
-              />
-            ))}
-          </div>
+        <div className={styles.libraryWorkspace} role="tabpanel">
+          <dl className={styles.librarySummary} aria-label={t("libraries.summaryLabel")}>
+            <div className={styles.librarySummaryItem}>
+              <span className={styles.librarySummaryIcon} aria-hidden="true">
+                <Database size={20} weight="duotone" />
+              </span>
+              <div>
+                <dd>{numberFormatter.format(libraries.length)}</dd>
+                <dt>{hasMore ? t("libraries.loadedLibraries") : t("libraries.totalLibraries")}</dt>
+              </div>
+            </div>
+            <div className={styles.librarySummaryItem}>
+              <span className={styles.librarySummaryIcon} aria-hidden="true">
+                <Images size={20} weight="duotone" />
+              </span>
+              <div>
+                <dd>{numberFormatter.format(summary.assets)}</dd>
+                <dt>{hasMore ? t("libraries.loadedAssets") : t("libraries.totalAssets")}</dt>
+              </div>
+            </div>
+            <div
+              className={`${styles.librarySummaryItem} ${
+                summary.attention > 0 ? styles.librarySummaryWarning : ""
+              }`}
+            >
+              <span className={styles.librarySummaryIcon} aria-hidden="true">
+                {summary.attention > 0 ? (
+                  <WarningCircle size={20} weight="fill" />
+                ) : (
+                  <CheckCircle size={20} weight="fill" />
+                )}
+              </span>
+              <div>
+                <dd>
+                  {summary.attention > 0
+                    ? numberFormatter.format(summary.attention)
+                    : numberFormatter.format(summary.available)}
+                </dd>
+                <dt>
+                  {summary.attention > 0
+                    ? t("libraries.needsAttention")
+                    : t("libraries.availableLibraries")}
+                </dt>
+              </div>
+            </div>
+          </dl>
+
+          <section className={styles.libraryTable} aria-labelledby="library-list-title">
+            <header className={styles.libraryTableHeader}>
+              <div>
+                <h2 id="library-list-title">{t("libraries.listTitle")}</h2>
+                <p>{t("libraries.listDescription")}</p>
+              </div>
+              <span>
+                {t("libraries.loadedCount").replace(
+                  "{count}",
+                  numberFormatter.format(libraries.length),
+                )}
+              </span>
+            </header>
+            <div className={styles.list}>
+              {libraries.map((library) => (
+                <LibraryRow
+                  dateFormatter={dateFormatter}
+                  expanded={statusLibraryId === library.id}
+                  key={library.id}
+                  library={library}
+                  numberFormatter={numberFormatter}
+                  onViewStatus={() =>
+                    setStatusLibraryId((current) =>
+                      current === library.id ? undefined : library.id,
+                    )
+                  }
+                  session={session}
+                />
+              ))}
+            </div>
+          </section>
           {hasMore && (
             <div className={styles.loadMore}>
               <Button loading={fetchingMore} onClick={onLoadMore}>
@@ -301,7 +385,7 @@ function LibraryList({
               </Button>
             </div>
           )}
-        </>
+        </div>
       )}
       {view === "scans" && <LibraryScanRecords libraries={libraries} />}
       {view === "results" && (
@@ -312,12 +396,14 @@ function LibraryList({
 }
 
 function LibraryRow({
+  dateFormatter,
   expanded,
   library,
   numberFormatter,
   onViewStatus,
   session,
 }: {
+  dateFormatter: Intl.DateTimeFormat;
   expanded: boolean;
   library: LibrarySummary;
   numberFormatter: Intl.NumberFormat;
@@ -417,24 +503,41 @@ function LibraryRow({
       <article
         className={`${styles.library} ${expanded ? styles.libraryExpanded : ""}`}
       >
-        <div className={styles.libraryIcon}>
-          <FolderOpen aria-hidden="true" size={24} weight="duotone" />
+        <div className={styles.libraryIdentity}>
+          <div className={styles.libraryIcon}>
+            <FolderOpen aria-hidden="true" size={24} weight="duotone" />
+          </div>
+          <div className={styles.libraryDetails}>
+            <h3>{library.name}</h3>
+            <p>{library.displayPath}</p>
+          </div>
         </div>
-        <div className={styles.libraryDetails}>
-          <h2>{library.name}</h2>
-          <p>
-            <span>{library.displayPath}</span>
-            <span aria-hidden="true"> · </span>
-            <span>
-              {t("libraries.assetCount").replace(
-                "{count}",
-                numberFormatter.format(library.assetCount),
-              )}
-            </span>
-          </p>
+        <div className={styles.libraryFacts}>
+          <div>
+            <span>{t("libraries.contents")}</span>
+            <strong>
+              {t("libraries.assetAndDirectoryCount")
+                .replace("{assets}", numberFormatter.format(library.assetCount))
+                .replace(
+                  "{directories}",
+                  numberFormatter.format(library.directoryCount),
+                )}
+            </strong>
+          </div>
+          <div>
+            <span>{t("libraries.lastScan")}</span>
+            <strong>
+              {library.lastSuccessfulScanAt
+                ? dateFormatter.format(new Date(library.lastSuccessfulScanAt))
+                : t("libraries.neverScanned")}
+            </strong>
+          </div>
+          <div>
+            <span>{t("libraries.health")}</span>
           <div className={styles.statuses}>
             <StatusPill status={library.status} />
             <DiscoveryStatus library={library} />
+          </div>
           </div>
         </div>
         <div className={styles.rowActions}>

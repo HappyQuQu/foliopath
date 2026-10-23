@@ -1,0 +1,62 @@
+# syntax=docker/dockerfile:1.7
+
+# This arm64-only INT-S0 fixture tests the smallest reviewed dynamic-library
+# closure for ONNX Runtime. It is not a FolioPath production image.
+FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
+
+ADD --checksum=sha256:e15ff8b5d85afe6c144d97c6fd432254bf76a219daaf17658087d6ecb3e8f0bb \
+    https://github.com/microsoft/onnxruntime/releases/download/v1.28.0/onnxruntime-linux-aarch64-1.28.0.tgz \
+    /tmp/onnxruntime.tgz
+RUN mkdir -p /opt/onnxruntime \
+    && tar --extract --gzip --file /tmp/onnxruntime.tgz \
+       --directory /opt/onnxruntime --strip-components=1 \
+    && test "$(cat /opt/onnxruntime/VERSION_NUMBER)" = "1.28.0" \
+    && test "$(cat /opt/onnxruntime/GIT_COMMIT_ID)" = \
+       "da9b5e364c465de65c49d91e696cd6485270757f"
+
+WORKDIR /src
+COPY spikes/int001-ort-capi/go.mod ./
+COPY spikes/int001-ort-capi/main.go ./
+RUN CGO_ENABLED=1 \
+    CGO_CFLAGS="-I/opt/onnxruntime/include" \
+    CGO_LDFLAGS="-L/opt/onnxruntime/lib -lonnxruntime" \
+    go build -trimpath -ldflags="-s -w" -o /out/int001-ort-capi .
+
+# This source stage supplies the Debian-tracked C++ runtime closure only. The
+# OpenSSL libraries in this stage are deliberately not copied to the output.
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:b5c859c8f9538074fa248ea12aad3552d29fb437d2b546ea65504b4af125e59f AS cc-runtime
+
+FROM gcr.io/distroless/base-nossl-debian13:nonroot@sha256:f0d71cf317129017537c5b1938e3be83d0f8a1edefd37aa6ff3b1ce80a4dc51d
+LABEL org.opencontainers.image.title="FolioPath INT-008 ORT C API no-SSL spike" \
+      org.opencontainers.image.version="onnxruntime-1.28.0-arm64" \
+      org.opencontainers.image.description="Isolated evidence image; not a FolioPath production image"
+
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33 /usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libstdc++.so.6 /usr/lib/aarch64-linux-gnu/libstdc++.so.6
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libgcc_s.so.1 /usr/lib/aarch64-linux-gnu/libgcc_s.so.1
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libgomp.so.1.0.0 /usr/lib/aarch64-linux-gnu/libgomp.so.1.0.0
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libgomp.so.1 /usr/lib/aarch64-linux-gnu/libgomp.so.1
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libz.so.1.3.1 /usr/lib/aarch64-linux-gnu/libz.so.1.3.1
+COPY --from=cc-runtime /usr/lib/aarch64-linux-gnu/libz.so.1 /usr/lib/aarch64-linux-gnu/libz.so.1
+
+# Preserve scanner-visible Debian package metadata and distribution licenses
+# for every library copied from the cc image.
+COPY --from=cc-runtime /var/lib/dpkg/status.d/gcc-14-base* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libgcc-s1* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libgomp1* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/libstdc++6* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /var/lib/dpkg/status.d/zlib1g* /var/lib/dpkg/status.d/
+COPY --from=cc-runtime /usr/share/doc/gcc-14-base /usr/share/doc/gcc-14-base
+COPY --from=cc-runtime /usr/share/doc/libgcc-s1 /usr/share/doc/libgcc-s1
+COPY --from=cc-runtime /usr/share/doc/libgomp1 /usr/share/doc/libgomp1
+COPY --from=cc-runtime /usr/share/doc/libstdc++6 /usr/share/doc/libstdc++6
+COPY --from=cc-runtime /usr/share/doc/zlib1g /usr/share/doc/zlib1g
+
+COPY --from=build /opt/onnxruntime/lib/libonnxruntime.so.1.28.0 /opt/onnxruntime/lib/libonnxruntime.so.1.28.0
+COPY --from=build /opt/onnxruntime/lib/libonnxruntime.so.1 /opt/onnxruntime/lib/libonnxruntime.so.1
+COPY --from=build /opt/onnxruntime/LICENSE /usr/share/licenses/onnxruntime/LICENSE
+COPY --from=build /opt/onnxruntime/ThirdPartyNotices.txt /usr/share/licenses/onnxruntime/ThirdPartyNotices.txt
+COPY --from=build /out/int001-ort-capi /app/int001-ort-capi
+ENV LD_LIBRARY_PATH=/opt/onnxruntime/lib
+USER 65532:65532
+ENTRYPOINT ["/app/int001-ort-capi"]

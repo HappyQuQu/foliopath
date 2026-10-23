@@ -3,6 +3,7 @@ import {
   GearSix,
   MagnifyingGlass,
   SignOut,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -15,19 +16,28 @@ import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
 import { useHeaderAddon } from "./HeaderAddonContext";
 
+export interface GlobalSearchInputLabels {
+  label: string;
+  placeholder: string;
+}
+
 export function GlobalHeader({
   homeHref,
   identity,
   logoutPending = false,
   onLogout,
+  peopleHref,
   searchHref,
+  searchInput,
   settingsHref,
 }: {
   homeHref: string;
   identity: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
+  peopleHref?: string | undefined;
   searchHref: string;
+  searchInput?: GlobalSearchInputLabels | undefined;
   settingsHref: string;
 }) {
   const { t } = useLocale();
@@ -76,7 +86,9 @@ export function GlobalHeader({
     event.preventDefault();
     const normalized = query.trim();
     if (!normalized) return;
-    navigate(`${searchHref}?${new URLSearchParams({ q: normalized })}`);
+    const target = new URL(searchHref, window.location.href);
+    target.searchParams.set("q", normalized);
+    navigate(`${target.pathname}${target.search}${target.hash}`);
   }
 
   return (
@@ -89,13 +101,13 @@ export function GlobalHeader({
       <form className={styles.search} onSubmit={submitSearch} role="search">
         <MagnifyingGlass aria-hidden="true" size={18} />
         <label className={styles.visuallyHidden} htmlFor="global-search">
-          {t("search.inputLabel")}
+          {searchInput?.label ?? t("search.inputLabel")}
         </label>
         <input
           autoComplete="off"
           id="global-search"
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={t("search.globalPlaceholder")}
+          placeholder={searchInput?.placeholder ?? t("search.globalPlaceholder")}
           type="search"
           value={query}
         />
@@ -103,6 +115,17 @@ export function GlobalHeader({
       </form>
 
       <div className={styles.headerActions}>
+        {peopleHref && (
+          <Link
+            aria-current={location.pathname === "/intelligence" ? "page" : undefined}
+            aria-label={t("shell.people")}
+            className={styles.peopleLink}
+            to={peopleHref}
+          >
+            <UsersThree aria-hidden="true" size={19} />
+            <span>{t("shell.people")}</span>
+          </Link>
+        )}
         <LocaleToggle />
         <ThemeToggle />
         {headerAddon}

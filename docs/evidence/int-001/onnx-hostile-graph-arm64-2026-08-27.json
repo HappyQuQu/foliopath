@@ -1,0 +1,75 @@
+{
+  "status": "bounded valid-protobuf hostile graph subproof passed; INT-008 remains open",
+  "fixture_generator": {
+    "onnx": "1.20.1",
+    "independent_generations": 2,
+    "byte_identical": true,
+    "files": {
+      "cycle.onnx": {
+        "bytes": 125,
+        "sha256": "411153e9e7578991239738df96418b7f54aead50763cbc96b5cbad2e2e3588aa"
+      },
+      "escape/model.onnx": {
+        "bytes": 184,
+        "sha256": "887ccb11285598196bea803b2b57df9989f32d8f8db27de859d56439d4cb8e16"
+      },
+      "safe/model.onnx": {
+        "bytes": 180,
+        "sha256": "af8a076bddc2f4870ef57b346c56f86d2a7885177969caa453f4431d1e5b44da"
+      },
+      "safe-embedded.onnx": {
+        "bytes": 192,
+        "sha256": "5fa39d1901d7353a84d326efde3d28aa4ad32bb4fa1b18d82a4d823ace4540d0"
+      },
+      "safe/weights.bin": {
+        "bytes": 64,
+        "sha256": "58dda328598e2f7fe472621bfc54935aaa354d1a6ebcaf9562cd743fd575eb19"
+      },
+      "sentinel.bin": {
+        "bytes": 64,
+        "sha256": "58dda328598e2f7fe472621bfc54935aaa354d1a6ebcaf9562cd743fd575eb19"
+      },
+      "unknown-operator.onnx": {
+        "bytes": 150,
+        "sha256": "473fd4f9e79a2eec98e8f9a971dec0797a5bbfb057374ca09cc5da5c9cb56620"
+      },
+      "oversized-allocation.onnx": {
+        "bytes": 112,
+        "sha256": "58a15ced5a01a702ab630e9089d2aded43ae60b2a74e0f143c37492690718bea"
+      }
+    }
+  },
+  "runs": [
+    {
+      "platform": "macOS/arm64",
+      "onnxruntime": "1.29.0",
+      "safe_external_data_control_inferred": true,
+      "parent_traversal_external_data_rejected": true,
+      "unknown_operator_rejected": true,
+      "cyclic_graph_rejected": true,
+      "timeouts": 0,
+      "signal_terminations": 0,
+      "passed": true
+    },
+    {
+      "platform": "native Linux/arm64 container",
+      "onnxruntime": "1.28.0",
+      "container_cpus": 4,
+      "container_memory_bytes": 4294967296,
+      "container_network": "none",
+      "container_rootfs": "read-only",
+      "safe_external_data_control_inferred": true,
+      "parent_traversal_external_data_rejected": true,
+      "unknown_operator_rejected": true,
+      "cyclic_graph_rejected": true,
+      "timeouts": 0,
+      "signal_terminations": 0,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Runtime behavior is defense in depth; the first release recommendation is to reject every ONNX external-data reference during release validation and accept only exact size/hash allowlisted graphs at runtime.",
+    "The matrix does not cover every protobuf-valid adversarial graph or oversized allocation request.",
+    "Native Linux/amd64 and the production C/Go adapter remain untested."
+  ]
+}

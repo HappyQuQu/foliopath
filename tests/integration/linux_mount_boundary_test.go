@@ -77,6 +77,78 @@ func TestFS01RejectsSelfBindMount(t *testing.T) {
 	}
 }
 
+func TestAIModelSourceRejectsNestedPackageMountDuringScan(t *testing.T) {
+	base := t.TempDir()
+	modelRoot := filepath.Join(base, "models")
+	packageTarget := filepath.Join(modelRoot, "mounted.foliomodel")
+	packageSource := filepath.Join(base, "outside-package")
+	for _, directory := range []string{packageTarget, packageSource} {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeModelMountFixture(t, packageSource)
+	mountBind(t, packageSource, packageTarget)
+
+	root, err := files.OpenRoot(modelRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	source, err := files.NewModelSource(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, truncated, err := source.ScanModelPackages(context.Background(), 4, 4, 1<<20)
+	if err != nil || truncated || len(items) != 1 || !errors.Is(items[0].Failure, files.ErrCrossDevice) {
+		t.Fatalf("mounted model scan=%#v truncated=%v err=%v", items, truncated, err)
+	}
+}
+
+func TestAIModelSourceRejectsMountReplacementAfterScan(t *testing.T) {
+	base := t.TempDir()
+	modelRoot := filepath.Join(base, "models")
+	packageTarget := filepath.Join(modelRoot, "local.foliomodel")
+	packageSource := filepath.Join(base, "replacement-package")
+	for _, directory := range []string{packageTarget, packageSource} {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeModelMountFixture(t, directory)
+	}
+	root, err := files.OpenRoot(modelRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	source, err := files.NewModelSource(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, truncated, err := source.ScanModelPackages(context.Background(), 4, 4, 1<<20)
+	if err != nil || truncated || len(items) != 1 || items[0].Failure != nil || items[0].SourceIdentity == "" {
+		t.Fatalf("initial model scan=%#v truncated=%v err=%v", items, truncated, err)
+	}
+	mountBind(t, packageSource, packageTarget)
+	reader, _, openErr := source.OpenModelPackageFile(context.Background(), items[0].SourceIdentity, "model.onnx")
+	if reader != nil {
+		_ = reader.Close()
+	}
+	if !errors.Is(openErr, files.ErrCrossDevice) {
+		t.Fatalf("mounted replacement open error=%v, want ErrCrossDevice", openErr)
+	}
+}
+
+func writeModelMountFixture(t *testing.T, directory string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(directory, "manifest.json"), []byte(`{"packageId":"mount-boundary"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "model.onnx"), []byte("synthetic model"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 type mountBoundaryWaker struct{}
 
 func (mountBoundaryWaker) Wake() {}

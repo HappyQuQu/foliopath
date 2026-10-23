@@ -1,12 +1,27 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { useState } from "react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { ToastProvider } from "../../ui/Toast/ToastProvider";
 import { AppShell } from "./AppShell";
+
+it.each([
+  ["/libraries/lib_1/search?q=old&mode=semantic", "/libraries/lib_1/search?q=blue+%26+%E8%93%9D&mode=semantic"],
+  ["/libraries/lib_1/search?directoryId=dir_1&scope=directory", "/libraries/lib_1/search?directoryId=dir_1&scope=directory&q=blue+%26+%E8%93%9D"],
+])("replaces the global query without losing search context: %s", async (searchHref, expected) => {
+  const user = userEvent.setup();
+  function Location() { const location = useLocation(); return <output data-testid="search-location">{location.pathname}{location.search}</output>; }
+  render(<ThemeProvider><ToastProvider><MemoryRouter>
+    <AppShell active="search" homeHref="/" identity="管理员" searchHref={searchHref} settingsHref="/settings/general" title="搜索"><Location /></AppShell>
+  </MemoryRouter></ToastProvider></ThemeProvider>);
+  await user.type(screen.getByRole("searchbox"), "blue & 蓝");
+  await user.keyboard("{Enter}");
+  expect(screen.getByTestId("search-location")).toHaveTextContent(expected);
+});
 
 it("closes mobile navigation with Escape and restores focus", async () => {
   const user = userEvent.setup();
@@ -42,6 +57,20 @@ it("closes mobile navigation with Escape and restores focus", async () => {
 
   expect(openButton).toHaveAttribute("aria-expanded", "false");
   expect(openButton).toHaveFocus();
+});
+
+it("forwards search guidance without interpreting feature URL modes in the shared shell", async () => {
+  const user = userEvent.setup();
+  function Location() { const location = useLocation(); return <output>{location.pathname}{location.search}</output>; }
+  render(<ThemeProvider><ToastProvider><MemoryRouter>
+    <AppShell active="search" homeHref="/" identity="管理员" searchHref="/libraries/lib_1/search?mode=semantic&scope=library"
+      searchInput={{ label: "Describe visual content", placeholder: "Cars by the sea" }} settingsHref="/settings/general" title="搜索"><Location /></AppShell>
+  </MemoryRouter></ToastProvider></ThemeProvider>);
+  const input = screen.getByRole("searchbox", { name: "Describe visual content" });
+  expect(input).toHaveAttribute("placeholder", "Cars by the sea");
+  await user.type(input, "汽车");
+  await user.keyboard("{Enter}");
+  expect(screen.getByRole("status")).toHaveTextContent("/libraries/lib_1/search?mode=semantic&scope=library&q=%E6%B1%BD%E8%BD%A6");
 });
 
 it("keeps the directory sidebar without duplicate product navigation", async () => {
@@ -80,6 +109,28 @@ it("keeps the directory sidebar without duplicate product navigation", async () 
   );
 });
 
+it("closes an open drawer when its destination changes without remounting the shell", () => {
+  function Workspace() {
+    const [destination, setDestination] = useState("library:tags");
+    const [search, setSearch] = useState("");
+    return <AppShell active="browse" homeHref="/" identity="管理员" searchHref="/search" settingsHref="/settings/general"
+      navigationKey={destination} title="标签" topbarContent={<span>标签</span>}
+      sidebarContent={<><button onClick={() => setSearch("travel")}>Search tags</button><button onClick={() => setDestination("library:travel")}>Choose travel</button></>}>
+      <output>{search}</output>
+    </AppShell>;
+  }
+  render(<ThemeProvider><ToastProvider><MemoryRouter><Workspace /></MemoryRouter></ToastProvider></ThemeProvider>);
+  const open = screen.getByLabelText("打开导航");
+  fireEvent.click(open);
+  fireEvent.click(screen.getByText("Search tags"));
+  expect(open).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(screen.getByText("Choose travel"));
+  expect(open).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByLabelText("打开导航")).toBe(open);
+  expect(open).toHaveFocus();
+  expect(screen.getByText("travel")).toBeInTheDocument();
+});
+
 it("uses only the global header on pages without a directory sidebar", async () => {
   const user = userEvent.setup();
   render(
@@ -110,6 +161,17 @@ it("uses only the global header on pages without a directory sidebar", async () 
     "href",
     "/settings/general?libraryId=lib_1",
   );
+});
+
+it("exposes people as a direct global destination when configured", () => {
+  render(
+    <ThemeProvider><ToastProvider><MemoryRouter initialEntries={["/libraries/lib_1/browse"]}>
+      <AppShell active="browse" homeHref="/" identity="管理员" peopleHref="/intelligence?view=clusters" searchHref="/search" settingsHref="/settings/general" title="浏览">
+        <h1>内容</h1>
+      </AppShell>
+    </MemoryRouter></ToastProvider></ThemeProvider>,
+  );
+  expect(screen.getByRole("link", { name: "人物" })).toHaveAttribute("href", "/intelligence?view=clusters");
 });
 
 it("opens the global account menu and supports direct logout", async () => {

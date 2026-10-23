@@ -1,0 +1,76 @@
+# Standalone optional two-service deployment (ADR-0019/0020), not an override.
+# Load/verify both images first. No latest tags, downloads, or implicit pulls.
+services:
+  foliopath:
+    image: ${FOLIOPATH_IMAGE:?Set the verified application image digest or local image ID}
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    stop_grace_period: 30s
+    cpus: 1
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    pids_limit: 256
+    environment:
+      TZ: ${TZ:-UTC}
+      FOLIOPATH_LISTEN: 0.0.0.0:8080
+      FOLIOPATH_AI_DEPLOYMENT: ${FOLIOPATH_AI_DEPLOYMENT:?Set independently verified deployment JSON}
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=0700
+    ports:
+      - "${FOLIOPATH_BIND_ADDRESS:-127.0.0.1}:${FOLIOPATH_PORT:-8080}:8080"
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_LIBRARY_PATH:?Set an existing single media root}
+        target: /library
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${FOLIOPATH_DATA_PATH:?Set an existing dedicated data directory}
+        target: /app/data
+        bind:
+          create_host_path: false
+    networks: [web, inference]
+    healthcheck:
+      test: [CMD, /app/foliopath, healthcheck]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    # Deliberately no depends_on: AI unavailable must not block core browsing.
+  machine-learning:
+    image: ${FOLIOPATH_AI_IMAGE:?Set the verified AI image digest or local image ID}
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    stop_grace_period: 30s
+    cpus: 3
+    mem_limit: 2304m
+    memswap_limit: 2304m
+    pids_limit: 256
+    tmpfs:
+      - /verified-cache:rw,noexec,nosuid,size=1200m,mode=0700
+      - /tmp:rw,noexec,nosuid,size=128m,mode=0700
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_MODEL_CACHE_PATH:?Set the existing verified model cache}
+        target: /cache
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [inference]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:3003/ping', timeout=2).read() == b'pong'"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 60s
+networks:
+  web:
+  inference:
+    internal: true

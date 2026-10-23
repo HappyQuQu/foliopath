@@ -1,5 +1,91 @@
 # FolioPath 安全模型
 
+ADR-0028 的显式 PNG v4 仅在部署启动选择，不接收浏览器逐图策略。PNG 上限 64 MiB / 40 MP、
+1 MiB 有界头、公共边长和 8 MiB 输出验证，在安全已打开的 Linux FD 内解码；没有媒体 pathname 重开、
+原件 mmap/写入或任意下载。复用共享 native 准入/回收和取消/空读预算，截断 PNG 不沿用 JPEG 容错。
+缺省 v3 及标签输入不变，新身份不覆盖旧向量。合成测量不保证恶意输入恒定峰值或默认预算通过；
+详见[修复与风险边界](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+2026-10-23 Node 24 工具链维护重新审计现有 npm 依赖，发现 high/critical 告警（含 Storybook/Vite 等），
+`audit:high` / 综合 `npm run check` 未通过；未添加例外、降低阈值或改变原依赖图。
+Node 升级与兼容性测试通过不代表漏洞已修复；[快照与边界](changes/FIX-2026-10-23-node24-lts.md#安全审计待处理不是-node-升级引入的新依赖)。
+
+ADR-0027 的交接不是公共恢复后门：仅信号标记且处理器/heartbeat 已退出的精确 running claim 可有审计交回。
+旧版本离线工具需部署者先确认 owner 停止/完整备份，使用固定 Linux 数据根和最多 32 项精确清单；
+闭集 kind、不接受 SQL/任意路径、不复活取消或历史终态，失败消息不输出底层异常。未增加网络/API/权限。
+
+ADR-0026 的 photo-tag overlay 使用相同固定 JoyTag 权重与已审核类别 key；展示翻译不是自由文本提示词。
+类别变化绑定 policy 摘要，运行源变化绑定独立 tag runtime；不重标旧结果，不改变 legacy 搜索/人物身份。
+复用唯一 scheduler/killable child、原 snapshot/transform owner；没有额外服务、出网、公开端口或媒体/DB 挂载。
+中文检索只展开有界固定别名，不接受 SQL 或模型 URL；人工原文不被推断式改写，用户移除与人工优先照常生效。
+
+ADR-0025 多语言仅从固定 immich-app revision 获取，部署逐文件核对 Git/LFS 与独立 SHA256 清单。
+新语义身份与 legacy face/tag 分开验证，仍是唯一 scheduler；未知模型/维度拒绝。
+新增 scratch volume 是可丢弃工作区，不挂原媒体/数据库，不信任遗留内容/symlink；
+不以原宿主权重 mmap 替代已核验副本。旧 2 GiB 合同不放宽，新语义单独 4 GiB/512 文件预算。
+固定镜像/私有网络仍是前提，不声称远程 attestation；权重许可/发行材料没有因本地通过获准。
+
+2026-10-23 / ADR-0023：在线数据库维护仅在主应用容器内执行 `foliopath database-check`，共享 Linux 锁域；
+禁止宿主机直接打开活跃 Docker Desktop WAL 文件。命令不接收路径、Linux-only、只读、15 秒上限、固定输出，
+不暴露错误原文或数据；不组合服务器/worker/模型，不迁移或写库。主应用 shell 权限没有扩大，AI 仍无 DB/媒体挂载。
+运行错误只记录闭集分类、来源/阶段与存储数值码，不能借诊断输出 SQL、路径、凭据或异常原文。
+
+2026-10-23 人物失败诊断：复用鉴权 faces 读取合同，仅返回固定原因码、opaque 资产/任务 ID、文件名与时间；
+不返回底层异常、SQL、主机路径、源指纹、模型向量或人脸像素。样本最多 20，原因种类最多 5；原始媒体保持只读。
+本地 Docker 故障注入只改脚本创建的临时合成库状态，不能对用户媒体库或线上数据库进行类似注入。
+
+## 自动标签与有界推理增量（2026-10-22）
+
+[CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) / [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md)
+保持主应用 + AI 两个部署单元；AI 仍无公开端口、媒体/数据库卷、Docker socket 或联网下载路径。
+新自动标签端点沿用登录、写操作 CSRF、设置 If-Match、任务幂等键与现有取消合同，浏览器不提供模型
+URL、路径、阈值或候选词。部署管理员固定 `foliopath-tag-v1` 模型/输出策略/runtime/cache 身份，
+主应用在请求前及响应头复核，不能信任首次 HTTP 返回作为预期身份。
+
+AI 父进程只允许一个实际推理子进程和一个等待请求；26 秒总期限覆盖排队、所用模型子集的逐字节
+验证/私有复制、加载与推理。成功、失败、取消、超时均须终止并 wait 回收 child 后释放准入并清理
+其专属 tmpfs；不能靠 Python GC 推定 ORT 内存释放。启动验证完整固定 manifest，随后每次仅暂存
+当前能力族的完整所需子集，不放宽文件/hash/目录边界或整体身份。保留既有 2304 MiB RAM、
+1200 MiB 快照预算；具体输入上限与固定输出过滤以 [AI 服务合同](../services/inference/README.md) 为准。
+固定类别仅为客观物体/场景/动作等安全过滤，最多 20 项，不输出敏感身份类别；分数不代表校准概率。
+
+原图只经主应用 `internal/files`/media 边界只读访问，推理前后验证实际打开的媒体身份；AI 仅收到
+有界编码内容。数据库源指纹单独不能证明文件未变。写入在同一事务检查开关、取消、租约、claim、
+模型及源，再合并标签并推进任务，失败关闭不留半次提交。人工标签与按图同名删除抑制属于 `/app/data`
+应用状态：重跑、源变化、模型变化不会消除人工选择；全局标签删除不成为未来图片的黑名单。
+失败/取消持久阻止同模型自动重入，避免服务异常循环创建新任务；关机走租约恢复，不伪装用户取消。
+
+运行时代码/策略身份变化须重新核验，不静默沿用旧搜索/人物索引身份。以上为实现边界，最终本地
+Docker、模型来源/质量、供应链和发行签署必须分别有证据；不能由单测或此安全说明替代。
+
+P5 根 `compose.ai.yaml` 落实既有双服务边界：AI 仅 internal 网络、无端口或媒体/数据库卷，只读缓存；主应用单只读媒体根和专用状态，默认回环端口。两侧只读根、cap_drop ALL、no-new-privileges、禁 swap，缺失 bind 源不自动创建。主应用保留对外网络用于正常 Web 接入，不声称整套部署完全禁出网；AI 不继承代理，不联网下载。配置/实际挂载检查不等于 G02 全部安全项通过。
+
+P4 大 JPEG 语义预处理修复：仅 JPEG 使用经源尺寸校验的 decoder shrink-on-load，首次 native load 前选倍率并在加载后验证 ≤16 MP；不把 180 MP JPEG 源尺寸预算当完整解码预算。JPEG 源字节预算 64 MiB，其他格式 32 MiB；输出 8 MiB、长边 1024 不变，其他格式仍拒绝 >16 MP。原图只读、失败关闭、既有有界任务并发不变。该限制不保证所有恶意压缩输入的恒定内存，仍须容器资源限制及回归。[变更记录](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+P2 人脸组操作门禁由 face owner 持有，未质量校准时正式 app 的 `assign_cluster` 与带 sourceCluster 的创建人物均拒绝，不能只禁用 UI。逐脸人工归类仍须认证、CSRF、revision 和幂等保护。非空验收使用生成的虚构人物 fixture，不读取开发者真实媒体；AI 仅接收主应用编码内容，无媒体/数据库挂载。测试 profile 和成功下载不代表生产质量或模型授权已通过。
+
+2026-09-15 候选启动组合：部署环境独占 AI origin 和预期身份配置，浏览器不能提供
+目标地址。每次发送图片/文本前先核验身份，响应仍验证身份头。共享两请求预算已满
+不修改模型可用性。主应用本地测试端口限回环；AI 服务不发布端口。此为可信部署兼容
+核验，不提供远程证明，模型来源/许可仍按本地未审查缓存标记。
+
+ADR-0020 专用 AI 候选镜像先按固定清单、目录 fd/O_NOFOLLOW 与 SHA-256 将模型复制到
+容器私有快照，推理不继续访问宿主原缓存。主应用不挂模型或 Docker socket。仅可信私网
+使用固定任务；身份响应属于部署兼容性证据，不是远程 attestation。候选清单来源是本地
+复制缓存，不能冒充上游签名。主应用集成与发行验证未完成；见[服务合同](architecture/independent-ml-service-contract.md)。
+
+ADR-0019 增加同机容器间图片/文本 HTTP 边界：默认私有 Docker 网络，不发布 AI 端口，
+不挂载媒体或主数据库；主应用受控发送载荷。模型身份、载荷/响应限额、超时及出站下载策略
+必须在生产接入前定义。当前 spike 只有合成输入、只读模型缓存与禁外网网络，不证明生产安全。
+
+POST-MVP-5 显式模型出站代理见 [ADR-0017](adr/0017-explicit-model-download-proxy.md)。
+配置 `FOLIOPATH_MODEL_DOWNLOAD_PROXY` 后，目标 DNS 与目标地址策略交给部署信任的代理，不能声称
+客户端仍在逐跳锚定目标公网 IP。客户端仅拨显式代理，保留目标私网 IP 字面量/本地域名拒绝、
+HTTPS 验证、固定源/重定向清单、文件 hash 和限额；不继承环境代理、不回退直连。
+ADR-0018 允许已认证管理员经 CSRF 保护配置可信代理 endpoint；custom 地址可回显给管理员，
+部署地址只显示是否配置。API no-store，错误不含地址；固定目标测试限时 20 秒、每实例一个，
+不能指定任意探测目标。配置代理意味着信任该 endpoint 的 DNS/IP 策略。
+
 ## 范围和信任边界
 
 FolioPath 读取用户提供的目录和媒体文件，并通过 Web 服务展示内容。即使媒体目录只读，路径、文件名、元数据和媒体编码仍是不可信输入。主要边界包括：
@@ -10,6 +96,19 @@ FolioPath 读取用户提供的目录和媒体文件，并通过 Web 服务展�
 - 可重建媒体索引与未来用户配置、认证和分享数据之间的数据边界。
 
 首版安全目标是防止越界读取、未授权网络暴露、媒体解析导致的无界资源消耗，以及扫描故障造成的索引破坏。只读挂载只能防止修改原媒体，不能替代访问控制和输入验证。
+
+## 模型下载出站边界（CR-2026-026）
+
+[ADR-0016](adr/0016-admin-model-download-catalog.md) 允许部署管理员在固定数据文件中配置下载源。
+这是可信部署配置，不接受浏览器提交 URL、任意路径或远端动态目录；更改文件等价于更改模型信任清单。
+应限制该文件的写权限并纳入备份审核。未配置不出站；无效配置拒绝启动。下载仍需认证、CSRF 与幂等键。
+
+`internal/aimodel/downloadhttp` 只执行 HTTPS GET（443），拒绝凭据、私网/回环/链路本地/保留地址；
+解析结果全量验证后直接拨号固定 IP，避免重解析越过校验。重定向最多五跳，只允许原始主机或明确配置的
+CDN 主机；每一跳继续验证 HTTPS/IP，不继承环境代理、不上传媒体或查询。单文件最多 30 分钟、
+文件大小由 manifest 限制，现有 worker 串行处理；managed store 保留配额/余量与逐文件 SHA-256 校验。
+失败不会注册模型，错误只返回脱敏代码 `download_failed`。取消与重启清理遵循现有安装生命周期。
+此规则仅替代历史“无下载出站”限制，不提供公共源运营、模型质量/许可批准或推理发布授权。
 
 ## 文件系统边界
 
@@ -198,7 +297,8 @@ MPEG-TS 兼容仅向已由 scanner 按现有视频扩展名索引的候选提供
 转码或原文件写入。`.ts/.mts/.m2ts` 不进入支持合同，服务端成功也不推断浏览器
 可播放。
 应用显式启动 govips，固定 native concurrency 1、64 MiB/32 entry cache 和 0 cached files；
-两个媒体 worker 是进程级唯一任务并发。FFmpeg/ffprobe 使用单 decoder/filter thread、
+一个媒体 worker 是进程级唯一任务并发，避免两个约 100 MP JPEG 在 1 GiB 限额内同时求值。
+FFmpeg/ffprobe 使用单 decoder/filter thread、
 probe 与 poster 各自 60 秒超时和独立进程组，取消会杀整个组而不是只杀直接子进程。libvips 仍是进程内 native
 调用，不能承诺在任意 C 调用中间抢占或隔离 native crash；当前在求值前拒绝超限输入，并在
 返回后的第一个安全点重新检查取消。改变到进程隔离需要先接受 ADR。
@@ -298,3 +398,104 @@ S4-005B 已验证生产原媒体 route 只接受资产 ID，并经 session、SQL
 - 管理员初始化竞态、未认证访问、登录限流、会话过期/撤销、退出、CSRF 和反向代理配置。
 - root runtime、单一只读媒体根挂载、无 mount capability、真实 tmpfs 磁盘已满和数据库恢复的
   Docker 集成测试；非 Linux 结果不能代替 Linux mount-boundary 证据。
+
+## POST-MVP-5 revision 1 AI 安全边界
+
+- revision 1 不联网下载模型、不上传媒体或查询；容器不新增出站网络要求。API 拒绝 URL、绝对路径、
+  相对路径和任意模型名，只接受服务端扫描产生且绑定 scan revision 的 opaque candidate ID。
+- `/models` 是可选独立只读来源，不能位于 `/library` 下。扫描和直接读取必须经 `internal/files` 的
+  专用 anchored boundary，拒绝 symlink、hardlink、特殊文件、后代 mount、可写来源、目录层级逃逸、
+  文件替换竞态和非 allowlist 文件；不得执行包内代码、脚本、动态库或 ONNX external-data。
+- managed copy 先做空间安全余量检查，在 `/app/data/models` 同文件系统 staging 中逐文件验证固定大小
+  与 SHA-256，再 no-replace 原子发布并 fsync parent。验证失败、取消、盘满或重启不能改变 active pointer。
+- direct 模型每次进程启动、session load 和显式刷新前重验来源身份、只读状态与 hash；变化后标记
+  unavailable，不自动选择别的包。已有派生数据可保留，但依赖文本 encoder 的查询失败关闭。
+- 查询原文属于敏感临时输入：不写请求日志、系统事件、任务、metrics 标签、trace、诊断包或 cursor；
+  只允许内存中有界处理。embedding 和 query fingerprint 不通过 API 返回。
+- 日志仅允许 opaque library/model/generation/operation/request ID、稳定阶段、计数、耗时与稳定错误码；
+  不记录媒体路径、模型文件名、容器/宿主路径、tokenizer 内容、runtime 原错、向量或相似查询样本。
+- activation runtime 只接收来源 owner 已打开的 Linux 文件句柄和 `/proc/self/fd/<fd>` 临时引用；不接收
+  `/models`、`/app/data/models` 或宿主路径，不把完整 ONNX 图复制进 Go heap 或二次临时包。句柄在
+  session load 完成前保持打开，非 Linux 生产边界失败关闭。
+- ORT adapter 只在显式 `onnxruntime` build tag 下启用并要求精确 1.28.0；默认构建返回稳定 unavailable。
+  adapter 不读取或传播 ORT 原始错误消息，只保留稳定操作名与数值错误码。`CreateSession` 不能由 ORT
+  1.28 C API 中断，因此取消只在 native load 前后生效；不得用泄漏 native session 的孤儿 goroutine
+  伪造 hard timeout。若硬超时成为发布要求，必须先用 ADR 接受进程隔离及其生命周期边界。
+- 管理模型、开关、重建、取消与清除均要求管理员 session、CSRF、请求体上限、操作限流、幂等键和
+  revision/ETag 并发控制；强 `If-Match` 只接受服务端签发的 canonical positive-decimal revision，
+  不把 `r01`、`r+1` 等文本别名解释为同一 validator。语义查询按验证后客户端地址独立限制为每分钟 30 次，不与目录浏览或文件名
+  搜索共享 operation key；进程内 interactive admission 容量为 1，已占用时立即返回 `semantic_busy`，
+  不在 native inference/session 前累计等待请求。
+- AI/semantic mutation JSON 只允许一个严格 value 且硬上限为 4 KiB；decoder 必须观察第 4,097 个字节，
+  不能把 `LimitReader` 截断造成的 EOF 当成合法结束，也不能用超长尾随空白绕过 admission；
+  `Content-Type` 按媒体类型解析，接受 `application/json` 的合法参数但拒绝其他或畸形媒体类型。
+- AI operation 的 Get/create/transition repository 返回值必须由状态机 owner 校验 state、phase、
+  finished time 和稳定 error code 的合法组合，并绑定请求的 operation identity、owner 与单步 revision；
+  不一致状态或另一条合法 operation 均不得进入 worker/API，外部只返回脱敏内部错误。
+- 安装/激活 admission 即使不经过 OperationService，也必须在 ManagementService 出口校验 operation
+  kind、激活 model 绑定、Created/Replayed 语义及新建 queued/revision-1 状态，才可生成 Location/ETag。
+- install/activation admission 必须在 worker wake 前验证 queue 返回的 idempotency/request、
+  candidate/source 或 model/availability owner 及 operation；失败不得发出 wake signal。
+- 固定窗口 limiter 遇到 wall-clock 回拨时必须保留已消耗额度并把未来 bucket 起点重基准到当前时间；
+  不因回拨恢复登录或 semantic 配额，`Retry-After` 不越过窗口，4,096 bucket 满载也须在一个窗口后恢复。
+- semantic cursor 必须在 snapshot 或解码前满足 8～2,048 bytes；搜索 HTTP request-target 的 raw query
+  在 `url.ParseQuery` 前受 16 KiB 硬上限约束。repository page 必须有界、有限、唯一、有序且属于当前
+  snapshot/scope；catalog hydration 还须逐项匹配 asset/library ID 并保持 online，否则按损坏、stale 或
+  not-ready 失败关闭，不能利用畸形 token、异常 adapter 或 ID 复用放大资源或返回跨库资产。
+- 所有共享 cursor 只接受 canonical Raw URL Base64；解码后重编码必须与输入逐字节相同，禁止利用末尾
+  未使用 bit 为同一 AEAD bytes 制造多个 token 表示。semantic snapshot 的 generation、coverage、成员与
+  排除集合也必须由 capability owner 复核，多库 coverage 聚合必须拒绝整数溢出；内部损坏不得映射成
+  客户端输入错误或返回回绕计数。
+- transport 日志只记录 method、status、request ID 与 duration，不记录 URL/query string；即使 tokenizer、
+  encoder 或 vector adapter 返回包含查询正文的内部错误，public error 与结构化日志仍必须由 HTTP owner
+  收敛为稳定代码，禁止透传 runtime message。
+- semantic canonical owner 在 native tokenizer 前以大小写不敏感方式拒绝 literal `</s>` 和 `<unk>`；
+  禁止用户查询注入注册 control token，拒绝结果统一映射为不回显原文的 `invalid_request`。
+- 清除只覆盖所选库可重建语义状态；原媒体、收藏、人工标签和全局模型不在删除端口能力内。安全测试
+  必须比较操作前后 synthetic `/library` sentinel 的路径、mtime 和 SHA-256。
+- runtime/权重在 Release Gate 前必须有双架构 SBOM、许可证/再分发、notices、provenance、漏洞与 VEX
+  签署。签名发行 catalog 与在线镜像不是 revision 1 安全边界，未来增加时必须重新评审。
+
+人脸和人物数据不在 revision 1，因此本 migration/API 不得创建或暴露 biometric 表、裁剪、endpoint
+或诊断字段。未来 Slice E 必须先通过独立隐私 Gate。
+
+## POST-MVP-5 revision 2 C+D+E 安全与隐私合同
+
+Revision 2 已把 C/D/E 纳入冻结范围；上一段只描述 revision 1 历史边界。`INT-S1R2` 通过前仅允许
+OpenAPI/data 合同；当前 S2C fail-closed production migration、handler、worker 与 `internal/face` 已
+Backend Ready。CR-2026-022 没有取消 `INT-015` 隐私和合法数据要求，而是把最终批准归入 S4 Release Gate。
+
+- C 的词表只引用管理员现有 tag ID；模型不能写自由文本。接受 suggestion 必须原子复核 generation、
+  vocabulary、source fingerprint、suggestion revision 和 curation revision。dismiss/accepted 是应用状态，
+  不作训练输入；普通 disable/derived clear 不删除它。
+- D 只读消费 thumbnail/media owner 发布的完整 active storyboard，不接受 API 路径或直接调用 FFmpeg。
+  query 正文仍不得写日志/cursor；返回只含 asset ID、有限 score 和命中帧 ordinal/timestamp/plan size。
+- E 默认关闭且按库明确告知。embedding、observation、crop cache、anonymous cluster 归为高敏感可重建
+  数据；person name、manual assignment/exclusion/cannot-link/audit 归为不可重建应用状态。向量仅存受控的
+  应用数据库，不进入公共 API、日志、诊断或支持包；经认证的人脸审核 API 可按既有合同返回相对框、
+  人物管理 API 可返回人工姓名。不得把内部向量、裁剪字节/宿主路径、原始模型错误或推测身份属性泄露到外部。
+- 每个 SQLite 连接强制 `secure_delete=ON`；清除验收在成功删除并 truncate WAL 后扫描活动 DB/WAL/SHM
+  的唯一 canary。该边界不承诺擦除 operator backup、storage snapshot、文件系统 journal 或合同明确保留的
+  应用状态，相关副本仍由部署者按保留/销毁策略处理。
+- face runtime 只能产生匿名 core/edge，不能创建姓名或自动合并 named person。只有合法真实 ground truth
+  证明 core precision ≥99.5% 时才开放整组操作，否则强制逐脸或小组确认；edge 永远逐项确认。
+- core component 必须满足 smallest-ID anchor coherence，不能因 `A≈B`、`B≈C` 就传递合并未达到
+  core 阈值的 `A/C`；bridge candidate 只能降为 edge。cannot-link 仍在 anchor/model 判断前失败关闭。
+- 未注册的 production candidate adapter 仍只接受 capability owner 已打开的媒体流和模型 FD：libvips 解码
+  强制格式/字节/像素/长边上限，ONNX session 只接受 `/proc/self/fd`、精确 role/大小和冻结 tensor ABI；
+  detector/align/embed 输出只在内存中流转。模型、输入 path、crop、landmark、向量和 raw runtime error
+  不得进入日志/诊断。S4 Release Gate 前 app composition 继续禁止注入该 adapter。
+- face format v3 只接受不可拆分的 detector/embedder/threshold-profile 组合包。threshold profile 由严格
+  canonical owner 解析并绑定质量 summary hash，不接受 manifest 或 profile 自报 pass/整组授权；face activation
+  只更新独立 face generation，不得退休 semantic generation 或提前切换任何库的可见 cluster。内建 catalog
+  没有获批 entry 时 application composition 必须继续失败关闭。
+- manual constraint 在换代/重聚类前优先应用；cannot-link 冲突、stale revision、ambiguous lineage 均失败
+  关闭。人物 merge 全事务，不能自动或部分合并；undo 仅允许最近且未被后续 revision 修改的事件。
+- derived clear 与 manual relationship clear 是两个权限相同但危险度不同的操作；后者必须显示范围与影响
+  计数、精确二次确认、CSRF、If-Match 和 idempotency。两者均不得触碰 `/library`。
+- E 的 fixture intake 必须记录来源、授权、purpose、最小保留期、访问 owner 和删除证明；真实 biometric
+  ground truth 不进入 git、普通 CI artifact、日志或公共对象存储。访问与导出失败关闭并有审计。
+
+所有 C/D/E transport 使用独立固定窗口 bucket，并共享有界总 bucket；后台 admission 低于浏览任务且全局
+有界。原模型/runtime、双架构最终镜像必须具备审核 hash/license、SBOM、VEX、notices、provenance 和安全
+签署；缺签、漏洞无处置或来源失效时能力 unavailable，保留最后可靠派生状态与人工应用状态。

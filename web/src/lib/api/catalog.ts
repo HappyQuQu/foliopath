@@ -91,6 +91,20 @@ export interface AssetPage {
   counts?: AssetCounts;
   items: Asset[];
   nextCursor: string | null;
+  semanticCoverage?: SemanticSearchCoverage;
+  semanticVideoMatches?: Record<string, SemanticVideoMatch>;
+}
+
+export interface SemanticVideoMatch {
+  ordinal: number;
+  planSize: 4 | 10;
+  timestampMs: number;
+}
+
+export type SemanticSearchCoverage = components["schemas"]["SemanticSearchCoverage"];
+
+export interface SemanticAssetPage extends AssetPage {
+  semanticCoverage: SemanticSearchCoverage;
 }
 
 export interface AssetCounts {
@@ -251,6 +265,92 @@ export async function searchAssets({
       },
     });
     if (data) return mapAssetPage(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchSemanticAssets({
+  cursor,
+  directoryId,
+  libraryId,
+  limit = 50,
+  q,
+  recursive,
+}: {
+  cursor?: string;
+  directoryId?: string;
+  libraryId?: string;
+  limit?: number;
+  q: string;
+  recursive?: boolean;
+}): Promise<SemanticAssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/semantic/assets", {
+      params: {
+        query: {
+          limit,
+          q,
+          ...(cursor ? { cursor } : {}),
+          ...(libraryId ? { libraryId } : {}),
+          ...(directoryId ? { directoryId } : {}),
+          ...(directoryId && recursive ? { recursive: true } : {}),
+        },
+      },
+    });
+    if (data) return { ...mapAssetPage(data), semanticCoverage: data.coverage };
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchSemanticVideos({
+  cursor,
+  directoryId,
+  libraryId,
+  limit = 50,
+  q,
+  recursive,
+}: {
+  cursor?: string;
+  directoryId?: string;
+  libraryId?: string;
+  limit?: number;
+  q: string;
+  recursive?: boolean;
+}): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/semantic/videos", {
+      params: {
+        query: {
+          limit,
+          q,
+          ...(cursor ? { cursor } : {}),
+          ...(libraryId ? { libraryId } : {}),
+          ...(directoryId ? { directoryId } : {}),
+          ...(directoryId && recursive ? { recursive: true } : {}),
+        },
+      },
+    });
+    if (data) {
+      return {
+        items: data.items.map((hit) => mapAsset(hit.asset)),
+        nextCursor: data.nextCursor,
+        semanticCoverage: {
+          complete: data.coverage.complete,
+          completed: data.coverage.completed,
+          eligible: data.coverage.eligible,
+          excludedLibraries: data.coverage.excludedLibraries ?? [],
+          failed: data.coverage.failed,
+          stale: data.coverage.stale,
+        },
+        semanticVideoMatches: Object.fromEntries(
+          data.items.map((hit) => [hit.asset.id, hit.matchedFrame]),
+        ),
+      };
+    }
     throw createApiError(error, response);
   } catch (error) {
     throw createApiError(error);

@@ -332,16 +332,23 @@ func (s *Store) ListAssetPage(
                storyboard.cell_height,
                l.status,
                EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
-        FROM assets a
+        FROM assets a INDEXED BY ` + assetOrderIndex(params.Query) + `
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard
           ON storyboard.asset_id = a.id
          AND storyboard.variant = 'storyboard'`)
-	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" {
+	if anchor := ftsAnchor(params.Query.SearchTerms); anchor != "" && params.MatchCount < 10_000 {
+		// Build the FTS candidate set once. A correlated MATCH probe per ordered
+		// asset becomes expensive when sparse matches are near the end of the index.
+		// Broad matches use the ordered scan with the exact predicates below;
+		// materializing a large FTS set costs more than reading the first page.
 		builder.WriteString(`
-        JOIN asset_search ON asset_search.rowid = a.id
-        WHERE asset_search MATCH ?`)
+		WHERE a.id IN (
+			SELECT rowid
+			FROM asset_search
+			WHERE asset_search MATCH ?
+		)`)
 		args = append(args, anchor)
 	} else {
 		builder.WriteString(`
@@ -497,15 +504,16 @@ func (s *Store) CountAssets(
 	builder.WriteString(`
         SELECT COUNT(*),
                COALESCE(SUM(CASE WHEN a.kind IN ('image', 'animated') THEN 1 ELSE 0 END), 0),
-               COALESCE(SUM(CASE WHEN a.kind = 'video' THEN 1 ELSE 0 END), 0)
-        FROM assets a`)
+               COALESCE(SUM(CASE WHEN a.kind = 'video' THEN 1 ELSE 0 END), 0)`)
 	if anchor := ftsAnchor(query.SearchTerms); anchor != "" {
+		// Keep FTS as the driving table even with a library predicate. Otherwise
+		// SQLite may probe MATCH once per library asset via its library index.
 		builder.WriteString(`
-        JOIN asset_search ON asset_search.rowid = a.id
-        WHERE asset_search MATCH ?`)
+        FROM asset_search CROSS JOIN assets a
+        WHERE asset_search.rowid = a.id AND asset_search MATCH ?`)
 		args = append(args, anchor)
 	} else {
-		builder.WriteString(` WHERE 1 = 1`)
+		builder.WriteString(` FROM assets a WHERE 1 = 1`)
 	}
 	switch query.ScopeKind {
 	case catalog.ScopeGlobal:
@@ -569,15 +577,58 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
 	if assetID <= 0 {
 		return catalog.Asset{}, catalog.ErrAssetNotFound
 	}
-	var item catalog.Asset
-	var kind, probeStatus, playbackStatus, libraryStatus string
-	var width, height, durationMS sql.NullInt64
-	var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
-	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
-	var probeError, thumbnailStatus, thumbnailError sql.NullString
-	var storyboardStatus, storyboardError sql.NullString
-	var favorite int64
-	err := s.db.QueryRowContext(ctx, `
+	items, err := s.GetAssetsByIDs(ctx, []int64{assetID})
+	if err != nil {
+		return catalog.Asset{}, err
+	}
+	return items[0], nil
+}
+
+func (s *Store) GetAssetsByIDs(ctx context.Context, assetIDs []int64) ([]catalog.Asset, error) {
+	if len(assetIDs) < 1 || len(assetIDs) > catalog.MaxPageSize {
+		return nil, catalog.ErrInvalidQuery
+	}
+	arguments := make([]any, len(assetIDs))
+	placeholders := make([]string, len(assetIDs))
+	seen := make(map[int64]struct{}, len(assetIDs))
+	for index, assetID := range assetIDs {
+		if assetID < 1 {
+			return nil, catalog.ErrInvalidQuery
+		}
+		if _, exists := seen[assetID]; exists {
+			return nil, catalog.ErrInvalidQuery
+		}
+		seen[assetID] = struct{}{}
+		arguments[index], placeholders[index] = assetID, "?"
+	}
+	rows, err := s.db.QueryContext(ctx, catalogAssetProjectionSQL+` WHERE a.id IN (`+strings.Join(placeholders, ",")+`)`, arguments...)
+	if err != nil {
+		return nil, fmt.Errorf("get catalog asset batch: %w", err)
+	}
+	defer rows.Close()
+	byID := make(map[int64]catalog.Asset, len(assetIDs))
+	for rows.Next() {
+		item, err := scanCatalogAsset(rows)
+		if err != nil {
+			return nil, err
+		}
+		byID[item.ID] = item
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate catalog asset batch: %w", err)
+	}
+	items := make([]catalog.Asset, 0, len(assetIDs))
+	for _, assetID := range assetIDs {
+		item, found := byID[assetID]
+		if !found {
+			return nil, catalog.ErrAssetNotFound
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+const catalogAssetProjectionSQL = `
         SELECT a.id, a.library_id, l.name, a.directory_id, a.relative_path, a.name,
                a.natural_name_key, a.kind, a.media_format, a.mime_type,
                a.size_bytes, a.mtime_ns, a.source_fingerprint,
@@ -595,10 +646,18 @@ func (s *Store) GetAsset(ctx context.Context, assetID int64) (catalog.Asset, err
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard
           ON storyboard.asset_id = a.id
-         AND storyboard.variant = 'storyboard'
-        WHERE a.id = ?`,
-		assetID,
-	).Scan(
+         AND storyboard.variant = 'storyboard'`
+
+func scanCatalogAsset(row interface{ Scan(...any) error }) (catalog.Asset, error) {
+	var item catalog.Asset
+	var kind, probeStatus, playbackStatus, libraryStatus string
+	var width, height, durationMS sql.NullInt64
+	var storyboardFrameCount, storyboardColumns, storyboardRows sql.NullInt64
+	var storyboardCellWidth, storyboardCellHeight sql.NullInt64
+	var probeError, thumbnailStatus, thumbnailError sql.NullString
+	var storyboardStatus, storyboardError sql.NullString
+	var favorite int64
+	err := row.Scan(
 		&item.ID, &item.LibraryID, &item.LibraryName,
 		&item.DirectoryID, &item.RelativePath, &item.Name,
 		&item.NaturalNameKey, &kind, &item.MediaFormat, &item.MIMEType,
@@ -781,6 +840,34 @@ const assetDirectoryPathSQL = `CASE
     WHEN length(a.relative_path) = length(a.name) THEN ''
     ELSE substr(a.relative_path, 1, length(a.relative_path) - length(a.name) - 1)
 END`
+
+// assetOrderIndex keeps the outer scan in the requested keyset order. Search
+// membership remains an exact correlated FTS predicate, so SQLite can stop as
+// soon as it has collected the bounded page instead of materializing and
+// sorting every FTS candidate.
+func assetOrderIndex(query catalog.AssetQuery) string {
+	if query.Sort == catalog.SortModifiedAt {
+		switch {
+		case query.ScopeKind == catalog.ScopeGlobal:
+			return "assets_search_global_modified"
+		case (query.ScopeKind == "" || query.ScopeKind == catalog.ScopeDirectory) && !query.Recursive:
+			return "assets_browse_directory_modified"
+		default:
+			return "assets_modified"
+		}
+	}
+	if query.Sort == catalog.SortSize {
+		switch {
+		case query.ScopeKind == catalog.ScopeGlobal:
+			return "assets_search_global_size"
+		case (query.ScopeKind == "" || query.ScopeKind == catalog.ScopeDirectory) && !query.Recursive:
+			return "assets_browse_directory_size"
+		default:
+			return "assets_browse_library_size"
+		}
+	}
+	return "assets_browse_folder_name_v2"
+}
 
 func appendAssetOrder(builder *strings.Builder, query catalog.AssetQuery) {
 	direction := " ASC"

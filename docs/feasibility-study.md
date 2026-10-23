@@ -1,5 +1,9 @@
 # FolioPath 可行性研究
 
+2026-09-14 独立 ML 探针证明已有 222 缓存可在本地 Linux/arm64 官方 v3.1.0 服务离线加载，
+详见 [记录](evidence/int-001/independent-ml-local-2026-09-14.md)。这仅支持 ADR-0019 继续合同设计，
+不是新架构 Backend Ready 或中文检索/人脸质量证明。
+
 ## 结论与状态
 
 FolioPath 在既定范围内具备实现可行性，**Stage 0 Gate 已通过并允许进入 Stage 1**。
@@ -30,6 +34,7 @@ FS-01 路径边界、FS-02 SQLite/generation、FS-03 原生双架构媒体链路
 | 运维 | FS-05 已验证单容器 probe、非 root、health、优雅退出、离线恢复和故障关闭 | 正式应用观测、缓存配额、在线备份、真实升级与 NAS 断连未实现 | 在 S1/对应 Backend/Release Gate 用正式应用复验 | Stage 0 运行模式可行，不等于可发布 |
 | 跨架构 | 相同 govips/FFmpeg fixture 与 FS-05 Dockerfile 已在原生 amd64/arm64 通过 | 最终 manifest、发布 digest 和持续安全更新仍待验证 | Release Gate 对最终 digest 重跑矩阵 | 可行但不是“纯 Go”交叉编译 |
 | 许可证 | source/npm/image SPDX 可重复生成；libvips 为 LGPL-2.1，Debian FFmpeg 启用 GPL、libx264/libx265 | 最终 notices、source offer、漏洞和签署尚未完成 | 对最终双平台 digest 附 SBOM/provenance 并完成合规签署 | Stage 0 未发现换栈阻断，发布前仍必须审查 |
+| 本地 AI revision 2 | semantic v2、ORT/SentencePiece、SQLite float16、A～E capability/data/OpenAPI、C/D/E worker/API、人脸 package/generation/人物状态、故障矩阵、本地 100k 与授权 `coser` 功能验证均已落地 | 合法 semantic/tag/video/face 最终质量、face 隐私/许可、最终审核模型、native paired image、联合容量和最终再分发/SBOM/VEX/provenance 尚未通过；组合镜像 glibc Critical/High 仍未处置 | CR-2026-022 将最终发行输入归入 S4；失败时 catalog/face composition/UI release 保持关闭，不改云服务或放宽门槛 | **S2A/S2B/S2C Backend Ready；Release No-Go** |
 
 ## 当前 spike 状态
 
@@ -41,6 +46,7 @@ FS-01 路径边界、FS-02 SQLite/generation、FS-03 原生双架构媒体链路
 | [FS-04 容量基线](spikes/fs-04-capacity-baseline.md) | **Passed（扫描与搜索后端范围）；完整范围 Conditional** | Linux/arm64、2 CPU/4 GiB、10 万媒体/1 万目录混合宽度/32 层深度；另有 1,000 层 finalize、Linux RSS、三档趋势；S4-003 已补扫描并发搜索、FTS/短词/全局/keyset、取消与 rebuild 强制预算 | 代表性磁盘/最终镜像、生产媒体队列、HTTP/前端并发继续按 [S0-106](gates/MVP-2026-07-23/s0-106-capacity-gate-order.md)由后续 Gate 强制 |
 | [FS-05 镜像与恢复](spikes/fs-05-runtime-recovery.md) | **Passed（Stage 0 范围）** | 原生双架构同 Dockerfile；非 root/只读、health、退出、离线恢复、重复 migration 和满盘/损坏失败关闭 | 正式应用、在线备份、真实版本升级、NAS 断连和最终 manifest 由后续 Gate 强制 |
 | [VSP-002 视频故事板](spikes/vsp-002-video-storyboard.md) | **Passed（算法与实现可行性）；最终候选 Conditional** | 2 秒～2 小时均匀采样、fast seek/sprite、资源边界；VSP-S2/S3 与 VSP-301 已补生产后端、前端和真实产品纵向证据 | [VSP-302](gates/POST-MVP-1/vsp-302-target-platform.md)仍需同一提交的原生 amd64/arm64 成对候选证据；QEMU/跨架构模拟不能替代 |
+| [INT-001 本地智能检索与人脸聚类](spikes/int-001-ai-feasibility.md) | **本地探索已收口；revision 2 合同扩展中** | 已冻结 A+B runtime/index；revision 2 已纳入 C/D/E 并接受 capability/data/OpenAPI，拒绝超预算/低质量候选 | 合法图片/tag/video/face 质量、face 隐私与许可、生产 adapter、native amd64、联合容量和最终供应链进入对应 S2/Release Gate；不再用重复合成测试代替外部证据 |
 
 Spike 应提交可复现命令、fixture 说明、执行环境、未执行项和结论。若硬件、数据集或构建选项不同，不得横向比较为同一 benchmark。FS-04 的 Docker Desktop/tmpfs 数据只描述当前扫描/索引子范围，不能泛化为代表性 NAS、完整产品吞吐或发布预算。
 

@@ -1,4 +1,4 @@
-// Package curation owns application-only favorites and manual-tag semantics.
+// Package curation owns application-only favorites, tags, and manual protection.
 package curation
 
 import (
@@ -44,6 +44,11 @@ type Tag struct {
 	AssetCount     int64
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	// Source is set only for an asset association, never for a global tag.
+	Source TagSource
+	// AutomaticOnly is an evidence-backed global projection, not a tag source.
+	// False covers mixed/manual/unassigned tags; association reads use Source.
+	AutomaticOnly bool
 }
 
 type AssetState struct {
@@ -94,6 +99,8 @@ type AssetPosition struct {
 
 type TagListParams struct {
 	SearchKey string
+	LibraryID int64
+	Kinds     []catalog.AssetKind
 	After     *TagPosition
 	Limit     int
 }
@@ -122,6 +129,7 @@ type Repository interface {
 	RenameTag(context.Context, int64, string, string, time.Time) (Tag, error)
 	DeleteTag(context.Context, int64) error
 	ReplaceAssetTags(context.Context, int64, int64, []int64, time.Time) error
+	AddAssetTag(context.Context, int64, int64, int64, time.Time) error
 	ListTagPage(context.Context, TagListParams) ([]Tag, error)
 	ListCuratedAssetPage(context.Context, AssetListParams) ([]CuratedAsset, error)
 	CountCuratedAssets(context.Context, AssetQuery) (catalog.AssetCounts, error)
@@ -247,10 +255,24 @@ func (service *Service) ReplaceAssetTags(ctx context.Context, assetID, revision 
 	return service.GetAssetState(ctx, assetID)
 }
 
+// AddAssetTag is the curation-owned narrow port used by controlled AI
+// suggestion acceptance. It never replaces or removes existing manual tags.
+func (service *Service) AddAssetTag(ctx context.Context, assetID, revision, tagID int64) (AssetState, error) {
+	if assetID < 1 || revision < 1 || tagID < 1 {
+		return AssetState{}, ErrInvalidRequest
+	}
+	if err := service.repository.AddAssetTag(ctx, assetID, revision, tagID, service.now().UTC()); err != nil {
+		return AssetState{}, err
+	}
+	return service.GetAssetState(ctx, assetID)
+}
+
 type TagListRequest struct {
-	Search string
-	Cursor string
-	Limit  int
+	Search    string
+	LibraryID int64
+	Kinds     []catalog.AssetKind
+	Cursor    string
+	Limit     int
 }
 
 type TagPage struct {
@@ -262,6 +284,18 @@ func (service *Service) ListTags(ctx context.Context, request TagListRequest) (T
 	limit, err := normalizeLimit(request.Limit)
 	if err != nil {
 		return TagPage{}, err
+	}
+	if request.LibraryID < 0 {
+		return TagPage{}, ErrInvalidRequest
+	}
+	kinds, err := normalizeKinds(request.Kinds)
+	if err != nil {
+		return TagPage{}, err
+	}
+	if request.LibraryID > 0 {
+		if err := service.repository.ResolveLibrary(ctx, request.LibraryID); err != nil {
+			return TagPage{}, err
+		}
 	}
 	searchKey := ""
 	if request.Search != "" {
@@ -275,8 +309,10 @@ func (service *Service) ListTags(ctx context.Context, request TagListRequest) (T
 		return TagPage{}, err
 	}
 	fingerprint := fingerprint(struct {
-		Search string `json:"q"`
-	}{searchKey})
+		Search    string              `json:"q"`
+		LibraryID int64               `json:"libraryId,omitempty"`
+		Kinds     []catalog.AssetKind `json:"kinds,omitempty"`
+	}{searchKey, request.LibraryID, kinds})
 	var after *TagPosition
 	if request.Cursor != "" {
 		position, decodeErr := service.decodeTagCursor(request.Cursor, revision, fingerprint)
@@ -285,7 +321,7 @@ func (service *Service) ListTags(ctx context.Context, request TagListRequest) (T
 		}
 		after = &position
 	}
-	items, err := service.repository.ListTagPage(ctx, TagListParams{SearchKey: searchKey, After: after, Limit: limit + 1})
+	items, err := service.repository.ListTagPage(ctx, TagListParams{SearchKey: searchKey, LibraryID: request.LibraryID, Kinds: kinds, After: after, Limit: limit + 1})
 	if err != nil {
 		return TagPage{}, err
 	}
@@ -393,13 +429,9 @@ func (service *Service) ListAssets(ctx context.Context, request AssetListRequest
 }
 
 func normalizeAssetQuery(request AssetListRequest) (AssetQuery, error) {
-	kinds := append([]catalog.AssetKind(nil), request.Kinds...)
-	slices.Sort(kinds)
-	kinds = slices.Compact(kinds)
-	for _, kind := range kinds {
-		if kind != catalog.KindImage && kind != catalog.KindAnimated && kind != catalog.KindVideo {
-			return AssetQuery{}, ErrInvalidRequest
-		}
+	kinds, err := normalizeKinds(request.Kinds)
+	if err != nil {
+		return AssetQuery{}, err
 	}
 	sortField := request.Sort
 	if sortField == "" {
@@ -429,6 +461,18 @@ func normalizeAssetQuery(request AssetListRequest) (AssetQuery, error) {
 	return AssetQuery{FavoriteOnly: request.FavoriteOnly, TagID: request.TagID, LibraryID: request.LibraryID, Kinds: kinds, Sort: sortField, Order: order}, nil
 }
 
+func normalizeKinds(input []catalog.AssetKind) ([]catalog.AssetKind, error) {
+	kinds := append([]catalog.AssetKind(nil), input...)
+	slices.Sort(kinds)
+	kinds = slices.Compact(kinds)
+	for _, kind := range kinds {
+		if kind != catalog.KindImage && kind != catalog.KindAnimated && kind != catalog.KindVideo {
+			return nil, ErrInvalidRequest
+		}
+	}
+	return kinds, nil
+}
+
 func normalizeLimit(limit int) (int, error) {
 	if limit == 0 {
 		return DefaultPageSize, nil
@@ -441,7 +485,7 @@ func normalizeLimit(limit int) (int, error) {
 
 func validateTag(tag Tag) (Tag, error) {
 	name, key, err := NormalizeTagName(tag.Name)
-	if err != nil || tag.ID <= 0 || tag.AssetCount < 0 || tag.CreatedAt.IsZero() || tag.UpdatedAt.Before(tag.CreatedAt) || key != tag.NormalizedName {
+	if err != nil || tag.ID <= 0 || tag.AssetCount < 0 || tag.CreatedAt.IsZero() || tag.UpdatedAt.Before(tag.CreatedAt) || key != tag.NormalizedName || (tag.Source != "" && tag.Source != TagSourceManual && tag.Source != TagSourceAI) {
 		return Tag{}, errors.New("curation repository returned invalid tag")
 	}
 	tag.Name = name

@@ -1,0 +1,21 @@
+{
+  "profile": "s5-release-capacity-v1",
+  "image": "foliopath-p4-native:app",
+  "platform": "linux/amd64",
+  "libraryId": "lib_1",
+  "scanId": "scan_1",
+  "directories": 10000,
+  "assets": 100000,
+  "fixtureDurationMs": 4539,
+  "scanDurationMs": 88000,
+  "scanBudgetMs": 240000,
+  "browseP95Ms": 87.965,
+  "searchP95Ms": 90.920,
+  "globalP95Ms": 77.385,
+  "wideSearchP95Ms": 153.894,
+  "wideGlobalP95Ms": 142.690,
+  "memoryPeakBytes": 192823296,
+  "databaseBytes": 42904576,
+  "cacheBytes": 5495808,
+  "imageSizeBytes": 81265070
+}

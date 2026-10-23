@@ -1,6 +1,30 @@
 # FolioPath 开发就绪评审
 
+2026-10-23 PNG 语义兼容切片：ADR-0028 接受显式版本化输入合同，Go/native 与真实模型合成 Docker
+已通过，允许候选交付；原库部署验收尚未完成。用户授权当前任务终态、完整停写备份后再切换及重算图片语义。
+不授权中断现有任务、重标旧向量、升级标签策略或跳过质量/容量/发行门禁。[切片证据](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+2026-09-14 ADR-0019/CR-2026-030 接受独立 AI 服务方向，目前通过本地离线协议 spike。
+旧 INT Backend Ready 不自动覆盖新 HTTP/模型代次合同；允许继续合同设计与隔离验证，
+正式主应用和 UI 集成仍须先补齐新切片 Backend Ready。
+已接受[传输子片合同](architecture/independent-ml-transport-contract.md)，允许独立 adapter
+实现及隔离测试，不扩展至模型身份准入、持久化或主应用组合。
+
 ## 当前结论
+
+[FTR-INT-001 本地智能媒体发现](features/intelligent-media-discovery.md)是独立的
+[`POST-MVP-5` revision 2](releases/POST-MVP-5-scope-r2.md)，不继承 MVP 的 Stage 0 结论。其
+[INT-S0 Architecture Ready](gates/POST-MVP-5/int-s0-architecture-ready.md)只对 A 模型基础 + B 图片语义
+搜索为 **Go**，[INT-S1](gates/POST-MVP-5/int-s1-contract-ready.md)也已 Go，并曾授权
+`INT-201～216` S2A 后端实现；[INT-S2A](gates/POST-MVP-5/int-s2a-backend-evidence-ready.md)、
+[INT-S2B](gates/POST-MVP-5/int-s2b-backend-evidence-ready.md) 与
+[INT-S2C](gates/POST-MVP-5/int-s2c-privacy-ready.md) 均已签署 **Backend Ready / Release No-Go**，
+[INT-S3 Consumer/UI Ready](gates/POST-MVP-5/int-s3-consumer-ui-ready.md) 也已完成真实合同消费者。
+按 [CR-2026-022](changes/CR-2026-022-s2-backend-release-gate-separation.md)，最终模型、governed 质量、
+隐私签署、native 双架构、4 GiB 完整进程和供应链由 S4 持有；
+S4 未 Go 时 reviewed catalog、face composition 与发行 UI 继续失败关闭。revision 2 仍只承诺
+`/models:ro`，不包含国内或在线镜像；S3 对齐记录见
+[CR-2026-023](changes/CR-2026-023-s3-offline-model-ui-contract-alignment.md)。
 
 当前首要切片 [FTR-UIF-001 生产前端原型一致性](features/frontend-prototype-fidelity.md)已通过
 [UIF-S0 Architecture Ready](gates/MVP-2026-07-23/uif-s0-architecture-ready.md)与
@@ -101,9 +125,12 @@ ADR 流程。
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
   `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；
   合并与发布前在本地运行适用入口。
-- `.node-version`、`packageManager` 和 lockfile 固定 Node 24.22.1/npm 11.19.1；Docker
-  前端构建层使用相同 Node 版本的官方 bookworm-slim 镜像并固定多架构 digest。strict
-  TypeScript、生成文件漂移检查与 high-severity npm audit 已在本地通过。
+- `.node-version`、`packageManager` 和 lockfile 固定 Node 24.22.1 LTS/npm 11.19.1，CI 与
+  Docker 构建阶段同步，官方 bookworm-slim 镜像固定多架构 digest。
+  [工具链维护记录](changes/FIX-2026-10-23-node24-lts.md) 分开保留 main 与 aifeature 的历史证据：
+  main 当时的 strict TypeScript、生成检查和 high-severity audit 通过，并完成原生双架构发布；
+  aifeature 本机/Docker 均 67/414 测试通过，types/生成/构建通过，但当时 high/critical 依赖审计失败。
+  两者均不自动关闭合并版本的综合检查、安全或发行 Gate；旧 Node 22 证据也不冒充 Node 24 执行。
 
 仍待阶段 1 固定或补齐：
 

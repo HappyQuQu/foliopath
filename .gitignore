@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+/ai.env
 
 # Operating-system and editor files
 .DS_Store

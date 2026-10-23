@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "evidence_class": "scoring-tool-test-only",
+  "dataset_id": "synthetic-face-score-smoke-v1",
+  "observations": 8,
+  "identities": 3,
+  "dimensions": 3,
+  "similarity_threshold": 0.8,
+  "clean_fixture": {
+    "pair_precision": 1.0,
+    "pair_recall": 1.0,
+    "cluster_pair_precision": 1.0,
+    "cluster_pair_recall": 1.0,
+    "core_cluster_pair_precision": 1.0,
+    "cannot_link_violations": 0,
+    "manual_assignment_violations": 0,
+    "gate_pass": true
+  },
+  "mutation_test": {
+    "change": "move identity-b observation b-1 into identity-a core cluster",
+    "expected": "gate failure with cannot-link violation and core precision below 0.995",
+    "automated_test_passed": true
+  },
+  "caveats": [
+    "This proves scorer and gate behavior only.",
+    "Synthetic separable vectors are not evidence for YuNet/SFace quality.",
+    "A legal 50-identity/20-observation dataset remains required."
+  ]
+}

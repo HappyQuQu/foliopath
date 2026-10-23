@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -441,6 +442,52 @@ func TestMediaJobRetriesAreLeasedBoundedAndTerminal(t *testing.T) {
 	}
 }
 
+func TestMediaJobLeaseRefreshQueuesBehindExistingWriteTransaction(t *testing.T) {
+	store, _ := openTestStoreWithOptions(t, Options{
+		BusyTimeout: 50 * time.Millisecond,
+	})
+	seedBrowseCatalog(t, store)
+	job, found, err := store.ClaimNextMediaJob(context.Background(), time.Minute)
+	if err != nil || !found {
+		t.Fatalf("claim = %#v, %t, %v", job, found, err)
+	}
+
+	writeStarted := make(chan struct{})
+	releaseWrite := make(chan struct{})
+	writeDone := make(chan error, 1)
+	go func() {
+		writeDone <- store.withWriteTx(context.Background(), func(*sql.Tx) error {
+			close(writeStarted)
+			<-releaseWrite
+			return nil
+		})
+	}()
+	<-writeStarted
+
+	refreshDone := make(chan error, 1)
+	go func() {
+		refreshDone <- store.RefreshMediaJobLease(
+			context.Background(), job, time.Minute,
+		)
+	}()
+
+	select {
+	case refreshErr := <-refreshDone:
+		close(releaseWrite)
+		<-writeDone
+		t.Fatalf("lease refresh returned before write gate released: %v", refreshErr)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(releaseWrite)
+	if err := <-writeDone; err != nil {
+		t.Fatalf("finish held write: %v", err)
+	}
+	if err := <-refreshDone; err != nil {
+		t.Fatalf("refresh lease after write gate release: %v", err)
+	}
+}
+
 func TestFingerprintChangeInvalidatesThumbnailAndRequeuesSameAsset(t *testing.T) {
 	store, _ := openTestStore(t)
 	libraryID := seedBrowseCatalog(t, store)
@@ -702,5 +749,57 @@ func TestExpiredMediaJobsRecoverWithoutExceedingGlobalBound(t *testing.T) {
 	}
 	if summary != (jobs.RecoverySummary{Interrupted: thumbnail.MediaWorkerCount}) {
 		t.Fatalf("recovery = %#v", summary)
+	}
+}
+
+func TestExpiredMediaJobsDrainAcrossBoundedRecoveryPasses(t *testing.T) {
+	store, _ := openTestStore(t)
+	now := time.UnixMilli(10_000)
+	store.now = func() time.Time { return now }
+	seedBrowseCatalog(t, store)
+	result, err := store.db.ExecContext(context.Background(), `
+		UPDATE media_jobs
+		SET status = 'running', attempt_count = 1,
+		    started_at_ms = ?, heartbeat_at_ms = ?, lease_expires_at_ms = ?
+		WHERE status = 'queued'`,
+		now.Add(-3*time.Second).UnixMilli(),
+		now.Add(-2*time.Second).UnixMilli(),
+		now.Add(-time.Second).UnixMilli(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed <= thumbnail.MediaWorkerCount {
+		t.Fatalf("expired jobs = %d, want more than worker bound %d", changed, thumbnail.MediaWorkerCount)
+	}
+
+	var recovered int64
+	for recovered < changed {
+		summary, err := store.RecoverExpiredMediaJobs(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if summary.Requeued < 1 || summary.Requeued > int64(thumbnail.MediaWorkerCount) {
+			t.Fatalf("bounded recovery = %#v", summary)
+		}
+		recovered += summary.Requeued
+	}
+	if recovered != changed {
+		t.Fatalf("recovered = %d, want %d", recovered, changed)
+	}
+	var remaining int
+	if err := store.db.QueryRowContext(context.Background(), `
+		SELECT count(*) FROM media_jobs
+		WHERE status = 'running' AND lease_expires_at_ms <= ?`,
+		now.UnixMilli(),
+	).Scan(&remaining); err != nil {
+		t.Fatal(err)
+	}
+	if remaining != 0 {
+		t.Fatalf("expired running jobs = %d", remaining)
 	}
 }

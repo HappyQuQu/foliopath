@@ -23,6 +23,7 @@ type CatalogService interface {
 	ListAssets(context.Context, catalog.AssetRequest) (catalog.AssetPage, error)
 	SearchAssets(context.Context, catalog.GlobalSearchRequest) (catalog.AssetPage, error)
 	GetAsset(context.Context, int64) (catalog.Asset, error)
+	GetAssetsByIDs(context.Context, []int64) ([]catalog.Asset, error)
 }
 
 type directoryResponse struct {

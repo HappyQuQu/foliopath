@@ -39,25 +39,50 @@ type SupportedMedia struct {
 }
 
 type RouteDependencies struct {
-	Readiness        func() Readiness
-	Authentication   AuthenticationService
-	Account          AccountService
-	Cache            CacheService
-	SystemStatus     func(context.Context) (SystemStatus, error)
-	LibraryPaths     LibraryPathService
-	Libraries        LibraryLifecycleService
-	ScanAdmission    ScanAdmissionService
-	Scans            ScanQueryService
-	MediaProgress    MediaProgressService
-	MediaDiagnostics MediaDiagnosticsService
-	SystemLogs       SystemLogService
-	ReleaseInfo      ReleaseInfoService
-	Settings         SettingsService
-	Catalog          CatalogService
-	Curation         CurationService
-	Thumbnails       ThumbnailService
-	Content          ContentService
-	ContentAdmission ContentAdmission
+	Readiness           func() Readiness
+	Authentication      AuthenticationService
+	Account             AccountService
+	Cache               CacheService
+	SystemStatus        func(context.Context) (SystemStatus, error)
+	LibraryPaths        LibraryPathService
+	Libraries           LibraryLifecycleService
+	ScanAdmission       ScanAdmissionService
+	Scans               ScanQueryService
+	MediaProgress       MediaProgressService
+	MediaDiagnostics    MediaDiagnosticsService
+	SystemLogs          SystemLogService
+	ReleaseInfo         ReleaseInfoService
+	Settings            SettingsService
+	Catalog             CatalogService
+	Curation            CurationService
+	Thumbnails          ThumbnailService
+	Content             ContentService
+	ContentAdmission    ContentAdmission
+	AIModels            AIModelManagementService
+	AIModelDownloads    AIModelDownloadService
+	ModelProxy          ModelProxyService
+	Semantic            SemanticService
+	SemanticSearch      SemanticSearchService
+	VideoSemanticSearch VideoSemanticSearchService
+	VideoSemanticJobs   VideoSemanticJobService
+	VideoSemanticStatus VideoSemanticStatusService
+	AITagVocabulary     AITagVocabularyService
+	AITagSuggestions    AITagSuggestionListService
+	AITagReviews        AITagReviewService
+	AITagReviewClear    AITagReviewClearService
+	AITagJobs           AITagJobService
+	AutomaticTags       AutomaticTagService
+	FaceSettings        FaceSettingsService
+	FaceClusters        FaceClusterService
+	FacePeople          PeopleListService
+	FacePerson          PersonQueryService
+	FaceAssetFaces      AssetFacesQueryService
+	FacePersonAssets    PersonAssetsQueryService
+	FaceClusterDetails  FaceClusterDetailQueryService
+	FaceReviews         FaceReviewMutationService
+	FacePersonMutations FacePersonMutationService
+	FaceJobs            FaceJobAdmissionService
+	FaceClears          FaceClearAdmissionService
 }
 
 type SettingsService interface {
@@ -121,6 +146,67 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Content != nil {
 		registerContentRoutes(mux, dependencies.Content, dependencies.ContentAdmission)
+	}
+	if dependencies.AIModels != nil {
+		registerAIModelRoutes(mux, dependencies.AIModels)
+	}
+	if dependencies.AIModelDownloads != nil {
+		registerAIModelDownloadRoutes(mux, dependencies.AIModelDownloads)
+	}
+	if dependencies.ModelProxy != nil {
+		registerModelProxyRoutes(mux, dependencies.ModelProxy)
+	}
+	if dependencies.Semantic != nil {
+		registerSemanticRoutes(mux, dependencies.Semantic)
+	}
+	semanticAdmission := newSemanticSearchAdmission()
+	if dependencies.SemanticSearch != nil && dependencies.Catalog != nil {
+		registerSemanticSearchRouteWithAdmission(mux, dependencies.SemanticSearch, dependencies.Catalog, semanticAdmission)
+	}
+	if dependencies.VideoSemanticSearch != nil && dependencies.Catalog != nil {
+		registerVideoSemanticSearchRouteWithAdmission(mux, dependencies.VideoSemanticSearch, dependencies.Catalog, semanticAdmission)
+	}
+	if dependencies.VideoSemanticJobs != nil {
+		registerVideoSemanticJobRoute(mux, dependencies.VideoSemanticJobs)
+	}
+	if dependencies.VideoSemanticStatus != nil {
+		registerVideoSemanticStatusRoute(mux, dependencies.VideoSemanticStatus)
+	}
+	if dependencies.AITagVocabulary != nil {
+		registerAITagVocabularyRoutes(mux, dependencies.AITagVocabulary)
+	}
+	if dependencies.AITagSuggestions != nil && dependencies.Catalog != nil {
+		registerAITagSuggestionListRoute(mux, dependencies.AITagSuggestions, dependencies.Catalog)
+	}
+	if dependencies.AITagReviews != nil {
+		registerAITagReviewRoute(mux, dependencies.AITagReviews)
+	}
+	if dependencies.AITagReviewClear != nil {
+		registerAITagReviewClearRoute(mux, dependencies.AITagReviewClear)
+	}
+	if dependencies.AITagJobs != nil {
+		registerAITagJobRoute(mux, dependencies.AITagJobs)
+	}
+	if dependencies.AutomaticTags != nil {
+		registerAutomaticTagRoutes(mux, dependencies.AutomaticTags)
+	}
+	if dependencies.FaceSettings != nil && dependencies.FaceClusters != nil && dependencies.FacePeople != nil &&
+		dependencies.FacePerson != nil && dependencies.FaceAssetFaces != nil && dependencies.FacePersonAssets != nil &&
+		dependencies.FaceClusterDetails != nil && dependencies.Catalog != nil {
+		registerFaceReadRoutes(mux, dependencies.FaceSettings, dependencies.FaceClusters, dependencies.FacePeople,
+			dependencies.FacePerson, dependencies.FaceAssetFaces, dependencies.FacePersonAssets,
+			dependencies.FaceClusterDetails, dependencies.Catalog)
+	} else if dependencies.FaceSettings != nil {
+		registerFaceSettingsReadRoute(mux, dependencies.FaceSettings)
+	}
+	if dependencies.FaceSettings != nil && dependencies.FaceJobs != nil && dependencies.FaceClears != nil {
+		registerFaceControlRoutes(mux, dependencies.FaceSettings, dependencies.FaceJobs, dependencies.FaceClears)
+	}
+	if dependencies.FaceReviews != nil {
+		registerFaceMutationRoutes(mux, dependencies.FaceReviews)
+	}
+	if dependencies.FacePersonMutations != nil {
+		registerFacePersonMutationRoutes(mux, dependencies.FacePersonMutations)
 	}
 	mux.HandleFunc("GET /api/v1/status", func(writer http.ResponseWriter, request *http.Request) {
 		status, err := dependencies.SystemStatus(request.Context())

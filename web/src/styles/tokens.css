@@ -68,6 +68,14 @@
   --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+/* Compact authenticated headers keep search and utility actions on separate rows.
+   All fixed/sticky workspace offsets consume this same height token. */
+@media (max-width: 30rem) {
+  :root {
+    --size-header: 7rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-fast: 1ms;

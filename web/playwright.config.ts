@@ -34,7 +34,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testMatch: /media-matrix\.spec\.ts/,
+      testMatch: /(?:media-matrix|d04-real)\.spec\.ts/,
       use: { ...devices["Pixel 5"] },
     },
     {

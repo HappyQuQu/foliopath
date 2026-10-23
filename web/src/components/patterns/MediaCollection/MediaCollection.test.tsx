@@ -264,7 +264,12 @@ it("hides seamless metadata while retaining accessible names, source links and a
     <MediaCollection
       hasNextPage={false}
       isFetchingNextPage={false}
-      items={[{ ...storyboardItem, sourceHref: "/source", sourceLabel: "Source folder" }]}
+      items={[{
+        ...storyboardItem,
+        sourceHref: "/source",
+        sourceLabel: "Source folder",
+        contextLabel: "Visual semantic search",
+      }]}
       labels={labels}
       layout="seamless"
       onItemActivate={activate}
@@ -276,6 +281,9 @@ it("hides seamless metadata while retaining accessible names, source links and a
   expect(screen.queryByText("Today")).not.toBeInTheDocument();
   expect(screen.getByRole("article", { name: "video-storyboard.mp4 · Video" }))
     .toBeVisible();
+  expect(screen.getByRole("article", { name: "video-storyboard.mp4 · Video" }))
+    .toHaveAccessibleDescription("Visual semantic search");
+  expect(screen.queryByText("Visual semantic search")).not.toBeInTheDocument();
   const source = screen.getByRole("link", { name: "Source folder" });
   expect(source).toHaveAttribute("href", "/source");
   expect(source).toHaveTextContent("");
@@ -358,6 +366,7 @@ it("activates a media preview without hiding the source-directory link", () => {
           name: "ready.jpg",
           sourceHref: "/source",
           sourceLabel: "Source: photos",
+          contextLabel: "Visual semantic search",
           thumbnailStatus: "ready",
           thumbnailUrl: "/ready.webp",
           width: 1200,
@@ -373,6 +382,8 @@ it("activates a media preview without hiding the source-directory link", () => {
   );
 
   const trigger = screen.getByRole("button", { name: "Preview ready.jpg" });
+  expect(screen.getByText("Visual semantic search")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Source: photos" })).toBeVisible();
   expect(trigger).toHaveAttribute("aria-pressed", "true");
   trigger.click();
   expect(activate).toHaveBeenCalledWith(

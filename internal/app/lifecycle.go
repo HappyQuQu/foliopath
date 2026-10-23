@@ -27,6 +27,19 @@ type application struct {
 	shutdownTimeout time.Duration
 }
 
+type componentStopError struct {
+	name string
+	err  error
+}
+
+func (failure componentStopError) Error() string {
+	return fmt.Sprintf("component %q stopped: %v", failure.name, failure.err)
+}
+
+func (failure componentStopError) Unwrap() error {
+	return failure.err
+}
+
 func newApplication(components []component, shutdownTimeout time.Duration) (*application, error) {
 	if shutdownTimeout <= 0 {
 		return nil, fmt.Errorf("%w: shutdown timeout must be positive", errInvalidComponent)
@@ -72,6 +85,7 @@ func (application *application) run(ctx context.Context) error {
 				ctx,
 				"application.component_start_failed",
 				slog.String("component", candidate.name),
+				slog.Group("failure", runtimeFailureAttributes(err)...),
 			)
 			startErr := fmt.Errorf("start component %q: %w", candidate.name, err)
 			return errors.Join(startErr, application.shutdown(started))
@@ -81,15 +95,23 @@ func (application *application) run(ctx context.Context) error {
 
 	runErr := waitForStop(ctx, started)
 	if runErr != nil {
+		var failure componentStopError
+		attributes := []any{}
+		attributes = append(attributes, slog.Group("failure", runtimeFailureAttributes(runErr)...))
+		if errors.As(runErr, &failure) {
+			attributes = append(attributes, slog.String("component", failure.name))
+		}
 		application.logger.ErrorContext(
 			ctx,
 			"application.component_stopped",
+			attributes...,
 		)
 	}
 	shutdownErr := application.shutdown(started)
 	if shutdownErr != nil {
 		application.logger.Error(
 			"application.shutdown_failed",
+			slog.Group("failure", runtimeFailureAttributes(shutdownErr)...),
 		)
 	}
 	application.logger.Info("application.stopped")
@@ -123,7 +145,7 @@ func monitor(candidate component, ctx context.Context, failures chan<- error) {
 			err = errComponentStopped
 		}
 		select {
-		case failures <- fmt.Errorf("component %q stopped: %w", candidate.name, err):
+		case failures <- componentStopError{name: candidate.name, err: err}:
 		case <-ctx.Done():
 		}
 	case <-ctx.Done():

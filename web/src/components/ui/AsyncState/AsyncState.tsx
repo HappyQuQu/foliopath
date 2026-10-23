@@ -11,11 +11,12 @@ import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { Button } from "../Button/Button";
 import styles from "./AsyncState.module.css";
 
-export function LoadingState({ label }: { label?: string }) {
+type Density = "default" | "compact";
+export function LoadingState({ label, density = "default" }: { label?: string; density?: Density }) {
   const { t } = useLocale();
 
   return (
-    <div className={styles.state} role="status">
+    <div className={`${styles.state} ${density === "compact" ? styles.compact : ""}`} role="status">
       <CircleNotch aria-hidden="true" className={styles.spinner} size={24} />
       <span>{label ?? t("common.loading")}</span>
     </div>
@@ -25,14 +26,16 @@ export function LoadingState({ label }: { label?: string }) {
 export function ErrorState({
   message,
   onRetry,
+  density = "default",
 }: {
   message: string;
   onRetry?: () => void;
+  density?: Density;
 }) {
   const { t } = useLocale();
 
   return (
-    <div className={styles.state} role="alert">
+    <div className={`${styles.state} ${density === "compact" ? styles.compact : ""}`} role="alert">
       <strong>{t("common.loadFailed")}</strong>
       <span>{message}</span>
       {onRetry && (
@@ -50,14 +53,16 @@ export function EmptyState({
   description,
   icon: StateIcon = ImageSquare,
   title,
+  density = "default",
 }: {
   action?: ReactNode;
   description: string;
   icon?: Icon;
   title: string;
+  density?: Density;
 }) {
   return (
-    <div className={`${styles.state} ${styles.empty}`}>
+    <div className={`${styles.state} ${styles.empty} ${density === "compact" ? styles.compact : ""}`}>
       <StateIcon aria-hidden="true" className={styles.stateIcon} size={30} />
       <div className={styles.copy}>
         <strong>{title}</strong>

@@ -3,6 +3,10 @@
 本目录保存由 Gate 或集成状态引用的可复核证据。证据不是产品或架构规范；发生冲突时，
 以冻结 scope、OpenAPI/migration、已接受 ADR 和当前 Gate 为准。
 
+## 分支集成验证
+
+- [2026-10-23：aifeature 合并 main](merge-aifeature-2026-10-23.md)
+
 ## MVP 发布浏览器证据
 
 - [S5-006B：Chrome 200% 缩放与核心流程](s5-006b/README.md)

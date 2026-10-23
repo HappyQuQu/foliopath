@@ -1,0 +1,12 @@
+.details { grid-column: 1 / -1; min-width: 0; }
+.details summary { cursor: pointer; color: var(--color-accent); padding: var(--space-2) 0; font-weight: 600; }
+.details summary:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.details[open] { border-top: var(--border-width) solid var(--color-border); }
+.details p { margin: var(--space-3) 0; line-height: var(--line-height-normal); }
+.details ul { padding-left: var(--space-5); }
+.task { display: grid; gap: var(--space-2); margin: var(--space-3) 0; }
+.task code, .task time { overflow-wrap: anywhere; font-size: var(--font-size-2); }
+.samples { display: grid; gap: var(--space-3); }
+.samples li { min-width: 0; }
+.samples a { color: var(--color-accent); overflow-wrap: anywhere; }
+.samples span, .samples time { display: block; font-size: var(--font-size-2); color: var(--color-text-muted); overflow-wrap: anywhere; }

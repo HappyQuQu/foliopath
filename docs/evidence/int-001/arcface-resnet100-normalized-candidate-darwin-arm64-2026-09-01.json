@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "evidence_class": "replacement-candidate-local-functional-only",
+  "generated_at": "2026-08-31T16:11:55Z",
+  "platform": "darwin/arm64",
+  "source_model": {
+    "id": "open-model-zoo-arcface-resnet100-8",
+    "repository_revision": "4d4266fbbb7eb5ab80944c2800d7f304868d573d",
+    "bytes": 261036388,
+    "sha256": "f0a2e278b430372d308fef67c1aea308c2baf37f32e8908d9bfce035c26a3fb4"
+  },
+  "normalized_model": {
+    "bytes": 261033924,
+    "sha256": "345e28fd93dc48fd7bfb3552c58434ca7e279f85ee2132c810b26945d4550844",
+    "transform": "remove-154-legacy-batchnormalization-spatial-zero-attributes-v1",
+    "production_approved": false
+  },
+  "runtime": {
+    "opencv_reference": "5.0.0",
+    "onnxruntime_candidate": "1.28.0",
+    "backend": "CPU"
+  },
+  "numeric_parity": {
+    "fixture": "deterministic-random-tensor-seed-20260901",
+    "elements": 512,
+    "finite": true,
+    "max_abs": 0.000006735324859619141,
+    "mean_abs": 0.0000016746898836572655,
+    "cosine": 1.0
+  },
+  "functional_sample": {
+    "authorization_ref": "user-message-2026-08-31-local-functional-test",
+    "groups": 9,
+    "sample_files": 135,
+    "decoded": 135,
+    "decode_failures": 0,
+    "images_with_candidates": 79,
+    "detected_candidates": 79,
+    "valid_embeddings": 79,
+    "invalid_embeddings": 0,
+    "embedding_p50_ms": 27.841,
+    "embedding_p95_ms": 29.125,
+    "same_pairs": 389,
+    "different_pairs": 2692,
+    "thresholds": [
+      {"cosine": 0.5, "same_group_recall": 0.904884, "cross_group_false_positive_rate": 0.020059, "cross_group_candidates": 54},
+      {"cosine": 0.6, "same_group_recall": 0.773779, "cross_group_false_positive_rate": 0.001486, "cross_group_candidates": 4},
+      {"cosine": 0.7, "same_group_recall": 0.44473, "cross_group_false_positive_rate": 0.0, "cross_group_candidates": 0},
+      {"cosine": 0.8, "same_group_recall": 0.125964, "cross_group_false_positive_rate": 0.0, "cross_group_candidates": 0}
+    ]
+  },
+  "privacy": {
+    "raw_images_copied": false,
+    "face_crops_persisted": false,
+    "embeddings_persisted": false,
+    "identity_ground_truth": false
+  },
+  "gate_pass": false
+}

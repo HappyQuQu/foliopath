@@ -76,7 +76,9 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	})
 	requireFragments(t, "Dockerfile", dockerfile, []string{
 		`org.opencontainers.image.description="Stage 5 release candidate; not a stable release"`,
-		"ADD --checksum=sha256:d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724",
+		"--connect-timeout 30 --max-time 300 --continue-at -",
+		`while [ "${vips_attempt}" -le 5 ]`,
+		"d114d7c132ec5b45f116d654e17bb4af84561e3041183cd4bfd79abfb85cf724  /tmp/vips.tar.xz",
 		"-Dauto_features=disabled",
 		"-Djpeg=enabled",
 		"-Dpng=enabled",
@@ -120,8 +122,14 @@ func TestReleaseDocumentationMatchesCandidateBoundaries(t *testing.T) {
 	if strings.Contains(dockerfile, "\nUSER ") {
 		t.Error("Dockerfile final stage must inherit UID 0 from the pinned root distroless base without a USER directive")
 	}
-	if strings.Contains(dockerfile, "ca-certificates curl") ||
-		strings.Contains(dockerfile, `CMD ["curl"`) {
+	runtimeAssemblyStart := strings.Index(dockerfile, " AS runtime-assemble")
+	finalRuntimeStart := strings.LastIndex(dockerfile, "\nFROM gcr.io/distroless/cc-debian13")
+	if runtimeAssemblyStart < 0 || finalRuntimeStart < runtimeAssemblyStart {
+		t.Fatal("Dockerfile runtime assembly/final-stage boundaries are missing")
+	}
+	runtimeClosure := dockerfile[runtimeAssemblyStart:]
+	if strings.Contains(runtimeClosure, "ca-certificates curl") ||
+		strings.Contains(runtimeClosure, `CMD ["curl"`) {
 		t.Error("Dockerfile retains the removed production curl healthcheck closure")
 	}
 	for _, removedRuntimePackage := range []string{

@@ -34,6 +34,14 @@ make test-e2e
 
 ## Fitness function 清单
 
+ADR-0028 的 `TestPNGProfileKeepsSemanticAndTagInputOwnersSeparate` 纳入 `make arch-check`：
+显式语义预处理与默认标签输入分离，复用唯一 native 大图准入和输出变换；
+profile/hash、像素/限制、代次保留及实际索引另由 Go/native Docker/真实模型合成测试验证。
+
+ADR-0027 的 `TestPlannedAnalysisHandoffHasOneFencedOwner` 已纳入 `make arch-check`：
+信号原因由 app 唯一设置，worker 等处理器/heartbeat 后交接，SQLite 独占 fence/审计事务，离线工具不进浏览器。
+配套 Go/定向 race 与真实 Docker SIGTERM/SIGKILL/旧版精确迁移覆盖行为，不用静态检查替代运行证据。
+
 | ID | 不变量 | 检查方式 | 当前状态 | 最晚落地时间 |
 | --- | --- | --- | --- | --- |
 | AF-001 | Go 依赖只向内，handler 不依赖 SQLite/files，能力包不依赖 adapter/app | `make arch-check` 解析实际 Go import graph | **本地执行**；历史原生 amd64/arm64 结果保留为平台证据 | 持续强制 |

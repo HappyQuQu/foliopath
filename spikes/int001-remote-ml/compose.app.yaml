@@ -1,0 +1,23 @@
+services:
+  app-local:
+    image: foliopath-app:candidate
+    profiles: [test]
+    environment:
+      FOLIOPATH_LISTEN: 0.0.0.0:8080
+      FOLIOPATH_AI_DEPLOYMENT: ${FOLIOPATH_AI_DEPLOYMENT:?Set candidate deployment JSON}
+    ports: ["127.0.0.1:6091:8080"]
+    networks: [inference, candidate-web]
+    volumes:
+      - ${FOLIOPATH_TEST_SYNTHETIC_MEDIA:-../../tests/fixtures/media}:/library:ro
+      - candidate-app-data:/app/data
+    read_only: true
+    tmpfs: [/tmp:size=134217728]
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 256
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+volumes:
+  candidate-app-data:
+networks:
+  candidate-web:

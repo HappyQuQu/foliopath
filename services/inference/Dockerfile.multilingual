@@ -1,0 +1,7 @@
+# Preserve legacy face/tag source bytes and compatibility identities exactly.
+# The operator supplies a verified local base image; no implicit pulls.
+ARG FOLIOPATH_INFERENCE_BASE
+FROM ${FOLIOPATH_INFERENCE_BASE}
+COPY services/inference/multilingual_*.py services/inference/runtime_entry.py /opt/foliopath-inference/
+COPY spikes/int001-remote-ml/multilingual/cache-baseline.json /opt/foliopath-inference/multilingual-manifest.json
+CMD ["python", "-m", "runtime_entry"]
