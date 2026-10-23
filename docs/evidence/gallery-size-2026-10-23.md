@@ -26,3 +26,10 @@
 - [768px](gallery-size-2026-10-23/768.png)
 - [1280px](gallery-size-2026-10-23/1280.png)
 - [1920px](gallery-size-2026-10-23/1920.png)
+
+## 发布结果
+
+[v1.4.1 原生发布工作流](https://github.com/HappyQuQu/foliopath/actions/runs/39958180654)
+成功（6 分 6 秒）：amd64 / arm64 分别构建、验证运行时及供应链证据，再组合已验证 digest。
+发布源码为 `2b02ad4da2fadbbaf5f5cab0234bae04f64bc78a`，包含功能提交 `dfb18edf`。
+OCI 索引为 `evanqu/foliopath@sha256:a6c8d3717ae29f22d23c4ae4a406162b0a8dd5d11a739be07566b17a189cb80b`。
