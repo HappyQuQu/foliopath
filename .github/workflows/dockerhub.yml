@@ -15,13 +15,11 @@ on:
         type: string
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: dockerhub-${{ github.ref }}-${{ inputs.image_tag || 'release' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   IMAGE_NAME: evanqu/foliopath
@@ -29,6 +27,11 @@ env:
 jobs:
   release:
     name: Prepare, merge, and publish release
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    timeout-minutes: 15
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     outputs:
@@ -116,14 +119,18 @@ jobs:
             echo "build_sha=${build_sha}"
           } >> "${GITHUB_OUTPUT}"
 
-  publish:
-    name: Build and push
+  prepare:
+    name: Prepare immutable image plan
     needs:
       - release
     if: >-
       always() &&
       (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      source: ${{ needs.release.outputs.build_sha || github.sha }}
+      version: ${{ steps.version.outputs.value }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -153,8 +160,62 @@ jobs:
             echo "short_sha=${BUILD_SHA:0:7}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.release.outputs.build_sha || github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.value }}
+          tags: |
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
+            type=raw,value=${{ needs.release.outputs.major }}.${{ needs.release.outputs.minor }},enable=${{ needs.release.outputs.release_created == 'true' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=sha-${{ steps.version.outputs.short_sha }}
+
+      - name: Record immutable image plan
+        env:
+          SOURCE: ${{ needs.release.outputs.build_sha || github.sha }}
+          VERSION: ${{ steps.version.outputs.value }}
+          METADATA: ${{ steps.meta.outputs.json }}
+        run: python3 scripts/native_release.py plan --output "${RUNNER_TEMP}/image-plan.json"
+
+      - name: Upload image plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-plan
+          path: ${{ runner.temp }}/image-plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  images:
+    name: Build and verify native images
+    needs: prepare
+    if: ${{ !cancelled() && needs.prepare.result == 'success' }}
+    uses: ./.github/workflows/native-images.yml
+    with:
+      ref: ${{ needs.prepare.outputs.source }}
+      version: ${{ needs.prepare.outputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish:
+    name: Publish verified multi-platform image
+    needs: [prepare, images]
+    if: ${{ !cancelled() && needs.images.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source }}
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -165,34 +226,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Download image plan
+        uses: actions/download-artifact@v4
         with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}
-            type=raw,value=${{ needs.release.outputs.major }}.${{ needs.release.outputs.minor }},enable=${{ needs.release.outputs.release_created == 'true' }}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=sha-${{ steps.version.outputs.short_sha }}
+          name: image-plan
+          path: ${{ runner.temp }}/image-plan
 
-      - name: Build and push image
-        uses: docker/build-push-action@v6
+      - name: Download both verified digests
+        uses: actions/download-artifact@v4
         with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ steps.version.outputs.value }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          sbom: true
-          provenance: true
+          pattern: verified-digest-*
+          path: ${{ runner.temp }}/verified-digests
+          merge-multiple: true
+
+      - name: Publish verified digests without rebuilding
+        run: |
+          python3 scripts/native_release.py publish \
+            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --records "${RUNNER_TEMP}/verified-digests"
 
       - name: Update Docker Hub overview
         uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae

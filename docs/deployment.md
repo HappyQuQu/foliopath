@@ -32,7 +32,8 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 负责版本准备和 Docker 发布。推送到 `main` 后，Release Please 根据 Conventional Commits
 创建或更新 Release PR；workflow 随即 squash merge 该 PR，在同一轮创建
 `vMAJOR.MINOR.PATCH` GitHub Release，并构建包含 `linux/amd64` 与 `linux/arm64` 的
-Docker Hub image index。自动测试 CI 已关闭，测试与候选证据仍由发布者在本地完成。
+Docker Hub image index。发布流程对两种原生架构执行最终镜像 smoke；完整测试与其他
+候选 Gate 证据仍由发布者在推送前完成。
 该流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
 
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
@@ -53,8 +54,16 @@ Docker Hub image index。自动测试 CI 已关闭，测试与候选证据仍由
   与实际构建 commit 对应的 `sha-*` 标签；纯技术提交只更新 `latest`/`sha-*`。
 - 手工推送 `vMAJOR.MINOR.PATCH` Git tag 仍可构建相同的语义化版本标签，但正常发布应由
   Release PR 驱动，避免版本号与 `CHANGELOG.md` 分离。
-- 从 Actions 手动运行时必须指定标签，默认是 `edge`，不会更新 `latest`。
-- 单个 GitHub-hosted runner 通过 Buildx/QEMU 构建并推送 amd64 与 arm64 manifest。
+- 从 Actions 手动运行时必须指定标签，默认是 `edge`；选择 `main` 时仍按现有规则更新
+  `latest`，独立分支测试不更新它。
+- 原生 `ubuntu-24.04` 与 `ubuntu-24.04-arm` runner 并行构建，每架构只构建一次最终
+  镜像；各限时 45 分钟。同一发布队列不自动取消在途构建。
+- 每架构先按 digest 推送并拉取同一镜像，验证源码、版本、平台和发布 runtime smoke。
+  两份成功记录匹配且 SPDX/SLSA attestation 完整时，才合并 index 并更新最终标签。
+  发布阶段不重建镜像，任一架构失败都阻止最终标签更新。
+- GHA layer cache 和 Go/npm cache mounts 分架构持久化；缓存可丢弃，首次仍需完整编译。
+  协议见 [ADR-0026](adr/0026-native-release-image-promotion.md)，结果见
+  [维护记录](changes/FIX-2026-10-23-native-release-builds.md)。
 - 构建附带 SBOM 和 provenance；发布后同步专用 `README.dockerhub.md`。默认复用
   `DOCKERHUB_TOKEN`，也可配置独立的 description token 覆盖它。
 

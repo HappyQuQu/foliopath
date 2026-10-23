@@ -1,0 +1,111 @@
+name: Native release image verification
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Build and verify ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Restore compiler and package cache mounts
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/native-cache
+          key: native-mounts-v1-${{ matrix.arch }}-${{ hashFiles('Dockerfile', 'go.sum', 'web/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            native-mounts-v1-${{ matrix.arch }}-${{ hashFiles('Dockerfile', 'go.sum', 'web/package-lock.json') }}-
+
+      - name: Inject cache mounts into this builder
+        run: python3 scripts/buildkit_cache_mounts.py inject --directory "${RUNNER_TEMP}/native-cache"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Download image plan
+        uses: actions/download-artifact@v4
+        with:
+          name: image-plan
+          path: ${{ runner.temp }}/image-plan
+
+      - name: Read validated image labels
+        id: metadata
+        run: |
+          python3 scripts/native_release.py labels \
+            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --output "${GITHUB_OUTPUT}"
+
+      - name: Build final native image once by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.version }}
+          outputs: type=image,name=evanqu/foliopath,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=foliopath-${{ matrix.arch }}
+          cache-to: type=gha,scope=foliopath-${{ matrix.arch }},mode=max
+          sbom: true
+          provenance: true
+
+      - name: Verify exact image and record successful digest
+        env:
+          ARCH: ${{ matrix.arch }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE: ${{ inputs.ref }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 scripts/native_release.py verify \
+            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --arch "${ARCH}" --digest "${DIGEST}" \
+            --output "${RUNNER_TEMP}/verified-digests/${ARCH}.json"
+
+      - name: Export updated cache mounts
+        if: ${{ success() || failure() }}
+        run: python3 scripts/buildkit_cache_mounts.py extract --directory "${RUNNER_TEMP}/native-cache"
+
+      - name: Upload verified digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/verified-digests/${{ matrix.arch }}.json
+          if-no-files-found: error
+          retention-days: 7

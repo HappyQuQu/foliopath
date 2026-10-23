@@ -9,6 +9,7 @@
 [`POST-MVP-4`](releases/POST-MVP-4-scope.md)。本轮综合更新见
 [2026-08-13 更新说明草案](releases/2026-08-13-integrated-update-notes.md)。
 2026-10-23 的 Post-MVP 显示优化见[无缝瀑布流](changes/CR-2026-033-seamless-masonry.md)。
+同日发布工具维护见[原生构建与 digest 验证](changes/FIX-2026-10-23-native-release-builds.md)。
 
 ## 首先阅读
 

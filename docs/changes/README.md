@@ -39,6 +39,10 @@
 
 ## Routine fixes
 
+### 2026-10-23
+
+- [原生发布构建与 digest 验证](FIX-2026-10-23-native-release-builds.md)
+
 ### 2026-08-17
 
 - [派生媒体浏览器缓存版本](FIX-2026-08-17-derived-media-cache-version.md)

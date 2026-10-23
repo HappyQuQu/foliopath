@@ -236,6 +236,10 @@ libdav1d 处理 AV1 派生资源，但该服务端能力不替浏览器决定原
 - `/app/data` 可由 Docker 自动创建为 root-owned bind 目录，并避免放在不可靠的网络文件系统上。
 - 数据库迁移、磁盘已满、断电和进程终止必须有恢复测试。缩略图缓存耗尽不能破坏数据库或原媒体。
 - 发布镜像使用不可变版本标签，并为 amd64/arm64 维护依赖与许可证清单。
+- [ADR-0026](adr/0026-native-release-image-promotion.md)：原生 runner 在同一完整
+  SHA/VERSION/image plan 下验证不可变 digest，成功记录配对后才允许更新发布标签。
+  合并保留每架构 SPDX SBOM 和 SLSA provenance。缓存是可重建 CI 状态，不作为验收
+  证据；仅恢复三个编译/依赖缓存目录，不接入真实媒体或应用数据库。
 
 ## 日志和错误
 

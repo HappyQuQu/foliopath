@@ -3,6 +3,7 @@ package architecture_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -32,11 +33,9 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"--squash",
 		"Finalize automatically merged release",
 		"skip-github-pull-request: true",
-		"uses: docker/setup-qemu-action@v3",
-		"platforms: linux/amd64,linux/arm64",
-		"VERSION=${{ steps.version.outputs.value }}",
-		"sbom: true",
-		"provenance: true",
+		"uses: ./.github/workflows/native-images.yml",
+		"cancel-in-progress: false",
+		"Publish verified digests without rebuilding",
 		"type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}",
 		"type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.release_created == 'true' }}",
 		"type=raw,value=sha-${{ steps.version.outputs.short_sha }}",
@@ -54,6 +53,29 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 	if strings.Contains(workflow, "192.168.2.222") ||
 		strings.Contains(workflow, "appleboy/ssh-action") {
 		t.Error("release publication must not deploy to a live instance")
+	}
+	native, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "native-images.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireFragments(t, "native-images.yml", string(native), []string{
+		"runner: ubuntu-24.04", "runner: ubuntu-24.04-arm", "fail-fast: false",
+		"platforms: linux/${{ matrix.arch }}", "VERSION=${{ inputs.version }}",
+		"scope=foliopath-${{ matrix.arch }}", "native-mounts-v1-${{ matrix.arch }}",
+		"scripts/buildkit_cache_mounts.py inject", "scripts/buildkit_cache_mounts.py extract",
+		"push-by-digest=true", "sbom: true", "provenance: true",
+		"scripts/native_release.py verify", "verified-digest-${{ matrix.arch }}",
+	})
+	if strings.Contains(workflow+string(native), "setup-qemu") {
+		t.Error("release images must build on native runners")
+	}
+}
+
+func TestNativeReleaseProtocolAndCacheMountContracts(t *testing.T) {
+	command := exec.Command("python3", "-B", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_native_release.py")
+	command.Dir = repositoryRoot(t)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("native release protocol: %v\n%s", err, output)
 	}
 }
 

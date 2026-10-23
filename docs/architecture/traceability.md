@@ -1,5 +1,11 @@
 # FolioPath 需求—架构追踪
 
+2026-10-23 发布工具维护：`NFR-COMP-001` / `NFR-OPS-001`，S5-007 / S5-008，Owner 为
+发布工具维护者；[ADR-0026](../adr/0026-native-release-image-promotion.md) 接受原生构建、
+同 digest 验证及双成功记录发布。协议 owner 为 `scripts/native_release.py`，缓存 owner
+为 `scripts/buildkit_cache_mounts.py`；`make arch-check` 执行契约与失败关闭回归。
+实际双架构与缓存证据见[维护记录](../changes/FIX-2026-10-23-native-release-builds.md)。
+
 ## 状态与使用方式
 
 本文把当前已确认的需求族映射到架构责任、契约、数据、决策、风险、验证和交付阶段。它是设计与评审索引，不表示表中 API、前端、容器或全部测试已经实现。

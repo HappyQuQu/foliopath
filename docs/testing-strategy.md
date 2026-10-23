@@ -587,6 +587,10 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - `go test -race ./...`
 - `make fmt` / `make fmt-check`
 - `make arch-check`
+- `python3 -B -m unittest discover -s scripts -p 'test_native_release.py' -v`（已纳入
+  arch-check；发布来源绑定、失败关闭、attestation 保留和缓存协议）
+- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/dockerhub.yml .github/workflows/native-images.yml`
+- `python3 tests/release/build_cache_smoke.py`（专用临时 builder 的三个真实缓存往返）
 - `make release-docs-check`（README/部署/Compose/.env/Dockerfile/媒体格式与候选限制防漂移）
 - `make release-readiness-check`（校验当前 RC Gate/risk 快照；准确的 No-Go 也应通过）
 - `make release-ready`（实际 RC promotion 门；只要有 Gate/risk 未处置就必须非零失败）

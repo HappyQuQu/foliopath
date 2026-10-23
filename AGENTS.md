@@ -225,6 +225,11 @@ them.
 
 ## Tests and verification
 
+- ADR-0026: build each release image once on its native architecture, verify the same
+  immutable digest, and promote tags only from two matching successful records.
+  Preserve SPDX SBOM and SLSA provenance when merging indexes. Build caches are
+  disposable CI state and never replace verification or mount application/media data.
+
 - Put unit tests beside Go and TypeScript source. Put cross-component tests in
   `tests/integration`, browser tests in `tests/e2e`, and synthetic media in
   `tests/fixtures`.
