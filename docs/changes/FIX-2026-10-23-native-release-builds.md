@@ -1,6 +1,6 @@
 # 原生发布构建维护
 
-- 状态：实现、本地验证及分支镜像发布通过；待主分支正式运行
+- 状态：实现、本地验证、主分支和 1.4.0 镜像发布完成
 - 批准：2026-10-23 用户确认原生并行构建优化方向
 - 目标：当前 Post-MVP 1.4 发布工具维护；无新增产品功能
 - Requirement：`NFR-COMP-001`、`NFR-OPS-001`；保持 `NFR-SAFE-001`
@@ -47,9 +47,24 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
   两架构镜像构建和 runtime smoke 通过；AMD64 成功保存 457,760,922 字节编译缓存。
   ARM64 缓存导出停滞，因此加入缓存操作独立超时及失败警告后继续的规则；不能让可丢弃
   缓存阻止已验证镜像发布。每次缓存 builder 调用限 60 秒，四个缓存步骤各限三分钟。
-  超时回归确认旧快照仍保留。最终主分支和版本发布结果待补录。
+  超时回归确认旧快照仍保留。该轮已取消，最终结果见后续成功运行。
   日志显示停在 local exporter 的逐文件复制阶段；后续改为单一 tar 流导出并通过
   Python 仅解包普通文件/目录，拒绝路径逃逸、符号链接和特殊文件；失败保留旧快照，缓存布局保持兼容。
   GHA cache 受分支可见性约束，不能假定 main 直接复用测试分支缓存。
+- [main 最终运行 39925599194](https://github.com/HappyQuQu/foliopath/actions/runs/39925599194)：
+  完整流程 3 分 29 秒；两架构构建、同 digest smoke、缓存及合并发布全部成功。
+  AMD64 恢复先前完整编译缓存；两种架构的 layer cache 构建分别 8 秒、15 秒。
+- [1.4.0 正式发布 39926110946](https://github.com/HappyQuQu/foliopath/actions/runs/39926110946)：
+  完整流程 5 分 20 秒，包含 VERSION 变化引起的应用构建、双架构 runtime smoke、
+  SBOM/provenance 校验及 Docker Hub Overview。AMD64/ARM64 构建分别 70 秒、93 秒；
+  完整缓存 tar 导出分别 29 秒、17 秒，ARM64 逐文件导出停滞已消除。
+  `1.4.0`、`latest`、`sha-37bcfc4` 推送同一 index：
+  `sha256:f6eda8161967a175b58f49940903cc035cc2f09ae5210e891c97a475c015f301`。
+  原生成功记录的 source 均为 `37bcfc454dcd10d24096b053e144f7d98dbe8580`，version 均为 `1.4.0`。
+  `git diff --exit-code v1.4.0 HEAD -- Dockerfile go.mod go.sum cmd internal migrations web`
+  已证明维护提交的生产构建输入与 `v1.4.0` 一致。
+
+本记录的最终证据更新仅修改文档，使用 `[skip ci]` 避免再触发相同生产输入的镜像构建；
+源码、双架构真实验收及发布结果由上述成功运行固定，不把文档提交解释为新的构建证据。
 
 旧 QEMU run 普通取消后仍在进行，已补发 force-cancel 并确认最终 `cancelled`，不重启。
