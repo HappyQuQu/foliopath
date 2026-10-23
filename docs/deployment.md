@@ -62,6 +62,7 @@ Docker Hub image index。发布流程对两种原生架构执行最终镜像 smo
   两份成功记录匹配且 SPDX/SLSA attestation 完整时，才合并 index 并更新最终标签。
   发布阶段不重建镜像，任一架构失败都阻止最终标签更新。
 - GHA layer cache 和 Go/npm cache mounts 分架构持久化；缓存可丢弃，首次仍需完整编译。
+  缓存恢复/注入/导出/保存各有三分钟时限，失败会跳过缓存；镜像验收不能跳过。
   协议见 [ADR-0026](adr/0026-native-release-image-promotion.md)，结果见
   [维护记录](changes/FIX-2026-10-23-native-release-builds.md)。
 - 构建附带 SBOM 和 provenance；发布后同步专用 `README.dockerhub.md`。默认复用

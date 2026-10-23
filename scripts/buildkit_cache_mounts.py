@@ -56,7 +56,7 @@ def transfer(mode, directory, dockerfile="Dockerfile", run=subprocess.run):
                 exported = Path(scratch) / "exported"
                 command.extend(["--output", "type=local,dest=" + str(exported)])
             command.append(str(context))
-            run(command, input=dancefile(base, target, mode), text=True, check=True)
+            run(command, input=dancefile(base, target, mode), text=True, check=True, timeout=60)
             if mode == "extract":
                 # Go module directories are read-only. Export to a fresh directory,
                 # then replace the previous snapshot instead of overwriting it.

@@ -163,6 +163,18 @@ class BuildCacheTests(unittest.TestCase):
                     self.assertEqual("--output" in call.args[0], mode == "extract")
                     self.assertIn("--mount=type=cache", call.kwargs["input"])
                     self.assertTrue(call.kwargs["check"])
+                    self.assertEqual(call.kwargs["timeout"], 60)
+
+    def test_timeout_preserves_the_previous_cache_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "go-mod"
+            snapshot.mkdir()
+            (snapshot / "previous").write_text("usable")
+            run = Mock(side_effect=subprocess.TimeoutExpired("docker", 60))
+            dockerfile = Path(__file__).resolve().parent.parent / "Dockerfile"
+            with self.assertRaises(subprocess.TimeoutExpired):
+                cache.transfer("extract", directory, dockerfile, run)
+            self.assertEqual((snapshot / "previous").read_text(), "usable")
 
 
 if __name__ == "__main__":

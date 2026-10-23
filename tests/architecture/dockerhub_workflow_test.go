@@ -65,9 +65,13 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 		"scripts/buildkit_cache_mounts.py inject", "scripts/buildkit_cache_mounts.py extract",
 		"push-by-digest=true", "sbom: true", "provenance: true",
 		"scripts/native_release.py verify", "verified-digest-${{ matrix.arch }}",
+		"actions/cache/restore@v4", "actions/cache/save@v4", "timeout-minutes: 3",
 	})
 	if strings.Contains(workflow+string(native), "setup-qemu") {
 		t.Error("release images must build on native runners")
+	}
+	if count := strings.Count(string(native), "continue-on-error: true"); count != 4 {
+		t.Errorf("only the four disposable cache steps may fail without blocking publication: got %d", count)
 	}
 }
 

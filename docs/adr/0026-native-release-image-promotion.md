@@ -26,6 +26,8 @@ BuildKit 的 GHA layer cache 不自动持久化 `RUN --mount=type=cache` 内容�
    Dockerfile/go.sum/package-lock 身份持久化。自有脚本在同一 builder 导入导出，
    读取 Dockerfile 已固定基础镜像，仅操作三个允许目录，不引入第三方缓存 Action，
    不挂载实际媒体或应用数据。
+   缓存恢复/注入/导出/保存各限时三分钟，单次 builder 缓存调用限时 60 秒；缓存失败
+   只作警告，不阻止已通过真实验收的 digest 发布，验证和发布本身仍必须成功。
 5. 同一发布队列不自动取消在途构建；原生任务各限时 45 分钟，准备和发布独立限时。
    保持已有 Release Please 和标签策略；PR 不获得发布 secrets。
 

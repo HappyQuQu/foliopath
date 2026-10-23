@@ -42,7 +42,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Restore compiler and package cache mounts
-        uses: actions/cache@v4
+        id: cache
+        uses: actions/cache/restore@v4
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           path: ${{ runner.temp }}/native-cache
           key: native-mounts-v1-${{ matrix.arch }}-${{ hashFiles('Dockerfile', 'go.sum', 'web/package-lock.json') }}-${{ github.sha }}
@@ -50,6 +53,8 @@ jobs:
             native-mounts-v1-${{ matrix.arch }}-${{ hashFiles('Dockerfile', 'go.sum', 'web/package-lock.json') }}-
 
       - name: Inject cache mounts into this builder
+        timeout-minutes: 3
+        continue-on-error: true
         run: python3 scripts/buildkit_cache_mounts.py inject --directory "${RUNNER_TEMP}/native-cache"
 
       - name: Log in to Docker Hub
@@ -99,8 +104,20 @@ jobs:
             --output "${RUNNER_TEMP}/verified-digests/${ARCH}.json"
 
       - name: Export updated cache mounts
-        if: ${{ success() || failure() }}
+        id: export
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 3
+        continue-on-error: true
         run: python3 scripts/buildkit_cache_mounts.py extract --directory "${RUNNER_TEMP}/native-cache"
+
+      - name: Save compiler and package cache mounts
+        if: ${{ !cancelled() && steps.export.outcome == 'success' && steps.cache.outputs.cache-primary-key != '' && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        timeout-minutes: 3
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/native-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - name: Upload verified digest
         uses: actions/upload-artifact@v4

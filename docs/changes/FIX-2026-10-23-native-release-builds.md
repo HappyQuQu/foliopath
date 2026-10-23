@@ -25,7 +25,7 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
 `make test-integration`、`make test-e2e`、`npm --prefix web run build`、`git diff --check`。
 `make test-e2e` 是测试专用容器 smoke，不等同最终发布镜像验收。
 
-- `python3 -B -m unittest discover -s scripts -p 'test_native_release.py' -v`：10 项通过；
+- `python3 -B -m unittest discover -s scripts -p 'test_native_release.py' -v`：11 项通过；
   覆盖来源/版本/架构混用拒绝、失败不生成记录、同 digest smoke、不重建 promotion、
   SBOM/provenance 保留及缓存目录/基础镜像协议。
 - `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/dockerhub.yml .github/workflows/native-images.yml`：通过。
@@ -43,6 +43,11 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
   runtime smoke 分别 74 秒、75 秒。导出、成功记录上传、SPDX/SLSA 检查、双架构 index
   合并和 Docker Hub Overview 全部成功。测试标签 `native-check-20261023` 未更新 latest。
   该轮证明 layer cache 和发布链路，首次失败时未成功保存的编译 cache mounts 不算热缓存证据。
-- 主分支运行结果待补录；GHA cache 受分支可见性约束，不能假定 main 直接复用测试分支缓存。
+- [main 首次运行 39923007181](https://github.com/HappyQuQu/foliopath/actions/runs/39923007181)：
+  两架构镜像构建和 runtime smoke 通过；AMD64 成功保存 457,760,922 字节编译缓存。
+  ARM64 缓存导出停滞，因此加入缓存操作独立超时及失败警告后继续的规则；不能让可丢弃
+  缓存阻止已验证镜像发布。每次缓存 builder 调用限 60 秒，四个缓存步骤各限三分钟。
+  超时回归确认旧快照仍保留。最终主分支和版本发布结果待补录。
+  GHA cache 受分支可见性约束，不能假定 main 直接复用测试分支缓存。
 
 旧 QEMU run 普通取消后仍在进行，已补发 force-cancel 并确认最终 `cancelled`，不重启。
