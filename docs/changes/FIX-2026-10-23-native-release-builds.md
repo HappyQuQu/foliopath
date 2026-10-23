@@ -1,6 +1,6 @@
 # 原生发布构建维护
 
-- 状态：实现及本地验证完成，远程验证待执行
+- 状态：实现、本地验证及分支镜像发布通过；待主分支正式运行
 - 批准：2026-10-23 用户确认原生并行构建优化方向
 - 目标：当前 Post-MVP 1.4 发布工具维护；无新增产品功能
 - Requirement：`NFR-COMP-001`、`NFR-OPS-001`；保持 `NFR-SAFE-001`
@@ -34,5 +34,15 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
 
 ## 远程证据
 
-待分支手动运行独立测试标签，记录冷缓存、热缓存及最终主分支运行。
-不得以本地模拟协议测试替代实际双架构构建。旧 QEMU run 已由用户取消，不重启。
+- [首次冷构建 39920923695](https://github.com/HappyQuQu/foliopath/actions/runs/39920923695)：
+  AMD64 构建 7 分 10 秒、ARM64 构建 5 分 51 秒；两边相同 digest 的 runtime smoke
+  均通过，但缓存导出遇到 Linux 非 root exporter 写入 Go 模块 0555 目录失败，故未发布。
+  修复仅对导出副本增加目录 owner 写权限，并把只读模块目录加入真实缓存往返回归。
+- [修复后运行 39922276637](https://github.com/HappyQuQu/foliopath/actions/runs/39922276637)：
+  完整流程 2 分 38 秒，AMD64/ARM64 layer cache 命中后的构建分别 11 秒、17 秒；两边
+  runtime smoke 分别 74 秒、75 秒。导出、成功记录上传、SPDX/SLSA 检查、双架构 index
+  合并和 Docker Hub Overview 全部成功。测试标签 `native-check-20261023` 未更新 latest。
+  该轮证明 layer cache 和发布链路，首次失败时未成功保存的编译 cache mounts 不算热缓存证据。
+- 主分支运行结果待补录；GHA cache 受分支可见性约束，不能假定 main 直接复用测试分支缓存。
+
+旧 QEMU run 普通取消后仍在进行，已补发 force-cancel 并确认最终 `cancelled`，不重启。
