@@ -1,0 +1,21 @@
+# Smoke images consume the production frontend built by `npm run build`.
+# The release Dockerfile builds it inside the image; its root ignore excludes it.
+.git
+.github
+.artifacts
+.env
+.env.*
+build
+data
+foliopath-data
+playwright-report
+prototypes
+test-results
+web/coverage
+web/node_modules
+web/qa
+web/storybook-static
+*.db
+*.db-shm
+*.db-wal
+*.log
