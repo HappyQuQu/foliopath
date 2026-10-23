@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/HappyQuQu/foliopath/compare/v1.3.1...v1.4.0) (2026-10-23)
+
+
+### ✨ 新功能
+
+* 新增无缝瀑布流，隐藏文件名并消除图片间距 ([343b823](https://github.com/HappyQuQu/foliopath/commit/343b823b485c8ff31085b49d0aaf1fe3d101c43e))
+
+
+### 🐛 修复
+
+* 更新前端依赖并恢复容器烟测构建 ([412f934](https://github.com/HappyQuQu/foliopath/commit/412f9347872e3a5a2bc9eace0e8d397df815a16b))
+
 ## [1.3.1](https://github.com/HappyQuQu/foliopath/compare/v1.3.0...v1.3.1) (2026-08-18)
 
 
