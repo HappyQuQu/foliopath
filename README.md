@@ -50,6 +50,8 @@ complete set—without re-uploading files, creating albums, or changing your arc
 - **Keep source paths visible:** Know where each item came from in aggregated views.
 - **Pin the preview:** Keep one item visible while selecting and comparing similar shots.
 - **Grid and masonry layouts:** Adapt to mixed dimensions, orientations, and large libraries.
+- **Seamless masonry:** Browse photo sets with no gaps, rounded corners, filenames, or time rows.
+  Choose it in the browse toolbar or save it as the default layout in General settings.
 - **Search and filter:** Find media by filename, path, type, date, and scope.
 - **Favorites and manual tags:** Keep cross-folder picks, reuse existing tags, and browse each
   collection without changing media files.

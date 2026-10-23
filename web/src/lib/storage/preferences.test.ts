@@ -56,6 +56,17 @@ it("defaults sorting to the current view and remembers an explicit default", () 
   expect(readMediaSortPreference()).toBe("size:desc");
 });
 
+it("remembers seamless masonry without replacing other preferences", () => {
+  window.localStorage.setItem(
+    "foliopath.preferences.v1",
+    JSON.stringify({ locale: "en", mediaSort: "name:asc" }),
+  );
+  writeMediaLayoutPreference("seamless");
+  expect(readMediaLayoutPreference()).toBe("seamless");
+  expect(JSON.parse(window.localStorage.getItem("foliopath.preferences.v1") ?? "{}"))
+    .toMatchObject({ locale: "en", mediaSort: "name:asc", mediaLayout: "seamless" });
+});
+
 it("reads and writes remembered panel widths", () => {
   writeSidebarWidthPreference(320);
   writePreviewWidthPreference(520);

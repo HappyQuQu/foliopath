@@ -8,6 +8,7 @@
 [MVP scope revision 4](releases/MVP-2026-07-23-scope-r4.md)，最新已实现公共合同基线为
 [`POST-MVP-4`](releases/POST-MVP-4-scope.md)。本轮综合更新见
 [2026-08-13 更新说明草案](releases/2026-08-13-integrated-update-notes.md)。
+2026-10-23 的 Post-MVP 显示优化见[无缝瀑布流](changes/CR-2026-033-seamless-masonry.md)。
 
 ## 首先阅读
 

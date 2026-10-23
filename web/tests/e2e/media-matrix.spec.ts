@@ -278,6 +278,85 @@ test("storyboard hover is lazy, bounded, and input-mode aware", async ({
   await expect(reducedCard).not.toHaveAttribute("data-storyboard-playing");
 });
 
+for (const locale of ["zh-CN", "en"]) {
+  for (const theme of ["light", "dark"]) {
+    for (const width of [390, 768, 1280, 1920]) {
+      test(`seamless masonry ${locale}/${theme} has no gaps at ${width}px and remembers the layout`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await mockStoryboardBrowseBackend(page, () => undefined);
+        // Synthetic catalog fixtures; production components and generated adapters stay in use.
+        const assets = Array.from({ length: 120 }, (_, index) => ({
+          ...assetFixture("image_ready"),
+          id: `photo_${index}`,
+          name: `photo-${index}.png`,
+          height: index % 3 === 0 ? 1200 : 800,
+          width: index % 3 === 0 ? 800 : 1200,
+          thumbnail: { errorCode: null, status: "ready", url: `/api/v1/assets/photo_${index}/thumbnail` },
+        }));
+        await page.route(new RegExp(`/api/v1/libraries/${libraryId}/assets`), (route) =>
+          route.fulfill({ json: { counts: { all: 120, images: 120, videos: 0 }, items: assets, nextCursor: null } }),
+        );
+        await page.route(/\/api\/v1\/assets\/photo_\d+\/thumbnail/, (route) =>
+          route.fulfill({ contentType: "image/png", body: readFileSync(new URL("../../../tests/fixtures/media/viewer-blue-violet.png", import.meta.url)) }),
+        );
+        await page.addInitScript(({ dark, chinese }) => {
+          if (localStorage.getItem("foliopath.preferences.v1")) return;
+          localStorage.setItem("foliopath.preferences.v1", JSON.stringify({
+            locale: chinese ? "zh-CN" : "en", theme: dark ? "dark" : "light",
+          }));
+        }, { dark: theme === "dark", chinese: locale === "zh-CN" });
+        await page.goto(`/libraries/${libraryId}/browse`);
+        const name = locale === "zh-CN" ? "无缝瀑布流" : "Seamless masonry";
+        await page.getByRole("button", { name, exact: true }).click();
+        const collection = page.locator('ul[data-layout="seamless"]');
+        await expect(collection.locator("article").first()).toBeVisible();
+        await expect(collection.locator("strong")).toHaveCount(0);
+        expect(await collection.locator("article").count()).toBeLessThan(100);
+        const assertGeometry = async () => {
+          await expect.poll(() => collection.evaluate((list) => {
+            const cards = Array.from(list.querySelectorAll("li")).map((item) => {
+              const article = item.querySelector("article")!;
+              const image = article.querySelector("img")!;
+              return { card: article.getBoundingClientRect(), image: image.getBoundingClientRect(), radius: getComputedStyle(article).borderRadius };
+            });
+            const errors: string[] = [];
+            for (const { card, image, radius } of cards) {
+              if (radius !== "0px" || Math.abs(card.height - image.height) > 0.08) errors.push("card chrome");
+            }
+            const lanes = new Map<number, DOMRect[]>();
+            for (const { card } of cards) {
+              const key = Math.round(card.x * 10);
+              lanes.set(key, [...(lanes.get(key) ?? []), card]);
+            }
+            const columns = [...lanes.values()].sort((a, b) => a[0]!.x - b[0]!.x);
+            for (let column = 0; column < columns.length; column += 1) {
+              const lane = columns[column]!.sort((a, b) => a.y - b.y);
+              for (let row = 1; row < lane.length; row += 1) {
+                if (Math.abs(lane[row]!.top - lane[row - 1]!.bottom) > 0.08) errors.push("vertical gap");
+              }
+              if (column > 0 && Math.abs(lane[0]!.left - columns[column - 1]![0]!.right) > 0.08) errors.push("horizontal gap");
+            }
+            return errors;
+          })).toEqual([]);
+        };
+        await assertGeometry();
+        await collection.locator('[data-media-id="photo_0"]').focus();
+        await expect(collection.locator('[data-media-id="photo_0"]')).toBeFocused();
+        await expectNoPageOverflow(page);
+        await page.mouse.wheel(0, 600);
+        await assertGeometry();
+        await page.reload();
+        await expect(page.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true");
+        await expect(collection.locator("article").first()).toBeVisible();
+        await assertGeometry();
+        await page.screenshot({ path: test.info().outputPath(`seamless-${width}.png`) });
+        await page.getByRole("button", { name: locale === "zh-CN" ? "自适应网格" : "Adaptive grid", exact: true }).click();
+        await expect(page.locator('ul[data-layout="grid"] strong').first()).toBeVisible();
+      });
+    }
+  }
+}
+
 async function mockViewerBackend(page: Page, rangeRequests: string[]) {
   await page.route("**/health/ready", async (route) => {
     await route.fulfill({

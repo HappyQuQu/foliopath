@@ -11,6 +11,7 @@ import {
   House,
   Heart,
   ImageSquare,
+  SquaresFour,
   MagnifyingGlass,
   Square,
   Tag,
@@ -883,6 +884,13 @@ function BrowseToolbar({
           pressed={mediaLayout === "masonry"}
         >
           <Columns aria-hidden="true" size={18} />
+        </IconButton>
+        <IconButton
+          label={t("browse.layoutSeamless")}
+          onClick={() => onLayoutChange("seamless")}
+          pressed={mediaLayout === "seamless"}
+        >
+          <SquaresFour aria-hidden="true" size={18} weight="fill" />
         </IconButton>
       </div>
       <label className={styles.sortControl}>

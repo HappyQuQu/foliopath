@@ -18,10 +18,11 @@ import {
   type CSSProperties,
 } from "react";
 
+import type { MediaLayoutPreference } from "../../../lib/storage/preferences";
 import { Button, IconButton, InlineStatus } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
-export type MediaCollectionLayout = "grid" | "masonry";
+export type MediaCollectionLayout = MediaLayoutPreference;
 
 export interface MediaCollectionItem {
   favorite?: boolean;
@@ -147,7 +148,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   const storyboard = useStoryboardPlayback();
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
   const columns = columnCount(geometry.width);
-  const gap = 12;
+  const gap = layout === "seamless" ? 0 : 12;
   const columnWidth =
     (geometry.width - gap * Math.max(0, columns - 1)) / columns;
   const getItemKey = useCallback(
@@ -158,6 +159,11 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     (index: number) =>
       estimatedCardHeight(items[index], layout, columnWidth),
     [columnWidth, items, layout],
+  );
+  const measureSeamlessItem = useCallback(
+    (element: Element, entry: ResizeObserverEntry | undefined) =>
+      entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height,
+    [],
   );
   const virtualizer = useWindowVirtualizer({
     count: items.length,
@@ -170,6 +176,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     },
     laneAssignmentMode: "estimate",
     lanes: columns,
+    // Preserve fractional heights: rounded measurements leave seams between images.
+    ...(layout === "seamless" ? { measureElement: measureSeamlessItem } : {}),
     overscan: columns * 2,
     scrollMargin: geometry.scrollMargin,
   });
@@ -416,7 +424,7 @@ function MediaCard({
         ? labels.unavailableThumbnail
         : labels.pendingThumbnail;
   const aspectRatio =
-    layout === "masonry" ? safeAspectRatio(item) : 4 / 3;
+    layout === "grid" ? 4 / 3 : safeAspectRatio(item);
   useEffect(
     () => () => {
       onStoryboardLeave(item.id);
@@ -537,14 +545,18 @@ function MediaCard({
           </IconButton>
         )}
       </div>
-      <div className={styles.identity}>
-        <strong title={item.name}>{item.name}</strong>
-        {item.sourceHref && item.sourceLabel ? (
-          <a href={item.sourceHref}>{item.sourceLabel}</a>
-        ) : (
-          <span>{item.modifiedLabel}</span>
-        )}
-      </div>
+      {(layout !== "seamless" || (item.sourceHref && item.sourceLabel)) && (
+        <div
+          className={layout === "seamless" ? styles.seamlessIdentity : styles.identity}
+        >
+          {layout !== "seamless" && <strong title={item.name}>{item.name}</strong>}
+          {item.sourceHref && item.sourceLabel ? (
+            <a href={item.sourceHref}>{item.sourceLabel}</a>
+          ) : (
+            layout !== "seamless" && <span>{item.modifiedLabel}</span>
+          )}
+        </div>
+      )}
     </article>
   );
 }
@@ -679,8 +691,8 @@ function estimatedCardHeight(
   layout: MediaCollectionLayout,
   columnWidth: number,
 ): number {
-  const ratio = layout === "masonry" && item ? safeAspectRatio(item) : 4 / 3;
-  return columnWidth / ratio + 54;
+  const ratio = layout !== "grid" && item ? safeAspectRatio(item) : 4 / 3;
+  return columnWidth / ratio + (layout === "seamless" ? 0 : 54);
 }
 
 function safeAspectRatio(item: MediaCollectionItem): number {

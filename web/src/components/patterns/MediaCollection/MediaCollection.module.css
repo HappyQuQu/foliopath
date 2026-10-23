@@ -58,6 +58,48 @@
   transform: translateY(-0.1875rem);
 }
 
+.collection[data-layout="seamless"] .card {
+  border-radius: 0;
+  transform: none;
+  box-shadow: none;
+}
+
+.collection[data-layout="seamless"] .card:has(.previewTrigger:focus-visible) {
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.collection[data-layout="seamless"] .card[data-selected]::after,
+.collection[data-layout="seamless"] .card[data-previewing]::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border: var(--focus-width) solid var(--color-accent);
+  content: "";
+  pointer-events: none;
+}
+
+.seamlessIdentity {
+  position: absolute;
+  z-index: 2;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  left: var(--space-2);
+  display: flex;
+  pointer-events: none;
+}
+
+.seamlessIdentity a {
+  overflow: hidden;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-on-scrim);
+  border-radius: var(--radius-1);
+  background: var(--color-scrim);
+  font-size: var(--font-size-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
 .thumbnail {
   position: relative;
   overflow: hidden;

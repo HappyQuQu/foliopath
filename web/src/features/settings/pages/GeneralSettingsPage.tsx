@@ -191,16 +191,13 @@ export function GeneralSettingsPage({
               </span>
               <select
                 onChange={(event) => {
-                  const next =
-                    event.currentTarget.value === "masonry"
-                      ? "masonry"
-                      : "grid";
-                  setLayout(next);
+                  setLayout(event.currentTarget.value as MediaLayoutPreference);
                 }}
                 value={layout}
               >
                 <option value="grid">{t("browse.layoutGrid")}</option>
                 <option value="masonry">{t("browse.layoutMasonry")}</option>
+                <option value="seamless">{t("browse.layoutSeamless")}</option>
               </select>
             </label>
             <label className={styles.row}>

@@ -86,7 +86,7 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLImageElement.prototype, "decode");
 });
 
-it("renders a bounded virtual window in query order with stable media identity", () => {
+it.each(["grid", "seamless"] as const)("renders a bounded %s window in query order with stable media identity", (layout) => {
   const items: MediaCollectionItem[] = Array.from({ length: 200 }, (_, index) => ({
     height: 900,
     id: `asset-${index}`,
@@ -104,7 +104,7 @@ it("renders a bounded virtual window in query order with stable media identity",
       isFetchingNextPage={false}
       items={items}
       labels={labels}
-      layout="grid"
+      layout={layout}
       onLoadMore={vi.fn()}
     />,
   );
@@ -254,6 +254,32 @@ it("preserves an original aspect ratio in masonry and exposes placeholder status
 
   expect(screen.getByText("Thumbnail failed")).toBeVisible();
   expect(screen.getByRole("article", { name: "portrait.jpg · Image" })).toBeVisible();
+});
+
+it("hides seamless metadata while retaining accessible names, source links and actions", () => {
+  const activate = vi.fn();
+  const favorite = vi.fn();
+  render(
+    <MediaCollection
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      items={[{ ...storyboardItem, sourceHref: "/source", sourceLabel: "Source folder" }]}
+      labels={labels}
+      layout="seamless"
+      onItemActivate={activate}
+      onFavoriteToggle={favorite}
+      onLoadMore={vi.fn()}
+    />,
+  );
+  expect(screen.queryByText(storyboardItem.name)).not.toBeInTheDocument();
+  expect(screen.queryByText("Today")).not.toBeInTheDocument();
+  expect(screen.getByRole("article", { name: "video-storyboard.mp4 · Video" }))
+    .toBeVisible();
+  expect(screen.getByRole("link", { name: "Source folder" })).toHaveAttribute("href", "/source");
+  fireEvent.click(screen.getByRole("button", { name: "Preview video-storyboard.mp4" }));
+  expect(activate).toHaveBeenCalledWith(storyboardItem.id, "single", expect.any(HTMLButtonElement));
+  fireEvent.click(screen.getByRole("button", { name: "Favorite video-storyboard.mp4" }));
+  expect(favorite).toHaveBeenCalledWith(storyboardItem.id, true);
 });
 
 it("preserves loaded items and exposes a retry when the next page fails", () => {

@@ -58,7 +58,7 @@ it("saves independent video preview autoplay and mute preferences", async () => 
   ).toMatchObject({ previewAutoplay: false, previewMuted: false });
 });
 
-it("saves default sorting and grid or masonry layout together", async () => {
+it.each(["masonry", "seamless"])("saves default sorting and %s layout together", async (layout) => {
   window.localStorage.setItem(
     "foliopath.preferences.v1",
     '{"locale":"zh-CN"}',
@@ -69,7 +69,7 @@ it("saves default sorting and grid or masonry layout together", async () => {
 
   await user.selectOptions(
     screen.getByRole("combobox", { name: /默认布局/ }),
-    "masonry",
+    layout,
   );
   await user.selectOptions(
     screen.getByRole("combobox", { name: /默认排序/ }),
@@ -81,7 +81,7 @@ it("saves default sorting and grid or masonry layout together", async () => {
     JSON.parse(
       window.localStorage.getItem("foliopath.preferences.v1") ?? "{}",
     ),
-  ).toMatchObject({ mediaLayout: "masonry", mediaSort: "size:desc" });
+  ).toMatchObject({ mediaLayout: layout, mediaSort: "size:desc" });
 });
 
 function renderGeneralSettings() {

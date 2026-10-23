@@ -311,6 +311,20 @@ it("restores recursive scope, changes its default sort, and closes recursion fro
   );
 });
 
+it("remembers seamless masonry and restores ordinary filenames when switching back", async () => {
+  const user = userEvent.setup();
+  renderBrowse("?recursive=1");
+  expect(await screen.findByText("clip.mp4")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "无缝瀑布流" }));
+  expect(screen.getByRole("button", { name: "无缝瀑布流" }))
+    .toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByText("clip.mp4")).not.toBeInTheDocument();
+  expect(JSON.parse(window.localStorage.getItem("foliopath.preferences.v1") ?? "{}"))
+    .toMatchObject({ mediaLayout: "seamless" });
+  await user.click(screen.getByRole("button", { name: "自适应网格" }));
+  expect(screen.getByText("clip.mp4")).toBeVisible();
+});
+
 it("separates quick-access all media from the library root directory", async () => {
   const user = userEvent.setup();
 

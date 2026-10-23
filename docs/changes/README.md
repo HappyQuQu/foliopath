@@ -27,6 +27,8 @@
 
 ### Post-MVP 与未来提案
 
+- [CR-2026-033：无缝瀑布流](CR-2026-033-seamless-masonry.md)
+
 - [CR-2026-004：视频故事板悬停预览](CR-2026-004-video-storyboard-preview.md)
 - [CR-2026-005：媒体库自动发现](CR-2026-005-automatic-library-discovery.md)
 - [CR-2026-007：运维与维护原型](CR-2026-007-operations-maintenance-prototype.md)

@@ -24,6 +24,11 @@ Stage 0 范围及供应链识别已有报告证据；这不把任何生产切片
 
 ## 功能需求追踪
 
+`FR-BRW-014`：[CR-2026-033](../changes/CR-2026-033-seamless-masonry.md) 接受 Post-MVP 无缝瀑布流。
+共享 `MediaCollection` 唯一拥有零间距与虚拟化几何，`preferences.ts` 唯一拥有布局偏好；
+Browse/GeneralSettings 提供入口，Search/Curation 复用。沿用 S3-103/S3-107 及已实现的后端
+合同，不增加 API 或持久化边界。组件/页面测试和浏览器几何检查见[验证记录](../evidence/seamless-masonry-2026-10-23.md)。
+
 | 需求族 | 目标版本 | 范围状态 | Change Record | Capability / adapter | 计划 API 或用户流程 | 数据与派生状态 | 决策与约束 | 主要风险 | 必需验证 | Roadmap 阶段 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `FR-DEP-001～004` 部署与设置 | `MVP-2026-07-23` | Frozen r1；[CR-2026-013 root runtime](../changes/CR-2026-013-root-runtime-bind-data.md)重新打开身份候选；既有 S5-001/002/004 历史证据保留 | `BASELINE-2026-07-23`、`CR-2026-013` | `internal/app`、`internal/api`、`internal/webassets`、`internal/store/sqlite`；根 `Dockerfile`、`compose.yaml` 与容器适配器 | 启动/初始化、嵌入 SPA、`/health/live`、`/health/ready`、`/api/v1/status`、设置读写 | migrations、`settings`、运行版本与健康状态；Vite 产物仅在构建期嵌入 | [ADR-0001](../adr/0001-go-react-sqlite.md)、[ADR-0009](../adr/0009-linux-openat2-single-media-root.md)、[ADR-0012](../adr/0012-root-runtime-bind-data.md)、[部署](../deployment.md) | R-002、R-004、R-008、R-011、R-014、R-016、R-022 | 历史非 root 双架构证据不证明当前身份；root 候选必须以 Docker 自动创建的 root-owned `/app/data` bind 复验数据库、只读根/媒体、health、SIGTERM、Compose/代理、恢复与供应链 | 1、5 |

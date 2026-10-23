@@ -1,5 +1,16 @@
 # FolioPath 测试策略
 
+## 2026-10-23 无缝瀑布流增量
+
+`FR-BRW-014` / [CR-2026-033](changes/CR-2026-033-seamless-masonry.md) 使用生产组件 Story、
+偏好/页面/共享集合测试，以及 `media-matrix.spec.ts` 的中英双语、深浅主题、
+390/768/1280/1920px × Chromium/Firefox/WebKit 几何和刷新回归。全量命令与结果见
+[验证记录](evidence/seamless-masonry-2026-10-23.md)。
+
+本地先按锁文件 `npm ci`，再 `npm run build --prefix web` 生成 Go embed 资源。
+`tests/e2e/Dockerfile.dockerignore` 允许烟测镜像消费该产物，避免正式镜像的根 ignore 将其
+排除；随后执行 `make test-e2e`。测试数据只使用临时目录或明确标识的合成合同 fixture。
+
 ## 状态
 
 本文同时定义目标验证体系和当前已落地的 Go 验证面。仓库已有路径边界、媒体库、

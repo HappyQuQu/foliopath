@@ -140,6 +140,23 @@ export const Masonry: Story = {
   args: { layout: "masonry" },
 };
 
+// Synthetic contract fixtures rendered by the production collection component.
+export const Seamless: Story = {
+  args: {
+    layout: "seamless",
+    hasNextPage: false,
+    items: items.map(({ storyboard: _storyboard, ...item }, index) => ({
+      ...item,
+      kind: "image",
+      thumbnailStatus: "ready",
+      thumbnailUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${item.width}" height="${item.height}"><rect width="100%" height="100%" fill="hsl(${index * 37 % 360} 42% 48%)"/><circle cx="45%" cy="40%" r="25%" fill="hsl(${(index * 37 + 35) % 360} 52% 70%)"/></svg>`,
+      )}`,
+    })),
+    onItemActivate: () => undefined,
+  },
+};
+
 export const ThumbnailStates: Story = {
   args: {
     hasNextPage: false,

@@ -42,6 +42,7 @@ FolioPath directly reads an existing directory tree and lets you browse a folder
 - Browse a directory and its descendants without creating albums.
 - Keep source paths visible in aggregated views.
 - Use adaptive grid and masonry layouts for mixed media dimensions.
+- Choose seamless masonry for photo sets with no gaps, rounded corners, filenames, or time rows.
 - Search by filename, path, media type, date, and scope.
 - Zoom, pan, view at 1:1, navigate between items, use fullscreen, and play videos.
 - Configure multiple non-overlapping libraries below one read-only `/library` mount.
@@ -145,6 +146,7 @@ FolioPath 是一款为整套照片和视频浏览而生的只读、自托管媒�
 - 穿透浏览文件夹及其所有子目录，无需另建相册。
 - 汇总浏览时保留媒体来源路径。
 - 使用自适应网格和瀑布流展示不同尺寸的媒体。
+- 使用无缝瀑布流连贯浏览套图：隐藏文件名和时间栏，图片零间距、无圆角。
 - 按文件名、路径、媒体类型、日期和范围搜索。
 - 支持缩放、平移、1:1、前后切换、全屏和视频播放。
 - 在唯一的只读 `/library` 挂载下配置多个互不重叠的媒体库。

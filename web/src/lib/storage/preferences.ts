@@ -2,7 +2,7 @@ const preferenceNamespace = "foliopath.preferences.v1";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
-export type MediaLayoutPreference = "grid" | "masonry";
+export type MediaLayoutPreference = "grid" | "masonry" | "seamless";
 export type MediaSortPreference =
   | "contextual"
   | "name:asc"
@@ -72,7 +72,7 @@ export function clearLocalePreference(): void {
 
 export function readMediaLayoutPreference(): MediaLayoutPreference {
   const layout = readPreferences().mediaLayout;
-  return layout === "masonry" ? "masonry" : "grid";
+  return layout === "masonry" || layout === "seamless" ? layout : "grid";
 }
 
 export function writeMediaLayoutPreference(

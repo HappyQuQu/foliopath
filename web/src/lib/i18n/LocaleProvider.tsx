@@ -90,7 +90,7 @@ const zhCN = {
   "cache.usage": "缓存使用量",
   "general.browsePreferences": "浏览偏好",
   "general.defaultLayout": "默认布局",
-  "general.defaultLayoutDescription": "新打开浏览或搜索时采用的媒体排列方式。",
+  "general.defaultLayoutDescription": "新打开浏览、搜索、收藏或标签页时采用的媒体排列方式。",
   "general.defaultSort": "默认排序",
   "general.defaultSortContextual": "按当前视图默认",
   "general.defaultSortDescription":
@@ -146,6 +146,7 @@ const zhCN = {
   "browse.layout": "媒体布局",
   "browse.layoutGrid": "自适应网格",
   "browse.layoutMasonry": "瀑布流",
+  "browse.layoutSeamless": "无缝瀑布流",
   "browse.library": "媒体库",
   "browse.libraryFallback": "当前媒体库",
   "browse.linkCopied": "当前目录链接已复制。",
@@ -878,7 +879,7 @@ const en: Record<MessageKey, string> = {
   "general.browsePreferences": "Browse preferences",
   "general.defaultLayout": "Default layout",
   "general.defaultLayoutDescription":
-    "Choose the media arrangement used for newly opened browse and search views.",
+    "Choose the media arrangement for newly opened browse, search, favorites, and tag views.",
   "general.defaultSort": "Default sort",
   "general.defaultSortContextual": "Use each view's default",
   "general.defaultSortDescription":
@@ -939,6 +940,7 @@ const en: Record<MessageKey, string> = {
   "browse.layout": "Media layout",
   "browse.layoutGrid": "Adaptive grid",
   "browse.layoutMasonry": "Masonry",
+  "browse.layoutSeamless": "Seamless masonry",
   "browse.library": "Media library",
   "browse.libraryFallback": "Current library",
   "browse.linkCopied": "Current directory link copied.",
