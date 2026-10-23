@@ -2,10 +2,12 @@
 """Restore/export only the three reviewed build caches on an ephemeral CI runner."""
 import argparse
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import secrets
+import shutil
 import subprocess
+import tarfile
 import tempfile
 
 MOUNTS = {
@@ -41,6 +43,26 @@ COPY --from=cache /export/ /
 """
 
 
+def unpack_snapshot(archive, destination):
+    """Unpack only ordinary cache files/directories, including on Python 3.9."""
+    destination.mkdir()
+    with tarfile.open(archive) as snapshot:
+        for member in snapshot:
+            relative = PurePosixPath(member.name)
+            if (relative.is_absolute() or ".." in relative.parts or "\\" in member.name or
+                    member.type not in {tarfile.REGTYPE, tarfile.AREGTYPE, tarfile.DIRTYPE}):
+                raise ValueError("Unsafe cache archive member")
+            target = destination.joinpath(*relative.parts)
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with snapshot.extractfile(member) as source, target.open("wb") as output:
+                    shutil.copyfileobj(source, output)
+                target.chmod((member.mode & 0o777) | 0o600)
+                os.utime(target, (member.mtime, member.mtime))
+
+
 def transfer(mode, directory, dockerfile="Dockerfile", run=subprocess.run):
     root = Path(directory).resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -54,10 +76,14 @@ def transfer(mode, directory, dockerfile="Dockerfile", run=subprocess.run):
                        "--build-arg", "CACHE_NONCE=" + secrets.token_hex(16)]
             if mode == "extract":
                 exported = Path(scratch) / "exported"
-                command.extend(["--output", "type=local,dest=" + str(exported)])
+                archive = Path(scratch) / "cache.tar"
+                # One tar stream avoids the local exporter's per-file RPCs,
+                # which stalled with the full module cache on a native ARM runner.
+                command.extend(["--output", "type=tar,dest=" + str(archive)])
             command.append(str(context))
             run(command, input=dancefile(base, target, mode), text=True, check=True, timeout=60)
             if mode == "extract":
+                unpack_snapshot(archive, exported)
                 # Go module directories are read-only. Export to a fresh directory,
                 # then replace the previous snapshot instead of overwriting it.
                 previous = Path(scratch) / "previous"

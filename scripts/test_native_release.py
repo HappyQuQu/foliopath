@@ -1,8 +1,10 @@
 import copy
 import json
+import io
 from pathlib import Path
 import subprocess
 import tempfile
+import tarfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
@@ -155,7 +157,8 @@ class BuildCacheTests(unittest.TestCase):
                 def simulate_export(command, **_kwargs):
                     if "--output" in command:
                         output = command[command.index("--output") + 1].split("dest=", 1)[1]
-                        Path(output).mkdir()
+                        with tarfile.open(output, "w"):
+                            pass
                 run = Mock(side_effect=simulate_export)
                 cache.transfer(mode, directory, dockerfile, run)
                 self.assertEqual(run.call_count, 3)
@@ -164,6 +167,28 @@ class BuildCacheTests(unittest.TestCase):
                     self.assertIn("--mount=type=cache", call.kwargs["input"])
                     self.assertTrue(call.kwargs["check"])
                     self.assertEqual(call.kwargs["timeout"], 60)
+
+    def test_unsafe_archive_cannot_escape_or_replace_the_previous_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "go-mod"
+            snapshot.mkdir()
+            (snapshot / "previous").write_text("usable")
+
+            dockerfile = Path(__file__).resolve().parent.parent / "Dockerfile"
+            for name, kind in [("../../escaped", tarfile.REGTYPE), ("/absolute", tarfile.REGTYPE),
+                               ("link", tarfile.SYMTYPE), ("hard", tarfile.LNKTYPE),
+                               ("fifo", tarfile.FIFOTYPE)]:
+                def unsafe_export(command, **_kwargs):
+                    output = command[command.index("--output") + 1].split("dest=", 1)[1]
+                    with tarfile.open(output, "w") as archive:
+                        member = tarfile.TarInfo(name)
+                        member.type = kind
+                        member.linkname = "../../escaped"
+                        member.size = 3 if member.isfile() else 0
+                        archive.addfile(member, io.BytesIO(b"bad"))
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    cache.transfer("extract", directory, dockerfile, unsafe_export)
+                self.assertEqual((snapshot / "previous").read_text(), "usable")
 
     def test_timeout_preserves_the_previous_cache_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:

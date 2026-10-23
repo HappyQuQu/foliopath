@@ -25,7 +25,7 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
 `make test-integration`、`make test-e2e`、`npm --prefix web run build`、`git diff --check`。
 `make test-e2e` 是测试专用容器 smoke，不等同最终发布镜像验收。
 
-- `python3 -B -m unittest discover -s scripts -p 'test_native_release.py' -v`：11 项通过；
+- `python3 -B -m unittest discover -s scripts -p 'test_native_release.py' -v`：12 项通过；
   覆盖来源/版本/架构混用拒绝、失败不生成记录、同 digest smoke、不重建 promotion、
   SBOM/provenance 保留及缓存目录/基础镜像协议。
 - `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/dockerhub.yml .github/workflows/native-images.yml`：通过。
@@ -48,6 +48,8 @@ workflow 只编排；`Dockerfile` 继续拥有基础镜像和产品构建。不�
   ARM64 缓存导出停滞，因此加入缓存操作独立超时及失败警告后继续的规则；不能让可丢弃
   缓存阻止已验证镜像发布。每次缓存 builder 调用限 60 秒，四个缓存步骤各限三分钟。
   超时回归确认旧快照仍保留。最终主分支和版本发布结果待补录。
+  日志显示停在 local exporter 的逐文件复制阶段；后续改为单一 tar 流导出并通过
+  Python 仅解包普通文件/目录，拒绝路径逃逸、符号链接和特殊文件；失败保留旧快照，缓存布局保持兼容。
   GHA cache 受分支可见性约束，不能假定 main 直接复用测试分支缓存。
 
 旧 QEMU run 普通取消后仍在进行，已补发 force-cancel 并确认最终 `cancelled`，不重启。
