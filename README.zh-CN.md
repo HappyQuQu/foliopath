@@ -140,6 +140,9 @@ docker compose up -d
 
 ## 📖 更多文档
 
+源码开发使用 Node.js 24.22.1 和 npm 11.19.1，版本固定在 `.node-version` 与
+`web/package.json`；Docker 前端构建层使用相同 Node 版本。
+
 - [2026-08-13 已实现更新说明](docs/releases/2026-08-13-integrated-update-notes.md)
 - [高级部署、`.env` 覆盖、升级、备份与反向代理](docs/deployment.md)
 - [安全与文件访问边界](docs/security.md)

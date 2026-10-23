@@ -41,6 +41,8 @@
 
 ### 2026-10-23
 
+- [Node 24 LTS 与 Docker 构建工具链](FIX-2026-10-23-node24-lts.md)
+
 - [原生发布构建与 digest 验证](FIX-2026-10-23-native-release-builds.md)
 
 ### 2026-08-17

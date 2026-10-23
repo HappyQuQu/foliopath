@@ -149,6 +149,9 @@ or video transcoding.
 
 ## 📖 More Documentation
 
+For source development, use Node.js 24.22.1 and npm 11.19.1, pinned in `.node-version` and
+`web/package.json`. The Docker frontend builder uses the same Node version.
+
 - [2026-08-13 implemented update notes](docs/releases/2026-08-13-integrated-update-notes.md)
 - [Advanced deployment, `.env` overrides, upgrades, backup, and reverse proxy](docs/deployment.md)
 - [Security and filesystem boundaries](docs/security.md)

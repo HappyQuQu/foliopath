@@ -10,6 +10,7 @@
 [2026-08-13 更新说明草案](releases/2026-08-13-integrated-update-notes.md)。
 2026-10-23 的 Post-MVP 显示优化见[无缝瀑布流](changes/CR-2026-033-seamless-masonry.md)。
 同日发布工具维护见[原生构建与 digest 验证](changes/FIX-2026-10-23-native-release-builds.md)。
+Node 与 Docker 前端构建工具链同步见[Node 24 LTS 维护](changes/FIX-2026-10-23-node24-lts.md)。
 
 ## 首先阅读
 

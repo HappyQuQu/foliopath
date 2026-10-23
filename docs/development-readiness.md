@@ -101,7 +101,8 @@ ADR 流程。
   `generate-check`、`web-check`、`openapi-lint`、`compatibility-check`、`lint`、`test`、
   `test-race`、`test-integration`、真实应用容器 `test-e2e` 和显式 `spike-capacity`；
   合并与发布前在本地运行适用入口。
-- `.node-version`、`packageManager` 和 lockfile 固定 Node 22.22.2/npm 10.9.7；strict
+- `.node-version`、`packageManager` 和 lockfile 固定 Node 24.22.1/npm 11.19.1；Docker
+  前端构建层使用相同 Node 版本的官方 bookworm-slim 镜像并固定多架构 digest。strict
   TypeScript、生成文件漂移检查与 high-severity npm audit 已在本地通过。
 
 仍待阶段 1 固定或补齐：

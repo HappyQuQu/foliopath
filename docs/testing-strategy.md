@@ -1,5 +1,13 @@
 # FolioPath 测试策略
 
+## 2026-10-23 Node 24 LTS 工具链
+
+本地使用 `.node-version` 的 Node 24.22.1 和 `web/package.json` 的 npm 11.19.1。
+`make arch-check` 校验 Node 声明、npm 主版本、lockfile engines 与 Docker 前端构建镜像
+一致；使用 Node 24 执行 `npm ci`、`npm run check`、`npm run build` 及适用的 Make 检查。
+Docker 官方构建镜像中的 `node --version` / `npm --version` 也须核实。
+完整验证结果见[工具链维护记录](changes/FIX-2026-10-23-node24-lts.md)。
+
 ## 2026-10-23 无缝瀑布流增量
 
 `FR-BRW-014` / [CR-2026-033](changes/CR-2026-033-seamless-masonry.md) 使用生产组件 Story、

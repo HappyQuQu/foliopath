@@ -1,5 +1,10 @@
 # FolioPath 需求—架构追踪
 
+2026-10-23 `NFR-COMP-001` / S5 构建维护：前端构建 owner 固定 Node 24 LTS，
+`.node-version` 与 Docker 构建镜像版本一致，npm/lockfile 同步；
+`make arch-check` 的工具链一致性回归阻止开发与容器版本漂移。
+范围和验证见[Node 24 LTS 维护记录](../changes/FIX-2026-10-23-node24-lts.md)。
+
 2026-10-23 发布工具维护：`NFR-COMP-001` / `NFR-OPS-001`，S5-007 / S5-008，Owner 为
 发布工具维护者；[ADR-0026](../adr/0026-native-release-image-promotion.md) 接受原生构建、
 同 digest 验证及双成功记录发布。协议 owner 为 `scripts/native_release.py`，缓存 owner
