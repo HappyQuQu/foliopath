@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/HappyQuQu/foliopath/compare/v1.4.0...v1.4.1) (2026-10-23)
+
+
+### 🐛 修复
+
+* hide source text and add remembered gallery size slider ([dfb18ed](https://github.com/HappyQuQu/foliopath/commit/dfb18edfe4eb923a6ef71cc6be6021ba06a28a31))
+
 ## [1.4.0](https://github.com/HappyQuQu/foliopath/compare/v1.3.1...v1.4.0) (2026-10-23)
 
 
