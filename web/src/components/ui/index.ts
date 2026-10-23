@@ -21,6 +21,7 @@ export { LocaleToggle } from "./LocaleToggle/LocaleToggle";
 export { PanelResizer } from "./PanelResizer/PanelResizer";
 export { SearchInput, type SearchInputProps } from "./SearchInput/SearchInput";
 export { Select, type SelectProps } from "./Select/Select";
+export { Slider, type SliderProps } from "./Slider/Slider";
 export { Switch, type SwitchProps } from "./Switch/Switch";
 export { ThemeToggle } from "./ThemeToggle/ThemeToggle";
 export {

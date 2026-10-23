@@ -289,6 +289,7 @@ for (const locale of ["zh-CN", "en"]) {
           ...assetFixture("image_ready"),
           id: `photo_${index}`,
           name: `photo-${index}.png`,
+          relativePath: `synthetic-set/photo-${index}.png`,
           height: index % 3 === 0 ? 1200 : 800,
           width: index % 3 === 0 ? 800 : 1200,
           thumbnail: { errorCode: null, status: "ready", url: `/api/v1/assets/photo_${index}/thumbnail` },
@@ -305,7 +306,7 @@ for (const locale of ["zh-CN", "en"]) {
             locale: chinese ? "zh-CN" : "en", theme: dark ? "dark" : "light",
           }));
         }, { dark: theme === "dark", chinese: locale === "zh-CN" });
-        await page.goto(`/libraries/${libraryId}/browse`);
+        await page.goto(`/libraries/${libraryId}/browse?recursive=1`);
         const name = locale === "zh-CN" ? "无缝瀑布流" : "Seamless masonry";
         await page.getByRole("button", { name, exact: true }).click();
         const collection = page.locator('ul[data-layout="seamless"]');
@@ -340,6 +341,26 @@ for (const locale of ["zh-CN", "en"]) {
           })).toEqual([]);
         };
         await assertGeometry();
+        const source = collection.locator("a").first();
+        await expect(source).toHaveText("");
+        // Hover/focus reveals only an icon, never a directory-name overlay.
+        await source.focus();
+        await expect(source).toBeFocused();
+        await expect(source).toHaveCSS("opacity", "1");
+        const slider = page.getByRole("slider", { name: locale === "zh-CN" ? "缩略图大小" : "Thumbnail size" });
+        await slider.focus();
+        await slider.press("End");
+        await expect(slider).toHaveValue("480");
+        await assertGeometry();
+        const largeWidth = await collection.locator("li").first().evaluate((item) => item.getBoundingClientRect().width);
+        await slider.press("Home");
+        await expect(slider).toHaveValue("120");
+        await assertGeometry();
+        const smallWidth = await collection.locator("li").first().evaluate((item) => item.getBoundingClientRect().width);
+        expect(largeWidth).toBeGreaterThan(smallWidth);
+        await slider.press("ArrowRight");
+        await expect(slider).toHaveValue("130");
+        await assertGeometry();
         await collection.locator('[data-media-id="photo_0"]').focus();
         await expect(collection.locator('[data-media-id="photo_0"]')).toBeFocused();
         await expectNoPageOverflow(page);
@@ -349,6 +370,7 @@ for (const locale of ["zh-CN", "en"]) {
         await expect(page.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true");
         await expect(collection.locator("article").first()).toBeVisible();
         await assertGeometry();
+        await expect(slider).toHaveValue("130");
         await page.screenshot({ path: test.info().outputPath(`seamless-${width}.png`) });
         await page.getByRole("button", { name: locale === "zh-CN" ? "自适应网格" : "Adaptive grid", exact: true }).click();
         await expect(page.locator('ul[data-layout="grid"] strong').first()).toBeVisible();

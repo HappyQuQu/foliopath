@@ -176,6 +176,7 @@ const zhCN = {
   "browse.offlineEmptyDescription":
     "保留索引中没有可显示的媒体，这不表示原目录为空。请恢复媒体挂载并重新扫描；原始媒体不会被修改。",
   "browse.offlineEmptyTitle": "媒体库当前离线",
+  "browse.tileSize": "缩略图大小",
   "browse.openSourceDirectory": "来源：{path}",
   "browse.openFullViewer": "进入完整查看器",
   "browse.pinPreview": "固定预览",
@@ -973,6 +974,7 @@ const en: Record<MessageKey, string> = {
   "browse.offlineEmptyDescription":
     "The preserved index has no media to display; this does not mean the source directory is empty. Restore the media mount and scan again; originals will not be modified.",
   "browse.offlineEmptyTitle": "This library is offline",
+  "browse.tileSize": "Thumbnail size",
   "browse.openSourceDirectory": "Source: {path}",
   "browse.openFullViewer": "Open full viewer",
   "browse.pinPreview": "Pin preview",

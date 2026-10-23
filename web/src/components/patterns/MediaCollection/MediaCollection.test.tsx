@@ -12,6 +12,7 @@ import {
 } from "./MediaCollection";
 
 const labels = {
+  tileSize: "Thumbnail size",
   activatePreview: "Preview {name}",
   addFavorite: "Favorite {name}",
   animated: "Animated",
@@ -275,7 +276,10 @@ it("hides seamless metadata while retaining accessible names, source links and a
   expect(screen.queryByText("Today")).not.toBeInTheDocument();
   expect(screen.getByRole("article", { name: "video-storyboard.mp4 · Video" }))
     .toBeVisible();
-  expect(screen.getByRole("link", { name: "Source folder" })).toHaveAttribute("href", "/source");
+  const source = screen.getByRole("link", { name: "Source folder" });
+  expect(source).toHaveAttribute("href", "/source");
+  expect(source).toHaveTextContent("");
+  expect(screen.queryByText("Source folder")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Preview video-storyboard.mp4" }));
   expect(activate).toHaveBeenCalledWith(storyboardItem.id, "single", expect.any(HTMLButtonElement));
   fireEvent.click(screen.getByRole("button", { name: "Favorite video-storyboard.mp4" }));

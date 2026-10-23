@@ -610,6 +610,7 @@ export function BrowsePage({
                           loadMoreFailed: t("browse.loadMoreMediaFailed"),
                           loadingMore: t("browse.loadingMoreMedia"),
                           pendingThumbnail: t("browse.thumbnailPending"),
+                          tileSize: t("browse.tileSize"),
                           previewing: t("browse.currentlyPreviewing"),
                           retryLoadMore: t("browse.retryLoadMoreMedia"),
                           removeFavorite: t("curation.removeFavorite"),

@@ -12,6 +12,8 @@
 同日发布工具维护见[原生构建与 digest 验证](changes/FIX-2026-10-23-native-release-builds.md)。
 Node 与 Docker 前端构建工具链同步见[Node 24 LTS 维护](changes/FIX-2026-10-23-node24-lts.md)。
 
+同日显示纠偏与大小滑条见[CR-2026-034](changes/CR-2026-034-gallery-size-and-source-icon.md)（Confirmed / Post-MVP 1.4.x）。
+
 ## 首先阅读
 
 | 目的 | 当前入口 | 说明 |

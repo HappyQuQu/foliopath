@@ -11,6 +11,7 @@ import {
 } from "./MediaCollection";
 
 const labels = {
+  tileSize: "缩略图大小",
   activatePreview: "预览 {name}",
   animated: "动图",
   failedThumbnail: "缩略图生成失败",
@@ -147,6 +148,8 @@ export const Seamless: Story = {
     hasNextPage: false,
     items: items.map(({ storyboard: _storyboard, ...item }, index) => ({
       ...item,
+      sourceHref: "/synthetic-source",
+      sourceLabel: "来源：合成目录",
       kind: "image",
       thumbnailStatus: "ready",
       thumbnailUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(

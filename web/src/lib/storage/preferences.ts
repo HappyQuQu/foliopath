@@ -15,6 +15,7 @@ export type MediaSortPreference =
 interface Preferences {
   locale?: LocalePreference;
   mediaLayout?: MediaLayoutPreference;
+  mediaTileSize?: number;
   mediaSort?: MediaSortPreference;
   dismissedCompletedNotifications?: string[];
   acknowledgedMediaFailureRevision?: string;
@@ -79,6 +80,21 @@ export function writeMediaLayoutPreference(
   mediaLayout: MediaLayoutPreference,
 ): void {
   writePreferences({ ...readPreferences(), mediaLayout });
+}
+
+export const mediaTileSizeRange = { min: 120, max: 480, step: 10, default: 210 } as const;
+
+export function readMediaTileSizePreference(): number {
+  const value = readPreferences().mediaTileSize;
+  return typeof value === "number" && Number.isFinite(value) &&
+    value >= mediaTileSizeRange.min && value <= mediaTileSizeRange.max
+    ? value : mediaTileSizeRange.default;
+}
+
+export function writeMediaTileSizePreference(mediaTileSize: number): void {
+  if (!Number.isFinite(mediaTileSize) || mediaTileSize < mediaTileSizeRange.min ||
+    mediaTileSize > mediaTileSizeRange.max) return;
+  writePreferences({ ...readPreferences(), mediaTileSize });
 }
 
 export function readMediaSortPreference(): MediaSortPreference {

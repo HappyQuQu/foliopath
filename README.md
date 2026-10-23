@@ -167,3 +167,5 @@ For source development, use Node.js 24.22.1 and npm 11.19.1, pinned in `.node-ve
 <p align="center">
   <strong>Your folders, beautifully browsed.</strong>
 </p>
+
+媒体浏览支持无缝瀑布流，隐藏文件名与来源目录文字；目录入口使用可访问图标。列表上方的“缩略图大小”滑条可放大、缩小图片，并在本浏览器记住大小；搜索、收藏与标签页同样支持。

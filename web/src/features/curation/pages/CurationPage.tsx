@@ -310,6 +310,7 @@ export function CurationPage({
                 loadMoreFailed: t("browse.loadMoreMediaFailed"),
                 loadingMore: t("browse.loadingMoreMedia"),
                 pendingThumbnail: t("browse.thumbnailPending"),
+                tileSize: t("browse.tileSize"),
                 previewing: t("browse.currentlyPreviewing"),
                 removeFavorite: t("curation.removeFavorite"),
                 retryLoadMore: t("browse.retryLoadMoreMedia"),

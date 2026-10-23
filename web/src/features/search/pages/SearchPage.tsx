@@ -354,6 +354,7 @@ export function SearchPage({
                   loadMoreFailed: t("search.loadMoreFailed"),
                   loadingMore: t("search.loadingMore"),
                   pendingThumbnail: t("browse.thumbnailPending"),
+                  tileSize: t("browse.tileSize"),
                   previewing: t("browse.currentlyPreviewing"),
                   removeFavorite: t("curation.removeFavorite"),
                   retryLoadMore: t("search.retryLoadMore"),

@@ -2,6 +2,7 @@ import {
   Eye,
   FileImage,
   FilmSlate,
+  FolderOpen,
   HourglassMedium,
   Heart,
   Play,
@@ -18,8 +19,13 @@ import {
   type CSSProperties,
 } from "react";
 
-import type { MediaLayoutPreference } from "../../../lib/storage/preferences";
-import { Button, IconButton, InlineStatus } from "../../ui";
+import {
+  mediaTileSizeRange,
+  readMediaTileSizePreference,
+  writeMediaTileSizePreference,
+  type MediaLayoutPreference,
+} from "../../../lib/storage/preferences";
+import { Button, IconButton, InlineStatus, Slider } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
 export type MediaCollectionLayout = MediaLayoutPreference;
@@ -50,6 +56,7 @@ export interface MediaCollectionStoryboard {
 
 export interface MediaCollectionLabels {
   activatePreview: string;
+  tileSize: string;
   addFavorite?: string;
   animated: string;
   failedThumbnail: string;
@@ -147,7 +154,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   const focusRestoreFrameRef = useRef<number | undefined>(undefined);
   const storyboard = useStoryboardPlayback();
   const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
-  const columns = columnCount(geometry.width);
+  const [tileSize, setTileSize] = useState(readMediaTileSizePreference);
+  const columns = columnCount(geometry.width, tileSize);
   const gap = layout === "seamless" ? 0 : 12;
   const columnWidth =
     (geometry.width - gap * Math.max(0, columns - 1)) / columns;
@@ -283,83 +291,98 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   ]);
 
   return (
-    <div ref={hostRef} className={styles.host}>
-      <ul
-        className={styles.collection}
-        data-layout={layout}
-        style={{ height: virtualizer.getTotalSize() }}
-      >
-        {virtualItems.map((virtualItem) => {
-          const item = items[virtualItem.index];
-          if (!item) return null;
-          return (
-            <li
-              aria-posinset={virtualItem.index + 1}
-              aria-setsize={items.length}
-              className={styles.virtualItem}
-              data-index={virtualItem.index}
-              key={item.id}
-              ref={virtualizer.measureElement}
-              style={
-                {
-                  "--collection-left": `calc(${
-                    (virtualItem.lane * 100) / columns
-                  }% + ${(virtualItem.lane * gap) / columns}px)`,
-                  "--collection-width": `calc(${100 / columns}% - ${
-                    (gap * (columns - 1)) / columns
-                  }px)`,
-                  transform: `translateY(${
-                    virtualItem.start - geometry.scrollMargin
-                  }px)`,
-                } as CSSProperties
-              }
-            >
-              <MediaCard
-                item={item}
-                labels={labels}
-                layout={layout}
-                onStoryboardEnter={storyboard.start}
-                onStoryboardLeave={storyboard.stop}
-                {...(onItemActivate ? { onActivate: onItemActivate } : {})}
-                {...(onFavoriteToggle ? { onFavoriteToggle } : {})}
-                favoritePending={item.id === favoritePendingId}
-                previewing={item.id === previewItemId}
-                selected={item.id === selectedItemId}
-                {...(storyboard.playback?.itemId === item.id
-                  ? { storyboardFrame: storyboard.playback.frame }
-                  : {})}
-              />
-            </li>
-          );
-        })}
-      </ul>
-      {paginationError && (
-        <div className={styles.paginationError}>
-          <InlineStatus tone="danger">{labels.loadMoreFailed}</InlineStatus>
-          {onRetryLoadMore && (
+    <>
+      <div className={styles.sizeControl}>
+        <Slider
+          label={labels.tileSize}
+          min={mediaTileSizeRange.min}
+          max={mediaTileSizeRange.max}
+          step={mediaTileSizeRange.step}
+          value={tileSize}
+          onChange={(value) => {
+            setTileSize(value);
+            writeMediaTileSizePreference(value);
+          }}
+        />
+      </div>
+      <div ref={hostRef} className={styles.host}>
+        <ul
+          className={styles.collection}
+          data-layout={layout}
+          style={{ height: virtualizer.getTotalSize() }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const item = items[virtualItem.index];
+            if (!item) return null;
+            return (
+              <li
+                aria-posinset={virtualItem.index + 1}
+                aria-setsize={items.length}
+                className={styles.virtualItem}
+                data-index={virtualItem.index}
+                key={item.id}
+                ref={virtualizer.measureElement}
+                style={
+                  {
+                    "--collection-left": `calc(${
+                      (virtualItem.lane * 100) / columns
+                    }% + ${(virtualItem.lane * gap) / columns}px)`,
+                    "--collection-width": `calc(${100 / columns}% - ${
+                      (gap * (columns - 1)) / columns
+                    }px)`,
+                    transform: `translateY(${
+                      virtualItem.start - geometry.scrollMargin
+                    }px)`,
+                  } as CSSProperties
+                }
+              >
+                <MediaCard
+                  item={item}
+                  labels={labels}
+                  layout={layout}
+                  onStoryboardEnter={storyboard.start}
+                  onStoryboardLeave={storyboard.stop}
+                  {...(onItemActivate ? { onActivate: onItemActivate } : {})}
+                  {...(onFavoriteToggle ? { onFavoriteToggle } : {})}
+                  favoritePending={item.id === favoritePendingId}
+                  previewing={item.id === previewItemId}
+                  selected={item.id === selectedItemId}
+                  {...(storyboard.playback?.itemId === item.id
+                    ? { storyboardFrame: storyboard.playback.frame }
+                    : {})}
+                />
+              </li>
+            );
+          })}
+        </ul>
+        {paginationError && (
+          <div className={styles.paginationError}>
+            <InlineStatus tone="danger">{labels.loadMoreFailed}</InlineStatus>
+            {onRetryLoadMore && (
+              <Button
+                loading={isFetchingNextPage}
+                onClick={onRetryLoadMore}
+                size="small"
+                variant="secondary"
+              >
+                {isFetchingNextPage ? labels.loadingMore : labels.retryLoadMore}
+              </Button>
+            )}
+          </div>
+        )}
+        {hasNextPage && !paginationError && (
+          <div className={styles.pagination} role="status" aria-live="polite">
             <Button
               loading={isFetchingNextPage}
-              onClick={onRetryLoadMore}
-              size="small"
+              onClick={onLoadMore}
               variant="secondary"
             >
-              {isFetchingNextPage ? labels.loadingMore : labels.retryLoadMore}
+              {isFetchingNextPage ? labels.loadingMore : labels.loadMore}
             </Button>
-          )}
-        </div>
-      )}
-      {hasNextPage && !paginationError && (
-        <div className={styles.pagination} role="status" aria-live="polite">
-          <Button
-            loading={isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {isFetchingNextPage ? labels.loadingMore : labels.loadMore}
-          </Button>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 });
 
@@ -545,15 +568,18 @@ function MediaCard({
           </IconButton>
         )}
       </div>
-      {(layout !== "seamless" || (item.sourceHref && item.sourceLabel)) && (
-        <div
-          className={layout === "seamless" ? styles.seamlessIdentity : styles.identity}
-        >
-          {layout !== "seamless" && <strong title={item.name}>{item.name}</strong>}
+      {layout === "seamless" && item.sourceHref && item.sourceLabel && (
+        <a className={styles.sourceShortcut} href={item.sourceHref} aria-label={item.sourceLabel}>
+          <FolderOpen aria-hidden="true" size={18} />
+        </a>
+      )}
+      {layout !== "seamless" && (
+        <div className={styles.identity}>
+          <strong title={item.name}>{item.name}</strong>
           {item.sourceHref && item.sourceLabel ? (
             <a href={item.sourceHref}>{item.sourceLabel}</a>
           ) : (
-            layout !== "seamless" && <span>{item.modifiedLabel}</span>
+            <span>{item.modifiedLabel}</span>
           )}
         </div>
       )}
@@ -682,8 +708,8 @@ function decodeImage(image: HTMLImageElement): Promise<void> {
   });
 }
 
-function columnCount(width: number): number {
-  return Math.max(1, Math.min(6, Math.floor((width + 12) / 210)));
+function columnCount(width: number, tileSize: number): number {
+  return Math.max(1, Math.min(16, Math.floor((width + 12) / tileSize)));
 }
 
 function estimatedCardHeight(

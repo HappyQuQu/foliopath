@@ -36,7 +36,8 @@ Stage 0 范围及供应链识别已有报告证据；这不把任何生产切片
 ## 功能需求追踪
 
 `FR-BRW-014`：[CR-2026-033](../changes/CR-2026-033-seamless-masonry.md) 接受 Post-MVP 无缝瀑布流。
-共享 `MediaCollection` 唯一拥有零间距与虚拟化几何，`preferences.ts` 唯一拥有布局偏好；
+`FR-BRW-015` 的大小滑条及 FR-BRW-014 来源文字纠偏见 [CR-2026-034](../changes/CR-2026-034-gallery-size-and-source-icon.md)，目标 1.4.x，仍属 S3-103/S3-107。
+共享 `MediaCollection` 唯一拥有大小控制、零间距与虚拟化几何，`preferences.ts` 唯一拥有布局偏好；
 Browse/GeneralSettings 提供入口，Search/Curation 复用。沿用 S3-103/S3-107 及已实现的后端
 合同，不增加 API 或持久化边界。组件/页面测试和浏览器几何检查见[验证记录](../evidence/seamless-masonry-2026-10-23.md)。
 

@@ -4,6 +4,8 @@ import {
   readAcknowledgedMediaFailureRevision,
   readClearedMediaFailureRevision,
   readMediaLayoutPreference,
+  readMediaTileSizePreference,
+  writeMediaTileSizePreference,
   readMediaSortPreference,
   readPreviewAutoplayPreference,
   readPreviewMutedPreference,
@@ -104,4 +106,14 @@ it("stores only a valid acknowledged media failure watermark", () => {
   expect(readClearedMediaFailureRevision()).toBe("mfailrev_2000_43");
   clearClearedMediaFailureRevision();
   expect(readClearedMediaFailureRevision()).toBeUndefined();
+});
+
+it("remembers thumbnail size and rejects corrupt values without losing other preferences", () => {
+  window.localStorage.setItem("foliopath.preferences.v1", JSON.stringify({ mediaLayout: "seamless", mediaTileSize: "huge" }));
+  expect(readMediaTileSizePreference()).toBe(210);
+  writeMediaTileSizePreference(350);
+  expect(readMediaTileSizePreference()).toBe(350);
+  expect(readMediaLayoutPreference()).toBe("seamless");
+  for (const invalid of [NaN, Infinity, 0, 481]) writeMediaTileSizePreference(invalid);
+  expect(readMediaTileSizePreference()).toBe(350);
 });
