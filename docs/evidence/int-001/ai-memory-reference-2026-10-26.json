@@ -85,6 +85,27 @@
       "sourceRecord": ".artifacts/release-candidate-20261026/ai/native-arm64/endpoint-suite/result.json",
       "sourceRecordSHA256": "978846349a6bb667b234f96ae00cf34af8a5dc8406c74f8c9fc307166641ee3c",
       "boundary": "one AI container; since-start cumulative peak, not per-case peaks"
+    },
+    {
+      "architecture": "linux/arm64",
+      "scenario": "formal CI rc-20261026.7 complete eight serial endpoints",
+      "image": "sha256:a87f738833acd32661a63bef0f090c3507ac815b91cba619daeeadbcfffd375d",
+      "sourceCommit": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+      "peakBytes": 4210307072,
+      "peakGiB": 3.9212,
+      "testMemoryLimitBytes": 6442450944,
+      "events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0,
+        "sock_throttled": 0
+      },
+      "sourceRecord": ".artifacts/formal-release-20261026/runtime/attempt4/models-verification.json",
+      "sourceRecordSHA256": "f0e39419afe0fa51ac8213239b2d8973ec9b56803ef7b3cbd7981fab2e09e889",
+      "boundary": "bounded synthetic serial functional test; not accuracy/capacity/minimum RAM; production has unlimited memory/swap"
     }
   ],
   "nativeTarget": {

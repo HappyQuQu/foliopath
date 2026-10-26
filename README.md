@@ -89,7 +89,8 @@ For AI memory planning, allow about **2 GiB for face analysis or photo tagging**
 the main application**, with more headroom for scanning and large images, plus the operating system and other
 services. Consider an **8 GiB dedicated machine**, or **16 GiB when sharing with Immich and other services**.
 These are engineering headroom suggestions, not measured minimums or program limits. Small, serial CPU tests
-observed AI-container peaks of 2.82 GiB on AMD64 and 3.86 GiB on ARM64 for the complete profile; the figures
+observed AI-container peaks of 2.82 GiB on AMD64 and 3.86 GiB on ARM64 for the earlier complete profile.
+The final `rc-20261026.7` ARM64 image reached 3.92 GiB in a separate 6 GiB serial test; these figures
 do not prove that a whole 4 GiB machine is sufficient. See the [measured scenarios and limits](docs/ai-compose.md#ai-功能内存参考).
 
 People-analysis failures now have an expandable, privacy-safe summary: task interruption is distinguished
