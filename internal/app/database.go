@@ -19,7 +19,9 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/ocr"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/search"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	sqlitestore "github.com/HappyQuQu/foliopath/internal/store/sqlite"
@@ -30,6 +32,9 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	ocr.Repository
+	search.Repository
+	search.OCRRepository
 	HandoffSemanticBackfill(context.Context, semantic.BackfillJob, time.Time) (bool, error)
 	HandoffFaceJob(context.Context, face.AnalysisJob, time.Time) (bool, error)
 	autotag.Repository
@@ -42,6 +47,7 @@ type databaseStore interface {
 	face.ClearQueue
 	face.FaceClusterListRepository
 	face.PeopleListRepository
+	face.PersonMergeCheckRepository
 	face.PeopleRepository
 	face.ReviewRepository
 	face.CoreClusterFaceRepository

@@ -1,6 +1,7 @@
 .viewer {
   --color-canvas: var(--color-viewer-canvas);
   --color-surface: var(--color-viewer-surface);
+  --color-surface-hover: var(--color-viewer-surface-subtle);
   --color-surface-subtle: var(--color-viewer-surface-subtle);
   --color-text: var(--color-viewer-text);
   --color-text-muted: var(--color-viewer-text-muted);

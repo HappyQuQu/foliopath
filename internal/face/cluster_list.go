@@ -23,35 +23,45 @@ type FaceClusterSnapshot struct {
 	LibraryID              int64
 	GenerationID           string
 	Revision               int64
+	Digest                 string
 	Coverage               FaceCoverage
 	GroupAssignmentAllowed bool
 }
 type FaceClusterPosition struct{ Role, ID string }
 type FaceClusterListQuery struct {
-	LibraryID          int64
-	GenerationID, Role string
-	After              *FaceClusterPosition
-	Limit              int
+	LibraryID    int64
+	Role, Review string
+	After        *FaceClusterPosition
+	Limit        int
 }
 type FaceClusterView struct {
-	ID              string
-	LibraryID       int64
-	Role            string
-	MemberCount     int64
-	PreviewAssetIDs []int64
-	Revision        int64
+	ID                 string
+	LibraryID          int64
+	Role               string
+	MemberCount        int64
+	PendingMemberCount int64
+	PreviewAssetIDs    []int64
+	Revision           int64
 }
+
+// ReadFaceClusterPage returns metadata, counts and bounded items from one read snapshot.
 type FaceClusterListRepository interface {
-	GetFaceClusterSnapshot(context.Context, int64) (FaceClusterSnapshot, error)
-	ListFaceClusterViews(context.Context, FaceClusterListQuery) ([]FaceClusterView, error)
+	ReadFaceClusterPage(context.Context, FaceClusterListQuery) (FaceClusterReadPage, error)
+}
+type FaceClusterCounts struct{ TotalGroups, PendingGroups, TotalFaces, PendingFaces int64 }
+type FaceClusterReadPage struct {
+	Snapshot FaceClusterSnapshot
+	Counts   FaceClusterCounts
+	Items    []FaceClusterView
 }
 type FaceClusterListRequest struct {
-	LibraryID    int64
-	Role, Cursor string
-	Limit        int
+	LibraryID            int64
+	Role, Review, Cursor string
+	Limit                int
 }
 type FaceClusterPage struct {
 	Items                  []FaceClusterView
+	Counts                 FaceClusterCounts
 	NextCursor             string
 	Coverage               FaceCoverage
 	GroupAssignmentAllowed bool
@@ -61,7 +71,8 @@ type faceClusterCursor struct {
 	LibraryID    int64  `json:"l"`
 	Role         string `json:"k"`
 	GenerationID string `json:"g"`
-	Snapshot     int64  `json:"r"`
+	Snapshot     string `json:"r"`
+	Review       string `json:"f"`
 	AfterRole    string `json:"a"`
 	ID           string `json:"i"`
 }
@@ -84,33 +95,36 @@ func (service *FaceClusterListService) List(ctx context.Context, request FaceClu
 	if request.LibraryID < 1 || (request.Role != "" && request.Role != "core" && request.Role != "edge") || request.Limit < 1 || request.Limit > MaxFaceClusterPageSize {
 		return FaceClusterPage{}, ErrInvalidClusterRecord
 	}
-	snapshot, err := service.repository.GetFaceClusterSnapshot(ctx, request.LibraryID)
-	if err != nil {
-		return FaceClusterPage{}, err
+	if request.Review == "" {
+		request.Review = "all"
 	}
-	if snapshot.GenerationID == "" || snapshot.Revision < 1 {
-		return FaceClusterPage{}, ErrFaceNotReady
+	if request.Review != "all" && request.Review != "pending" {
+		return FaceClusterPage{}, ErrInvalidClusterRecord
 	}
 	var after *FaceClusterPosition
+	var value faceClusterCursor
 	if request.Cursor != "" {
-		var value faceClusterCursor
-		if len(request.Cursor) > 4096 || service.cursors.Decode(request.Cursor, "foliopath:face-clusters:v1", &value) != nil || value.Version != 1 || value.LibraryID != request.LibraryID || value.Role != request.Role || value.GenerationID != snapshot.GenerationID || !validReviewID(value.ID) {
+		if len(request.Cursor) > 4096 || service.cursors.Decode(request.Cursor, "foliopath:face-clusters:v2", &value) != nil || value.Version != 2 || value.LibraryID != request.LibraryID || value.Role != request.Role || value.Review != request.Review || !validReviewID(value.ID) || (value.AfterRole != "core" && value.AfterRole != "edge") {
 			return FaceClusterPage{}, ErrInvalidFaceClusterCursor
-		}
-		if value.Snapshot != snapshot.Revision {
-			return FaceClusterPage{}, ErrFaceClusterCursorStale
 		}
 		after = &FaceClusterPosition{Role: value.AfterRole, ID: value.ID}
 	}
-	items, err := service.repository.ListFaceClusterViews(ctx, FaceClusterListQuery{LibraryID: request.LibraryID, GenerationID: snapshot.GenerationID, Role: request.Role, After: after, Limit: request.Limit + 1})
+	page, err := service.repository.ReadFaceClusterPage(ctx, FaceClusterListQuery{LibraryID: request.LibraryID, Role: request.Role, Review: request.Review, After: after, Limit: request.Limit + 1})
 	if err != nil {
 		return FaceClusterPage{}, err
 	}
-	result := FaceClusterPage{Items: items, Coverage: snapshot.Coverage, GroupAssignmentAllowed: snapshot.GroupAssignmentAllowed}
+	snapshot := page.Snapshot
+	if snapshot.GenerationID == "" || snapshot.Revision < 1 || snapshot.Digest == "" {
+		return FaceClusterPage{}, ErrFaceNotReady
+	}
+	if request.Cursor != "" && (value.GenerationID != snapshot.GenerationID || value.Snapshot != snapshot.Digest) {
+		return FaceClusterPage{}, ErrFaceClusterCursorStale
+	}
+	result := FaceClusterPage{Items: page.Items, Counts: page.Counts, Coverage: snapshot.Coverage, GroupAssignmentAllowed: snapshot.GroupAssignmentAllowed}
 	if len(result.Items) > request.Limit {
 		result.Items = result.Items[:request.Limit]
 		last := result.Items[len(result.Items)-1]
-		result.NextCursor, err = service.cursors.Encode(faceClusterCursor{Version: 1, LibraryID: request.LibraryID, Role: request.Role, GenerationID: snapshot.GenerationID, Snapshot: snapshot.Revision, AfterRole: last.Role, ID: last.ID}, "foliopath:face-clusters:v1")
+		result.NextCursor, err = service.cursors.Encode(faceClusterCursor{Version: 2, LibraryID: request.LibraryID, Role: request.Role, Review: request.Review, GenerationID: snapshot.GenerationID, Snapshot: snapshot.Digest, AfterRole: last.Role, ID: last.ID}, "foliopath:face-clusters:v2")
 	}
 	return result, err
 }

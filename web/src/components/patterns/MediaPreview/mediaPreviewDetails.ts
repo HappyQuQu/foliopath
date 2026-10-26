@@ -49,7 +49,7 @@ export function mediaPreviewDetails(
         ? labels.animated
         : labels.image;
   const details = [
-    { label: labels.type, value: `${kind} · ${asset.mimeType}` },
+    { label: labels.type, value: kind },
     { label: labels.path, layout: "path" as const, value: asset.relativePath },
     { label: labels.modified, value: modified },
     { label: labels.dimensions, value: dimensions },

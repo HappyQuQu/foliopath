@@ -63,6 +63,7 @@ type RouteDependencies struct {
 	ModelProxy          ModelProxyService
 	Semantic            SemanticService
 	SemanticSearch      SemanticSearchService
+	FusedSearch         FusedSearchService
 	VideoSemanticSearch VideoSemanticSearchService
 	VideoSemanticJobs   VideoSemanticJobService
 	VideoSemanticStatus VideoSemanticStatusService
@@ -71,9 +72,11 @@ type RouteDependencies struct {
 	AITagReviews        AITagReviewService
 	AITagReviewClear    AITagReviewClearService
 	AITagJobs           AITagJobService
+	OCR                 OCRService
 	AutomaticTags       AutomaticTagService
 	FaceSettings        FaceSettingsService
 	FaceClusters        FaceClusterService
+	FaceMergeCheck      PersonMergeCheckQueryService
 	FacePeople          PeopleListService
 	FacePerson          PersonQueryService
 	FaceAssetFaces      AssetFacesQueryService
@@ -160,6 +163,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		registerSemanticRoutes(mux, dependencies.Semantic)
 	}
 	semanticAdmission := newSemanticSearchAdmission()
+	if dependencies.FusedSearch != nil && dependencies.Catalog != nil {
+		registerFusedSearchRoute(mux, dependencies.FusedSearch, dependencies.Catalog, semanticAdmission)
+	}
 	if dependencies.SemanticSearch != nil && dependencies.Catalog != nil {
 		registerSemanticSearchRouteWithAdmission(mux, dependencies.SemanticSearch, dependencies.Catalog, semanticAdmission)
 	}
@@ -187,6 +193,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	if dependencies.AITagJobs != nil {
 		registerAITagJobRoute(mux, dependencies.AITagJobs)
 	}
+	if dependencies.OCR != nil {
+		registerOCRRoutes(mux, dependencies.OCR)
+	}
 	if dependencies.AutomaticTags != nil {
 		registerAutomaticTagRoutes(mux, dependencies.AutomaticTags)
 	}
@@ -201,6 +210,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.FaceSettings != nil && dependencies.FaceJobs != nil && dependencies.FaceClears != nil {
 		registerFaceControlRoutes(mux, dependencies.FaceSettings, dependencies.FaceJobs, dependencies.FaceClears)
+	}
+	if dependencies.FaceMergeCheck != nil {
+		registerPersonMergeCheckRoute(mux, dependencies.FaceMergeCheck)
 	}
 	if dependencies.FaceReviews != nil {
 		registerFaceMutationRoutes(mux, dependencies.FaceReviews)

@@ -1,0 +1,1 @@
+{"box":"normalized-convex-quad","detector_resolution":736,"max_contours":4096,"max_crop_pixels":16777216,"max_line_runes":512,"max_lines":128,"max_text_runes":8192,"min_detection":0.5,"min_recognition":0.8,"normalization":"NFC","profile":"ocr-horizontal-output-v2","reading_order":"horizontal-row-left-v1","recognition_batch":1,"rotation_detection":false}

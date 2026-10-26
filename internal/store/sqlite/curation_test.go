@@ -141,8 +141,8 @@ func TestCurationMigrationConstraints(t *testing.T) {
 	if err := store.db.QueryRow(`SELECT MAX(version_id) FROM goose_db_version WHERE is_applied = 1`).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 44 {
-		t.Fatalf("migration version = %d, want 44", version)
+	if version != 47 {
+		t.Fatalf("migration version = %d, want 47", version)
 	}
 	for _, table := range []string{"curation_state", "asset_favorites", "tags", "asset_tags"} {
 		var count int

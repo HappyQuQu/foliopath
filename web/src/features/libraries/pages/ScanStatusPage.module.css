@@ -3,7 +3,7 @@
   width: 100%;
   max-width: 90rem;
   padding-inline: clamp(var(--space-6), 4vw, var(--space-10));
-  margin: var(--space-10) auto 6.25rem;
+  margin: var(--space-8) auto var(--space-12);
 }
 
 .heading,
@@ -31,7 +31,7 @@
 
 .heading h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.375rem);
+  font-size: var(--font-size-6);
   letter-spacing: -0.04em;
 }
 
@@ -44,6 +44,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   box-shadow: var(--shadow-1);
 }
 
@@ -89,6 +90,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .progressHeading {

@@ -1,0 +1,159 @@
+{
+  "change": "FIX-2026-10-26-product-language",
+  "recordedAt": "2026-10-26T03:15:07.604488+00:00",
+  "status": "deployed-and-verified",
+  "scope": "all existing product screens; presentation and bilingual copy only",
+  "reviewedLocalizedMessages": 370,
+  "actualDifferentValues": 370,
+  "unitTests": {
+    "files": 77,
+    "passed": 521,
+    "failed": 0,
+    "log": ".artifacts/ui-language-audit-20261026/web-tests-deploy.log"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "frontendArchitecture": "passed",
+    "generateCheck": "passed",
+    "makeArchCheck": "passed",
+    "storybookBuild": "passed",
+    "frozenProductionDockerBuild": "passed",
+    "fullGoBackendOrIntegrationRerun": false,
+    "npmCiIgnoreScripts": "passed; pinned Node24.22.1/npm11.19.1, existing package scripts disabled per Docker workflow",
+    "postInstallTypeGenerateArchitecture": "passed",
+    "whitespaceAndDocumentationLinks": "passed"
+  },
+  "backendAndSchemaSourceUnchanged": true,
+  "sourceScope": {
+    "baseImage": "sha256:639fa6fe3928b5b0e8ab709ee395a1df07d7adee10889c0c4148e93c27c01e96",
+    "onlyFrontendChanged": true,
+    "frozenBackendUnchanged": true,
+    "files": [
+      "src/components/patterns/MediaPreview/mediaPreviewDetails.ts",
+      "src/features/ai/pages/AISettingsOverview.tsx",
+      "src/features/ai/pages/AutomaticTagSettings.tsx",
+      "src/features/ai/pages/FaceFailureDetails.tsx",
+      "src/features/diagnostics/pages/LogsPage.tsx",
+      "src/features/libraries/pages/LibrariesPage.tsx",
+      "src/features/libraries/pages/NewLibraryPage.tsx",
+      "src/features/release-info/pages/AboutPage.tsx",
+      "src/features/search/pages/SearchPage.tsx",
+      "src/lib/i18n/LocaleProvider.tsx",
+      "src/lib/i18n/aiMessages.ts",
+      "src/lib/i18n/aiReviewMessages.ts",
+      "src/lib/i18n/automaticTagMessages.ts",
+      "src/lib/i18n/contextSidebarMessages.ts",
+      "src/lib/i18n/fusedSearchMessages.ts",
+      "src/lib/i18n/ocrMessages.ts",
+      "src/lib/i18n/tagCloudMessages.ts",
+      "src/lib/i18n/tagDisplay.ts",
+      "src/lib/i18n/tagSettingsMessages.ts",
+      "src/lib/i18n/taskWorkspaceMessages.ts"
+    ],
+    "workspaceFaceRuntimeNotDeployed": true
+  },
+  "backup": {
+    "verified": true,
+    "oldImage": "sha256:55da04ed6caca641da507d67c8bb1064eb92853ae7b16d5c66cbe31084e450d5",
+    "backup": "/Volumes/extended/foliopath/backup-6010-product-language-20261026-OtkIHF",
+    "entries": 38404,
+    "files": 37376,
+    "bytes": 1096072930,
+    "manifestSha256": "d2bf373e3a6a52ab6021eba32096895f479c18f88b4940fa72a9a4e9480dcfa6",
+    "databaseSha256": "5c90311780c911ef0388b6ea523f8e33dd04720947dc43347720da68be330dfa",
+    "configurationSha256": {
+      "ai.env": "fd700924e22fe39937e27317b3160ea3c71ed39f1f54de7e16957599a7a342cb",
+      "compose.ai.yaml": "6ce0f2e60e00ebe1a09ab1afe836576a839e211cf7344d456d92a6c26ff441a1",
+      "compose.ai.unlimited-memory.yaml": "e7b676a3193c384eb8ead7af5553cdd692c8daca38e9f8e47c21f016d445c140",
+      "compose.ai.multilingual.yaml": "43d74e28d05f1bd6df119f4e5327ec91e93a67d923afd04947b7a1da2ea0750f",
+      "compose.ai.ocr.yaml": "905cc45efd8f8ebae7a6ad92fbf9df545f845a04fbb777bd847c1e34038dd17e"
+    },
+    "aiId": "40b847643b862325163e7d225bb4f7ceac85a2c4ccd0e79c0bc4922c8b58cfaf",
+    "aiStartedAt": "2026-10-26T02:21:04.671161966Z",
+    "validation": "/Volumes/extended/foliopath/validate-product-language-20261026-xJH2Rd",
+    "candidateDatabaseCheck": "passed",
+    "databaseCheck": "passed",
+    "backupValidationImage": "sha256:639fa6fe3928b5b0e8ab709ee395a1df07d7adee10889c0c4148e93c27c01e96",
+    "oldImageUnavailableAfterRetag": true,
+    "validationReason": "current and fallback share byte-identical frozen Go/schema source; existing owner database-check and stopped full-copy manifest passed"
+  },
+  "deployment": {
+    "deployed": true,
+    "newImage": "sha256:f097bcd838afb576352378b8b8183288ce91ce5ee12da03bdfeb66acff3092a1",
+    "oldImage": "sha256:55da04ed6caca641da507d67c8bb1064eb92853ae7b16d5c66cbe31084e450d5",
+    "startedAt": "2026-10-26T03:08:24.445241378Z",
+    "healthy": true,
+    "aiUnchanged": true,
+    "mountsAndEnvironmentUnchanged": true,
+    "composeOnlyImageChanged": true
+  },
+  "protection": {
+    "groupsBeforeOCRResumed": 31,
+    "all31UnchangedAfterUIUpdate": true,
+    "oldCapabilityGroupsUnchangedWhileOCRRuns": 27,
+    "old23OCRRowsUnchanged": true,
+    "originalCancelledJobUnchanged": true,
+    "allSemanticVectors": 22365,
+    "skipped10SourcesHaveNoOCRRows": true,
+    "originalMediaModified": false,
+    "diagnosticExecutableRemoved": true
+  },
+  "browser": {
+    "actual6010Pages": [
+      "search and preview",
+      "service settings",
+      "account",
+      "logs"
+    ],
+    "sourceAudit": "all routed product pages and shared empty/error/confirmation messages; unchanged diagnostic data retained server-side",
+    "widthsChecked": [
+      390,
+      768,
+      1440,
+      1920
+    ],
+    "overflow": false,
+    "locales": [
+      "zh-CN/light",
+      "en/dark"
+    ],
+    "OCRTextAndSourceRetained": true,
+    "engineeringCoverageAlgorithmLineNumbersRemoved": true,
+    "partialResultsStillDisclosed": true,
+    "wholeProductAccessibilityComplianceClaimed": false,
+    "syntheticPreviewImageLoadAndCurationUnavailableNotCountedAsRealAcceptance": true,
+    "finalRealScreenshot": ".artifacts/ui-language-audit-20261026/real-search-after.jpg"
+  },
+  "resumedOCR": {
+    "library": "lib_4",
+    "job": {
+      "attempt_count": 1,
+      "checkpoint_id": 7784,
+      "completed": 41,
+      "epoch": 2,
+      "error_code": "",
+      "failed": 0,
+      "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+      "id": "ocrjob_95f012786697ac16821e46fc3b50f768",
+      "library_id": 4,
+      "state": "running",
+      "upper_asset_id": 8719
+    },
+    "summary": {
+      "blank": 39,
+      "lines": 79,
+      "ready": 64
+    },
+    "pending": 935,
+    "terminal": false,
+    "automaticFollowup": "pixiv",
+    "userExplicitlyAuthorizedBackgroundUntilTerminal": true
+  },
+  "server222Connected": false,
+  "commitOrPush": false,
+  "deploymentNotes": [
+    "first frozen candidate omitted shared LocaleProvider.tsx; caught by real account verification and fixed",
+    "backup full stopped-copy verified; prior untagged intermediate image unavailable for clone check; same frozen backend fallback639 and finalf097 both checked detached Linux clone successfully",
+    "latest tag-sidebar639 maintained; AI not restarted; all four Compose overlays retained"
+  ]
+}

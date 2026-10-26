@@ -6,6 +6,8 @@ previous_image=$1
 current_image=$2
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${repo_root}/tests/release/http_client.sh"
+. "${repo_root}/tests/release/storage.sh"
+configure_release_storage
 
 previous_id=$(docker image inspect --format '{{.Id}}' "${previous_image}")
 current_id=$(docker image inspect --format '{{.Id}}' "${current_image}")
@@ -21,13 +23,16 @@ http_client="foliopath-upgrade-http-client-$$"
 
 cleanup() {
 	docker rm --force "${http_client}" "${container}" >/dev/null 2>&1 || true
+	remove_release_data "${source_root}"
+	remove_release_data "${rollback_root}"
 	chmod -R u+w "${smoke_root}" >/dev/null 2>&1 || true
 	rm -rf -- "${smoke_root}"
 }
 trap cleanup EXIT HUP INT TERM
 
-mkdir -p "${source_root}" "${backup_root}" "${rollback_root}" "${media_root}"
-chmod 0777 "${source_root}" "${backup_root}" "${rollback_root}"
+mkdir -p "${backup_root}" "${media_root}"
+create_release_data "${source_root}"
+create_release_data "${rollback_root}"
 printf '%s\n' "upgrade media is immutable" >"${media_root}/sentinel.txt"
 chmod 0444 "${media_root}/sentinel.txt"
 chmod 0555 "${media_root}"
@@ -61,7 +66,7 @@ start_application() {
 		--cap-drop ALL \
 		--security-opt no-new-privileges:true \
 		--tmpfs /tmp:rw,noexec,nosuid,size=16m \
-		--mount "type=bind,src=${data_root},dst=/app/data" \
+		--mount "$(release_data_mount "${data_root}" /app/data)" \
 		--mount "type=bind,src=${media_root},dst=/library,readonly" \
 		"${image}" >/dev/null
 	wait_healthy
@@ -70,13 +75,14 @@ start_application() {
 
 stop_application() {
 	docker rm --force "${http_client}" >/dev/null
-	docker stop --time 10 "${container}" >/dev/null
+	docker stop --timeout 10 "${container}" >/dev/null
 	test "$(docker inspect --format '{{.State.ExitCode}}' "${container}")" = "0"
 	docker logs "${container}" | grep -q '"msg":"application.stopped"'
 	docker rm "${container}" >/dev/null
 }
 
 assert_initialized() {
+	docker exec "${container}" /app/foliopath database-check | grep -q "database check passed"
 	docker exec "${http_client}" curl --fail --silent --show-error \
 		http://127.0.0.1:8080/api/v1/auth/status |
 		grep -q '"setupRequired":false'
@@ -98,11 +104,7 @@ assert_initialized
 stop_application
 
 # Stop-before-copy backup is the rollback boundary.
-docker run --rm --user 0:0 --entrypoint sh \
-	--mount "type=bind,src=${source_root},dst=/from,readonly" \
-	--mount "type=bind,src=${backup_root},dst=/backup" \
-	"${release_http_client_image}" \
-	-c "cd /from && tar --exclude='./cache' --exclude='./tmp' -cf /backup/data.tar ."
+backup_release_data "${source_root}"
 backup_hash=$(sha256sum "${backup_root}/data.tar" | cut -d ' ' -f 1)
 
 # Forward upgrade reuses the persistent data and must preserve initialized state.
@@ -111,11 +113,7 @@ assert_initialized
 stop_application
 
 # Rollback is only valid when the previous image is paired with the pre-upgrade backup.
-docker run --rm --user 0:0 --entrypoint sh \
-	--mount "type=bind,src=${backup_root},dst=/backup,readonly" \
-	--mount "type=bind,src=${rollback_root},dst=/restore" \
-	"${release_http_client_image}" \
-	-c "cd /restore && tar -xf /backup/data.tar"
+restore_release_data "${rollback_root}"
 start_application "${previous_id}" "${rollback_root}"
 assert_initialized
 stop_application
@@ -126,4 +124,5 @@ printf '%s\n' \
 	"previous_image_id=${previous_id}" \
 	"current_image_id=${current_id}" \
 	"pre_upgrade_backup_sha256=${backup_hash}" \
+	"data_storage=${release_data_storage}" \
 	"candidate upgrade and paired rollback smoke passed"

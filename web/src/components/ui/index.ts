@@ -30,3 +30,6 @@ export {
   type ToastInput,
   type ToastTone,
 } from "./Toast/ToastProvider";
+
+export { RadioOption, type RadioOptionProps } from "./RadioOption/RadioOption";
+export { Badge } from "./Badge/Badge";

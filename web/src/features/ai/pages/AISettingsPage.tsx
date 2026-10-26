@@ -56,6 +56,7 @@ import {
 } from "../queries";
 import styles from "./AISettingsPage.module.css";
 import { AIServiceSettings, AISettingsOverview } from "./AISettingsOverview";
+import { OCRSettings } from "./OCRSettings";
 import { AutomaticTagSettings } from "./AutomaticTagSettings";
 import { VideoSemanticProgress } from "./VideoSemanticProgress";
 import { AIProcessingRow } from "./AIProcessingRow";
@@ -235,11 +236,10 @@ export function AISettingsPage({
             semanticReady={semanticReady} faceReady={faceReady}
             pending={updateSettings.isPending || updateFaces.isPending || requestJob.isPending || requestFaces.isPending}
             onSemantic={toggleSemantic} onFace={toggleFace} onTasks={() => navigateView("tasks")}
-          ><AutomaticTagSettings key={selectedLibrary.id} libraryId={selectedLibrary.id} csrfToken={session.csrfToken} onOperation={rememberOperation} /></AISettingsOverview>}
+          ><AutomaticTagSettings key={selectedLibrary.id} libraryId={selectedLibrary.id} csrfToken={session.csrfToken} onOperation={rememberOperation} /><OCRSettings libraryId={selectedLibrary.id} csrfToken={session.csrfToken} offline={selectedLibrary.status!=="ready"} onSettings={()=>navigateView("overview")} onTasks={()=>navigateView("tasks")} /></AISettingsOverview>}
 
           {view === "service" && !modelsQuery.isPending && !modelsQuery.isError && <AIServiceSettings
             models={modelsQuery.data?.items ?? []} activeModelId={modelsQuery.data?.activeModelId ?? null} activeFaceModelId={modelsQuery.data?.activeFaceModelId ?? null}>
-            <InlineStatus>{t("autoTags.description")}</InlineStatus>
           </AIServiceSettings>}
 
           {view === "tasks" && <>
@@ -276,6 +276,7 @@ export function AISettingsPage({
                   void runAction(() => requestVideo.mutateAsync({ csrfToken: session.csrfToken, idempotencyKey: createRequestKey(), libraryId: selectedLibrary.id, mode }), "ai.jobStarted");
                 }}
               />
+              <OCRSettings mode="tasks" libraryId={selectedLibrary.id} csrfToken={session.csrfToken} offline={selectedLibrary.status!=="ready"} onSettings={()=>navigateView("overview")} onTasks={()=>navigateView("tasks")} />
               <AutomaticTagSettings mode="tasks" onSettings={() => navigateView("overview")} libraryId={selectedLibrary.id} csrfToken={session.csrfToken} onOperation={rememberOperation} />
             </div>}
             <TasksPanel cancelPending={cancel.isPending} operationIds={trackedOperationIds} removableIds={operationIds}
@@ -494,7 +495,7 @@ function TasksPanel({ cancelPending, onBack, onCancel, onForget, operationIds, r
     const processed = operation.totalItems === null ? amount(operation.completedItems) : `${amount(operation.completedItems)} / ${amount(operation.totalItems)}`;
     const translatedError = operation.errorCode ? t(`ai.error.${operation.errorCode}`) : "";
     const errorLabel = operation.errorCode
-      ? translatedError || operation.errorCode
+      ? translatedError || t("ai.tasks.noFailureReason")
       : operation.state === "failed" ? t("ai.tasks.noFailureReason") : t("ai.none");
     return <article className={styles.taskRow} key={id}>
       <div className={styles.taskIdentity}>

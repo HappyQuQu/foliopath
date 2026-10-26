@@ -11,6 +11,8 @@ type reviewServiceRepositoryStub struct {
 	assignFace    AssignFaceCommand
 	assignCluster AssignClusterCommand
 	undo          UndoReviewCommand
+	exclude       ExcludeFaceCommand
+	link          CannotLinkCommand
 }
 
 func (stub *reviewServiceRepositoryStub) CreatePersonFromCluster(context.Context, CreatePersonFromClusterCommand) (ReviewResult, error) {
@@ -24,11 +26,13 @@ func (stub *reviewServiceRepositoryStub) AssignCluster(_ context.Context, comman
 	stub.assignCluster = command
 	return ReviewResult{EventID: command.EventID, Action: "assign_cluster", Revision: 3, Undoable: true}, nil
 }
-func (stub *reviewServiceRepositoryStub) ExcludeFace(context.Context, ExcludeFaceCommand) (ReviewResult, error) {
-	return ReviewResult{}, errors.New("unexpected exclude")
+func (stub *reviewServiceRepositoryStub) ExcludeFace(_ context.Context, c ExcludeFaceCommand) (ReviewResult, error) {
+	stub.exclude = c
+	return ReviewResult{EventID: c.EventID, Action: "exclude_face", Revision: 2}, nil
 }
-func (stub *reviewServiceRepositoryStub) CannotLinkFaces(context.Context, CannotLinkCommand) (ReviewResult, error) {
-	return ReviewResult{}, errors.New("unexpected link")
+func (stub *reviewServiceRepositoryStub) CannotLinkFaces(_ context.Context, command CannotLinkCommand) (ReviewResult, error) {
+	stub.link = command
+	return ReviewResult{EventID: command.EventID, Action: "cannot_link", Revision: 1, Undoable: true}, nil
 }
 func (stub *reviewServiceRepositoryStub) MergePeople(context.Context, MergePeopleCommand) (ReviewResult, error) {
 	return ReviewResult{}, errors.New("unexpected merge")
@@ -111,5 +115,43 @@ func TestReviewServiceRejectsUnknownActionAndOversizedGroup(t *testing.T) {
 	service, _ = NewReviewService(repository, reviewClusterStub{ids}, time.Now)
 	if _, err := service.Review(context.Background(), "review-service-key-005", ReviewRequest{Action: "assign_cluster", ClusterID: "cluster_service_2", PersonID: "person_service_1", ExpectedClusterRevision: 1, ExpectedPersonRevision: 1}); !errors.Is(err, ErrReviewConflict) {
 		t.Fatalf("oversized group err=%v", err)
+	}
+}
+
+func TestReviewServiceExclusionSourceGuard(t *testing.T) {
+	repo := &reviewServiceRepositoryStub{}
+	service, _ := NewReviewService(repo, reviewClusterStub{}, time.Now)
+	r := ReviewRequest{Action: "exclude_face", FaceID: "face_exclude_source", ExpectedFaceRevision: 1, SourcePersonID: "person_exclude_source", ExpectedSourceRevision: 7}
+	if _, err := service.Review(context.Background(), "exclude-source-key-001", r); err != nil || repo.exclude.SourcePersonID != r.SourcePersonID || repo.exclude.ExpectedSourceRevision != 7 {
+		t.Fatalf("dispatch=%+v %v", repo.exclude, err)
+	}
+	for _, g := range []struct {
+		id  string
+		rev int64
+	}{{"person_exclude_source", 0}, {"", 1}, {"short", 1}, {"person_exclude_source", -1}} {
+		r.SourcePersonID = g.id
+		r.ExpectedSourceRevision = g.rev
+		if _, err := service.Review(context.Background(), "exclude-source-key-002", r); !errors.Is(err, ErrInvalidReview) {
+			t.Fatalf("invalid guard=%+v err=%v", g, err)
+		}
+	}
+}
+
+func TestReviewServiceCannotLinkRequiresCompleteDistinctPersonGuards(t *testing.T) {
+	repository := &reviewServiceRepositoryStub{}
+	service, _ := NewReviewService(repository, reviewClusterStub{}, time.Now)
+	request := ReviewRequest{Action: "cannot_link", LeftFaceID: "face_left_01", RightFaceID: "face_right_01", ExpectedLeftRevision: 1, ExpectedRightRevision: 2, SourcePersonID: "person_left_01", TargetPersonID: "person_right_01", ExpectedSourceRevision: 7, ExpectedTargetRevision: 4}
+	if _, err := service.Review(context.Background(), "link-pair-key-001", request); err != nil {
+		t.Fatal(err)
+	}
+	if repository.link.SourcePersonID != request.SourcePersonID || repository.link.TargetPersonID != request.TargetPersonID || repository.link.ExpectedSourceRevision != 7 || repository.link.ExpectedTargetRevision != 4 {
+		t.Fatalf("guard not dispatched: %+v", repository.link)
+	}
+	for _, change := range []func(*ReviewRequest){func(r *ReviewRequest) { r.TargetPersonID = "" }, func(r *ReviewRequest) { r.ExpectedSourceRevision = 0 }, func(r *ReviewRequest) { r.ExpectedTargetRevision = -1 }, func(r *ReviewRequest) { r.TargetPersonID = r.SourcePersonID }} {
+		copy := request
+		change(&copy)
+		if _, err := service.Review(context.Background(), "link-pair-bad-001", copy); !errors.Is(err, ErrInvalidReview) {
+			t.Fatalf("invalid pair=%v", err)
+		}
 	}
 }

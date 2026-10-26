@@ -1,0 +1,31 @@
+.panel { display: grid; min-width: 0; gap: var(--space-5); margin-top: var(--space-6); }
+.panel > button { justify-self: start; }
+.header, .photosHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.header h2 { margin: 0; font-size: var(--font-size-6); overflow-wrap: anywhere; }
+.header p, .namePanel p, .photosHeader p { margin: var(--space-2) 0 0; color: var(--color-text-muted); line-height: var(--line-height-relaxed); }
+.namePanel { padding: var(--space-5); background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-3); box-shadow: var(--shadow-panel); }
+.namePanel form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); }
+.namePanel form label { flex: 1; max-width: 32rem; }
+.namePanel label, .photoBody label, .confirmation > label { display: grid; gap: var(--space-2); min-width: 0; }
+.namePanel p, .photosHeader, .photoBody, .confirmation { font-size: var(--font-size-2); }
+.photosHeader h3 { margin: 0; font-size: var(--font-size-5); }
+.photosHeader > span { color: var(--color-text-muted); white-space: nowrap; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); align-items: start; gap: var(--space-5); }
+.photo { min-width: 0; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-3); background: var(--color-surface); box-shadow: var(--shadow-panel); overflow: hidden; }
+.stage { position: relative; background: var(--color-surface-subtle); }
+.stage img { display: block; width: 100%; height: auto; }
+.mediaLink:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.photoBody { display: grid; gap: var(--space-4); padding: var(--space-4); }
+.mediaLink { color: var(--color-text); text-decoration: none; font-weight: 600; overflow-wrap: anywhere; }
+.mediaLink:hover { text-decoration: underline; }
+.photoActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.moveFields { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: var(--border-width) solid var(--color-border); }
+.confirmation { display: grid; gap: var(--space-4); overflow-wrap: anywhere; }
+.confirmation p { margin: 0; line-height: var(--line-height-relaxed); }
+.confirmation .acknowledgement { display: flex; align-items: start; gap: var(--space-2); line-height: var(--line-height-relaxed); }
+.acknowledgement input { flex-shrink: 0; accent-color: var(--color-accent); }
+@media (max-width: 45rem) {
+  .header, .photosHeader { align-items: start; flex-direction: column; }
+  .namePanel form { align-items: stretch; flex-direction: column; }
+  .photos { grid-template-columns: 1fr; }
+}

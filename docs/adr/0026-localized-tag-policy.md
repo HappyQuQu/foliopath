@@ -3,6 +3,10 @@
 - 状态：Accepted for implementation，2026-10-23；依据用户接受 CR-2026-033。
 - 范围：POST-MVP-5 / FR-AUTOTAG-004～005；Owner：Codex。
 
+实施证据：2026-10-24真实92→153＋png-v4合成Docker换代/非空人工保护通过，停写全备份后6010切换独立153类身份；
+10-25 05:54四库新身份终态核验8690成功/10已知源失败/0待处理，22PNG与保护摘要/database-check通过，本轮跟进已停止。
+完整备份、身份及任务见[部署记录](../changes/DEPLOY-2026-10-24-photo-tags-153.md)。功能补齐不等于质量或发行验收通过。
+
 ## 决定
 
 - `internal/curation` 拥有固定类别 JSON（稳定英文 key、中文/英文显示名、检索/人工保护别名）。

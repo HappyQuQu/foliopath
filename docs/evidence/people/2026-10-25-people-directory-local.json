@@ -1,0 +1,147 @@
+{
+  "change": "CR-2026-039",
+  "recordedAt": "2026-10-25T08:20:18.206024+00:00",
+  "stage": "POST-MVP-5 named people directory",
+  "candidate": "sha256:20097b3249f82b9387e160943e31649592c5e85399186ad34791c8f218c9602a",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "personPreview": "nullable read-only opaque previewAssetId, latest bound current-face photo in a ready library by mtime/id DESC",
+    "counts": "existing bound face/distinct asset counts preserved, including offline associations",
+    "searchScope": "global named people, never a library-specific total",
+    "pagination": "existing name/id keyset and peopleCursor; main and sidebar share URL/query owners",
+    "create": "separate empty person; page-local normalized-name intent key, success-only clear; no auto face assignment",
+    "newMigrations": false,
+    "newModelGenerations": false
+  },
+  "checks": {
+    "backendFocused": "passed, count=1",
+    "focusedRace": {
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestPersonPreview|TestFaceProjections|TestPeopleList|TestPersonMutation",
+      "status": "passed, count=1"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed",
+    "lint": "passed including contract checks and go vet",
+    "goFull": "passed with normal Go test cache; disposable larger-volume TMPDIR and GOFLAGS=-p=1",
+    "integration": "passed",
+    "runtimeDockerSmoke": "passed",
+    "openapiLint": "passed, 2 existing health endpoint 4xx warnings",
+    "frontend": {
+      "files": 74,
+      "tests": 470,
+      "fullCheck": "passed",
+      "auditHigh": "passed",
+      "types": "passed",
+      "storybook": "passed"
+    },
+    "finalBrowser": {
+      "image": "sha256:20097b3249f82b9387e160943e31649592c5e85399186ad34791c8f218c9602a",
+      "tests": "people-directory.spec.ts",
+      "passed": 36,
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "cardTopAlignment": true,
+      "mainSearchAndPaging": true,
+      "previewFailure": true,
+      "unknownCreateReusesKey": true,
+      "invalidPeopleCursorRecovery": true
+    },
+    "earlierBroadRegression": {
+      "image": "sha256:a3863f561c94e447e24db168ec5f59aa1ab8a99d338b9f7cf661824d87173437",
+      "tests": [
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "passed": 180,
+      "status": "passed",
+      "differenceToFinal": "Final only changes named sidebar empty-search wording to No matching people; reverified in final focused browser suite. Do not label the 180-case run as the final image."
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T08:14:36.231Z",
+      "appImage": "sha256:20097b3249f82b9387e160943e31649592c5e85399186ad34791c8f218c9602a",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "peopleDirectoryPreview": true,
+      "emptyDirectoryPerson": true,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "stories": [
+    "features-intelligence-review--people-directory",
+    "features-intelligence-review--empty-people-directory"
+  ],
+  "firstRunFailures": [
+    "New preview unit fixture inherited English browser language; explicitly set its intended locale.",
+    "Synthetic POST people success omitted required ETag; client correctly rejected success. Fixture now conforms, client validation unchanged.",
+    "Visual review of a 96-character name exposed vertical centering of other cards; card contents and previews now align at top, with explicit browser geometry assertion."
+  ],
+  "protection": {
+    "originalMediaOrCurationTouched": false,
+    "server222Connected": false,
+    "tenSourceIssues": "remain deferred, no retry or modification",
+    "syntheticProbe": "2 photos / 4 real-model faces; 1 exact assignment + 1 exclusion, other 2 anonymous retained; independent empty directory person created; real opaque preview and null empty preview verified",
+    "manualTagAndSourceHash": "passed before and after restart",
+    "databaseCheck": "passed in owning synthetic app container",
+    "testResources": "precisely cleaned; no original container restart or deployment"
+  },
+  "limits": [
+    "Photo preview is not a face crop, writable cover or identity inference.",
+    "No production 6010 deployment.",
+    "No OCR/quality/capacity/cross-architecture/release approval.",
+    "No full Go race claim.",
+    "Existing PeopleList sorting/snapshot policy unchanged; no global total count invented."
+  ],
+  "logs": [
+    ".artifacts/people-directory-backend.log",
+    ".artifacts/people-directory-race.log",
+    ".artifacts/people-directory-full.log",
+    ".artifacts/people-directory-web-final4.log",
+    ".artifacts/people-directory-browser.log",
+    ".artifacts/people-directory-browser-final2.log",
+    ".artifacts/people-directory-browser-final3.log",
+    ".artifacts/people-directory-real-final3.log",
+    ".artifacts/people-directory-openapi-lint.log"
+  ]
+}

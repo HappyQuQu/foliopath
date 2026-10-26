@@ -12,6 +12,10 @@ func composeFaceResults(routes *api.RouteDependencies, database *databaseService
 	if err != nil {
 		return err
 	}
+	routes.FaceMergeCheck, err = face.NewPersonMergeCheckService(database)
+	if err != nil {
+		return err
+	}
 	routes.FacePeople, err = face.NewPeopleListService(database, nil)
 	if err != nil {
 		return err

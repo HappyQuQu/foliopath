@@ -28,8 +28,10 @@ const meta = {
 } satisfies Meta<typeof CurationPage>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+export const FavoritesSidebar: Story = { parameters: { route: "/favorites?libraryId=lib_family" } };
 export const Overview: Story = {};
 export const AnotherLibrary: Story = { parameters: { route: "/tags?libraryId=lib_travel" } };
+export const DenseTagDirectory: Story = { parameters: { fixture: "pagination" } };
 export const Pagination: Story = { parameters: { fixture: "pagination" } };
 export const Empty: Story = { parameters: { fixture: "empty" } };
 export const LoadFailed: Story = { parameters: { fixture: "error" } };
@@ -39,6 +41,7 @@ export const SelectedTagOutsideCloudPage: Story = { parameters: { route: "/tags/
 
 function FixtureRoute({ session }: { session: AuthenticatedSession }) {
   return <Routes>
+    <Route path="/favorites" element={<CurationPage session={session} />} />
     <Route path="/tags" element={<CurationPage session={session} />} />
     <Route path="/tags/:tagId" element={<SelectedTag session={session} />} />
   </Routes>;
@@ -77,7 +80,7 @@ function makeTags(libraryId: string, paginated: boolean): Tag[] {
   return Array.from({ length: paginated ? 205 : names.length }, (_, index) => ({
     id: `tag_${index}`, name: paginated ? `标签 ${String(index + 1).padStart(3, "0")}` : names[index]!,
     assetCount: counts[index % counts.length]!, createdAt: "2026-10-22T00:00:00Z", updatedAt: "2026-10-22T00:00:00Z",
-    ...(!paginated && index === 2 ? { name: "car", localization: { key: "car", zhCN: "汽车", en: "Car" } } : {}),
+    ...(index % names.length === 2 ? { name: `car${paginated ? index : ""}`, localization: { key: "car", zhCN: "汽车", en: "Car" } } : {}),
   }));
 }
 function fixtureFetch(fixture: Fixture): typeof window.fetch {
@@ -85,6 +88,7 @@ function fixtureFetch(fixture: Fixture): typeof window.fetch {
     const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
     if (!url.pathname.startsWith("/api/v1/")) return passthroughFetch(input, init);
     if (url.pathname === "/api/v1/libraries") return Response.json({ items: libraries, nextCursor: null });
+    if (url.pathname === "/api/v1/favorites") return Response.json({ counts: { all: 0, images: 0, videos: 0 }, items: [], nextCursor: null });
     if (url.pathname === "/api/v1/tags") {
       if (fixture === "error") return error("internal_error", 500);
       const libraryId = url.searchParams.get("libraryId") ?? "";

@@ -67,8 +67,8 @@ func TestScanContractMigrationUpgradesVersionThreeSchema(t *testing.T) {
 	).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 44 {
-		t.Fatalf("migration version = %d, want 44", version)
+	if version != 47 {
+		t.Fatalf("migration version = %d, want 47", version)
 	}
 }
 

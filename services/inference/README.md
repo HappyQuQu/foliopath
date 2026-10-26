@@ -1,5 +1,18 @@
 # FolioPath AI candidate image
 
+## Opt-in OCR producer candidate (ADR-0034)
+
+`Dockerfile.ocr` adds independent OCR identity/predict and a request-scoped worker
+over the frozen photo-tags-v2 base. It does not overwrite legacy sources or alter
+their model spaces. Its routing adapter delegates admission/deadline/reaping to
+the existing core, using explicit OCR child kind and separate read-only `/ocr-cache`.
+Prepared RGB8 PNG inputs come from the reviewed Go imagevips profile. Missing OCR
+cache reports this capability unavailable while leaving old capabilities usable.
+ADR-0036 now permits explicitly pinned application OCR configuration and library-scoped management/jobs (CR-2026-050); libraries remain off until admin action. Fulltext/fused search, plaintext APIs and product UI are still gated. The original 6010 deployment has not been changed.
+Do not replace an existing deployment from this note; local verification and
+limitations are in [the probe README](../../spikes/ocr-service/README.md).
+
+
 ## Reviewed localized photo policy (ADR-0026)
 
 `Dockerfile.photo-tags` extends an independently verified local multilingual image

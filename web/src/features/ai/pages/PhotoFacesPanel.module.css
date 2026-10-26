@@ -1,0 +1,19 @@
+.panel { display: grid; min-width: 0; gap: var(--space-5); margin-top: var(--space-6); }
+.panel h2 { margin: 0; font-size: var(--font-size-6); overflow-wrap: anywhere; }
+.panel header p { color: var(--color-text-muted); line-height: var(--line-height-relaxed); }
+.panel a { color: var(--color-accent); }
+.workspace { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); align-items: start; gap: var(--space-5); }
+.stage { position: relative; background: var(--color-surface-subtle); overflow: hidden; border-radius: var(--radius-3); }
+.stage img { display: block; width: 100%; height: auto; }
+.tools { display: grid; min-width: 0; gap: var(--space-4); padding: var(--space-5); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-3); background: var(--color-surface); box-shadow: var(--shadow-panel); }
+.tools label { display: grid; min-width: 0; gap: var(--space-2); }
+.tools fieldset { display: grid; min-width: 0; gap: var(--space-2); padding: 0; margin: 0; border: none; }
+.tools legend { margin-bottom: var(--space-3); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.confirmation { display: grid; gap: var(--space-3); overflow-wrap: anywhere; }
+@media(max-width:60rem) { .workspace { grid-template-columns: minmax(0,1fr); } }
+
+.separation { border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-4); }
+.separation summary { cursor: pointer; font-weight: 600; }
+.separation p { color: var(--color-text-muted); line-height: var(--line-height-relaxed); }
+.separation > label { margin-bottom: var(--space-3); }

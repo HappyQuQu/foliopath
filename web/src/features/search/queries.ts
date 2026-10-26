@@ -6,6 +6,7 @@ import {
 
 import {
   searchAssets,
+  searchFusedAssets,
   searchSemanticAssets,
   searchSemanticVideos,
   searchLibraryAssets,
@@ -27,11 +28,12 @@ export const searchKeys = {
       libraryId ?? "all",
       state.scope,
       state.mode,
-      state.directoryId ?? "root",
+      state.scope === "directory" ? state.directoryId ?? "root" : "root",
       state.recursive,
       state.q,
       state.kind,
       state.date,
+      state.dateBefore,
       state.sort,
       state.order,
     ] as const,
@@ -67,11 +69,18 @@ export function useSearchResultsQuery({
   libraryId?: string;
   state: SearchUrlState;
 }) {
-  const range = modifiedRangeForSearch(state.date);
+  const range = modifiedRangeForSearch(state.date, state.dateBefore ? new Date(state.dateBefore) : undefined);
   const kinds = kindsForSearch(state.kind);
   return useInfiniteQuery({
     queryKey: searchKeys.results(libraryId, state),
     queryFn: ({ pageParam }) => {
+      if (state.mode === "all" || state.mode === "ocr") return searchFusedAssets({
+        mode: state.mode,
+        q: state.q, ...range, ...(kinds ? { kinds } : {}),
+        ...(libraryId && state.scope !== "all" ? { libraryId } : {}),
+        ...(state.scope === "directory" && state.directoryId ? { directoryId: state.directoryId, recursive: state.recursive } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      });
       if (state.mode === "semantic") {
         if (state.kind === "video") {
           return searchSemanticVideos({

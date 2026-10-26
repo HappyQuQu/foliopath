@@ -141,6 +141,7 @@ generate-sql:
 		-f internal/store/sqlite/sqlc.yaml
 
 generate-check: generate-sql-check
+	$(GO) run ./spikes/ocr-service/contractgen -check
 	cd web && $(NPM) run generate:check
 
 generate-sql-check:

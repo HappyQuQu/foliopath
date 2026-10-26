@@ -1,0 +1,120 @@
+{
+  "change": "CR-2026-046",
+  "recordedAt": "2026-10-25T14:12:23.467289+00:00",
+  "stage": "POST-MVP-5 follow-up OCR contract/Go transport only",
+  "status": "transport_consumer_locally_verified_uncomposed",
+  "original6010Deployed": false,
+  "server222Accessed": false,
+  "realMediaUsed": false,
+  "productionOCRReady": false,
+  "productionChanges": {
+    "innerContract": "internal/ocr Identity/Fingerprint/Normalize",
+    "transport": "remoteml.OCRClient shared Client HTTP/admission/deadline",
+    "composition": false,
+    "AIProducer": false,
+    "publicAPI": false,
+    "storage": false,
+    "jobs": false,
+    "frontend": false,
+    "modelDeployment": false
+  },
+  "contract": {
+    "model": "PP-OCRv5_server",
+    "protocol": "foliopath-ocr-v1",
+    "expectedIdentity": "independently supplied; no TOFU; detector/recognizer/input/output/runtime/cache six pins",
+    "fingerprint": "sorted-key compact JSON SHA256; golden calculated independently in Python",
+    "imageBytes": 8388608,
+    "responseBytes": 131072,
+    "maxLines": 128,
+    "maxLineRunes": 512,
+    "maxTotalRunes": 8192,
+    "normalization": "NFC with before/after line bounds; plaintext; strict UTF8 and paired JSON surrogate escapes",
+    "box": "convex normalized quadrilateral, all finite and [0,1]",
+    "scoreMinimums": {
+      "detection": 0.5,
+      "recognition": 0.8
+    },
+    "httpSlots": 2,
+    "totalDeadlineSeconds": 30,
+    "retry": false,
+    "newQueue": false,
+    "errorClassification": "only known status/code with matching identity may be source-specific; unknowns never bad media"
+  },
+  "checks": {
+    "hostFocusedRace": "passed count=1 internal/ocr and internal/inference/remoteml",
+    "goFullAndIntegration": "passed make test test-integration with separate TMPDIR",
+    "repository": "make fmt-check arch-check generate-check lint passed; new architecture guard count=1 passed",
+    "runtimeE2E": "make test-e2e passed on unchanged retry after registry frontend EOF",
+    "docker": {
+      "status": "passed",
+      "image": "sha256:16b2f5e433cbb93ee0083ac97c2b16da92236f86027cbc295253227f5a7718d6",
+      "architecture": "linux/arm64",
+      "goVersion": "1.26.5",
+      "raceEnabled": true,
+      "topLevelTests": 40,
+      "newOCRTopLevelTests": 15,
+      "allIncludingSubtests": 138,
+      "network": "none",
+      "readOnlyRoot": true,
+      "ports": false,
+      "mounts": [],
+      "tmpfs": {
+        "/tmp": "size=128m"
+      },
+      "memoryLimitBytes": 1073741824,
+      "nanoCPUs": 2000000000,
+      "exitCode": 0,
+      "oomKilled": false,
+      "realModelUsed": false,
+      "text": "synthetic httptest response; identity fixture a-f hashes are not deployment model pins"
+    },
+    "notRun": [
+      "production OCR producer/real-model protocol integration",
+      "source-bound index/jobs/storage/search (not implemented)",
+      "Web/browser matrix (no UI change)",
+      "native amd64",
+      "joint resource/quality/soak/release gates"
+    ]
+  },
+  "firstAttemptCorrections": [
+    "int response limit required explicit int64 conversion before compilation",
+    "NFC wire-test fixture replacement originally used a Go interpreted string instead of raw JSON escape; corrected fixture then reran without relaxing assertion",
+    "Docker frontend registry metadata EOF; original runtime E2E command retried successfully"
+  ],
+  "architectureFitness": "TestGoDependencyDirection includes ocr capability; TestOCRContractHasOnlyApprovedTransportConsumer denies app/API/store/other consumers pending later gate",
+  "sourceHashes": {
+    "internal/ocr/contract.go": "2cb3979ede88f23b1bb2e1f7f5647f20e261603f1a8b4475181c82720bbff589",
+    "internal/ocr/contract_test.go": "8129f4306c5b5f9b5ec5dae6b77bd06b814f55731fffb8da09bfc8a318f13fe0",
+    "internal/inference/remoteml/ocr.go": "9d749387595c55f778c2b738d03dea39d552e48a502a8c65d0b03e2d063af52b",
+    "internal/inference/remoteml/ocr_test.go": "10b445f91f2bbf4817953275c4bd0f5b3a2e4c23f0612e735a95332c337a58b6",
+    "tests/architecture/ocr_transport_test.go": "3b42406312f6f8712be5df22e24503e21ea1d45d5b27bc7296c2e6b45fe6d517",
+    "tests/release/Dockerfile.ocr-transport": "e902e06cd97401860cc3fad69c8516ee82b7f9a6f20a9888a436172938eae5ca",
+    "docs/architecture/ocr-transport-contract.md": "9e5bc501528da9aee2bd4633eeb092777c12e9ffcef551cfa76c7ed70d059e2d",
+    "docs/adr/0032-independent-ocr-transport.md": "68a0d0b4860b714ef2b466830d7043863611975a4b28833a38e73871fff4cedb"
+  },
+  "logHashes": {
+    ".artifacts/ocr/transport-focused.log": "2120316cd37c0511179302874d2e7a32f49bf35b8db09e50341bee67b24bc5b6",
+    ".artifacts/ocr/transport-focused-retry.log": "25798f418f3d101eaab145d7b3b4d88d405b2534c3dd105a21a5d3f2219a2394",
+    ".artifacts/ocr/transport-race-final.log": "07c4e82c7200d4f6fc746a25aa2bb99f09d6d5e52e250486903cb85c8a8bd178",
+    ".artifacts/ocr/transport-docker-build-final.log": "1e485268079b3c2401c7461e598b737d3ee2f419ffc9193edae58b3cea91bcc5",
+    ".artifacts/ocr/transport-docker-final.log": "c1043e7e1eb4b00440b55457fb1c29cd2a35f6e41400a2f86c68423dc4bfbab8",
+    ".artifacts/ocr/transport-container-inspect.json": "431e54aa2a18c927be5459dcf1dc545946c93ad0420ebe371bdc88d1f1073d76",
+    ".artifacts/ocr/transport-backend-regression.log": "a05427e60e062668106c11e8fec438d1f405056ee43e70c86edab7a3c73190ee",
+    ".artifacts/ocr/transport-runtime-e2e.log": "3521a2f113e6a927376f42c3864a0c15e68df7433323fbcc6785a82206107949",
+    ".artifacts/ocr/transport-runtime-e2e-retry.log": "1cdb1738cc108a4668cba19c97590d2f9b7e62df49eb7323899bcde5933bf497",
+    ".artifacts/ocr/transport-architecture-final.log": "5c6f3ceb8db2a5453b2d7ce46fbaafe985d383601ba7a63d4f5406e49fea1fb0",
+    ".artifacts/ocr/transport-checks-final.log": "ef4d1c182c9083bd1fc91b9768b080ec7f35de067e4157e9f9936b6405c3e597"
+  },
+  "cleanup": {
+    "testContainerRemoved": true,
+    "temporaryDataRemoved": true,
+    "modelAndOriginalDataUntouched": true
+  },
+  "remaining": [
+    "producer/safe imagevips input contract and shared native admission",
+    "source fingerprint/generation/missing/fenced job/checkpoint/recovery and clear/permissions contracts",
+    "OCR index and fusion search/UI",
+    "S0 90-degree fixture 0/4 and general layout/quality",
+    "native two-architecture/joint capacity/release"
+  ]
+}

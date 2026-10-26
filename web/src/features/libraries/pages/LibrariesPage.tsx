@@ -203,7 +203,6 @@ function LibraryWelcome() {
       {helpOpen && (
         <div className={styles.help} id="mount-help">
           <strong>{t("libraries.mountTitle")}</strong>
-          <code>/host/photos:/library:ro</code>
           <span>{t("libraries.mountDescription")}</span>
         </div>
       )}
@@ -301,14 +300,14 @@ function LibraryList({
 
       {view === "libraries" && (
         <div className={styles.libraryWorkspace} role="tabpanel">
-          <dl className={styles.librarySummary} aria-label={t("libraries.summaryLabel")}>
+          <div role="group" className={styles.librarySummary} aria-label={t("libraries.summaryLabel")}>
             <div className={styles.librarySummaryItem}>
               <span className={styles.librarySummaryIcon} aria-hidden="true">
                 <Database size={20} weight="duotone" />
               </span>
               <div>
-                <dd>{numberFormatter.format(libraries.length)}</dd>
-                <dt>{hasMore ? t("libraries.loadedLibraries") : t("libraries.totalLibraries")}</dt>
+                <strong>{numberFormatter.format(libraries.length)}</strong>
+                <span>{hasMore ? t("libraries.loadedLibraries") : t("libraries.totalLibraries")}</span>
               </div>
             </div>
             <div className={styles.librarySummaryItem}>
@@ -316,8 +315,8 @@ function LibraryList({
                 <Images size={20} weight="duotone" />
               </span>
               <div>
-                <dd>{numberFormatter.format(summary.assets)}</dd>
-                <dt>{hasMore ? t("libraries.loadedAssets") : t("libraries.totalAssets")}</dt>
+                <strong>{numberFormatter.format(summary.assets)}</strong>
+                <span>{hasMore ? t("libraries.loadedAssets") : t("libraries.totalAssets")}</span>
               </div>
             </div>
             <div
@@ -333,19 +332,19 @@ function LibraryList({
                 )}
               </span>
               <div>
-                <dd>
+                <strong>
                   {summary.attention > 0
                     ? numberFormatter.format(summary.attention)
                     : numberFormatter.format(summary.available)}
-                </dd>
-                <dt>
+                </strong>
+                <span>
                   {summary.attention > 0
                     ? t("libraries.needsAttention")
                     : t("libraries.availableLibraries")}
-                </dt>
+                </span>
               </div>
             </div>
-          </dl>
+          </div>
 
           <section className={styles.libraryTable} aria-labelledby="library-list-title">
             <header className={styles.libraryTableHeader}>
@@ -509,7 +508,7 @@ function LibraryRow({
           </div>
           <div className={styles.libraryDetails}>
             <h3>{library.name}</h3>
-            <p>{library.displayPath}</p>
+            <p>{library.displayPath.replace(/^\/library\/?/, "") || t("newLibrary.mediaRoot")}</p>
           </div>
         </div>
         <div className={styles.libraryFacts}>

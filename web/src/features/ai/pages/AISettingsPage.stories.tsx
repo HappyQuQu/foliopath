@@ -14,12 +14,17 @@ const meta = {
   title: "Features/Intelligence/Settings",
   component: AISettingsPage,
   args: { session: { administrator: { displayName: "管理员", id: "adm-story", username: "admin" }, csrfToken: "storybook-csrf-token-that-is-long-enough", expiresAt: "2099-01-01T00:00:00Z" } },
-  decorators: [(Story, context) => <SettingsStory route={context.parameters.route ?? "/settings/ai"} configured={context.parameters.configured ?? true} automaticState={context.parameters.automaticState ?? "ready"} taskPrototype={context.parameters.taskPrototype ?? false} taskStatusUnavailable={context.parameters.taskStatusUnavailable ?? false} faceFailures={context.parameters.faceFailures ?? false} historicalFaces={context.parameters.historicalFaces ?? false}><Story /></SettingsStory>],
+  decorators: [(Story, context) => <SettingsStory route={context.parameters.route ?? "/settings/ai"} configured={context.parameters.configured ?? true} automaticState={context.parameters.automaticState ?? "ready"} ocrState={context.parameters.ocrState ?? "disabled"} taskPrototype={context.parameters.taskPrototype ?? false} taskStatusUnavailable={context.parameters.taskStatusUnavailable ?? false} faceFailures={context.parameters.faceFailures ?? false} historicalFaces={context.parameters.historicalFaces ?? false}><Story /></SettingsStory>],
   parameters: { layout: "fullscreen", docs: { description: { component: "Contract-backed UI states using synthetic model and library metadata. These are visual fixtures, not available production model sources." } } },
 } satisfies Meta<typeof AISettingsPage>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+export const OCRProcessing:Story={parameters:{route:"/settings/ai?view=tasks&library=lib_family",ocrState:"running"}};
+export const OCRServiceFailure:Story={parameters:{route:"/settings/ai?view=tasks&library=lib_family",ocrState:"degraded"}};
+export const OCRClearing:Story={parameters:{route:"/settings/ai?view=tasks&library=lib_family",ocrState:"clearing"}};
+export const OCRUnavailable:Story={parameters:{ocrState:"unavailable"}};
 export const Overview: Story = {};
+export const FourCapabilities: Story = { parameters: { ocrState: "ready", docs: { description: { story: "Production settings component with all four capabilities enabled. Read-only synthetic contract fixtures; no real analysis or successful writes are simulated." } } } };
 export const ServiceUnavailable: Story = { parameters: { configured: false } };
 export const Libraries: Story = { parameters: { route: "/settings/ai?view=libraries", configured: true } };
 export const ProcessingJobs: Story = { parameters: { route: "/settings/ai?view=tasks&library=lib_travel" } };
@@ -42,7 +47,7 @@ export const ConfigurationPrototype: Story = {
   },
 };
 
-function SettingsStory({ children, route, configured, automaticState, taskPrototype, taskStatusUnavailable, faceFailures, historicalFaces }: { children: ReactNode; route: string; configured: boolean; automaticState: "ready" | "building" | "awaiting_model" | "degraded"; taskPrototype: boolean; taskStatusUnavailable: boolean; faceFailures: boolean; historicalFaces: boolean }) {
+function SettingsStory({ children, route, configured, automaticState, taskPrototype, taskStatusUnavailable, faceFailures, historicalFaces, ocrState }: { children: ReactNode; route: string; configured: boolean; automaticState: "ready" | "building" | "awaiting_model" | "degraded"; taskPrototype: boolean; taskStatusUnavailable: boolean; faceFailures: boolean; historicalFaces: boolean;ocrState:"disabled"|"running"|"degraded"|"clearing"|"ready"|"unavailable" }) {
   const [originalRecords] = useState(readAIOperationIds);
   const [client] = useState(() => {
     const client = new QueryClient({ defaultOptions: { queries: { enabled: false, retry: false, staleTime: Infinity } } });
@@ -78,8 +83,11 @@ function SettingsStory({ children, route, configured, automaticState, taskProtot
       client.setQueryData(aiKeys.automaticTags(library.id), { libraryId: library.id, enabled: configured && !taskPrototype, state: configured && !taskPrototype ? automaticState : "disabled", revision: 1, offline: false, activeOperationId: !taskPrototype && automaticState === "building" ? "op_automatic_story" : null,
         model: configured && automaticState !== "awaiting_model" ? { identity: "a".repeat(64), displayName: "JoyTag", protocol: "foliopath-tag-v1" } : null,
         etag: '"autotag-library-1-r1"', coverage: { completed: taskPrototype || !configured || automaticState === "awaiting_model" ? 0 : automaticState === "ready" ? 24 : 12, eligible: taskPrototype ? 999 : 24, failed: !taskPrototype && automaticState === "degraded" ? 1 : 0, stale: 0, revision: 1 } });
+      client.setQueryData(aiKeys.ocr(library.id),ocrState==="unavailable"?null:{libraryId:library.id,enabled:!["disabled","clearing"].includes(ocrState),clearing:ocrState==="clearing",revision:1,epoch:1,fingerprint:"a".repeat(64),expectedFingerprint:"a".repeat(64),etag:`"ocr-library-${library.id}-r1"`,state:ocrState,
+        coverage:{eligible:24,ready:ocrState==="ready"?24:ocrState==="disabled"?0:18,empty:ocrState==="disabled"?0:2,failed:ocrState==="degraded"?1:0,pending:ocrState==="ready"?0:ocrState==="disabled"?24:ocrState==="degraded"?5:6,stale:0},
+        latestJob:["disabled","clearing"].includes(ocrState)?null:{id:"ocrjob_synthetic_story",libraryId:library.id,epoch:1,fingerprint:"a".repeat(64),revision:1,mode:"missing",state:ocrState==="degraded"?"failed":ocrState==="ready"?"succeeded":"running",recorded:ocrState==="ready"?24:18,failed:ocrState==="degraded"?1:0,attempts:1,errorCode:ocrState==="degraded"?"model_unavailable":null}});
       client.setQueryData(aiKeys.suggestions(library.id, "pending"), { items: [], nextCursor: null, coverage: { ...data.coverage, degraded: 0, completed: 0 } });
-      if (taskStatusUnavailable) for (const queryKey of [aiKeys.semantic(library.id), aiKeys.faces(library.id), aiKeys.videoStatus(library.id), aiKeys.automaticTags(library.id)]) {
+      if (taskStatusUnavailable) for (const queryKey of [aiKeys.semantic(library.id), aiKeys.faces(library.id), aiKeys.videoStatus(library.id), aiKeys.automaticTags(library.id),aiKeys.ocr(library.id)]) {
         client.getQueryCache().find({ queryKey, exact: true })!.setState({ status: "error", fetchStatus: "idle", error: new ApiError({ status: 503, code: "internal_error", message: "Synthetic status failure", requestId: "story-fixture" }) });
       }
     }
@@ -91,10 +99,11 @@ function SettingsStory({ children, route, configured, automaticState, taskProtot
     window.fetch = async (input, init) => {
       const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
       if (!url.pathname.startsWith("/api/v1/")) return original(input, init);
-      const match = /^\/api\/v1\/libraries\/([^/]+)\/ai\/(automatic-tags|semantic|faces|video-semantic)$/.exec(url.pathname);
+      const match = /^\/api\/v1\/libraries\/([^/]+)\/ai\/(automatic-tags|semantic|faces|video-semantic|ocr)$/.exec(url.pathname);
       const method = init?.method ?? (input instanceof Request ? input.method : "GET");
       if (method === "GET" && match && taskStatusUnavailable) return Response.json({ error: { code: "internal_error", message: "Synthetic status failure", requestId: "story-fixture" } }, { status: 503 });
-      const key = match ? match[2] === "semantic" ? aiKeys.semantic(match[1]!) : match[2] === "faces" ? aiKeys.faces(match[1]!) : match[2] === "video-semantic" ? aiKeys.videoStatus(match[1]!) : aiKeys.automaticTags(match[1]!) : url.pathname === "/api/v1/ai/models" ? aiKeys.models : url.pathname === "/api/v1/ai/model-downloads" ? aiKeys.downloads : null;
+      const key = match ? match[2] === "ocr" ? aiKeys.ocr(match[1]!) : match[2] === "semantic" ? aiKeys.semantic(match[1]!) : match[2] === "faces" ? aiKeys.faces(match[1]!) : match[2] === "video-semantic" ? aiKeys.videoStatus(match[1]!) : aiKeys.automaticTags(match[1]!) : url.pathname === "/api/v1/ai/models" ? aiKeys.models : url.pathname === "/api/v1/ai/model-downloads" ? aiKeys.downloads : null;
+      if(method==="GET"&&match?.[2]==="ocr"&&ocrState==="unavailable")return Response.json({error:{code:"ocr_not_found",message:"Synthetic unavailable OCR"}},{status:404});
       const value = key && client.getQueryData<Record<string, unknown>>(key);
       if (method === "GET" && value) {
         const { etag, ...body } = value;

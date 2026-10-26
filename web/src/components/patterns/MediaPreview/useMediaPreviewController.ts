@@ -17,9 +17,11 @@ interface PreviewCandidate {
 export function useMediaPreviewController<T extends PreviewCandidate>({
   items,
   resetKey,
+  retainPinnedOutsideResults = true,
 }: {
   items: T[];
   resetKey: string;
+  retainPinnedOutsideResults?: boolean;
 }) {
   const [previewItem, setPreviewItem] = useState<T>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
@@ -59,16 +61,16 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     setPreviewItem((currentItem) => {
       if (!currentItem) return undefined;
       const currentResult = items.find((item) => item.id === currentItem.id);
-      return currentResult ?? (pinned ? currentItem : undefined);
+      return currentResult ?? (pinned && retainPinnedOutsideResults ? currentItem : undefined);
     });
     if (
-      !pinned &&
+      (!pinned || !retainPinnedOutsideResults) &&
       selectedItemId &&
       !items.some((item) => item.id === selectedItemId)
     ) {
       setSelectedItemId(undefined);
     }
-  }, [items, pinned, selectedItemId]);
+  }, [items, pinned, retainPinnedOutsideResults, selectedItemId]);
 
   function activate(itemId: string, activation: "single" | "double") {
     const item = items.find((candidate) => candidate.id === itemId);
@@ -77,7 +79,7 @@ export function useMediaPreviewController<T extends PreviewCandidate>({
     if (!pinned || activation === "double") {
       const isOpeningPreview = !previewItem;
       setPreviewItem(item);
-      if (isOpeningPreview) restoreAfterLayout(itemId);
+      if (isOpeningPreview && viewportWidth > 1024) restoreAfterLayout(itemId);
     }
   }
 

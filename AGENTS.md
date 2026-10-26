@@ -57,6 +57,15 @@ them.
 - Put business capabilities under `internal/` (`auth`, `settings`, `library`,
   `catalog`, `scanner`, `thumbnail`, `media`, and `jobs`). Each capability defines the
   interfaces it uses.
+- ADR-0031: `internal/search` owns fused ranking, literal/semantic source evidence
+  and snapshot-bound keyset cursors. Reuse catalog normalization, semantic encoding
+  and the cursor mechanism. Stream scoped candidates with a bounded result heap;
+  never merge only first pages in the browser or claim OCR without an OCR contract.
+- ADR-0037: OCR plaintext search uses source-bound, current enabled-library results
+  and the deployment OCR identity. Update derived FTS documents with OCR results
+  and checkpoints atomically, invalidate snapshot cursors on visibility/source
+  changes, and recheck after HTTP hydration. Return only bounded original-text
+  line excerpts; never HTML, raw exceptions, confidence percentages or video OCR.
 - Put HTTP handlers, DTOs, and middleware under `internal/api`. Handlers call services;
   they must not query SQLite, resolve filesystem paths, or invoke media tools directly.
 - Put SQLite implementations under `internal/store/sqlite`, pure relative-path lexical
@@ -183,6 +192,11 @@ them.
   charge and preserving all committed progress and identities. Cancellation wins;
   crashes retain the three-attempt limit. Legacy bootstrap handoff is offline-only
   after verified owner stop/full backup and requires an exact bounded snapshot.
+- ADR-0030: automatic tags may recover only explicitly classified temporary tag
+  service outages within one 60-second recovery window and at most two extra
+  analyses per image. Probe the exact identity before resending, retain the same
+  claim/checkpoint, respect cancellation, and never retry identity/output failures
+  or revive terminal jobs implicitly. Existing missing scheduling preserves runs.
 - ADR-0022 permits an in-flight face job to wait at most 60 seconds per transient
   catalog scan, without holding a transaction; recheck cancellation, availability,
   and the existing lease every second. New admission still requires a ready library.
@@ -199,6 +213,11 @@ them.
   Linux kernel and lock domain: use `docker exec <app> /app/foliopath database-check`.
   Do not run migrations, checkpoints, or host SQLite against active data. Stop the
   owner before copying a complete backup; host inspection is for detached backups.
+- ADR-0038: Docker Desktop deployment data must use a prepared Linux named volume,
+  with verified stopped backup/copy before switching. Keep the original host data as
+  a detached historical copy; never synchronize it against the live volume. Native
+  Linux local bind deployments remain subject to ADR-0023. Preserve every existing
+  AI overlay and the single read-only media mount.
 - Every directory, asset, thumbnail, and scan row is scoped by `library_id`; enforce
   uniqueness for normalized relative paths within a library.
 - Serialize writes, batch scan mutations, keep transactions bounded, and set a busy
@@ -209,6 +228,45 @@ them.
 - Add migrations; never edit a migration that may have shipped.
 
 ## Media processing
+
+- ADR-0036 accepts opt-in OCR runtime and authenticated library management. Bind
+  a deployment-pinned independent identity; keep libraries off until explicit
+  admin requests. Reuse ContentService/files, imagevips, the existing ML client,
+  resourcecontrol and jobs.WorkerPool. Recheck originals after processing; only
+  definitive preprocessor input failures become bad-source rows. Temporary scan
+  waits are bounded to 60 seconds with lease/cancellation checks, without holding
+  transactions or repeating inference. Busy deferral and signal-marked, audited
+  post-worker handoff preserve progress; crashes keep the three-attempt limit.
+  No OCR plaintext/search/UI or automatic missing admission is implied.
+
+- ADR-0035 accepts dormant OCR source-bound storage and fenced per-library
+  jobs/epochs with bounded recovery and clear batches. Keep it disabled and
+  uncomposed until runtime/API gates. Persist only normalized bounded output or
+  fixed source-failure codes, atomically with its checkpoint; never turn model/IO
+  faults into bad media. Disable, cancellation, generation change and clear fence
+  old writers. Preserve all other capabilities and curation.
+
+- ADR-0034 permits the isolated OCR producer overlay and an explicit request-local
+  route adapter around the frozen scheduler. Delegate all admission, deadlines and
+  reaping to the original owner; only the private legacy-core admission category
+  may map OCR to visual. Public requests/child kind/cache/identity stay OCR. Keep
+  all legacy source bytes, identities and actual outputs verified; the OCR runtime
+  and immutable overlay digest cover the extension. Never add a second live queue,
+  silently edit legacy hashes, or compose persistent OCR jobs/search before gates.
+
+- ADR-0033 additionally accepts OCR's independent `ocr-rgb-png-v1` image
+  preprocessor in imagevips, consuming already-opened streams only. Bind the
+  canonical OCR input contract explicitly; share existing native-memory admission
+  and close image references before releasing it. Do not change legacy semantic,
+  face or tag pixels/identities, auto-enable OCR, or treat IO/native failures as
+  bad source media. Production OCR composition/persistence remains gated.
+
+- ADR-0032 accepts only the isolated OCR identity/result contract and Go transport
+  consumer. OCR owns its own fingerprint and strict bounded plaintext/quadrilateral
+  results; remoteml shares the existing HTTP admission/deadline, verifies deployment
+  expectations before sending image bytes, and never retries or labels unknown
+  service failures as bad media. No production OCR service registration, source-bound
+  persistence/jobs, search/UI or activation is authorized by this transport slice.
 
 - POST-MVP-5 model downloads follow ADR-0016: only a deployment-owned fixed
   catalog may supply HTTPS URLs and exact hashes. Browser APIs accept opaque
@@ -250,7 +308,11 @@ them.
   inputs with pre-load header checks and the same native-memory admission. Bind
   this profile to a distinct semantic identity; never relabel old vectors or
   switch in-flight jobs implicitly. Face and automatic-tag preprocessing remain
-  unchanged; the tag fingerprint continues to bind v3.
+  unchanged by that semantic setting. ADR-0029 permits an independent deployment
+  `tag.image_preprocessing` profile (empty v3 or png-v4), bound to both the tag
+  fingerprint and its preprocessor; never inherit the semantic selection. Tag
+  identity changes reprocess enabled libraries without clearing manual tags or
+  removal suppression, and require verified stopped backup before deployment.
 - ADR-0026: curation owns the reviewed automatic-category catalog and exact
   Chinese/English aliases. Localized display must never rename stored tags or infer
   manual provenance. The photo-tag overlay binds its allowed keys and execution
@@ -264,6 +326,17 @@ them.
   free-space margin for SQLite and temporary writes.
 
 ## Frontend
+
+- All product screens, including settings, logs, empty states and errors, use
+  user-facing language: state what happened, its practical effect and the next
+  useful action. Do not display implementation commentary, ranking algorithms,
+  protocol/model identities, hashes, request IDs, internal paths, raw error codes,
+  cursor/revision/checkpoint mechanics or contract limitations. Keep these in
+  developer documentation and service diagnostics. Show task progress in task
+  management; collection/search pages retain actual match evidence and concise
+  actionable warnings, without healthy-index statistics or algorithm notes.
+  Preserve meaningful destructive-action scope and recovery guidance. Apply the
+  same rule in Chinese, English and stable production-component stories.
 
 - Use the latest verified Node.js 24 LTS patch for local tools, CI and Docker
   build/test stages. Pin its exact version in `.node-version`, align package

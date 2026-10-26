@@ -1,5 +1,13 @@
 # FolioPath 架构决策记录
 
+[ADR-0038：Docker Desktop SQLite使用Linux数据卷](0038-docker-desktop-linux-sqlite-volume.md)（本地恢复维护；停写校验后切换）。
+
+[ADR-0034：OCR producer与兼容共享准入](0034-ocr-producer-shared-admission.md)（隔离接入，未启用持久任务或搜索）。
+
+[ADR-0033：独立OCR图片预处理](0033-ocr-image-preprocessing.md)（仅输入适配，未启用服务/索引/搜索）。
+
+[ADR-0032：独立OCR身份与有界传输子片](0032-independent-ocr-transport.md)（仅传输实现授权，生产索引/任务/UI未接入）。
+
 [ADR-0028：显式版本化的大 PNG 语义输入](0028-versioned-png-semantic-input.md)（实现授权，合成验证与原库切换分开验收）。
 
 [ADR-0026：稳定标签类别与独立扩充策略](0026-localized-tag-policy.md)（Accepted for implementation；功能证据见 [CR-2026-033（本地化图片标签）](../changes/CR-2026-033-localized-photo-tags.md)，不关闭质量/发行门禁）。
@@ -61,3 +69,9 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0015：人脸组合模型包与独立 generation 激活](0015-face-model-package-and-generation-activation.md)（已接受 fail-closed 后端实现；模型激活与发布仍等待 S2C 质量/隐私/双架构准入）
 - [ADR-0016：部署管理员模型下载目录](0016-admin-model-download-catalog.md)（已接受下载与 UI 扩展；不提供默认下载源、不解除 AI Release No-Go）
 - [ADR-0017：显式模型下载代理](0017-explicit-model-download-proxy.md)（部署配置；保留 HTTPS/hash 校验，代理承担目标 DNS/IP 策略）
+
+- [ADR-0035 OCR持久结果与任务事务](0035-ocr-durable-results.md)：接受内部休眠存储子片，runtime/API仍有Gate。
+
+- [ADR-0036 OCR后台与显式管理](0036-ocr-runtime-management.md)：接受复用既有owner的opt-in组合，库默认关闭。
+
+- [ADR-0037 OCR全文索引与融合搜索](0037-ocr-fulltext-fused-search.md)：同事务派生FTS、当前源/identity、快照分页和有界原文证据。

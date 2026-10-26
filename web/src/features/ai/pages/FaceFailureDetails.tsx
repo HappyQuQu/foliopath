@@ -46,7 +46,6 @@ export function FaceFailureDetails({ settings, library, disabled, onRetry }: { s
         <strong>{t("ai.faceDiagnostics.latest")} · {t(`ai.operationState.${task.state}`)}</strong>
         <time dateTime={task.updatedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(task.updatedAt))}</time>
         {(task.state === "failed" || task.state === "cancelled") && <p>{t(taskReasons[task.errorCode ?? ""] ?? "ai.faceDiagnostics.unknownTaskReason")}</p>}
-        {task.errorCode && taskReasons[task.errorCode] && <code>{task.errorCode}</code>}
       </div>}
       <p>{t("ai.faceDiagnostics.recorded").replace("{count}", number.format(diagnostics.recordedFailures))}</p>
       {diagnostics.unrecordedFailures > 0 && <InlineStatus tone="warning">{t("ai.faceDiagnostics.legacy").replace("{count}", number.format(diagnostics.unrecordedFailures))}</InlineStatus>}

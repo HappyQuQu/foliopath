@@ -257,7 +257,7 @@ export function NewLibraryPage({
                 </div>
                 <div>
                   <dt>{t("newLibrary.reviewPath")}</dt>
-                  <dd>{displayPath(selectedPath)}</dd>
+                  <dd>{displayPath(selectedPath, t("newLibrary.mediaRoot"))}</dd>
                 </div>
                 <div>
                   <dt>{t("newLibrary.reviewOriginals")}</dt>
@@ -324,7 +324,7 @@ function PathPicker({
       <nav aria-label={t("newLibrary.pathBreadcrumbs")} className={styles.breadcrumbs}>
         <Database aria-hidden="true" size={18} />
         <button onClick={() => onEnter("")} type="button">
-          /library
+          {t("newLibrary.mediaRoot")}
         </button>
         {breadcrumbs
           .filter((item) => item.relativePath)
@@ -350,7 +350,7 @@ function PathPicker({
         <Database aria-hidden="true" size={22} />
         <span>
           <strong>{t("newLibrary.selectCurrent")}</strong>
-          <small>{displayPath(currentPath)}</small>
+          <small>{displayPath(currentPath, t("newLibrary.mediaRoot"))}</small>
         </span>
         {selectedPath === currentPath && (
           <Check aria-hidden="true" size={18} weight="bold" />
@@ -407,8 +407,8 @@ function PathPicker({
   );
 }
 
-function displayPath(relativePath: string) {
-  return relativePath ? `/library/${relativePath}` : "/library";
+function displayPath(relativePath: string, rootLabel: string) {
+  return relativePath || rootLabel;
 }
 
 function pathDescription(

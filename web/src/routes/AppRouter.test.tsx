@@ -95,7 +95,7 @@ describe("authentication routes", () => {
     renderRoutes("/");
 
     expect(await screen.findByRole("heading", { name: "FolioPath 无法完成启动" })).toBeVisible();
-    expect(screen.getByText(/应用数据目录不可用/)).toBeVisible();
+    expect(screen.getByText(/无法保存应用数据/)).toBeVisible();
     expect(screen.queryByText(/Users|app\/data|stack|sqlite/i)).not.toBeInTheDocument();
     expect(getAuthenticationStatus).not.toHaveBeenCalled();
   });
@@ -169,7 +169,7 @@ describe("authentication routes", () => {
     renderRoutes("/settings/general");
 
     expect(await screen.findByRole("heading", { name: "登录 FolioPath" })).toBeVisible();
-    expect(screen.getByText("为了保护您的媒体库，会话已过期。请重新登录。")).toBeVisible();
+    expect(screen.getByText("登录已过期，请重新登录。")).toBeVisible();
   });
 
   it("opens the default browse view when an authenticated library exists", async () => {

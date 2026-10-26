@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "changeId": "CR-2026-035",
+  "verifiedAt": "2026-10-25T11:55:45+08:00",
+  "scope": "local arm64 engineering slice; not release/quality/capacity approval",
+  "candidate": "sha256:dac00067b3af8857517e5a9045543a9a3aa23dab75d220c0b51282e4046336ae",
+  "aiImage": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+  "semanticIdentity": {
+    "version": 1,
+    "protocol": "foliopath-ml-v1",
+    "model": "XLM-Roberta-Large-Vit-B-16Plus",
+    "dimension": 640,
+    "cache_manifest_sha256": "858e52d6c74b5d597d8e1e7883b18f0d4db870a211336498d08cda767a00fb8d",
+    "runtime_contract_sha256": "81ec3de561ee05318103ba0f354b6472cb2d1dc0d2ef0f33bf2becee2c710659"
+  },
+  "checks": {
+    "goToolchain": "go1.26.5",
+    "go": [
+      "make fmt (earlier)",
+      "make fmt-check",
+      "make arch-check",
+      "make generate-check",
+      "make lint",
+      "make test",
+      "make test-integration",
+      "make test-e2e"
+    ],
+    "goRequiredPassed": true,
+    "focusedRacePassed": true,
+    "focusedRaceScope": "search/app/api/sqlite; Fused/Fusion/LiteralEvidence/DegradedSearch/SnapshotMutation/CopiedRelative",
+    "extraBroadRace": "sqlite package cumulative 10-minute timeout; no full-race pass claimed",
+    "timeoutCaseAloneRacePassed": true,
+    "node": "24.22.1",
+    "npm": "11.19.1",
+    "webCheckPassed": true,
+    "webFiles": 71,
+    "webTests": 446,
+    "openapiLintPassed": true,
+    "openapiExistingWarnings": 2,
+    "playwright": "1.61.1",
+    "browserTests": 90,
+    "browsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ],
+    "searchWidths": [
+      320,
+      390,
+      768,
+      1440,
+      1920
+    ],
+    "locales": [
+      "zh-CN",
+      "en"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ]
+  },
+  "runtime": {
+    "project": "fp-multilingual-2ce26ed7",
+    "realMultilingualModel": true,
+    "fusedAndChineseSamples": {
+      "fusedSample": [
+        {
+          "name": "blue.png",
+          "sources": [
+            "filename",
+            "path",
+            "semantic"
+          ],
+          "score": 0.24226004
+        }
+      ],
+      "chineseSources": [
+        {
+          "name": "blue.png",
+          "sources": [
+            "semantic"
+          ],
+          "score": 0.38611156
+        }
+      ]
+    },
+    "covered": [
+      "filename/path/visual evidence",
+      "copied relative-path compatibility",
+      "dedup/ranking/keyset/query binding/stale cursor",
+      "directory/global/kind/date scope",
+      "disabled library exclusion and fallback",
+      "synthetic AI outage and functional recovery",
+      "nonempty manual tag preservation",
+      "source SHA256 unchanged",
+      "same-container database-check",
+      "synthetic main restart"
+    ],
+    "aiPeakBytes": 3384590336,
+    "aiMemoryEvents": {
+      "low": 0,
+      "high": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0,
+      "sock_throttled": 0
+    },
+    "historicalPressureObservation": {
+      "candidate": "1dd8566e",
+      "peakBytes": 4294967296,
+      "maxEvents": 1531,
+      "oom": 0,
+      "oomKill": 0,
+      "budgetAcceptance": false
+    }
+  },
+  "original6010": {
+    "deployedByThisChange": false,
+    "restartedByThisChange": false,
+    "mainImage": "sha256:ff2ee7e46a9358f006d74e759f82562267add41d5ef0bdd5366fb0d0dcac7dd7",
+    "aiImage": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+    "bothHealthyAtFinalRead": true,
+    "restartCounts": [
+      0,
+      0
+    ],
+    "memoryCapsBytes": [
+      0,
+      0
+    ],
+    "sourceFailures": "10 source files remain deferred; no repair/retry by this slice"
+  },
+  "boundaries": [
+    "OCR not implemented",
+    "video visual search remains the existing dedicated mode",
+    "no server222 access",
+    "no original media/manual curation writes",
+    "no schema/model identity changes",
+    "no push or release promotion"
+  ]
+}

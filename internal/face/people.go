@@ -21,6 +21,7 @@ type Person struct {
 	Name               string
 	ConfirmedFaceCount int64
 	AssetCount         int64
+	PreviewAssetID     int64
 	Revision           int64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time

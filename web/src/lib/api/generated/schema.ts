@@ -1138,6 +1138,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/ai/ocr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get OCR settings and current source-bound coverage
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        get: operations["getLibraryOCR"];
+        /**
+         * Explicitly enable or disable OCR without creating a job
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        put: operations["updateLibraryOCR"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable and clear OCR derived results in bounded batches
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["clearLibraryOCR"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit missing OCR or explicitly retry recorded source failures
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["requestLibraryOCRJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get one job scoped to its library
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        get: operations["getLibraryOCRJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cooperatively cancel OCR and retain committed progress
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["cancelLibraryOCRJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/ai/semantic": {
         parameters: {
             query?: never;
@@ -1616,6 +1755,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/{personId}/merge-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Explain current constraints before a person merge
+         * @description Read-only advisory snapshot. The write transaction always rechecks all constraints. Examples are at most three distinct currently readable photo pairs; no example does not mean no constraint. No face IDs, paths or model outputs are exposed.
+         */
+        get: operations["getPersonMergeCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -1683,6 +1845,36 @@ export interface paths {
          *     fails with `scan_already_finished`.
          */
         post: operations["cancelScan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fuse filename, parent path and image semantic matches with actual evidence
+         * @description ADR-0031 relevance v1. All literal terms must occur in the filename and/or
+         *     parent library-relative directory. A filename is not also a parent-path hit.
+         *     Current image vectors with cosine >=0.20 contribute semantic evidence;
+         *     this is a retrieval cutoff, not calibrated confidence. Dual-source hits
+         *     precede literal-only then semantic-only, with cosine DESC and asset ID ASC
+         *     within each tier. Each asset occurs once. Video semantic frames remain on
+         *     the existing semantic/videos endpoint; videos here can match literal fields.
+         *     OCR uses source-bound current enabled-library plaintext, with bounded original line excerpts. OCR-only never calls the semantic encoder. All-mode explicitly degrades to literal/OCR search if
+         *     semantics is disabled or unavailable. Semantic-only reports unavailability.
+         *     The authenticated cursor binds query hash, filters, catalog/semantic snapshot,
+         *     query vector hash and ordering tuple. Snapshot changes require a refresh.
+         */
+        get: operations["searchAssetsWithSources"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2163,6 +2355,8 @@ export interface components {
             playbackStatus: components["schemas"]["PlaybackStatus"];
             probeStatus: components["schemas"]["ProbeStatus"];
             relativePath: components["schemas"]["LibraryRelativePath"];
+            /** @description Present on literal search results only. Catalog-owned filename/parent-directory evidence; not semantic inference. */
+            searchSources?: ("filename" | "path")[];
             /** Format: int64 */
             sizeBytes: number;
             sourceAvailability: components["schemas"]["SourceAvailability"];
@@ -2194,6 +2388,8 @@ export interface components {
         };
         AssetFace: {
             assetId: components["schemas"]["ResourceID"];
+            /** @description Sorted opaque peer IDs among the same photo's current face projection only. New servers return an array, including empty; absence on an older server means unknown, not no constraint. No cross-photo IDs are exposed. */
+            readonly cannotLinkFaceIds?: components["schemas"]["ResourceID"][];
             faceId: components["schemas"]["ResourceID"];
             ordinal: number;
             personId: components["schemas"]["NullableResourceID"];
@@ -2371,6 +2567,7 @@ export interface components {
              */
             usageBytes: number;
         };
+        /** @description Mark two currently bound faces as belonging to different active people. All four person guard fields must be provided together for a new write and match left/source and right/target owners. An absent guard is accepted only for historical same-key replay; an unfenced new write conflicts without changes. Undo of a new action also checks the recorded person and anchor versions. */
         CannotLinkFaceReview: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2381,8 +2578,14 @@ export interface components {
             expectedLeftRevision: number;
             /** Format: int64 */
             expectedRightRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
+            /** Format: int64 */
+            expectedTargetRevision?: number;
             leftFaceId: components["schemas"]["ResourceID"];
             rightFaceId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
+            targetPersonId?: components["schemas"]["ResourceID"];
         };
         CatalogState: {
             /** Format: int64 */
@@ -2521,10 +2724,11 @@ export interface components {
          * @description Stable machine-readable code. New public codes require a contract change.
          * @enum {string}
          */
-        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "library_offline" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
+        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "search_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "library_offline" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
         ErrorResponse: {
             error: components["schemas"]["Error"];
         };
+        /** @description Exclude one face. The source fields must be supplied together. Omitted source guard asserts the face currently has no person assignment. Assigned faces require both exact source fields; mismatches return face_constraint_conflict without writes. Historical same-key replay remains idempotent. */
         ExcludeFaceReview: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2533,7 +2737,10 @@ export interface components {
             action: "exclude_face";
             /** Format: int64 */
             expectedFaceRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
             faceId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
         };
         /** @enum {string} */
         FaceAssetFailureCode: "media_unreadable" | "invalid_media" | "inference_invalid_output" | "inference_timeout" | "analysis_failed";
@@ -2544,9 +2751,25 @@ export interface components {
             libraryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
             memberCount: number;
+            /**
+             * Format: int64
+             * @description Faces without a current manual person assignment or exclusion, at this read snapshot. memberCount remains the total face count.
+             */
+            pendingMemberCount: number;
             previewAssetIds: components["schemas"]["ResourceID"][];
             /** Format: int64 */
             revision: number;
+        };
+        /** @description Exact counts for the selected library and kind in the same snapshot as items, before review filtering and pagination. Faces are not distinct photos. */
+        FaceClusterCounts: {
+            /** Format: int64 */
+            pendingFaces: number;
+            /** Format: int64 */
+            pendingGroups: number;
+            /** Format: int64 */
+            totalFaces: number;
+            /** Format: int64 */
+            totalGroups: number;
         };
         FaceClusterDetailPage: {
             cluster: components["schemas"]["FaceCluster"];
@@ -2563,6 +2786,7 @@ export interface components {
             revision: number;
         };
         FaceClusterPage: {
+            counts: components["schemas"]["FaceClusterCounts"];
             coverage: components["schemas"]["DerivedCoverage"];
             /** @description True only after the frozen legal quality gate proves core precision at least 99.5%. */
             groupAssignmentAllowed: boolean;
@@ -2641,6 +2865,40 @@ export interface components {
         };
         FavoriteUpdate: {
             favorite: boolean;
+        };
+        FusedSearchPage: {
+            coverage: components["schemas"]["SemanticSearchCoverage"] | null;
+            items: {
+                asset: components["schemas"]["Asset"];
+                /** @description Present only for OCR source. Original-text excerpts, not HTML or a complete transcript; line is 1-based recognition order, not a page number. Scores are not exposed. */
+                ocr: {
+                    line: number;
+                    text: string;
+                }[] | null;
+                /**
+                 * Format: float
+                 * @description Actual cosine for semantic evidence only; never a confidence percentage.
+                 */
+                semanticScore: number | null;
+                sources: ("filename" | "path" | "semantic" | "ocr")[];
+            }[];
+            nextCursor: components["schemas"]["NullableCursor"];
+            /** @description Current scope and enabled ready libraries only; ready includes blank images, failed excludes pending/stale. eligible minus ready minus failed is pending or stale. */
+            ocrCoverage: {
+                /** Format: int64 */
+                eligible: number;
+                /** Format: int64 */
+                failed: number;
+                /** Format: int64 */
+                ready: number;
+            } | null;
+            /**
+             * @description Available means deployment configured, not all images indexed. Stored OCR search does not require live inference.
+             * @enum {string}
+             */
+            ocrState: "available" | "disabled" | "not_requested";
+            /** @enum {string} */
+            semanticState: "ready" | "disabled" | "offline" | "unavailable" | "unsupported_query" | "not_requested";
         };
         InstallAIModelRequest: {
             /** @enum {string} */
@@ -2884,6 +3142,68 @@ export interface components {
          * @description UTC RFC 3339 timestamp, or null when the event has not occurred.
          */
         NullableTimestamp: string | null;
+        OCRCoverage: {
+            /** Format: int64 */
+            eligible: number;
+            /**
+             * Format: int64
+             * @description Subset of ready with zero lines.
+             */
+            empty: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            ready: number;
+            /**
+             * Format: int64
+             * @description Subset of pending with an outdated source in the selected generation.
+             */
+            stale: number;
+        };
+        OCRJob: {
+            /** Format: int64 */
+            attempts: number;
+            /** Format: int64 */
+            epoch: number;
+            /** @enum {string|null} */
+            errorCode: null | "model_unavailable" | "identity_mismatch" | "inference_failed" | "output_limit" | "preprocess_failed" | "source_unavailable" | "interrupted";
+            /** Format: int64 */
+            failed: number;
+            fingerprint: string;
+            id: string;
+            libraryId: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            mode: "missing" | "retry_failed";
+            /**
+             * Format: int64
+             * @description Recorded attempts including definitive source failures; not images with text.
+             */
+            recorded: number;
+            /**
+             * Format: int64
+             * @description Ownership revision; progress alone does not change this cancellation guard.
+             */
+            revision: number;
+            /** @enum {string} */
+            state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+        };
+        OCRStatus: {
+            clearing: boolean;
+            coverage: components["schemas"]["OCRCoverage"];
+            enabled: boolean;
+            /** Format: int64 */
+            epoch: number;
+            expectedFingerprint: string;
+            fingerprint: string | null;
+            latestJob: components["schemas"]["OCRJob"] | null;
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "clearing" | "model_mismatch" | "queued" | "running" | "cancelling" | "pending" | "ready" | "degraded";
+        };
         PasswordChangeRequest: {
             /**
              * Format: password
@@ -2906,6 +3226,8 @@ export interface components {
             id: components["schemas"]["ResourceID"];
             /** @description NFC-normalized administrator-supplied name; duplicates are allowed. */
             name: string;
+            /** @description Latest modified confirmed photo in a ready library, using mtime then asset ID descending. Null when no currently available bound photo exists. Derived full-photo preview, never a writable person cover or face crop. Counts may include offline bound associations. */
+            readonly previewAssetId: components["schemas"]["NullableResourceID"];
             /** Format: int64 */
             revision: number;
             updatedAt: components["schemas"]["Timestamp"];
@@ -2917,6 +3239,32 @@ export interface components {
         PersonAssetPage: {
             items: components["schemas"]["PersonAsset"][];
             nextCursor: components["schemas"]["NullableCursor"];
+        };
+        PersonMergeCheck: {
+            /** @description No known blocking constraints at this snapshot; POST must still recheck. */
+            canMerge: boolean;
+            /**
+             * Format: int64
+             * @description Exact number of face-anchor constraints, including detached or offline relationships.
+             */
+            cannotLinkCount: number;
+            /** Format: int64 */
+            duplicateAssignmentCount: number;
+            /** @description Distinct currently readable photo pairs for cannot-link constraints. May be empty even when blocked. Not a complete relationship list. */
+            examples: {
+                sourceAssetId: string;
+                sourceLibraryId: string;
+                targetAssetId: string;
+                targetLibraryId: string;
+            }[];
+            /** @description The source has more anchors than the existing atomic merge batch permits. */
+            sourceLimitExceeded: boolean;
+            sourcePersonId: string;
+            /** Format: int64 */
+            sourceRevision: number;
+            targetPersonId: string;
+            /** Format: int64 */
+            targetRevision: number;
         };
         PersonPage: {
             items: components["schemas"]["Person"][];
@@ -5552,6 +5900,8 @@ export interface operations {
                 kind?: "core" | "edge";
                 /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
                 limit?: components["parameters"]["LimitParameter"];
+                /** @description pending includes only groups with unassigned, non-excluded faces. Omitted means all for compatibility. Cursors bind this filter and the current review snapshot. */
+                review?: "all" | "pending";
             };
             header?: never;
             path: {
@@ -5821,6 +6171,252 @@ export interface operations {
             409: components["responses"]["Conflict"];
             412: components["responses"]["PreconditionFailed"];
             422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryOCR: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibraryOCR: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearLibraryOCR: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    confirmation: "clear_ocr_results";
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Required retry_failed_ocr for retry_failed; empty or omitted for missing.
+                     * @enum {string}
+                     */
+                    confirmation?: "" | "retry_failed_ocr";
+                    /** @enum {string} */
+                    mode: "missing" | "retry_failed";
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    /** @description Same key and epoch/model/mode returns original job; a changed request conflicts. */
+                    "Idempotency-Replayed"?: boolean;
+                    /** @description Library-scoped job metadata URL. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    cancelLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -6761,6 +7357,36 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getPersonMergeCheck: {
+        parameters: {
+            query: {
+                targetPersonId: string;
+            };
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current person revisions and merge constraints from one snapshot; not a merge authorization. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonMergeCheck"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getReleaseInformation: {
         parameters: {
             query?: {
@@ -6867,6 +7493,68 @@ export interface operations {
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    searchAssetsWithSources: {
+        parameters: {
+            query: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Opaque directory ID that defines the browse or search root. Omit it for the media-library root. */
+                directoryId?: components["parameters"]["DirectoryFilterParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                mode?: "all" | "filename" | "semantic" | "ocr";
+                /**
+                 * @description Exclusive upper bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+                 */
+                modifiedBefore?: components["parameters"]["ModifiedBeforeParameter"];
+                /**
+                 * @description Inclusive lower bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+                 */
+                modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
+                /**
+                 * @description Required plain-text filename/path query across all libraries. It is
+                 *     trimmed, must remain non-empty, and follows the same versioned
+                 *     literal-substring profile as library search.
+                 */
+                q: components["parameters"]["RequiredSearchQueryParameter"];
+                /** @description Include media from all descendant directories of the selected browse root. */
+                recursive?: components["parameters"]["RecursiveParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deduplicated relevance page, actual match sources and semantic availability. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FusedSearchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     searchAssetsBySemantics: {

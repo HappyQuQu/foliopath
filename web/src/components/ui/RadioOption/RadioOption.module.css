@@ -1,0 +1,5 @@
+.root .label { display: flex; align-items: center; gap: var(--space-2); min-height: var(--size-control-sm); color: var(--color-sidebar-text); font-size: var(--font-size-2); cursor: pointer; }
+.root input { flex: none; width: var(--space-4); height: var(--space-4); margin: 0; accent-color: var(--color-accent); }
+.root input:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.root .label:has(input:checked) { color: var(--color-accent); font-weight: 600; }
+.root .label:has(input:disabled) { color: var(--color-text-muted); cursor: not-allowed; }

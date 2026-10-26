@@ -220,6 +220,9 @@ it("restores a deep directory, exposes breadcrumbs, and lazily expands its tree 
   expect(
     await screen.findByRole("heading", { name: "旅行", level: 1 }),
   ).toBeVisible();
+  expect(await within(screen.getByRole("region", { name: "浏览工具" }))
+    .findByRole("slider", { name: "缩略图大小" })).toBeVisible();
+  expect(screen.getAllByRole("slider", { name: "缩略图大小" })).toHaveLength(1);
   expect(
     screen.getByRole("navigation", { name: "目录位置" }),
   ).toHaveTextContent("家庭影像旅行");

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -11,7 +11,7 @@ import { AIReviewPage } from "./AIReviewPage";
 import { ApiError } from "../../../lib/api/errors";
 import { getAssetCuration } from "../../../lib/api/curation";
 
-const mocks = vi.hoisted(() => ({ review: vi.fn(), create: vi.fn(), clusters: vi.fn(), cluster: vi.fn(), libraryStatus: "ready" }));
+const mocks = vi.hoisted(() => ({ review: vi.fn(), create: vi.fn(), clusters: vi.fn(), cluster: vi.fn(), people: vi.fn(), personAssets: vi.fn(), libraryStatus: "ready" }));
 const suggestion = {
   asset: { id: "asset-1", libraryId: "lib-1", name: "海边.jpg", kind: "image" as const, thumbnail: { status: "ready" as const, url: "/thumb.jpg" } },
   confidence: 0.93, generationId: "gen-1", id: "suggestion-1", libraryId: "lib-1",
@@ -25,15 +25,15 @@ vi.mock("../../../lib/api/curation", () => ({ getAssetCuration: vi.fn().mockReso
 vi.mock("../queries", () => ({
   useAITagSuggestionsQuery: (...args: unknown[]) => { tagPage.query(...args); return { data: { items: tagPage.empty ? [] : [suggestion, ...(tagPage.second ? [{ ...suggestion, id: "suggestion-2", asset: { ...suggestion.asset, id: "asset-2", name: "第二张.jpg" } }] : []), ...(tagPage.sameAsset ? [{ ...suggestion, id: "suggestion-blue", tag: { name: "蓝色", tagId: "tag-blue" } }] : [])], nextCursor: tagPage.nextCursor, coverage: { complete: tagPage.complete, completed: 8, eligible: 10, failed: 1, degraded: 1, stale: 1, revision: 1 } }, isError: false, isPending: false, refetch: vi.fn() }; },
   useReviewAITagSuggestionsMutation: () => ({ isPending: false, mutateAsync: mocks.review }),
-  usePeopleQuery: () => ({ data: { items: [], nextCursor: null }, isError: false, isPending: false, refetch: vi.fn() }),
-  usePersonQuery: () => ({ isPending: true }), usePersonAssetsQuery: () => ({ isPending: true }),
-  useFaceClustersQuery: mocks.clusters, useFaceClusterQuery: mocks.cluster,
+  usePeopleQuery: mocks.people,
+  usePersonMergeCheckQuery: () => ({isPending:true}), usePersonQuery: () => ({ isPending: true }), usePersonAssetsQuery: mocks.personAssets,
+  useAssetFacesQueries: (ids: string[]) => ids.map(() => ({ data: { items: [] }, isPending: false, refetch: vi.fn() })), useFaceClustersQuery: mocks.clusters, useFaceClusterQuery: mocks.cluster,
   useCreatePersonMutation: () => ({ isPending: false, mutateAsync: mocks.create }),
   useRenamePersonMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useApplyFaceReviewMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }));
 
-beforeEach(() => { mocks.libraryStatus = "ready"; mocks.review.mockReset(); mocks.review.mockResolvedValue({ items: [] }); mocks.clusters.mockReturnValue({ isPending: true }); mocks.cluster.mockReturnValue({ isPending: true }); window.localStorage.setItem("foliopath.preferences.v1", '{"locale":"zh-CN"}'); });
+beforeEach(() => { mocks.people.mockReset().mockReturnValue({ data: { items: [{ id: "person-1", name: "青岚", assetCount: 4, confirmedFaceCount: 5 }], nextCursor: null }, isError: false, isPending: false, refetch: vi.fn() }); mocks.personAssets.mockReset().mockReturnValue({ isPending: true }); mocks.libraryStatus = "ready"; mocks.review.mockReset(); mocks.review.mockResolvedValue({ items: [] }); mocks.clusters.mockReturnValue({ isPending: true }); mocks.cluster.mockReturnValue({ isPending: true }); window.localStorage.setItem("foliopath.preferences.v1", '{"locale":"zh-CN"}'); });
 beforeEach(() => { tagPage.nextCursor = null; tagPage.second = false; tagPage.sameAsset = false; tagPage.empty = false; tagPage.complete = false; tagPage.query.mockClear(); vi.mocked(getAssetCuration).mockReset().mockResolvedValue({ assetId: "asset-1", favorite: false, favoritedAt: null, revision: 7, tags: [] }); });
 
 it("keeps the legacy review deep link but removes it from normal navigation", () => {
@@ -116,7 +116,7 @@ it("explains an incomplete empty list once without irrelevant selection instruct
 it("uses real library availability instead of interpreting offline as no faces", () => {
   mocks.libraryStatus = "offline";
   renderPage("/intelligence?view=clusters&libraryId=lib-1");
-  expect(screen.getByText(/媒体库离线，原有索引已保留/)).toBeVisible();
+  expect(screen.getByText(/媒体库暂不可用，已有内容保留/)).toBeVisible();
   expect(screen.queryByText(/人脸分析尚未就绪/)).not.toBeInTheDocument();
 });
 
@@ -126,14 +126,14 @@ it("marks the actual face region in group photos before individual selection", (
     items: [{ faceId: "face-1", assetId: "asset-1", kind: "core", revision: 1, region: { xPercent: 10, yPercent: 20, widthPercent: 30, heightPercent: 40 } }],
   } });
   renderPage("/intelligence?view=clusters&libraryId=lib-1&cluster=cluster-1");
-  const region = screen.getByRole("checkbox").closest("label")?.querySelector('span[aria-hidden="true"]');
+  const region = screen.getByRole("button", { name: "照片 1 · 标记 1" });
   expect(region).toHaveStyle({ left: "10%", top: "20%", width: "30%", height: "40%" });
-  expect(screen.getByRole("button", { name: "新建人物" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "确认归入人物" })).toBeDisabled();
 });
 
 it.each([
   ["face_not_ready", /人脸分析尚未就绪/],
-  ["library_offline", /媒体库离线，原有索引已保留/],
+  ["library_offline", /媒体库暂不可用，已有内容保留/],
   ["face_cursor_stale", /状态已被其他操作更新/],
   ["network_error", /无法载入审核数据/],
 ] as const)("distinguishes %s from empty face results", (code, message) => {
@@ -155,7 +155,7 @@ it("keeps local processing details available on demand", async () => {
   const user = userEvent.setup();
   renderPage("/intelligence?view=clusters&libraryId=lib-1");
   await user.click(screen.getByText("关于本地处理与人物归类"));
-  expect(screen.getByText(/不会识别现实身份、不会联网查人，也不会训练或发布模型/)).toBeVisible();
+  expect(screen.getByText(/人物分析在本地进行/)).toBeVisible();
 });
 
 it.each([["采纳所选", "accepted"], ["忽略所选", "dismissed"]])("restores focus after %s removes the review controls", async (label, outcome) => {
@@ -222,9 +222,10 @@ it("makes the next tag suggestion page reachable when the backend returns a curs
 it("allows creating the first person without enabling automatic group assignment", async () => {
   mocks.create.mockResolvedValue({ id: "person-created" });
   const user = userEvent.setup(); renderPage("/intelligence?view=people");
-  expect(screen.getByRole("button", { name: "新建人物" })).toBeDisabled();
-  await user.type(screen.getByLabelText("管理员填写的名称"), "人工人物");
   await user.click(screen.getByRole("button", { name: "新建人物" }));
+  expect(within(screen.getByRole("dialog")).getByRole("button", { name: "新建人物" })).toBeDisabled();
+  await user.type(screen.getByLabelText("管理员填写的名称"), "人工人物");
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "新建人物" }));
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ name: "人工人物" }));
   expect(mocks.create.mock.calls[0]?.[0]).not.toHaveProperty("sourceCluster");
   await waitFor(() => expect(screen.getByRole("heading", { name: "人物", level: 1 })).toHaveFocus());
@@ -233,8 +234,8 @@ it("allows creating the first person without enabling automatic group assignment
 it("opens the people workspace by default and shows real preview thumbnails", () => {
   mocks.clusters.mockReturnValue({ isPending: false, isError: false, data: {
     coverage: { complete: true, completed: 10, eligible: 10, failed: 0, degraded: 0, stale: 0, revision: 1 },
-    groupAssignmentAllowed: false, nextCursor: null,
-    items: [{ id: "cluster-preview", kind: "core", memberCount: 4, previewAssetIds: ["asset-one", "asset-two"], revision: 1 }],
+    groupAssignmentAllowed: false, counts: { totalGroups: 3, pendingGroups: 1, totalFaces: 8, pendingFaces: 2 }, nextCursor: null,
+    items: [{ id: "cluster-preview", kind: "core", memberCount: 4, pendingMemberCount: 2, previewAssetIds: ["asset-one", "asset-two"], revision: 1 }],
   } });
   renderPage("/intelligence?libraryId=lib-1");
   expect(screen.getByRole("link", { name: "人物" })).toHaveAttribute(
@@ -242,11 +243,60 @@ it("opens the people workspace by default and shows real preview thumbnails", ()
     "page",
   );
   expect(screen.getByRole("button", { name: "待整理" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: "待确认人物，4 张照片" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "待确认人物，4 张照片" }).querySelectorAll("img")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "待确认人物，4 张人脸" })).toBeVisible();
+  expect(screen.getByText("当前类型：1 / 3 组待处理 · 2 张人脸待确认")).toBeVisible();
+  expect(screen.getByText("待处理 2 / 4 张人脸")).toBeVisible();
+  expect(screen.getByRole("button", { name: "待确认人物，4 张人脸" }).querySelectorAll("img")).toHaveLength(2);
 });
 
 function renderPage(entry = "/intelligence?view=tags&libraryId=lib-1") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[entry]}><ThemeProvider><LocaleProvider><ToastProvider><AIReviewPage session={{ administrator: { id: "admin-1", displayName: "管理员", username: "admin" }, csrfToken: "csrf-token-that-is-long-enough", expiresAt: "2026-09-03T00:00:00Z" }} /></ToastProvider></LocaleProvider></ThemeProvider></MemoryRouter></QueryClientProvider>);
 }
+
+it("keeps named people global and separates sidebar paging from person asset paging", async () => {
+  const user = userEvent.setup();
+  renderPage("/intelligence?view=people&libraryId=lib-1&person=person-1&cursor=asset-page&peopleCursor=people-page");
+  const sidebar = screen.getByRole("complementary", { name: "人物工具" });
+  expect(within(sidebar).getByText("全部媒体库")).toBeVisible();
+  expect(within(sidebar).queryByRole("button", { name: /^媒体库：/ })).not.toBeInTheDocument();
+  expect(mocks.people).toHaveBeenCalledWith("", "people-page");
+  expect(mocks.personAssets).toHaveBeenCalledWith("person-1", "asset-page");
+  await user.type(within(sidebar).getByRole("searchbox", { name: "按管理员填写的名称搜索" }), "白露");
+  expect(mocks.people).toHaveBeenCalledWith("白露", "");
+  expect(mocks.personAssets).toHaveBeenLastCalledWith("person-1", "asset-page");
+});
+
+it("shows library selection for unnamed groups and keeps their subtype controls in the sidebar", () => {
+  renderPage("/intelligence?view=clusters&libraryId=lib-1");
+  const sidebar = screen.getByRole("complementary", { name: "人物工具" });
+  expect(within(sidebar).getByRole("button", { name: /媒体库：照片/ })).toBeVisible();
+  expect(within(sidebar).getByRole("button", { name: "待确认人物" })).toBeVisible();
+  expect(within(screen.getByRole("main")).queryByRole("combobox", { name: "媒体库" })).not.toBeInTheDocument();
+});
+
+it.each(["invalid_cursor", "face_cursor_stale"] as const)("resets only the group cursor after %s, retaining type and filter", async code => {
+  const refetch = vi.fn();
+  mocks.clusters.mockReturnValue({ isPending: false, isError: true, error: new ApiError({ code, message: "expired", requestId: undefined, status: code === "invalid_cursor" ? 400 : 409 }), refetch });
+  renderPage("/intelligence?view=clusters&libraryId=lib-1&kind=edge&review=all&groupsCursor=old-page");
+  expect(mocks.clusters).toHaveBeenLastCalledWith("lib-1", "edge", "old-page", "all");
+  await userEvent.setup().click(screen.getByRole("button", { name: "重新尝试" }));
+  expect(mocks.clusters).toHaveBeenLastCalledWith("lib-1", "edge", "", "all");
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+it("shows a bounded people page with its preview, search and main pagination", async()=>{
+ mocks.people.mockReturnValue({ data: { items: [{id:"person-a",name:"同名",confirmedFaceCount:2,assetCount:1,previewAssetId:"asset-preview"},{id:"person-b",name:"同名",confirmedFaceCount:0,assetCount:0,previewAssetId:null}],nextCursor:"people-next" },isPending:false,isError:false });
+ renderPage("/intelligence?view=people&peopleCursor=people-old&q=同");const main=within(screen.getByRole("main"));
+ expect(main.getByText("本页 2 位人物")).toBeVisible();expect(main.getByText("暂无可用照片预览")).toBeVisible();
+ expect(main.getByRole("button",{name:/同名.*2 张已确认人脸/}).querySelector("img")).toHaveAttribute("src","/api/v1/assets/asset-preview/thumbnail?variant=grid");
+ await userEvent.click(main.getByRole("button",{name:"下一页"}));expect(mocks.people).toHaveBeenLastCalledWith("同","people-next");
+ await userEvent.clear(main.getByLabelText("搜索人物名称"));expect(mocks.people).toHaveBeenLastCalledWith("","");
+});
+it("keeps the same empty-person creation key after an uncertain response",async()=>{
+ mocks.create.mockReset().mockRejectedValue(new Error("response lost"));renderPage("/intelligence?view=people");const main=within(screen.getByRole("main"));const user=userEvent.setup();
+ await user.click(main.getByRole("button",{name:"新建人物"}));const dialog=within(screen.getByRole("dialog"));await user.type(dialog.getByLabelText("管理员填写的名称")," 测试 ");
+ await user.click(dialog.getByRole("button",{name:"新建人物"}));await waitFor(()=>expect(dialog.getByText(/创建结果尚未确认/)).toBeVisible());
+ await user.click(dialog.getByRole("button",{name:"新建人物"}));await waitFor(()=>expect(mocks.create).toHaveBeenCalledTimes(2));
+ expect(mocks.create.mock.calls[1]?.[0]).toEqual(mocks.create.mock.calls[0]?.[0]);expect(mocks.create.mock.calls[0]?.[0]).not.toHaveProperty("sourceCluster");
+});

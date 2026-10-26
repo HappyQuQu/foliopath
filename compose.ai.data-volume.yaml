@@ -1,0 +1,14 @@
+# Optional Docker Desktop data storage, after the existing AI overlays.
+# Prepare and verify this external volume from a stopped full backup first.
+services:
+  foliopath:
+    volumes:
+      - type: volume
+        source: application-data
+        target: /app/data
+        volume:
+          nocopy: true
+volumes:
+  application-data:
+    external: true
+    name: ${FOLIOPATH_DATA_VOLUME:?Set the prepared and verified application data volume}

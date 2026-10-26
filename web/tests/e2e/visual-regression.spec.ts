@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { fileURLToPath } from "node:url";
 
 const libraryId = "lib_visual";
@@ -107,26 +108,58 @@ test.beforeEach(async ({ page }, testInfo) => {
     "Approved visual baselines are generated and compared on Linux.",
   );
 
-  await page.addInitScript(() => {
+  const locale = testInfo.title.startsWith("zh-CN unified browse") ? "zh-CN" : "en";
+  await page.addInitScript((locale) => {
+    if (window.localStorage.getItem("foliopath.preferences.v1")) return;
     window.localStorage.setItem(
       "foliopath.preferences.v1",
       JSON.stringify({
-        locale: "en",
+        locale,
         mediaLayout: "grid",
         previewPinned: false,
-        theme: "dark",
+        theme: locale === "en" ? "dark" : "light",
       }),
     );
-  });
+  }, locale);
   await mockVisualBackend(page);
 });
+
+for (const locale of ["zh-CN", "en"] as const) for (const width of [320, 390, 768, 1440, 1920]) {
+  test(`${locale} unified browse controls at ${width}px`, async ({ page }, info) => {
+    const en = locale === "en";
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(`/libraries/${libraryId}/browse/${directoryId}`);
+    const tools = page.getByRole("region", { name: en ? "Browse tools" : "浏览工具", exact: true });
+    const size = tools.getByRole("slider", { name: en ? "Thumbnail size" : "缩略图大小", exact: true });
+    await expect(size).toBeVisible();
+    await expect(page.getByRole("slider")).toHaveCount(1);
+    const layout = tools.getByRole("group", { name: en ? "Media layout" : "媒体布局", exact: true });
+    await expect(layout.getByRole("slider")).toBeVisible();
+    const types = page.getByRole("radiogroup", { name: en ? "Media type" : "媒体类型", exact: true });
+    expect(await types.locator("button > span").evaluateAll(labels => labels.every(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1)), "media labels and real counts stay on one line").toBe(true);
+    const sortLabel = tools.getByText(en ? "Sort" : "排序", { exact: true });
+    expect(await sortLabel.evaluate(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1), "sort label stays on one line").toBe(true);
+    const grid = layout.getByRole("button").first();
+    const a = await grid.boundingBox(), b = await size.boundingBox();
+    expect(Math.abs(a!.y + a!.height / 2 - b!.y - b!.height / 2), "density stays on the layout row").toBeLessThanOrEqual(3);
+    await size.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(size).toHaveValue("220");
+    await page.reload();
+    await expect(size).toHaveValue("220");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    const violations = (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations;
+    expect(violations.map(v => v.id)).toEqual([]);
+    await page.screenshot({ path: info.outputPath(`browse-toolbar-${locale}-${width}.png`), fullPage: false });
+  });
+}
 
 test("global header keeps the approved desktop composition", async ({
   page,
 }) => {
   await page.goto("/settings/general");
   await expect(
-    page.getByRole("heading", { name: "General", level: 1 }),
+    page.getByRole("heading", { name: "Configuration", level: 1 }),
   ).toBeVisible();
 
   await expect(page.getByRole("banner").first()).toHaveScreenshot(
@@ -139,7 +172,7 @@ for (const managementPage of [
   {
     name: "general",
     path: "/settings/general",
-    heading: "General",
+    heading: "Configuration",
   },
   {
     name: "libraries",
@@ -149,7 +182,7 @@ for (const managementPage of [
   {
     name: "storage",
     path: "/settings/storage",
-    heading: "Scanning and cache",
+    heading: "Configuration",
   },
   {
     name: "account",
@@ -207,9 +240,9 @@ test("browse keeps approved top, bottom, and preview states", async ({
 });
 
 test("search keeps the approved result state", async ({ page }) => {
-  await page.goto(`/libraries/${libraryId}/search?q=Kyoto`);
+  await page.goto(`/libraries/${libraryId}/search?q=Kyoto&mode=filename`);
   await expect(
-    page.getByRole("heading", { name: "Search media" }),
+    page.getByRole("heading", { name: /Results for/ }),
   ).toBeVisible();
   await expect(page.getByText("Kyoto memory 01.png")).toBeVisible();
   await waitForRenderedImages(page);
@@ -346,7 +379,7 @@ async function mockVisualBackend(page: Page) {
       path === `/api/v1/libraries/${libraryId}/assets` ||
       path === "/api/v1/assets"
     ) {
-      return fulfillJson(route, { items: assets, nextCursor: null });
+      return fulfillJson(route, { items: assets, nextCursor: null, counts: { all: assets.length, images: assets.length, videos: 0 } });
     }
     if (path.endsWith("/thumbnail")) {
       return route.fulfill({

@@ -26,7 +26,7 @@ x-foliopath-contract:
   targetVersion: POST-MVP-5
   scopeRevision: 2
   baselineEvent: CR-2026-021
-  additiveChanges: [CR-2026-026, CR-2026-031]
+  additiveChanges: [CR-2026-026, CR-2026-031, CR-2026-035, CR-2026-050, CR-2026-051]
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -44,6 +44,8 @@ servers:
 security:
   - cookieAuth: []
 tags:
+  - name: OCR
+    description: Explicitly configured, per-library OCR administration; no plaintext or search.
   - name: Health
     description: Unauthenticated process and dependency readiness without sensitive details.
   - name: Authentication
@@ -3234,6 +3236,67 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/search/assets:
+    get:
+      tags: [Semantic search]
+      operationId: searchAssetsWithSources
+      summary: Fuse filename, parent path and image semantic matches with actual evidence
+      description: |
+        ADR-0031 relevance v1. All literal terms must occur in the filename and/or
+        parent library-relative directory. A filename is not also a parent-path hit.
+        Current image vectors with cosine >=0.20 contribute semantic evidence;
+        this is a retrieval cutoff, not calibrated confidence. Dual-source hits
+        precede literal-only then semantic-only, with cosine DESC and asset ID ASC
+        within each tier. Each asset occurs once. Video semantic frames remain on
+        the existing semantic/videos endpoint; videos here can match literal fields.
+        OCR uses source-bound current enabled-library plaintext, with bounded original line excerpts. OCR-only never calls the semantic encoder. All-mode explicitly degrades to literal/OCR search if
+        semantics is disabled or unavailable. Semantic-only reports unavailability.
+        The authenticated cursor binds query hash, filters, catalog/semantic snapshot,
+        query vector hash and ordering tuple. Snapshot changes require a refresh.
+      x-requirements: [FR-SEARCH-001, FR-SEARCH-002, FR-SEARCH-003, FR-INT-003]
+      x-error-codes:
+        '400': [invalid_request, invalid_cursor]
+        '401': [authentication_required, session_expired]
+        '409': [search_cursor_stale, ai_disabled, semantic_not_ready]
+        '429': [rate_limited, semantic_busy]
+        '503': [model_unavailable]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/RequiredSearchQueryParameter'
+        - $ref: '#/components/parameters/OptionalLibraryIDParameter'
+        - $ref: '#/components/parameters/DirectoryFilterParameter'
+        - $ref: '#/components/parameters/RecursiveParameter'
+        - $ref: '#/components/parameters/KindFilterParameter'
+        - $ref: '#/components/parameters/ModifiedFromParameter'
+        - $ref: '#/components/parameters/ModifiedBeforeParameter'
+        - $ref: '#/components/parameters/CursorParameter'
+        - $ref: '#/components/parameters/LimitParameter'
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [all, filename, semantic, ocr]
+            default: all
+      responses:
+        '200':
+          description: Deduplicated relevance page, actual match sources and semantic availability.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FusedSearchPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/semantic/assets:
     get:
       tags: [Semantic search]
@@ -4181,6 +4244,14 @@ paths:
           schema:
             type: string
             enum: [core, edge]
+        - name: review
+          in: query
+          required: false
+          description: pending includes only groups with unassigned, non-excluded faces. Omitted means all for compatibility. Cursors bind this filter and the current review snapshot.
+          schema:
+            type: string
+            enum: [all, pending]
+            default: all
         - $ref: '#/components/parameters/CursorParameter'
         - $ref: '#/components/parameters/LimitParameter'
       responses:
@@ -4491,6 +4562,47 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/people/{personId}/merge-check:
+    parameters:
+      - $ref: '#/components/parameters/PersonIDParameter'
+    get:
+      tags: [People]
+      operationId: getPersonMergeCheck
+      summary: Explain current constraints before a person merge
+      description: Read-only advisory snapshot. The write transaction always rechecks all constraints. Examples are at most three distinct currently readable photo pairs; no example does not mean no constraint. No face IDs, paths or model outputs are exposed.
+      x-requirements: [FR-INT-011, FR-INT-012, FR-INT-016, NFR-INT-006]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [person_not_found]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - name: targetPersonId
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 128
+      responses:
+        '200':
+          description: Current person revisions and merge constraints from one snapshot; not a merge authorization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonMergeCheck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/people/{personId}/assets:
     parameters:
       - $ref: '#/components/parameters/PersonIDParameter'
@@ -4601,7 +4713,7 @@ paths:
         '401': [authentication_required, session_expired]
         '403': [csrf_invalid]
         '404': [face_review_not_found]
-        '409': [face_review_not_undoable, idempotency_conflict]
+        '409': [face_constraint_conflict, face_review_not_undoable, idempotency_conflict]
         '412': [precondition_failed]
         '428': [precondition_required]
         '429': [rate_limited]
@@ -4633,6 +4745,346 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/libraries/{libraryId}/ai/ocr:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    get:
+      tags: [OCR]
+      operationId: getLibraryOCR
+      summary: Get OCR settings and current source-bound coverage
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [OCR]
+      operationId: updateLibraryOCR
+      summary: Explicitly enable or disable OCR without creating a job
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false, required: [enabled], properties: {enabled: {type: boolean}}}
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/libraries/{libraryId}/ai/ocr/jobs:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    post:
+      tags: [OCR]
+      operationId: requestLibraryOCRJob
+      summary: Submit missing OCR or explicitly retry recorded source failures
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false, required: [mode], properties: {mode: {type: string, enum: [missing, retry_failed]}, confirmation: {type: string, enum: ['', retry_failed_ocr], description: Required retry_failed_ocr for retry_failed; empty or omitted for missing.}}}
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '202':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Location:
+              schema: {type: string}
+              description: Library-scoped job metadata URL.
+            Idempotency-Replayed:
+              schema: {type: boolean}
+              description: Same key and epoch/model/mode returns original job; a changed request conflicts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+      - name: jobId
+        in: path
+        required: true
+        schema: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._~-]+$'}
+    get:
+      tags: [OCR]
+      operationId: getLibraryOCRJob
+      summary: Get one job scoped to its library
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+      - name: jobId
+        in: path
+        required: true
+        schema: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._~-]+$'}
+    post:
+      tags: [OCR]
+      operationId: cancelLibraryOCRJob
+      summary: Cooperatively cancel OCR and retain committed progress
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '200':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/libraries/{libraryId}/ai/ocr/clear:
+    parameters:
+      - $ref: '#/components/parameters/LibraryIDParameter'
+    post:
+      tags: [OCR]
+      operationId: clearLibraryOCR
+      summary: Disable and clear OCR derived results in bounded batches
+      description: |
+        CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+        Libraries default off; configuration never submits analysis automatically.
+        OCR text, original paths and model identity configuration are never returned or accepted here.
+        Coverage is recorded current-source/model state, not model health or accuracy.
+      x-requirements: [FR-OCR-003, FR-OCR-004]
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false, required: [confirmation], properties: {confirmation: {type: string, enum: [clear_ocr_results]}}}
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '403': [csrf_invalid]
+        '404': [ocr_not_found]
+        '409': [operation_conflict, ocr_disabled, source_offline]
+        '412': [precondition_failed]
+        '428': [precondition_required]
+        '429': [rate_limited]
+        '500': [internal_error]
+      responses:
+        '202':
+          description: Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   securitySchemes:
     cookieAuth:
@@ -5375,6 +5827,55 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    OCRJob:
+      type: object
+      additionalProperties: false
+      required: [id, libraryId, epoch, fingerprint, mode, state, revision, recorded, failed, attempts, errorCode]
+      properties:
+        id: {type: string, minLength: 8, maxLength: 128}
+        libraryId: {$ref: '#/components/schemas/ResourceID'}
+        epoch: {type: integer, format: int64, minimum: 1}
+        fingerprint: {type: string, pattern: '^[a-f0-9]{64}$'}
+        mode: {type: string, enum: [missing, retry_failed]}
+        state: {type: string, enum: [queued, running, cancelling, succeeded, failed, cancelled]}
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Ownership revision; progress alone does not change this cancellation guard.
+        recorded: {type: integer, format: int64, minimum: 0, description: Recorded attempts including definitive source failures; not images with text.}
+        failed: {type: integer, format: int64, minimum: 0}
+        attempts: {type: integer, format: int64, minimum: 0, maximum: 3}
+        errorCode: {type: string, nullable: true, enum: [null, model_unavailable, identity_mismatch, inference_failed, output_limit, preprocess_failed, source_unavailable, interrupted]}
+    OCRCoverage:
+      type: object
+      additionalProperties: false
+      required: [eligible, ready, empty, failed, pending, stale]
+      properties:
+        eligible: {type: integer, format: int64, minimum: 0}
+        ready: {type: integer, format: int64, minimum: 0}
+        empty: {type: integer, format: int64, minimum: 0, description: Subset of ready with zero lines.}
+        failed: {type: integer, format: int64, minimum: 0}
+        pending: {type: integer, format: int64, minimum: 0}
+        stale: {type: integer, format: int64, minimum: 0, description: Subset of pending with an outdated source in the selected generation.}
+    OCRStatus:
+      type: object
+      additionalProperties: false
+      required: [libraryId, enabled, clearing, revision, epoch, fingerprint, expectedFingerprint, state, coverage, latestJob]
+      properties:
+        libraryId: {$ref: '#/components/schemas/ResourceID'}
+        enabled: {type: boolean}
+        clearing: {type: boolean}
+        revision: {type: integer, format: int64, minimum: 1}
+        epoch: {type: integer, format: int64, minimum: 1}
+        fingerprint: {type: string, nullable: true, pattern: '^[a-f0-9]{64}$'}
+        expectedFingerprint: {type: string, pattern: '^[a-f0-9]{64}$'}
+        state: {type: string, enum: [disabled, clearing, model_mismatch, queued, running, cancelling, pending, ready, degraded]}
+        coverage: {$ref: '#/components/schemas/OCRCoverage'}
+        latestJob:
+          allOf:
+            - $ref: '#/components/schemas/OCRJob'
+          nullable: true
     ResourceID:
       type: string
       description: Opaque stable resource identifier with no client-visible encoding semantics.
@@ -7098,6 +7599,14 @@ components:
         - thumbnail
         - storyboard
       properties:
+        searchSources:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          description: Present on literal search results only. Catalog-owned filename/parent-directory evidence; not semantic inference.
+          items:
+            type: string
+            enum: [filename, path]
         id:
           $ref: '#/components/schemas/ResourceID'
         libraryId:
@@ -7700,6 +8209,71 @@ components:
           type: string
           enum: [clear_semantic_data]
 
+    FusedSearchPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, semanticState, coverage, ocrState, ocrCoverage]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [asset, sources, semanticScore, ocr]
+            properties:
+              asset:
+                $ref: '#/components/schemas/Asset'
+              sources:
+                type: array
+                minItems: 1
+                maxItems: 4
+                uniqueItems: true
+                items:
+                  type: string
+                  enum: [filename, path, semantic, ocr]
+              ocr:
+                type: array
+                nullable: true
+                maxItems: 8
+                description: Present only for OCR source. Original-text excerpts, not HTML or a complete transcript; line is 1-based recognition order, not a page number. Scores are not exposed.
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [line, text]
+                  properties:
+                    line: {type: integer, minimum: 1, maximum: 128}
+                    text: {type: string, minLength: 1, maxLength: 162}
+              semanticScore:
+                type: number
+                format: float
+                nullable: true
+                description: Actual cosine for semantic evidence only; never a confidence percentage.
+        ocrState:
+          type: string
+          enum: [available, disabled, not_requested]
+          description: Available means deployment configured, not all images indexed. Stored OCR search does not require live inference.
+        ocrCoverage:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [eligible, ready, failed]
+          description: Current scope and enabled ready libraries only; ready includes blank images, failed excludes pending/stale. eligible minus ready minus failed is pending or stale.
+          properties:
+            eligible: {type: integer, format: int64, minimum: 0}
+            ready: {type: integer, format: int64, minimum: 0}
+            failed: {type: integer, format: int64, minimum: 0}
+        nextCursor:
+          $ref: '#/components/schemas/NullableCursor'
+        semanticState:
+          type: string
+          enum: [ready, disabled, offline, unavailable, unsupported_query, not_requested]
+        coverage:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/SemanticSearchCoverage'
+          nullable: true
+
     SemanticAssetPage:
       type: object
       additionalProperties: false
@@ -8154,11 +8728,63 @@ components:
           format: int64
           minimum: 0
 
+    PersonMergeCheck:
+      type: object
+      additionalProperties: false
+      required: [sourcePersonId, targetPersonId, sourceRevision, targetRevision, canMerge, cannotLinkCount, duplicateAssignmentCount, sourceLimitExceeded, examples]
+      properties:
+        sourcePersonId:
+          type: string
+        targetPersonId:
+          type: string
+        sourceRevision:
+          type: integer
+          format: int64
+          minimum: 1
+        targetRevision:
+          type: integer
+          format: int64
+          minimum: 1
+        canMerge:
+          type: boolean
+          description: No known blocking constraints at this snapshot; POST must still recheck.
+        cannotLinkCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Exact number of face-anchor constraints, including detached or offline relationships.
+        duplicateAssignmentCount:
+          type: integer
+          format: int64
+          minimum: 0
+        sourceLimitExceeded:
+          type: boolean
+          description: The source has more anchors than the existing atomic merge batch permits.
+        examples:
+          type: array
+          maxItems: 3
+          description: Distinct currently readable photo pairs for cannot-link constraints. May be empty even when blocked. Not a complete relationship list.
+          items:
+            type: object
+            additionalProperties: false
+            required: [sourceLibraryId, sourceAssetId, targetLibraryId, targetAssetId]
+            properties:
+              sourceLibraryId:
+                type: string
+              sourceAssetId:
+                type: string
+              targetLibraryId:
+                type: string
+              targetAssetId:
+                type: string
+
     FaceClusterPage:
       type: object
       additionalProperties: false
-      required: [items, nextCursor, coverage, groupAssignmentAllowed]
+      required: [items, nextCursor, coverage, groupAssignmentAllowed, counts]
       properties:
+        counts:
+          $ref: '#/components/schemas/FaceClusterCounts'
         items:
           type: array
           maxItems: 200
@@ -8172,10 +8798,33 @@ components:
           type: boolean
           description: True only after the frozen legal quality gate proves core precision at least 99.5%.
 
+    FaceClusterCounts:
+      type: object
+      additionalProperties: false
+      description: Exact counts for the selected library and kind in the same snapshot as items, before review filtering and pagination. Faces are not distinct photos.
+      required: [totalGroups, pendingGroups, totalFaces, pendingFaces]
+      properties:
+        totalGroups:
+          type: integer
+          format: int64
+          minimum: 0
+        pendingGroups:
+          type: integer
+          format: int64
+          minimum: 0
+        totalFaces:
+          type: integer
+          format: int64
+          minimum: 0
+        pendingFaces:
+          type: integer
+          format: int64
+          minimum: 0
+
     FaceCluster:
       type: object
       additionalProperties: false
-      required: [id, libraryId, kind, memberCount, previewAssetIds, revision]
+      required: [id, libraryId, kind, memberCount, pendingMemberCount, previewAssetIds, revision]
       properties:
         id:
           $ref: '#/components/schemas/ResourceID'
@@ -8188,6 +8837,11 @@ components:
           type: integer
           format: int64
           minimum: 1
+        pendingMemberCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Faces without a current manual person assignment or exclusion, at this read snapshot. memberCount remains the total face count.
         previewAssetIds:
           type: array
           maxItems: 4
@@ -8227,6 +8881,14 @@ components:
       additionalProperties: false
       required: [faceId, assetId, ordinal, region, state, personId, revision]
       properties:
+        cannotLinkFaceIds:
+          type: array
+          readOnly: true
+          maxItems: 63
+          uniqueItems: true
+          description: Sorted opaque peer IDs among the same photo's current face projection only. New servers return an array, including empty; absence on an older server means unknown, not no constraint. No cross-photo IDs are exposed.
+          items:
+            $ref: '#/components/schemas/ResourceID'
         faceId:
           $ref: '#/components/schemas/ResourceID'
         assetId:
@@ -8308,7 +8970,7 @@ components:
     Person:
       type: object
       additionalProperties: false
-      required: [id, name, confirmedFaceCount, assetCount, revision, createdAt, updatedAt]
+      required: [id, name, confirmedFaceCount, assetCount, previewAssetId, revision, createdAt, updatedAt]
       properties:
         id:
           $ref: '#/components/schemas/ResourceID'
@@ -8325,6 +8987,11 @@ components:
           type: integer
           format: int64
           minimum: 0
+        previewAssetId:
+          allOf:
+            - $ref: '#/components/schemas/NullableResourceID'
+          readOnly: true
+          description: Latest modified confirmed photo in a ready library, using mtime then asset ID descending. Null when no currently available bound photo exists. Derived full-photo preview, never a writable person cover or face crop. Counts may include offline bound associations.
         revision:
           type: integer
           format: int64
@@ -8466,7 +9133,14 @@ components:
       type: object
       additionalProperties: false
       required: [action, faceId, expectedFaceRevision]
+      description: Exclude one face. The source fields must be supplied together. Omitted source guard asserts the face currently has no person assignment. Assigned faces require both exact source fields; mismatches return face_constraint_conflict without writes. Historical same-key replay remains idempotent.
       properties:
+        sourcePersonId:
+          $ref: '#/components/schemas/ResourceID'
+        expectedSourceRevision:
+          type: integer
+          format: int64
+          minimum: 1
         action:
           type: string
           enum: [exclude_face]
@@ -8481,7 +9155,20 @@ components:
       type: object
       additionalProperties: false
       required: [action, leftFaceId, rightFaceId, expectedLeftRevision, expectedRightRevision]
+      description: Mark two currently bound faces as belonging to different active people. All four person guard fields must be provided together for a new write and match left/source and right/target owners. An absent guard is accepted only for historical same-key replay; an unfenced new write conflicts without changes. Undo of a new action also checks the recorded person and anchor versions.
       properties:
+        sourcePersonId:
+          $ref: '#/components/schemas/ResourceID'
+        targetPersonId:
+          $ref: '#/components/schemas/ResourceID'
+        expectedSourceRevision:
+          type: integer
+          format: int64
+          minimum: 1
+        expectedTargetRevision:
+          type: integer
+          format: int64
+          minimum: 1
         action:
           type: string
           enum: [cannot_link]
@@ -8641,6 +9328,7 @@ components:
         - model_unavailable
         - semantic_not_ready
         - semantic_cursor_stale
+        - search_cursor_stale
         - semantic_busy
         - vocabulary_unavailable
         - suggestion_cursor_stale

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "../../ui";
 import {
@@ -137,10 +137,24 @@ type Story = StoryObj<typeof meta>;
 
 export const AdaptiveGrid: Story = {};
 
+export const ToolbarSizeControl: Story = {
+  parameters: { docs: { description: { story: "明确的合成合同夹具。正式MediaCollection仍唯一拥有大小、键盘滑条与偏好持久化；页面只提供工具栏插槽，集合上方不再重复一行控件。" } } },
+  render: function ToolbarSlot(args) {
+    const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+    return <>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", padding: "var(--space-3)", background: "var(--color-surface)", borderBottom: "var(--border-width) solid var(--color-border)" }}>
+        <strong>工具栏 · 合成组件示例</strong>
+        <div ref={setSlot} />
+      </div>
+      <MediaCollection {...args} sizeControlContainer={slot} />
+    </>;
+  },
+};
+
 export const SourceAndContext: Story = {
   args: {
     hasNextPage: false,
-    items: items.slice(1, 5).map(item => ({ ...item, sourceHref: "/synthetic", sourceLabel: "合成媒体库 · 示例目录", contextLabel: "画面语义检索" })),
+    items: items.slice(1, 5).map(item => ({ ...item, sourceHref: "/synthetic", sourceLabel: "合成媒体库 · 示例目录", contextLabel: "画面语义检索", badges: [{label: "文件名"}, {label: "画面语义", tone: "accent" as const}] })),
   },
   parameters: { docs: { description: { story: "Synthetic component fixture: filename, source directory and context each retain a visible line without a fixed two-line footer clipping them." } } },
 };

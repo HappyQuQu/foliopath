@@ -72,8 +72,8 @@ export function AISettingsOverview({ library, semantic, faces, semanticReady, fa
           <div className={styles.featureActions}><Link className={styles.textLink} to={paths.intelligence + "?" + new URLSearchParams({ view: "clusters", libraryId: library.id })}>{t("ai.settings.openPeople")}<ArrowRight size={16} aria-hidden="true" /></Link><Button variant="quiet" onClick={onTasks}>{t("ai.settings.manageJobs")}</Button></div>
         </>}
       </section>
+      {children}
     </div>
-    {children}
   </div>;
 }
 
@@ -89,15 +89,12 @@ export function AIServiceSettings({ models, activeModelId, activeFaceModelId, ch
       <header className={styles.featureHeader}><Brain className={styles.featureIcon} size={24} aria-hidden="true" /><div><h2 id="ai-global-title">{t("ai.settings.globalService")}</h2><p>{t("ai.settings.globalServiceDescription")}</p></div><span className={styles.scopeLabel}>{t("ai.settings.deploymentManaged")}</span></header>
       <ModelRow label={t("ai.settings.semanticModel")} model={models.find(item => item.id === activeModelId && item.active)} />
       <ModelRow label={t("ai.settings.peopleModel")} model={models.find(item => item.id === activeFaceModelId && item.active)} />
-      <p className={styles.hint}>{t("ai.settings.composeDescription")}</p>
-      <p className={styles.hint}>{t("ai.settings.qualityManaged")}</p>
     </section>
     {children}
   </div>;
 }
 
 function ModelRow({ label, model }: { label: string; model: AIModel | undefined }) {
-  const { locale, t } = useLocale();
-  const size = model ? new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(model.packageSizeBytes / 1024 / 1024) : "";
-  return <div className={styles.modelRow}><strong>{label}</strong>{model ? <div><strong>{t(`ai.purpose.${model.purpose}`)} · {model.version}</strong><span>{model.architecture} · {size} MiB · {model.licenseId}</span></div> : <span>{t("ai.settings.noActiveModel")}</span>}<InlineStatus tone={model?.state === "available" ? "success" : "warning"}>{t(model?.state === "available" ? "ai.state.ready" : "ai.settings.serviceUnavailable")}</InlineStatus></div>;
+  const { t } = useLocale();
+  return <div className={styles.modelRow}><strong>{label}</strong>{!model && <span>{t("ai.settings.noActiveModel")}</span>}<InlineStatus tone={model?.state === "available" ? "success" : "warning"}>{t(model?.state === "available" ? "ai.state.ready" : "ai.settings.serviceUnavailable")}</InlineStatus></div>;
 }

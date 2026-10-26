@@ -11,12 +11,14 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/aimodel"
 	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/inference/remoteml"
+	"github.com/HappyQuQu/foliopath/internal/ocr"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 )
 
 const deploymentEnvironment = "FOLIOPATH_AI_DEPLOYMENT"
 
 type deploymentConfiguration struct {
+	OCR                *ocrDeploymentConfiguration  `json:"ocr,omitempty"`
 	Origin             string                       `json:"origin"`
 	Identity           remoteml.ServiceIdentity     `json:"identity"`
 	ModelBytes         int64                        `json:"model_bytes"`
@@ -26,13 +28,19 @@ type deploymentConfiguration struct {
 	Tag                *tagDeploymentConfiguration  `json:"tag,omitempty"`
 }
 
+type ocrDeploymentConfiguration struct {
+	Identity ocr.Identity `json:"identity"`
+}
+
 type tagDeploymentConfiguration struct {
-	Identity remoteml.TagIdentity `json:"identity"`
+	Identity           remoteml.TagIdentity        `json:"identity"`
+	ImagePreprocessing semantic.RemoteImageProfile `json:"image_preprocessing,omitempty"`
 }
 
 func (c tagDeploymentConfiguration) fingerprint() string {
 	identity, _ := c.Identity.Fingerprint()
-	digest := sha256.Sum256([]byte("foliopath-autotag-input-v1\x00" + identity + "\x00" + semantic.RemoteImagePreprocessingContract))
+	contract, _ := c.ImagePreprocessing.Contract() // validated by deploymentFromEnvironment
+	digest := sha256.Sum256([]byte("foliopath-autotag-input-v1\x00" + identity + "\x00" + contract))
 	return hex.EncodeToString(digest[:])
 }
 
@@ -90,7 +98,18 @@ func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, erro
 			}
 		}
 		if config.Tag != nil {
+			if _, ok := config.Tag.ImagePreprocessing.Contract(); !ok {
+				client.Close()
+				return nil, errInvalidConfiguration
+			}
 			if _, err := client.BindTag(config.Tag.Identity); err != nil {
+				client.Close()
+				return nil, errInvalidConfiguration
+			}
+		}
+		if config.OCR != nil {
+			identity := config.OCR.Identity
+			if _, err := client.BindOCR(identity); err != nil || identity.InputContractSHA256 != ocr.InputContractSHA256() || identity.OutputContractSHA256 != ocr.OutputContractSHA256() {
 				client.Close()
 				return nil, errInvalidConfiguration
 			}

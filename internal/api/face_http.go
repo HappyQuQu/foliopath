@@ -85,19 +85,27 @@ type faceCoverageJSON struct {
 }
 
 type faceClusterJSON struct {
-	ID              string   `json:"id"`
-	LibraryID       string   `json:"libraryId"`
-	Kind            string   `json:"kind"`
-	MemberCount     int64    `json:"memberCount"`
-	PreviewAssetIDs []string `json:"previewAssetIds"`
-	Revision        int64    `json:"revision"`
+	ID                 string   `json:"id"`
+	LibraryID          string   `json:"libraryId"`
+	Kind               string   `json:"kind"`
+	MemberCount        int64    `json:"memberCount"`
+	PendingMemberCount int64    `json:"pendingMemberCount"`
+	PreviewAssetIDs    []string `json:"previewAssetIds"`
+	Revision           int64    `json:"revision"`
 }
 
+type faceClusterCountsJSON struct {
+	TotalGroups   int64 `json:"totalGroups"`
+	PendingGroups int64 `json:"pendingGroups"`
+	TotalFaces    int64 `json:"totalFaces"`
+	PendingFaces  int64 `json:"pendingFaces"`
+}
 type faceClusterPageJSON struct {
-	Items                  []faceClusterJSON `json:"items"`
-	NextCursor             *string           `json:"nextCursor"`
-	Coverage               faceCoverageJSON  `json:"coverage"`
-	GroupAssignmentAllowed bool              `json:"groupAssignmentAllowed"`
+	Counts                 faceClusterCountsJSON `json:"counts"`
+	Items                  []faceClusterJSON     `json:"items"`
+	NextCursor             *string               `json:"nextCursor"`
+	Coverage               faceCoverageJSON      `json:"coverage"`
+	GroupAssignmentAllowed bool                  `json:"groupAssignmentAllowed"`
 }
 
 type personJSON struct {
@@ -105,6 +113,7 @@ type personJSON struct {
 	Name               string    `json:"name"`
 	ConfirmedFaceCount int64     `json:"confirmedFaceCount"`
 	AssetCount         int64     `json:"assetCount"`
+	PreviewAssetID     *string   `json:"previewAssetId"`
 	Revision           int64     `json:"revision"`
 	CreatedAt          time.Time `json:"createdAt"`
 	UpdatedAt          time.Time `json:"updatedAt"`
@@ -123,13 +132,14 @@ type faceRegionJSON struct {
 }
 
 type assetFaceJSON struct {
-	FaceID   string         `json:"faceId"`
-	AssetID  string         `json:"assetId"`
-	Ordinal  int            `json:"ordinal"`
-	Region   faceRegionJSON `json:"region"`
-	State    string         `json:"state"`
-	PersonID *string        `json:"personId"`
-	Revision int64          `json:"revision"`
+	CannotLinkFaceIDs []string       `json:"cannotLinkFaceIds"`
+	FaceID            string         `json:"faceId"`
+	AssetID           string         `json:"assetId"`
+	Ordinal           int            `json:"ordinal"`
+	Region            faceRegionJSON `json:"region"`
+	State             string         `json:"state"`
+	PersonID          *string        `json:"personId"`
+	Revision          int64          `json:"revision"`
 }
 
 type assetFacePageJSON struct {
@@ -245,7 +255,7 @@ func registerFaceResultReadRoutes(mux *http.ServeMux, clusters FaceClusterServic
 			writeFaceError(w, r, face.ErrInvalidClusterRecord)
 			return
 		}
-		page, err := clusters.List(r.Context(), face.FaceClusterListRequest{LibraryID: id, Role: role, Cursor: cursor, Limit: limit})
+		page, err := clusters.List(r.Context(), face.FaceClusterListRequest{LibraryID: id, Role: role, Review: r.URL.Query().Get("review"), Cursor: cursor, Limit: limit})
 		if err != nil {
 			writeFaceError(w, r, err)
 			return
@@ -545,9 +555,12 @@ func parseFacePageQuery(values url.Values, maximum int) (string, int, error) {
 
 func parseFaceClusterQuery(values url.Values) (string, string, int, error) {
 	for key, entries := range values {
-		if (key != "kind" && key != "cursor" && key != "limit") || len(entries) != 1 {
+		if (key != "kind" && key != "review" && key != "cursor" && key != "limit") || len(entries) != 1 {
 			return "", "", 0, face.ErrInvalidClusterRecord
 		}
+	}
+	if review, ok := values["review"]; ok && (review[0] != "all" && review[0] != "pending") {
+		return "", "", 0, face.ErrInvalidClusterRecord
 	}
 	role, cursor, limit := values.Get("kind"), values.Get("cursor"), 50
 	if role != "" && role != "core" && role != "edge" {
@@ -605,17 +618,22 @@ func faceClusterPageResponse(page face.FaceClusterPage) faceClusterPageJSON {
 	if page.NextCursor != "" {
 		next = &page.NextCursor
 	}
-	return faceClusterPageJSON{Items: items, NextCursor: next, Coverage: faceCoverageResponse(page.Coverage), GroupAssignmentAllowed: page.GroupAssignmentAllowed}
+	return faceClusterPageJSON{Counts: faceClusterCountsJSON{TotalGroups: page.Counts.TotalGroups, PendingGroups: page.Counts.PendingGroups, TotalFaces: page.Counts.TotalFaces, PendingFaces: page.Counts.PendingFaces}, Items: items, NextCursor: next, Coverage: faceCoverageResponse(page.Coverage), GroupAssignmentAllowed: page.GroupAssignmentAllowed}
 }
 func faceClusterResponse(item face.FaceClusterView) faceClusterJSON {
 	ids := make([]string, len(item.PreviewAssetIDs))
 	for i, id := range item.PreviewAssetIDs {
 		ids[i] = assetID(id)
 	}
-	return faceClusterJSON{ID: item.ID, LibraryID: libraryID(item.LibraryID), Kind: item.Role, MemberCount: item.MemberCount, PreviewAssetIDs: ids, Revision: item.Revision}
+	return faceClusterJSON{ID: item.ID, LibraryID: libraryID(item.LibraryID), Kind: item.Role, MemberCount: item.MemberCount, PendingMemberCount: item.PendingMemberCount, PreviewAssetIDs: ids, Revision: item.Revision}
 }
 func personResponse(value face.Person) personJSON {
-	return personJSON{ID: value.ID, Name: value.Name, ConfirmedFaceCount: value.ConfirmedFaceCount, AssetCount: value.AssetCount, Revision: value.Revision, CreatedAt: value.CreatedAt, UpdatedAt: value.UpdatedAt}
+	var preview *string
+	if value.PreviewAssetID > 0 {
+		id := assetID(value.PreviewAssetID)
+		preview = &id
+	}
+	return personJSON{PreviewAssetID: preview, ID: value.ID, Name: value.Name, ConfirmedFaceCount: value.ConfirmedFaceCount, AssetCount: value.AssetCount, Revision: value.Revision, CreatedAt: value.CreatedAt, UpdatedAt: value.UpdatedAt}
 }
 func peoplePageResponse(page face.PeoplePage) peoplePageJSON {
 	items := make([]personJSON, 0, len(page.Items))
@@ -641,7 +659,7 @@ func assetFacePageResponse(values []face.AssetFaceView) assetFacePageJSON {
 			id := value.PersonID
 			person = &id
 		}
-		items = append(items, assetFaceJSON{FaceID: value.FaceID, AssetID: assetID(value.AssetID), Ordinal: value.Ordinal, Region: faceRegionResponse(value.Region), State: value.State, PersonID: person, Revision: value.Revision})
+		items = append(items, assetFaceJSON{CannotLinkFaceIDs: append([]string{}, value.CannotLinkFaceIDs...), FaceID: value.FaceID, AssetID: assetID(value.AssetID), Ordinal: value.Ordinal, Region: faceRegionResponse(value.Region), State: value.State, PersonID: person, Revision: value.Revision})
 	}
 	return assetFacePageJSON{Items: items}
 }
@@ -712,7 +730,9 @@ func faceReviewResponse(value face.ReviewResult) faceReviewResultJSON {
 func writeFaceError(w http.ResponseWriter, r *http.Request, err error) {
 	status, code, message := http.StatusInternalServerError, codeInternalError, "The request could not be completed."
 	switch {
-	case errors.Is(err, face.ErrInvalidPerson), errors.Is(err, face.ErrInvalidReview), errors.Is(err, face.ErrInvalidClusterRecord), errors.Is(err, face.ErrInvalidFaceProjection), errors.Is(err, face.ErrInvalidFaceClusterCursor), errors.Is(err, face.ErrInvalidPeopleCursor), errors.Is(err, face.ErrInvalidFaceJob), errors.Is(err, face.ErrInvalidFaceClear):
+	case errors.Is(err, face.ErrInvalidFaceClusterCursor), errors.Is(err, face.ErrInvalidPeopleCursor):
+		status, code, message = http.StatusBadRequest, codeInvalidCursor, "The cursor is invalid. Restart pagination."
+	case errors.Is(err, face.ErrInvalidPerson), errors.Is(err, face.ErrInvalidReview), errors.Is(err, face.ErrInvalidClusterRecord), errors.Is(err, face.ErrInvalidFaceProjection), errors.Is(err, face.ErrInvalidFaceJob), errors.Is(err, face.ErrInvalidFaceClear):
 		status, code, message = http.StatusBadRequest, codeInvalidRequest, "The request is invalid."
 	case errors.Is(err, face.ErrFaceLibraryNotFound):
 		status, code, message = http.StatusNotFound, "library_not_found", "The library was not found."

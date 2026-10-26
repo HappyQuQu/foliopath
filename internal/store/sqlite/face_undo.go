@@ -28,6 +28,7 @@ type faceUndoPayload struct {
 	SourcePersonRevision   int64                 `json:"sourcePersonRevision,omitempty"`
 	TargetPersonRevision   int64                 `json:"targetPersonRevision,omitempty"`
 	MergeAnchors           []faceMergeAnchorUndo `json:"mergeAnchors,omitempty"`
+	LinkAnchors            []faceMergeAnchorUndo `json:"linkAnchors,omitempty"`
 }
 
 type faceMergeAnchorUndo struct {
@@ -266,6 +267,25 @@ func (s *Store) UndoFaceReview(ctx context.Context, command face.UndoReviewComma
 			}
 			affected = []string{payload.PersonID}
 		case "cannot_link":
+			if payload.SourcePersonID != "" || payload.TargetPersonID != "" || len(payload.LinkAnchors) != 0 {
+				if payload.SourcePersonID == "" || !face.ValidReviewPairGuard(payload.SourcePersonID, payload.SourcePersonRevision, payload.TargetPersonID, payload.TargetPersonRevision) || len(payload.LinkAnchors) != 2 || payload.LinkAnchors[0].ID != payload.LeftAnchorID || payload.LinkAnchors[1].ID != payload.RightAnchorID {
+					return face.ErrReviewConflict
+				}
+				if err := requirePersonRevision(ctx, tx, payload.SourcePersonID, payload.SourcePersonRevision); err != nil {
+					return err
+				}
+				if err := requirePersonRevision(ctx, tx, payload.TargetPersonID, payload.TargetPersonRevision); err != nil {
+					return err
+				}
+				for _, anchor := range payload.LinkAnchors {
+					var revision int64
+					var state string
+					err := tx.QueryRowContext(ctx, `SELECT revision,state FROM person_face_anchors WHERE id=?`, anchor.ID).Scan(&revision, &state)
+					if err := requireFaceReviewState(err, revision == anchor.Revision && state == "bound"); err != nil {
+						return err
+					}
+				}
+			}
 			res, err := tx.ExecContext(ctx, `DELETE FROM face_cannot_links WHERE left_anchor_id=? AND right_anchor_id=? AND revision=?`, payload.LeftAnchorID, payload.RightAnchorID, payload.LinkRevision)
 			if err != nil {
 				return err

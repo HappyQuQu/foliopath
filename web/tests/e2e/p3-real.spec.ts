@@ -191,10 +191,10 @@ test("real offline service does not erase progress or claim available models", a
   test.skip(process.env.FOLIOPATH_P3_OFFLINE !== "1");
   const one = process.env.FOLIOPATH_P3_LIBRARIES!.split(",")[0];
   await page.goto(`/settings/ai?library=${one}`);
-  await expect(page.getByText("No available active model", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("Unavailable", { exact: true })).toHaveCount(2);
   await expect(page.getByText("2 / 2 · Failed 0", { exact: true }).first()).toBeVisible();
   await page.goto(`/libraries/${one}/search?mode=semantic&q=blue`);
-  await expect(page.getByText("The local semantic model is unavailable. Existing media and filename search are unaffected. Check Intelligence settings.")).toBeVisible();
+  await expect(page.getByText("Visual search is unavailable. Try again later.")).toBeVisible();
   await page.getByRole("button", { name: "Filename", exact: true }).click();
   await expect(page).not.toHaveURL(/mode=semantic/);
   await expect(page.getByText("No search results", { exact: true })).toBeVisible();

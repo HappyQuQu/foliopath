@@ -115,6 +115,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.ensureCatalogSearchIndex(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.backfillOCRSearch(ctx); err != nil {
+		return closeOnError(err)
+	}
 	return store, nil
 }
 

@@ -1,0 +1,3 @@
+.box { position: absolute; padding: 0; border: var(--focus-width) solid var(--color-accent); background: transparent; cursor: pointer; }
+.box[aria-pressed=true], .box:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.marker { position: absolute; top: 0; left: 0; padding: var(--space-1); background: var(--color-accent); color: var(--color-on-accent); font-size: var(--font-size-2); line-height: 1; }

@@ -28,6 +28,7 @@ type AssetFaceView struct {
 	Region            CoarseRegion
 	State             string
 	PersonID          string
+	CannotLinkFaceIDs []string
 }
 type AssetFacesRepository interface {
 	ListAssetFaceViews(context.Context, int64) ([]AssetFaceView, error)

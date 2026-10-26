@@ -269,7 +269,7 @@ test("storyboard hover is lazy, bounded, and input-mode aware", async ({
     .poll(() => sprite.evaluate((element) => element.getAttribute("style")))
     .toContain("--storyboard-x:");
 
-  await page.locator("header").hover();
+  await page.getByRole("banner").hover();
   await expect(card).not.toHaveAttribute("data-storyboard-playing");
   await expect(sprite).toHaveCount(0);
   expect(storyboardRequests).toBe(requestsAfterDecode);
@@ -664,4 +664,34 @@ async function expectNoSeriousAxeViolations(page: Page) {
       violation.impact === "serious" || violation.impact === "critical",
   );
   expect(violations).toEqual([]);
+}
+
+
+for (const locale of ["zh-CN", "en"] as const) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [390, 768, 1280, 1920]) {
+      test(`viewer retry hover ${locale}/${theme} at ${width}px keeps contrast`, async ({ page, hasTouch }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await mockViewerBackend(page, []);
+        await page.addInitScript(({ locale, theme }) => {
+          localStorage.setItem("foliopath.preferences.v1", JSON.stringify({ locale, theme }));
+        }, { locale, theme });
+        await page.goto(`/libraries/${libraryId}/media/offline`);
+        const retry = page.getByRole("button", { name: locale === "zh-CN" ? "重新检查" : "Check again", exact: true });
+        await expect(retry).toBeVisible();
+        if (hasTouch) await retry.tap();
+        else await retry.click();
+        await expect(retry).toBeVisible();
+        await retry.hover();
+        await expect.poll(() => retry.evaluate((element) => element.matches(":hover"))).toBe(true);
+        await expectNoPageOverflow(page);
+        await expectNoSeriousAxeViolations(page);
+        await retry.focus();
+        await expect(retry).toBeFocused();
+        if (locale === "zh-CN" && theme === "light") {
+          await page.screenshot({ path: test.info().outputPath(`viewer-retry-hover-${width}.png`) });
+        }
+      });
+    }
+  }
 }

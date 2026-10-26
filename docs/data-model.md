@@ -1,5 +1,41 @@
 # FolioPath 数据模型
 
+CR-2026-051 / ADR-0037 / migration47：ocr_search_documents是ocr_asset_results的复合外键派生文档，独立rowid用于external-content FTS5 trigram索引；正文NFKC/casefold复用catalog。OCR提交结果、文档与checkpoint同事务，结果更新先移除旧文档再重建，删除/清理/资产库删除级联维护FTS。Open有界每批100条回填已存ready结果，含空白，不触发推理。全文索引/结果/设置/库状态和源相关字段触发同事务catalog_search_state revision，原有search cursor不继续混用旧证据。OCR关闭不删除正文；确认clear才删除结果与全文文档，历史保留策略仍未完成。
+
+2026-10-26 / ADR-0036：迁移00046在OCR任务增加next_attempt_ms（busy背压延后）和独立ocr_job_handoffs（精确claim/尝试/最新checkpoint与计数，最多10收据/任务）。不改旧analysis_job_handoffs或ai_model_operations。计划handoff由原WorkerPool收尾调用，普通取消不退attempt；库取消优先，源失败/服务失败分开。当前模型/源统计单查询，empty⊆ready、stale⊆pending，元数据保留策略仍独立待验收。
+
+2026-10-26 / ADR-0035 / CR-2026-049：迁移00045新增独立ocr_generations（完整身份JSON/指纹不可变）、ocr_library_settings（默认未配置即关闭、CAS revision与epoch/clearing）、ocr_jobs/ocr_job_requests（每库一个活动任务、上界/keyset/checkpoint/lease/fence/尝试上限/幂等），以及ocr_asset_results（复合库/代次/asset外键，当前源指纹、有界NFC行/凸框/准备尺寸、ready或固定源失败）。结果与checkpoint同事务；清理先隔离再每批≤500删除各代次正文。旧结果换代保留但不混入当前读取；相同身份重新启用保留进度。没有全文索引、公共接口或后台启动；详见[持久合同](architecture/ocr-persistence-contract.md)。
+
+2026-10-26 / CR-2026-048：无迁移、OCR结果持久化/任务/checkpoint或代次激活。producer只返回本次有界文本/框和compatibility指纹；独立OCR权重/cache/runtime/input/output身份不重标旧向量/标签/人脸。缺OCRcache或模型失败不创建源错误行，取消不写应用状态；原件、人工标签和删除抑制不变。下一步源指纹/事务/清理另需接受。
+
+2026-10-25 / CR-2026-047：无迁移/持久化。PreparedImage只返回内存PNG、归正/缩放后宽高和input contract hash，不猜测源指纹/代次，不生成OCR进度。buffer固定本次header/native读取的字节，但未来任务仍须复核源指纹并按fenced事务提交；不能把本片输出当成已入库索引或更新旧向量/标签/人物。
+
+2026-10-25 / CR-2026-046：无迁移、结果表、OCR配置或任务写入。internal/ocr.Result仅是一次响应的有界内存值，Identity.Fingerprint是独立部署兼容指纹，不是数据库generation或持久记录。空数组不生成占位索引，故障不写源失败标记；没有旧向量/标签/人物代次转换。后续持久化须先接受源变化失效、fenced checkpoint与删除清理合同，不能复用本片临时值冒充全库进度。
+
+2026-10-25 / CR-2026-044：无迁移。预检在单ReadOnly事务读取双active人物版本、来源全部anchor数量及现有禁止关系/重复lineage归属，引用原maxBatchSize边界。GetPersonMergeCheck与实际MergePeople通过同一readPersonMergeConflictCounts查询拥有者读取约束，写事务仍重新校验。照片示例只投影ready库中bound且有current_face_id的现存资产，跨库按各自opaque库/媒体ID映射；DISTINCT排序LIMIT3，不读取原文件或持久化新“允许”状态，预检不写审计/版本/缓存文件。
+
+2026-10-25 / CR-2026-043：无迁移。cannot_link仍由原SQLite审核写事务持有face_cannot_links、审计和undo JSON快照；写入先重放，再在同事务核对检测lineage、两位active人物/版本及bound anchor，规范排序anchor pair。新快照附加两位人物版本及linkAnchors ID/版本；撤销先匹配这些后置状态再删除原link版本，拒绝后续改变。旧快照保留其实际link-only合同、无历史guard推断。单图人脸与cannotLinkFaceIds在同一有界只读事务投影，仅映射当前同图已归类脸，不持久化第二份关系。
+
+2026-10-25 / CR-2026-042：无迁移/新存储。后端仍先重放face_audit_events，再核对原来源/目标版本；合并源已tombstone或移出后无照片不妨碍同键重放。新增专项核对split/非空merge重放不重复增版本且undo仍可恢复，移动沿用已有重放回归。前端恢复仅当前PersonPanel的单个内存意图，不持久化、不复活人物、不删除审计或原件；收起提示不取消已提交动作。
+
+2026-10-25 / CR-2026-041：无迁移或持久化变更。撤销继续由face_review_undo_snapshots及SQLite原审核事务校验关联/人物/排除等后置版本，以补偿动作提交并保留原审计；同键先重放，不复活旧快照或静默覆盖后续人工状态。Web本页只保留一份成功回执及文字上下文，不写localStorage、不构造历史数据库；dismiss不删除服务端记录，创建/改名不归入face undo。
+
+2026-10-25 / CR-2026-040：无迁移。排除继续由SQLite既有fenced审核事务拥有：先检查幂等重放，再读取检测lineage及current_face_id的人工归属，与请求来源/人物修订比较，匹配后才删除关联、递增人物修订并写排除/审核/undo快照。检测修订不随人工归类变化，不能单独作为归属锁；来源省略只断言当前未归类。冲突不得留下审核事件或排除记录，合法undo及已完成请求重放保持原语义；未扩展到模型代次/源文件变化的全局并发策略。
+
+2026-10-25 / CR-2026-039：无迁移。Person.previewAssetId是只读派生字段；复用PersonAsset的personAvailablePhotoJoins/personBoundPhotoPredicate，按ready库内bound且current_face_id非空的照片，以mtime_ns DESC/id DESC选1项；无项返回null。人物的既有bound人脸/不同媒体计数不变，离线库关联仍保留计数，预览不冒充全部关联在线。解除最新照片全部脸的关联后可回退较早照片；无剩余照片时为空预览而不删除人物名称。字段不写入人工封面，也不改原件/模型/审核事务。
+
+2026-10-25 / CR-2026-038：无数据库迁移。faceCurrentLineageJoins是SQLite人脸当前归类/排除投影的唯一共享连接定义，供单图、分组目录及详情计数使用。目录读取在同一只读事务中流式生成当前活动build的摘要、全范围计数和limit+1页面；保留最多一组/4预览及有界页面，不加载全库到内存。SHA-256摘要覆盖库/设置/覆盖修订、build及所选类型各人脸的修订与当前anchor/person/exclusion身份，绑定游标，避免相同总数下换脸漏检。每页扫描该类型成员，耗时随成员数增长；未宣称大容量性能通过。分组持久化历史和人工写入事务完全不变。
+
+
+ADR-0031融合搜索不新增持久化状态/迁移，复用catalog的规范化键、source_fingerprint、当前semantic generation与向量。
+来源与融合排名在有界只读遍历中计算；内部水合证据摘要只用于当前响应的一致性检查，不写入数据库或公共游标。
+人工标签、删除抑制、语义/人物代次和后台任务均不因搜索请求改变。
+
+ADR-0029不增加迁移：`tag.image_preprocessing`的canonical contract绑定标签model_identity，
+缺省hash不变；新profile使旧run不计新覆盖。仍使用每资产单行`autotag_asset_runs`最新尝试，不承诺保留逐身份历史；
+旧operation与部署前完整备份提供核对依据。原子curation合并不预清空旧标签，人工来源和移除抑制不受换代影响，
+语义/人脸表与身份不变。见[记录](changes/FIX-2026-10-24-autotag-png.md)。
+
 ADR-0028 不增加表或迁移：可选 PNG v4 输入合同进入 semantic `PreprocessingSHA256`，通过既有激活事务
 生成新代次、退役旧代次。旧 embeddings 保留原 generation，新代次覆盖从 0 开始；不复制/重标向量。
 仅语义身份变更，face/tag identity 与人工整理不变。缺省 v3 无迁移；模型配置回退不保证重激活旧 generation，

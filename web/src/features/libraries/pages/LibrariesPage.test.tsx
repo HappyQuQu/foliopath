@@ -160,7 +160,8 @@ it("summarizes only the loaded contract data and presents one structured library
   expect(within(summary).getByText("可用媒体库")).toBeVisible();
 
   const list = screen.getByRole("region", { name: "媒体库列表" });
-  expect(within(list).getByText("/library/temp")).toBeVisible();
+  expect(within(list).getByText("temp", { selector: "p" })).toBeVisible();
+  expect(within(list).queryByText("/library/temp")).not.toBeInTheDocument();
   expect(within(list).getByText("9,983 项媒体 · 13 个目录")).toBeVisible();
   expect(within(list).getByText("最近扫描")).toBeVisible();
   expect(within(list).getByText("运行状态")).toBeVisible();

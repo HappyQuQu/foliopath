@@ -13,6 +13,7 @@ import {
   downloadAIModel,
   listAIModelDownloads,
   applyFaceReview,
+  undoFaceReview,
   clearDerivedFaceData,
   clearManualFaceRelationships,
   cancelAIOperation,
@@ -22,13 +23,14 @@ import {
   getLibraryVideoSemanticStatus,
   getFaceCluster,
   getLibraryFaceSettings,
-  getPerson,
+  getPerson, getPersonMergeCheck,
   installAIModelCandidate,
   listAIModels,
   listAITagSuggestions,
   listFaceClusters,
   listPeople,
   listPersonAssets,
+  listAssetFaces,
   requestLibrarySemanticJob,
   requestLibraryVideoSemanticJob,
   requestFaceAnalysisJob,
@@ -45,6 +47,7 @@ import {
 
 export const aiKeys = {
   all: ["ai"] as const,
+  ocr: (libraryId:string) => ["ai","ocr",libraryId] as const,
   automaticTags: (libraryId: string) => ["ai", "automatic-tags", libraryId] as const,
   videoStatus: (libraryId: string) => ["ai", "video-status", libraryId] as const,
   models: ["ai", "models"] as const,
@@ -58,8 +61,10 @@ export const aiKeys = {
   suggestions: (libraryId: string, status: string, cursor = "") => ["ai", "suggestions", libraryId, status, cursor] as const,
   people: (query: string, cursor = "") => ["ai", "people", query, cursor] as const,
   person: (personId: string) => ["ai", "person", personId] as const,
+  mergeCheck: (source: string, target: string) => ["ai", "merge-check", source, target] as const,
   personAssets: (personId: string, cursor = "") => ["ai", "person-assets", personId, cursor] as const,
-  clusters: (libraryId: string, kind: string, cursor = "") => ["ai", "clusters", libraryId, kind, cursor] as const,
+  assetFaces: (assetId: string) => ["ai", "asset-faces", assetId] as const,
+  clusters: (libraryId: string, kind: string, cursor = "", review: "all" | "pending" = "pending") => ["ai", "clusters", libraryId, kind, cursor, review] as const,
   cluster: (libraryId: string, clusterId: string, cursor = "") => ["ai", "cluster", libraryId, clusterId, cursor] as const,
 };
 
@@ -124,12 +129,14 @@ export function useAIOperationQueries(operationIds: string[]) {
 
 function mutationWithInvalidation<TInput, TOutput>(
   mutationFn: (input: TInput) => Promise<TOutput>,
+  refreshOnFailure = false,
 ) {
   return function useAIActionMutation() {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn,
       onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.all }),
+      onError: () => refreshOnFailure ? queryClient.invalidateQueries({ queryKey: aiKeys.all }) : undefined,
     });
   };
 }
@@ -146,7 +153,8 @@ export const useCancelAIOperationMutation = mutationWithInvalidation(cancelAIOpe
 export const useReviewAITagSuggestionsMutation = mutationWithInvalidation(reviewAITagSuggestions);
 export const useCreatePersonMutation = mutationWithInvalidation(createPerson);
 export const useRenamePersonMutation = mutationWithInvalidation(renamePerson);
-export const useApplyFaceReviewMutation = mutationWithInvalidation(applyFaceReview);
+export const useApplyFaceReviewMutation = mutationWithInvalidation(applyFaceReview, true);
+export const useUndoFaceReviewMutation = mutationWithInvalidation(undoFaceReview, true);
 export const useUpdateFaceSettingsMutation = mutationWithInvalidation(updateLibraryFaceSettings);
 export const useRequestFaceJobMutation = mutationWithInvalidation(requestFaceAnalysisJob);
 export const useClearDerivedFaceDataMutation = mutationWithInvalidation(clearDerivedFaceData);
@@ -182,15 +190,25 @@ export function usePersonQuery(personId: string) {
   return useQuery({ enabled: Boolean(personId), queryKey: aiKeys.person(personId), queryFn: () => getPerson(personId) });
 }
 
+export function usePersonMergeCheckQuery(source: string, target: string, enabled = true) {
+ return useQuery({ enabled: enabled && Boolean(source) && Boolean(target) && source !== target, queryKey: aiKeys.mergeCheck(source, target), queryFn: () => getPersonMergeCheck(source, target), retry: false, staleTime: 0 });
+}
+
 export function usePersonAssetsQuery(personId: string, cursor = "") {
   return useQuery({ enabled: Boolean(personId), queryKey: aiKeys.personAssets(personId, cursor), queryFn: () => listPersonAssets({ personId, cursor }) });
 }
 
-export function useFaceClustersQuery(libraryId: string, kind: "core" | "edge", cursor = "") {
+export function useAssetFacesQuery(assetId: string) {
+  return useQuery(assetFacesOptions(assetId));
+}
+function assetFacesOptions(assetId: string) { return { enabled: Boolean(assetId), queryKey: aiKeys.assetFaces(assetId), queryFn: () => listAssetFaces(assetId) }; }
+export function useAssetFacesQueries(assetIds: string[]) { return useQueries({ queries: assetIds.map(assetFacesOptions) }); }
+
+export function useFaceClustersQuery(libraryId: string, kind: "core" | "edge", cursor = "", review: "all" | "pending" = "pending") {
   return useQuery({
     enabled: Boolean(libraryId),
-    queryKey: aiKeys.clusters(libraryId, kind, cursor),
-    queryFn: () => listFaceClusters({ kind, libraryId, cursor }),
+    queryKey: aiKeys.clusters(libraryId, kind, cursor, review),
+    queryFn: () => listFaceClusters({ kind, libraryId, cursor, review }),
   });
 }
 

@@ -40,24 +40,25 @@ describe("search URL state", () => {
     expect(
       serializeSearchUrlState(
         parseSearchUrlState(
-          new URLSearchParams(),
+          new URLSearchParams("mode=filename"),
           "lib_family",
           "name:asc",
         ),
       ),
-    ).toBe("sort=name&order=asc");
+    ).toBe("mode=filename&sort=name&order=asc");
   });
 
   it("restores directory scope, filters, and sorting from a copyable URL", () => {
     const state = parseSearchUrlState(
       new URLSearchParams(
-        "q=%E4%BA%AC%E9%83%BD&scope=directory&directoryId=dir_japan&recursive=1&kind=video&date=30d&sort=name&order=asc",
+        "q=%E4%BA%AC%E9%83%BD&mode=filename&scope=directory&directoryId=dir_japan&recursive=1&kind=video&date=30d&before=2026-07-28T12%3A00%3A00.000Z&sort=name&order=asc",
       ),
       "lib_family",
     );
 
     expect(state).toEqual({
       date: "30d",
+      dateBefore: "2026-07-28T12:00:00.000Z",
       directoryId: "dir_japan",
       kind: "video",
       mode: "filename",
@@ -68,13 +69,13 @@ describe("search URL state", () => {
       sort: "name",
     });
     expect(searchUrl("lib_family", state)).toBe(
-      "/libraries/lib_family/search?q=%E4%BA%AC%E9%83%BD&scope=directory&directoryId=dir_japan&recursive=1&kind=video&date=30d&sort=name&order=asc",
+      "/libraries/lib_family/search?q=%E4%BA%AC%E9%83%BD&mode=filename&scope=directory&directoryId=dir_japan&recursive=1&kind=video&date=30d&before=2026-07-28T12%3A00%3A00.000Z&sort=name&order=asc",
     );
   });
 
   it("owns semantic mode in the URL and normalizes incompatible filters", () => {
     const state = parseSearchUrlState(
-      new URLSearchParams("q=%E5%A4%9C%E6%99%AF&mode=semantic&kind=video&date=30d&sort=name&order=asc"),
+      new URLSearchParams("q=%E5%A4%9C%E6%99%AF&mode=semantic&kind=video&date=30d&before=2026-07-28T12%3A00%3A00.000Z&sort=name&order=asc"),
       "lib_family",
     );
 
@@ -142,7 +143,7 @@ describe("search URL state", () => {
         order: "asc",
         sort: "size",
       }),
-    ).toBe("sort=size&order=asc");
+    ).toBe("");
     expect(
       parseSearchUrlState(
         new URLSearchParams("sort=size&order=desc"),
@@ -150,4 +151,23 @@ describe("search URL state", () => {
       ),
     ).toMatchObject({ order: "desc", sort: "size" });
   });
+});
+
+it("retains a library directory as navigation context without applying it to broader scopes", () => {
+  for (const scope of ["all", "library"] as const) {
+    const state = parseSearchUrlState(new URLSearchParams(`q=car&scope=${scope}&directoryId=dir_origin&recursive=1`), "lib_family");
+    expect(state).toMatchObject({ scope, directoryId: "dir_origin", recursive: false });
+    expect(parseSearchUrlState(new URLSearchParams(serializeSearchUrlState(state)), "lib_family")).toMatchObject({ scope, directoryId: "dir_origin" });
+  }
+  expect(parseSearchUrlState(new URLSearchParams("directoryId=dir_origin"))).not.toHaveProperty("directoryId");
+});
+
+
+it("anchors relative dates in the URL so later pages keep the same time window", () => {
+  const first = parseSearchUrlState(new URLSearchParams("q=car&date=30d"), "lib_family");
+  const restored = parseSearchUrlState(new URLSearchParams(serializeSearchUrlState(first)), "lib_family");
+  expect(first.mode).toBe("all");
+  expect(restored).toEqual(first);
+  expect(modifiedRangeForSearch(first.date, new Date(first.dateBefore!))).toEqual(modifiedRangeForSearch(restored.date, new Date(restored.dateBefore!)));
+  expect(serializeSearchUrlState({...restored, mode: "semantic"})).not.toContain("before=");
 });

@@ -148,6 +148,7 @@ type DirectoryDetail struct {
 }
 
 type Asset struct {
+	SearchSources        []string
 	ID                   int64
 	LibraryID            int64
 	LibraryName          string
@@ -536,6 +537,9 @@ func (service *Service) listAssetQuery(
 	})
 	if err != nil {
 		return AssetPage{}, err
+	}
+	for index := range items {
+		items[index].SearchSources = LiteralSources(query.SearchTerms, items[index].Name, items[index].RelativePath)
 	}
 	for _, item := range items {
 		if err := validateAsset(item); err != nil {

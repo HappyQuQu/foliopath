@@ -20,6 +20,8 @@ func TestPNGProfileKeepsSemanticAndTagInputOwnersSeparate(t *testing.T) {
 	for _, required := range []string{
 		"imagevips.NewRemoteImagePreprocessor(config.ImagePreprocessing)",
 		"automaticTagRuntime{content: contentService, preprocessor: imagevips.New()}",
+		"imagevips.NewRemoteImagePreprocessor(config.Tag.ImagePreprocessing)",
+		"automaticRuntime.preprocessor = tagImages",
 	} {
 		if !strings.Contains(composition, required) {
 			t.Fatal("review semantic/tag preprocessor ownership: " + required)
@@ -27,7 +29,7 @@ func TestPNGProfileKeepsSemanticAndTagInputOwnersSeparate(t *testing.T) {
 	}
 	profile := read("internal/media/imagevips/remote_profile.go")
 	if !strings.Contains(profile, "semantic.RemoteImageLegacy") {
-		t.Fatal("default processor must preserve legacy tag input")
+		t.Fatal("default processor must preserve legacy input")
 	}
 	decoder := read("internal/media/imagevips/remote_semantic_libvips.go")
 	if !strings.Contains(decoder, "beginLargeImageDecode(ctx)") || strings.Contains(decoder, "make(chan") {

@@ -1,0 +1,156 @@
+{
+  "recordedAt": "2026-10-25T04:48:47.958Z",
+  "scope": "Local original 6010 read-only acceptance; not quality/capacity/release acceptance",
+  "deployment": {
+    "deployed": true,
+    "newImage": "sha256:dac00067b3af8857517e5a9045543a9a3aa23dab75d220c0b51282e4046336ae",
+    "oldImage": "sha256:049571c13f3d38bb84a074b3822378777a0f0cb9545d74eb63ac0fb123c3f88c",
+    "startedAt": "2026-10-25T04:35:47.872322254Z",
+    "healthy": true,
+    "aiUnchanged": true,
+    "mountsAndEnvironmentUnchanged": true,
+    "composeOnlyImageChanged": true
+  },
+  "backup": {
+    "path": "/Volumes/extended/foliopath/backup-6010-fused-search-20261025-qA46ev",
+    "files": 37376,
+    "bytes": 1095929570,
+    "manifestSha256": "1e021d17da278398810ac90379935e9a35f9db08088b080a9fa4b081e3937f07",
+    "stoppedOwnerExit": 0,
+    "independentLinuxCopyDatabaseCheck": "passed",
+    "candidateDatabaseCheck": "passed"
+  },
+  "containers": [
+    {
+      "name": "/foliopath-ai-original-review-foliopath-1",
+      "image": "sha256:dac00067b3af8857517e5a9045543a9a3aa23dab75d220c0b51282e4046336ae",
+      "startedAt": "2026-10-25T04:35:47.872322254Z",
+      "healthy": "healthy",
+      "restartCount": 0,
+      "oomKilled": false,
+      "memory": 0,
+      "memorySwap": 0
+    },
+    {
+      "name": "/foliopath-ai-original-review-machine-learning-1",
+      "image": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+      "startedAt": "2026-10-24T13:48:25.033916136Z",
+      "healthy": "healthy",
+      "restartCount": 0,
+      "oomKilled": false,
+      "memory": 0,
+      "memorySwap": 0
+    }
+  ],
+  "protection": {
+    "groups": 27,
+    "beforeAfterFinalEqual": true,
+    "semanticVectors": 22365,
+    "operations": 45,
+    "assetTagRuns": 8700,
+    "manualAndSuppressionRealBaselineEmpty": true,
+    "nonemptyProtectionEvidence": "2026-10-25-fused-local.json"
+  },
+  "coverage": [
+    {
+      "eligible": 6202,
+      "failed": 2,
+      "library_id": 1,
+      "pending": 0,
+      "ready": 6200
+    },
+    {
+      "eligible": 707,
+      "failed": 1,
+      "library_id": 2,
+      "pending": 0,
+      "ready": 706
+    },
+    {
+      "eligible": 792,
+      "failed": 7,
+      "library_id": 3,
+      "pending": 0,
+      "ready": 785
+    },
+    {
+      "eligible": 999,
+      "failed": 0,
+      "library_id": 4,
+      "pending": 0,
+      "ready": 999
+    }
+  ],
+  "largePNG": 22,
+  "knownSourceFailures": 10,
+  "activeWork": 0,
+  "databaseCheck": "passed",
+  "deployedWeb": "5 resources and 6 deep routes byte matched",
+  "ui": {
+    "authenticated": "existing administrator session; no credential reset",
+    "readOnly": true,
+    "cases": [
+      {
+        "query": "森林",
+        "scope": "lib_2",
+        "loaded": 46,
+        "sources": [
+          "filename",
+          "semantic"
+        ],
+        "previewEvidence": true
+      },
+      {
+        "query": "车",
+        "scope": "lib_2",
+        "loaded": 2,
+        "sources": [
+          "filename",
+          "semantic"
+        ],
+        "notAccuracyProof": true
+      },
+      {
+        "query": "壁纸",
+        "scope": "lib_2 and all libraries",
+        "loaded": 100,
+        "pagination": true
+      },
+      {
+        "query": "observed real directory name",
+        "scope": "lib_1",
+        "loaded": 36,
+        "sources": [
+          "filename",
+          "path"
+        ],
+        "previewFullRelativePath": true
+      }
+    ],
+    "mobile": {
+      "width": 390,
+      "height": 1000,
+      "previewFocused": true,
+      "evidenceScrolledFullyIntoViewport": true,
+      "horizontalOverflow": false
+    },
+    "desktop": {
+      "width": 1920,
+      "height": 1000,
+      "screenshot": "private ignored .artifacts/6010-fused-deployment/real-search-forest-desktop.png"
+    },
+    "consoleErrors": 0,
+    "transient": {
+      "status": 429,
+      "context": "rapid scope/library/query changes",
+      "manualRetry": "recovered",
+      "notAssetFailure": true
+    }
+  },
+  "remaining": [
+    "10 known source files deferred",
+    "OCR not connected",
+    "People workflow follow-up",
+    "Quality, long capacity, full race, cross-architecture and release gates remain"
+  ]
+}

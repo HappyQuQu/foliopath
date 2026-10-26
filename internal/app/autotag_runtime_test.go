@@ -19,6 +19,9 @@ import (
 )
 
 func TestAutomaticTagInferenceBusyMappingPreservesOtherErrors(t *testing.T) {
+	if err := automaticTagInferenceError(remoteml.ErrTagTemporarilyUnavailable); !errors.Is(err, autotag.ErrTemporarilyUnavailable) {
+		t.Fatal(err)
+	}
 	if err := automaticTagInferenceError(fmt.Errorf("wrapped: %w", remoteml.ErrBusy)); !errors.Is(err, autotag.ErrBusy) {
 		t.Fatal(err)
 	}

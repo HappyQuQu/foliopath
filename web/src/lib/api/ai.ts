@@ -55,7 +55,32 @@ export async function requestAutomaticTagJob(input: { libraryId: string; mode: "
     params: { path: { libraryId: input.libraryId }, header: { "Idempotency-Key": input.idempotencyKey } },
   }));
 }
+export type OCRStatus = components["schemas"]["OCRStatus"];
+export type OCRJob = components["schemas"]["OCRJob"];
+export type OCRSnapshot = OCRStatus & { etag: string };
+export async function getLibraryOCR(libraryId: string): Promise<OCRSnapshot | null> {
+  try { return await unwrapWithEtag(apiClient.GET("/api/v1/libraries/{libraryId}/ai/ocr", {params:{path:{libraryId}}})); }
+  catch(error) { const failure=createApiError(error); if(failure.status===404)return null; throw failure; }
+}
+export async function updateLibraryOCR(input:{libraryId:string;enabled:boolean;csrfToken:string;etag:string}):Promise<OCRSnapshot>{
+ return unwrapWithEtag(apiClient.PUT("/api/v1/libraries/{libraryId}/ai/ocr",{params:{path:{libraryId:input.libraryId},header:{"If-Match":input.etag}},headers:{"X-CSRF-Token":input.csrfToken},body:{enabled:input.enabled}}));
+}
+export async function requestLibraryOCR(input:{libraryId:string;mode:OCRJob["mode"];csrfToken:string;etag:string;idempotencyKey:string}){
+ return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/ocr/jobs",{params:{path:{libraryId:input.libraryId},header:{"If-Match":input.etag,"Idempotency-Key":input.idempotencyKey}},headers:{"X-CSRF-Token":input.csrfToken},body:{mode:input.mode,...(input.mode==="retry_failed"?{confirmation:"retry_failed_ocr" as const}:{})}}));
+}
+export async function cancelLibraryOCR(input:{libraryId:string;jobId:string;csrfToken:string}){
+ const job=await unwrapWithEtag(apiClient.GET("/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}",{params:{path:{libraryId:input.libraryId,jobId:input.jobId}}}));
+ return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}/cancel",{params:{path:{libraryId:input.libraryId,jobId:input.jobId},header:{"If-Match":job.etag}},headers:{"X-CSRF-Token":input.csrfToken},body:{}}));
+}
+export async function clearLibraryOCR(input:{libraryId:string;csrfToken:string;etag:string}):Promise<OCRSnapshot>{
+ return unwrapWithEtag(apiClient.POST("/api/v1/libraries/{libraryId}/ai/ocr/clear",{params:{path:{libraryId:input.libraryId},header:{"If-Match":input.etag}},headers:{"X-CSRF-Token":input.csrfToken},body:{confirmation:"clear_ocr_results"}}));
+}
+
 export type Person = components["schemas"]["Person"];
+export type PersonMergeCheck = components["schemas"]["PersonMergeCheck"];
+export async function getPersonMergeCheck(sourcePersonId: string, targetPersonId: string): Promise<PersonMergeCheck> {
+ return unwrap(apiClient.GET("/api/v1/people/{personId}/merge-check", { params: { path: { personId: sourcePersonId }, query: { targetPersonId } } }));
+}
 export type PersonAssetPage = components["schemas"]["PersonAssetPage"];
 export type PersonPage = components["schemas"]["PersonPage"];
 
@@ -336,6 +361,7 @@ export async function renamePerson(input: {
 }
 
 export async function listFaceClusters(input: {
+  review?: "all" | "pending";
   cursor?: string;
   kind?: "core" | "edge";
   libraryId: string;
@@ -345,6 +371,7 @@ export async function listFaceClusters(input: {
       path: { libraryId: input.libraryId },
       query: {
         limit: 50,
+        ...(input.review ? { review: input.review } : {}),
         ...(input.cursor ? { cursor: input.cursor } : {}),
         ...(input.kind ? { kind: input.kind } : {}),
       },
@@ -380,6 +407,21 @@ export async function applyFaceReview(input: {
     body: input.review,
     headers: { "X-CSRF-Token": input.csrfToken },
     params: { header: { "Idempotency-Key": input.idempotencyKey } },
+  }));
+}
+
+export async function undoFaceReview(input: {
+  csrfToken: string;
+  idempotencyKey: string;
+  reviewId: string;
+  revision: number;
+}): Promise<FaceReviewResult> {
+  return unwrap(apiClient.POST("/api/v1/ai/face-reviews/{reviewId}/undo", {
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: { path: { reviewId: input.reviewId }, header: {
+      "Idempotency-Key": input.idempotencyKey,
+      "If-Match": `"face-review-${input.reviewId}-r${input.revision}"`,
+    } },
   }));
 }
 

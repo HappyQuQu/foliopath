@@ -1,7 +1,8 @@
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, EmptyState, ErrorState, Input, LoadingState } from "../../../components/ui";
+import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState } from "../../../components/ui";
 import { ApiError } from "../../../lib/api/errors";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { useTagDisplay } from "../../../lib/i18n/tagDisplay";
@@ -16,7 +17,7 @@ export function LibraryTagCloud({ libraryId, selectedTagId }: {
   selectedTagId?: string;
 }) {
   const { t } = useLocale();
-  const { tagName } = useTagDisplay();
+  const { tagName, language } = useTagDisplay();
   const headingId = useId();
   const [params, setParams] = useSearchParams();
   const q = params.get("tagQ") ?? "";
@@ -46,17 +47,21 @@ export function LibraryTagCloud({ libraryId, selectedTagId }: {
 
   return (
     <section className={styles.cloud} aria-labelledby={headingId}>
-      <header>
-        <h2 id={headingId}>{t("tagCloud.title")}</h2>
-        <p>{t("tagCloud.scope")}</p>
+      <header className={styles.heading}>
+        <div><h2 id={headingId}>{t("tagCloud.title")}</h2>{query.isSuccess && <small title={t("tagCloud.pageCount").replace("{count}", String(tags.length))}>{t("tagCloud.pageShort").replace("{count}", String(tags.length))}</small>}
+          {selectedTagId && <Link className={styles.clearFilter} aria-label={t("tagCloud.clearFilter")} title={t("tagCloud.clearFilter")} to={`${paths.tags}?${params.toString()}`}><X size={16} aria-hidden="true" /></Link>}
+        </div>
+        <p title={t("tagCloud.scope")}>{t("tagCloud.scopeCompact")}</p>
       </header>
-      <TagLanguageControl />
+      <div className={styles.tools}>
       <form className={styles.search} role="search" onSubmit={event => { event.preventDefault(); search(draft); }}>
         <Input aria-label={t("tagCloud.search")} type="search" maxLength={32} value={draft}
           placeholder={t("tagCloud.search")} onChange={event => setDraft(event.target.value)} />
-        <Button size="small" type="submit" variant="secondary">{t("tagCloud.searchAction")}</Button>
+        <IconButton label={t("tagCloud.searchAction")} type="submit"><MagnifyingGlass aria-hidden="true" size={17} /></IconButton>
       </form>
+      </div>
       {q && <Button size="small" variant="quiet" onClick={() => search("")}>{t("tagCloud.clearSearch")}</Button>}
+      <div className={styles.scrollArea}>
       {query.isPending ? <LoadingState /> : query.isError ? (
         <>
           <ErrorState message={t(expired ? "tagCloud.expired" : "tagCloud.failed")}
@@ -68,25 +73,28 @@ export function LibraryTagCloud({ libraryId, selectedTagId }: {
           description={t(q ? "tagCloud.noMatchDescription" : "tagCloud.emptyDescription")} />
       ) : (
         <>
-          <p className={styles.legend}>{t("tagCloud.legend")}</p>
-          <nav className={styles.tags} aria-label={t("tagCloud.title")}>
+          <p className={styles.visuallyHidden} id={`${headingId}-legend`}>{t("tagCloud.legend")}</p>
+          <nav className={styles.tags} aria-label={t("tagCloud.title")} aria-describedby={`${headingId}-legend`}>
             {tags.map(tag => {
-              const weight = tagWeight(tag.assetCount);
+              const bilingual = language === "bilingual" ? tag.localization : undefined;
               const target = new URLSearchParams(params);
               target.set("libraryId", libraryId);
               target.set("kind", "image");
-              return <Link key={tag.id} className={styles.tag} data-weight={weight}
-                data-frequency={weight >= 4 ? "frequent" : weight >= 3 ? "regular" : "rare"}
+              return <Link key={tag.id} className={styles.tag} data-weight={tagWeight(tag.assetCount)}
                 aria-current={tag.id === selectedTagId ? "page" : undefined}
                 to={`${paths.tag(tag.id)}?${target.toString()}`}>
-                <span>{tagName(tag)}</span>
+                <span className={styles.tagName} title={tagName(tag)}>
+                  <span>{bilingual?.zhCN ?? tagName(tag)}</span>
+                  {bilingual && <span className={styles.translation} lang="en">{bilingual.en}</span>}
+                </span>
                 <small aria-label={t("tagCloud.count").replace("{count}", String(tag.assetCount))}>{tag.assetCount}</small>
               </Link>;
             })}
           </nav>
-          <p className={styles.legend}>{t("tagCloud.pageCount").replace("{count}", String(tags.length))}</p>
         </>
       )}
+      </div>
+      <footer className={styles.language}><TagLanguageControl compact /></footer>
       {!query.isError && (cursor || query.data?.nextCursor) && <div className={styles.pagination}>
         <Button size="small" variant="quiet" disabled={!cursor || query.isFetching} onClick={() => {
           changePage(predecessor ?? "");
@@ -102,7 +110,6 @@ export function LibraryTagCloud({ libraryId, selectedTagId }: {
   );
 }
 
-// Stable across pagination and search; never compare an incomplete page to the library.
 function tagWeight(count: number): number {
   return count >= 200 ? 5 : count >= 50 ? 4 : count >= 10 ? 3 : count >= 3 ? 2 : 1;
 }

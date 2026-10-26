@@ -71,6 +71,7 @@ type storyboardReferenceResponse struct {
 }
 
 type assetResponse struct {
+	SearchSources      []string                    `json:"searchSources,omitempty"`
 	ID                 string                      `json:"id"`
 	LibraryID          string                      `json:"libraryId"`
 	LibraryName        string                      `json:"libraryName"`
@@ -429,7 +430,8 @@ func assetIDString(id int64) string {
 
 func assetWire(item catalog.Asset) assetResponse {
 	return assetResponse{
-		ID: assetIDString(item.ID), LibraryID: libraryID(item.LibraryID),
+		SearchSources: item.SearchSources,
+		ID:            assetIDString(item.ID), LibraryID: libraryID(item.LibraryID),
 		LibraryName: item.LibraryName, DirectoryID: directoryIDString(item.DirectoryID),
 		Name: item.Name, RelativePath: item.RelativePath, Kind: item.Kind,
 		MIMEType: item.MIMEType, SizeBytes: item.SizeBytes,

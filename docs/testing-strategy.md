@@ -1,5 +1,78 @@
 # FolioPath 测试策略
 
+CR-2026-052：OCR组件测试执行真实生成client/adapter/query，通过有限HTTP夹具核对库/ETag/CSRF/幂等/确认body与取消前读取job ETag，不mock业务hooks。浏览器检查正式Story多屏/双语言/主题、键盘/确认焦点/axe及未配置/清理状态；本地Docker回归现有真实OCR管理/任务/检索路径，区分UI合成与真实模型证据。
+
+CR-2026-051：OCR全文回归覆盖短中文/Unicode/特殊字符、trigram候选、跨来源去重、OCR-only不编码、服务降级、范围/日期/视频排除、同事务回滚、46→47回填/重复启动、源/模型/关闭/清理/离线可见性与游标/HTTP hydration竞态。独立Linux真实OCR→任务→索引→认证搜索HTTP核对实际行片段，清理后不命中。生产SearchPage与Story用明确合成合同数据，三浏览器/双语言/320～1920矩阵验证徽标、原文转义、焦点、全宽和axe；没有将合成数据当质量或容量。
+
+2026-10-26 / CR-2026-050：补安全源前后复核/关闭/坏源与程序错误分类，真实WorkerPool的计划停机与取消胜出、busy延后、临时scan不重复推理；HTTP认证/CSRF/CAS/确认词/错误不泄露。真实模型联验用单/library只读合成挂载，应用数据库仅Linux tmpfs，通过新OS进程重启（不能在同进程重启libvips）验收同任务续补、空结果/坏源、missing不重算与清理。测试镜像的占位embed只用于API/app单测，不当正式UI。
+
+2026-10-26 / CR-2026-049：OCR持久化用合成库验证迁移44→45/重开、正常空结果和固定坏源、幂等/源与模型换代、原子回滚、并发提交/清理、取消/禁用/offline/服务错误、lease过期/三次上限、全局32任务和分批清理。隔离Docker recipe：tests/release/Dockerfile.ocr-persistence（固定Go1.26.5、无network/媒体/原data挂载、rootfs只读），运行全量SQLite/ocr race测试；实际结果见CR记录，不替代真实processor/模型联验、容量/双架构或UI验收。
+
+2026-10-26 / CR-2026-048：Go/Python共享ocr/conformance.json和Go生成策略；25项HTTP/分类/路由/core单测，加2项真实模型取消/失配cache测试。固定AI/Go probe镜像在无外网/无公开端口的独立Docker网络逐阶段验证baseline→OCR→missing-cache，固定合成源、只读模型及独立scratch，没有真实库/DB。对照28份旧文件hash、3类旧identity与语义/图像/tag/face完整输出字节；native取消需观察实际RSS、reap/空scratch/内存回落后验证恢复。stage/candidate/初始失败与复现见[CR-2026-048](changes/CR-2026-048-ocr-producer.md)，不代替索引/搜索或质量/联合容量/发行。
+
+2026-10-25 / CR-2026-047 OCR输入：Docker `ocr-image-probe` target复用正式固定libvips/GLib/Expat构建，race编译native测试。最终45项（含7项新OCR）无skip，1GiB/2CPU/root只读/network none；两旧progressive测试使用另行生成的合成9000x9000 JPEG，不用用户图库。额外3个固定合成PNG/EXIF JPEG/宽图经正式输入适配后接独立S0真实OCR模型，核对实际文字与源/模型hash，不冒充producer/索引/search联验。复现[README](../spikes/ocr-image-input/README.md)与[证据](changes/CR-2026-047-ocr-image-input.md)。
+
+2026-10-25 / CR-2026-045/046 OCR隔离验证：S0真实模型实验与Go传输消费者分别计证据，前者15场景含90°0/4负面观察；后者httptest/业务合同/race，不冒充实际AI服务联验。`go test -race -count=1 ./internal/ocr ./internal/inference/remoteml`；`tests/release/Dockerfile.ocr-transport`固定Go1.26.5/Linux arm64编译race测试，运行时network none/root只读、1 GiB/2CPU和/tmp tmpfs，不挂模型/媒体/DB。当前40项含既有ML回归；app/API/存储不得消费OCR，arch-check执行此阶段门槛。复现与执行镜像/未执行项见[CR-2026-046](changes/CR-2026-046-ocr-transport.md)，S0另见[CR-2026-045](changes/CR-2026-045-ocr-feasibility.md)。
+
+2026-10-25 / CR-2026-044：后端覆盖预检无写入、允许后新增约束仍使正式POST回滚、反向人物、跨库五关系仅三照片示例、离线/待复核隐藏示例但阻断、来源批次上限与缺失/非法目标、HTTP唯一查询/opaqueID/no-store及组合停机状态。组件覆盖不同阻止原因、版本不采纳、读取失败仅重试、原请求恢复；三浏览器中英深浅、390/768/1440/1920与axe/焦点/布局。node tests/release/person_merge_check_smoke.mjs在独立真实模型合成Docker中检验未登录401、真实预检与正式阻断、关系解除后允许、原幂等恢复/undo、非空人工标签/源hash/其他脸、重启和容器内database-check。不是质量/容量/跨架构发行证据。
+
+2026-10-25 / CR-2026-043：先红测证明旧无归属guard请求会写入，再执行新写版本/无写入冲突、重复/同键/历史回执、逆序pair与anchor变更撤销保护、合并阻断、同图投影不泄露跨图ID和API空数组测试。组件覆盖两脸选择/冻结版本、取消焦点、未知同键重试、缺失/不对称/既有关系与同人物禁用。三浏览器覆盖中英深浅、四档宽度、axe、并发和撤销；独立真实模型Docker通过正式API提交关系后丢弃响应，再真实重放、重载读取、合并409、解除后合并与undo。人工标签/源hash/其他脸、重启与容器内database-check按同一固定镜像验证。探针入口node tests/release/face_cannot_link_smoke.mjs；不把关系功能证明等同识别质量、容量或发行。
+
+2026-10-25 / CR-2026-042：先执行split/merge提交后源状态变化的同键回执与不重复增版本专项，保留移动/undo/API/race回归。单测覆盖源404、照片消失、冻结来源和目标、关闭重开/收起、已知冲突与双击；三浏览器覆盖中英深浅、390/768/1440/1920、axe、误先失败/未提交后的版本冲突和恢复后统一撤销。真实模型合成Docker分别真实提交移出/移动/非空合并，再丢弃响应，确认首次Idempotency-Replayed=false、重试true、人物版本不重复，最后guarded undo和重启/人工标签/源hash/database-check。正式恢复Story另用隔离静态Docker浏览器验证；不读真实图库，不替代质量/容量/发行。
+
+2026-10-25 / CR-2026-041：后端沿用并执行guarded undo（split/assignment/exclusion/merge）、同键重放与API强If-Match回归。前端覆盖原回执冻结、取消/焦点、未知响应关闭重开仍同键、冲突不重发、双击受限、dismiss无写及统一查询刷新；三浏览器覆盖中英深浅、390/768/1440/1920、axe及整体人物工作区兼容。真实模型合成Docker验证单图排除撤销、成功响应丢失后的服务端真实重放、另一会话新归类阻止旧撤销、人物移出/空人物合并/分组排除的实际撤销和重启保护；不使用真实图库，不以合成撤销代替识别质量/容量验收。
+
+2026-10-25 / CR-2026-040：先红测证明无来源排除可抹掉并发人工归属，再覆盖匿名/错误来源/过期修订的无写入冲突、字段配对、合法排除/undo/重放。单图覆盖明确选择/取消、冻结来源和目标、未知响应同键、图片失败禁用、实际库上下文及三浏览器390/768/1440/1920/中英深浅/axe/焦点。独立合成Docker用真实模型、真实API及UI执行移动→排除→恢复；故意丢弃服务器已提交成功的响应，验证同键重放不重复修改。源hash/非空人工标签/其他脸/重启及容器内database-check保留，不使用原6010数据。具体执行数量与镜像见CR-2026-040机器证据；不是识别质量或容量验收。
+
+2026-10-25 / CR-2026-039：人物目录验证空/离线预览、最近照片及解除关联回退、多人同图计数/预览去重、opaque/nullable DTO、主区分页与全库搜索/详情返回、缩略图错误及更换源、长名称换行、创建未知响应同键/取消/并发点击。三浏览器390/768/1440/1920、中英深浅/axe/键盘；真实模型合成Docker沿用单脸归类后验证实际previewAssetId和独立空人物，源hash/人工标签/重启/database-check。实际结果见CR-2026-039与机器证据，合成数据不是质量/容量验收。
+
+2026-10-25 / CR-2026-038：待处理分组验收覆盖分页前计数、部分/完全处理、移出后重现、core/edge范围、离线、过滤游标绑定及整理后失效；三浏览器在390/768/1440/1920、中英深浅、axe、筛选重置及返回保持验证。真实模型合成Docker核验2组4脸→1组2脸待处理，全部目录保留2组，刷新/重启、人工标签、源hash及容器database-check；模型恢复后单图与分组投影的就绪时点须分别等待，不将not_ready当空结果。实际结果/首轮失败以CR-2026-038及证据为准。
+
+
+CR-2026-037：`ClusterPanel.test.tsx`覆盖单脸选择、状态/修订守卫、取消、双击、顺次独立确认与幂等重试；
+`cluster-review.spec.ts`配合既有人物/侧栏三浏览器回归，验证390/768/1440/1920、中英/深浅、axe及真实状态显示。
+`node tests/release/cluster_review_smoke.mjs`复用独立人物Docker测试基础设施，使用真实模型和合成双人图，
+验证先创建空人物、只归类/排除明确选中脸、保留另两脸/人工标签/源哈希、刷新/重启及容器内完整性。
+健康不等于face投影已就绪，重启后须等待真实AssetFace读取恢复。禁止对原6010或真实人工整理执行写入测试。
+
+CR-2026-036 / FR-PEOPLE-001～003：人物详情使用`PersonPanel.test.tsx`验证多人脸明确选择、源/目标修订冻结、取消、冲突和重复点击；既有face/api/SQLite事务定向回归先于UI。
+`person-review.spec.ts`与`context-sidebar.spec.ts`在固定Linux三浏览器验证390/768/1440/1920、中英/深浅、共享脸框、焦点、axe与侧栏兼容。
+`FOLIOPATH_PERSON_APP_IMAGE=<固定候选> node tests/release/person_review_smoke.mjs`创建独立Docker网络/数据卷和合成双人照片，
+用真实face模型与`person-review-real.spec.ts`验证单人脸移出保留另一人脸、移动、合并、人工标签/源哈希、重启和容器内database-check；不得指向原6010或真实图库。
+自动端口在重启后须重新读取，健康轮询每次有5秒超时；临时测试资源精确清理，不将运行中数据库复制为备份。
+
+2026-10-25 / CR-2026-035：`internal/search`、SQLite及HTTP回归覆盖Unicode多词跨字段、basename不重复归因路径、来源组合/去重/排序、keyset查询绑定、代次/覆盖变化、源水合变化、类型/时间/目录/全库范围、关闭/离线/服务故障和取消。
+`fused-search.spec.ts`与既有`search-guidance.spec.ts`使用生产bundle与只读合成API，在三浏览器、五宽度、中英/深浅核对来源、预览依据、降级、抽屉/焦点、axe和截图；这些不是模型质量证据。
+`multilingual_semantic_smoke.mjs`显式`FOLIOPATH_TEST_FUSED_SEARCH=1`（可用`FOLIOPATH_TEST_FUSED_ONLY=1`仅验本切片）在独立本地Docker运行真实640维模型、合成媒体，检验中英文融合、分页/失效/范围、AI断连与功能性恢复、人工标签/向量保留、源hash和容器内database-check。
+AI ping健康不等于可推理，测试等待真实融合响应恢复ready；不把降级成功当作语义恢复。实际执行及失败纠正见[记录](changes/CR-2026-035-fused-search.md)。
+
+2026-10-25 分层视觉对齐：`layered-alignment-real.spec.ts` 仅在显式提供独立6012合成库 fixture 时运行，
+覆盖四档视口、中英/深浅、真实接口、原图预览、axe及截图；默认跳过，不读取既有实例。既有 context-sidebar 与
+visual-regression 更新为新的接受基线，并以不更新模式复验。主观同屏对照见根目录 `design-qa.md`，不以构建替代视觉验证。
+
+2026-10-24 功能侧栏回归：`web/tests/e2e/context-sidebar.spec.ts` 使用生产页面与明确合成合同数据，
+覆盖390/768/1440/1920、中英/深浅、无横向溢出、抽屉焦点、axe、URL 条件及人物双游标。
+聚焦视觉项目 `context-visual-chromium` 在固定Linux浏览器中比较32张基线（本机macOS显式跳过像素比较）；
+常规Chromium仍运行功能/无障碍检查。组件测试覆盖筛选唯一位置、服务端数量/作用域与严格整理预览移出；稳定 Storybook 渲染生产组件。
+这是 UI 合同与布局证据，不代替实际后端、模型或发行门禁。[记录](changes/UI-2026-10-24-contextual-sidebar.md)。
+
+## 2026-10-24 153类策略升级回归
+
+`multilingual_semantic_smoke.mjs`在PNG/tag PNG/recovery模式基础上支持`FOLIOPATH_TEST_PHOTO_POLICY_UPGRADE=1`，
+并要求`FOLIOPATH_TEST_LEGACY_AI_IMAGE`固定旧92类镜像、`FOLIOPATH_TEST_AI_IMAGE`固定153类候选。
+仅合成媒体：先建立92类＋png-v4与非空人工/同义/删除抑制，再正常停主并完整备份，切换AI与独立tag.identity。
+断言真实新增类别、大PNG实际输出、旧语义/人物身份及向量摘要不变、保护跨换代/重跑/重启、坏源失败和同operation短暂断连恢复。
+实际执行结果见[153类部署记录](changes/DEPLOY-2026-10-24-photo-tags-153.md)，不替代准确率/容量/跨架构/发行检查。
+
+## 2026-10-24 自动标签 PNG 输入
+
+ADR-0029配置测试固定默认旧hash、tag/语义/人脸profile独立、非法值失败关闭；架构测试约束
+fingerprint与执行预处理器同时绑定tag profile。native PNG边界复用ADR-0028测试，不另设解码owner。
+`tests/release/multilingual_semantic_smoke.mjs`可联合设置`FOLIOPATH_TEST_PNG_PROFILE=1`和
+`FOLIOPATH_TEST_TAG_PNG_PROFILE=1`：真实固定JoyTag、大PNG旧失败→新成功、换代不重算语义/人脸，
+中文人工同义/移除抑制跨换代与重跑/重启保持，故意坏源仍失败、原件hash不变。
+仅隔离合成媒体，不能拿原库作测试fixture。实际通过情况及6010核对另见[记录](changes/FIX-2026-10-24-autotag-png.md)。
+
 ## 2026-10-23 Node 24 LTS 工具链
 
 本地使用 `.node-version` 的 Node 24.22.1 和 `web/package.json` 的 npm 11.19.1。
@@ -96,6 +169,12 @@ SQLite 检查 checkpoint 原子性、旧成功后的失败候选、样本上限�
 集成用扩展盘 TMPDIR 通过，不能隐去默认内部盘安全余量失败；runtime E2E smoke 不代替完整浏览器矩阵。
 
 ## 自动标签验证边界（2026-10-22 / CR-2026-031）
+
+2026-10-24 [ADR-0030](adr/0030-bounded-autotag-service-recovery.md)：
+`autotag/recovery_test.go`、`remoteml/tag_recovery_test.go`验证短暂不可用、60秒恢复窗口/最多2次额外分析、
+取消以及身份/非法输出不重试；`multilingual_semantic_smoke.mjs`的`FOLIOPATH_TEST_TAG_RECOVERY=1`
+配合PNG/tag profile fixture，在专属合成Docker停止再启动AI，验证同operation继续和非空人工/删除抑制保护。
+真实已失败任务通过既有带修订保护的设置解除阻止和missing调度补齐；不修改历史终态、不全量重算，执行证据另记。
 
 按 [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md) 分开记录功能、资源回收、模型质量与
 发行证据；下列为当前已实现的回归入口和验收要求，不是最终 Docker 或发布通过声明：
@@ -1046,3 +1125,9 @@ migration/handler/worker 测试只有 S1R2 Gate Go 后才允许出现。测试�
 只读根、临时数据库、竞态检测）及 encoded-probe（私有网络真实离线推理）。
 完整命令见该目录 README。三包回归和真实 ML probe 必须分别记录结果，不能互相替代；
 它们都不等同于主应用 UI/查询/回填完整 E2E。测试镜像不作为正式产品镜像发布。
+
+## 2026-10-26 OCR失败分类与本地工程补验
+
+FR-OCR输入错误在imagevips native失败分支以标准JPEG完整解码的明确格式/截断证据分类；未知native故障仍为处理错误，取消优先。真实native测试用合成坏熵流/有效JPEG，不能复制真实媒体作fixture。成功像素和OCR身份不变。新增分类需通过真实模型合成worker坏源后继续、同job恢复、非空人工保护和搜索，不以仅错误码单测代替。
+
+本轮固定源SQLite race累计超时后，用同一native Linux编译测试二进制、独立tmpfs四分片执行全部359项，核对编译-list与实际PASS集合相等、0跳过/无race/OOM；单进程超时原记录仍失败。分片用于避免累计包超时，不降低单例断言或伪造整体命令通过。454前端/132三浏览器/19集成和19集成race等版本边界见[验收台账](changes/AUDIT-2026-10-26-release-readiness.md)。安全扫描完成也必须按精确镜像保存未修复发现，不因当前本地部署通过而关闭发行No-Go。

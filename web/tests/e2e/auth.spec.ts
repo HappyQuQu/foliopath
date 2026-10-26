@@ -55,7 +55,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.getByRole("button", { name: /Select this directory/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(
-    page.getByText(`/library/${longPathSegments.join("/")}`),
+    page.getByText(longPathSegments.join("/"), { exact: true }),
   ).toBeVisible();
 
   let createRequests = 0;
@@ -147,7 +147,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("combobox", { name: "Current library" })).toHaveCount(0);
   await expect(
-    page.getByText("There is no model download or selection step here. Redeploy the AI service after changing models or hardware acceleration.", { exact: true }),
+    page.getByText("Check which features are available.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Download model", exact: true }),
@@ -216,7 +216,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(page.getByText("Scan in progress")).toBeVisible();
   await page.getByRole("button", { name: "Cancel scan" }).click();
   await expect(page.getByText("Scan cancelled")).toBeVisible();
-  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+  await expect(page.getByText("Existing content is kept. Original files are unchanged.", { exact: true })).toBeVisible();
 
   scanFixtureState = "failed";
   await page.reload();
@@ -230,7 +230,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   scanFixtureState = "offline";
   await page.reload();
   await expect(page.getByText("Library offline")).toBeVisible();
-  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+  await expect(page.getByText("Existing content is kept. Original files are unchanged.", { exact: true })).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
   await page.unroute(/\/api\/v1\/scans\/[^/]+(?:\/cancel)?$/);
@@ -240,9 +240,13 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     page.getByRole("heading", { name: longLibraryName }),
   ).toBeVisible();
+  const libraryNavigation = page.getByRole("button", { name: "Open navigation", exact: true });
+  await libraryNavigation.click();
   await expect(
     page.getByRole("button", { name: /^Media library[：:]/ }),
   ).toContainText(longLibraryName);
+  await page.keyboard.press("Escape");
+  await expect(libraryNavigation).toBeFocused();
   await expect(page.getByText("direct-photo.jpg")).toBeVisible({
     timeout: 15_000,
   });
@@ -262,7 +266,8 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     preview.getByRole("img", { name: "direct-photo.jpg" }),
   ).toBeVisible();
-  await expect(preview).toContainText("image/jpeg");
+  await expect(preview).toContainText("JPEG");
+  await expect(preview).not.toContainText("image/jpeg");
   await expect(
     preview.getByRole("button", { name: "Previous item" }),
   ).toBeDisabled();
@@ -277,9 +282,12 @@ test("administrator, library-management, and browsing vertical slice", async ({
   const previewSeparator = preview.getByRole("separator", {
     name: "Resize preview",
   });
-  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "406");
+  await expect(previewSeparator).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "342");
   await previewSeparator.press("ArrowLeft");
-  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "430");
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "366");
   await preview.getByRole("button", { name: "Open full viewer" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/libraries/${createdLibraryId}/media/[^?]+\\?from=`),
@@ -586,7 +594,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/libraries/${createdLibraryId}/search?q=direct-photo`);
   await expect(
-    page.getByRole("heading", { name: "Search media" }),
+    page.getByRole("heading", { name: "Results for “direct-photo”" }),
   ).toBeVisible();
   await expect(
     page.getByRole("article", { name: "direct-photo.jpg · Image" }),
@@ -656,13 +664,14 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(searchPreview).toHaveCount(0);
   await expect(searchPreviewTrigger).toBeFocused();
 
-  await page.getByLabel("Scope").selectOption("all");
+  await page.getByRole("radio", { name: "All libraries", exact: true }).click();
+  await expect(page.getByRole("radio", { name: "All libraries", exact: true })).toBeChecked();
   await expect(page).toHaveURL(
     `/libraries/${createdLibraryId}/search?q=direct-photo&scope=all`,
   );
   await expect(page.getByText("direct-photo.jpg")).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel("Scope")).toHaveValue("library");
+  await expect(page.getByRole("radio", { name: "Current library", exact: true })).toBeChecked();
   await expect(page.getByText("direct-photo.jpg")).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -763,7 +772,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
     await route.continue();
   });
   await page
-    .getByRole("button", { name: "Clear reconstructible cache" })
+    .getByRole("button", { name: "Clear thumbnail cache" })
     .click();
   await expect(
     page.getByRole("dialog", { name: "Clear thumbnail cache?" }),
@@ -789,7 +798,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.goto("/settings/general");
   await expect(page).toHaveURL(/\/login\?reason=session_expired$/);
   await expect(
-    page.getByText("为了保护您的媒体库，会话已过期。请重新登录。"),
+    page.getByText("登录已过期，请重新登录。"),
   ).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -953,7 +962,7 @@ test("readiness failure uses the contracted safe state", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "FolioPath could not finish starting" }),
   ).toBeVisible();
-  await expect(page.getByText(/Application data is unavailable/)).toBeVisible();
+  await expect(page.getByText("App data cannot be saved. Check storage space and folder permissions.", { exact: true })).toBeVisible();
   await expect(
     page.getByText(/Original media remains read-only/),
   ).toBeVisible();

@@ -1,0 +1,180 @@
+{
+  "change": "CR-2026-043",
+  "recordedAt": "2026-10-25T11:48:06.343965+00:00",
+  "stage": "POST-MVP-5 same-photo cannot-link review",
+  "status": "locally_verified_not_deployed",
+  "candidate": "sha256:e663902599f37604ca066e4d42e399811d0fe35148dba67d0ae15c6c34f70085",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "write": "existing cannot_link action now requires both distinct current person IDs/revisions for new writes, together with both detector revisions",
+    "replay": "absent guards accepted only for completed historical same-key receipts; partial pairs invalid; unfenced new writes conflict",
+    "projection": "AssetFace.cannotLinkFaceIds is optional for compatibility; new server emits sorted symmetric arrays containing only current same-photo assigned peer IDs; absent means unknown",
+    "undo": "new snapshots additionally fence both people and bound-anchor revisions; legacy snapshots keep their recorded link-only guard",
+    "ui": "explicit same-photo distinct-person face pair, frozen confirmation and key, known-pair duplicate blocking, guarded existing workspace undo",
+    "noMigrationOrModelProfileChange": true,
+    "noGlobalRelationshipHistory": true
+  },
+  "checks": {
+    "redProof": "old implementation wrote an unfenced new relationship; red test failed as intended; passes after fix",
+    "backendFocused": "passed count=1: CannotLink guards, reverse pair, anchor/person changes, legacy receipt/snapshot, merge rollback, safe projection and API decoding",
+    "focusedRace": {
+      "status": "passed count=1",
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestCannotLink|TestGuardedUndo|TestFaceProjections|TestReviewService"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed SQLC and generated API/hash",
+    "lint": "passed contract checks and go vet",
+    "goFull": "passed; normal cache and dedicated disposable TMPDIR on larger volume",
+    "integration": "passed",
+    "genericRuntimeDockerSmoke": {
+      "status": "passed",
+      "image": "sha256:d44496852c37ca588a572573502616e9a274bdd0912a2a43152e23fb77acccf0",
+      "note": "generic application smoke uses its separately built image; final SPA candidate is verified by realDocker and finalBrowser below"
+    },
+    "openapiLint": "valid; 2 existing health missing4xx warnings",
+    "frontend": {
+      "files": 76,
+      "tests": 504,
+      "photoFacesComponentTests": 13,
+      "fullCheck": "passed audit:high, generation, architecture/visual inventory, types, Vitest and Storybook; final Story image-load wait change separately rebuilt and typechecked"
+    },
+    "finalBrowser": {
+      "image": "sha256:e663902599f37604ca066e4d42e399811d0fe35148dba67d0ae15c6c34f70085",
+      "passed": 324,
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "specs": [
+        "face-cannot-link.spec.ts",
+        "person-recovery.spec.ts",
+        "face-review-undo.spec.ts",
+        "photo-face-review.spec.ts",
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "newSliceCases": 36,
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "themeLocalePairs": {
+        "zh-CN": "light",
+        "en": "dark"
+      },
+      "axe": true,
+      "cancelFocus": true,
+      "frozenPairAndOwnerRevisions": true,
+      "sameKeyLostResponse": true,
+      "conflictNoResend": true,
+      "existingAndUnknownPairBlocked": true,
+      "guardedUndo": true,
+      "unexpectedEndpointAssertions": true
+    },
+    "productionStory": {
+      "passed": 4,
+      "productionComponent": true,
+      "synthetic": true,
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "widths": [
+        390,
+        1920
+      ],
+      "confirmationOnlyNoSuccessfulWriteSimulation": true
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T11:35:53.988Z",
+      "appImage": "sha256:e663902599f37604ca066e4d42e399811d0fe35148dba67d0ae15c6c34f70085",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "photoFaceReview": true,
+      "faceReviewUndo": true,
+      "personReviewRecovery": true,
+      "cannotLinkReview": true,
+      "mergeBlockedThenAllowedAfterUndo": true,
+      "cannotLinkCommittedReplay": true,
+      "committedSplitMoveNonemptyMergeReplay": true,
+      "mergedSource404Recovery": true,
+      "undoAcrossPhotoPersonMergeGroup": true,
+      "undoConflictPreservesLaterCuration": true,
+      "committedUndoSameKeyReplay": true,
+      "exclusionAnonymousRaceRejected": true,
+      "realUnknownSuccessReplay": true,
+      "peopleDirectoryPreview": false,
+      "emptyDirectoryPerson": false,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "corrections": [
+    "initial model-download test failed insufficient_space; dedicated larger-volume TMPDIR passed without loosening production guard",
+    "one existing independent video timeout test hit deadline during concurrent checks; original budget rerun passed, no production timeout change",
+    "old linked-reassignment fixture omitted new person guards; adapted exact two current revision=2 values and full suite passed",
+    "new real probe initially assumed source and excluded face shared a photo; derived actual person photo and restored second face original state; all five stages reran on final image",
+    "Story initially clicked before image load; waitFor production editable state fixed four static Docker cases",
+    "first image91582bf9 matrix had stale existing-pair copy assertions; corrected assertions and English one-face-only introduction; stopped old failed matrix and reran all324 on finale6639025"
+  ],
+  "legacyProbe": {
+    "path": "spikes/int001-remote-ml/face-business-probe.mjs",
+    "adapted": true,
+    "executedThisSlice": false
+  },
+  "screenshots": [
+    {
+      "path": "test-results/cannot-link-verified/face-cannot-link-zh-CN-same-photo-keep-separate-at-1920-chromium/separate-zh-CN-1920.png",
+      "sha256": "013f7ddcc40e59ae4c111cf32dbbee457e86376eca5db083daebbb8b60a469a3",
+      "visuallyInspected": true
+    },
+    {
+      "path": "test-results/cannot-link-story/face-cannot-link-story-en--18ca5-ame-photo-pair-story-at-390-chromium/story-separate-en-390.png",
+      "sha256": "3c26bf6d5fa264ae2f2efc7d14a6582ce2c59f0586f0625ebc4bd04e2bca6b75",
+      "visuallyInspected": true
+    }
+  ],
+  "protection": {
+    "testMedia": "repository synthetic pair and blue-violet fixture only",
+    "realDockerManualTag": "nonempty synthetic manual tag retained",
+    "originalMediaOrRealCurationModified": false,
+    "original6010TaskStateTouched": false,
+    "server222Connected": false,
+    "localTestContainersVolumesNetworksCleaned": true,
+    "sourceIssuesStillDeferred": 10,
+    "submittedOrPushed": false
+  },
+  "remaining": [
+    "original6010 rollout not performed",
+    "OCR backend and UI",
+    "global or cross-photo relationship management/history",
+    "real identity quality calibration",
+    "capacity and cross-architecture release checks"
+  ]
+}

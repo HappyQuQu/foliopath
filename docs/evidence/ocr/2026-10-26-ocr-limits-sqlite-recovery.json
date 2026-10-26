@@ -1,0 +1,373 @@
+{
+  "date": "2026-10-26",
+  "status": "terminal_with_one_confirmed_source_failure",
+  "scope": "POST-MVP-5 FR-OCR-001..005; NFR-OPS-001/INT-010",
+  "authorized_new_generation_images": 999,
+  "deployment": {
+    "deployed": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ai-feature-grid-final-20261026-uvx2wk9r",
+    "mainImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f",
+    "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "aiIdUnchanged": true,
+    "aiStartedAtUnchanged": true,
+    "mainStartedAt": "2026-10-26T07:20:50.687563Z",
+    "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+    "onlyMainImageChanged": true,
+    "allFiveOverlaysPreserved": true,
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "mediaReadOnly": true,
+    "memorySwapUnlimited": true,
+    "allProtectedUnchanged": true,
+    "allOCRResultsAndJobsUnchanged": true,
+    "ready": 998,
+    "failed": 1,
+    "pending": 0,
+    "databaseCheck": "passed",
+    "bothHealthy": true,
+    "restartCounts": [
+      0,
+      0
+    ]
+  },
+  "backup": {
+    "backup": "/Volumes/extended/foliopath/backup-6010-ocr-recovery-20261026-ymqn7wf2",
+    "volume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "files": 37376,
+    "bytes": 1096416994,
+    "manifestSha256": "e061a12189fb4a3ea9d8cba82c014c2022b6d3669c48da3b0775c857ea34289a",
+    "linuxCopyVerified": true,
+    "protected27Unchanged": true
+  },
+  "current_job": {
+    "attempt_count": 1,
+    "checkpoint_id": 8719,
+    "completed": 15,
+    "epoch": 4,
+    "error_code": "",
+    "failed": 1,
+    "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+    "id": "ocrjob_4acd7be5b914d57c287eb553f19a39d4",
+    "library_id": 4,
+    "state": "succeeded",
+    "upper_asset_id": 8719
+  },
+  "coverage": [
+    {
+      "eligible": 999,
+      "failed": 1,
+      "pending": 0,
+      "ready": 998,
+      "stale": 0
+    }
+  ],
+  "protected_groups": 31,
+  "all_protected_unchanged": true,
+  "old_ocr_rows_preserved": 484,
+  "known10_ocr_rows": 0,
+  "ui_assets_preserved": [
+    "index-B6IZXITy.js",
+    "index-CmSEpYe0.css"
+  ],
+  "tests": {
+    "png_filter_fixture": {
+      "old_bytes": 8686398,
+      "new_bytes": 5539976,
+      "pixel_identical": true,
+      "input_contract_unchanged": true
+    },
+    "producer_unittest": 16,
+    "real_model_synthetic_app_probe": {
+      "status": "passed",
+      "image": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+      "probe": "sha256:6784e9c493abb16bde1beace8a90d38c12de0fe831d1d596d6d6086ad854d4b1",
+      "observations": {
+        "clearDisabled": true,
+        "clearHidesSearch": true,
+        "currentSourceFulltext": true,
+        "integrity": true,
+        "missingRepeatRecorded": 0,
+        "nonemptyManualPreserved": true,
+        "ocrSearchHTTP": true,
+        "originalJob": "ocrjob_63e4fbe991e142ec4bc26cdef2ca42a2",
+        "outcomes": {
+          "bilingual.png": {
+            "error": "",
+            "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+            "lines": 4,
+            "outcome": "ready"
+          },
+          "blank.png": {
+            "error": "",
+            "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+            "lines": 0,
+            "outcome": "ready"
+          },
+          "corrupt.png": {
+            "error": "invalid_media",
+            "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+            "lines": 0,
+            "outcome": "failed"
+          },
+          "empty.png": {
+            "error": "invalid_media",
+            "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+            "lines": 0,
+            "outcome": "failed"
+          },
+          "exif-oriented.jpg": {
+            "error": "",
+            "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+            "lines": 4,
+            "outcome": "ready"
+          }
+        },
+        "parkedCompleted": 2,
+        "persistedTextMatchesFixture": true,
+        "resumedSameJob": true,
+        "separateOSProcesses": 3,
+        "status": "passed"
+      },
+      "memory_events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0",
+        "oom_group_kill": "0",
+        "sock_throttled": "0"
+      }
+    },
+    "sqlite_bind_reproduction": [
+      "SQLITE_PROTOCOL(15)",
+      "SIGBUS _walFramePgno"
+    ],
+    "sqlite_linux_volume_large_wal": {
+      "synthetic_bytes": 67108864,
+      "updates": 1280,
+      "checks": 160,
+      "go": "1.26.5",
+      "passed": true
+    },
+    "sqlite_linux_volume_app_smoke": {
+      "seconds": 120,
+      "requests": 22634,
+      "scans": 522,
+      "checks": 220,
+      "restarts_during_load": 0
+    },
+    "fmt_arch_generate_vet": "passed",
+    "host_full_go": "all packages other than integration passed; integration model-install free-space reserve failed",
+    "isolated_docker_integration": "passed with 3GiB tmpfs",
+    "runtime_e2e": "passed",
+    "jpeg_source_classification": {
+      "nativeUniqueTests": 48,
+      "initialRunPassed": 46,
+      "initialRunSkipped": 2,
+      "progressiveFixtureSupplementPassed": 2,
+      "race": true,
+      "realModelWorkerRecoveryAndSourceContinuation": "passed, synthetic corrupt JPEG; three OS processes; nonempty manual/suppression protection"
+    }
+  },
+  "real_diagnostic_only": {
+    "five_valid_jpeg_png_limit_fixed": true,
+    "asset8205_contours": 373,
+    "candidate_outcome": "ready with zero detected text",
+    "not_quality_or_synthetic_regression_evidence": true
+  },
+  "followup_automation": "terminal acceptance complete; pixiv follow-up removed after documentation",
+  "remaining_acceptance": [],
+  "initialRunningSnapshot": {
+    "status": "deployed_running_not_complete",
+    "deployment": {
+      "deployed": true,
+      "backup": "/Volumes/extended/foliopath/backup-6010-ocr-recovery-20261026-ymqn7wf2",
+      "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+      "mainImage": "sha256:067c1159eaa616820a38fcefc17ff12b8b1b534ac25ee7cc1a1f3402a7b0406d",
+      "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+      "mainStartedAt": "2026-10-26T05:03:20.126800125Z",
+      "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+      "bothHealthy": true,
+      "memorySwapUnlimited": true,
+      "semanticFaceTagIdentitiesUnchanged": true,
+      "protectedBeforeActivationUnchanged": true,
+      "oldOCRReady": 479,
+      "oldOCRFailed": 5,
+      "databaseCheck": "passed",
+      "ocrFingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64"
+    },
+    "current_job": {
+      "attempt_count": 1,
+      "checkpoint_id": 7790,
+      "completed": 70,
+      "epoch": 4,
+      "error_code": "",
+      "failed": 0,
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": "ocrjob_16133bb86bc37e890f99a833d2840483",
+      "library_id": 4,
+      "state": "running",
+      "upper_asset_id": 8719
+    },
+    "coverage": [
+      {
+        "eligible": 999,
+        "failed": 0,
+        "pending": 929,
+        "ready": 70,
+        "stale": 0
+      }
+    ],
+    "remaining_acceptance": [
+      "new identity 999 terminal coverage",
+      "six special assets results",
+      "preservation at terminal",
+      "OCR-only and fused real search",
+      "remaining errors and container stability"
+    ]
+  },
+  "summary": [
+    {
+      "blank": 658,
+      "lines": 1063,
+      "ready": 998
+    }
+  ],
+  "special6": [
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 7789,
+      "lines": 2,
+      "outcome": "ready"
+    },
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 7923,
+      "lines": 1,
+      "outcome": "ready"
+    },
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 7987,
+      "lines": 0,
+      "outcome": "ready"
+    },
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 8073,
+      "lines": 2,
+      "outcome": "ready"
+    },
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 8194,
+      "lines": 0,
+      "outcome": "ready"
+    },
+    {
+      "current_source": 1,
+      "error_code": "",
+      "fingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+      "id": 8205,
+      "lines": 0,
+      "outcome": "ready"
+    }
+  ],
+  "source_failure": {
+    "asset_id": 8705,
+    "library": "lib_4",
+    "error": "invalid_media",
+    "current_source": true,
+    "reason": "full JPEG decoder rejects malformed entropy missing 0xff00 sequence",
+    "sha256": "8319b41bf19d99d5f3a212cfccfe861ae6308ce5fe7350c0378915c8d670ef4a",
+    "requiresOriginalRestore": true,
+    "sourceChanged": false
+  },
+  "sourceFixDeployment": {
+    "deployed": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ocr-source-classification-20261026-9u0olthv",
+    "mainImage": "sha256:7ff761c336cf882d8d69aa373fc9565f72bc74a04f2142e998eaecdd285e64cb",
+    "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "aiIdUnchanged": true,
+    "aiStartedAtUnchanged": true,
+    "mainStartedAt": "2026-10-26T07:06:39.001583134Z",
+    "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+    "onlyMainImageChanged": true,
+    "allFiveOverlaysPreserved": true,
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "mediaReadOnly": true,
+    "memorySwapUnlimited": true,
+    "allProtectedUnchanged": true,
+    "allOCRResultsAndJobsUnchanged": true,
+    "ready": 984,
+    "failed": 0,
+    "pending": 15,
+    "databaseCheck": "passed",
+    "bothHealthy": true,
+    "restartCounts": [
+      0,
+      0
+    ]
+  },
+  "finalBackup": {
+    "verified": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ai-feature-grid-final-20261026-uvx2wk9r",
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "mainImage": "sha256:7ff761c336cf882d8d69aa373fc9565f72bc74a04f2142e998eaecdd285e64cb",
+    "candidateImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f",
+    "aiId": "a75d0d30a26b11088c108f5e624fedd8279aa71f385b6a2d661ac8978cbf82ba",
+    "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+    "files": 37376,
+    "bytes": 1097211618,
+    "manifestSha256": "bf5fd26d57d1f8dde8b855e94b5b0bdab1f9e74a6c2ddb26114ca0d460f62c63",
+    "databaseSha256": "07282120c47c696b58a707cbd1f71d67bcfd3ddbec9878c7cf9f40588eb75b96",
+    "configurations": {
+      "ai.env": "bd270e1e717b3a37b015ce66b69016dd127b0f8fd96600288b71f0a982b197fb",
+      "compose.ai.yaml": "6ce0f2e60e00ebe1a09ab1afe836576a839e211cf7344d456d92a6c26ff441a1",
+      "compose.ai.unlimited-memory.yaml": "e7b676a3193c384eb8ead7af5553cdd692c8daca38e9f8e47c21f016d445c140",
+      "compose.ai.multilingual.yaml": "43d74e28d05f1bd6df119f4e5327ec91e93a67d923afd04947b7a1da2ea0750f",
+      "compose.ai.ocr.yaml": "905cc45efd8f8ebae7a6ad92fbf9df545f845a04fbb777bd847c1e34038dd17e",
+      "compose.ai.data-volume.yaml": "4b54b6e17ab8cd96f78d98e49f07bdfa90522a67153f6ce63518502f0164ac64"
+    },
+    "stoppedExitCode": 0,
+    "backupLinuxCopyDatabaseCheck": "old and candidate passed",
+    "allProtectedEqual": true,
+    "ocrReady": 998,
+    "ocrCoverage": {
+      "eligible": 999,
+      "ready": 998,
+      "failed": 1,
+      "pending": 0,
+      "stale": 0
+    }
+  },
+  "all_original984_results_preserved": true,
+  "all_original31_protection_checks": true,
+  "search": {
+    "query": "Morinaga",
+    "allSources": {
+      "loaded": 50,
+      "ocrFirst": true,
+      "excerpt": "Morinaga"
+    },
+    "ocrOnly": {
+      "loaded": 1,
+      "source": "图片文字",
+      "excerpt": "Morinaga"
+    },
+    "rawEngineeringStatisticsOrLineNumbers": false,
+    "actualBrowser6010": true,
+    "postFinalDeploymentVerified": true,
+    "finalImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f"
+  }
+}

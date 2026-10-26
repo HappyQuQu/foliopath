@@ -1,0 +1,276 @@
+{
+  "status": "deployed_verified_local",
+  "candidateImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f",
+  "expectedCurrentMain": "sha256:7ff761c336cf882d8d69aa373fc9565f72bc74a04f2142e998eaecdd285e64cb",
+  "expectedAI": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+  "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+  "waitForJob": "ocrjob_4acd7be5b914d57c287eb553f19a39d4",
+  "ocrFingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+  "overlays": [
+    "compose.ai.yaml",
+    "compose.ai.unlimited-memory.yaml",
+    "compose.ai.multilingual.yaml",
+    "compose.ai.ocr.yaml",
+    "compose.ai.data-volume.yaml"
+  ],
+  "backendAndMigrationsIdentical": true,
+  "candidateDatabaseCheck": "passed on detached synthetic schema47",
+  "tests": {
+    "frozenFrontend": 454,
+    "threeBrowserChecks": 132,
+    "nativeOCR": 48,
+    "sqliteRaceSharded": 359
+  },
+  "noDeploymentYet": false,
+  "deploymentBlockedByCandidateRegression": false,
+  "regressionReview": "Aligned frozen tests and synthetic fixtures integrated; final backend and migrations equal C1; OCR-only and fused actual search verified",
+  "artifactPrefix": "final-grid",
+  "backupDirectoryPrefix": "backup-6010-ai-feature-grid-final-20261026-",
+  "expectedCoverage": {
+    "eligible": 999,
+    "ready": 998,
+    "failed": 1,
+    "pending": 0,
+    "stale": 0
+  },
+  "expectedJobState": "succeeded",
+  "expectedJobError": "",
+  "expectedJobFailed": 1,
+  "scope": "Four uniform feature cards; backend identical to currently deployed JPEG classification fix; retain complete OCR results/jobs",
+  "validation": "Synthetic native JPEG error classification and actual real-model worker 3-process recovery/invalid-media continuation passed; remaining14 real inputs prepare successfully in bounded readonly diagnosis",
+  "deployed": true,
+  "previousCandidateSnapshot": {
+    "status": "awaiting_ocr_terminal_and_candidate_regression_review",
+    "candidateImage": "sha256:9748e2928e9b4d19680e46ffd7a57e4ca6cfaddaa6ac094f819c1cfc378b469c",
+    "expectedCurrentMain": "sha256:067c1159eaa616820a38fcefc17ff12b8b1b534ac25ee7cc1a1f3402a7b0406d",
+    "expectedAI": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "waitForJob": "ocrjob_16133bb86bc37e890f99a833d2840483",
+    "ocrFingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+    "overlays": [
+      "compose.ai.yaml",
+      "compose.ai.unlimited-memory.yaml",
+      "compose.ai.multilingual.yaml",
+      "compose.ai.ocr.yaml",
+      "compose.ai.data-volume.yaml"
+    ],
+    "backendAndMigrationsIdentical": true,
+    "candidateDatabaseCheck": "passed on detached synthetic schema47",
+    "tests": {
+      "unit": 71,
+      "linuxBrowserGeometryAndAxe": 14,
+      "typecheck": "passed",
+      "frontendArchitecture": "passed",
+      "storybook": "passed",
+      "frozenProductionDockerBuild": "passed"
+    },
+    "noDeploymentYet": true,
+    "deploymentBlockedByCandidateRegression": true,
+    "regressionReview": "Frozen frontend suite failures discovered during parallel release review; distinguish stale assertions, fixtures and real behavior before deploying."
+  },
+  "finalDeployment": {
+    "deployed": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ai-feature-grid-final-20261026-uvx2wk9r",
+    "mainImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f",
+    "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "aiIdUnchanged": true,
+    "aiStartedAtUnchanged": true,
+    "mainStartedAt": "2026-10-26T07:20:50.687563Z",
+    "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+    "onlyMainImageChanged": true,
+    "allFiveOverlaysPreserved": true,
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "mediaReadOnly": true,
+    "memorySwapUnlimited": true,
+    "allProtectedUnchanged": true,
+    "allOCRResultsAndJobsUnchanged": true,
+    "ready": 998,
+    "failed": 1,
+    "pending": 0,
+    "databaseCheck": "passed",
+    "bothHealthy": true,
+    "restartCounts": [
+      0,
+      0
+    ]
+  },
+  "stoppedBackup": {
+    "verified": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ai-feature-grid-final-20261026-uvx2wk9r",
+    "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+    "mainImage": "sha256:7ff761c336cf882d8d69aa373fc9565f72bc74a04f2142e998eaecdd285e64cb",
+    "candidateImage": "sha256:b34190013455112760db3fd94c22ba119b3f66e29f8c1641f391c49d4666491f",
+    "aiId": "a75d0d30a26b11088c108f5e624fedd8279aa71f385b6a2d661ac8978cbf82ba",
+    "aiImage": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+    "aiStartedAt": "2026-10-26T05:03:07.259404008Z",
+    "files": 37376,
+    "bytes": 1097211618,
+    "manifestSha256": "bf5fd26d57d1f8dde8b855e94b5b0bdab1f9e74a6c2ddb26114ca0d460f62c63",
+    "databaseSha256": "07282120c47c696b58a707cbd1f71d67bcfd3ddbec9878c7cf9f40588eb75b96",
+    "configurations": {
+      "ai.env": "bd270e1e717b3a37b015ce66b69016dd127b0f8fd96600288b71f0a982b197fb",
+      "compose.ai.yaml": "6ce0f2e60e00ebe1a09ab1afe836576a839e211cf7344d456d92a6c26ff441a1",
+      "compose.ai.unlimited-memory.yaml": "e7b676a3193c384eb8ead7af5553cdd692c8daca38e9f8e47c21f016d445c140",
+      "compose.ai.multilingual.yaml": "43d74e28d05f1bd6df119f4e5327ec91e93a67d923afd04947b7a1da2ea0750f",
+      "compose.ai.ocr.yaml": "905cc45efd8f8ebae7a6ad92fbf9df545f845a04fbb777bd847c1e34038dd17e",
+      "compose.ai.data-volume.yaml": "4b54b6e17ab8cd96f78d98e49f07bdfa90522a67153f6ce63518502f0164ac64"
+    },
+    "stoppedExitCode": 0,
+    "backupLinuxCopyDatabaseCheck": "old and candidate passed",
+    "allProtectedEqual": true,
+    "ocrReady": 998,
+    "ocrCoverage": {
+      "eligible": 999,
+      "ready": 998,
+      "failed": 1,
+      "pending": 0,
+      "stale": 0
+    }
+  },
+  "browser": [
+    {
+      "cards": [
+        {
+          "height": 342.859375,
+          "name": "智能搜索",
+          "width": 343,
+          "x": 16,
+          "y": 526.21875
+        },
+        {
+          "height": 361.703125,
+          "name": "人物分析",
+          "width": 343,
+          "x": 16,
+          "y": 889.078125
+        },
+        {
+          "height": 539.6875,
+          "name": "自动标签",
+          "width": 343,
+          "x": 16,
+          "y": 1270.78125
+        },
+        {
+          "height": 364.609375,
+          "name": "文字识别",
+          "width": 343,
+          "x": 16,
+          "y": 1830.46875
+        }
+      ],
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "viewport": 390
+    },
+    {
+      "cards": [
+        {
+          "height": 324.015625,
+          "name": "智能搜索",
+          "width": 433,
+          "x": 296,
+          "y": 455.375
+        },
+        {
+          "height": 324.015625,
+          "name": "人物分析",
+          "width": 433,
+          "x": 296,
+          "y": 799.390625
+        },
+        {
+          "height": 468.84375,
+          "name": "自动标签",
+          "width": 433,
+          "x": 296,
+          "y": 1143.40625
+        },
+        {
+          "height": 345.765625,
+          "name": "文字识别",
+          "width": 433,
+          "x": 296,
+          "y": 1632.25
+        }
+      ],
+      "documentWidth": 753,
+      "mainWidth": 481,
+      "viewport": 768
+    },
+    {
+      "cards": [
+        {
+          "height": 340.015625,
+          "name": "智能搜索",
+          "width": 448.09375,
+          "x": 310.40625,
+          "y": 383.078125
+        },
+        {
+          "height": 340.015625,
+          "name": "人物分析",
+          "width": 448.09375,
+          "x": 778.5,
+          "y": 383.078125
+        },
+        {
+          "height": 484.84375,
+          "name": "自动标签",
+          "width": 448.09375,
+          "x": 310.40625,
+          "y": 743.09375
+        },
+        {
+          "height": 484.84375,
+          "name": "文字识别",
+          "width": 448.09375,
+          "x": 778.5,
+          "y": 743.09375
+        }
+      ],
+      "documentWidth": 1265,
+      "mainWidth": 993,
+      "viewport": 1280
+    },
+    {
+      "cards": [
+        {
+          "height": 340.015625,
+          "name": "智能搜索",
+          "width": 758.5,
+          "x": 320,
+          "y": 383.078125
+        },
+        {
+          "height": 340.015625,
+          "name": "人物分析",
+          "width": 758.5,
+          "x": 1098.5,
+          "y": 383.078125
+        },
+        {
+          "height": 447.15625,
+          "name": "自动标签",
+          "width": 758.5,
+          "x": 320,
+          "y": 743.09375
+        },
+        {
+          "height": 447.15625,
+          "name": "文字识别",
+          "width": 758.5,
+          "x": 1098.5,
+          "y": 743.09375
+        }
+      ],
+      "documentWidth": 1905,
+      "mainWidth": 1633,
+      "viewport": 1920
+    }
+  ],
+  "allFourBreakpointsPassed": true,
+  "viewportReset": true,
+  "releaseApproval": false,
+  "finalBackendSameAsJPEGFix": true
+}

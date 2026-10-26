@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -369,5 +370,86 @@ func TestFacePersonMutationRoutesUseIdempotencyAndRevisionPreconditions(t *testi
 	mux.ServeHTTP(response, remove)
 	if response.Code != http.StatusNoContent || stub.deletedID != "person_http_created" || stub.deletedRevision != 2 {
 		t.Fatalf("status=%d stub=%+v body=%s", response.Code, stub, response.Body.String())
+	}
+}
+
+func TestFaceClusterReviewQueryValidation(t *testing.T) {
+	for _, raw := range []string{"review=pending", "review=all", ""} {
+		if _, _, _, err := parseFaceClusterQuery(mustFaceQuery(t, raw)); err != nil {
+			t.Fatalf("valid %q: %v", raw, err)
+		}
+	}
+	for _, raw := range []string{"review=", "review=done", "review=all&review=pending", "review=pending&offset=1"} {
+		if _, _, _, err := parseFaceClusterQuery(mustFaceQuery(t, raw)); err == nil {
+			t.Fatalf("accepted %q", raw)
+		}
+	}
+	page := faceClusterPageResponse(face.FaceClusterPage{Counts: face.FaceClusterCounts{TotalGroups: 3, PendingGroups: 1, TotalFaces: 6, PendingFaces: 2}, Items: []face.FaceClusterView{{ID: "cluster_counts", MemberCount: 4, PendingMemberCount: 2}}})
+	if page.Counts.TotalGroups != 3 || page.Counts.PendingFaces != 2 || page.Items[0].PendingMemberCount != 2 {
+		t.Fatalf("counts DTO=%+v", page)
+	}
+}
+func mustFaceQuery(t *testing.T, raw string) url.Values {
+	t.Helper()
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return values
+}
+
+func TestInvalidFaceClusterCursorHasRecoverableWireCode(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	writeFaceError(w, r, face.ErrInvalidFaceClusterCursor)
+	if w.Code != 400 || !strings.Contains(w.Body.String(), `"code":"invalid_cursor"`) {
+		t.Fatalf("invalid cursor=%d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPersonPreviewDTOIsOpaqueAndNullable(t *testing.T) {
+	p := personResponse(face.Person{PreviewAssetID: 42})
+	if p.PreviewAssetID == nil || *p.PreviewAssetID != "ast_42" {
+		t.Fatalf("preview=%+v", p)
+	}
+	if p := personResponse(face.Person{}); p.PreviewAssetID != nil {
+		t.Fatalf("empty preview=%+v", p)
+	}
+	w := httptest.NewRecorder()
+	writeFaceError(w, httptest.NewRequest(http.MethodGet, "/", nil), face.ErrInvalidPeopleCursor)
+	if w.Code != 400 || !strings.Contains(w.Body.String(), `"code":"invalid_cursor"`) {
+		t.Fatalf("cursor=%d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestExcludeFaceRoutePreservesSourceGuard(t *testing.T) {
+	stub := &faceHTTPReviewStub{}
+	mux := http.NewServeMux()
+	registerFaceMutationRoutes(mux, stub)
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/ai/face-reviews", strings.NewReader(`{"action":"exclude_face","faceId":"face_http_0001","expectedFaceRevision":1,"sourcePersonId":"person_http_01","expectedSourceRevision":7}`))
+	r.Header.Set("Idempotency-Key", "face-exclude-http-key-001")
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	if w.Code != 200 || stub.reviewRequest.SourcePersonID != "person_http_01" || stub.reviewRequest.ExpectedSourceRevision != 7 {
+		t.Fatalf("guard=%+v status=%d body=%s", stub.reviewRequest, w.Code, w.Body.String())
+	}
+}
+
+func TestCannotLinkRoutePreservesBothOwnersAndSafePeerProjection(t *testing.T) {
+	stub := &faceHTTPReviewStub{}
+	mux := http.NewServeMux()
+	registerFaceMutationRoutes(mux, stub)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/ai/face-reviews", strings.NewReader(`{"action":"cannot_link","leftFaceId":"face_left_001","rightFaceId":"face_right_001","expectedLeftRevision":1,"expectedRightRevision":2,"sourcePersonId":"person_left_001","targetPersonId":"person_right_001","expectedSourceRevision":7,"expectedTargetRevision":4}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", "cannot-link-http-001")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || stub.reviewRequest.SourcePersonID != "person_left_001" || stub.reviewRequest.TargetPersonID != "person_right_001" || stub.reviewRequest.ExpectedSourceRevision != 7 || stub.reviewRequest.ExpectedTargetRevision != 4 {
+		t.Fatalf("status=%d guard=%+v", response.Code, stub.reviewRequest)
+	}
+	page := assetFacePageResponse([]face.AssetFaceView{{FaceID: "face_left_001", AssetID: 1, CannotLinkFaceIDs: []string{"face_right_001"}}, {FaceID: "face_empty_001", AssetID: 1}})
+	if len(page.Items[0].CannotLinkFaceIDs) != 1 || page.Items[1].CannotLinkFaceIDs == nil {
+		t.Fatalf("safe peer projection=%+v", page)
 	}
 }
