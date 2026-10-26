@@ -1,0 +1,112 @@
+{
+  "version": "1.5.0",
+  "tag": "v1.5.0",
+  "sourceCommit": "63d9a0c764a23ca3fbf161908f0bf5b6d3931a0d",
+  "release": "https://github.com/HappyQuQu/foliopath/releases/tag/v1.5.0",
+  "workflow": "https://github.com/HappyQuQu/foliopath/actions/runs/40343061041",
+  "workflowAttempt": 2,
+  "conclusion": "success",
+  "main": {
+    "image": "evanqu/foliopath",
+    "indexDigest": "sha256:46bac85915a4dd978a8910c592339a19d739bdfd597002d1925cf1561a52758a",
+    "tags": [
+      "1.5.0",
+      "1.5",
+      "latest"
+    ],
+    "equalIndexesVerified": true,
+    "nativeVerifiedRecords": {
+      "arm64": {
+        "arch": "arm64",
+        "digest": "sha256:307e332f2965503dc451911062dc4ec058d9e7a6ef294f114e4d19c368f8dba1",
+        "image": "evanqu/foliopath",
+        "source": "63d9a0c764a23ca3fbf161908f0bf5b6d3931a0d",
+        "version": "v1.5.0"
+      },
+      "amd64": {
+        "arch": "amd64",
+        "digest": "sha256:9a2010588262c24fedb5bc1a4d2171df9e34106d272f7471b4db49cfd19c7602",
+        "image": "evanqu/foliopath",
+        "source": "63d9a0c764a23ca3fbf161908f0bf5b6d3931a0d",
+        "version": "v1.5.0"
+      }
+    },
+    "descriptors": [
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:7503d296999df49aaf8b7ec2fb32b2bfcff77cb4e51148b163223b29db013a0f",
+        "size": 4466,
+        "platform": {
+          "architecture": "amd64",
+          "os": "linux"
+        }
+      },
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:20385e9342af1f8a8809814ea1349b55c496dde11b8ac94a0050c5a55d47e3f1",
+        "size": 1112,
+        "annotations": {
+          "vnd.docker.reference.digest": "sha256:7503d296999df49aaf8b7ec2fb32b2bfcff77cb4e51148b163223b29db013a0f",
+          "vnd.docker.reference.type": "attestation-manifest"
+        },
+        "platform": {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      },
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:71fb189a675249202240647a8e2c18e8f96e81c937c2da3410d3e6062fd94e0e",
+        "size": 4466,
+        "platform": {
+          "architecture": "arm64",
+          "os": "linux"
+        }
+      },
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:f41128489f85ac06f0e81507a2cc85734f57abcf3033435bac11f7513f4f2b06",
+        "size": 1112,
+        "annotations": {
+          "vnd.docker.reference.digest": "sha256:71fb189a675249202240647a8e2c18e8f96e81c937c2da3410d3e6062fd94e0e",
+          "vnd.docker.reference.type": "attestation-manifest"
+        },
+        "platform": {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      }
+    ],
+    "SPDXAndSLSAPreserved": true,
+    "buildOncePerArchitecture": true,
+    "publicationDidNotRebuild": true
+  },
+  "optionalAI": {
+    "embeddedVersion": "rc-20261026.7",
+    "sourceCommit": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+    "amd64": "evanqu/foliopath@sha256:05a9c06fb6a8d40ba5353d564f1bcd3f999924da6bc3c3f8844f872df42e9920",
+    "arm64": "evanqu/foliopath@sha256:a87f738833acd32661a63bef0f090c3507ac815b91cba619daeeadbcfffd375d",
+    "notRetaggedAsStableAI": true,
+    "weightsNotBundled": true
+  },
+  "history": {
+    "mergePR": 59,
+    "releasePR": 60,
+    "mergeCommit": "549015523cff71a182af37732d157ff3179ed0f1",
+    "firstAttempt": "both native builds/verification succeeded; publication Docker Hub login failed",
+    "retry": "only failed publish job; original native results retained"
+  },
+  "production6010": "unchanged by release; stays rc-20261026.7",
+  "knownIssues": [
+    "About update check failure may still claim latest stable",
+    "damaged/truncated/empty originals may remain unrecognized"
+  ],
+  "notClaimedPassed": [
+    "capacity",
+    "24h mixed load",
+    "formal labelled AI quality",
+    "vulnerability remediation/rescan",
+    "model authorization materials"
+  ],
+  "recordedAt": "2026-10-26T15:02:08.169401+00:00"
+}
