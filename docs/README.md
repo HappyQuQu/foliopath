@@ -1,5 +1,7 @@
 # FolioPath 文档
 
+- [提交内容与本地产物过滤](changes/CHORE-2026-10-26-commit-filter.md)：源码、测试和必要素材入库；私有配置、运行数据、依赖与临时构建结果留在本地。
+
 - [本轮固定候选与交付验证](changes/VERIFY-2026-10-26-release-candidate.md)：最终.3／7de02／54673775，约定本地工程与双原生已收尾；最终嵌入UI231通过／54条件SKIP，双架构OCI／SPDX／SLSA本地保留，未正式发布或更新6010。容量24小时取消，质量／漏洞处理暂缓，Git／CI promotion及打包偏差不冒称通过。
 
 - [当前 AI 候选并行发布验收](changes/AUDIT-2026-10-26-release-readiness.md)：本机工程/当前镜像漏洞扫描已收尾；质量数据暂缓，安全/双架构/容量长稳未通过项仍阻断正式发布。

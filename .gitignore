@@ -2,10 +2,16 @@
 .env
 .env.*
 !.env.example
-/ai.env
+!.env.*.example
+ai.env
 
 # Operating-system and editor files
 .DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
 
 # Go build and test output
 /bin/
@@ -17,17 +23,18 @@ __pycache__/
 *.pyc
 
 # Frontend dependencies and generated output
-/web/node_modules/
+node_modules/
+.vite/
+*.tsbuildinfo
 /web/dist/
-/web/coverage/
-/web/storybook-static/
+coverage/
+storybook-static/
 /internal/webassets/dist/*
 !/internal/webassets/dist/.gitkeep
-/prototypes/*/node_modules/
 /prototypes/*/dist/
-/prototypes/*/.vite/
-/playwright-report/
-/test-results/
+/spikes/*/dist/
+playwright-report/
+test-results/
 /.artifacts/
 
 # Runtime state
@@ -37,7 +44,13 @@ foliopath-data/
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
 *.log
