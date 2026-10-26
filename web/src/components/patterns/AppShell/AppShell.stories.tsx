@@ -56,3 +56,13 @@ export const FullHeader: Story = {
     children: <p>合成布局状态：窄屏第一行保留完整搜索，第二行排列人物、语言、主题、通知与账户；键盘顺序与视觉一致。</p>,
   },
 };
+
+export const LongLibraryName: Story = {
+  parameters: {
+    docs: { description: { story: "Synthetic maximum-length library name for responsive layout verification." } },
+  },
+  args: {
+    topbarContent: <span>{"Family archive ".padEnd(128, "A")}</span>,
+    children: <p>2026</p>,
+  },
+};

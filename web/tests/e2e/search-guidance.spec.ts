@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 
 const image = readFileSync(new URL("../../../tests/fixtures/media/viewer-blue-violet.png", import.meta.url));
 for (const locale of ["zh-CN", "en"] as const) for (const width of [320, 390, 768, 1440, 1920]) {
-  test(`${locale} search mode guidance at ${width}px`, async ({ page }, testInfo) => {
+  test(`${locale} search mode guidance at ${width}px`, async ({ page, browserName }, testInfo) => {
     const english = locale === "en";
     const semanticLabel = english ? "Describe visual content" : "描述画面内容";
     const literalLabel = english ? "Search filenames or paths" : "搜索文件名或路径";
@@ -60,9 +60,12 @@ for (const locale of ["zh-CN", "en"] as const) for (const width of [320, 390, 76
     if (width <= 480) {
       const submit = page.getByRole("button", { name: english ? "Search" : "搜索", exact: true });
       await expect(submit).toBeVisible();
-      await input.press("Tab");
+      // Native macOS WebKit uses Option-Tab to include buttons in keyboard navigation.
+      // https://support.apple.com/guide/safari/keyboard-shortcuts-and-gestures-cpsh003/mac
+      const tabKey = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+      await input.press(tabKey);
       await expect(submit).toBeFocused();
-      await submit.press("Tab");
+      await submit.press(tabKey);
       await expect(page.getByRole("button", { name: english ? "Switch to 简体中文" : "切换到 English" })).toBeFocused();
     }
     await expect(page.getByText(english ? "Describe the scene you want, such as a sunset by the sea." : "描述你想找的画面，例如海边日落。")).toBeVisible();

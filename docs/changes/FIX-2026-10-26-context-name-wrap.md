@@ -1,0 +1,10 @@
+# 长媒体库名称的上下文栏换行
+
+- 需求：FR-UI-001～003/006、NFR-UIF-001；既有 POST-MVP-5 候选维护，S5-007/S5-008，owner 为 Web AppShell 与发布验收任务。
+- 合同：媒体库原有 128 字符名称与共享 AppShell 上下文文字；不增加设置、API、数据格式或模型身份。
+- 发现：候选 B 的干净提交 `6e76b36074aff0356d494786bad162591b30b3d6` 经正式 CI 后，在真实嵌入页面的管理员完整流程发现长名称使 1280px 页面出现 1344px 横向范围。直接文字 span 的最小内容宽度大于共享上下文容器。
+- 修复：仅对 AppShell 上下文栏的直接文字 span 设置可收缩及任意长词换行，保留按钮、图标和现有面包屑省略行为。添加生产组件 LongLibraryName 稳定 Story；已有 auth 浏览器用例保留完整溢出断言。
+- 其余四条 B 的失败属于 macOS WebKit 原生按键假设：独立原生 HTML 与真实 B 页面均证明 Option-Tab 可依次到达搜索和语言按钮；普通 Tab 跳过按钮。仅此平台使用原生 Option-Tab，保留两段焦点顺序和全部后续搜索断言，没有强制焦点、跳过测试或修改用户系统设置。依据 [Apple 快捷键说明](https://support.apple.com/guide/safari/keyboard-shortcuts-and-gestures-cpsh003/mac)。
+- 原始 B 结果保留为 226 通过、5 失败、54 条件跳过；4/4 私有按键诊断单独记录，不回填成 B 整版通过。
+
+修复候选 C 须重新冻结、正式 CI 构建及实际最终镜像回归通过后才可更新 6010。当前生产仍保留原数据与任务，未因 B 的 CI 成功而绕过实际浏览器失败。私有证据见 `.artifacts/formal-release-20261026/runtime/attempt2/`。

@@ -467,3 +467,5 @@ composition 与发行 UI 继续失败关闭。
 - [智能分析四功能统一布局](changes/FIX-2026-10-26-ai-feature-grid.md)：生产组件预览与响应式验证，待现有OCR任务结束后更新6010。
 
 - [干净源码、正式 CI 与 6010 更新验收](changes/VERIFY-2026-10-26-formal-ci-6010.md)
+
+- [长媒体库名称上下文栏修复](changes/FIX-2026-10-26-context-name-wrap.md)
