@@ -1,0 +1,29 @@
+{
+  "status": "awaiting_ocr_terminal_and_candidate_regression_review",
+  "candidateImage": "sha256:9748e2928e9b4d19680e46ffd7a57e4ca6cfaddaa6ac094f819c1cfc378b469c",
+  "expectedCurrentMain": "sha256:067c1159eaa616820a38fcefc17ff12b8b1b534ac25ee7cc1a1f3402a7b0406d",
+  "expectedAI": "sha256:7739486c053d5d1107a57546eb88a9ea17cc939dd1585af265483b5f2d3a6572",
+  "dataVolume": "foliopath-ai-original-review-data-linux-ymqn7wf2",
+  "waitForJob": "ocrjob_16133bb86bc37e890f99a833d2840483",
+  "ocrFingerprint": "89e3e889c5d124b914aa524fb593bde83e56f94016c0ef702a9e3f503231ea64",
+  "overlays": [
+    "compose.ai.yaml",
+    "compose.ai.unlimited-memory.yaml",
+    "compose.ai.multilingual.yaml",
+    "compose.ai.ocr.yaml",
+    "compose.ai.data-volume.yaml"
+  ],
+  "backendAndMigrationsIdentical": true,
+  "candidateDatabaseCheck": "passed on detached synthetic schema47",
+  "tests": {
+    "unit": 71,
+    "linuxBrowserGeometryAndAxe": 14,
+    "typecheck": "passed",
+    "frontendArchitecture": "passed",
+    "storybook": "passed",
+    "frozenProductionDockerBuild": "passed"
+  },
+  "noDeploymentYet": true,
+  "deploymentBlockedByCandidateRegression": true,
+  "regressionReview": "Frozen frontend suite failures discovered during parallel release review; distinguish stale assertions, fixtures and real behavior before deploying."
+}

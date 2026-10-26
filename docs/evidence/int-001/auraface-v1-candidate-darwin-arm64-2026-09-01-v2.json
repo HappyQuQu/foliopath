@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "evidence_class": "replacement-candidate-local-functional-only",
+  "dataset_id": "operator-local-auraface-functional-v2",
+  "authorization_ref": "operator-user-authorized-functional-2026-09-01",
+  "generated_at": "2026-09-01T00:06:55Z",
+  "runtime": {
+    "opencv": "4.12.0",
+    "onnxruntime": "1.28.0",
+    "machine": "arm64",
+    "backend": "OpenCV YuNet + ONNX Runtime CPU"
+  },
+  "models": [
+    {
+      "id": "opencv-zoo-yunet-2023mar",
+      "version": "2023mar",
+      "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+    },
+    {
+      "id": "fal-auraface-v1-glintr100",
+      "version": "af6d057c9b0ec4071d4c49c80e3539258798b609",
+      "sha256": "a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60"
+    }
+  ],
+  "embedder_contract": {
+    "input_name": "data",
+    "input_shape": [
+      "dynamic",
+      3,
+      112,
+      112
+    ],
+    "output_name": "1333",
+    "output_shape": [
+      1,
+      512
+    ],
+    "preprocess": "insightface-rgb-minus-127.5-div-127.5-v1"
+  },
+  "derived_graph": null,
+  "sampling": {
+    "groups": 9,
+    "group_depth": 1,
+    "max_per_group": 15,
+    "sample_files": 135,
+    "max_dimension": 1600,
+    "max_file_bytes": 262144000,
+    "skipped_oversized": 0
+  },
+  "decoded": 135,
+  "decode_failures": 0,
+  "images_with_candidates": 79,
+  "detected_candidates": 79,
+  "max_candidates_per_image": 1,
+  "valid_embeddings": 79,
+  "invalid_embeddings": 0,
+  "detector_p50_ms": 15.608,
+  "detector_p95_ms": 19.55,
+  "embedding_p50_ms": 48.234,
+  "embedding_p95_ms": 51.919,
+  "raw_images_copied": false,
+  "face_crops_persisted": false,
+  "embeddings_persisted": false,
+  "identity_ground_truth": false,
+  "quality_or_release_gate": false,
+  "group_pair_functional": {
+    "functional_groups": 9,
+    "embedded_observations": 79,
+    "within_group_pairs": 389,
+    "cross_group_pairs": 2692,
+    "pair_limit": 100000,
+    "sampling": "deterministic-balanced-across-group-pairs",
+    "group_semantics": "directory-group-only-not-identity-ground-truth",
+    "threshold_metrics": [
+      {
+        "threshold": 0.363,
+        "within_group_accept_rate": 0.984576,
+        "cross_group_accept_rate": 0.187221,
+        "cross_group_accepted_pairs": 504
+      },
+      {
+        "threshold": 0.5,
+        "within_group_accept_rate": 0.8509,
+        "cross_group_accept_rate": 0.017088,
+        "cross_group_accepted_pairs": 46
+      },
+      {
+        "threshold": 0.6,
+        "within_group_accept_rate": 0.609254,
+        "cross_group_accept_rate": 0.0,
+        "cross_group_accepted_pairs": 0
+      },
+      {
+        "threshold": 0.7,
+        "within_group_accept_rate": 0.305913,
+        "cross_group_accept_rate": 0.0,
+        "cross_group_accepted_pairs": 0
+      },
+      {
+        "threshold": 0.8,
+        "within_group_accept_rate": 0.046272,
+        "cross_group_accept_rate": 0.0,
+        "cross_group_accepted_pairs": 0
+      }
+    ],
+    "identity_labels_persisted": false,
+    "embeddings_persisted": false,
+    "quality_gate": false
+  },
+  "caveats": [
+    "This is a replacement-candidate compatibility test, not a model selection or approval.",
+    "Directory grouping is not face-level identity ground truth.",
+    "The large graph and its exact source/training lineage still require capacity and compliance review."
+  ]
+}

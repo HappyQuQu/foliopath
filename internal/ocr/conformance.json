@@ -1,0 +1,2402 @@
+[
+  {
+    "name": "bilingual_nfc_plaintext",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": true,
+    "text": [
+      "中文 Café <b>😀</b>"
+    ]
+  },
+  {
+    "name": "empty_success",
+    "lines": [],
+    "valid": true,
+    "text": []
+  },
+  {
+    "name": "blank",
+    "lines": [
+      {
+        "text": "  ",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "control",
+    "lines": [
+      {
+        "text": "x\u0000",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "low_detection",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.49,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "low_recognition",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.79
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "outside",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          -0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "bowtie",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.3,
+          0.9,
+          0.1,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "expanded_nfc",
+    "lines": [
+      {
+        "text": "̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́̈́",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "line_budget",
+    "lines": [
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "region_budget",
+    "lines": [
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "中文 Café <b>😀</b>",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  },
+  {
+    "name": "total_budget",
+    "lines": [
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      },
+      {
+        "text": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字",
+        "box": [
+          0.1,
+          0.1,
+          0.9,
+          0.1,
+          0.9,
+          0.3,
+          0.1,
+          0.3
+        ],
+        "detection_score": 0.9,
+        "recognition_score": 0.95
+      }
+    ],
+    "valid": false
+  }
+]

@@ -31,21 +31,37 @@ func (s *Store) GetAssetState(ctx context.Context, assetID int64) (curation.Asse
 	if assetID <= 0 {
 		return curation.AssetState{}, curation.ErrAssetNotFound
 	}
-	var libraryID, revision int64
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return curation.AssetState{}, fmt.Errorf("begin asset curation snapshot: %w", err)
+	}
+	defer tx.Rollback()
+	state, err := readAssetCurationState(ctx, tx, assetID)
+	if err != nil {
+		return curation.AssetState{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return curation.AssetState{}, fmt.Errorf("finish asset curation snapshot: %w", err)
+	}
+	return state, nil
+}
+
+func readAssetCurationState(ctx context.Context, tx *sql.Tx, assetID int64) (curation.AssetState, error) {
+	var revision int64
 	var favoriteAt sql.NullInt64
-	if err := s.db.QueryRowContext(ctx, `
-        SELECT a.library_id, cs.revision, f.created_at_ms
+	if err := tx.QueryRowContext(ctx, `
+        SELECT cs.revision, f.created_at_ms
         FROM assets a
         CROSS JOIN curation_state cs
         LEFT JOIN asset_favorites f ON f.asset_id = a.id
         WHERE a.id = ? AND cs.singleton_key = 1`, assetID,
-	).Scan(&libraryID, &revision, &favoriteAt); err != nil {
+	).Scan(&revision, &favoriteAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return curation.AssetState{}, curation.ErrAssetNotFound
 		}
 		return curation.AssetState{}, fmt.Errorf("read asset curation state: %w", err)
 	}
-	tags, err := s.listAssetTags(ctx, assetID)
+	tags, err := listAssetTags(ctx, tx, assetID)
 	if err != nil {
 		return curation.AssetState{}, err
 	}
@@ -55,7 +71,6 @@ func (s *Store) GetAssetState(ctx context.Context, assetID int64) (curation.Asse
 		state.Favorite = true
 		state.FavoritedAt = &value
 	}
-	_ = libraryID
 	return state, nil
 }
 
@@ -106,7 +121,9 @@ func (s *Store) CreateTag(ctx context.Context, name, normalizedName string, now 
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
             SELECT id, name, normalized_name, created_at_ms, updated_at_ms,
-                   (SELECT COUNT(*) FROM asset_tags at WHERE at.tag_id = tags.id)
+                   (SELECT COUNT(*) FROM asset_tags at WHERE at.tag_id = tags.id),
+                   EXISTS(SELECT 1 FROM asset_tags ai WHERE ai.tag_id=tags.id AND ai.source='ai')
+                   AND NOT EXISTS(SELECT 1 FROM asset_tags manual WHERE manual.tag_id=tags.id AND manual.source='manual')
             FROM tags WHERE normalized_name = ?`, normalizedName)
 		if err := scanTag(row, &tag); err == nil {
 			return nil
@@ -135,12 +152,15 @@ func (s *Store) RenameTag(ctx context.Context, tagID int64, name, normalizedName
 		return curation.Tag{}, curation.ErrInvalidRequest
 	}
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
-		var exists int64
-		if err := tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE id = ?`, tagID).Scan(&exists); err != nil {
+		var oldName, oldKey string
+		if err := tx.QueryRowContext(ctx, `SELECT name, normalized_name FROM tags WHERE id = ?`, tagID).Scan(&oldName, &oldKey); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return curation.ErrTagNotFound
 			}
 			return fmt.Errorf("resolve tag for rename: %w", err)
+		}
+		if oldName == name && oldKey == normalizedName {
+			return nil
 		}
 		var conflict int64
 		err := tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE normalized_name = ? AND id <> ?`, normalizedName, tagID).Scan(&conflict)
@@ -150,7 +170,14 @@ func (s *Store) RenameTag(ctx context.Context, tagID int64, name, normalizedName
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("check tag rename conflict: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE tags SET name = ?, normalized_name = ?, updated_at_ms = ? WHERE id = ?`, name, normalizedName, now.UTC().UnixMilli(), tagID); err != nil {
+		if err := suppressTagAssignmentsTx(ctx, tx, tagID, now); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE asset_tags SET source='manual', ai_model_identity=NULL,
+            ai_source_fingerprint=NULL, ai_confidence=NULL WHERE tag_id=? AND source='ai'`, tagID); err != nil {
+			return fmt.Errorf("protect renamed automatic tags: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE tags SET name = ?, normalized_name = ?, updated_at_ms = MAX(updated_at_ms, ?) WHERE id = ?`, name, normalizedName, now.UTC().UnixMilli(), tagID); err != nil {
 			return fmt.Errorf("rename tag: %w", err)
 		}
 		return nil
@@ -166,6 +193,9 @@ func (s *Store) DeleteTag(ctx context.Context, tagID int64) error {
 		return curation.ErrTagNotFound
 	}
 	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		if err := suppressTagAssignmentsTx(ctx, tx, tagID, s.now().UTC()); err != nil {
+			return err
+		}
 		result, err := tx.ExecContext(ctx, `DELETE FROM tags WHERE id = ?`, tagID)
 		if err != nil {
 			return fmt.Errorf("delete tag: %w", err)
@@ -183,6 +213,11 @@ func (s *Store) DeleteTag(ctx context.Context, tagID int64) error {
 
 func (s *Store) ReplaceAssetTags(ctx context.Context, assetID, expectedRevision int64, tagIDs []int64, now time.Time) error {
 	if assetID <= 0 || expectedRevision <= 0 || len(tagIDs) > curation.MaxTagsPerAsset || now.IsZero() {
+		return curation.ErrInvalidRequest
+	}
+	tagIDs = append([]int64(nil), tagIDs...)
+	slices.Sort(tagIDs)
+	if len(slices.Compact(append([]int64(nil), tagIDs...))) != len(tagIDs) || len(tagIDs) > 0 && tagIDs[0] <= 0 {
 		return curation.ErrInvalidRequest
 	}
 	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
@@ -221,15 +256,90 @@ func (s *Store) ReplaceAssetTags(ctx context.Context, assetID, expectedRevision 
 		if slices.Equal(current, tagIDs) {
 			return nil
 		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM asset_tags WHERE asset_id = ?`, assetID); err != nil {
-			return fmt.Errorf("clear asset tags: %w", err)
+		// Keep unchanged associations (including their provenance) intact. Manual
+		// deletion persists independently of the current tag ID or model generation.
+		for _, tagID := range current {
+			if slices.Contains(tagIDs, tagID) {
+				continue
+			}
+			if err := suppressAssetTagTx(ctx, tx, libraryID, assetID, tagID, now); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `DELETE FROM asset_tags WHERE asset_id=? AND tag_id=?`, assetID, tagID); err != nil {
+				return fmt.Errorf("remove asset tag: %w", err)
+			}
 		}
 		for _, tagID := range tagIDs {
+			if slices.Contains(current, tagID) {
+				continue
+			}
+			if err := clearAssetTagSuppressionTx(ctx, tx, libraryID, assetID, tagID); err != nil {
+				return err
+			}
 			if _, err := tx.ExecContext(ctx, `
                 INSERT INTO asset_tags(asset_id, library_id, tag_id, created_at_ms)
                 VALUES(?, ?, ?, ?)`, assetID, libraryID, tagID, now.UTC().UnixMilli()); err != nil {
 				return fmt.Errorf("attach asset tag: %w", err)
 			}
+		}
+		return nil
+	})
+}
+
+func (s *Store) AddAssetTag(ctx context.Context, assetID, expectedRevision, tagID int64, now time.Time) error {
+	if assetID < 1 || expectedRevision < 1 || tagID < 1 || now.IsZero() {
+		return curation.ErrInvalidRequest
+	}
+	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
+		var revision int64
+		if err := tx.QueryRowContext(ctx, `SELECT revision FROM curation_state WHERE singleton_key = 1`).Scan(&revision); err != nil {
+			return fmt.Errorf("read suggested tag precondition: %w", err)
+		}
+		var libraryID int64
+		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return curation.ErrAssetNotFound
+			}
+			return fmt.Errorf("resolve suggested-tag asset: %w", err)
+		}
+		var tagExists int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tags WHERE id = ?`, tagID).Scan(&tagExists); err != nil {
+			return fmt.Errorf("resolve suggested tag: %w", err)
+		}
+		if tagExists != 1 {
+			return curation.ErrTagNotFound
+		}
+		var currentCount int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM asset_tags WHERE asset_id = ?`, assetID).Scan(&currentCount); err != nil {
+			return fmt.Errorf("count current asset tags: %w", err)
+		}
+		var source string
+		err := tx.QueryRowContext(ctx, `SELECT source FROM asset_tags WHERE asset_id = ? AND tag_id = ?`, assetID, tagID).Scan(&source)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("resolve existing suggested tag: %w", err)
+		}
+		if source == string(curation.TagSourceManual) {
+			// Preserve idempotent recovery of an already-accepted manual suggestion.
+			return nil
+		}
+		if revision != expectedRevision {
+			return curation.ErrPreconditionFailed
+		}
+		if source == "" && currentCount >= curation.MaxTagsPerAsset {
+			return curation.ErrInvalidRequest
+		}
+		if err := clearAssetTagSuppressionTx(ctx, tx, libraryID, assetID, tagID); err != nil {
+			return err
+		}
+		if source == string(curation.TagSourceAI) {
+			_, err := tx.ExecContext(ctx, `UPDATE asset_tags SET source='manual',ai_model_identity=NULL,
+                ai_source_fingerprint=NULL,ai_confidence=NULL WHERE asset_id=? AND tag_id=?`, assetID, tagID)
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+            INSERT INTO asset_tags(asset_id, library_id, tag_id, created_at_ms)
+            VALUES(?, ?, ?, ?)`, assetID, libraryID, tagID, now.UTC().UnixMilli()); err != nil {
+			return fmt.Errorf("attach suggested tag: %w", err)
 		}
 		return nil
 	})
@@ -256,19 +366,56 @@ func listAssetTagIDs(ctx context.Context, tx *sql.Tx, assetID int64) ([]int64, e
 }
 
 func (s *Store) ListTagPage(ctx context.Context, params curation.TagListParams) ([]curation.Tag, error) {
-	if params.Limit < 1 || params.Limit > curation.MaxPageSize+1 {
+	if params.LibraryID < 0 || params.Limit < 1 || params.Limit > curation.MaxPageSize+1 {
 		return nil, curation.ErrInvalidRequest
 	}
 	query := `
         SELECT t.id, t.name, t.normalized_name, t.created_at_ms, t.updated_at_ms,
-               COUNT(at.asset_id)
-        FROM tags t
-        LEFT JOIN asset_tags at ON at.tag_id = t.id
-        WHERE 1 = 1`
-	args := make([]any, 0, 5)
+               COUNT(DISTINCT at.asset_id),
+               EXISTS(SELECT 1 FROM asset_tags ai WHERE ai.tag_id=t.id AND ai.source='ai')
+               AND NOT EXISTS(SELECT 1 FROM asset_tags manual WHERE manual.tag_id=t.id AND manual.source='manual')
+	        FROM tags t`
+	if params.LibraryID > 0 || len(params.Kinds) > 0 {
+		query += ` JOIN asset_tags at ON at.tag_id = t.id
+            JOIN assets a ON a.library_id = at.library_id AND a.id = at.asset_id`
+	} else {
+		query += ` LEFT JOIN asset_tags at ON at.tag_id = t.id`
+	}
+	query += ` WHERE 1 = 1`
+	args := make([]any, 0, 9)
+	if params.LibraryID > 0 {
+		query += ` AND at.library_id = ?`
+		args = append(args, params.LibraryID)
+	}
+	if len(params.Kinds) > 0 {
+		query += ` AND a.kind IN (` + strings.TrimSuffix(strings.Repeat("?,", len(params.Kinds)), ",") + `)`
+		for _, kind := range params.Kinds {
+			args = append(args, string(kind))
+		}
+	}
 	if params.SearchKey != "" {
-		query += ` AND instr(t.normalized_name, ?) > 0`
+		query += ` AND (instr(t.normalized_name, ?) > 0`
 		args = append(args, params.SearchKey)
+		matches := curation.MatchingAutomaticCategories(params.SearchKey)
+		if len(matches) > 0 {
+			query += ` OR (t.normalized_name IN (` + strings.TrimSuffix(strings.Repeat("?,", len(matches)), ",") + `)
+                AND EXISTS(SELECT 1 FROM asset_tags ai WHERE ai.tag_id=t.id AND ai.source='ai'`
+			for _, key := range matches {
+				args = append(args, key)
+			}
+			if params.LibraryID > 0 {
+				query += ` AND ai.library_id=?`
+				args = append(args, params.LibraryID)
+			}
+			if len(params.Kinds) > 0 {
+				query += ` AND EXISTS(SELECT 1 FROM assets aa WHERE aa.id=ai.asset_id AND aa.library_id=ai.library_id AND aa.kind IN (` + strings.TrimSuffix(strings.Repeat("?,", len(params.Kinds)), ",") + `))`
+				for _, kind := range params.Kinds {
+					args = append(args, string(kind))
+				}
+			}
+			query += `))`
+		}
+		query += `)`
 	}
 	if params.After != nil {
 		query += ` AND (t.normalized_name > ? OR (t.normalized_name = ? AND t.id > ?))`
@@ -315,7 +462,9 @@ func (s *Store) getTag(ctx context.Context, tagID int64) (curation.Tag, error) {
 	var tag curation.Tag
 	err := scanTag(s.db.QueryRowContext(ctx, `
         SELECT t.id, t.name, t.normalized_name, t.created_at_ms, t.updated_at_ms,
-               (SELECT COUNT(*) FROM asset_tags at WHERE at.tag_id = t.id)
+               (SELECT COUNT(*) FROM asset_tags at WHERE at.tag_id = t.id),
+               EXISTS(SELECT 1 FROM asset_tags ai WHERE ai.tag_id=t.id AND ai.source='ai')
+               AND NOT EXISTS(SELECT 1 FROM asset_tags manual WHERE manual.tag_id=t.id AND manual.source='manual')
         FROM tags t WHERE t.id = ?`, tagID), &tag)
 	if errors.Is(err, sql.ErrNoRows) {
 		return curation.Tag{}, curation.ErrTagNotFound
@@ -328,7 +477,7 @@ func (s *Store) getTag(ctx context.Context, tagID int64) (curation.Tag, error) {
 
 func scanTag(scanner rowScanner, tag *curation.Tag) error {
 	var createdAtMS, updatedAtMS int64
-	if err := scanner.Scan(&tag.ID, &tag.Name, &tag.NormalizedName, &createdAtMS, &updatedAtMS, &tag.AssetCount); err != nil {
+	if err := scanner.Scan(&tag.ID, &tag.Name, &tag.NormalizedName, &createdAtMS, &updatedAtMS, &tag.AssetCount, &tag.AutomaticOnly); err != nil {
 		return err
 	}
 	tag.CreatedAt = time.UnixMilli(createdAtMS).UTC()
@@ -346,14 +495,23 @@ func (s *Store) ListCuratedAssetPage(ctx context.Context, params curation.AssetL
 	}
 	query += ` LIMIT ?`
 	args = append(args, params.Limit)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, fmt.Errorf("begin curated asset snapshot: %w", err)
+	}
+	defer tx.Rollback()
+	var stateRevision int64
+	if err := tx.QueryRowContext(ctx, `SELECT revision FROM curation_state WHERE singleton_key=1`).Scan(&stateRevision); err != nil {
+		return nil, fmt.Errorf("read curated asset snapshot revision: %w", err)
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list curated assets: %w", err)
 	}
 	defer rows.Close()
 	items := make([]curation.CuratedAsset, 0, params.Limit)
 	for rows.Next() {
-		item, err := scanCuratedAsset(rows, params.Query.Revision)
+		item, err := scanCuratedAsset(rows, stateRevision)
 		if err != nil {
 			return nil, fmt.Errorf("read curated asset: %w", err)
 		}
@@ -362,12 +520,18 @@ func (s *Store) ListCuratedAssetPage(ctx context.Context, params curation.AssetL
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate curated assets: %w", err)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close curated asset rows: %w", err)
+	}
 	for index := range items {
-		tags, err := s.listAssetTags(ctx, items[index].Asset.ID)
+		tags, err := listAssetTags(ctx, tx, items[index].Asset.ID)
 		if err != nil {
 			return nil, err
 		}
 		items[index].State.Tags = tags
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("finish curated asset snapshot: %w", err)
 	}
 	return items, nil
 }
@@ -548,9 +712,17 @@ func scanCuratedAsset(scanner rowScanner, revision int64) (curation.CuratedAsset
 }
 
 func (s *Store) listAssetTags(ctx context.Context, assetID int64) ([]curation.Tag, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return listAssetTags(ctx, s.db, assetID)
+}
+
+type curationTagReader interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func listAssetTags(ctx context.Context, reader curationTagReader, assetID int64) ([]curation.Tag, error) {
+	rows, err := reader.QueryContext(ctx, `
         SELECT t.id, t.name, t.normalized_name, t.created_at_ms, t.updated_at_ms,
-               (SELECT COUNT(*) FROM asset_tags counted WHERE counted.tag_id = t.id)
+               (SELECT COUNT(*) FROM asset_tags counted WHERE counted.tag_id = t.id), at.source
         FROM asset_tags at
         JOIN tags t ON t.id = at.tag_id
         WHERE at.asset_id = ?
@@ -562,9 +734,11 @@ func (s *Store) listAssetTags(ctx context.Context, assetID int64) ([]curation.Ta
 	tags := make([]curation.Tag, 0, curation.MaxTagsPerAsset)
 	for rows.Next() {
 		var tag curation.Tag
-		if err := scanTag(rows, &tag); err != nil {
+		var createdMS, updatedMS int64
+		if err := rows.Scan(&tag.ID, &tag.Name, &tag.NormalizedName, &createdMS, &updatedMS, &tag.AssetCount, &tag.Source); err != nil {
 			return nil, fmt.Errorf("read asset tag: %w", err)
 		}
+		tag.CreatedAt, tag.UpdatedAt = time.UnixMilli(createdMS).UTC(), time.UnixMilli(updatedMS).UTC()
 		tags = append(tags, tag)
 	}
 	if err := rows.Err(); err != nil {

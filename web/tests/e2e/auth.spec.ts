@@ -22,7 +22,7 @@ const longLibraryName = "Family archive ".padEnd(128, "A");
 test("administrator, library-management, and browsing vertical slice", async ({
   page,
 }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(480_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -55,7 +55,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.getByRole("button", { name: /Select this directory/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(
-    page.getByText(`/library/${longPathSegments.join("/")}`),
+    page.getByText(longPathSegments.join("/"), { exact: true }),
   ).toBeVisible();
 
   let createRequests = 0;
@@ -100,11 +100,66 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.unroute("**/api/v1/libraries/*");
   await expectNoPageOverflow(page);
 
-  await page.getByRole("button", { name: "Scan again" }).click();
-  await expect(page).toHaveURL(/\/settings\/libraries\/[^/]+\/status$/);
-  const statusPath = new URL(page.url()).pathname;
-  const libraryId = statusPath.split("/").at(-2);
+  await page.getByRole("button", { name: "View status" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: `Status details for “${longLibraryName}”`,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hide status" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Browse" }).click();
+  await expect(page).toHaveURL(/\/libraries\/[^/]+\/browse$/);
+  const browsePath = new URL(page.url()).pathname;
+  const libraryId = browsePath.split("/").at(-2);
   expect(libraryId).toBeTruthy();
+  const statusPath = `/settings/libraries/${libraryId}/status`;
+
+  await page.goto(`/settings/ai?library=${libraryId}`);
+  await expect(
+    page.getByRole("heading", { name: "Features for this library" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Feature settings", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Smart search", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "People analysis", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Automatic tags", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Current library" })).toHaveValue(libraryId!);
+  await expect(
+    page.getByRole("button", { name: "Download model", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Processing jobs", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`view=tasks.*library=${libraryId}|library=${libraryId}.*view=tasks`));
+  await expect(page.getByRole("heading", { name: "Library tasks" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Current library" })).toHaveValue(libraryId!);
+  const maintenanceButtons = page.getByRole("button", { name: /^More：/ });
+  await expect(maintenanceButtons.first()).toBeVisible();
+  for (const button of await maintenanceButtons.all()) {
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+  }
+  await page.goto(`/settings/ai?view=models&library=${libraryId}`);
+  await expect(
+    page.getByRole("heading", { name: "Global AI service" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Service and models", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", { name: "Current library" })).toHaveCount(0);
+  await expect(
+    page.getByText("Check which features are available.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Download model", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Offline import", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("Advanced: custom download source", { exact: true }),
+  ).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await expectNoSeriousAxeViolations(page);
+
+  await page.goto(statusPath);
   await expect(
     page.getByRole("heading", { name: "Library status" }),
   ).toBeVisible();
@@ -161,7 +216,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(page.getByText("Scan in progress")).toBeVisible();
   await page.getByRole("button", { name: "Cancel scan" }).click();
   await expect(page.getByText("Scan cancelled")).toBeVisible();
-  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+  await expect(page.getByText("Existing content is kept. Original files are unchanged.", { exact: true })).toBeVisible();
 
   scanFixtureState = "failed";
   await page.reload();
@@ -175,7 +230,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   scanFixtureState = "offline";
   await page.reload();
   await expect(page.getByText("Library offline")).toBeVisible();
-  await expect(page.getByText(/last reliable index/i)).toBeVisible();
+  await expect(page.getByText("Existing content is kept. Original files are unchanged.", { exact: true })).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
   await page.unroute(/\/api\/v1\/scans\/[^/]+(?:\/cancel)?$/);
@@ -185,9 +240,13 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     page.getByRole("heading", { name: longLibraryName }),
   ).toBeVisible();
+  const libraryNavigation = page.getByRole("button", { name: "Open navigation", exact: true });
+  await libraryNavigation.click();
   await expect(
     page.getByRole("button", { name: /^Media library[：:]/ }),
   ).toContainText(longLibraryName);
+  await page.keyboard.press("Escape");
+  await expect(libraryNavigation).toBeFocused();
   await expect(page.getByText("direct-photo.jpg")).toBeVisible({
     timeout: 15_000,
   });
@@ -207,7 +266,8 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(
     preview.getByRole("img", { name: "direct-photo.jpg" }),
   ).toBeVisible();
-  await expect(preview).toContainText("image/jpeg");
+  await expect(preview).toContainText("JPEG");
+  await expect(preview).not.toContainText("image/jpeg");
   await expect(
     preview.getByRole("button", { name: "Previous item" }),
   ).toBeDisabled();
@@ -222,9 +282,12 @@ test("administrator, library-management, and browsing vertical slice", async ({
   const previewSeparator = preview.getByRole("separator", {
     name: "Resize preview",
   });
-  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "406");
+  await expect(previewSeparator).toHaveCount(0);
+  await expectNoPageOverflow(page);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "342");
   await previewSeparator.press("ArrowLeft");
-  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "430");
+  await expect(previewSeparator).toHaveAttribute("aria-valuenow", "366");
   await preview.getByRole("button", { name: "Open full viewer" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/libraries/${createdLibraryId}/media/[^?]+\\?from=`),
@@ -259,7 +322,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(preview).toHaveCount(0);
   await expect(directPreviewTrigger).toBeFocused();
   const gridLayout = page.getByRole("button", { name: "Adaptive grid" });
-  const masonryLayout = page.getByRole("button", { name: "Masonry" });
+  const masonryLayout = page.getByRole("button", { name: "Masonry", exact: true });
   await expect(gridLayout).toHaveAttribute("aria-pressed", "true");
   await masonryLayout.click();
   await expect(masonryLayout).toHaveAttribute("aria-pressed", "true");
@@ -531,7 +594,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/libraries/${createdLibraryId}/search?q=direct-photo`);
   await expect(
-    page.getByRole("heading", { name: "Search media" }),
+    page.getByRole("heading", { name: "Results for “direct-photo”" }),
   ).toBeVisible();
   await expect(
     page.getByRole("article", { name: "direct-photo.jpg · Image" }),
@@ -601,13 +664,14 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await expect(searchPreview).toHaveCount(0);
   await expect(searchPreviewTrigger).toBeFocused();
 
-  await page.getByLabel("Scope").selectOption("all");
+  await page.getByRole("radio", { name: "All libraries", exact: true }).click();
+  await expect(page.getByRole("radio", { name: "All libraries", exact: true })).toBeChecked();
   await expect(page).toHaveURL(
     `/libraries/${createdLibraryId}/search?q=direct-photo&scope=all`,
   );
   await expect(page.getByText("direct-photo.jpg")).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel("Scope")).toHaveValue("library");
+  await expect(page.getByRole("radio", { name: "Current library", exact: true })).toBeChecked();
   await expect(page.getByText("direct-photo.jpg")).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -624,11 +688,13 @@ test("administrator, library-management, and browsing vertical slice", async ({
       name: `Account menu for ${administrator.displayName}`,
     })
     .click();
-  await page.getByRole("menuitem", { name: "Settings" }).click();
+  await page.getByRole("menuitem", { name: "Management Center" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/settings/general\\?libraryId=${createdLibraryId}$`),
   );
-  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Configuration" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", {
       name: `Account menu for ${administrator.displayName}`,
@@ -637,7 +703,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   await page.setViewportSize({ width: 1024, height: 900 });
   await expectNoPageOverflow(page);
-  await page.getByLabel("Theme").selectOption("dark");
+  await page.getByRole("combobox", { name: /^Theme/ }).selectOption("dark");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await waitForVisualState(page);
@@ -666,9 +732,9 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.getByRole("button", { name: "Update password" }).click();
   await expect(page.getByText("Administrator password updated.")).toBeVisible();
 
-  await page.getByRole("link", { name: "Scanning and cache" }).click();
+  await page.getByRole("link", { name: "Configuration" }).click();
+  await page.getByRole("tab", { name: "Scan policy" }).click();
   await page.getByLabel("Scan interval (hours)").fill("48");
-  await page.getByLabel("Thumbnail cache limit (GiB)").fill("2");
   let settingsRequests = 0;
   await page.route("**/api/v1/settings", async (route) => {
     if (route.request().method() === "PATCH") {
@@ -682,6 +748,19 @@ test("administrator, library-management, and browsing vertical slice", async ({
     .dblclick();
   await expect(page.getByText("Scan and cache settings saved.")).toBeVisible();
   expect(settingsRequests).toBe(1);
+
+  await page.getByRole("tab", { name: "Cache" }).click();
+  await page.getByLabel("Thumbnail cache limit (GiB)").fill("2");
+  const cacheSettingsResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/v1/settings") &&
+      response.request().method() === "PATCH",
+  );
+  await page
+    .getByRole("button", { name: "Save scan and cache settings" })
+    .dblclick();
+  await cacheSettingsResponse;
+  await expect.poll(() => settingsRequests).toBe(2);
   await page.unroute("**/api/v1/settings");
 
   let cleanupRequests = 0;
@@ -693,7 +772,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
     await route.continue();
   });
   await page
-    .getByRole("button", { name: "Clear reconstructible cache" })
+    .getByRole("button", { name: "Clear thumbnail cache" })
     .click();
   await expect(
     page.getByRole("dialog", { name: "Clear thumbnail cache?" }),
@@ -703,10 +782,10 @@ test("administrator, library-management, and browsing vertical slice", async ({
   expect(cleanupRequests).toBe(1);
   await page.unroute("**/api/v1/cache/cleanup");
 
-  await page.getByRole("link", { name: "General" }).click();
+  await page.getByRole("tab", { name: "General" }).click();
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("heading", { name: "通用" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
   await page
     .getByRole("button", {
       name: `${updatedAdministrator.displayName}的账户菜单`,
@@ -719,7 +798,7 @@ test("administrator, library-management, and browsing vertical slice", async ({
   await page.goto("/settings/general");
   await expect(page).toHaveURL(/\/login\?reason=session_expired$/);
   await expect(
-    page.getByText("为了保护您的媒体库，会话已过期。请重新登录。"),
+    page.getByText("登录已过期，请重新登录。"),
   ).toBeVisible();
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
@@ -735,14 +814,16 @@ test("administrator, library-management, and browsing vertical slice", async ({
 
   await page.getByRole("combobox", { name: "语言" }).selectOption("en");
   await page.getByRole("button", { name: "保存更改" }).click();
-  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Configuration" }),
+  ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expectNoPageOverflow(page);
   await expectNoSeriousAxeViolations(page);
 
   await page.getByRole("combobox", { name: "Language" }).selectOption("zh-CN");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("heading", { name: "通用" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
 
   await page.goto("/settings/libraries");
   await page.getByRole("button", { name: "移除" }).click();
@@ -881,7 +962,7 @@ test("readiness failure uses the contracted safe state", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "FolioPath could not finish starting" }),
   ).toBeVisible();
-  await expect(page.getByText(/Application data is unavailable/)).toBeVisible();
+  await expect(page.getByText("App data cannot be saved. Check storage space and folder permissions.", { exact: true })).toBeVisible();
   await expect(
     page.getByText(/Original media remains read-only/),
   ).toBeVisible();
@@ -923,10 +1004,10 @@ async function expectPrototypeFidelityMatrix(page: Page) {
     { width: 1440, height: 900 },
   ];
   const preferences = [
-    { locale: "zh-CN", theme: "light", heading: "通用" },
-    { locale: "zh-CN", theme: "dark", heading: "通用" },
-    { locale: "en", theme: "light", heading: "General" },
-    { locale: "en", theme: "dark", heading: "General" },
+    { locale: "zh-CN", theme: "light", heading: "配置" },
+    { locale: "zh-CN", theme: "dark", heading: "配置" },
+    { locale: "en", theme: "light", heading: "Configuration" },
+    { locale: "en", theme: "dark", heading: "Configuration" },
   ] as const;
 
   for (const preference of preferences) {

@@ -1,0 +1,6 @@
+# Explicit opt-in OCR overlay. Frozen legacy code/identities are not overwritten.
+FROM foliopath-inference:photo-tags-v2@sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626
+COPY services/inference/ocr_*.py services/inference/ocr-*.json /opt/foliopath-inference/
+COPY internal/ocr/conformance.json /opt/foliopath-inference/ocr-conformance.json
+RUN python -m ocr_contract > /opt/foliopath-inference/ocr-identity.json
+CMD ["python", "-m", "ocr_runtime"]

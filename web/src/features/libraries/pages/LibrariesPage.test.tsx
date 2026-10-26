@@ -151,6 +151,22 @@ it("shows automatic discovery health and explicitly refreshes the library list",
   await waitFor(() => expect(listLibraries).toHaveBeenCalledTimes(2));
 });
 
+it("summarizes only the loaded contract data and presents one structured library list", async () => {
+  renderLibraries();
+
+  const summary = await screen.findByLabelText("媒体库概览");
+  expect(within(summary).getByText("媒体库总数")).toBeVisible();
+  expect(within(summary).getByText("媒体总数")).toBeVisible();
+  expect(within(summary).getByText("可用媒体库")).toBeVisible();
+
+  const list = screen.getByRole("region", { name: "媒体库列表" });
+  expect(within(list).getByText("temp", { selector: "p" })).toBeVisible();
+  expect(within(list).queryByText("/library/temp")).not.toBeInTheDocument();
+  expect(within(list).getByText("9,983 项媒体 · 13 个目录")).toBeVisible();
+  expect(within(list).getByText("最近扫描")).toBeVisible();
+  expect(within(list).getByText("运行状态")).toBeVisible();
+});
+
 it("moves scan history and processing results into library tabs", async () => {
   const user = userEvent.setup();
   renderLibraries();

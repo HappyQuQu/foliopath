@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "./client";
-import { listTagAssets, replaceAssetTags, setFavorite } from "./curation";
+import { listTagAssets, listTags, replaceAssetTags, setFavorite } from "./curation";
 
 vi.mock("./client", () => ({
   apiClient: {
@@ -62,6 +62,22 @@ describe("curation adapter", () => {
         },
       },
     );
+  });
+
+  it("keeps the default vocabulary global and scopes photo counts only when requested", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({ data: { items: [], nextCursor: null }, response: new Response() } as never);
+    await listTags("global-next");
+    expect(apiClient.GET).toHaveBeenLastCalledWith("/api/v1/tags", { params: { query: { limit: 200, cursor: "global-next" } } });
+    await listTags("photo-next", { libraryId: "lib_family", kinds: ["image", "animated"], q: "旅行" });
+    expect(apiClient.GET).toHaveBeenLastCalledWith("/api/v1/tags", { params: { query: {
+      limit: 200, cursor: "photo-next", libraryId: "lib_family", kind: ["image", "animated"], q: "旅行",
+    } } });
+  });
+
+  it("does not recover an unknown scoped library by making a global request", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({ error: { error: { code: "not_found", message: "Not found" } }, response: new Response(null, { status: 404 }) } as never);
+    await expect(listTags(undefined, { libraryId: "lib_missing", kinds: ["image", "animated"] })).rejects.toMatchObject({ code: "not_found" });
+    expect(apiClient.GET).toHaveBeenCalledTimes(1);
   });
 
   it("sends favorite mutations with the authenticated CSRF boundary", async () => {

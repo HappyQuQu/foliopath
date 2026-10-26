@@ -1,0 +1,140 @@
+{
+  "change": "CR-2026-049",
+  "localDate": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "recordedAt": "2026-10-25T23:04:30.681306+00:00",
+  "scope": "Dormant internal OCR persistence only; no worker/source processor/public API/search/UI/deployment",
+  "image": "sha256:0ee70929d5783ff32dddf573694d244b49aa69c0e992544423dc0deea8e05246",
+  "architecture": "linux/arm64",
+  "goDocker": "1.26.5",
+  "applicationRuntimeSmokeImage": "sha256:87c5dbf29666b439c036ec1503b8239b7a1d8b824735d383ae5d0b3d6084d204",
+  "testImageStatus": {
+    "ExitCode": 0,
+    "OOMKilled": false,
+    "StartedAt": "2026-10-25T23:00:49.411777835Z",
+    "FinishedAt": "2026-10-25T23:02:39.599628344Z"
+  },
+  "sandbox": {
+    "memoryBytes": 2147483648,
+    "memorySwapBytes": 2147483648,
+    "nanoCPUs": 2000000000,
+    "readOnly": true,
+    "network": "none",
+    "binds": null,
+    "tmpfs": {
+      "/tmp": "rw,nosuid,nodev,size=512m"
+    }
+  },
+  "dockerTests": {
+    "topLevelPassed": 33,
+    "allNames": [
+      "TestProducerConsumerSharedResultConformance",
+      "TestIdentityFingerprintCanonicalAndIndependent",
+      "TestNormalizePlaintextEmptyAndNFC",
+      "TestNormalizeRejectsWholeInvalidResult",
+      "TestNormalizeExactTextBudgetAndClockwiseBox",
+      "TestImageInputContractIsIndependentAndExplicit",
+      "TestPersistenceResultContractRejectsAmbiguousFailures",
+      "TestPersistenceRequestsBindEpochModelScopeAndMode",
+      "TestAutomaticTagsCommitAtomicProgressManualProtectionAndMissing",
+      "TestCurationFavoriteIsIdempotentAndInvalidatesOldCursor",
+      "TestCurationTagsNormalizeReplaceAndCascade",
+      "TestCurationMigrationConstraints",
+      "TestCurationTagListCountsDistinctAssetsWithinOptionalScope",
+      "TestCurationScopedTagPaginationIsStableAndRevisionBound",
+      "TestFaceStateSurvivesSQLiteBackupAndRestore",
+      "TestOCRPersistenceCommitEmptyFailureAndMissing",
+      "TestOCRPersistenceSourceAndGenerationFences",
+      "TestOCRPersistenceRecoveryReopenAndAttemptLimit",
+      "TestOCRPersistenceCancelDisableOfflineAndServiceFailure",
+      "TestOCRPersistenceClearBatchesResumeAndIsolation",
+      "TestOCRPersistenceAtomicRollbackAndConcurrentCommit",
+      "TestOCRPersistenceValidationAndForgedTokens",
+      "TestOCRPersistenceLibraryAssetCascadeAndProtection",
+      "TestOCRPersistenceUpperBoundAndNewSourcesDeferred",
+      "TestOCRPersistenceFreshAndDetachedMigration",
+      "TestOCRPersistenceClearCommitRaceCannotResurrect",
+      "TestOCRPersistenceQueuedCancellationAndDisablePreserveResults",
+      "TestOCRPersistenceGlobalAdmissionBound",
+      "TestOCRPersistenceMigration44AndNonemptyOtherCapabilities",
+      "TestOCRPersistenceOfflineFinishAndCancellationAfterProgress",
+      "TestOCRPersistenceTwoLibrariesClearAndAssetDeleteIsolation",
+      "TestSemanticEmbeddingRepositoryIsBoundedIdempotentAndInvalidatesSource",
+      "TestSemanticEmbeddingRepositoryRejectsMalformedOrRetiredWrites"
+    ],
+    "newSQLiteTopLevel": 16,
+    "newSQLiteSubscenarios": 7,
+    "failures": 0,
+    "skips": 0,
+    "race": true
+  },
+  "finalCgroup": {
+    "memoryPeakBytes": 146604032,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0
+  },
+  "protection": {
+    "tableCount": 17,
+    "sha256BeforeEqualsAfter": "5e374136abc07e46b0e2606594fa9b1bd586b4afecb77d53c3f57c0efe46436e",
+    "nonemptyManualTag": true,
+    "nonemptySuppression": true,
+    "nonemptyPersonAnchorAudit": true,
+    "nonemptySemanticVector": true,
+    "migration44To45": true,
+    "ocrWriteAndClear": true,
+    "integrity": true
+  },
+  "checksPassed": [
+    "make fmt fmt-check arch-check generate-check lint",
+    "TMPDIR=<isolated existing scratch> make test test-integration",
+    "go test -race -count=1 ./internal/ocr ./internal/store/sqlite -run <OCR plus related legacy pattern>",
+    "make test-e2e",
+    "Docker OCR unit suite plus all 16 persistence top-level tests and related legacy regressions, race"
+  ],
+  "firstAttempts": [
+    "Full Go invocation failed before execution because prior-slice TMPDIR no longer existed; isolated current scratch created and rerun passed.",
+    "Build config digest was not a local runnable image ID; image inspect immutable index digest used instead.",
+    "Broad full SQLite race runs deliberately interrupted for excessive runtime; NOT passed. Final bounded matrix runs every new persistence test and related old capabilities; full normal Go suite passed separately.",
+    "Review fixed heartbeat binding to mutable progress, then offline-owned terminal failure and cancellation acknowledgement after progress; final image rebuilt and retested."
+  ],
+  "notRun": [
+    "real source processor/worker SIGKILL or planned handoff",
+    "OCR producer or native image preprocessing rerun (unchanged in this slice)",
+    "browser/UI (unchanged)",
+    "real media/6010",
+    "joint inference capacity/soak/amd64/release"
+  ],
+  "sourceSHA256": {
+    "internal/ocr/persistence.go": "c170fc5a149d8b19671814b04625a69a78a93b941b5d95e918e99a99cfe9264f",
+    "internal/ocr/persistence_test.go": "98b0a6117a2a4132722bc575757a615ddfb39a1303da98c610bcadac3ee6cff5",
+    "internal/store/sqlite/ocr_settings.go": "6409c2fd4f3ac17034b6885082f60448edf4329c8facfbd4a0328bd24c88643a",
+    "internal/store/sqlite/ocr_jobs.go": "19d9bdc087a03ec92b9c5170b14135e4110f29812f65ac67c8eedf91c01e1d60",
+    "internal/store/sqlite/ocr_results.go": "366762643419bf9939b51ff48d5de1f74a8ebe711062425ba9fc245cafdc7280",
+    "internal/store/sqlite/ocr_persistence_test.go": "1841ff190236422e7b4215f2b99cf061e756ccbb609fef00b0125c13fd7f821e",
+    "migrations/00045_ocr_durable_results.sql": "e46f52515aab0924d3a178b9c8f35ccdc7390555efdc65fd8998d87b190cee3c",
+    "tests/architecture/ocr_transport_test.go": "d11d5582ca46e6c8420f84b25e226f5846dd27ed896c98d1a978577e7c02227e",
+    "tests/release/Dockerfile.ocr-persistence": "66c6f7ab5704a6e291aace1c75ec154b3a19eb1dd2192d2635221f98bf62ffbd"
+  },
+  "logSHA256": {
+    ".artifacts/ocr-persistence/architecture-final.log": "1136ce8582499eb352d3603e204778b742a9eb87ec26f4cc9bd95e975e882f05",
+    ".artifacts/ocr-persistence/build-final.log": "34168748f4d89cd28d0d3b1c46a4061be6fb3be43bd482467f04fd223a2bd3b3",
+    ".artifacts/ocr-persistence/build.log": "32079620bda76eeaf6a5dad12a7c6d316ad4c485b60732b5b53dae6b8ddcf64a",
+    ".artifacts/ocr-persistence/checks.log": "e25a3b690d09beb91774b9c4a763e57819f63543ccb321d123223fde600375d9",
+    ".artifacts/ocr-persistence/docker-final.log": "5fabc8071549b3c40594a06f3c0a905c4f688ec39fa835cc7dac0e52b26736f6",
+    ".artifacts/ocr-persistence/docker-focused.log": "b2e9157566a5339decef3e86b9f70019135feb1cbfd8f6e67b6326a5a3125a4b",
+    ".artifacts/ocr-persistence/docker-tests.log": "c192e610a5c8b8b2de1c98de795e3e3c00aee846064c493ac9ab77bf301952fa",
+    ".artifacts/ocr-persistence/final-checks-v2.log": "a9d316d76669d6bf297347d2a05f885f2fc2d442d2ee9d470c660460977b10c4",
+    ".artifacts/ocr-persistence/final-checks.log": "664d48bc734c245161f3f7e2828f4398ca8f569cf54ecd1a0fad45d79beddce4",
+    ".artifacts/ocr-persistence/final-targeted.log": "b4de37907c48b5f3a4b849e0481625fa444d327638c6bb8208c3f4c452452d09",
+    ".artifacts/ocr-persistence/go-tests-final.log": "757454051ff2f8a5ab5e8571b4925d826714f5f8557e1110ab8047eb7385f4d9",
+    ".artifacts/ocr-persistence/go-tests-rerun.log": "ccc8e665336a533da3147eb80c5104a8e3872eee8f7f1e905f8d491123b2d903",
+    ".artifacts/ocr-persistence/go-tests.log": "a2fca235594e27a0bec69f1ef65892ae8750883ada77d11da20f579f7489371c",
+    ".artifacts/ocr-persistence/race-final.log": "bebd06fc2eaad49e13d7e736d189f205652fe031101bb0bf192cb7d4ec2459db",
+    ".artifacts/ocr-persistence/race-focused.log": "61faef8e1b458c25d8da289de0718e1bbbafc92ad0118def7930afa1517bf27c",
+    ".artifacts/ocr-persistence/race.log": "6d63fd3ae31f68feb82a566f0e608cc2b9e0c63ceaffaf9a4a70f0e585b43498",
+    ".artifacts/ocr-persistence/runtime-e2e-final.log": "1a9c2c455fe6dd612e9c012c59e0c7c448fcfb8ce013ebb68d590fb20747caed",
+    ".artifacts/ocr-persistence/runtime-e2e.log": "4c4fb21fa4db2f226ca43f366907bd542abc6b02322dab0f282ea24a849dda5c"
+  },
+  "cleanup": "Exact synthetic containers removed after final inspection; disposable tmpfs databases destroyed; evidence logs and immutable image retained. No original media/database mount or access, no server222, no deployment or git commit/push."
+}

@@ -1,0 +1,14 @@
+# ADR-0025: dedicated disposable disk scratch for the fixed 2.73 GB XLM cache.
+# Do not keep this large verified copy in tmpfs beside the ONNX working set.
+# This changes scratch placement only, not RAM/swap limits. The large model still
+# requires separately measured resource acceptance; never claim the old budget.
+services:
+  machine-learning:
+    tmpfs: !override
+      - /tmp:rw,noexec,nosuid,size=128m,mode=0700
+    volumes:
+      - type: volume
+        source: multilingual-scratch
+        target: /verified-cache
+volumes:
+  multilingual-scratch:

@@ -1,0 +1,4 @@
+# Test-only stricter egress boundary; never another production service.
+networks:
+  web:
+    internal: true

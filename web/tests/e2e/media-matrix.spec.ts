@@ -90,9 +90,13 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL("/search?q=matrix&scope=all");
 
-  // Browser codec stacks vary. Chromium owns the real MP4/206 assertion, while
-  // all supported engines exercise the product-owned fallback states below.
-  if (chromiumBased) {
+  // Unbranded Playwright Chromium may omit proprietary codecs. Check the actual
+  // runner capability instead of assuming every Chromium build decodes H.264/AAC.
+  const supportsFixture = await page.evaluate(() => {
+    const media = document.createElement("video");
+    return Boolean(media.canPlayType('video/mp4; codecs="avc1.42E01E"') && media.canPlayType('audio/mp4; codecs="mp4a.40.2"'));
+  });
+  if (chromiumBased && supportsFixture) {
     await page.goto(`/libraries/${libraryId}/media/video_range`);
     const video = page
       .getByRole("main", { name: "range-video.mp4" })
@@ -111,6 +115,10 @@ test("desktop keyboard, focus, and degraded-state matrix", async ({
     expect(rangeRequests.some((value) => value.startsWith("bytes="))).toBe(
       true,
     );
+  } else if (chromiumBased) {
+    testInfo.annotations.push({ type: "codec-unavailable", description: "This runner lacks H.264/AAC; playback/206 decoding is not validated here. Product fallback is asserted." });
+    await page.goto(`/libraries/${libraryId}/media/video_range`);
+    await expect(page.getByRole("heading", { name: "This video could not be played." })).toBeVisible();
   }
 
   await page.goto(`/libraries/${libraryId}/media/video_codec`);
@@ -261,7 +269,7 @@ test("storyboard hover is lazy, bounded, and input-mode aware", async ({
     .poll(() => sprite.evaluate((element) => element.getAttribute("style")))
     .toContain("--storyboard-x:");
 
-  await page.locator("header").hover();
+  await page.getByRole("banner").hover();
   await expect(card).not.toHaveAttribute("data-storyboard-playing");
   await expect(sprite).toHaveCount(0);
   expect(storyboardRequests).toBe(requestsAfterDecode);
@@ -656,4 +664,34 @@ async function expectNoSeriousAxeViolations(page: Page) {
       violation.impact === "serious" || violation.impact === "critical",
   );
   expect(violations).toEqual([]);
+}
+
+
+for (const locale of ["zh-CN", "en"] as const) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [390, 768, 1280, 1920]) {
+      test(`viewer retry hover ${locale}/${theme} at ${width}px keeps contrast`, async ({ page, hasTouch }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await mockViewerBackend(page, []);
+        await page.addInitScript(({ locale, theme }) => {
+          localStorage.setItem("foliopath.preferences.v1", JSON.stringify({ locale, theme }));
+        }, { locale, theme });
+        await page.goto(`/libraries/${libraryId}/media/offline`);
+        const retry = page.getByRole("button", { name: locale === "zh-CN" ? "重新检查" : "Check again", exact: true });
+        await expect(retry).toBeVisible();
+        if (hasTouch) await retry.tap();
+        else await retry.click();
+        await expect(retry).toBeVisible();
+        await retry.hover();
+        await expect.poll(() => retry.evaluate((element) => element.matches(":hover"))).toBe(true);
+        await expectNoPageOverflow(page);
+        await expectNoSeriousAxeViolations(page);
+        await retry.focus();
+        await expect(retry).toBeFocused();
+        if (locale === "zh-CN" && theme === "light") {
+          await page.screenshot({ path: test.info().outputPath(`viewer-retry-hover-${width}.png`) });
+        }
+      });
+    }
+  }
 }

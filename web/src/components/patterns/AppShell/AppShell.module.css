@@ -37,9 +37,11 @@
   bottom: 0;
   left: 0;
   width: var(--size-sidebar);
+  display: flex;
+  flex-direction: column;
   overflow: auto;
   border-right: var(--border-width) solid var(--color-border);
-  background: var(--color-glass);
+  background: var(--color-sidebar);
   backdrop-filter: saturate(180%) blur(1.25rem);
 }
 
@@ -48,6 +50,7 @@
 }
 
 .content {
+  container: workspace / inline-size;
   min-width: 0;
   grid-column: 2;
 }
@@ -64,9 +67,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 0 var(--space-6);
+  padding: 0 var(--workspace-padding);
   border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-glass);
+  background: var(--color-field);
   backdrop-filter: saturate(180%) blur(1.25rem);
 }
 
@@ -78,6 +81,13 @@
   gap: var(--space-3);
 }
 
+.contextBarContent > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .closeButton,
 .menuButton {
   display: none;
@@ -87,7 +97,7 @@
   display: none;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 37.5rem) {
   .workspace,
   .workspaceWithoutSidebar {
     grid-template-columns: minmax(0, 1fr);
@@ -102,17 +112,21 @@
     z-index: var(--layer-drawer);
     top: 0;
     width: min(var(--size-sidebar), calc(100vw - var(--space-12)));
+    background: var(--color-sidebar);
+    visibility: hidden;
     transform: translateX(-105%);
     box-shadow: var(--shadow-2);
     transition: transform var(--motion-normal) var(--ease-standard);
   }
 
   .sidebarOpen {
+    visibility: visible;
     transform: translateX(0);
   }
 
   .drawerHeader {
-    min-height: var(--size-header);
+    flex: none;
+    min-height: calc(var(--size-control-lg) + var(--space-6));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -147,4 +161,10 @@
     visibility: visible;
     opacity: 1;
   }
+}
+
+.sidebarResizer { position: fixed; z-index: var(--layer-header); top: var(--size-header); bottom: 0; left: calc(var(--size-sidebar) - var(--space-1)); right: auto; }
+@media (max-width: 37.5rem) {
+  .sidebarResizer { display: none; }
+  .sidebar { width: min(var(--size-sidebar-drawer), calc(100vw - var(--space-12))); }
 }

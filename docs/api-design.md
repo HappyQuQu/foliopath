@@ -1,5 +1,32 @@
 # FolioPath API 设计与契约说明
 
+CR-2026-051：公开合同仍以api/openapi.yaml为准。GET /api/v1/search/assets增加mode=ocr、实际sources=ocr、最多8个{line,text}片段，以及ocrState/ocrCoverage。OCR不要求实时推理，查询不会启动任务。all中OCR当字面来源，语义故障保留文字匹配；OCR-only不编码语义。快照在检索末尾和资产hydration后核验，变化409 search_cursor_stale，无部分正文。sources新增枚举对穷举旧客户端有兼容影响，按本CR协调同版本内嵌SPA升级（尚未部署6010），不是无条件向后兼容声明。
+
+2026-10-26 / CR-2026-050：OpenAPI新增6个库作用域OCR管理operation（settings GET/PUT、jobs POST、job GET、cancel POST、clear POST），独立管理元数据而非通用AI operation或文本API。模型身份来自部署，写请求CSRF+If-Match，missing/retry_failed请求另需幂等键，retry/clear需固定确认词。计数/状态不代表OCR准确率或实时模型健康；搜索合同和OCR来源仍未启用。
+
+2026-10-26 / CR-2026-049：仅接受internal/ocr.Repository与SQLite持久事务合同，没有新增OpenAPI endpoint、OCR操作kind或产品开关。现有管理/搜索合同和生成client不变；后续显式API接入才能声明可用。见[内部持久合同](architecture/ocr-persistence-contract.md)。
+
+2026-10-26 / CR-2026-048：主应用api/openapi.yaml未新增OCR配置/任务/索引/搜索接口。候选AI内网producer遵循[OCR内部合同](architecture/ocr-transport-contract.md)，Go消费者独立部署pin先验；编译/HTTP成功不等于产品OCR可用，前端仍不得生成OCR命中来源。
+
+2026-10-25 / CR-2026-044：OpenAPI新增认证GET /api/v1/people/{personId}/merge-check，严格唯一targetPersonId查询。单只读快照返回双人物/修订、canMerge、cannotLinkCount、duplicateAssignmentCount、sourceLimitExceeded和最多3组不同的索引可展示照片ID/库ID。空examples不代表没有约束；包含离线/待复核关系的总数仍用于阻断。400非法/同一人物，404任一人物不存在，500安全通用错误；成功no-store。没有新写入权限或令牌；原POST及其幂等/版本/undo合同不变，旧服务无此端点时新UI暂停新的合并。
+
+2026-10-25 / CR-2026-043：以OpenAPI为准，CannotLinkFaceReview新增可选成对sourcePersonId/targetPersonId及expectedSourceRevision/expectedTargetRevision；新写必须完整、不同且匹配当前bound归属，全缺仅允许历史已完成同键回执重放。部分guard/相同人物为400，缺guard新写/版本不匹配/重复关系为409。AssetFace.cannotLinkFaceIds新增可选只读数组，最多63、排序、同图当前有效脸、双向对称；新服务始终返回数组，旧服务缺字段不是“没有关系”。API不返回跨图ID、crop或embedding，认证/CSRF合同不变。
+
+2026-10-25 / CR-2026-042：无新API或schema变化，沿用POST /api/v1/ai/face-reviews的强修订/幂等合同。客户端冻结原请求和Idempotency-Key，合并后source GET404不等于原POST失败；显式同键POST可重放原成功回执。原回执交给既有guarded undo，不能重读新人物版本后伪装原确认。person_not_found/face_not_found/idempotency_conflict等已知写入冲突终止本页旧意图，不自动循环重试。
+
+2026-10-25 / CR-2026-041：正式既有POST /api/v1/ai/face-reviews/{reviewId}/undo由生成client适配层接入，If-Match只从原FaceReviewResult.reviewId/revision编码，另带CSRF及独立Idempotency-Key；不引入任意URL或客户端补偿写入。纠正文档遗漏：该路由既有后端还会以409 face_constraint_conflict报告guarded undo冲突，现同步x-error-codes及生成client/hash；接口形状及既有错误均未改变。
+
+2026-10-25 / CR-2026-040：正式api/openapi.yaml的ExcludeFaceReview新增成对可选sourcePersonId/expectedSourceRevision。省略表示预期当前无人物归属，已归类必须携带确切来源及修订；事务内不匹配返回409 face_constraint_conflict且不写入。旧无来源的已归类请求安全失败，匿名请求格式不变；历史已完成同键请求仍重放。API仍为既有POST /api/v1/ai/face-reviews，无新端点/任意路径，生成client与hash锁同步。
+
+2026-10-25 / CR-2026-039：api/openapi.yaml的Person新增只读nullable previewAssetId（opaque媒体ID）；GET列表/详情及创建/改名响应由同一personResponse返回。预览来源/排序/空值及离线计数语义以正式schema为准，不新增任意路径、封面写入或图片推断接口。人物目录无效游标统一映射invalid_cursor，正式反馈按peopleCursor重新分页。
+
+2026-10-25 / CR-2026-038：正式合同仍以api/openapi.yaml为准。匿名分组列表新增review筛选及counts，FaceCluster新增pendingMemberCount；省略review保持all。v2目录游标绑定review与完整当前整理快照；旧v1/进程重启前游标返回invalid_cursor，整理改变返回face_cursor_stale。两者均须重启分页，不复用失效位置。此为兼容的可选筛选/附加字段，游标本来不承诺跨升级/重启有效。
+
+
+CR-2026-035新增只读 `GET /api/v1/search/assets`，OpenAPI定义真实filename/path/semantic来源、nullable cosine、语义可用状态与覆盖，默认all模式。
+融合端点固定排序/快照游标；旧assets/semantic端点保持兼容，旧字面搜索Asset新增可选searchSources，仍由catalog判定。新增search_cursor_stale=409须刷新游标链。
+本端点无OCR来源/模型配置/后台任务写入，详见[ADR-0031](adr/0031-fused-search-provenance.md)。
+
 ## 状态
 
 [`api/openapi.yaml`](../api/openapi.yaml) 已建立，并且是请求、响应、状态码、认证边界和生成
@@ -444,6 +471,37 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
 交付；若要让旧独立客户端跨版本工作，必须另行定义兼容窗口或发布 `/api/v2`，不得把这些
 字段偷偷改成语义不完整的可选值。
 
+## POST-MVP-5 revision 1 模型与图片语义 API
+
+权威结构位于 `api/openapi.yaml` 的 `AI models` 与 `Semantic search` tags。revision 1 只暴露：模型
+安全列表、固定 `/models` 扫描、candidate managed/direct 安装、激活、operation 状态/取消、按库语义
+设置、补齐/重建/清除，以及图片语义搜索。它没有 download、URL、path、tag、video、face 或 people
+endpoint。
+
+模型扫描同步返回有界候选快照；候选 ID 绑定扫描 revision，后续安装只接受该 opaque ID 和
+`managed|direct`。扫描前还会复核所有已安装 managed/direct 包的审核 manifest 与来源；缺失、替换或
+不安全来源只推进 availability revision 并标为 unavailable，不清除 active generation 或 embedding。
+应用启动时执行相同复核。安装、激活、backfill/rebuild 与 clear 是可轮询的 `202` operation，使用管理员
+session、CSRF、幂等键；并发修改使用强 ETag/`If-Match`。operation 只公开高层阶段、计数和稳定错误，
+不公开文件名、路径或 runtime 输出。
+
+语义查询统一使用 `GET /api/v1/semantic/assets`。省略 `libraryId` 表示全部已启用库；提供
+`directoryId` 时必须同时提供 library，并由 `recursive` 区分直接目录/子树。结果固定为图片、
+`score DESC, asset_id ASC`，但不把 score 展示为伪概率；cursor 绑定 query fingerprint、scope、catalog、
+模型/语义 generation 和 progress revision。查询原文不进入日志、持久化或 cursor。
+查询在进入 tokenizer 前拒绝大小写不敏感的 literal `</s>` 与 `<unk>`；它们是固定 SigLIP tokenizer
+control token，不得由用户文本注入，也不得先删标点后静默变成普通查询。
+
+覆盖率随每页返回，明确 eligible/completed/failed/stale 与 excluded libraries。无可靠 active generation、
+cursor 换代和模型 unavailable 分别使用 `semantic_not_ready`、`semantic_cursor_stale`、
+`model_unavailable`；它们不能被映射为普通空结果。`503 model_unavailable` 只表示可选 AI capability
+不可用，不改变 `/health/ready`。
+
+语义查询使用独立 transport bucket：每个验证后客户端地址每分钟最多 30 次，与目录浏览和文件名搜索
+的 operation key 分离；共享 bucket 总量仍受 4,096 上限并在耗尽时失败关闭。除此之外，进程内只允许
+一个 interactive semantic request 进入文本推理和 exact scan，竞争请求立即返回 `429 semantic_busy`
+及 `Retry-After: 1`，不得在 session mutex 前形成无界等待队列。
+
 ## 游标规则
 
 - 游标是不透明、带版本且可校验的编码，至少包含当前排序值、稳定 ID 和查询语义指纹。
@@ -483,6 +541,29 @@ MVP wire 的无声兼容修补。服务端、生成 TypeScript client 和产品 
 - 对列表、搜索、扫描启动、缩略图和内容读取设置独立并发或速率上限。
 - 日志使用请求 ID、资源 ID 和必要的安全相对路径摘要，不记录令牌或宿主机路径。
 - 错误详情、扫描错误与媒体元数据按不可信文本输出并正确编码。
+
+## POST-MVP-5 revision 2 C+D+E 权威 wire 合同
+
+`INT-118` 已把 revision 2 的 C/D/E wire 冻结进 `api/openapi.yaml`；在 `INT-S1R2` Go 前，这些
+operation 仍只是权威合同，不代表 production route 已 composition。所有资源只接受 opaque ID，列表
+使用绑定 scope/generation/progress/revision 的完整性保护 cursor，写操作要求认证、CSRF，并按语义使用
+强 ETag 或 `Idempotency-Key`。
+
+- C 使用有 revision 的 `GET/PUT /api/v1/ai/tag-vocabulary`，每资产最多 Top-5 suggestion；列表按
+  pending 或 reviewed 的固定 keyset 排序。`POST /api/v1/ai/tag-suggestion-reviews` 一次最多 100 项，逐项
+  返回 accepted/dismissed/conflict，同时携带 suggestion 与 curation expected revision。普通派生清除不删
+  review；独立二次确认 operation 才能清除 review application state。
+- D 使用 `GET /api/v1/semantic/videos`，只返回完整 10 帧或完整 4 帧 fallback 的 asset、有限 cosine
+  score、命中 ordinal/timestamp 与 plan size；不返回帧路径、cache key 或 vector。`max frame`、ordinal、
+  asset ID 是唯一分页排序合同，部分/mixed plan 返回 coverage 而不进入结果。
+- E 按库默认关闭。settings/jobs、derived clear 与 manual clear 是不同 operation；后者要求精确确认和影响
+  计数。cluster/person 列表只返回安全 projection；face review 使用 discriminated DTO 覆盖单 face、整组、
+  排除、cannot-link、merge、split 与受 revision 保护的最近操作 undo。任何 DTO 都不返回 embedding、crop、
+  精确 bbox、内部路径、模型原始错误或推测身份属性。
+
+公共 operation 投影新增 C/D/E 的 durable job kind，但不取代 capability-owned queue/state machine。新增
+稳定错误码区分 vocabulary/storyboard/face readiness、stale cursor、constraint conflict 与不可撤销状态；
+客户端只能按 code 分支，不按 message 猜测。
 
 ## 第一版已固定决策与剩余实现参数
 

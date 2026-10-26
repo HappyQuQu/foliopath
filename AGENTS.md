@@ -38,11 +38,34 @@ them.
 ## Repository and dependency boundaries
 
 - Use a modular Go monolith with one HTTP process and an embedded React SPA.
+  ADR-0020 accepts a FolioPath-owned thin AI image based on the pinned upstream
+  runtime, with verified private cache snapshots and a versioned identity protocol.
+  This is still exactly two deployment units; release approval requires evidence.
+  POST-MVP-5 ADR-0019 accepts an optional independent AI inference container.
+  The main application retains SQLite, auth, media access and bounded job ownership;
+  the AI service gets no media/database mount and no default public port. Internal
+  contracts and model-generation compatibility must precede production integration.
+- ADR-0021 accepts one bounded, request-scoped inference subprocess inside the AI
+  container, not a third deployment unit. Reap it before releasing admission; retain
+  the existing resource budget until measured evidence supports a change. Automatic
+  tagging owns a separate model identity and bounded job capability. Curation owns
+  manual-tag priority and persistent removal suppression; merge tags and advance the
+  automatic-tag checkpoint in one fenced SQLite transaction. Never reinterpret old
+  candidate suggestions as automatic tags or silently relabel old index identities.
 - `cmd/foliopath` is a minimal process entry point. Dependency composition,
   lifecycle, and graceful shutdown belong in `internal/app`.
 - Put business capabilities under `internal/` (`auth`, `settings`, `library`,
   `catalog`, `scanner`, `thumbnail`, `media`, and `jobs`). Each capability defines the
   interfaces it uses.
+- ADR-0031: `internal/search` owns fused ranking, literal/semantic source evidence
+  and snapshot-bound keyset cursors. Reuse catalog normalization, semantic encoding
+  and the cursor mechanism. Stream scoped candidates with a bounded result heap;
+  never merge only first pages in the browser or claim OCR without an OCR contract.
+- ADR-0037: OCR plaintext search uses source-bound, current enabled-library results
+  and the deployment OCR identity. Update derived FTS documents with OCR results
+  and checkpoints atomically, invalidate snapshot cursors on visibility/source
+  changes, and recheck after HTTP hydration. Return only bounded original-text
+  line excerpts; never HTML, raw exceptions, confidence percentages or video OCR.
 - Put HTTP handlers, DTOs, and middleware under `internal/api`. Handlers call services;
   they must not query SQLite, resolve filesystem paths, or invoke media tools directly.
 - Put SQLite implementations under `internal/store/sqlite`, pure relative-path lexical
@@ -95,6 +118,28 @@ them.
   prose is not considered fully enforced until its planned executable check exists
   and is included in the documented local verification surface.
 
+## Requirements, prototypes, and implementation consistency
+
+- Treat an explicitly accepted prototype as acceptance evidence for an approved
+  requirement, not as an independent product branch. Record the requirement/change
+  ID and distinguish synthetic fixture data from supported production behavior.
+- Before implementation, map every visible control, state, label, navigation target,
+  and scope boundary (for example global versus per-library) to its owning product
+  requirement and backend contract. A prototype must not imply a writable setting or
+  successful action that the accepted contract cannot provide.
+- Update accepted requirements, user flows, UI design, stable Storybook states,
+  production components, and regression tests in the same change whenever their
+  shared behavior changes. Do not declare the slice complete while those artifacts
+  describe different information architecture or semantics.
+- Once a design is accepted, its stable Storybook story must render the production
+  component with clearly labelled synthetic contract fixtures. Remove or archive the
+  disposable duplicate screen; do not maintain a second implementation that can
+  drift from production.
+- Document every intentional difference between requirement, accepted prototype, and
+  production implementation, including the missing contract or deferred Gate. Add an
+  executable regression or architecture check when the consistency rule can be
+  automated.
+
 ## Filesystem safety
 
 - All media filesystem access must go through `internal/files`.
@@ -141,11 +186,38 @@ them.
   and expose skipped counts.
 - Make jobs restart-safe and idempotent. Write derived files to a temporary file and
   atomically rename them into place.
+- ADR-0027: only signal-marked planned shutdown may hand back automatic-tag,
+  image-semantic and face claims after both processor and heartbeat exit. Release
+  the exact fenced claim in one audited transaction, undoing only its attempt
+  charge and preserving all committed progress and identities. Cancellation wins;
+  crashes retain the three-attempt limit. Legacy bootstrap handoff is offline-only
+  after verified owner stop/full backup and requires an exact bounded snapshot.
+- ADR-0030: automatic tags may recover only explicitly classified temporary tag
+  service outages within one 60-second recovery window and at most two extra
+  analyses per image. Probe the exact identity before resending, retain the same
+  claim/checkpoint, respect cancellation, and never retry identity/output failures
+  or revive terminal jobs implicitly. Existing missing scheduling preserves runs.
+- ADR-0022 permits an in-flight face job to wait at most 60 seconds per transient
+  catalog scan, without holding a transaction; recheck cancellation, availability,
+  and the existing lease every second. New admission still requires a ready library.
+  Persist only fixed per-asset failure codes with the fenced checkpoint. Keep an
+  unresolved failure eligible for missing-only retry even when an older successful
+  result exists; never invent historical failure reasons or return raw exceptions.
 
 ## SQLite
 
 - Use SQLite in WAL mode for a single FolioPath instance. Do not place `/app/data` on
   SMB or NFS unless support is explicitly designed and documented.
+- ADR-0023: never open a live Docker Desktop SQLite database from the macOS/Windows
+  host, even for an integrity query. Online checks must share the owning container's
+  Linux kernel and lock domain: use `docker exec <app> /app/foliopath database-check`.
+  Do not run migrations, checkpoints, or host SQLite against active data. Stop the
+  owner before copying a complete backup; host inspection is for detached backups.
+- ADR-0038: Docker Desktop deployment data must use a prepared Linux named volume,
+  with verified stopped backup/copy before switching. Keep the original host data as
+  a detached historical copy; never synchronize it against the live volume. Native
+  Linux local bind deployments remain subject to ADR-0023. Preserve every existing
+  AI overlay and the single read-only media mount.
 - Every directory, asset, thumbnail, and scan row is scoped by `library_id`; enforce
   uniqueness for normalized relative paths within a library.
 - Serialize writes, batch scan mutations, keep transactions bounded, and set a busy
@@ -157,6 +229,59 @@ them.
 
 ## Media processing
 
+- ADR-0036 accepts opt-in OCR runtime and authenticated library management. Bind
+  a deployment-pinned independent identity; keep libraries off until explicit
+  admin requests. Reuse ContentService/files, imagevips, the existing ML client,
+  resourcecontrol and jobs.WorkerPool. Recheck originals after processing; only
+  definitive preprocessor input failures become bad-source rows. Temporary scan
+  waits are bounded to 60 seconds with lease/cancellation checks, without holding
+  transactions or repeating inference. Busy deferral and signal-marked, audited
+  post-worker handoff preserve progress; crashes keep the three-attempt limit.
+  No OCR plaintext/search/UI or automatic missing admission is implied.
+
+- ADR-0035 accepts dormant OCR source-bound storage and fenced per-library
+  jobs/epochs with bounded recovery and clear batches. Keep it disabled and
+  uncomposed until runtime/API gates. Persist only normalized bounded output or
+  fixed source-failure codes, atomically with its checkpoint; never turn model/IO
+  faults into bad media. Disable, cancellation, generation change and clear fence
+  old writers. Preserve all other capabilities and curation.
+
+- ADR-0034 permits the isolated OCR producer overlay and an explicit request-local
+  route adapter around the frozen scheduler. Delegate all admission, deadlines and
+  reaping to the original owner; only the private legacy-core admission category
+  may map OCR to visual. Public requests/child kind/cache/identity stay OCR. Keep
+  all legacy source bytes, identities and actual outputs verified; the OCR runtime
+  and immutable overlay digest cover the extension. Never add a second live queue,
+  silently edit legacy hashes, or compose persistent OCR jobs/search before gates.
+
+- ADR-0033 additionally accepts OCR's independent `ocr-rgb-png-v1` image
+  preprocessor in imagevips, consuming already-opened streams only. Bind the
+  canonical OCR input contract explicitly; share existing native-memory admission
+  and close image references before releasing it. Do not change legacy semantic,
+  face or tag pixels/identities, auto-enable OCR, or treat IO/native failures as
+  bad source media. Production OCR composition/persistence remains gated.
+
+- ADR-0032 accepts only the isolated OCR identity/result contract and Go transport
+  consumer. OCR owns its own fingerprint and strict bounded plaintext/quadrilateral
+  results; remoteml shares the existing HTTP admission/deadline, verifies deployment
+  expectations before sending image bytes, and never retries or labels unknown
+  service failures as bad media. No production OCR service registration, source-bound
+  persistence/jobs, search/UI or activation is authorized by this transport slice.
+
+- POST-MVP-5 model downloads follow ADR-0016: only a deployment-owned fixed
+  catalog may supply HTTPS URLs and exact hashes. Browser APIs accept opaque
+  download IDs, never URLs; downloads reuse the bounded model-install worker
+  and verified atomic managed store. Downloaded is not activated or release-ready.
+
+- ADR-0017 permits an explicit deployment-owned model download HTTP/HTTPS proxy.
+  ADR-0018 additionally permits authenticated administrator inherit/direct/custom
+  overrides persisted under /app/data with revision conflict protection. Only the
+  custom proxy origin is exposed to administrators, never the deployment URL.
+  Connectivity tests use one fixed verified source, never a browser-supplied target.
+  Never inherit ambient proxy variables. Proxy mode delegates destination DNS/address
+  enforcement to the trusted proxy; preserve HTTPS verification, target literal-IP/local-name
+  rejection, fixed redirect hosts, hashes and bounded installs. No implicit direct fallback.
+
 - Use libvips through `govips` for image metadata and thumbnails.
 - Use `ffprobe` for video metadata and `ffmpeg` for poster extraction.
 - The MVP format contract is JPEG, PNG, WebP, and GIF for image indexing/thumbnails,
@@ -166,6 +291,34 @@ them.
   video.
 - Apply timeouts, cancellation, input-size safeguards, and bounded concurrency to all
   subprocesses. Treat media files and metadata as untrusted input.
+- ADR-0024: imagevips owns one process-wide, cancellable large-image native-memory
+  admission shared by thumbnails, face and semantic preprocessing. Acquire before
+  compressed/native working allocations and release only after ImageRef/thread
+  cleanup and idle-memory reclamation. Do not replace it with per-feature/library
+  gates, change pixels/model identities, or add reads to caller-owned cancellation
+  and no-progress streams merely to classify a resource lane.
+- ADR-0025: deployment may select only the reviewed English 512-dimensional or
+  XLM-Roberta-Large-Vit-B-16Plus 640-dimensional semantic profile. Verify model,
+  dimension and identity together; never relabel old vectors. Keep legacy face/tag
+  identities and workers separate from the multilingual overlay while sharing one
+  inference scheduler. Its bounded snapshots use dedicated disposable disk scratch,
+  never media/database storage; large-model tests do not prove the small-model budget.
+- ADR-0028: semantic image preprocessing defaults to the unchanged v3 contract.
+  The explicit deployment profile `png-v4` permits bounded 64 MiB / 40 MP PNG
+  inputs with pre-load header checks and the same native-memory admission. Bind
+  this profile to a distinct semantic identity; never relabel old vectors or
+  switch in-flight jobs implicitly. Face and automatic-tag preprocessing remain
+  unchanged by that semantic setting. ADR-0029 permits an independent deployment
+  `tag.image_preprocessing` profile (empty v3 or png-v4), bound to both the tag
+  fingerprint and its preprocessor; never inherit the semantic selection. Tag
+  identity changes reprocess enabled libraries without clearing manual tags or
+  removal suppression, and require verified stopped backup before deployment.
+- ADR-0026: curation owns the reviewed automatic-category catalog and exact
+  Chinese/English aliases. Localized display must never rename stored tags or infer
+  manual provenance. The photo-tag overlay binds its allowed keys and execution
+  sources to an independent tag identity, retains legacy semantic/face identities,
+  and reuses the one inference scheduler, transform owner and bounded child.
+  Display-language preferences never trigger reprocessing; category changes do.
 - Derive cache keys from asset identity plus source fingerprint and transform version
   so stale thumbnails cannot be reused.
 - Default the thumbnail cache quota to 10 GiB, make it UI-configurable, evict
@@ -174,6 +327,22 @@ them.
 
 ## Frontend
 
+- All product screens, including settings, logs, empty states and errors, use
+  user-facing language: state what happened, its practical effect and the next
+  useful action. Do not display implementation commentary, ranking algorithms,
+  protocol/model identities, hashes, request IDs, internal paths, raw error codes,
+  cursor/revision/checkpoint mechanics or contract limitations. Keep these in
+  developer documentation and service diagnostics. Show task progress in task
+  management; collection/search pages retain actual match evidence and concise
+  actionable warnings, without healthy-index statistics or algorithm notes.
+  Preserve meaningful destructive-action scope and recovery guidance. Apply the
+  same rule in Chinese, English and stable production-component stories.
+
+- Use the latest verified Node.js 24 LTS patch for local tools, CI and Docker
+  build/test stages. Pin its exact version in `.node-version`, align package
+  engines/npm packageManager and the generated lockfile, use that version file in
+  CI, and pin Docker tags plus verified multi-platform digests. Do not use floating
+  `latest`/`lts` tags or rewrite historical verification evidence when upgrading.
 - Use React, TypeScript, Vite, React Router, TanStack Query, and TanStack Virtual.
 - Keep server state in TanStack Query and navigable library, directory, search, sort,
   and cursor state in the URL. Do not add Redux without an accepted ADR.
@@ -183,6 +352,13 @@ them.
   useful alt text in gallery and viewer flows.
 - Default to an adaptive grid and offer a remembered masonry layout. Desktop uses a
   fixed directory sidebar; mobile uses a directory drawer. Keep motion restrained.
+- Every product page must adapt to the full workspace available after persistent
+  navigation. Do not wrap an entire desktop page in an arbitrary fixed `max-width`
+  that leaves large unused side gutters. Keep readable line-length limits on prose,
+  forms, or focused tasks only; let page shells, dashboards, settings summaries,
+  tables, and collections use fluid width and add responsive columns where useful.
+  Verify changed pages at narrow mobile, tablet, ordinary desktop, and at least a
+  1920px-wide desktop viewport; wide-screen evidence is required when layout changes.
 - Search defaults to the current library and can switch to the current directory
   (optionally recursive) or all libraries. Directories sort naturally by name;
   recursive/search views default to descending file modification time.

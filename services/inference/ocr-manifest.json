@@ -1,0 +1,12 @@
+[
+  {
+    "path": "ocr/PP-OCRv5_server/detection/model.onnx",
+    "size": 88118768,
+    "sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad"
+  },
+  {
+    "path": "ocr/PP-OCRv5_server/recognition/model.onnx",
+    "size": 84577022,
+    "sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a"
+  }
+]

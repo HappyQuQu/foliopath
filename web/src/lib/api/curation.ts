@@ -8,6 +8,7 @@ export interface Tag {
   id: string;
   name: string;
   updatedAt: string;
+  localization?: { key: string; zhCN: string; en: string };
 }
 
 export interface AssetCuration {
@@ -15,7 +16,23 @@ export interface AssetCuration {
   favorite: boolean;
   favoritedAt: string | null;
   revision: number;
-  tags: Tag[];
+  tags: AssetTag[];
+}
+
+export interface AssetTag extends Tag {
+  /** Older server responses omitted source; they only supported manual tags. */
+  source?: "manual" | "ai";
+}
+
+export async function addManualAssetTag(input: { assetId: string; tagId: string; revision: number; csrfToken: string }): Promise<AssetCuration> {
+  try {
+    const { data, error, response } = await apiClient.PUT("/api/v1/assets/{assetId}/tags/{tagId}", {
+      headers: { "X-CSRF-Token": input.csrfToken },
+      params: { path: { assetId: input.assetId, tagId: input.tagId }, header: { "If-Match": `"curation-r${input.revision}"` } },
+    });
+    if (data) return mapAssetCuration(data);
+    throw createApiError(error, response);
+  } catch (error) { throw createApiError(error); }
 }
 
 export interface CuratedAsset {
@@ -148,10 +165,23 @@ export async function listTagAssets({
   }
 }
 
-export async function listTags(cursor?: string): Promise<TagPage> {
+export interface TagListScope {
+  kinds?: AssetKind[];
+  libraryId?: string;
+  q?: string;
+}
+
+// Omitted scope retains the global vocabulary, including unassigned tags.
+export async function listTags(cursor?: string, scope: TagListScope = {}): Promise<TagPage> {
   try {
     const { data, error, response } = await apiClient.GET("/api/v1/tags", {
-      params: { query: { limit: 200, ...(cursor ? { cursor } : {}) } },
+      params: { query: {
+        limit: 200,
+        ...(cursor ? { cursor } : {}),
+        ...(scope.libraryId ? { libraryId: scope.libraryId } : {}),
+        ...(scope.kinds?.length ? { kind: scope.kinds } : {}),
+        ...(scope.q ? { q: scope.q } : {}),
+      } },
     });
     if (data) return { items: data.items.map(mapTag), nextCursor: data.nextCursor };
     throw createApiError(error, response);
@@ -217,7 +247,7 @@ function mapTag(tag: Tag): Tag {
 }
 
 function mapAssetCuration(state: AssetCuration): AssetCuration {
-  return { ...state, tags: state.tags.map(mapTag) };
+  return { ...state, tags: state.tags.map(tag => ({ ...mapTag(tag), source: tag.source ?? "manual" })) };
 }
 
 function mapCuratedAssetPage(page: CuratedAssetPage): CuratedAssetPage {

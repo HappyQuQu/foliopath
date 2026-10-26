@@ -33,6 +33,16 @@ type Processor[T any] interface {
 	Process(context.Context, T) error
 }
 
+// ErrPlannedShutdown is set only by the process signal boundary, never by a
+// failed component or a lease/cancellation heartbeat.
+var ErrPlannedShutdown = errors.New("planned application shutdown")
+
+// ShutdownHandoff releases an exact claim only after its processor and heartbeat
+// have stopped. Capability adapters retain ownership of the durable transition.
+type ShutdownHandoff[T any] interface {
+	Handoff(context.Context, T) error
+}
+
 type WakeSource interface {
 	Notifications() <-chan struct{}
 }
@@ -103,7 +113,7 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 		return errors.New("worker context is required")
 	}
 	if _, err := pool.queue.RecoverExpired(ctx); err != nil {
-		return fmt.Errorf("recover expired work: %w", err)
+		return workerFailure("recovery", err)
 	}
 
 	workerContext, cancel := context.WithCancel(ctx)
@@ -114,10 +124,7 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 	go func() {
 		defer workers.Done()
 		if err := pool.runRecovery(workerContext); err != nil {
-			select {
-			case failures <- err:
-			case <-workerContext.Done():
-			}
+			failures <- err
 		}
 	}()
 	for index := 0; index < pool.workers; index++ {
@@ -125,10 +132,7 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 		go func() {
 			defer workers.Done()
 			if err := pool.runWorker(workerContext); err != nil {
-				select {
-				case failures <- err:
-				case <-workerContext.Done():
-				}
+				failures <- err
 			}
 		}()
 	}
@@ -137,11 +141,23 @@ func (pool *WorkerPool[T]) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		cancel()
 		workers.Wait()
-		return nil
+		return drainWorkerFailures(failures)
 	case err := <-failures:
 		cancel()
 		workers.Wait()
-		return err
+		return errors.Join(err, drainWorkerFailures(failures))
+	}
+}
+
+func drainWorkerFailures(failures <-chan error) error {
+	var result error
+	for {
+		select {
+		case err := <-failures:
+			result = errors.Join(result, err)
+		default:
+			return result
+		}
 	}
 }
 
@@ -157,7 +173,7 @@ func (pool *WorkerPool[T]) runRecovery(ctx context.Context) error {
 				if ctx.Err() != nil {
 					return nil
 				}
-				return fmt.Errorf("recover expired work: %w", err)
+				return workerFailure("recovery", err)
 			}
 		}
 	}
@@ -180,16 +196,13 @@ func (pool *WorkerPool[T]) runWorker(ctx context.Context) error {
 				if ctx.Err() != nil {
 					return nil
 				}
-				return fmt.Errorf("claim work: %w", err)
+				return workerFailure("claim", err)
 			}
 			if !found {
 				timer.Reset(pool.idlePollInterval)
 				break
 			}
 			if err := pool.execute(ctx, work); err != nil {
-				if ctx.Err() != nil {
-					return nil
-				}
 				return err
 			}
 		}
@@ -208,7 +221,16 @@ func (pool *WorkerPool[T]) execute(ctx context.Context, work T) error {
 	_ = pool.processor.Process(workContext, work)
 	cancel()
 	if err := <-heartbeatDone; err != nil {
-		return fmt.Errorf("refresh work lease: %w", err)
+		return workerFailure("heartbeat", err)
+	}
+	if errors.Is(context.Cause(ctx), ErrPlannedShutdown) {
+		if owner, ok := pool.queue.(ShutdownHandoff[T]); ok {
+			handoffCtx, finish := context.WithTimeout(context.Background(), 5*time.Second)
+			defer finish()
+			if err := owner.Handoff(handoffCtx, work); err != nil {
+				return workerFailure("handoff", err)
+			}
+		}
 	}
 	return nil
 }

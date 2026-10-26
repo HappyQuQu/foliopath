@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "evidence_class": "development-only",
+  "environment": {"goos":"darwin","goarch":"arm64","go_version":"go1.26.4","gomaxprocs":4},
+  "items": 100000,
+  "dimensions": 512,
+  "queries": 20,
+  "top_k": 20,
+  "seed": 20260825,
+  "runs": [
+    {"format":"float32","storage_bytes":204800000,"bytes_per_vector":2048,"query_p50_ms":36.454,"query_p95_ms":37.647,"query_p99_ms":40.573,"mean_recall_at_k":1.0,"minimum_recall_at_k":1.0},
+    {"format":"float16","storage_bytes":102400000,"bytes_per_vector":1024,"build_ms":67.600,"query_p50_ms":61.507,"query_p95_ms":62.437,"query_p99_ms":65.780,"mean_recall_at_k":1.0,"minimum_recall_at_k":1.0},
+    {"format":"int8-per-vector-scale","storage_bytes":51600000,"bytes_per_vector":516,"build_ms":77.178,"query_p50_ms":40.242,"query_p95_ms":42.968,"query_p99_ms":43.212,"mean_recall_at_k":0.9975,"minimum_recall_at_k":0.95}
+  ],
+  "filtered_sqlite_baseline": {
+    "predicate": "id % 10 = 0 (unindexed synthetic predicate)",
+    "eligible_items": 10000,
+    "query_p50_ms": 81.394,
+    "query_p95_ms": 89.772,
+    "query_p99_ms": 91.234,
+    "database_bytes": 410619904
+  },
+  "caveats": [
+    "Random vectors do not establish recall for real model embeddings.",
+    "Packed storage excludes SQLite page, row, index, and WAL overhead.",
+    "The modulo filter is deliberately not an indexed production filter design."
+  ]
+}

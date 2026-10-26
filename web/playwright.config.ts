@@ -18,6 +18,11 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "context-visual-chromium",
+      testMatch: /context-sidebar\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], reducedMotion: "reduce" },
+    },
+    {
       name: "chromium",
       testIgnore: /visual-regression\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
@@ -34,7 +39,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testMatch: /media-matrix\.spec\.ts/,
+      testMatch: /(?:media-matrix|d04-real)\.spec\.ts/,
       use: { ...devices["Pixel 5"] },
     },
     {

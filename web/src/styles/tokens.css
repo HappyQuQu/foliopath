@@ -1,16 +1,18 @@
 :root {
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    system-ui, "PingFang SC", "Helvetica Neue", sans-serif;
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue",
+    system-ui, sans-serif;
   --font-mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
 
-  --font-size-1: 0.6875rem;
+  --font-size-1: 0.75rem;
   --font-size-2: 0.8125rem;
-  --font-size-3: 0.9375rem;
+  --font-size-3: 0.875rem;
   --font-size-4: 1.0625rem;
-  --font-size-5: 1.375rem;
-  --font-size-6: 1.75rem;
-  --font-size-7: 2.125rem;
+  --font-size-5: 1.25rem;
+  --font-size-6: 1.875rem;
+  --font-size-7: 1.875rem;
+  --font-size-tag-prominent: 0.9375rem;
+  --font-size-tag-major: 1rem;
 
   --line-height-tight: 1.18;
   --line-height-normal: 1.45;
@@ -35,16 +37,23 @@
   --size-brand-mark-md: 2rem;
   --size-brand-mark-lg: 4rem;
   --size-header: 4.25rem;
-  --size-context-bar: 3rem;
+  --size-context-bar: 2.4375rem;
   --size-auth-card: 28.75rem;
   --size-auth-mark: 4rem;
-  --size-sidebar: clamp(14rem, 20vw, 19rem);
+  --size-sidebar: 15.5rem;
+  --size-sidebar-drawer: 16.875rem;
   --size-settings-content: 54rem;
   --size-content: 70rem;
 
-  --radius-1: 0.5rem;
-  --radius-2: 0.75rem;
-  --radius-3: 1rem;
+  --radius-1: 0.4375rem;
+  --radius-2: 0.5625rem;
+  --radius-3: 0.8125rem;
+  --radius-auth: 1.125rem;
+  --workspace-padding: clamp(var(--space-6), 3vw, var(--space-12));
+  --workspace-gap: var(--space-3);
+  --size-preview-default: 21.375rem;
+  --shadow-panel: 0 2px 6px rgb(33 56 85 / 0.03);
+  --shadow-preview: 0 6px 26px rgb(37 60 88 / 0.065);
   --radius-round: 999rem;
 
   --border-width: 1px;
@@ -68,6 +77,14 @@
   --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+/* Compact authenticated headers keep search and utility actions on separate rows.
+   All fixed/sticky workspace offsets consume this same height token. */
+@media (max-width: 30rem) {
+  :root {
+    --size-header: 7rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-fast: 1ms;
@@ -75,3 +92,8 @@
     --motion-slow: 1ms;
   }
 }
+
+/* The accepted layered workspace keeps navigation compact as the canvas grows. */
+@media (max-width: 78.125rem) { :root { --size-sidebar: 13.4375rem; } }
+@media (max-width: 56.25rem) { :root { --size-sidebar: 11.875rem; } }
+@media (max-width: 37.5rem) { :root { --size-sidebar: 16.875rem; --workspace-padding: var(--space-4); } }

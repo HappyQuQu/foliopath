@@ -188,25 +188,7 @@ function SystemEventRow({
         <span>
           {date.format(new Date(event.occurredAt))} · {t(`systemLogs.module.${event.module}` as MessageKey)}
         </span>
-        {(event.requestId || event.routePattern || event.statusCode) && (
-          <details className={styles.details}>
-            <summary>{t("systemLogs.technicalDetails")}</summary>
-            <dl>
-              {event.requestId && (
-                <div><dt>{t("systemLogs.requestId")}</dt><dd>{event.requestId}</dd></div>
-              )}
-              {event.routePattern && (
-                <div><dt>{t("systemLogs.route")}</dt><dd>{event.method} {event.routePattern}</dd></div>
-              )}
-              {event.statusCode && (
-                <div><dt>{t("systemLogs.status")}</dt><dd>{event.statusCode}</dd></div>
-              )}
-              {event.durationMs !== null && (
-                <div><dt>{t("systemLogs.duration")}</dt><dd>{event.durationMs} ms</dd></div>
-              )}
-            </dl>
-          </details>
-        )}
+
       </div>
     </article>
   );

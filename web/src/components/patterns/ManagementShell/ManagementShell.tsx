@@ -1,4 +1,7 @@
 import {
+  Brain,
+  ArrowLeft,
+  CaretRight,
   FileText,
   FolderOpen,
   GearSix,
@@ -6,7 +9,7 @@ import {
   UserCircle,
 } from "@phosphor-icons/react";
 import type { ComponentType, ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 import { useLocale, type MessageKey } from "../../../lib/i18n/LocaleProvider";
 import { AppShell } from "../AppShell/AppShell";
@@ -15,6 +18,7 @@ import styles from "./ManagementShell.module.css";
 export type ManagementSection =
   | "general"
   | "libraries"
+  | "ai"
   | "storage"
   | "account"
   | "logs"
@@ -23,6 +27,7 @@ export type ManagementSection =
 const navigation: Array<{
   hrefKey:
     | "accountHref"
+    | "aiHref"
     | "aboutHref"
     | "generalHref"
     | "librariesHref"
@@ -43,6 +48,12 @@ const navigation: Array<{
     icon: FolderOpen,
     key: "shell.libraries",
     section: "libraries",
+  },
+  {
+    hrefKey: "aiHref",
+    icon: Brain,
+    key: "management.ai",
+    section: "ai",
   },
   {
     hrefKey: "accountHref",
@@ -67,6 +78,7 @@ const navigation: Array<{
 export function ManagementShell({
   active,
   accountHref,
+  aiHref = "/settings/ai",
   aboutHref = "/settings/about",
   children,
   generalHref,
@@ -76,11 +88,13 @@ export function ManagementShell({
   logsHref = "/settings/logs",
   logoutPending,
   onLogout,
+  peopleHref = "/intelligence?view=clusters",
   searchHref,
   storageHref,
 }: {
   active: ManagementSection;
   accountHref: string;
+  aiHref?: string;
   aboutHref?: string;
   children: ReactNode;
   generalHref: string;
@@ -90,12 +104,14 @@ export function ManagementShell({
   logsHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
+  peopleHref?: string | undefined;
   searchHref: string;
   storageHref: string;
 }) {
   const { t } = useLocale();
   const hrefs = {
     accountHref,
+    aiHref,
     aboutHref,
     generalHref,
     librariesHref,
@@ -110,13 +126,18 @@ export function ManagementShell({
       identity={identity}
       logoutPending={logoutPending}
       onLogout={onLogout}
+      peopleHref={peopleHref}
       searchHref={searchHref}
       settingsHref={generalHref}
       title={t("management.title")}
-    >
-      <div className={styles.layout}>
-        <aside className={styles.sidebar}>
+
+      navigationKey={`management:${active}`}
+      sidebarLabel={t("management.title")}
+      navigationLabel={t("context.openManagement")}
+      sidebarContent={
+        <div className={styles.sidebar}>
           <h2>{t("management.title")}</h2>
+          <Link className={styles.back} to={homeHref}><ArrowLeft aria-hidden="true" size={18} />{t("context.backToMedia")}</Link>
           <nav aria-label={t("management.navigation")}>
             {navigation.map(({ hrefKey, icon: Icon, key, section }) => (
               <NavLink
@@ -132,9 +153,11 @@ export function ManagementShell({
               </NavLink>
             ))}
           </nav>
-        </aside>
-        <div className={styles.pane}>{children}</div>
-      </div>
+        </div>
+      }
+      topbarContent={<><span>{t("management.title")}</span><CaretRight aria-hidden="true" size={14} /><span>{t(navigation.find(item => item.section === active)?.key ?? "management.general")}</span></>}
+    >
+      <div className={styles.pane}>{children}</div>
     </AppShell>
   );
 }

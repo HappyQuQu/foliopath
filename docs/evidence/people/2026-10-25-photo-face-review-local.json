@@ -1,0 +1,144 @@
+{
+  "change": "CR-2026-040",
+  "recordedAt": "2026-10-25T09:30:43.781349+00:00",
+  "stage": "POST-MVP-5 single-photo manual face review",
+  "candidate": "sha256:a504165b9f8e7a736b01b29737d362092f73c40280e947d4b62c4c0ecfa80f5c",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "sourceGuard": "ExcludeFaceReview optional paired sourcePersonId/expectedSourceRevision; absent asserts unassigned; exact current assignment + person revision required otherwise. Conflict returns409 without writes.",
+    "confirmation": "explicit one face, frozen face/source/target revisions and idempotency key; conflict never resends; uncertain response retried only explicitly inside the current confirmation dialog",
+    "actualLibrary": "metadata libraryId canonicalizes stale navigation context; source image must load before editing",
+    "sameKeyReplay": "existing completed operation replay precedes current source guard; undo remains guarded",
+    "newMigrations": false,
+    "newModelGenerations": false
+  },
+  "checks": {
+    "backendFocused": "passed count=1; face service/API/SQLite including source pairing, conflicts without audit/exclusion changes, undo/replay",
+    "focusedRace": {
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestReviewService|TestGuardedUndo|TestFaceReview|TestPendingCluster|TestExcludeFaceRoute",
+      "status": "passed count=1"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed SQLC and API client/hash lock",
+    "lint": "passed contract-check and go vet",
+    "goFull": "passed with normal Go cache, disposable larger-volume TMPDIR and GOFLAGS=-p=1",
+    "integration": "passed",
+    "runtimeDockerSmoke": "passed",
+    "openapiLint": "valid, 2 existing health endpoint missing4xx warnings",
+    "frontend": {
+      "files": 75,
+      "tests": 476,
+      "fullCheck": "passed including audit:high, generated consistency, architecture/visual inventory, types, Vitest and Storybook"
+    },
+    "finalBrowser": {
+      "image": "sha256:a504165b9f8e7a736b01b29737d362092f73c40280e947d4b62c4c0ecfa80f5c",
+      "tests": [
+        "photo-face-review.spec.ts",
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "passed": 216,
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "cancelFocus": true,
+      "frozenSourceAndTarget": true,
+      "anonymousExclusionRace": true,
+      "committedUnknownResponseSameKeyReplay": true,
+      "badImagePausesEditing": true,
+      "actualLibraryContext": true
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T09:25:59.455Z",
+      "appImage": "sha256:a504165b9f8e7a736b01b29737d362092f73c40280e947d4b62c4c0ecfa80f5c",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "photoFaceReview": true,
+      "exclusionAnonymousRaceRejected": true,
+      "realUnknownSuccessReplay": true,
+      "peopleDirectoryPreview": false,
+      "emptyDirectoryPerson": false,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "stories": [
+    "features-intelligence-review--single-photo-review"
+  ],
+  "firstRunFailures": [
+    "Red test confirmed old source-less exclusion deleted concurrent manual assignment. Added exact source/person revision fence in existing transaction.",
+    "New API test omitted application/json header; corrected fixture, decoder unchanged.",
+    "Unit fixture used wrong exclude label; corrected test selector, product label unchanged.",
+    "Disabling the opener on modal open lost focus before Dialog captured it. Keep opener focusable with native modal and logical duplicate guard; cancel focus now passes all browsers.",
+    "Full Go test found old manual-clear fixture excluding an assigned face without source; updated exact source/revision2, no guard relaxation.",
+    "Initial oneOf source pair constraint added4 linter warnings. Use explicit paired-field contract prose consistent with AssignFaceReview and canonical business validation/negative tests; final only2 historical health warnings."
+  ],
+  "protection": {
+    "originalMediaOrCurationTouched": false,
+    "server222Connected": false,
+    "tenSourceIssues": "remain deferred; no retry or modification",
+    "syntheticProbe": "2 photos /4 real-model faces; one selected face moved, excluded and restored with exact guards; other2 anonymous and existing excluded face unchanged; stale anonymous exclusion rejected",
+    "manualTagAndSourceHash": "nonempty manual tag and synthetic original hashes checked before and after restart",
+    "databaseCheck": "passed in owning synthetic app container",
+    "resources": "independent synthetic containers/networks/volumes cleaned by harness finally; no original container restart or deployment"
+  },
+  "limits": [
+    "No original6010 deployment, model reprocessing or source restoration.",
+    "Manual source-person fence is not a claim that every source-file/model-generation concurrency case is solved.",
+    "Uncertain request intent persists only in the current dialog, not across navigation/reload.",
+    "No OCR/quality/capacity/cross-architecture/release approval and no full Go race claim.",
+    "All broad browser and real-model results refer to final a504165b; earlier2b45ed65 results are not mixed."
+  ],
+  "logs": [
+    ".artifacts/photo-face-red.log",
+    ".artifacts/photo-face-backend-final.log",
+    ".artifacts/photo-face-race.log",
+    ".artifacts/photo-face-full.log",
+    ".artifacts/photo-face-final-go-check.log",
+    ".artifacts/photo-face-web-final2.log",
+    ".artifacts/photo-face-contract-final.log",
+    ".artifacts/photo-face-browser-final2.log",
+    ".artifacts/photo-face-real-final.log",
+    ".artifacts/photo-face-build-final.log"
+  ]
+}

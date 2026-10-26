@@ -115,6 +115,9 @@ func Open(ctx context.Context, filename string, options Options) (*Store, error)
 	if err := store.ensureCatalogSearchIndex(ctx); err != nil {
 		return closeOnError(err)
 	}
+	if err := store.backfillOCRSearch(ctx); err != nil {
+		return closeOnError(err)
+	}
 	return store, nil
 }
 
@@ -422,6 +425,7 @@ func buildDSN(filename string, busyTimeout time.Duration) string {
 	query.Add("_pragma", "busy_timeout("+strconv.FormatInt(busyTimeout.Milliseconds(), 10)+")")
 	query.Add("_pragma", "foreign_keys(1)")
 	query.Add("_pragma", "journal_mode(WAL)")
+	query.Add("_pragma", "secure_delete(ON)")
 	query.Add("_pragma", "synchronous(NORMAL)")
 	query.Set("_txlock", "immediate")
 	dsn.RawQuery = query.Encode()
@@ -467,6 +471,14 @@ func verifyPragmas(ctx context.Context, db *sql.DB, busyTimeout time.Duration) e
 	}
 	if synchronous != 1 {
 		return fmt.Errorf("sqlite synchronous is %d, want NORMAL (1)", synchronous)
+	}
+
+	var secureDelete int
+	if err := db.QueryRowContext(ctx, "PRAGMA secure_delete").Scan(&secureDelete); err != nil {
+		return fmt.Errorf("read sqlite secure_delete: %w", err)
+	}
+	if secureDelete != 1 {
+		return fmt.Errorf("sqlite secure_delete is %d, want ON (1)", secureDelete)
 	}
 	return nil
 }

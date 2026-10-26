@@ -1,0 +1,81 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "gomaxprocs": 4,
+    "performance_test_binary_sha256": "fa3fb269a97451ad53db8e1de5e08f0f7647c57c95ec8d0d447658c3525ea445"
+  },
+  "workload": {
+    "production_components": ["scanner", "catalog.Service", "SQLite store", "thumbnail storyboard admission"],
+    "directories": 10000,
+    "assets": 100000,
+    "ai_runtime": "two resident SigLIP 1 split sessions with CPU arena disabled",
+    "ai_completed_image_text_cycles": 356
+  },
+  "baseline": {
+    "scan_duration_ms": 69472,
+    "concurrent_read_p95_us": 657,
+    "concurrent_search_p95_us": 38526,
+    "directory_list_p95_us": 51,
+    "asset_list_p95_us": 162,
+    "recursive_browse_p95_us": 28267,
+    "fts_search_p95_us": 20769,
+    "short_search_p95_us": 35961,
+    "global_search_p95_us": 18811,
+    "search_keyset_p95_us": 355609,
+    "storyboard_browse_p95_us": 39371,
+    "cgroup_peak_bytes": 1604067328,
+    "budget_violations": ["searchKeysetP95Us > 250000"]
+  },
+  "with_ai": {
+    "scan_duration_ms": 69847,
+    "concurrent_read_p95_us": 704,
+    "concurrent_search_p95_us": 39133,
+    "directory_list_p95_us": 57,
+    "asset_list_p95_us": 189,
+    "recursive_browse_p95_us": 31431,
+    "fts_search_p95_us": 23925,
+    "short_search_p95_us": 38683,
+    "global_search_p95_us": 23574,
+    "search_keyset_p95_us": 380979,
+    "storyboard_browse_p95_us": 47358,
+    "cgroup_peak_bytes": 3589988352,
+    "ai_image_p95_ms": 185.856,
+    "ai_text_p95_ms": 59.13,
+    "ai_outputs_finite": true,
+    "budget_violations": ["searchKeysetP95Us > 250000"]
+  },
+  "relative_change_percent": {
+    "scan_duration": 0.54,
+    "concurrent_read_p95": 7.154,
+    "concurrent_search_p95": 1.576,
+    "directory_list_p95": 11.765,
+    "asset_list_p95": 16.667,
+    "recursive_browse_p95": 11.193,
+    "fts_search_p95": 15.196,
+    "short_search_p95": 7.569,
+    "global_search_p95": 25.32,
+    "search_keyset_p95": 7.134,
+    "storyboard_browse_p95": 20.287
+  },
+  "assessment": {
+    "memory_peak_limit_bytes": 3435973836,
+    "combined_memory_passed": false,
+    "general_recursive_browse_relative_limit": 0.2,
+    "general_recursive_browse_passed": true,
+    "all_observed_query_paths_under_relative_limit": false,
+    "baseline_itself_passed_existing_budgets": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "This comparison contains one collect-only baseline and one AI run; run-to-run variance is not bounded.",
+    "The existing search-keyset budget failed in both runs, so this environment cannot provide a clean all-budget baseline.",
+    "The test uses production Go services and SQLite but not the authenticated HTTP transport or browser renderer.",
+    "The AI sessions repeatedly infer prepared pilot tensors rather than performing a real 100,000-image backfill.",
+    "Native linux/amd64 and the face runtime remain unverified."
+  ]
+}

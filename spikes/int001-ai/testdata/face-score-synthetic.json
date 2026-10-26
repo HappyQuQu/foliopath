@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-face-score-smoke-v1",
+  "legal_basis": "synthetic",
+  "license": {"id":"CC0-1.0","url":"https://creativecommons.org/publicdomain/zero/1.0/"},
+  "similarity_threshold": 0.8,
+  "core_precision_gate": 0.995,
+  "observations": [
+    {"id":"a-1","identity_id":"identity-a","cluster_id":"cluster-a","tier":"core","person_id":"person-a","embedding":[1.0,0.02,0.0]},
+    {"id":"a-2","identity_id":"identity-a","cluster_id":"cluster-a","tier":"core","person_id":"person-a","embedding":[0.99,0.04,0.0]},
+    {"id":"a-3","identity_id":"identity-a","cluster_id":"cluster-a","tier":"edge","person_id":"person-a","embedding":[0.96,0.12,0.0]},
+    {"id":"b-1","identity_id":"identity-b","cluster_id":"cluster-b","tier":"core","person_id":"person-b","embedding":[0.01,1.0,0.02]},
+    {"id":"b-2","identity_id":"identity-b","cluster_id":"cluster-b","tier":"core","person_id":"person-b","embedding":[0.03,0.99,0.01]},
+    {"id":"b-3","identity_id":"identity-b","cluster_id":"cluster-b","tier":"edge","person_id":"person-b","embedding":[0.10,0.96,0.02]},
+    {"id":"c-1","identity_id":"identity-c","cluster_id":"cluster-c","tier":"core","person_id":"person-c","embedding":[0.0,0.02,1.0]},
+    {"id":"c-2","identity_id":"identity-c","cluster_id":"cluster-c","tier":"core","person_id":"person-c","embedding":[0.01,0.0,0.99]}
+  ],
+  "cannot_links": [["a-1","b-1"],["a-1","c-1"],["b-1","c-1"]],
+  "manual_assignments": {"a-1":"person-a","b-1":"person-b","c-1":"person-c"}
+}

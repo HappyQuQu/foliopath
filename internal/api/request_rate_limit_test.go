@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -26,6 +27,58 @@ func TestRequestRateLimiterEnforcesAndResetsFixedWindow(t *testing.T) {
 	now = now.Add(time.Minute)
 	if retry, allowed := limiter.allow("peer\x00login", 10); !allowed || retry != "" {
 		t.Fatalf("reset request = (%q, %t), want allowed", retry, allowed)
+	}
+}
+
+func TestAIRequestRatePoliciesCoverFrozenTagAndVideoRoutes(t *testing.T) {
+	for _, test := range []struct{ method, path, operation string }{
+		{http.MethodGet, "/api/v1/semantic/videos", "semantic_search"},
+		{http.MethodGet, "/api/v1/libraries/lib_7/ai/tag-suggestions", "ai_tag_suggestions_read"},
+		{http.MethodPost, "/api/v1/libraries/lib_7/ai/tag-suggestions/jobs", "ai_tag_suggestions_job"},
+		{http.MethodPost, "/api/v1/libraries/lib_7/ai/tag-suggestion-reviews/clear", "ai_tag_reviews_clear"},
+		{http.MethodPost, "/api/v1/libraries/lib_7/ai/video-semantic/jobs", "ai_video_semantic_job"},
+	} {
+		policy, ok := requestRatePolicyFor(test.method, test.path)
+		if !ok || policy.operation != test.operation || policy.limit < 1 {
+			t.Errorf("%s %s policy=%#v ok=%v", test.method, test.path, policy, ok)
+		}
+	}
+	if _, ok := requestRatePolicyFor(http.MethodGet, "/api/v1/libraries/not-an-id/ai/tag-suggestions"); ok {
+		t.Fatal("malformed library path received AI policy")
+	}
+}
+
+func TestRequestRateLimiterRebasesClockRollbackWithoutRestoringQuota(t *testing.T) {
+	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	limiter := newRequestRateLimiter(func() time.Time { return now })
+	if _, allowed := limiter.allow("peer\x00semantic_search", 1); !allowed {
+		t.Fatal("initial request was not allowed")
+	}
+	now = now.Add(-time.Hour)
+	if retry, allowed := limiter.allow("peer\x00semantic_search", 1); allowed || retry != "60" {
+		t.Fatalf("rollback request = (%q, %t), want (60, false)", retry, allowed)
+	}
+	now = now.Add(requestRateWindow)
+	if retry, allowed := limiter.allow("peer\x00semantic_search", 1); !allowed || retry != "" {
+		t.Fatalf("rebased reset request = (%q, %t), want allowed", retry, allowed)
+	}
+}
+
+func TestRequestRateLimiterRebasesFullBucketMapAfterClockRollback(t *testing.T) {
+	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	limiter := newRequestRateLimiter(func() time.Time { return now })
+	for index := range maxRequestBuckets {
+		if _, allowed := limiter.allow("peer-"+strconv.Itoa(index), 1); !allowed {
+			t.Fatalf("bucket %d was not admitted", index)
+		}
+	}
+	now = now.Add(-time.Hour)
+	if retry, allowed := limiter.allow("new-peer", 1); allowed || retry != "1" {
+		t.Fatalf("full rollback request = (%q, %t), want fail-closed", retry, allowed)
+	}
+	now = now.Add(requestRateWindow)
+	if retry, allowed := limiter.allow("new-peer", 1); !allowed || retry != "" {
+		t.Fatalf("post-window request = (%q, %t), want allowed", retry, allowed)
 	}
 }
 
@@ -161,6 +214,19 @@ func TestFrontendFidelityOperationsHaveExplicitRatePolicies(t *testing.T) {
 		if !ok || policy.limit != operation.limit {
 			t.Errorf("%s %s policy = %#v, %t", operation.method, operation.path, policy, ok)
 		}
+	}
+}
+
+func TestSemanticSearchHasIndependentRatePolicy(t *testing.T) {
+	policy, ok := requestRatePolicyFor(http.MethodGet, "/api/v1/semantic/assets")
+	if !ok || policy.operation != "semantic_search" || policy.limit != semanticSearchRequestsPerMinute {
+		t.Fatalf("semantic policy=%#v found=%v", policy, ok)
+	}
+	if _, ok := requestRatePolicyFor(http.MethodGet, "/api/v1/assets/search"); ok {
+		t.Fatal("filename search unexpectedly shares semantic rate policy")
+	}
+	if _, ok := requestRatePolicyFor(http.MethodGet, "/api/v1/libraries/lib_1/assets"); ok {
+		t.Fatal("browse unexpectedly shares semantic rate policy")
 	}
 }
 

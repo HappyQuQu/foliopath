@@ -1,0 +1,159 @@
+{
+  "change": "CR-2026-041",
+  "recordedAt": "2026-10-25T10:04:53.149685+00:00",
+  "stage": "POST-MVP-5 guarded manual face review undo",
+  "candidate": "sha256:43e1684404a8c6cf0c8bd8af4adf7f60268b3b56751d9769ec27742f141805bc",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "endpoint": "existing POST /api/v1/ai/face-reviews/{reviewId}/undo with original receipt revision in strong If-Match, CSRF and separate idempotency key",
+    "owner": "AIReviewPage owns at most one confirmed undoable receipt; FaceReviewUndo owns one frozen receipt and explicit retry key",
+    "scope": "single photo /group /person removal or move /people merge; not tag/rename/create undo or global audit history",
+    "lifetime": "next face review start clears previous receipt; navigation within mounted workspace retains it; dismiss/navigation away/reload does not promise recovery or cancellation",
+    "conflict": "terminal conflict refreshes projections without adopting newer revisions or automatic resend",
+    "cache": "canonical mutation invalidation on review/undo success and failure; never force-refetch changing or disabled source observer",
+    "schema": "documented already emitted409 face_constraint_conflict for undo, generated client/hash synchronized; no payload shape change",
+    "newMigrations": false,
+    "newModelGenerations": false
+  },
+  "checks": {
+    "backendFocused": "existing guarded undo assignment/exclusion/split/merge and replay tests passed count=1; exact API strong validator route test separately passed after initial pattern had no API matches",
+    "focusedRace": {
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestGuardedUndo|TestFaceMutationRoutesDecodeTypedReviewAndStrongUndoPrecondition|TestReviewService",
+      "status": "passed count=1"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed SQLC and OpenAPI/client/hash",
+    "lint": "passed contract checks and go vet",
+    "goFull": "passed with normal cache, disposable larger-volume TMPDIR and GOFLAGS=-p=1",
+    "integration": "passed",
+    "runtimeDockerSmoke": "passed",
+    "openapiLint": "valid,2 existing health endpoint missing4xx warnings",
+    "frontend": {
+      "files": 76,
+      "tests": 490,
+      "fullCheck": "passed audit:high, generated consistency, architecture/visual inventory, types, Vitest and Storybook"
+    },
+    "finalBrowser": {
+      "image": "sha256:43e1684404a8c6cf0c8bd8af4adf7f60268b3b56751d9769ec27742f141805bc",
+      "tests": [
+        "face-review-undo.spec.ts",
+        "photo-face-review.spec.ts",
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "passed": 252,
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "cancelFocus": true,
+      "frozenStrongValidator": true,
+      "unknownCommittedUndoSameKeyRetry": true,
+      "laterCurationConflict": true,
+      "receiptNavigationAndReloadBoundary": true,
+      "nextReviewReplacesReceipt": true,
+      "noEmptyPersonIDRequests": true
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T09:55:11.320Z",
+      "appImage": "sha256:43e1684404a8c6cf0c8bd8af4adf7f60268b3b56751d9769ec27742f141805bc",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "photoFaceReview": true,
+      "faceReviewUndo": true,
+      "undoAcrossPhotoPersonMergeGroup": true,
+      "undoConflictPreservesLaterCuration": true,
+      "committedUndoSameKeyReplay": true,
+      "exclusionAnonymousRaceRejected": true,
+      "realUnknownSuccessReplay": true,
+      "peopleDirectoryPreview": false,
+      "emptyDirectoryPerson": false,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "realTestDetails": [
+    "Actual model analyzes2 synthetic photos with4 faces.",
+    "Actual single-photo exclusion undone; one real committed undo response deliberately replaced with503; explicit same-key server replay leaves person revision unchanged.",
+    "Another authenticated synthetic request restores a face after exclusion; old undo returns409 and preserves new assignment.",
+    "Person-detail removal and undo restore the only photo; merging an empty target and undo restores both people. Nonempty merge undo remains covered by executed backend tests, not claimed as a new real UI nonempty-merge probe.",
+    "Anonymous group exclusion and undo restore pending counts.",
+    "Final1 assigned/1 excluded/2 anonymous; manual tag and source hashes checked before/after restart; owning-container database-check passed."
+  ],
+  "stories": [
+    "features-intelligence-review-undo--confirmed-exclusion",
+    "features-intelligence-review-undo--confirmed-move",
+    "features-intelligence-review-undo--confirmed-merge"
+  ],
+  "firstRunFailures": [
+    "Initial backend pattern matched no API tests; ran exact strong-validator API test separately and in race/full checks.",
+    "Exact optional property types/typed English map insertion/Story required args corrected; no production type guard weakened.",
+    "Strict browser endpoint test found GET /people/ after exclusion: selected source query changed to empty before captured observer.refetch. Removed force-refetch of changing source/target observers; canonical mutation invalidates caches on success/failure. Kept strict test, no fabricated empty-person response.",
+    "Existing undo409 face_constraint_conflict missing from route x-error-codes; synchronized docs/client/hash without changing server behavior."
+  ],
+  "protection": {
+    "originalMediaOrCurationTouched": false,
+    "server222Connected": false,
+    "tenSourceIssues": "remain deferred; no retry or source modification",
+    "manualTagAndSourceHash": "nonempty synthetic manual tag and original hashes preserved before/after restart",
+    "databaseCheck": "passed in owning synthetic app Linux lock domain",
+    "testResources": "own containers/networks/volumes/fixture copies cleaned by finally; no original container restart/deployment"
+  },
+  "limits": [
+    "No original6010 deployment or source/model reprocessing.",
+    "Only one mounted-workspace receipt, not global history or guaranteed cross-refresh undo.",
+    "No OCR/quality/capacity/cross-architecture/release approval or full Go race claim.",
+    "Earlier candidate real success and failed focus suite are not used to claim final image acceptance."
+  ],
+  "logs": [
+    ".artifacts/face-undo-backend.log",
+    ".artifacts/face-undo-api.log",
+    ".artifacts/face-undo-race.log",
+    ".artifacts/face-undo-full.log",
+    ".artifacts/face-undo-final-check.log",
+    ".artifacts/face-undo-web-final.log",
+    ".artifacts/face-undo-browser-focus.log",
+    ".artifacts/face-undo-browser-final.log",
+    ".artifacts/face-undo-real-final.log",
+    ".artifacts/face-undo-build-final.log"
+  ]
+}

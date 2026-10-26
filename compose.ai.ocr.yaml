@@ -1,0 +1,11 @@
+# Optional OCR model cache, used after the existing AI deployment overlays.
+# No media/database access and no additional service or public port.
+services:
+  machine-learning:
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_OCR_CACHE_PATH:?Set the existing verified OCR model cache}
+        target: /ocr-cache
+        read_only: true
+        bind:
+          create_host_path: false

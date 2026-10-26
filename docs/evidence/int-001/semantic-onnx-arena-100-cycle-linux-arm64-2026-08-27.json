@@ -1,0 +1,58 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "onnxruntime": "1.28.0",
+    "base_image_digest": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "models": {
+    "image_encoder_bytes": 371682125,
+    "image_encoder_sha256": "7fc85e0e8a0f4e5fce7be45c7830e7473c81f010633b7d31bc1613dafc734ab0",
+    "text_encoder_bytes": 1129345413,
+    "text_encoder_sha256": "ef9451f51568152758e53ebca85cec4d84d2462c45e1611b42f49a42bd1be953",
+    "prepared_tensor_sha256": "759555d0de3d5b2b96947f1eae6b7230ea729ac6eda217ab1d7e864eeef94498"
+  },
+  "configuration": {
+    "cycles": 100,
+    "threads": 4,
+    "cpu_mem_arena": false,
+    "memory_pattern": true,
+    "maximum_retained_rss_growth_kib": 131072,
+    "maximum_cgroup_peak_bytes": 3435973836
+  },
+  "result": {
+    "all_outputs_finite": true,
+    "rss_after_cycle_1_kib": 500156,
+    "rss_after_cycle_30_kib": 500156,
+    "rss_after_cycle_100_kib": 500184,
+    "rss_after_cycle_min_kib": 500156,
+    "rss_after_cycle_max_kib": 500184,
+    "retained_rss_growth_after_cycle_1_kib": 28,
+    "process_peak_rss_kib": 2037064,
+    "cgroup_peak_bytes": 3719651328,
+    "image_load_seconds_range": [0.194386, 0.228319],
+    "text_load_seconds_range": [0.461138, 0.495331],
+    "image_inference_seconds_range": [0.08948, 0.095394],
+    "text_inference_seconds_range": [0.028943, 0.043306],
+    "retained_rss_growth_passed": true,
+    "cgroup_peak_passed": false,
+    "lifecycle_capacity_passed": false
+  },
+  "decision": {
+    "arena_off_allocator_subproof_preserved": true,
+    "repeated_full_model_reload_strategy_accepted": false,
+    "next_required_comparison": "bounded long-lived sessions or isolated worker lifecycle measured with cgroup current and peak",
+    "int_008_complete": false,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "The cgroup peak combines anonymous memory and file-backed page cache; this run did not capture memory.stat samples per cycle.",
+    "One hundred cycles are longer than the earlier smoke but are not a production-duration soak.",
+    "This is the Python ONNX Runtime wrapper, not the production Go or C adapter.",
+    "Native linux/amd64 remains unverified."
+  ]
+}

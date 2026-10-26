@@ -1,79 +1,117 @@
-# UIF-402 Design QA
+# 分层工作台正式界面对齐 QA
 
-## Comparison target
-
-- Prototype/source authority:
-  `web/qa/visual-reference-manifest.json` and the twelve latest pages under
-  `prototypes/apple-redesign`.
-- Same-state source/production comparison:
-  `docs/evidence/uif-401/index.html`.
-- Regression implementation:
-  `web/tests/e2e/visual-regression.spec.ts`.
-- Linux baseline inventory and reproduction record:
-  `docs/evidence/uif-402/README.md`.
-
-UIF-401 remains the visual source comparison. UIF-402 does not reinterpret the
-prototype or accept new functionality; it turns the approved current MVP
-regions into stable regression assets.
-
-## Captured states
-
-- One canonical global Header.
-- Management Center: General, Libraries, Scanning and cache, Account.
-- Browse: top, document bottom, and open right-side preview.
-- Search: populated current-library result state.
-- Viewer: available image and preserved offline-source state.
-
-Every new capture uses a fixed Linux Chromium environment at `1280 × 800`,
-English, dark theme, and reduced motion. The authenticated account, library,
-directory tree, settings, cache, media metadata, ETags, dates, counts, and
-synthetic media bytes are deterministic.
-
-## Combined visual review
-
-The UIF-401 source captures and UIF-402 baselines were reviewed together at one
-equal scale for General, Libraries, Storage, Account, Browse, Search, and
-Viewer. The expected language and viewport-height differences do not change the
-shared composition:
-
-- the same global Header remains the only top-level Header;
-- management navigation remains one non-duplicated left rail with four
-  independent routes;
-- Browse keeps the filter on the right, the directory hierarchy on the left,
-  a single vertical document scroll, and the preview in the right workspace;
-- Search remains a dedicated result page entered from the global search;
-- Viewer keeps the approved full-screen toolbar, media stage, close,
-  previous/next, fit/zoom/1:1, fullscreen, and information behavior.
-
-No visible P0, P1, or P2 regression was found. No placeholder logo, emoji, CSS
-drawing, handwritten SVG, or mock-only production control was introduced.
-
-## Stability controls
-
-- All API responses are intercepted at the real generated-client HTTP boundary;
-  feature code is not altered to consume test-only state.
-- The committed `tests/fixtures/media/viewer-blue-violet.png` is used for
-  thumbnails and original-image responses.
-- Image completion, decode, and paint frames are awaited before capture.
-- The preview selection/focus transition is allowed to settle before capture.
-- No screenshot mask is used.
-- Baselines were generated in Linux, then the full visual file was run again
-  without `--update-snapshots`: `9 passed`.
-
-## Scope guard
-
-The latest prototype Storage page still contains Post-MVP task-center,
-missing-cache backfill, full rebuild, and maintenance concepts. UIF-402 does
-not add those unsupported controls to production. Their contracts and delivery
-remain governed by the separate Post-MVP feature records, so visual fidelity
-does not create false backend capability.
-
-## Follow-up
-
-- UIF-403 owns the complete real backend vertical chain.
-- UIF-404 owns the release browser/accessibility matrix.
-- UIF-405 owns candidate 100k/10k capacity evidence.
-- UIF-406～408 own full repository verification, documentation convergence, and
-  Integrated Slice sign-off.
+来源：`prototypes/layered-workspace`，2026-10-25 用户接受整体视觉；实施范围与差异见
+`docs/changes/UI-2026-10-25-layered-workspace-alignment.md`。
 
 final result: passed
+
+已完成同视口原型/正式对照、真实后端合成实例核对和适用的回归；这是本次UI对齐验收，不是发行门禁。
+
+## 对照历史
+
+1. 原有正式侧栏虽已具备功能，但仍使用灰黑画布、随宽屏增大的侧栏、无浮动边界的预览、平面设置分组。
+   P1：画布/侧栏/内容缺少原型层次；P1：预览没有独立卡片；P2：标题隐藏、目录卡过大、控件层级不一致。
+   修复：中央蓝灰色系与尺寸 token、既有壳插槽复用、浮动预览、可见标题、紧凑目录、管理面板与原生单选。
+2. 真后端合成库/axe发现 P2：浅色说明文字对比度不足；P2：深色危险按钮文字对比度不足；
+   P2：已可见媒体打开预览后被强制重新居中。修复为更深 muted、独立危险填充 token、可见项不滚动恢复。
+3. IAB 的截图接口输出缩放 JPEG，逐标签页 CDP 尺寸覆盖还出现合成伪影；不使用这些有问题截图推断像素一致。
+   改用同一 Linux 浏览器回归中的1440×1000、DPR1原型/正式截图作同屏对照，IAB保留实际交互复核。
+
+## 五项必查
+
+- 字体/字级：使用原生系统/PingFang/Helvetica，正文14px，标题30px，面板17px，说明12/13px；四档已检查；窄屏媒体类型组单独成行，中文标签不逐字换行。
+- 布局/留白：248/215/190px侧栏、39px上下文栏、流式内容、13px面板圆角、342px默认浮动预览；保留用户已保存宽度。
+- 色彩：原型蓝灰色系进入中央theme；为对比度有意加深小字，危险填充与危险文字分离，深色错误文字调整为#FF746B。
+- 图像：复用原型已存在的九张合成图片，真实后端预览读取合成PNG，不使用占位形状替换媒体；未修改真实原件。
+- 文案：保留正式合同、真实计数/格式/状态与认证规则；模拟成功/模型就绪/人物头像不冒充真实能力。
+
+## 最终对照与回归
+
+- 同屏对照：`.artifacts/layered-alignment/comparison/{browse,tags,general,ai}-same-viewport.png`。
+  两列均为同一个Linux Chromium、1440×1000、DPR1，左为接受的原型，右为正式生产bundle+真实合成后端。
+  浏览页标题/工具底色、紧凑目录、蓝灰侧栏、浮动预览与管理卡片层次已对齐。
+- 响应式证据：`comparison/responsive-{390,768,1920}.png`与`real/`逐页截图；
+  手机共用抽屉、平板紧凑固定侧栏、1920全宽内容及独立卡片均已检查。
+- 自动化：真实后端8例×19路由、上下文侧栏10例、搜索交互10例、整体视觉9例通过；
+  32张侧栏与11张整体基线不更新复验通过。真实页面axe WCAG2 A/AA零问题，页面无横向溢出，
+  无JavaScript运行异常，标题不被顶栏盖住。保留AI未配置的真实错误状态；预期接口错误不冒充推理成功。
+- IAB实际复核：在6012浏览/选择布局/270px密度/打开预览，主操作、焦点与真实PNG徽标可见；
+  截图 `formal-browser-proof.jpg`。窗口/CDP临时尺寸覆盖已恢复，正式验收页保留为用户可打开的标签页。
+- 434项组件/逻辑测试、类型检查、前端架构、视觉映射、Storybook、Docker构建、仓库静态检查和容器烟测通过。
+
+## 有意差异与剩余限制
+
+没有未处理的P0/P1/P2视觉缺陷。生产继续显示真实计数、原格式和库状态；字体更深以满足对比度。
+原型的模拟成功、导览、假人物封面、认证前媒体导航不进入产品；认证页保持自身权限边界。
+生产保留既有虚拟化列数算法与用户已保存布局/宽度；同一密度在边界宽度可能与原型纯CSS画廊列数不同。
+标签/收藏也消费同一个从上下文栏下开始的浮动预览；不维护第二套预览布局。通用设置沿用单一保存语义。
+上述差异已记录到接受变更说明，不作为未修复视觉问题。
+
+本次没有完成或重跑真实AI质量、跨浏览器发行矩阵和实机容量门禁；没有部署到既有6010实例。
+全量Go/集成检查上一轮受磁盘保留空间阻断，本轮无Go业务修改且未重复，详细事实见实施记录。
+
+## 2026-10-25 侧栏修复复核
+
+final result: passed
+
+两步均已修复：库菜单浮层不推动导航；标签名称/数量按紧凑目录行对齐，列表独立滚动，搜索和底部筛选固定。
+同视口真实截图对照见`.artifacts/sidebar-polish-20261025/comparison-tags.png`与`comparison-menu-state.png`。
+49项定向单测、18项Linux浏览器回归与32张侧栏基线复验通过；390/768/1440/1920、长双语、键盘与axe覆盖。
+6010真实库点击标签及菜单关闭焦点已复核，27组保护摘要与AI任务保留；详细证据和边界见
+`docs/changes/FIX-2026-10-25-sidebar-polish.md`。未关闭真实模型质量、容量、跨浏览器或发行门禁。
+
+
+## 2026-10-25 搜索首屏密度复核
+
+final result: passed
+
+用户反馈中的重复标题、说明与多层大间距已在正式SearchPage修复。查询/数量并排、筛选/刷新同区、普通覆盖状态紧凑显示，首屏优先图片。
+字体、颜色沿用中央token，图像沿用真实图库与合成合同夹具；未增加新视觉资产或未经合同支持的行为。
+真实6010同一查询的前后证据：`.artifacts/search-density-20261025/01-before-real-search.jpg`、`02-after-real-search.jpg`。
+固定Linux回归覆盖320/390/768/1440/1920、中英与深浅配对；部分覆盖失败状态的首图顶部界限为手机520/平板360/宽桌面340 CSSpx。
+12项SearchPage单测、20项搜索浏览器回归、9项整体视觉不更新复验通过；来源、键盘、降级、axe和无横向溢出仍验证。
+本次范围无遗留P0/P1/P2视觉问题；普通覆盖使用plain外观是有意的层级调整，失败计数和真正降级提示仍可读。
+更新6010后27组保护摘要及AI任务一致。完整记录见`docs/changes/FIX-2026-10-25-search-density.md`，真实模型、容量及跨浏览器发行门禁不由本次UI修复替代。
+
+
+## 2026-10-25 全面原型一致性复核（最新整体结论）
+
+final result: not passed — partial alignment
+
+本轮重新采集原型与6010真实界面；此前侧栏/搜索单项修复通过仍有效，但不能据此推导整体已经对齐。
+确认3项P1、6项P2：手机媒体库首屏、人物列表/详情、搜索/收藏布局入口、子页标题、媒体工具层次、管理入口、预览、查看器、标签管理入口。
+另有自动标签模型只读身份合同待核、关于页更新状态矛盾。完整22入口结果与边界见
+`docs/changes/AUDIT-2026-10-25-prototype-alignment.md`及`.artifacts/prototype-audit-20261025/index.html`。
+101张截图均为本轮采集；主对照1440，另补390/768/1920关键六页及手机搜索/抽屉/菜单。
+登录/首次设置被已登录/已初始化状态重定向；非空收藏、已命名人物详情和写入成功状态未验收。
+本轮仅只读审查，没有生产改动/部署；未重跑完整自动化、无障碍、主题/语言、跨浏览器或模型/容量矩阵。
+
+
+## 2026-10-25 浏览工具栏单项修复
+
+scoped result: passed；overall prototype alignment: partial / not passed
+
+用户指出的独立大小滑条行已移入布局组。标题/数量/媒体范围同区，查询/布局/大小/排序/刷新在统一带边界的工具表面，图片区为独立画布。
+共享集合保留唯一滑条和偏好所有者。39单测与Linux19项（10个响应式/语言配对控件检查+9既有整体视觉）通过，更新后不更新基线复验19项通过。
+原型样式、候选正式组件/合成数据截图人工检查；修正了排序文字折行和标题span样式误影响类型选项的问题。6010已更新且静态包/数据库/保护摘要验证通过，但浏览器会话过期，真实图库最终截图等待用户重新登录。
+证据`.artifacts/browse-toolbar-20261025/`，详细范围及部署见`docs/changes/FIX-2026-10-25-browse-toolbar.md`。
+完整原型审查的其他项目不因此关闭；没有重跑完整跨浏览器/实机/模型质量/容量Gate。
+
+
+### 用户重新登录后的真实图库复核
+
+6010真实707项4k库已补查390/768/1440/1920及预览状态。平板下数量挤压标签的遗漏已修复并更新6010；
+最终四档均单一滑条/布局同组、标签和数字单行、无横向溢出，Tab顺序正常，临时尺寸覆盖已清除。
+补充更新19项浏览器不更新基线复验通过；数据/AI保护摘要一致。
+真实最终截图及测量在`.artifacts/browse-toolbar-counts-20261025/`；原会话过期的限制已解决。
+整体其他原型偏差仍未关闭。
+
+
+2026-10-26 标签侧栏专项：保留用户要求的五档字号和灰/绿/蓝配色，双语分行、数量对齐、列表独立滚动；
+媒体筛选/排序/缩略图大小收进结果工具栏。AppShell恢复桌面拖宽与刷新记忆，移动抽屉不显示分隔条。
+37项专项单测、11项Linux Chromium（五断点×双语主题配对及拖宽持久化）、类型、架构、visual manifest和Storybook通过。
+证据与真实6010复核见 `docs/changes/FIX-2026-10-26-tag-sidebar.md`；整体原型对齐仍为partial/not passed。
+
+2026-10-26 侧栏调宽后自适应专项：611px真实溢出45px已复现；按内容宽度重排，91单测和14项五页面/七断点/双语主题配对浏览器检查通过。证据见FIX-2026-10-26-sidebar-reflow，整体原型审查仍保持partial/not passed。
+
+2026-10-26 标签云排列专项：按用户澄清取消逐行列表，采用文本宽度/字号自然换行，保留颜色/数量/双语及侧栏拖宽；9组件单测、18浏览器/视觉检查通过。6010真实74标签截图见.artifacts/tag-cloud-layout-20261026/real-cloud.png。部署前WAL异常及随后OCR output_limit失败记录在专项change，未用UI验收掩盖任务状态。整体原型审查状态仍不变。

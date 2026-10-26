@@ -1,6 +1,6 @@
 .main {
   width: 100%;
-  padding: var(--space-10);
+  padding: var(--space-8) var(--workspace-padding) var(--space-12);
 }
 
 .hero {
@@ -45,6 +45,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .versionCard > div:first-child {
@@ -77,6 +78,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .release {

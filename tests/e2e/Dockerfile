@@ -9,11 +9,25 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends libvips-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    attempts=0; \
+    until go mod download; do \
+        attempts=$((attempts + 1)); \
+        if [ "${attempts}" -ge 3 ]; then \
+            exit 1; \
+        fi; \
+        sleep "$((attempts * 2))"; \
+    done
 COPY cmd ./cmd
 COPY internal ./internal
 COPY migrations ./migrations
-RUN CGO_ENABLED=1 go build -tags=libvips -trimpath \
+# Production frontend builds clean the ignored embed directory. This smoke
+# image does not build the SPA, so create a deterministic non-generated
+# placeholder instead of depending on a developer worktree's .gitkeep.
+RUN mkdir -p internal/webassets/dist \
+    && touch internal/webassets/dist/smoke-placeholder
+RUN --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=1 go build -tags=libvips -trimpath \
     -ldflags="-s -w -X main.version=${VERSION}" \
     -o /out/foliopath ./cmd/foliopath
 
@@ -23,7 +37,7 @@ LABEL org.opencontainers.image.title="FolioPath application smoke" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.description="Stage 1 test evidence only; not a release image"
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates curl libvips42 \
+    && apt-get install --yes --no-install-recommends ca-certificates curl libvips42 socat \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -m 0750 /app/data \
     && install -d -m 0555 /library

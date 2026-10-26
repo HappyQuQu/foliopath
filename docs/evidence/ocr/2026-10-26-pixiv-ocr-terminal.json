@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-26",
+  "scope": "pixiv/lib_4 OCR missing follow-up",
+  "job": {
+    "attempt_count": 3,
+    "checkpoint_id": 8204,
+    "completed": 461,
+    "epoch": 2,
+    "error_code": "output_limit",
+    "failed": 5,
+    "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+    "id": "ocrjob_95f012786697ac16821e46fc3b50f768",
+    "library_id": 4,
+    "state": "failed",
+    "upper_asset_id": 8719
+  },
+  "coverage": {
+    "total": 999,
+    "ready": 479,
+    "blank": 315,
+    "with_text": 164,
+    "text_lines": 489,
+    "failed_input_limit": 5,
+    "pending": 515
+  },
+  "failed_asset_ids": [
+    7789,
+    7923,
+    7987,
+    8073,
+    8194
+  ],
+  "failure_stage_unresolved": true,
+  "no_new_model_unavailable": true,
+  "original_23_unchanged": true,
+  "old_cancelled_job_unchanged": true,
+  "protected_27_unchanged": true,
+  "all_22365_semantic_vectors_unchanged": true,
+  "known_10_source_ocr_rows": 0,
+  "search_verification": {
+    "ocr_only": {
+      "query": "Morinaga",
+      "loaded": 1,
+      "source": "图片文字",
+      "excerpt_verified": true
+    },
+    "all_sources": {
+      "query": "Morinaga",
+      "loaded": 40,
+      "ocr_match_retained": true,
+      "separate_semantic_badges": true
+    },
+    "engineering_statistics_or_line_numbers_shown": false,
+    "screenshots": [
+      "terminal-ocr-search.png",
+      "terminal-fused-search.png"
+    ]
+  },
+  "containers": [
+    {
+      "name": "/foliopath-ai-original-review-foliopath-1",
+      "image": "sha256:a768f58be3a1c615f19b2c04c3dbfe2410c11ead6110dff05c30bfb2c6d9ac32",
+      "started_at": "2026-10-26T03:53:45.152294804Z",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "name": "/foliopath-ai-original-review-machine-learning-1",
+      "image": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+      "started_at": "2026-10-26T02:21:04.671161966Z",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false
+    }
+  ],
+  "database_check": "passed once in original container at terminal",
+  "classification_tests": "passed: sqlite worker service failures, transport classification, analyzer source vs service failures",
+  "synthetic_docker_fix_test": "not run; no fix or deployment performed",
+  "status": "failed_terminal_incomplete",
+  "followup_action": "terminal recorded; no automatic retry or new job"
+}

@@ -3,6 +3,8 @@ const preferenceNamespace = "foliopath.preferences.v1";
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
 export type MediaLayoutPreference = "grid" | "masonry" | "seamless";
+export type TagLanguagePreference = "interface" | "zh-CN" | "en" | "bilingual";
+const tagPreferenceEvent = "foliopath:tag-language";
 export type MediaSortPreference =
   | "contextual"
   | "name:asc"
@@ -13,7 +15,9 @@ export type MediaSortPreference =
   | "size:desc";
 
 interface Preferences {
+  aiOperationIds?: string[];
   locale?: LocalePreference;
+  tagLanguage?: TagLanguagePreference;
   mediaLayout?: MediaLayoutPreference;
   mediaTileSize?: number;
   mediaSort?: MediaSortPreference;
@@ -26,6 +30,23 @@ interface Preferences {
   previewWidth?: number;
   sidebarWidth?: number;
   theme?: ThemePreference;
+}
+
+export function readAIOperationIds(): string[] {
+  const values = readPreferences().aiOperationIds;
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .slice(0, 50);
+}
+
+export function writeAIOperationIds(values: string[]): void {
+  writePreferences({
+    ...readPreferences(),
+    aiOperationIds: values
+      .filter((value) => typeof value === "string" && value.length > 0)
+      .slice(0, 50),
+  });
 }
 
 function readPreferences(): Preferences {
@@ -69,6 +90,25 @@ export function writeLocalePreference(locale: LocalePreference): void {
 export function clearLocalePreference(): void {
   const { locale: _locale, ...preferences } = readPreferences();
   writePreferences(preferences);
+}
+
+export function readTagLanguagePreference(): TagLanguagePreference {
+  const value = readPreferences().tagLanguage;
+  return value === "zh-CN" || value === "en" || value === "bilingual" ? value : "interface";
+}
+
+export function writeTagLanguagePreference(tagLanguage: TagLanguagePreference): void {
+  writePreferences({ ...readPreferences(), tagLanguage });
+  window.dispatchEvent(new Event(tagPreferenceEvent));
+}
+
+export function subscribeTagLanguagePreference(listener: () => void): () => void {
+  window.addEventListener(tagPreferenceEvent, listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    window.removeEventListener(tagPreferenceEvent, listener);
+    window.removeEventListener("storage", listener);
+  };
 }
 
 export function readMediaLayoutPreference(): MediaLayoutPreference {
@@ -158,7 +198,7 @@ export function writeSidebarWidthPreference(sidebarWidth: number): void {
 }
 
 export function readPreviewWidthPreference(): number {
-  return readWidthPreference(readPreferences().previewWidth, 406);
+  return readWidthPreference(readPreferences().previewWidth, 342);
 }
 
 export function writePreviewWidthPreference(previewWidth: number): void {

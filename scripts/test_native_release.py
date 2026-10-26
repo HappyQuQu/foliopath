@@ -136,6 +136,110 @@ class NativeReleaseTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 release.validate_plan(candidate)
 
+    def test_verification_plans_share_controlled_repository_without_tag_permission(self):
+        import os
+        script = Path(__file__).with_name("native_release.py")
+        for component in ("main", "ai"):
+            output = self.root / (component + "-plan.json")
+            env = dict(os.environ, SOURCE="a" * 40, VERSION="ci-20261026")
+            subprocess.run(["python3", str(script), "verification-plan", "--kind", component,
+                            "--output", str(output)], check=True, env=env)
+            value = release.read_plan(output)
+            self.assertEqual(value["component"], component)
+            self.assertEqual(value["image"], release.IMAGE)
+            self.assertEqual(value["labels"]["org.foliopath.component"], component)
+            self.assertEqual(value["tags"], [])
+            forbidden = Mock(side_effect=AssertionError("verification must never access registry for promotion"))
+            with self.assertRaisesRegex(ValueError, "cannot publish"):
+                release.publish(value, self.root, forbidden)
+            forbidden.assert_not_called()
+            for mode in ("true", 1):
+                with self.assertRaises(ValueError):
+                    release.validate_plan(dict(value, verification_only=mode))
+            with self.assertRaises(ValueError):
+                release.validate_plan(dict(value, tags=[release.IMAGE + ":latest"]))
+
+    def test_same_repository_wrong_component_fails_before_runtime(self):
+        value = dict(self.plan, component="ai", verification_only=True, tags=[])
+        value["labels"] = dict(value["labels"], **{"org.foliopath.component": "ai"})
+        image = dict(Architecture="amd64", Os="linux", Config=dict(Labels=dict(
+            value["labels"], **{"org.foliopath.component": "main"})))
+        run = Mock(side_effect=[SimpleNamespace(), SimpleNamespace(stdout=json.dumps([image]))])
+        with self.assertRaisesRegex(ValueError, "identity"):
+            release.verify(value, "amd64", "sha256:" + "b" * 64, self.root / "not-written.json", run,
+                           dict(SOURCE=value["source"], VERSION=value["version"]))
+        self.assertFalse((self.root / "not-written.json").exists())
+        self.assertEqual(run.call_count, 2)
+
+    def test_workflow_verification_path_has_four_native_builds_and_no_publish_dependency(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/dockerhub.yml").read_text()
+        native = (root / ".github/workflows/native-images.yml").read_text()
+        verification = workflow.split("  verification-images:", 1)[1]
+        self.assertIn("verification_only: true", verification)
+        self.assertNotIn("release-please", verification)
+        self.assertNotIn("publish", verification.split("name:", 1)[0])
+        job = native.split("  verification-image:", 1)[1]
+        self.assertIn("kind: [main, ai]", job)
+        self.assertIn("arch: [amd64, arm64]", job)
+        self.assertEqual(job.count("uses: docker/build-push-action@v6"), 1)
+        self.assertNotIn("tags:", job)
+        self.assertIn("push-by-digest=true", job)
+        self.assertIn("sbom: true", job)
+        self.assertIn("provenance: true", job)
+        self.assertNotIn("setup-qemu", job)
+
+    def test_verification_records_cannot_be_relabelled_for_promotion(self):
+        for arch in release.ARCHITECTURES:
+            path = self.root / (arch + ".json")
+            value = json.loads(path.read_text())
+            value["verification_only"] = True
+            release.write_json(path, value)
+        run = Mock(side_effect=AssertionError("verification result must never write a tag"))
+        with self.assertRaisesRegex(ValueError, "records cannot publish"):
+            release.publish(self.plan, self.root, run)
+        run.assert_not_called()
+
+    def test_same_build_oci_parser_binds_actual_blob_bytes_and_registry_runtime(self):
+        import hashlib
+        blobs = {}
+        def add(value):
+            data = json.dumps(value, sort_keys=True).encode()
+            digest = "sha256:" + hashlib.sha256(data).hexdigest()
+            blobs[digest] = data
+            return dict(digest=digest, size=len(data))
+        config = add(dict(architecture="amd64", os="linux", config=dict(Labels=self.plan["labels"])))
+        layer = add({"synthetic": "actual fixture bytes"})
+        runtime_doc = dict(config=config, layers=[layer])
+        runtime = add(runtime_doc)
+        runtime["platform"] = dict(architecture="amd64", os="linux")
+        payloads = [dict(add({"predicateType": kind}), annotations={"in-toto.io/predicate-type": kind})
+                    for kind in ("https://spdx.dev/Document", "https://slsa.dev/provenance/v1")]
+        attestation = add(dict(config=add({}), layers=payloads))
+        attestation.update(platform=dict(architecture="unknown", os="unknown"), annotations={
+            "vnd.docker.reference.type": "attestation-manifest", "vnd.docker.reference.digest": runtime["digest"]})
+        index = dict(manifests=[runtime, attestation])
+        archive = self.root / "native.oci.tar"
+        def package(corrupt=False):
+            with tarfile.open(archive, "w") as target:
+                entries = {"index.json": json.dumps(index).encode()}
+                entries.update({"blobs/sha256/" + key.split(":")[1]: value for key,value in blobs.items()})
+                if corrupt:
+                    key = "blobs/sha256/" + layer["digest"].split(":")[1]
+                    entries[key] = bytes([entries[key][0] ^ 1]) + entries[key][1:]
+                for name,data in entries.items():
+                    entry = tarfile.TarInfo(name); entry.size = len(data)
+                    target.addfile(entry, io.BytesIO(data))
+        package()
+        run = Mock(side_effect=[SimpleNamespace(stdout=json.dumps(index)), SimpleNamespace(stdout=json.dumps(runtime_doc))])
+        observed = release.verify_oci_archive(archive, release.IMAGE + "@sha256:" + "b"*64, "amd64", self.plan, run)
+        self.assertTrue(observed["runtime_and_layers_equal"])
+        self.assertEqual(observed["config_digest"], config["digest"])
+        package(corrupt=True)
+        run = Mock(side_effect=[SimpleNamespace(stdout=json.dumps(index)), SimpleNamespace(stdout=json.dumps(runtime_doc))])
+        with self.assertRaisesRegex(ValueError, "hash differs"):
+            release.verify_oci_archive(archive, release.IMAGE + "@sha256:" + "b"*64, "amd64", self.plan, run)
+
 
 class BuildCacheTests(unittest.TestCase):
     def test_cache_helpers_use_the_canonical_pinned_base_and_only_approved_mounts(self):

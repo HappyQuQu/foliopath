@@ -16,6 +16,11 @@ func TestJSONLoggerProducesStructuredEventsAndRedactsSensitiveAttributes(t *test
 		"authentication.failed",
 		slog.String("request_id", "req_test"),
 		slog.String("authorization", "Bearer secret-token"),
+		slog.String("face_id", "face-canary-7f64e1"),
+		slog.String("person_name", "person-canary-8a7d22"),
+		slog.String("embedding_vector", "vector-canary-51ed34"),
+		slog.Float64("similarity_score", 0.987654321),
+		slog.String("crop_path", "/app/data/private-crop-canary"),
 		slog.String("session_token", "secret-token"),
 		slog.String("database_path", "/app/data/foliopath.db"),
 		slog.String("sql_query", "SELECT password FROM users"),
@@ -31,6 +36,11 @@ func TestJSONLoggerProducesStructuredEventsAndRedactsSensitiveAttributes(t *test
 	}
 	for _, key := range []string{
 		"authorization",
+		"face_id",
+		"person_name",
+		"embedding_vector",
+		"similarity_score",
+		"crop_path",
 		"session_token",
 		"database_path",
 		"sql_query",
@@ -42,7 +52,10 @@ func TestJSONLoggerProducesStructuredEventsAndRedactsSensitiveAttributes(t *test
 	}
 
 	logged := output.String()
-	for _, forbidden := range []string{"Bearer", "secret-token", "/app/data", "SELECT"} {
+	for _, forbidden := range []string{
+		"Bearer", "secret-token", "/app/data", "SELECT",
+		"face-canary", "person-canary", "vector-canary", "0.987654321",
+	} {
 		if strings.Contains(logged, forbidden) {
 			t.Fatalf("structured log leaked %q: %s", forbidden, logged)
 		}

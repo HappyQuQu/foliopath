@@ -5,7 +5,7 @@ import {
   PushPin,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button, IconButton, PanelResizer } from "../../ui";
 import {
@@ -24,6 +24,7 @@ export interface MediaPreviewItem {
   id: string;
   kind: "image" | "animated" | "video";
   name: string;
+  mimeType?: string;
   posterUrl?: string | undefined;
 }
 
@@ -56,7 +57,7 @@ export function MediaPreview({
   muteVideo = true,
   availability,
   maxWidth = 620,
-  minWidth = 360,
+  minWidth = 300,
   onClose,
   onNext,
   onOpenViewer,
@@ -86,6 +87,14 @@ export function MediaPreview({
   curationContent?: ReactNode;
   width: number;
 }) {
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Narrow layouts place the non-modal preview after the collection. Reveal
+    // it once when opened; navigation within it must retain the user's focus.
+    if (!window.matchMedia("(max-width: 64rem)").matches) return;
+    panelRef.current?.focus({ preventScroll: true });
+    panelRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, []);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
@@ -123,6 +132,8 @@ export function MediaPreview({
 
   return (
     <aside
+      ref={panelRef}
+      tabIndex={-1}
       aria-label={`${labels.preview}: ${item.name}`}
       className={styles.preview}
       style={{ width }}
@@ -184,6 +195,15 @@ export function MediaPreview({
       </div>
 
       <div className={styles.navigation}>
+        <Button
+          className={styles.openViewer}
+          onClick={onOpenViewer}
+          size="small"
+          variant="primary"
+        >
+          <ArrowsOut aria-hidden="true" size={16} />
+          {labels.openViewer}
+        </Button>
         <nav className={styles.navGroup} aria-label={labels.preview}>
           <Button
             disabled={!canGoPrevious}
@@ -205,15 +225,7 @@ export function MediaPreview({
             <CaretRight aria-hidden="true" size={15} />
           </Button>
         </nav>
-        <Button
-          className={styles.openViewer}
-          onClick={onOpenViewer}
-          size="small"
-          variant="quiet"
-        >
-          <ArrowsOut aria-hidden="true" size={16} />
-          {labels.openViewer}
-        </Button>
+
       </div>
 
       <div className={styles.content}>
@@ -224,11 +236,8 @@ export function MediaPreview({
             </dt>
             <dd>
               <span>
-                {item.kind === "video"
-                  ? "VIDEO"
-                  : item.kind === "animated"
-                    ? "GIF"
-                    : "JPG"}
+                {item.mimeType?.split("/").at(-1)?.toUpperCase() ??
+                  (item.kind === "video" ? "VIDEO" : item.kind === "animated" ? "GIF" : "IMAGE")}
               </span>
             </dd>
           </div>

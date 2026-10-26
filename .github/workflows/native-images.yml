@@ -3,6 +3,10 @@ name: Native release image verification
 on:
   workflow_call:
     inputs:
+      verification_only:
+        type: boolean
+        required: false
+        default: false
       ref:
         type: string
         required: true
@@ -20,6 +24,7 @@ permissions:
 
 jobs:
   image:
+    if: ${{ !inputs.verification_only }}
     name: Build and verify ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -124,5 +129,102 @@ jobs:
         with:
           name: verified-digest-${{ matrix.arch }}
           path: ${{ runner.temp }}/verified-digests/${{ matrix.arch }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+  verification-image:
+    name: Verify ${{ matrix.kind }} on native ${{ matrix.arch }} without promotion
+    if: ${{ inputs.verification_only }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [main, ai]
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout exact verification source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Prove native runner and bind verification-only plan
+        env:
+          SOURCE: ${{ inputs.ref }}
+          VERSION: ${{ inputs.version }}
+          KIND: ${{ matrix.kind }}
+          ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${SOURCE}"
+          test -z "${DOCKER_DEFAULT_PLATFORM:-}"
+          case "${ARCH}" in
+            amd64) test "$(uname -m)" = x86_64 ;;
+            arm64) test "$(uname -m)" = aarch64 ;;
+          esac
+          python3 scripts/native_release.py verification-plan --kind "${KIND}" \
+            --output "${RUNNER_TEMP}/verification/image-plan.json"
+          uname -sm > "${RUNNER_TEMP}/verification/native-platform.txt"
+          docker info --format '{{.OSType}}/{{.Architecture}}' >> "${RUNNER_TEMP}/verification/native-platform.txt"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub for digest-only storage
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Read the controlled image and recipe
+        id: metadata
+        run: |
+          python3 scripts/native_release.py labels \
+            --plan "${RUNNER_TEMP}/verification/image-plan.json" --output "${GITHUB_OUTPUT}"
+
+      - name: Build this final native image exactly once without tags
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.metadata.outputs.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            VERSION=${{ inputs.version }}
+          outputs: |
+            type=oci,dest=${{ runner.temp }}/verification/native.oci.tar,oci-mediatypes=true
+            type=image,name=${{ steps.metadata.outputs.image }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
+          cache-from: type=gha,scope=verification-${{ matrix.kind }}-${{ matrix.arch }}
+          cache-to: type=gha,scope=verification-${{ matrix.kind }}-${{ matrix.arch }},mode=max
+          sbom: true
+          provenance: true
+
+      - name: Preserve original build metadata
+        env:
+          BUILD_METADATA: ${{ steps.build.outputs.metadata }}
+        run: |
+          python3 -c 'import json,os,pathlib; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"verification/build-metadata.json"; p.write_text(json.dumps(json.loads(os.environ["BUILD_METADATA"]),sort_keys=True,indent=2)+"\n")'
+
+      - name: Verify the exact digest and preserve SPDX and SLSA
+        env:
+          SOURCE: ${{ inputs.ref }}
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          python3 scripts/native_release.py verify \
+            --plan "${RUNNER_TEMP}/verification/image-plan.json" --arch "${ARCH}" \
+            --digest "${DIGEST}" --output "${RUNNER_TEMP}/verification/verified.json" \
+            --oci-archive "${RUNNER_TEMP}/verification/native.oci.tar"
+
+      - name: Upload exact-digest verification and limitations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-${{ matrix.kind }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/verification
           if-no-files-found: error
           retention-days: 7

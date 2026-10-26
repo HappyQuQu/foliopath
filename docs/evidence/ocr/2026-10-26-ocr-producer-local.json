@@ -1,0 +1,356 @@
+{
+  "change": "CR-2026-048",
+  "recordedAt": "2026-10-25T16:26:12.855498+00:00",
+  "localDate": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "stage": "POST-MVP-5 follow-up OCR producer / shared routing only",
+  "status": "isolated_producer_verified_not_application_composed",
+  "candidate": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+  "probeImage": "sha256:e612537c587d82c8a825b12d28fdfd5718fea0e6097481b8c9d475f1e229e5f3",
+  "base": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+  "architecture": "linux/arm64",
+  "original6010Deployed": false,
+  "server222Accessed": false,
+  "realMediaUsed": false,
+  "persistentOCRJobsOrSearchImplemented": false,
+  "contract": {
+    "expectedIdentity": {
+      "cache_manifest_sha256": "bc91be9833804f73a05a5436b15ea47b36b6c2a3a4414818097b71cbc40c7dbe",
+      "detector_sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad",
+      "input_contract_sha256": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+      "model": "PP-OCRv5_server",
+      "output_contract_sha256": "93afd78de107f40da4e3efa1df11dde12d3325cef10abe199b6fcb64c27f5e45",
+      "protocol": "foliopath-ocr-v1",
+      "recognizer_sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a",
+      "runtime_contract_sha256": "68f4711f183430910f16e25ccc337b89f7190253167ae8a789da34d042562dd9",
+      "version": 1
+    },
+    "producer": "explicit OCR identity/predict; prepared PNG only",
+    "identityOrigin": "offline trusted image artifact before network call; not HTTP TOFU",
+    "policyOwner": "internal/ocr; deterministic contractgen and shared conformance",
+    "sharedConformanceCases": 12,
+    "admission": "frozen InferenceScheduler.infer pending2/active1/26s; request ContextVar dispatch only",
+    "privateAdmissionAlias": "visual core admission category only; public/worker kind stays ocr",
+    "lifecycle": "original _run/_reap/close; restore route after reaping",
+    "oldCodeOrIdentitiesChanged": false
+  },
+  "checks": {
+    "pythonUnit": {
+      "status": "passed",
+      "topLevelTests": 25,
+      "image": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21"
+    },
+    "realNative": {
+      "status": "passed",
+      "tests": 2,
+      "image": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+      "measurement": {
+        "nativeCancelRSSKiB": 915388,
+        "anonymousBefore": 26976256,
+        "anonymousAfterReap": 26988544,
+        "legacyAndOCRRecovered": true
+      },
+      "exitCode": 0,
+      "oomKilled": false,
+      "network": "none",
+      "memoryLimitBytes": 4294967296,
+      "memorySwapSettingBytes": 4294967296,
+      "nanoCPUs": 2000000000,
+      "source": "generated white RGB PNG and private invalid model caches; no media/DB"
+    },
+    "actualIntegration": {
+      "status": "passed",
+      "modelHashesPreserved": true,
+      "syntheticSourcesPreserved": true,
+      "image": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+      "probeImage": "sha256:e612537c587d82c8a825b12d28fdfd5718fea0e6097481b8c9d475f1e229e5f3",
+      "baselineImage": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+      "ocrExpectedIdentity": {
+        "cache_manifest_sha256": "bc91be9833804f73a05a5436b15ea47b36b6c2a3a4414818097b71cbc40c7dbe",
+        "detector_sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad",
+        "input_contract_sha256": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+        "model": "PP-OCRv5_server",
+        "output_contract_sha256": "93afd78de107f40da4e3efa1df11dde12d3325cef10abe199b6fcb64c27f5e45",
+        "protocol": "foliopath-ocr-v1",
+        "recognizer_sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a",
+        "runtime_contract_sha256": "68f4711f183430910f16e25ccc337b89f7190253167ae8a789da34d042562dd9",
+        "version": 1
+      },
+      "baselineIdentities": {
+        "semantic": {
+          "version": 1,
+          "protocol": "foliopath-ml-v1",
+          "model": "XLM-Roberta-Large-Vit-B-16Plus",
+          "dimension": 640,
+          "cache_manifest_sha256": "858e52d6c74b5d597d8e1e7883b18f0d4db870a211336498d08cda767a00fb8d",
+          "runtime_contract_sha256": "81ec3de561ee05318103ba0f354b6472cb2d1dc0d2ef0f33bf2becee2c710659"
+        },
+        "face": {
+          "version": 1,
+          "protocol": "foliopath-face-v1",
+          "model": "buffalo_l",
+          "dimension": 512,
+          "cache_manifest_sha256": "e6d671f9d9fada323fd77a02d217349f46af8e103eccb297b1ebcac10112efe8",
+          "runtime_contract_sha256": "be1d1baaccb2f8532d9df872483b0453e66e1221d5d1768432357dc76c1cfc8a"
+        },
+        "tag": {
+          "version": 1,
+          "protocol": "foliopath-tag-v1",
+          "model": "JoyTag",
+          "model_sha256": "f85b7130e6e549b5b0822537007b7482e8c4c8e754c8d9a5bee08e27050e1097",
+          "policy_sha256": "a2f8b363f83db8d76cbc903bb532d2eb90c985d6eced957ec9b68cc80b6eb628",
+          "runtime_contract_sha256": "71ae7a7694c66ca3e4b19cb1fda4a4a5d0ba2344cd8fb5d796b6c0acc8229d90",
+          "cache_manifest_sha256": "f40fd0e4b9bcb69b901353bccd62bd5822bdcff3974e2604f846cc1f28523d73"
+        }
+      },
+      "legacySourceHashes": {
+        "cache-manifest.json": "e6d671f9d9fada323fd77a02d217349f46af8e103eccb297b1ebcac10112efe8",
+        "cache_snapshot.py": "d4d26cb5890da2f1d51fa0d38e4f02848ecf980b785bacaf29d4e434d06add7f",
+        "face_contract.py": "8f03248d8f1608d405bdc803991994d6f38f1cf055a3a58b9a3afc1ce5de26f5",
+        "image_identity.py": "ad50411b8f8cace3c02402617f71545b087869c6ce3b7b0fef725d6ce61f8696",
+        "inference_worker.py": "289b1438e72e465e0dd9a73ad6cb3f2beb8407222ea8cd4b714a2c6cd11269c0",
+        "local-baseline.json": "cf597349fa66609700037ae8630e7d916fdf547ae18a9a716d661ea158f9ecff",
+        "multilingual-manifest.json": "0e6d8413273e46ce0906abaaaf156d2ff6645228a4c0927f775cd80bdf047a27",
+        "multilingual_contract.py": "902a8a013416b84dacbe3ff82e627f60b029c1f493b56067c4f70a661111d6d8",
+        "multilingual_server.py": "83b3e89e359c880941b75b4d1faf8fa284907f770a1ac8ba91a88dabf9b356cf",
+        "multilingual_worker.py": "08a539bb42d573c83d1755e29b651ce17b0030d48320483cafb9251a7fbfe088",
+        "photo_categories.json": "e226d41eec533dad1f050a4f28ad6faec1d2149a35dda572acc6a23750fdf253",
+        "photo_policy.py": "7c99b6d027636562603cdcf95f81a0456b200f79182f901f5019ca8bd2eb8379",
+        "photo_runtime.py": "8be63041bb69231169699e2c5049b2a31f4a7bb816017085481c902bef5a77a6",
+        "photo_server.py": "3d057ce9b56212bab3eb9b6110f131072d2dec38f9c2cbe66ceb6404ecd0a4c8",
+        "photo_worker.py": "4ce04bc592b1853a9652392199ae7d60c1a797d152212a932bbff3ab3895278f",
+        "probe_face.py": "1a623d8f644b87388808055f5c2ca4d304c518843160d0371faea01105a870e8",
+        "runtime_entry.py": "f5a76de408442895bbcb2b63bfc7bc45549d01dd48ca839dc23f0256eb7133de",
+        "runtime_manifest.py": "4ea5b9fb1f0bc1f66f03cd47e57e81b34cf8176fc445770d790c8f1518fc08b4",
+        "scheduler.py": "20a50f407e4f0465424bdc20bd42b69650e64319b1184675c42638f38fd0894a",
+        "server.py": "5a7cac2ab74b936ac233ba27c3018cf4465848d1cb91393526ef3254f40739ba",
+        "tag-manifest.json": "84c4ca72ca81836bafcaff9ed8dd7d52f0c6c52cbeca7778bb781ffb831562ce",
+        "tag_contract.py": "150564f0215330afb023c75297efd4c1ef6356927338f9d7e77e56a3b4a1b798",
+        "test_face.py": "a1651b9e7a34f860c0fa0e34fa5c9652f7900fc3661a9e8bed474668bc183666",
+        "test_runtime_manifest.py": "1e376fae75a5f4aca829cadad99a928a7a84ca85137fd8c2b54c96b1c84fe14d",
+        "test_scheduler.py": "d9ea5b3e9df475cb198bb52c89e8fcc6d4a59d2cfedc9aca203f5ceb55a79757",
+        "test_service.py": "3203968f87bc3c59743c2671ecb17491836dff1b643f8713979c70b16c492566",
+        "test_tag.py": "5f140b7edb1721a5193b7dcf797e0b1be912c7083c31197b3fdd9c11491f333f",
+        "test_tcp_disconnect.py": "25ee32bf4cd6fc6dbcfaf0a61479eb7581b0f2121560c3e9faa93ae4198bee44"
+      },
+      "legacySourcesPreserved": true,
+      "states": {
+        "baselineClient": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 0,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:10:19.237377169Z",
+          "FinishedAt": "2026-10-25T16:10:36.160183136Z"
+        },
+        "baselineService": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 143,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:10:11.84917818Z",
+          "FinishedAt": "2026-10-25T16:10:36.523142261Z",
+          "Health": {
+            "Status": "unhealthy",
+            "FailingStreak": 0,
+            "Log": []
+          }
+        },
+        "ocrClient": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 0,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:10:44.077518709Z",
+          "FinishedAt": "2026-10-25T16:11:21.100615254Z"
+        },
+        "ocrService": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 143,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:10:36.782209303Z",
+          "FinishedAt": "2026-10-25T16:11:21.42182367Z",
+          "Health": {
+            "Status": "unhealthy",
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "Start": "2026-10-25T16:11:06.833646261Z",
+                "End": "2026-10-25T16:11:07.051491511Z",
+                "ExitCode": 0,
+                "Output": ""
+              }
+            ]
+          }
+        },
+        "missingClient": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 0,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:11:27.849006424Z",
+          "FinishedAt": "2026-10-25T16:11:44.421616084Z"
+        },
+        "missingService": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 143,
+          "Error": "",
+          "StartedAt": "2026-10-25T16:11:21.660812837Z",
+          "FinishedAt": "2026-10-25T16:11:44.814169084Z",
+          "Health": {
+            "Status": "unhealthy",
+            "FailingStreak": 0,
+            "Log": []
+          }
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "peak": 3879145472,
+          "events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0",
+            "sock_throttled": "0"
+          }
+        },
+        "ocr": {
+          "peak": 3925467136,
+          "events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0",
+            "sock_throttled": "0"
+          }
+        },
+        "missing": {
+          "peak": 3956449280,
+          "events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0",
+            "sock_throttled": "0"
+          }
+        }
+      },
+      "baselineOutputSHA256": "8d782cbc3df4b189082f3fa25516e2a1c34597f016accf893a06e2ab4e3f94e7",
+      "scope": "isolated actual producer/Go consumer and unchanged legacy output; no media/DB/main application composition",
+      "privateSnapshotsRemoved": true,
+      "containersRemoved": true,
+      "networkInternal": true
+    },
+    "hostGoRace": "passed count=1 internal/ocr and inference/remoteml",
+    "goFullAndIntegration": "make test test-integration passed with independent extended TMPDIR",
+    "repository": "make fmt-check arch-check generate-check lint passed; OCR scheduler ownership fitness and deterministic JSON included",
+    "applicationRuntimeE2E": "make test-e2e passed",
+    "notRun": [
+      "Web/browser matrix (no UI change)",
+      "main application OCR source-generation/persistent jobs/index/search (not implemented)",
+      "real photo/layout/rotation quality",
+      "native amd64",
+      "combined application+AI capacity/soak/release gates"
+    ]
+  },
+  "firstAttempts": [
+    "wrong incomplete legacy cache lacked JoyTag and startup failed closed; complete existing cache was pinned and hashed before retry; no new downloads",
+    "512x512 native cancellation fixture did not reach observation threshold before completion; independent check returned valid empty OCR; 1000x700 fixture met unchanged threshold and cancellation/recovery passed",
+    "audit regression distinguishes model ValueError from source decoding errors; unready errors now bind compatibility fingerprint while identity GET stays503"
+  ],
+  "architectureFitness": "scripts/check_ocr_ownership.py via TestOCRProducerDelegatesToFrozenSchedulerOwner prohibits own gates/deadlines/reaping/core-state mutation and legacy-source COPY",
+  "sourceHashes": {
+    "AGENTS.md": "6fbad858445664ebd8a71105f2d5b0900bb9f62548a608efc55a10c757400ece",
+    "Dockerfile": "3405308d780b1b1c90a5af70b587b2c65c5afe2dd2e6166d4013d0ca30640697",
+    "Makefile": "0c95131d7f132623ac3741d29632ce760874d724f1a6a46f5cbd9fe24729e5f2",
+    "internal/ocr/output_contract.go": "3e412682fdea0a6fb48eea3a4b1fbf42f7c47e3b37990732ee2f92a264cf6399",
+    "internal/ocr/conformance.json": "706f713da41c878f65b09dbc061cfc8bbb15a62d5d091f9bbfed245a72881eb6",
+    "internal/ocr/conformance_test.go": "c0961c1d186dfcfedc7164a732929ddf07135792108f6091f54da8d1cf2c308d",
+    "internal/inference/remoteml/ocr_service_probe_test.go": "9d9eaa515bc78205cdd34c4bb128aa677e1e7d048801f18dd0f8fa402ec07796",
+    "scripts/check_ocr_ownership.py": "92716d99b810b24b6554eed919617455476ece453cd55572570eb2fddaf84de5",
+    "tests/architecture/ocr_producer_test.go": "e27ecc51a88cc42ed010f784a1c1a5ad8effabfefa5c96c84fd7dd4f06621e40",
+    "services/inference/Dockerfile.ocr": "d830a050e86cb113965284c0bc8967aa318704843c9d380f8bf37a051593fc9b",
+    "spikes/ocr-service/contractgen/main.go": "c6fb780d38157a8fc9f97b4b4dc34665a3debe4f44da8935a5b646f731730379",
+    "spikes/ocr-service/run_probe.py": "0df6fc3193243e67b4229ceb26a0f01e52e9286cddde82ecfff49cc7ffe621dd",
+    "services/inference/ocr_contract.py": "28513b7bfc094871a998a040e128d48c37d97d3c6fee8752422f6896bd9423cd",
+    "services/inference/ocr_engine.py": "08b9c0b345c2069986b675eb3efd9fca5be682c9c130bd4ae44acb1e18794d09",
+    "services/inference/ocr_native_tests.py": "71118f357b232e9db3efc9db114c1547141ebf97ae70c2929a0ff9a10a80fb68",
+    "services/inference/ocr_runtime.py": "c13ec64134fd57c77b0fe5244fdc48b69aa0e5fcf996b4bafe09a9bb0cefbb57",
+    "services/inference/ocr_scheduler.py": "4b5bc56f83129643fffaed1542afa9b00bf6e2cf8f8a275b8a664b34761f3c9e",
+    "services/inference/ocr_server.py": "9be5e081a9de8198c9d498677db3b413b390e67cd73e9707ad8f1e29f4d89cc3",
+    "services/inference/ocr_tests.py": "4c16cc6208fa32ca81be2f12e27fb2672d2ed6ae25b045f09a0bce5624862ef3",
+    "services/inference/ocr_worker.py": "26415d7fb2fdb3cfa61d864ab3ca8ac60a94c8c22a42ba7df71878ff9f9265b9",
+    "services/inference/ocr-input.generated.json": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+    "services/inference/ocr-manifest.json": "13c41fdd98815440e54c7edb572b046e0ab2c3f3faf31d027f5fb33970230372",
+    "services/inference/ocr-output.generated.json": "93afd78de107f40da4e3efa1df11dde12d3325cef10abe199b6fcb64c27f5e45"
+  },
+  "logHashes": {
+    ".artifacts/ocr-service/build-release-candidate.log": "11d7d7b459906f18a80df104a1058329be253863c6e61b818602008b64bfc08d",
+    ".artifacts/ocr-service/unit-verified.log": "9901cfdc30fd8fd1b4a6b0536416f173b680ad934dbc41fcc9e04a486c7ca6e7",
+    ".artifacts/ocr-service/native-final.log": "cfe767d8d08e8f538adc70e95032510aeaaaa83a40b3d351268bf6b758e93d62",
+    ".artifacts/ocr-service/native-frozen.log": "a83253f0125df01017b206e128c0596ebdda65bd7b0d4c05ceb08f768493b25e",
+    ".artifacts/ocr-service/native-container.json": "9904de0ba1a7aa0ab6df4b416d3c9352b85e4dfa03e31779a862f7dc88579302",
+    ".artifacts/ocr-service/go-race.log": "d31fde4b1c4c14c7e54df0e3344ec4117b429bf0713845ee2d88d108c6be98aa",
+    ".artifacts/ocr-service/backend-regression.log": "d70c457cd6a1800298128f1f74e7934bbdb0004d197c48f7113fca65f1a46b7a",
+    ".artifacts/ocr-service/runtime-e2e.log": "25dac2adba86608ee2821173a34e0c52919076aecf1265727cebf838d7714e71",
+    ".artifacts/ocr-service/checks-verified.log": "7cbd537c2477a48e2bed5c25eac674d6cae47f85c7520aae3ecf736a489a0e7e",
+    ".artifacts/ocr-service/actual-v1.log": "a34b5bcede283e94e85e8c566005353bf582a29cccb47bf2933ef29fda15f0f6",
+    ".artifacts/ocr-service/actual-frozen/result.json": "ebcfa21806a5d5a047d97929258483c106a9699b4db9f57f3b7b4d22e711bc22",
+    ".artifacts/ocr-service/actual-frozen/baseline-probe.log": "94022443c90fa8b5f7159b84ec75958451792b6643efd8a20eb8ad20dc9432a8",
+    ".artifacts/ocr-service/actual-frozen/ocr-probe.log": "815c6d977a589489d21fc9263897e765ee0d51c7ab604e3954ecd07fb538ee47",
+    ".artifacts/ocr-service/actual-frozen/missing-probe.log": "89c4eb0db18d88b6f38e82843d8ef9a0bb48073cfda38956ba3a906c4296721e"
+  },
+  "cleanup": {
+    "allNamedTestContainersRemoved": true,
+    "internalNetworkRemoved": true,
+    "privateSnapshotsRemoved": true,
+    "originalApplicationAndCurationUntouched": true,
+    "sourceModelCachesReadOnlyAndHashesPreserved": true,
+    "syntheticArtifactsRetainedIgnored": true
+  },
+  "remaining": [
+    "source fingerprints/independent generation/fenced persistent jobs/checkpoints/recovery/clear/permissions contracts",
+    "application composition and OCR index/search/UI",
+    "no-EXIF90-degree/layout and real-image quality",
+    "native two-architecture/combined capacity/soak/supply chain/release;6010 deployment"
+  ]
+}

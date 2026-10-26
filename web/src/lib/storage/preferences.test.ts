@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 
 import {
+  readAIOperationIds,
   readAcknowledgedMediaFailureRevision,
   readClearedMediaFailureRevision,
   readMediaLayoutPreference,
@@ -11,6 +12,8 @@ import {
   readPreviewMutedPreference,
   readPreviewWidthPreference,
   readSidebarWidthPreference,
+  readTagLanguagePreference,
+  writeAIOperationIds,
   writeMediaLayoutPreference,
   writeMediaSortPreference,
   writePreviewAutoplayPreference,
@@ -20,6 +23,7 @@ import {
   clearClearedMediaFailureRevision,
   writePreviewWidthPreference,
   writeSidebarWidthPreference,
+  writeTagLanguagePreference,
 } from "./preferences";
 
 it("defaults an absent or invalid media layout preference to grid", () => {
@@ -67,6 +71,22 @@ it("remembers seamless masonry without replacing other preferences", () => {
   expect(readMediaLayoutPreference()).toBe("seamless");
   expect(JSON.parse(window.localStorage.getItem("foliopath.preferences.v1") ?? "{}"))
     .toMatchObject({ locale: "en", mediaSort: "name:asc", mediaLayout: "seamless" });
+});
+
+it("preserves AI and gallery preferences when either workflow changes its settings", () => {
+  writeMediaLayoutPreference("seamless");
+  writeMediaTileSizePreference(350);
+  writeAIOperationIds(["operation-1", "operation-2"]);
+  writeTagLanguagePreference("bilingual");
+
+  expect(readMediaLayoutPreference()).toBe("seamless");
+  expect(readMediaTileSizePreference()).toBe(350);
+
+  writeMediaLayoutPreference("masonry");
+  writeMediaTileSizePreference(240);
+
+  expect(readAIOperationIds()).toEqual(["operation-1", "operation-2"]);
+  expect(readTagLanguagePreference()).toBe("bilingual");
 });
 
 it("reads and writes remembered panel widths", () => {

@@ -1,11 +1,11 @@
 .card {
   width: min(var(--size-auth-card), 100%);
   justify-self: center;
-  padding: var(--space-8) var(--space-7);
+  padding: var(--space-8) var(--space-10);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-auth);
   background: var(--color-surface);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-preview);
 }
 
 .mark {

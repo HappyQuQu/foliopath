@@ -424,20 +424,34 @@ func (s *Store) CommitDirectoryReconcile(
 				previous.name != entry.Name {
 				committed.Changed = true
 			}
-			if _, err := upsertDirectory(ctx, tx, run, entry); err != nil {
+			if _, _, err := upsertDirectory(ctx, tx, run, entry); err != nil {
 				return err
 			}
 			delete(existingDirectories, entry.RelativePath)
 		}
+		assetStates, err := loadAssetUpsertStates(ctx, tx, run, assets)
+		if err != nil {
+			return err
+		}
+		preparedAssets := make([]preparedAssetUpsert, 0, len(assets))
 		for _, entry := range assets {
 			previous, exists := existingAssets[entry.RelativePath]
 			if !exists || !previous.matches(entry) {
 				committed.Changed = true
 			}
-			if _, err := upsertAsset(ctx, tx, run, entry); err != nil {
+			prepared, err := prepareAssetUpsert(run, entry, assetStates[entry.RelativePath])
+			if err != nil {
 				return err
 			}
+			preparedAssets = append(preparedAssets, prepared)
 			delete(existingAssets, entry.RelativePath)
+		}
+		mediaAdmissions, err := upsertAssetsBatch(ctx, tx, run, preparedAssets)
+		if err != nil {
+			return err
+		}
+		if err := admitMediaJobsBatch(ctx, tx, run, mediaAdmissions); err != nil {
+			return err
 		}
 
 		for _, stale := range existingAssets {

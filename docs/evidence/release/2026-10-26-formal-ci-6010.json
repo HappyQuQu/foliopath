@@ -1,0 +1,217 @@
+{
+  "recordedOn": "2026-10-26",
+  "scope": "user-authorized three engineering deliveries; no stable promotion",
+  "codeSourceCommit": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+  "version": "rc-20261026.7",
+  "ci": {
+    "runId": "40329045152",
+    "url": "https://github.com/HappyQuQu/foliopath/actions/runs/40329045152",
+    "conclusion": "success",
+    "nativeComponents": [
+      {
+        "component": "main",
+        "architecture": "arm64",
+        "source": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+        "version": "rc-20261026.7",
+        "reference": "evanqu/foliopath@sha256:2a22841e8569f21c0bdb8bc96979e1267da08daed08f256befd876198191afc5",
+        "runtimeManifest": "sha256:c41eae0652d87a6bf795ec75cc43a1159eee8b025729e81a3a501bc180ca255b",
+        "configDigest": "sha256:390efbb16663978f6255a420a840c218985753785f38dcb70c182cc92cd50573",
+        "nativeJobConclusion": "success"
+      },
+      {
+        "component": "main",
+        "architecture": "amd64",
+        "source": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+        "version": "rc-20261026.7",
+        "reference": "evanqu/foliopath@sha256:61384583b919d410dc7b23f0919fc81048694b358a0bbba1eebc785ec8e261ce",
+        "runtimeManifest": "sha256:33704e817414c91cbfb10d153033a042f081fabaf3708858a8b808b34c1a8f9c",
+        "configDigest": "sha256:fcc9e7e73623a9cfc51e53ed82e7ec7304f0a01c8b48faf97fdd2df27d79e43b",
+        "nativeJobConclusion": "success"
+      },
+      {
+        "component": "ai",
+        "architecture": "amd64",
+        "source": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+        "version": "rc-20261026.7",
+        "reference": "evanqu/foliopath@sha256:05a9c06fb6a8d40ba5353d564f1bcd3f999924da6bc3c3f8844f872df42e9920",
+        "runtimeManifest": "sha256:92c8092e8da6428f1a081f92dbea1d2be9bd9cd486227c15e141a25356204f6b",
+        "configDigest": "sha256:1772baa499b3c78be5fd92361aa1d1fa0c1c4dec0879b1aeea9d4e527ce360f1",
+        "nativeJobConclusion": "success"
+      },
+      {
+        "component": "ai",
+        "architecture": "arm64",
+        "source": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+        "version": "rc-20261026.7",
+        "reference": "evanqu/foliopath@sha256:a87f738833acd32661a63bef0f090c3507ac815b91cba619daeeadbcfffd375d",
+        "runtimeManifest": "sha256:963bc9cc682dd1c42b26875ae5ce89f62b2404f403c42f7eaba38e083590d231",
+        "configDigest": "sha256:da94d0deced2ed2fcd1aa439edae462faca8a86cb50a50b33ea8a38d48e54b55",
+        "nativeJobConclusion": "success"
+      }
+    ]
+  },
+  "frontendTests": {
+    "passed": 454,
+    "files": 72
+  },
+  "browser": {
+    "processed": 305,
+    "passed": 251,
+    "conditionalSkipped": 54,
+    "failed": 0,
+    "flaky": 0,
+    "boundary": "macOS browsers; actual ARM64 Docker app; canonical fixtures plus two auth flows and20 real HTTP long-context cases; not model accuracy"
+  },
+  "realAI": {
+    "architecture": "linux/arm64",
+    "cases": [
+      "identities",
+      "semantic-image",
+      "semantic-chinese",
+      "semantic-english",
+      "face",
+      "tag",
+      "ocr-text",
+      "ocr-blank"
+    ],
+    "passed": 8,
+    "testProfileGiB": 6,
+    "memoryPeakBytes": 4210307072,
+    "events": {
+      "low": 0,
+      "high": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0,
+      "sock_throttled": 0
+    },
+    "notProductionMemoryCap": true
+  },
+  "ocrRecovery": {
+    "oneJobSubmitted": true,
+    "stoppedAt": 3,
+    "total": 10,
+    "bothOriginalAndRestoredCompleted": true,
+    "text": 8,
+    "blank": 2,
+    "nonemptyManualTagSuppressionFavoriteEach": 1
+  },
+  "production": {
+    "deployedAndProtectedVerified": true,
+    "ciRunId": 40329045152,
+    "sourceCommit": "958c7a39d8d093d346892586cfa4adb8b0403f75",
+    "mainImage": "sha256:ca3b43adae94abf5d4b921ecbea5a4739b1a4a3a176318ad6d68287b2dcc272c",
+    "AIImage": "sha256:a87f738833acd32661a63bef0f090c3507ac815b91cba619daeeadbcfffd375d",
+    "AIImageReferenceUpdateRequested": true,
+    "AIContainerIdChanged": true,
+    "AIStartedAtBefore": "2026-10-26T05:03:07.259404008Z",
+    "AIStartedAtAfter": "2026-10-26T14:27:26.352725376Z",
+    "mainStartedAt": "2026-10-26T14:27:37.290832507Z",
+    "allFiveOverlaysAndVolumeAndMediaMountPreserved": true,
+    "allProtectedGroupsUnchanged": true,
+    "modelIdentitiesAndDeploymentJSONUnchanged": true,
+    "noTasksSubmittedOrReprocessed": true,
+    "ocrCoverage": [
+      {
+        "eligible": 999,
+        "failed": 1,
+        "pending": 0,
+        "ready": 998,
+        "stale": 0
+      }
+    ],
+    "browserSearchAndUIAcceptance": "passed readonly OCR and fused source/actual text, four feature cards and version; known About update-status wording issue recorded",
+    "knownIssue": {
+      "id": "KNOWN-2026-10-26-ABOUT-STATUS",
+      "observed": "about says current latest stable while update check unavailable",
+      "fixed": false
+    }
+  },
+  "backup": {
+    "verified": true,
+    "stoppedExitCode": 0,
+    "files": 37376,
+    "bytes": 1097223906,
+    "manifestSha256": "96fb434c77af7170a67cb1c84de5b3dbf498ca1e0047cc6d6e441b6cd75f079b",
+    "allSixPrivateConfigurationFilesVerified": true,
+    "detachedLinuxCopyDatabaseChecks": "old and final CI candidate passed",
+    "protectedGroups": 37,
+    "completedAt": "2026-10-26T14:26:06.674636+00:00"
+  },
+  "mainOfflineOCI": {
+    "registryReference": "evanqu/foliopath@sha256:2a22841e8569f21c0bdb8bc96979e1267da08daed08f256befd876198191afc5",
+    "actualImageId": "sha256:ca3b43adae94abf5d4b921ecbea5a4739b1a4a3a176318ad6d68287b2dcc272c",
+    "repoDigestsEmpty": true,
+    "archiveSHA256": "d36cc0db8feb641c577eaa7d64cff0d8b4025c5ea63ad090a09cabdb5049370e",
+    "configRuntimeAnd22RootfsDiffIdsVerified": true,
+    "rebuilt": false
+  },
+  "artifacts": {
+    "allFourOriginalOCIOnCI": true,
+    "ciRetentionDays": 7,
+    "allFourRawManifestSPDXSLSALocal": true,
+    "twoMainOriginalOCICompleteLocal": true,
+    "twoAIOriginalOCILocal": "partial retained; redundant transfers stopped; final AI digest pulled and tested",
+    "allFourOriginalOCICompleteLocal": false
+  },
+  "realSearchAcceptance": {
+    "observedAt": "2026-10-26T14:35:00.417866+00:00",
+    "target": "http://127.0.0.1:6010",
+    "authenticated": true,
+    "readOnlyProductActions": true,
+    "version": "rc-20261026.7",
+    "ocr": {
+      "query": "Morinaga",
+      "loaded": 1,
+      "source": "图片文字",
+      "excerpt": "Morinaga",
+      "whyMatchVisible": true
+    },
+    "allSources": {
+      "query": "Morinaga",
+      "firstPageLoaded": 40,
+      "totalNotAsserted": true,
+      "sourcesVisible": [
+        "图片文字",
+        "画面内容"
+      ]
+    },
+    "featureCards": [
+      "智能搜索",
+      "人物分析",
+      "自动标签",
+      "文字识别"
+    ],
+    "twoRowsTwoColumnsObserved": true,
+    "consoleErrorsObserved": [],
+    "knownIssue": {
+      "id": "KNOWN-2026-10-26-ABOUT-STATUS",
+      "observed": "about says current latest stable while update check unavailable",
+      "fixed": false
+    },
+    "ownerDatabaseCheck": "passed",
+    "bothContainersHealthy": true,
+    "bothRestartCount": 0,
+    "bothOOMKilled": false,
+    "bothMemoryAndSwap": 0
+  },
+  "notRun": [
+    "legacy make test-e2e target (rebuilds and host-binds Desktop data); exact-image named-volume and browser substitutes executed",
+    "capacity",
+    "24h mixed load",
+    "formal labelled model quality",
+    "current vulnerability remediation/rescan",
+    "license authorization",
+    "stable promotion"
+  ],
+  "knownIssues": [
+    {
+      "id": "KNOWN-2026-10-26-ABOUT-STATUS",
+      "observed": "about says current latest stable while update check unavailable",
+      "fixed": false
+    },
+    "pixiv one bad JPEG and original ten source failures remain untouched"
+  ],
+  "privateEvidenceRoot": ".artifacts/formal-release-20261026/"
+}

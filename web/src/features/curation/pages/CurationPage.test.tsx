@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../../components/ui";
@@ -13,7 +13,7 @@ import {
   listTagAssets,
   listTags,
 } from "../../../lib/api/curation";
-import { listLibraries } from "../../../lib/api/libraries";
+import { getLibrary, listLibraries } from "../../../lib/api/libraries";
 import { LocaleProvider } from "../../../lib/i18n/LocaleProvider";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { CurationPage } from "./CurationPage";
@@ -39,7 +39,7 @@ vi.mock("../../../lib/api/curation", async (importOriginal) => {
 vi.mock("../../../lib/api/libraries", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("../../../lib/api/libraries")>();
-  return { ...actual, listLibraries: vi.fn() };
+  return { ...actual, listLibraries: vi.fn(), getLibrary: vi.fn() };
 });
 
 const session: AuthenticatedSession = {
@@ -84,6 +84,8 @@ const asset: Asset = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getLibrary).mockRejectedValue(new Error("Library not found"));
   vi.mocked(listLibraries).mockResolvedValue({
     items: [{
       assetCount: 1,
@@ -166,7 +168,8 @@ it("keeps quick access, hides directories, and previews favorites", async () => 
     "aria-current",
     "page",
   );
-  expect(favoritesLink).toHaveTextContent("1");
+  // The navigation shell can mount before the asynchronous favorite count.
+  await waitFor(() => expect(favoritesLink).toHaveTextContent("1"));
   expect(screen.queryByRole("navigation", { name: /Directory navigation|目录导航/ }))
     .not.toBeInTheDocument();
 
@@ -218,13 +221,108 @@ it("replaces the directory tree with a count-weighted tag wall", async () => {
     </ThemeProvider>,
   );
 
-  const wall = await screen.findByRole("navigation", { name: /All tags|全部标签/ });
+  const wall = await screen.findByRole("navigation", { name: /Photo tags|图片标签/ });
   const smallTag = screen.getByRole("link", { name: /Travel/ });
   const largeTag = screen.getByRole("link", { name: /Family/ });
   expect(wall).toContainElement(smallTag);
-  expect(largeTag).toHaveAttribute("data-weight", "5");
-  expect(Number(smallTag.getAttribute("data-weight"))).toBeLessThan(5);
-  expect(screen.getByLabelText(/64 media items|64 项媒体/)).toBeVisible();
+  expect(largeTag).toHaveAttribute("data-weight", "4");
+  expect(Number(smallTag.getAttribute("data-weight"))).toBeLessThan(4);
+  expect(screen.getByLabelText(/64 photos|64 张图片/)).toBeVisible();
+  expect(listTags).toHaveBeenCalledWith(undefined, { libraryId: "lib_family", kinds: ["image", "animated"] });
   expect(screen.queryByRole("navigation", { name: /Directory navigation|目录导航/ }))
     .not.toBeInTheDocument();
+});
+
+function Location() { const location = useLocation(); return <output data-testid="location">{location.pathname}{location.search}</output>; }
+function renderPage(route: string, tagId?: string) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<ThemeProvider><QueryClientProvider client={queryClient}><LocaleProvider><ToastProvider>
+    <MemoryRouter initialEntries={[route]}><CurationPage session={session} {...(tagId ? { tagId } : {})} /><Location /></MemoryRouter>
+  </ToastProvider></LocaleProvider></QueryClientProvider></ThemeProvider>);
+  return userEvent.setup();
+}
+
+it("never falls back to another library for an explicit unknown library", async () => {
+  renderPage("/tags/tag_hidden?libraryId=lib_missing", "tag_hidden");
+  expect(await screen.findByRole("alert")).toHaveTextContent(/selected library could not be loaded|无法载入所选媒体库/);
+  expect(getLibrary).toHaveBeenCalledWith("lib_missing");
+  expect(listTags).not.toHaveBeenCalled();
+  expect(listTagAssets).not.toHaveBeenCalled();
+  expect(listFavorites).not.toHaveBeenCalled();
+  expect(screen.getByTestId("location")).toHaveTextContent("libraryId=lib_missing");
+});
+
+it("resolves a valid deep-linked library beyond the loaded picker page", async () => {
+  const page = await listLibraries();
+  vi.mocked(getLibrary).mockResolvedValue({ library: { ...page.items[0]!, id: "lib_later", name: "Later library" }, etag: '"library-r1"' });
+  renderPage("/tags/tag_later?libraryId=lib_later&kind=image", "tag_later");
+  await waitFor(() => expect(listTagAssets).toHaveBeenCalledWith(expect.objectContaining({ libraryId: "lib_later", tagId: "tag_later", kinds: ["image", "animated"] })));
+  expect(listTags).toHaveBeenCalledWith(undefined, { libraryId: "lib_later", kinds: ["image", "animated"] });
+  expect(screen.getByTestId("location")).toHaveTextContent("libraryId=lib_later");
+});
+
+it("rejects an explicitly empty library without fetching a global tag or media list", async () => {
+  renderPage("/tags?libraryId=");
+  expect(await screen.findByRole("alert")).toHaveTextContent(/selected library could not be loaded|无法载入所选媒体库/);
+  expect(listTags).not.toHaveBeenCalled();
+  expect(listTagAssets).not.toHaveBeenCalled();
+  expect(listFavorites).not.toHaveBeenCalled();
+});
+
+it("keeps a deep-linked tag active even when absent from this cloud page and preserves video viewing", async () => {
+  renderPage("/tags/tag_elsewhere?libraryId=lib_family&kind=video", "tag_elsewhere");
+  await waitFor(() => expect(listTagAssets).toHaveBeenCalledWith(expect.objectContaining({ tagId: "tag_elsewhere", libraryId: "lib_family", kinds: ["video"] })));
+  expect(screen.getByRole("heading", { level: 1, name: /Filtered by tag|已按标签筛选/ })).toBeVisible();
+  expect(screen.getByTestId("location")).toHaveTextContent("/tags/tag_elsewhere");
+  expect(listTags).toHaveBeenCalledWith(undefined, { libraryId: "lib_family", kinds: ["image", "animated"] });
+});
+
+it("reads the selected tag name from real result curation even when absent from the cloud page", async () => {
+  vi.mocked(listTagAssets).mockResolvedValue({ counts: { all: 1, images: 1, videos: 0 }, nextCursor: null, items: [{
+    asset, curation: { assetId: asset.id, favorite: false, favoritedAt: null, revision: 1,
+      tags: [{ id: "tag_elsewhere", name: "Road trips", assetCount: 1, createdAt: "2026-10-22T00:00:00Z", updatedAt: "2026-10-22T00:00:00Z" }] },
+  }] });
+  renderPage("/tags/tag_elsewhere?libraryId=lib_family&kind=image", "tag_elsewhere");
+  expect(await screen.findByRole("heading", { level: 1, name: "Road trips" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: /Road trips/ })).not.toBeInTheDocument();
+});
+
+it("makes an empty tag selection explicit and allows clearing it", async () => {
+  const user = renderPage("/tags/tag_empty?libraryId=lib_family&kind=image", "tag_empty");
+  expect(await screen.findByRole("heading", { level: 1, name: /Filtered by tag|已按标签筛选/ })).toBeVisible();
+  await user.click(await screen.findByRole("link", { name: /Clear tag filter|清除标签筛选/ }));
+  expect(screen.getByTestId("location")).toHaveTextContent("/tags?libraryId=lib_family&kind=image");
+  expect(screen.getByTestId("location")).not.toHaveTextContent("tag_empty");
+});
+
+it("exposes the existing mobile sidebar toggle and closes it with Escape", async () => {
+  const user = renderPage("/tags?libraryId=lib_family");
+  const button = await screen.findByLabelText(/Open tag filters|打开标签筛选/);
+  fireEvent.click(button);
+  expect(button).toHaveAttribute("aria-expanded", "true");
+  await user.keyboard("{Escape}");
+  expect(button).toHaveAttribute("aria-expanded", "false");
+});
+
+it("resets selected tag, search and cursor when switching libraries", async () => {
+  const page = await listLibraries();
+  vi.mocked(listLibraries).mockResolvedValue({ items: [...page.items, { ...page.items[0]!, id: "lib_two", name: "Second" }], nextCursor: null });
+  const user = renderPage("/tags/tag_old?libraryId=lib_family&tagQ=Travel&tagCursor=old&kind=video", "tag_old");
+  const picker = await screen.findByRole("button", { name: /Media library：Family|媒体库：Family/ });
+  await user.click(picker);
+  await user.click(screen.getByRole("option", { name: /Second/ }));
+  expect(screen.getByTestId("location")).toHaveTextContent("/tags?libraryId=lib_two&kind=image");
+  expect(screen.getByTestId("location")).not.toHaveTextContent("tagCursor");
+  await waitFor(() => expect(listTags).toHaveBeenLastCalledWith(undefined, { libraryId: "lib_two", kinds: ["image", "animated"] }));
+});
+
+it("keeps favorite type counts and sort in the sidebar with the current library", async () => {
+  const user = renderPage("/favorites?libraryId=lib_family");
+  const sidebar = await screen.findByRole("complementary", { name: /Favorite filters|收藏筛选/ });
+  const video = within(sidebar).getByRole("button", { name: /Video|视频/ });
+  await waitFor(() => expect(video).toHaveTextContent("0"));
+  await user.click(video);
+  await user.selectOptions(within(sidebar).getByRole("combobox", { name: /Sort|排序/ }), "name");
+  await waitFor(() => expect(listFavorites).toHaveBeenLastCalledWith(expect.objectContaining({ libraryId: "lib_family", kinds: ["video"], sort: "name" })));
+  expect(within(screen.getByRole("main")).queryByRole("combobox")).not.toBeInTheDocument();
 });

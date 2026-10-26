@@ -1,0 +1,150 @@
+{
+  "change": "CR-2026-038",
+  "recordedAt": "2026-10-25T07:24:38.211982+00:00",
+  "stage": "POST-MVP-5 pending group directory, current-state counts and snapshot cursors",
+  "candidate": "sha256:0984ed15404201ddcc23727a1b2cf9b3558f408f21ebe72fa93a40990290fbbc",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "reviewDefaultAPI": "all",
+    "reviewDefaultUI": "pending",
+    "countScope": "selected library and kind, before pagination and review filter",
+    "pageRead": "single SQLite read transaction, streamed members and bounded retained cards",
+    "cursor": "v2 binds library, kind, review and current projection digest",
+    "sameProcessReviewChange": "409 face_cursor_stale",
+    "oldVersionOrRestart": "400 invalid_cursor, restart pagination",
+    "newMigrations": false,
+    "modelReprocessing": false
+  },
+  "checks": {
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed",
+    "lint": "passed including contract checks and go vet",
+    "goFull": "passed via TMPDIR on disposable local volume, GOFLAGS=-p=1; includes normal Go test cache",
+    "integration": "passed",
+    "runtimeDockerSmoke": "passed",
+    "focusedRace": {
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestPendingCluster|TestFaceCluster|TestFaceReadRoutes|TestFaceProjection|TestInvalidFaceCluster",
+      "status": "passed, count=1"
+    },
+    "frontend": {
+      "files": 73,
+      "tests": 466,
+      "fullCheck": "passed",
+      "auditHigh": "passed",
+      "types": "passed",
+      "storybook": "passed"
+    },
+    "browser": {
+      "image": "sha256:0984ed15404201ddcc23727a1b2cf9b3558f408f21ebe72fa93a40990290fbbc",
+      "mainRegression": 141,
+      "directorySupplement": 27,
+      "overlap": "24 directory cases repeated; 3 new empty-state cases. 144 unique browser cases across both runs, not 168 unique cases.",
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "status": "passed"
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T07:13:10.213Z",
+      "appImage": "sha256:0984ed15404201ddcc23727a1b2cf9b3558f408f21ebe72fa93a40990290fbbc",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    },
+    "openapiLint": {
+      "status": "passed",
+      "warnings": 2,
+      "scope": "Existing health endpoint 4xx response warnings; no schema errors"
+    }
+  },
+  "realCounts": {
+    "initial": {
+      "totalGroups": 2,
+      "pendingGroups": 2,
+      "totalFaces": 4,
+      "pendingFaces": 4
+    },
+    "afterAssignAndExclude": {
+      "totalGroups": 2,
+      "pendingGroups": 1,
+      "totalFaces": 4,
+      "pendingFaces": 2
+    },
+    "allHistoryRetained": true,
+    "noWholeGroupGateBypass": true
+  },
+  "firstRunFailures": [
+    "Synthetic core fixture initially had only one face; corrected fixture without relaxing core rules.",
+    "OpenAPI digest lock regenerated after compatibility review.",
+    "Restart face projection and group directory became ready at different times; harness waits for each.",
+    "Restart-old cursor returned invalid_request and could not reset pagination; production mapping now invalid_cursor and canonical feedback resets cursor.",
+    "Default host temporary volume below existing 10% free-space reserve; full suite rerun on dedicated disposable larger local volume without changing reserve.",
+    "Legacy video timing fixture exceeded its 1-second subprocess budget in broad run; unchanged suite passed with serial package build.",
+    "One npm audit TLS disconnect; complete check rerun passed.",
+    "New frontend unit test initially used Playwright exact option in Testing Library; corrected test types."
+  ],
+  "protection": {
+    "originalMediaTouched": false,
+    "originalDataOrCurationTouched": false,
+    "server222Connected": false,
+    "tenKnownSources": "remain deferred; never retried or marked successful",
+    "syntheticResources": "cleaned after probes"
+  },
+  "limits": [
+    "Not deployed to original 6010",
+    "No quality/large-capacity/cross-architecture/release acceptance claim",
+    "Directory snapshot read time scales with selected type member count; no large-capacity benchmark claimed",
+    "No full Go race claim"
+  ],
+  "logs": [
+    ".artifacts/pending-groups-backend.log",
+    ".artifacts/pending-groups-race-final.log",
+    ".artifacts/pending-groups-contract-final.log",
+    ".artifacts/pending-groups-full-serial.log",
+    ".artifacts/pending-groups-full-external.log",
+    ".artifacts/pending-groups-full-final.log",
+    ".artifacts/pending-groups-web-final5.log",
+    ".artifacts/pending-groups-browser-final.log",
+    ".artifacts/pending-groups-directory-final.log",
+    ".artifacts/pending-groups-real-final3.log"
+  ]
+}

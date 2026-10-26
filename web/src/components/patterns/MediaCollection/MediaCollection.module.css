@@ -2,6 +2,17 @@
   min-width: 0;
 }
 
+.evidenceBadges {
+  position: absolute;
+  inset-inline-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  inset-block-end: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
 .collection {
   position: relative;
   margin: 0;
@@ -19,7 +30,7 @@
 .card {
   position: relative;
   overflow: hidden;
-  border: 0;
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-2);
   background: var(--color-surface);
   transition:
@@ -55,10 +66,11 @@
 .card:hover {
   background: var(--color-surface-subtle);
   box-shadow: var(--shadow-hover);
-  transform: translateY(-0.1875rem);
+  transform: translateY(-0.0625rem);
 }
 
 .collection[data-layout="seamless"] .card {
+  border: 0;
   border-radius: 0;
   transform: none;
   box-shadow: none;
@@ -109,6 +121,20 @@
   display: flex;
   justify-content: flex-end;
   padding-block: var(--space-2);
+}
+
+.sizeControl[data-placement="toolbar"] {
+  min-width: 0;
+  padding: 0;
+}
+
+.sizeControl[data-placement="toolbar"] label {
+  white-space: nowrap;
+}
+
+.sizeControl[data-placement="toolbar"] input {
+  width: clamp(4rem, 8vw, 7rem);
+  min-height: var(--size-control-md);
 }
 
 @media (hover: none) {
@@ -232,9 +258,10 @@
 }
 
 .identity {
-  height: 3.25rem;
+  min-height: calc(var(--space-12) + var(--space-1));
   display: grid;
   align-content: center;
+  grid-auto-rows: max-content;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
 }

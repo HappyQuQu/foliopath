@@ -1,5 +1,78 @@
 # FolioPath 测试策略
 
+CR-2026-052：OCR组件测试执行真实生成client/adapter/query，通过有限HTTP夹具核对库/ETag/CSRF/幂等/确认body与取消前读取job ETag，不mock业务hooks。浏览器检查正式Story多屏/双语言/主题、键盘/确认焦点/axe及未配置/清理状态；本地Docker回归现有真实OCR管理/任务/检索路径，区分UI合成与真实模型证据。
+
+CR-2026-051：OCR全文回归覆盖短中文/Unicode/特殊字符、trigram候选、跨来源去重、OCR-only不编码、服务降级、范围/日期/视频排除、同事务回滚、46→47回填/重复启动、源/模型/关闭/清理/离线可见性与游标/HTTP hydration竞态。独立Linux真实OCR→任务→索引→认证搜索HTTP核对实际行片段，清理后不命中。生产SearchPage与Story用明确合成合同数据，三浏览器/双语言/320～1920矩阵验证徽标、原文转义、焦点、全宽和axe；没有将合成数据当质量或容量。
+
+2026-10-26 / CR-2026-050：补安全源前后复核/关闭/坏源与程序错误分类，真实WorkerPool的计划停机与取消胜出、busy延后、临时scan不重复推理；HTTP认证/CSRF/CAS/确认词/错误不泄露。真实模型联验用单/library只读合成挂载，应用数据库仅Linux tmpfs，通过新OS进程重启（不能在同进程重启libvips）验收同任务续补、空结果/坏源、missing不重算与清理。测试镜像的占位embed只用于API/app单测，不当正式UI。
+
+2026-10-26 / CR-2026-049：OCR持久化用合成库验证迁移44→45/重开、正常空结果和固定坏源、幂等/源与模型换代、原子回滚、并发提交/清理、取消/禁用/offline/服务错误、lease过期/三次上限、全局32任务和分批清理。隔离Docker recipe：tests/release/Dockerfile.ocr-persistence（固定Go1.26.5、无network/媒体/原data挂载、rootfs只读），运行全量SQLite/ocr race测试；实际结果见CR记录，不替代真实processor/模型联验、容量/双架构或UI验收。
+
+2026-10-26 / CR-2026-048：Go/Python共享ocr/conformance.json和Go生成策略；25项HTTP/分类/路由/core单测，加2项真实模型取消/失配cache测试。固定AI/Go probe镜像在无外网/无公开端口的独立Docker网络逐阶段验证baseline→OCR→missing-cache，固定合成源、只读模型及独立scratch，没有真实库/DB。对照28份旧文件hash、3类旧identity与语义/图像/tag/face完整输出字节；native取消需观察实际RSS、reap/空scratch/内存回落后验证恢复。stage/candidate/初始失败与复现见[CR-2026-048](changes/CR-2026-048-ocr-producer.md)，不代替索引/搜索或质量/联合容量/发行。
+
+2026-10-25 / CR-2026-047 OCR输入：Docker `ocr-image-probe` target复用正式固定libvips/GLib/Expat构建，race编译native测试。最终45项（含7项新OCR）无skip，1GiB/2CPU/root只读/network none；两旧progressive测试使用另行生成的合成9000x9000 JPEG，不用用户图库。额外3个固定合成PNG/EXIF JPEG/宽图经正式输入适配后接独立S0真实OCR模型，核对实际文字与源/模型hash，不冒充producer/索引/search联验。复现[README](../spikes/ocr-image-input/README.md)与[证据](changes/CR-2026-047-ocr-image-input.md)。
+
+2026-10-25 / CR-2026-045/046 OCR隔离验证：S0真实模型实验与Go传输消费者分别计证据，前者15场景含90°0/4负面观察；后者httptest/业务合同/race，不冒充实际AI服务联验。`go test -race -count=1 ./internal/ocr ./internal/inference/remoteml`；`tests/release/Dockerfile.ocr-transport`固定Go1.26.5/Linux arm64编译race测试，运行时network none/root只读、1 GiB/2CPU和/tmp tmpfs，不挂模型/媒体/DB。当前40项含既有ML回归；app/API/存储不得消费OCR，arch-check执行此阶段门槛。复现与执行镜像/未执行项见[CR-2026-046](changes/CR-2026-046-ocr-transport.md)，S0另见[CR-2026-045](changes/CR-2026-045-ocr-feasibility.md)。
+
+2026-10-25 / CR-2026-044：后端覆盖预检无写入、允许后新增约束仍使正式POST回滚、反向人物、跨库五关系仅三照片示例、离线/待复核隐藏示例但阻断、来源批次上限与缺失/非法目标、HTTP唯一查询/opaqueID/no-store及组合停机状态。组件覆盖不同阻止原因、版本不采纳、读取失败仅重试、原请求恢复；三浏览器中英深浅、390/768/1440/1920与axe/焦点/布局。node tests/release/person_merge_check_smoke.mjs在独立真实模型合成Docker中检验未登录401、真实预检与正式阻断、关系解除后允许、原幂等恢复/undo、非空人工标签/源hash/其他脸、重启和容器内database-check。不是质量/容量/跨架构发行证据。
+
+2026-10-25 / CR-2026-043：先红测证明旧无归属guard请求会写入，再执行新写版本/无写入冲突、重复/同键/历史回执、逆序pair与anchor变更撤销保护、合并阻断、同图投影不泄露跨图ID和API空数组测试。组件覆盖两脸选择/冻结版本、取消焦点、未知同键重试、缺失/不对称/既有关系与同人物禁用。三浏览器覆盖中英深浅、四档宽度、axe、并发和撤销；独立真实模型Docker通过正式API提交关系后丢弃响应，再真实重放、重载读取、合并409、解除后合并与undo。人工标签/源hash/其他脸、重启与容器内database-check按同一固定镜像验证。探针入口node tests/release/face_cannot_link_smoke.mjs；不把关系功能证明等同识别质量、容量或发行。
+
+2026-10-25 / CR-2026-042：先执行split/merge提交后源状态变化的同键回执与不重复增版本专项，保留移动/undo/API/race回归。单测覆盖源404、照片消失、冻结来源和目标、关闭重开/收起、已知冲突与双击；三浏览器覆盖中英深浅、390/768/1440/1920、axe、误先失败/未提交后的版本冲突和恢复后统一撤销。真实模型合成Docker分别真实提交移出/移动/非空合并，再丢弃响应，确认首次Idempotency-Replayed=false、重试true、人物版本不重复，最后guarded undo和重启/人工标签/源hash/database-check。正式恢复Story另用隔离静态Docker浏览器验证；不读真实图库，不替代质量/容量/发行。
+
+2026-10-25 / CR-2026-041：后端沿用并执行guarded undo（split/assignment/exclusion/merge）、同键重放与API强If-Match回归。前端覆盖原回执冻结、取消/焦点、未知响应关闭重开仍同键、冲突不重发、双击受限、dismiss无写及统一查询刷新；三浏览器覆盖中英深浅、390/768/1440/1920、axe及整体人物工作区兼容。真实模型合成Docker验证单图排除撤销、成功响应丢失后的服务端真实重放、另一会话新归类阻止旧撤销、人物移出/空人物合并/分组排除的实际撤销和重启保护；不使用真实图库，不以合成撤销代替识别质量/容量验收。
+
+2026-10-25 / CR-2026-040：先红测证明无来源排除可抹掉并发人工归属，再覆盖匿名/错误来源/过期修订的无写入冲突、字段配对、合法排除/undo/重放。单图覆盖明确选择/取消、冻结来源和目标、未知响应同键、图片失败禁用、实际库上下文及三浏览器390/768/1440/1920/中英深浅/axe/焦点。独立合成Docker用真实模型、真实API及UI执行移动→排除→恢复；故意丢弃服务器已提交成功的响应，验证同键重放不重复修改。源hash/非空人工标签/其他脸/重启及容器内database-check保留，不使用原6010数据。具体执行数量与镜像见CR-2026-040机器证据；不是识别质量或容量验收。
+
+2026-10-25 / CR-2026-039：人物目录验证空/离线预览、最近照片及解除关联回退、多人同图计数/预览去重、opaque/nullable DTO、主区分页与全库搜索/详情返回、缩略图错误及更换源、长名称换行、创建未知响应同键/取消/并发点击。三浏览器390/768/1440/1920、中英深浅/axe/键盘；真实模型合成Docker沿用单脸归类后验证实际previewAssetId和独立空人物，源hash/人工标签/重启/database-check。实际结果见CR-2026-039与机器证据，合成数据不是质量/容量验收。
+
+2026-10-25 / CR-2026-038：待处理分组验收覆盖分页前计数、部分/完全处理、移出后重现、core/edge范围、离线、过滤游标绑定及整理后失效；三浏览器在390/768/1440/1920、中英深浅、axe、筛选重置及返回保持验证。真实模型合成Docker核验2组4脸→1组2脸待处理，全部目录保留2组，刷新/重启、人工标签、源hash及容器database-check；模型恢复后单图与分组投影的就绪时点须分别等待，不将not_ready当空结果。实际结果/首轮失败以CR-2026-038及证据为准。
+
+
+CR-2026-037：`ClusterPanel.test.tsx`覆盖单脸选择、状态/修订守卫、取消、双击、顺次独立确认与幂等重试；
+`cluster-review.spec.ts`配合既有人物/侧栏三浏览器回归，验证390/768/1440/1920、中英/深浅、axe及真实状态显示。
+`node tests/release/cluster_review_smoke.mjs`复用独立人物Docker测试基础设施，使用真实模型和合成双人图，
+验证先创建空人物、只归类/排除明确选中脸、保留另两脸/人工标签/源哈希、刷新/重启及容器内完整性。
+健康不等于face投影已就绪，重启后须等待真实AssetFace读取恢复。禁止对原6010或真实人工整理执行写入测试。
+
+CR-2026-036 / FR-PEOPLE-001～003：人物详情使用`PersonPanel.test.tsx`验证多人脸明确选择、源/目标修订冻结、取消、冲突和重复点击；既有face/api/SQLite事务定向回归先于UI。
+`person-review.spec.ts`与`context-sidebar.spec.ts`在固定Linux三浏览器验证390/768/1440/1920、中英/深浅、共享脸框、焦点、axe与侧栏兼容。
+`FOLIOPATH_PERSON_APP_IMAGE=<固定候选> node tests/release/person_review_smoke.mjs`创建独立Docker网络/数据卷和合成双人照片，
+用真实face模型与`person-review-real.spec.ts`验证单人脸移出保留另一人脸、移动、合并、人工标签/源哈希、重启和容器内database-check；不得指向原6010或真实图库。
+自动端口在重启后须重新读取，健康轮询每次有5秒超时；临时测试资源精确清理，不将运行中数据库复制为备份。
+
+2026-10-25 / CR-2026-035：`internal/search`、SQLite及HTTP回归覆盖Unicode多词跨字段、basename不重复归因路径、来源组合/去重/排序、keyset查询绑定、代次/覆盖变化、源水合变化、类型/时间/目录/全库范围、关闭/离线/服务故障和取消。
+`fused-search.spec.ts`与既有`search-guidance.spec.ts`使用生产bundle与只读合成API，在三浏览器、五宽度、中英/深浅核对来源、预览依据、降级、抽屉/焦点、axe和截图；这些不是模型质量证据。
+`multilingual_semantic_smoke.mjs`显式`FOLIOPATH_TEST_FUSED_SEARCH=1`（可用`FOLIOPATH_TEST_FUSED_ONLY=1`仅验本切片）在独立本地Docker运行真实640维模型、合成媒体，检验中英文融合、分页/失效/范围、AI断连与功能性恢复、人工标签/向量保留、源hash和容器内database-check。
+AI ping健康不等于可推理，测试等待真实融合响应恢复ready；不把降级成功当作语义恢复。实际执行及失败纠正见[记录](changes/CR-2026-035-fused-search.md)。
+
+2026-10-25 分层视觉对齐：`layered-alignment-real.spec.ts` 仅在显式提供独立6012合成库 fixture 时运行，
+覆盖四档视口、中英/深浅、真实接口、原图预览、axe及截图；默认跳过，不读取既有实例。既有 context-sidebar 与
+visual-regression 更新为新的接受基线，并以不更新模式复验。主观同屏对照见根目录 `design-qa.md`，不以构建替代视觉验证。
+
+2026-10-24 功能侧栏回归：`web/tests/e2e/context-sidebar.spec.ts` 使用生产页面与明确合成合同数据，
+覆盖390/768/1440/1920、中英/深浅、无横向溢出、抽屉焦点、axe、URL 条件及人物双游标。
+聚焦视觉项目 `context-visual-chromium` 在固定Linux浏览器中比较32张基线（本机macOS显式跳过像素比较）；
+常规Chromium仍运行功能/无障碍检查。组件测试覆盖筛选唯一位置、服务端数量/作用域与严格整理预览移出；稳定 Storybook 渲染生产组件。
+这是 UI 合同与布局证据，不代替实际后端、模型或发行门禁。[记录](changes/UI-2026-10-24-contextual-sidebar.md)。
+
+## 2026-10-24 153类策略升级回归
+
+`multilingual_semantic_smoke.mjs`在PNG/tag PNG/recovery模式基础上支持`FOLIOPATH_TEST_PHOTO_POLICY_UPGRADE=1`，
+并要求`FOLIOPATH_TEST_LEGACY_AI_IMAGE`固定旧92类镜像、`FOLIOPATH_TEST_AI_IMAGE`固定153类候选。
+仅合成媒体：先建立92类＋png-v4与非空人工/同义/删除抑制，再正常停主并完整备份，切换AI与独立tag.identity。
+断言真实新增类别、大PNG实际输出、旧语义/人物身份及向量摘要不变、保护跨换代/重跑/重启、坏源失败和同operation短暂断连恢复。
+实际执行结果见[153类部署记录](changes/DEPLOY-2026-10-24-photo-tags-153.md)，不替代准确率/容量/跨架构/发行检查。
+
+## 2026-10-24 自动标签 PNG 输入
+
+ADR-0029配置测试固定默认旧hash、tag/语义/人脸profile独立、非法值失败关闭；架构测试约束
+fingerprint与执行预处理器同时绑定tag profile。native PNG边界复用ADR-0028测试，不另设解码owner。
+`tests/release/multilingual_semantic_smoke.mjs`可联合设置`FOLIOPATH_TEST_PNG_PROFILE=1`和
+`FOLIOPATH_TEST_TAG_PNG_PROFILE=1`：真实固定JoyTag、大PNG旧失败→新成功、换代不重算语义/人脸，
+中文人工同义/移除抑制跨换代与重跑/重启保持，故意坏源仍失败、原件hash不变。
+仅隔离合成媒体，不能拿原库作测试fixture。实际通过情况及6010核对另见[记录](changes/FIX-2026-10-24-autotag-png.md)。
+
 ## 2026-10-23 Node 24 LTS 工具链
 
 本地使用 `.node-version` 的 Node 24.22.1 和 `web/package.json` 的 npm 11.19.1。
@@ -10,7 +83,7 @@ Docker 官方构建镜像中的 `node --version` / `npm --version` 也须核实�
 
 ## 2026-10-23 无缝瀑布流增量
 
-`FR-BRW-014` / [CR-2026-033](changes/CR-2026-033-seamless-masonry.md) 使用生产组件 Story、
+`FR-BRW-014` / [CR-2026-033（无缝瀑布流）](changes/CR-2026-033-seamless-masonry.md) 使用生产组件 Story、
 偏好/页面/共享集合测试，以及 `media-matrix.spec.ts` 的中英双语、深浅主题、
 390/768/1280/1920px × Chromium/Firefox/WebKit 几何和刷新回归。全量命令与结果见
 [验证记录](evidence/seamless-masonry-2026-10-23.md)。
@@ -19,7 +92,186 @@ Docker 官方构建镜像中的 `node --version` / `npm --version` 也须核实�
 `tests/e2e/Dockerfile.dockerignore` 允许烟测镜像消费该产物，避免正式镜像的根 ignore 将其
 排除；随后执行 `make test-e2e`。测试数据只使用临时目录或明确标识的合成合同 fixture。
 
+## PNG 语义输入版本（ADR-0028）
+
+`remote_png_libvips_test.go` 使用合成 17 MP / >32 MiB PNG、40 MP 边界、越界/截断/有界 palette 头，
+检查 FD 与内存流输出一致、alpha/16 位、共享准入、取消/空读和引用回收；不读取真实媒体。
+`deployment_config_test.go` 固定新语义身份与默认 v3、face/tag 不变；架构测试约束唯一 owner。
+真实模型脚本 `tests/release/multilingual_semantic_smoke.mjs` 增加 `FOLIOPATH_TEST_PNG_PROFILE=1`，
+并提供 Linux `FOLIOPATH_TEST_SEMANTIC_AUDIT`（由 `spikes/semantic-png/audit` 编译），仅在独立合成 owner
+读取旧代次保留数量和 cgroup。测试新空代次→大 PNG 入库、中英文查询、旧标签限制/人工标签、并发搜索和重启。
+从不在宿主打开活跃数据库；原库验证和合成测试分开。实际镜像、通过/跳过和峰值见[记录](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+## 搜索模式提示（既有 FR-INT-003 消费者）
+
+`web/tests/e2e/search-guidance.spec.ts` 对真实生产 bundle 使用明确合成只读 API fixtures，
+在 Chromium/Firefox/WebKit、320/390/768/1440/1920、中浅/英深组合检查模式提示、卡片检索方式、
+中文重提、目录/递归保留、唯一实际请求端点、无未模拟请求/写入、无页面异常和横向溢出。
+完整 Header 必须同时有通知/人物等入口；窄屏验证有效输入宽度、可见提交、输入→提交→人物的键盘和视觉顺序，
+标题在固定 Header 下方。三行卡片文字检查实际高度/不重叠/不裁切；纯“不溢出”不足以验收。
+这是 UI/路由回归，不是合成真实模型 smoke、中文召回、OCR 或双主题全矩阵。
+模型链路及真实库只读核对另外记录，不以 fixture 返回成功冒充后端/识别质量通过。
+
+## 计划升级交接（ADR-0027）
+
+Go 覆盖自动标签/语义/人物第三次 claim、已提交进度与 operation ID 不变、旧 fence/重复拒绝、
+取消优先、离线清单不匹配整批回滚、交接后的第三次崩溃仍终结，以及 worker 回收顺序/交接错误上报。
+`spikes/job-handoff/docker_smoke.py` 仅建独立合成库，真实旧二进制两次 SIGKILL 恢复到第三次运行，
+停写备份/精确交接后更新候选，再反复真实 SIGTERM/重启，最后 SIGKILL 验证旧上限仍生效。
+只对停止的合成 fixture 调整租约到期时间以缩短等待，不修改 attempt 计数；不可在原库这样加速。
+必须记录实际镜像、SQL 审计/断点、源 hash 和容器内 database-check；这不是完整质量/容量/发行验收。
+
+## 本地化自动标签（CR-2026-033：本地化图片标签 / ADR-0026：标签策略）
+
+`tests/release/localized_tags_smoke.mjs` 在本地独立双服务与合成媒体验证新策略真实推理、至少一个新增类别、
+中文别名/库隔离、原名与 ID 不变、人工中文同义优先/移除抑制、显式人工恢复、重跑/重启、源 hash 和
+容器内 database-check。新 overlay 还须实测现有 XLM 中文查询及 legacy 人脸推理，不只断言身份字符串。
+Go 覆盖只读投影/分页/人工保护，Python 校验全部类别存在于固定模型词表、输出 fail-closed 与共享调度；
+前端覆盖跨消费者同步、刷新保留、原文回退与四档宽度。实际结果/未执行门禁见 CR，不将功能冒称质量校准。
+
+## 多语言语义回归（ADR-0025）
+
+`tests/release/multilingual_semantic_smoke.mjs` 使用临时合成媒体与固定真实权重，验证
+640 维索引、中文/英文查询、损坏负例、库隔离、幂等、持久化、人工标签及 legacy face/tag。
+必须验证索引/标签同时运行时的前台查询，且后台不能因前台占槽而把正常图片计为失败。
+AI 4 GiB/disk scratch 和基础 2304 MiB/tmpfs 不是同一档，记录 peak 与实际镜像。
+Go 检查模型/维度、总期限/取消/释放与身份错误；Python 检查快照、协议、旧能力与准入。
+两张合成图排序仅为链路证据，不冒称真实汽车召回率、中文质量或完整发行验收。
+
+## 大图 native 工作集回归（ADR-0024，2026-10-23）
+
+必须区分单解码探针与完整应用：独立探针通过不能覆盖缩略图和 AI 预处理并行的峰值。
+`spikes/int001-remote-ml/facememory` 生成纯程序高熵 96.8 MP JPEG，并保留 256 MiB 合成堆，
+在 1 CPU/1 GiB/无额外 swap 下检查重复调用、像素 SHA-256、native refs、exit/OOM。
+`tests/release/face_diagnostics_smoke.mjs` 可用 `FOLIOPATH_TEST_FACE_MEMORY_FIXTURE` 指向该固定生成文件，
+仅接受固定字节摘要，覆盖真实扫描/缩略图/人物推理、失败专属重试、显式重启和原件 hash。
+自动重启计数必须在显式重启前为 0；不能仅用当前 OOMKilled=false 宣称没有自动重启。
+真实故障图片只可作已授权的只读手工诊断，禁止混入这个自动化资源/质量回归。
+
+2026-10-23 人物补齐维护：Go/合同检查代次比较为只读、可选字段兼容与样本大小；前端不把缺省大小当零，
+不把旧模型 ready 当当前完成。face_diagnostics_smoke 增加合成空 JPEG，验证与非空损坏输入分别保留大小，
+missing 只重试两张失败图、重放/重启保留及原件 hash 不变。原 6010 四库任务属于用户授权运行，
+不是自动化测试用例；实际数量/长任务结果见[本轮记录](changes/FIX-2026-10-23-face-library-retry.md)。
+
+2026-10-23 / ADR-0023：`tests/release/scan_worker_smoke.mjs` 只建独立合成库，约 100 图片、4 库，
+在固定 1 CPU/1 GiB 主应用同时发起扫描、读取/客户端取消与容器内 database-check，验证无组件退出/自动重启、
+手动重启恢复、原件 hash 不变；缺失/损坏库的维护命令用独立只读数据挂载验证非零且无泄露。
+Go/race 覆盖错误链/脱敏、只读/外键/取消、并发 WAL 与快照；不访问真实媒体。危险的宿主机 SQLite 并发
+仅对一次性合成目录作故障复现，绝不能把它作为正常健康检查，更不能对真实库复现。
+最终计数、固定镜像及全量检查的实际环境限制见 [scan-worker 记录](changes/FIX-2026-10-23-scan-worker-exit.md)。
+
+2026-10-23 / ADR-0022 人物失败诊断：Go/race 覆盖扫描等待的恢复/超时/取消/离线/禁用/模型失联，
+SQLite 检查 checkpoint 原子性、旧成功后的失败候选、样本上限、历史未知/源变化和逐批清理；API 检查脱敏和 opaque ID。
+`tests/release/face_diagnostics_smoke.mjs` 只创建独立合成 Docker 数据，真实损坏 JPEG、模型推理、只重试失败图、
+重放、重启/隔离和原件 hash；扫描分支采用测试库状态注入，不等同于真实 scanner 完整并发验收。
+前端 65 文件/409 项、四档宽度与英文深色手机、生产 Story 和真实重试焦点通过。完整命令/镜像见
+[切片记录](changes/FIX-2026-10-23-ai-failure-diagnostics.md)。本机无限定 lint/test 仍缺 native pkg-config/libvips，
+集成用扩展盘 TMPDIR 通过，不能隐去默认内部盘安全余量失败；runtime E2E smoke 不代替完整浏览器矩阵。
+
+## 自动标签验证边界（2026-10-22 / CR-2026-031）
+
+2026-10-24 [ADR-0030](adr/0030-bounded-autotag-service-recovery.md)：
+`autotag/recovery_test.go`、`remoteml/tag_recovery_test.go`验证短暂不可用、60秒恢复窗口/最多2次额外分析、
+取消以及身份/非法输出不重试；`multilingual_semantic_smoke.mjs`的`FOLIOPATH_TEST_TAG_RECOVERY=1`
+配合PNG/tag profile fixture，在专属合成Docker停止再启动AI，验证同operation继续和非空人工/删除抑制保护。
+真实已失败任务通过既有带修订保护的设置解除阻止和missing调度补齐；不修改历史终态、不全量重算，执行证据另记。
+
+按 [ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md) 分开记录功能、资源回收、模型质量与
+发行证据；下列为当前已实现的回归入口和验收要求，不是最终 Docker 或发布通过声明：
+
+- `internal/curation/automatic_tags_test.go` 与 SQLite `curation_automatic_tags_test.go` 覆盖规范化、
+  同名去重、人工优先/最多 20、移除抑制/恢复、重复重跑、全局改名/删除含 tag ID 重建、旧建议接受
+  迁移为 manual、源 fingerprint/kind 失效、重启保留、离线/删除 cascade、事务回滚和并发读取快照。
+- `internal/store/sqlite/autotag_test.go` 覆盖合并与 checkpoint/operation 同事务、missing/all、
+  幂等键/跨库、全局 32 队列和准入上界、取消/关闭拒绝迟到写、旧 claim 拒绝、关机租约恢复/最多三次
+  尝试。必须另测服务失败、非法输出、恢复耗尽和取消连续多轮自动准入仍不创建新任务，以及取消进行中
+  显式重新启用不被迟到取消重新封锁；不能只验证单个 job 的 attempt 上限。
+- `internal/autotag/autotag_test.go` 与 SQLite `autotag_busy_test.go` 覆盖暂忙三次/1+2 秒可取消退避、
+  同 operation 持久延后 30 秒、checkpoint/标签不变、五轮暂忙不吃崩溃预算、历史崩溃计数保留、
+  旧 claim 拒绝、关闭/取消及重开数据库不跳过等待；已验证 ready 不因暂忙丢失，未知状态不伪装 ready。
+- `internal/app/autotag_runtime_test.go` 使用临时合成文件验证库隔离、推理前拒绝已知旧源、推理后
+  重开检出真实文件变化；配置与 `remoteml/tag_test.go` 验证独立身份、共享预算、响应限制和重定向拒绝。
+  `tests/contract/automatic_tags_contract_test.go` 检查公开合同与人工 owner；客户端须从 OpenAPI 生成。
+- `services/inference/test_scheduler.py`、`test_runtime_manifest.py`、`test_tag.py` 及原搜索/人脸
+  测试覆盖固定子集/hash、输出过滤、一个运行/一个等待、真实断连/超时/回收；实际镜像同预算至少三轮
+  text → image → face → tag 序列、最大输入与过载，逐轮检查无 OOM/残留子进程，不以 Python 单测推定
+  原生内存释放。入口和限制见 [AI 镜像说明](../services/inference/README.md)。
+- `tests/release/automatic_tags_smoke.mjs` 需显式提供 `FOLIOPATH_TEST_APP_IMAGE`、
+  `FOLIOPATH_TEST_AI_IMAGE`、`FOLIOPATH_TEST_MODEL_CACHE`，只允许本地 Docker；独立临时双服务/媒体库
+  与合成媒体验证鉴权/CSRF、产生真实标签、人工保护、重跑、取消/重启及原件 hash，不改真实库或 server222。
+  标签云仍使用 `tag_cloud_smoke.mjs` 与前端范围/计数/分页/四档宽度回归；不得只凭标签总数判断自动分析成功。
+
+定向命令：`GOTOOLCHAIN=go1.26.5 go test -count=1 ./internal/curation ./internal/store/sqlite ./internal/api ./internal/app ./internal/autotag ./tests/contract ./tests/architecture`；
+并发命令：`GOTOOLCHAIN=go1.26.5 go test -race -count=1 ./internal/curation ./internal/store/sqlite -run 'TestAutomatic|TestCuration'`。
+测试只用临时/合成输入，最终执行结果、镜像/身份/资源配置与未完成 Gate 由
+[CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) 汇总；不得继承下面旧 P5/P6 的通过结论。
+
+P5 F03/G02：`make test-ai-delivery` 要求显式旧/新镜像变量，复用正式 Compose 及仅测试用 internal-web 覆盖，验证无外网运行、停写备份、新代次、人工数据保留、重启及配对回退，然后在新镜像上验证鉴权/CSRF、路径边界、API/日志/诊断隐私和两类人脸清除。测试控制器通过 Docker 内部网络访问，不为离线测试重新打开服务端出网。`make test-ai-compose` 为 F02 故障矩阵；两者只使用自产临时数据。`make arch-check` 的人脸隐私规则同时覆盖 remoteml adapter。
+
+P5 F02：同一 `ai_compose_smoke.mjs --faults` 启用语义/人脸合成分析，逐项注入缺失缓存、等长损坏缓存及错误身份，验证不可用错误、结果保留、原代次恢复与重新分析。semantic 离线代次字段按合同为 null、覆盖率必须保留，恢复后核对原 ID；不拿离线 null 当丢库。坏模型只创建于临时副本，不改已有复制缓存，不连接 server222。
+
+P6 最终复核已在 2026-09-17 对同一工作树执行 `make fmt`、`make arch-check`、`make generate-check`、容器化 `make lint`、`make test`、`make test-integration` 和本地 Docker `make test-e2e`；首次 E2E 发现 embed 占位文件缺失并修复后重跑通过。供应链同时生成双镜像 SPDX 并扫描漏洞，最终 Release No-Go；详见 [P6 证据](evidence/int-001/p6-final-verification-2026-09-17.md)。
+
+P5 F01：`make arch-check` 包含 `TestAIComposeDeploymentBoundaries`。独立运行 `FOLIOPATH_TEST_MODEL_CACHE=/absolute/copied-cache node tests/release/ai_compose_smoke.mjs` 检查根 AI Compose 实际启动、AI 缺席时核心初始化、离线模型激活、资源/挂载/网络以及重启后的管理员持久化。仅合成媒体和独立临时数据，固定本地镜像，不操作 server222；不替代 F02 全部故障、G02 完整安全复核或 P6 全量回归。
+
+大图读取取消回归：`TestRemoteSemanticCancellationDuringRead` 要求首次 Read 取消后只读取一次，普通读错误不能覆盖取消；`TestRemoteSemanticChunkedReadAndNoProgress` 覆盖单次 ≤64 KiB、短暂空读、连续 100 次空读失败关闭，以及末尾数据与 EOF 同时返回。继续保留 1 GiB 的大图/渐进 JPEG 回归；这是块间协作取消，不是中断已阻塞的系统调用。[修复记录](changes/FIX-2026-09-17-semantic-read-cancellation.md)。
+
+语义预处理升级回归：`p4-semantic-upgrade-probe.mjs` 用两版固定镜像和独立合成旧库，验证新旧代次不同、旧完成数不归入新代次、两库回填、人工标签/人物保留、重启持久化及升级前停写备份配对回退。共享短视频 fixture 的已知降级要求升级前后均为 2 eligible / 1 completed / 1 degraded / 0 failed，不能写作视频完整通过；真实 100 样本另行记录。
+
+P4 remote-image-v2 回归须包含 JPEG 倍率边界（使用向上取整尺寸）、180 MP 源拒绝边界、108 MP 合成输入、渐进 JPEG、伪格式及非 JPEG 原像素拒绝策略；deployment 测试必须确认 v1/v2 指纹不同。真实匿名副本仅用于用户授权的独立 Docker 诊断，不加入默认测试或仓库。详见[修复记录](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+大图内存回归：`internal/media/imagevips/face_large_libvips_test.go` 在 Linux Docker 中以 `-tags=libvips -race` 验证合成 81 MP PNG/JPEG、EXIF 方向及 >100 MP 既有 shrink 输出。渐进 JPEG 需显式提供合成 fixture；未提供时 skip，不记通过。独立真实样本诊断不进入默认测试。新 `p4-large` 测试配置分配 app 1024 MiB / AI 2304 MiB、CPU 1+3、无 swap，总预算不变；旧 `p4-native` 768/2560 MiB 保留复现。两者不可混写成同配置。[修复证据](evidence/int-001/p4-face-memory-2026-09-16.md)。
+
+2026-09-16 最新用户调整：本轮 P4 使用每环境约 100 个媒体总样本，来源为本地 `/Volumes/r0data/picture/temp` 和 server222 `/mnt/r0data/picture/`，只读独立测试。原大规模要求延期；小样本报告不替代正式质量验证器和发布门禁。[数量、采样、人工真值及双架构边界](changes/CR-2026-09-16-p4-small-sample-validation.md)。
+
+P4 原生 amd64 例外：用户明确授权 server222 临时停服隔离测试，使用 `tests/release/p4-server222-maintenance.sh`，不是部署或远程 CI。原四服务及镜像 ID 必须恢复并核验健康；测试仅使用合成媒体、独立数据卷、只读模型缓存。构建代理显式配置且不传给运行时。`p4-native` 双容器资源配置为 app 1 CPU/768 MiB、AI 3 CPU/2560 MiB、无 swap；功能通过不能代替质量/排名误差或长期容量。[维护与结果](evidence/int-001/p4-server222-native-2026-09-16.md)。以下历史“仅本地”约束在此次明确授权范围内更新。
+
+P4 基础目录容量探针 `tests/release/capacity_smoke.sh`：保持 100k 媒体/10k 目录、4 CPU/4 GiB 和既有 250 ms 搜索预算，同时测库内/全局稀疏查询 `asset-000` 与宽查询 `asset`，每类 30 次。标准 sticky `/tmp` 不再假设镜像 UID；媒体挂载仍只读。该探针不配置 AI 服务，因此不能关闭 E01 联合预算或模型质量。[执行与失败记录](evidence/int-001/p4-quality-capacity-2026-09-16.md)。
+
+D04 完整 AI 界面入口：`FOLIOPATH_P3_APP_IMAGE=foliopath-app:p23-final FOLIOPATH_P3_D04=1 FOLIOPATH_D04_VISUAL=1 node spikes/int001-remote-ml/p3-browser-probe.mjs`。三浏览器 × 五类真实非空审核页面 × 两语言 × 两主题 × 四断点（240 状态），另有设置 48 状态；桌面真实键盘及移动 Chromium 触控模拟分开执行，不代表物理设备或 VoiceOver。32 个 Chromium 固定视觉参考只在显式 `FOLIOPATH_D04_UPDATE=1` 时更新；检查截图后必须新建环境、不带 UPDATE 独立复跑，更新参考本身不能算通过。标签首屏与人物完整页面分别截图，随机人物 ID 局部遮罩，不遮挡功能区域。浏览器探针使用 6095，必须待上一轮退出并清理完成再启动；故障探针使用 6097。
+
+P3 当前版矩阵入口：`p3-business-probe.mjs`、`p3-recovery-probe.mjs`、`p3-fault-probe.mjs`、`p3-browser-probe.mjs`（均在 `spikes/int001-remote-ml`）。准备与端口见该目录 README；原媒体隔离、临时卷、固定模型只读。真实 AI 超时测试等待 HTTP deadline，不声称能中断 ONNX 内核；停机与用户取消分开，恢复必须证明同代次可重新入队。三浏览器真实工作流、48 个设置页面状态及 400 项目录虚拟化与 mocked viewer 回归分开记账。Chromium 解码能力按 runner 实测，不把 codec-unavailable 记为播放通过。[最新执行证据](evidence/int-001/p2-p3-final-recheck-2026-09-16.md)。
+
+P2 非空验证入口：`node spikes/int001-remote-ml/face-business-probe.mjs`。先构建本地 `foliopath-app:face-worker`、`foliopath-inference:face-candidate` 和 `foliopath-face-browser:local`（后者见 `spikes/int001-remote-ml/browser-test.Dockerfile`）。探针用临时双库、独立数据卷和私网，应用仅回环 6094；只复制仓库虚构双人 fixture，不访问真实媒体库。正式 API 检验逐脸审核/撤销、换代、清理与隔离，Docker Chromium 消费实际结果。重复图只验证功能，不评估召回/precision；固定质量真值、容量和三浏览器矩阵仍为后续门禁。
+
+P1 busy 回归必须分别覆盖激活等待本地槽、分析本地槽满和服务端 503 busy，不得用一种忙状态替代三者。传输测试检查错误身份/限长/格式拒绝；队列测试要求同一 operation 恢复成功，不只证明返回 busy 或重新入队。见 [复查修复证据](evidence/int-001/face-busy-repair-2026-09-16.md)。
+
+P1 人脸主进程验证入口：`node spikes/int001-remote-ml/face-startup-probe.mjs`。
+先构建 `foliopath-app:face-worker` 和固定的 `foliopath-inference:face-candidate`；探针创建唯一临时网络/数据卷，媒体只读挂载仓库 `tests/fixtures/media`，AI 不公开端口。
+检查离线启动、双模型激活、服务停启、HTTP 建库/扫描/分析、幂等重放及强杀主应用后的真实租约恢复；最后移除自己创建的容器、网络和合成测试数据卷。
+必须保留“纯色夹具零人脸”和“非空人脸/质量通过”的区别。SQLite 回归另检查离线/退役代次不能提交、聚类或成功结束，用户取消与进程退出的区别，以及共享请求槽忙时有界恢复。
+
+图片源变更回归：app-chain.mjs 可启用 FOLIOPATH_TEST_INVALIDATION=1，仅允许
+指定格式的临时合成目录，修改夹具时间戳后通过扫描 API 验证 coverage 与检索同步
+失效并回填恢复。严禁指向真实图库。仓储测试另覆盖重复 upsert 和失败扫描保留。
+
+部署启动子片另用 `compose.app.yaml` 叠加候选 AI Compose，在本地 Docker 以合成
+fixtures/独立测试数据卷验证主进程就绪、自动激活、服务中断及恢复；不使用真实图库。
+app 回归覆盖离线配置、幂等注册、恢复和本地并发满不误标离线；HTTP 回归确保身份
+不匹配前不发送输入。此门通过不替代建库→回填→搜索的完整 E2E。
+
+CR-2026-030 独立 ML 验证：`spikes/int001-remote-ml/probe.py` 经内部 HTTP 测合成图像/文本
+512 维输出、重复请求稳定及纯色图无人脸。禁止将复制的 coser 加入自动化测试；
+主应用集成、服务故障、模型代次切换与质量另设后续验收。
+用户已要求后续仅在本地验证，不再使用 server222。Go 传输回归入口为
+`go test -race ./internal/inference/remoteml ./internal/semantic ./internal/face`；
+新增响应正文超时/截断后的同客户端恢复测试，检查无隐式重试及请求槽释放。
+真实离线模型测试命令见 `spikes/int001-remote-ml/README.md`，不替代主应用/质量验收。
+
 ## 状态
+
+部署维护新增 `node --test scripts/verify-deployed-web.test.mjs`；实际候选与部署分别运行
+`node scripts/verify-deployed-web.mjs ORIGIN internal/webassets/dist /settings/ai /intelligence`。
+它拒绝旧静态文件、非 200 响应及跨 origin 重定向，使用 `/` 核对 Go FileServer 的规范 index 入口。
+该校验与实际认证/业务测试互补，不替代功能或 runtime 验收；2026-09-09 的实测与失败项见
+[部署一致性记录](changes/FIX-2026-09-09-aifeature-deployment-integrity.md)。
+
+CR-2026-026 下载与 UI 扩展的验证面：`internal/aimodel/download*_test.go` 检查精确目录，
+`downloadhttp` 测试 HTTPS 流、地址/重定向/大小边界；`internal/files/model_download_config_test.go`
+检查配置有界读取；`tests/integration/ai_model_download_test.go` 使用合成字节与真实 HTTP/SQLite/managed
+store 验证成功、损坏拒绝、取消、重复准入和重开数据库后的进度。API 与生成 client/component tests
+验证 ID-only 请求、ETag、服务器任务恢复、键盘页签和维护确认；Storybook 用合成元数据做中英文/浅深/窄屏
+预览。它们不证明真实模型质量、Linux native 推理或最终容器可用；本轮执行结果见对应 CR，不覆盖历史 S4。
 
 本文同时定义目标验证体系和当前已落地的 Go 验证面。仓库已有路径边界、媒体库、
 scanner、SQLite 单元测试，贯通 files → scanner → SQLite 的临时目录集成测试，OpenAPI
@@ -297,7 +549,10 @@ WCH-S1 冻结的进程内上限是：每实例最多 32,768 个目录 watch、8,
 ready WebP、grid/masonry 切换与偏好恢复；评审后的契约响应只补齐运行、取消、部分不可读
 和离线等无法稳定定时制造的 UI 状态。它同时断言长名称/路径、同操作快速双击只提交一次、
 对话框焦点恢复、390/768/1024/1440px 横向溢出和 axe serious/critical；搜索、预览和
-查看器已在 Stage 3～4 扩展同一入口。Stage 5 的 `make test-web-release-e2e` 另以完全
+查看器已在 Stage 3～4 扩展同一入口。Compose 驱动的智能设置默认页还必须断言智能搜索、
+人物分析和部署说明可见，高级维护默认收起且没有模型下载入口，并执行同一 overflow/axe
+检查。测试专用 Dockerfile 必须在镜像内创建 embed 占位文件，不能依赖被 `.dockerignore`
+排除或可能被前端 clean 删除的工作树 `dist/.gitkeep`。Stage 5 的 `make test-web-release-e2e` 另以完全
 模拟的稳定 API 状态运行 Firefox、WebKit 和 Linux Chromium 视觉回归，避免多引擎争用
 唯一首次管理员 fixture；真实 MP4 Range/206 仍由 Chromium 负责，三个桌面引擎共同验证
 键盘/焦点、unsupported codec、offline/deleted、overflow 和 axe serious/critical。
@@ -544,7 +799,9 @@ make test-e2e
 
 当前 `Makefile` 已存在 `fmt`、`fmt-check`、`arch-check`、`contract-check`、`lint`、`test`、
 `test-race`、`test-integration` 和显式 `spike-capacity`；`arch-check` 验证 Go 依赖方向与
-禁止的通用包。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
+禁止的通用包。它还在 intelligent-media Release No-Go 时强制 production reviewed AI catalog 为空，允许 ADR-0014
+已接受的 fail-closed semantic search composition，并继续禁止未获 release Gate 的 face runtime/route；
+Gate 转换必须同步更新该检查。`contract-check` 固定使用 `kin-openapi v0.142.0` 和纯 Go ECMAScript
 pattern 编译器，每次禁用 Go test 缓存，强制完整解析 YAML、解析本地引用、执行 OpenAPI
 结构/pattern 验证，并用 AST/Schema 与跨源检查固定认证、错误、健康状态、分页、路径、
 Range，以及 scanner/migration 的 durable admission、phase/counters、issues、cancel、
@@ -627,6 +884,51 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 - 可用时运行 Markdown linter
 - 人工核对 README、PRD、ADR、API、部署与安全语义
 
+POST-MVP-5 另提供手动
+[`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) workflow，使用
+GitHub-hosted 原生 linux/amd64 与 linux/arm64 runner 执行同一 source SHA 的常规仓库检查、production
+libvips、两库 order-first 等价矩阵、强制 10k/100k 容量基线，以及固定 YuNet/AuraFace/公开 JPEG 的
+production-boundary candidate preflight。候选步骤逐项校验外部文件 SHA，在断网只读容器中运行，只上传
+hash、candidate count 和单向量化指纹；它明确不提供最终模型、质量或合规批准。workflow 不在
+`push`/`pull_request` 上自动运行，不使用 QEMU，也不上传模型、媒体、数据库或 `/library`、`/app/data`
+内容。任一检查失败时 job 保持失败，仅通过 `if: always()` 上传有界诊断 artifact；不得用 artifact 已上传
+冒充检查成功。
+
+workflow 文件和架构测试存在只证明“原生执行入口可审计”。只有两个目标架构在同一 source SHA 上实际
+成功运行，且 artifact 中 identity、step outcomes、质量/RSS/数值、索引重建和容量结果满足对应 Gate，
+才能作为 `INT-403` 或 S2 Backend/Release 证据。2026-09-02 的 run `33616238888` 已在同一 source SHA
+通过原生双架构 baseline 与 paired verifier；其 summary 明确 `finalModelEvidence=false`，所以不替代
+最终模型/质量/镜像证据。资产搜索游标从 v2 起携带经 HMAC 认证、同时绑定规范化查询与
+catalog revision/generation 的分类计数；后续页复用该计数，避免为同一稳定快照重复执行全量 FTS count。
+
+下载两个 artifact 后必须执行：
+
+```sh
+make verify-intelligent-media-native-evidence \
+  EVIDENCE_DIR=... RELEASE_SHA=... \
+  WORKFLOW_RUN_ID=... WORKFLOW_RUN_ATTEMPT=... \
+  SUMMARY_FILE=...
+```
+
+workflow 的 paired job 已自动调用该入口。verifier 拒绝缺失/重复架构、不同 commit/run/attempt、非原生
+runner identity、QEMU 及任一步骤非 success，并严格验证两架构 candidate record 的同模型/runtime commit/
+fixture/candidate count 和非批准 flags，仅在全通过时发布 paired summary。两架构量化指纹允许不同，不会
+被 baseline verifier 误升格为数值容差结论。它不读取日志猜测质量结论。最终模型获准并在两个原生 job
+真实生成 `model-evidence.json` 后，必须改用：
+
+```sh
+make verify-intelligent-media-native-model-evidence \
+  EVIDENCE_DIR=... RELEASE_SHA=... \
+  WORKFLOW_RUN_ID=... WORKFLOW_RUN_ATTEMPT=... \
+  SUMMARY_FILE=...
+```
+
+严格模式额外验证同一 model package/质量集/fixture、跨架构 Top-20 集合、`1e-3` 数值容差、最终容量/RSS/
+延迟/空间预算、索引重建/重启与 runtime failure matrix。baseline workflow 当前不运行未获准最终模型，
+因此默认 paired summary 不能关闭 `INT-403`；只有严格模式的真实双架构结果才可进入 Gate 复审。严格
+模式还会实际读取并哈希 quality summary、Top-20、numeric、runtime、index 报告，拒绝路径逃逸、symlink、
+非普通文件和内容篡改；合法审核数据本体不进入 artifact，只由 governed manifest hash 绑定。
+
 前端 import/token lint、Storybook/组件、认证、媒体库/扫描、浏览/预览、搜索与查看器
 视觉/E2E 已可执行；
 只读发布 volume/运行期 unmount、最终 Safari/物理辅助功能与移动设备发布签署、代表性客户端性能、
@@ -635,3 +937,191 @@ Redocly 外部交叉验证；当前只有两条 health endpoint 未声明虚构 
 S4-002～003 执行并汇总为 Backend Ready。定义好的 CI
 执行现有 Go、双架构 openat2/mount、HTTP harness 或 tmpfs 容量检查不能替代这些缺失门槛。架构检查
 的完整状态与最晚落地阶段见[架构适配度检查](architecture/fitness-functions.md)。
+
+## POST-MVP-5 revision 1 验证合同
+
+S1 冻结测试判定，不把现有隔离 spike 冒充生产证据：
+
+- 合同：OpenAPI 结构/语义兼容、错误枚举、ETag/幂等/CSRF、生成客户端确定性及中英文 fixture。
+- 数据：fresh/upgrade/restart/故障回滚、FK/cascade、active generation 唯一、cursor 跨代拒绝、bounded
+  transaction、库移除和源 fingerprint 失效。
+- 模型边界：未知/篡改/错架构/错大小/external-data、symlink/hardlink/special file/nested mount、来源
+  可写、TOCTOU、取消、ENOSPC、强杀和 direct 消失/同 hash 恢复。
+- runtime adapter：默认构建稳定 unavailable；显式 `onnxruntime` 构建只接受 1.28.0，验证两张 split
+  graph 的名称、dtype、固定 shape、线程/arena 配置、错误脱敏和所有失败路径资源释放。分别记录
+  session load 前/后的协作取消与不可中断 `CreateSession` 的实际上界，不把 goroutine timeout 当作
+  native 取消证据；native amd64/arm64 均为发布门槛。
+- 质量集：由产品/QA/ML 提供合法、代表项目人物套图分布且不进入仓库的图片与中英文查询标注；冻结
+  指标为 Top-20 query success ≥ 85%，并分别报告中文/英文、近景/全身、室内/室外与小样本置信区间。
+  低于门槛删除 Slice B，不用合成向量、公开抓取人脸图片或调低指标替代。
+- 性能：4 CPU/4 GiB、10k 目录/100k 媒体；整进程 RSS ≤ 3.2 GiB，语义查询 P95 ≤ 750 ms、
+  P99 ≤ 1.5 s，ordinary browse P95 退化 ≤ 20%，可重建 AI 派生增量 ≤ 500 MiB（不含模型）。
+- 跨架构：同一审核模型与 fixture 在 native linux/amd64、linux/arm64 的 ranking Top-20 集合一致；
+  score 允许绝对误差 ≤ 1e-3，若排序在 cutoff 附近受误差影响则以冻结 tie fixture 单独裁决。QEMU
+  结果不能替代 native release evidence。
+- 可靠性：旧 active generation 在 activation/cancel/crash/盘满失败后仍可查询；模型 unavailable 只
+  阻断语义请求；clear/rebuild/library removal 前后原媒体 sentinel 完全不变。
+- UI：五种语义空/错误状态、覆盖率、stale cursor refresh、模型 managed/direct 选择、双语双主题、
+  390/768/1265/1440、键盘与屏幕阅读器。静态原型只作设计输入，不算生产验收。
+
+所有质量 fixture 必须记录来源、授权、用途、保留期限和删除责任人；不得提交真人生物特征 ground
+truth。S1 不新增重复合成 benchmark，只有能改变候选或合同的测试才可重新打开 spike。
+
+## POST-MVP-5 revision 2 C+D+E 验证合同
+
+S3 消费者验证在后端合同测试之上增加：生成客户端 adapter 的路径/游标/revision/CSRF/幂等断言，搜索
+模式 URL 恢复与语义游标失效，标签 suggestion/curation 双 revision 冲突，人物重名/移动/移除/合并，
+单图粗略框与键盘等价列表，以及中英文隐私文案。Storybook 使用全局 axe error policy，并在
+390/768/1265/1440、light/dark、zh-CN/en 和 reduced-motion 矩阵复核；通过 S3 不解除 S4 的模型、质量、
+native 双架构、联合容量、供应链和 owner 批准门禁。
+
+产品用户随后通过
+[CR-2026-025](changes/CR-2026-025-int-s4-unverified-closure.md)要求停止全部剩余 S4 验证。
+`INT-401～404/406/408/410～411` 因此记录为未验证关闭，不再主动取证或重复运行不能改变决定的测试；
+已有回归入口继续保留，但未运行结果不得写成通过。该决定不构成质量、安全、隐私、合规或发布批准，
+S4 保持 Release No-Go；未来若恢复发行目标，必须重新打开对应任务并按本节原合同补证。
+
+`make test-intelligent-media-offline` 提供 `INT-410` 的本地拓扑回归：真实候选容器使用
+`--network none`、只读 rootfs、`/library:ro` 与 `/models:ro`，完成管理员初始化、空 reviewed catalog/
+空 candidate scan、重启及两个来源 sentinel hash 对照。HTTP 辅助容器只加入应用的无外网 network
+namespace，不创建可出站网络。该检查证明无模型时核心服务可用且不写模型/媒体来源，但它是单一
+linux/arm64 本地候选，不替代最终发行源、最终模型或 native 双架构的安装/升级/恢复验收。
+
+S4 浏览器自动化使用 `make test-web-release-e2e` 与 `make test-browser-capacity`。前者覆盖 Firefox/WebKit
+的键盘、焦点、降级、重排和 storyboard 行为，后者对 Chromium/Firefox/WebKit 的 100k 虚拟集合强制
+FPS、P95 frame interval、process-tree RSS 与 mounted-item 上限。Playwright WebKit 和 viewport/touch 模拟
+分别不能替代 retail Safari 与物理输入验收；报告必须明确保留这些人工 Gate。产品用户已通过
+[CR-2026-024](changes/CR-2026-024-int-s4-screen-reader-waiver.md)删除 `INT-408` 的 VoiceOver 人工验收；
+语义、键盘、焦点与 axe 门槛不因此降低。
+
+Retail Safari 必须另用实际 Safari 应用复核 DOM 键盘顺序、预览/查看器快捷键、退出焦点恢复与浏览器
+真实缩放；Playwright WebKit 不替代该步骤。macOS 在“按下 Tab 键高亮显示网页上的每一项”关闭时使用
+`Option+Tab` 是 Safari 的等价完整键盘遍历路径。该检查仍不能替代触屏设备；真实读屏不再属于本版本
+`INT-408` 的发布验收范围。
+
+`make test-intelligent-media-privacy` 是 `INT-406` 的工程回归入口：使用敏感 canary 验证结构化日志脱敏、
+face/semantic/diagnostic HTTP 安全投影、face capability 与日志/诊断依赖隔离、derived/manual clear 分类边界，
+并要求每个 SQLite 连接启用 `secure_delete=ON`。文件级用例先证明 canary 已写入，再删除、truncate WAL，
+最后复核活动 DB/WAL/SHM 无残留。该入口不宣称清除 operator backup、storage snapshot、文件系统 journal
+或合同明确保留的应用状态，也不替代 privacy/compliance/security owner 发布批准。
+
+`INT-119` 冻结以下验收面，但不把尚未取得的外部数据、native 主机、模型许可或最终镜像写成通过：
+
+- C 合同/集成覆盖 vocabulary revision、Top-5/finite confidence、generation/source 失效、同分 tag ID、
+  人工 tag 优先、100 项批量上限、逐项 conflict、accept 原子性、dismiss 跨重建保留及独立 review clear。
+  合法代表性词表集冻结每 tag precision/recall、宏平均与人工接受率；产品/ML/QA 在 S2B Gate 前签署阈值，
+  未签署或未达阈值时只保留手工标签，不展示模型建议。
+- D 使用至少 100 个合法代表性 MP4/MOV/MKV，覆盖 2 秒～2 小时、4/10 帧、运动/静态、室内/室外及
+  中英文查询。冻结 Top-20 success ≥80%，验证 max-frame、ordinal/asset tie、partial/mixed plan 排除、
+  fallback coverage、storyboard eviction/source change/cancel/crash；不得重新抽帧或用合成向量代替质量集。
+
+S2B 审核集到位后必须执行：
+
+```sh
+make verify-intelligent-media-quality \
+  QUALITY_INPUT=... DATASET_MANIFEST=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口核对 governed manifest 实际 hash、非 synthetic ordinary-media 准入、100-video 覆盖、三方批准引用，
+并从 counts/result IDs 重算 tag 与 video 指标；不能直接信任输入中的 pass 标志。真实媒体/标注和批准材料
+不进仓库，验证报告只记录有界 ID、hash、计数和聚合指标。
+
+S2C 经治理的人脸 ground truth 到位后必须独立执行：
+
+```sh
+make verify-intelligent-media-face-quality \
+  FACE_QUALITY_INPUT=... DATASET_MANIFEST=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口拒绝公开许可冒充生物特征授权，要求 schema v2 `biometric-ground-truth`、书面授权、隐私复核、
+至少 50 个 opaque identity 且每个至少 20 张图，并逐项核对 detection、verification 和 cluster label 与
+governed manifest 一致。验证器重算 detector recall、verification recall/FPR、anonymous core/edge precision、
+肤色呈现/年龄呈现/光照/遮挡/多人图片切片；每个维度至少两个有效分组、每组至少 20 个 expected face。
+通过判定使用 Wilson 95% 下界（FPR 使用上界），core precision 下界未达 99.5% 时强制失败；未知/单一分组、
+小样本全正确、输入中的 pass 字段或降低阈值均不能绕过。
+
+最终供应链材料到位后还必须执行：
+
+```sh
+make verify-intelligent-media-supply-chain \
+  SUPPLY_CHAIN_INPUT=... RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+该入口实际读取并哈希 catalog、最终 model package、component notices、native amd64/arm64 SBOM、
+provenance、signature-verification、vulnerability report 与可选 VEX；拒绝路径逃逸/symlink、不完整 SBOM、
+未验证签名、缺再分发批准，或存在 Critical/High 却没有 VEX 和 security approval 的输入。通过只证明
+证据文件与 manifest 一致；security、compliance、release、inference owner 仍须审阅并签署。
+schema v2 还要求五个唯一角色：inference runtime、semantic tokenizer/model、face detector/embedder；组件名或
+角色重复、任一 notices/再分发批准缺失都失败关闭。
+
+四个入口各自产生真实 summary 后，最终 S2 复审前还必须执行：
+
+```sh
+make verify-intelligent-media-s2-evidence \
+  QUALITY_SUMMARY=... FACE_QUALITY_SUMMARY=... \
+  NATIVE_SUMMARY=... SUPPLY_CHAIN_SUMMARY=... \
+  RELEASE_SHA=... SUMMARY_FILE=...
+```
+
+聚合器要求 C/D quality、E face quality、native 与 supply-chain 使用同一 source commit、同一 model package，
+并逐架构匹配 strict native 与 supply-chain 的最终
+image digest；baseline native summary 的 `finalModelEvidence=false` 会被拒绝。聚合 summary 记录四个
+输入文件的实际 SHA-256，但不替代任何 owner 的签署或原始 verifier。
+原生 identity/outcomes/final-model evidence、供应链 manifest 和聚合 summary 共用严格 JSON owner，拒绝
+duplicate key、unknown field 与 trailing value，并用 16 MiB 上限和 open 前后 file identity 复核拒绝 symlink/
+非普通文档；artifact 相对路径和内容 hash 检查仍由各 evidence verifier 持有。
+可能包含逐项结果的 quality/face-quality input 及其 governed dataset/model manifest 使用 256 MiB 上限，
+同样只接受 non-symlink regular file、在 open 前后复核 identity 并执行 bounded read；其 strict decoder
+递归拒绝 duplicate JSON key。
+
+`make spike-ai` 还执行不依赖 OpenCV 权重的 E 功能冒烟安全合同，覆盖显式 operator authorization、
+采样/文件大小上限、media-root 和子项 symlink 拒绝、分组均衡选择及候选模型 size/hash 绑定。显式授权的
+本地真实图片功能运行只允许输出聚合 decode/detect/align/embed 计数和延迟，不保存 path、crop 或 embedding，
+且不能替代下面的 ground truth、质量、隐私、双架构或发布验证。
+
+S2C candidate production boundary 另以 build tags `libvips onnxruntime` 在 native Linux 运行：固定 libvips
+闭包从只读公开 JPEG 解码，YuNet/AuraFace 只从 `/proc/self/fd` 加载，并覆盖尺寸/格式上限、BGR detector
+tensor、12-output ABI、NMS、五点 alignment、AuraFace preprocess 与有限非零 embedding。该 smoke 只证明
+原生组合可执行；没有 governed face-level label 时不得计算或宣称 recall、FPR、core precision 或偏差通过。
+
+face format v3 的定向回归还覆盖 detector/embedder/threshold 三文件完整性、purpose/version confusion、严格
+threshold JSON、有限 detector 输出、有限非零 512 维 embedding、session 关闭，以及 activation 事务只替换
+旧 face generation、不修改 semantic active pointer、不提前切库。应用使用无 face runtime 的 composition，
+证明模型缺失时稳定 `model_unavailable`。
+
+同一候选镜像还必须在 `--cpus 4 --memory 4g`、断网、只读 rootfs 下运行 100k × 512 合成人脸聚类。
+每侧写出严格 `face-capacity.json`，绑定 native identity、候选镜像、512 维，以及两种 100,000 成员极端：
+50,000 paired core cluster 与 100,000 edge-only singleton；同时记录总耗时、Go memory sys 和不含向量的
+确定性结果指纹。paired verifier 要求两架构指纹一致，并要求
+`identityGroundTruth=false`、`qualityGate=false`。它只验证候选生成/聚类容量，不替代真实质量、完整 SQLite/
+HTTP/浏览并发或下述最终联合容量。
+
+聚类回归还必须包含 transitive bridge：固定 `A/B` 与 `B/C` 均达到 core threshold、`A/C` 未达到，断言
+smallest-ID anchor coherence 只允许 A/B 成为 core，C 最多为 edge；输入换序结果不变。真实扩大样本若产生
+跨来源巨簇，必须先按同一规则重算并保留失败记录，不能靠提高展示层阈值隐藏。
+
+- E 的真实 ground truth 由隐私 owner 批准且不进仓库/普通 CI。冻结 anonymous core precision ≥99.5%，
+  分开报告 recall、edge、肤色/年龄呈现/光照/遮挡/多人图片切片与置信区间；不达 precision 时整组操作
+  失败关闭并降为逐脸/小组，仍不达安全可用性则删除 E。禁止从公开网页抓取真人图片补数。
+- E 集成覆盖默认关闭/告知、多人逐 face、manual assignment/exclusion/cannot-link、named person 不自动合并、
+  merge 原子冲突、split、guarded undo、generation reconciliation/needs_review、derived/manual clear 分离、
+  backup/restore、日志/诊断/错误脱敏和 `/library` sentinel SHA-256/mtime 不变。
+- native linux/amd64 与 arm64 对同一审核模型/fixture 比较 C/D ranking Top-20 集合、E detection/cluster
+  decision 与 score 绝对误差 ≤1e-3；cutoff tie 使用冻结 fixture。两架构都必须执行 runtime load、取消、
+  强杀、ENOSPC、source offline、session unload 与长周期泄漏；QEMU 不算 release evidence。
+- 联合容量档为 4 CPU/4 GiB、100k media/10k directories，混合 ordinary browse、A/B image semantic、C tag、
+  D video 与 E face。整进程 RSS ≤3.2 GiB、ordinary browse P95 退化 ≤20%，队列有界且 browsing 优先；
+  每 slice 另报告吞吐、DB/WAL/cache 增量与恢复时间，不用平均值隐藏长尾。
+- 最终双架构 digest 校验 model/runtime hash/license、SBOM、VEX、notices、provenance、漏洞处置、只读 volume、
+  非 root、backup/restore/upgrade/rollback。任何外部 evidence 缺失均保持对应 S2 Gate No-Go。
+
+本阶段可由 contract/architecture test 验证 OpenAPI、生成确定性和生产 composition fail-closed；production
+migration/handler/worker 测试只有 S1R2 Gate Go 后才允许出现。测试报告必须逐条写已执行/未执行和环境，
+不得把 static prototype、synthetic face state machine 或 arm64 单机数据描述为发布证明。
+## 独立 AI 本地 Docker 工作流（2026-09-15）
+
+按用户要求，独立 AI 后续验证优先在本地 Docker 执行，不使用 server222。
+`spikes/int001-remote-ml/compose.yaml` 的 test profile 提供 regression（无网络、
+只读根、临时数据库、竞态检测）及 encoded-probe（私有网络真实离线推理）。
+完整命令见该目录 README。三包回归和真实 ML probe 必须分别记录结果，不能互相替代；
+它们都不等同于主应用 UI/查询/回填完整 E2E。测试镜像不作为正式产品镜像发布。

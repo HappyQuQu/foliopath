@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "models": [
+    {
+      "id": "synthetic-semantic-package",
+      "status": "approved",
+      "purpose": "schema and scanner validation only",
+      "version": "1",
+      "source_url": "https://example.invalid/synthetic-semantic-package",
+      "code_license": {
+        "id": "EXAMPLE-ONLY",
+        "url": "https://example.invalid/code-license"
+      },
+      "weight_license": {
+        "id": "EXAMPLE-ONLY",
+        "url": "https://example.invalid/weight-license"
+      },
+      "architectures": ["linux/amd64", "linux/arm64"],
+      "directory": "synthetic-semantic-v1",
+      "package_sha256": "33d8ddbe634b450236bddbc8d108e9a3bc86abd69f73851297dee5f4b88ac768",
+      "artifacts": [
+        {
+          "filename": "config.json",
+          "sha256": "b79606fb3afea5bd1609ed40b622142f1c98125abcfe89a76a661b0e8e343910",
+          "size_bytes": 6
+        },
+        {
+          "filename": "model.safetensors",
+          "sha256": "9372c470eeadd5ecd9c3c74c2b3cb633f8e2f2fad799250a0f70d652b6b825e4",
+          "size_bytes": 5
+        },
+        {
+          "filename": "tokenizer.json",
+          "sha256": "5f97e3774c51edd1d63706c2ec3826c564a067794770cdab0f8c4797971cacf9",
+          "size_bytes": 9
+        }
+      ]
+    }
+  ]
+}

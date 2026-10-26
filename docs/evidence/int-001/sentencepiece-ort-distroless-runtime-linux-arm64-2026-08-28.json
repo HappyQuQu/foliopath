@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "passed_native_runtime_subproof_only",
+  "environment": {
+    "host": "native Linux arm64 builder and runtime",
+    "container_platform": "linux/arm64",
+    "docker_scout_version": "1.24.0"
+  },
+  "inputs": {
+    "sentencepiece": {
+      "version": "0.2.1",
+      "archive_size_bytes": 13485527,
+      "archive_sha256": "c1a59e9259c9653ad0ade653dadff074cd31f0a6ff2a11316f67bee4189a8f1b",
+      "library_size_bytes": 1341984,
+      "library_sha256": "4606acd764ba8ec2ad4d80901b5ae8ddaabc4439cb54ea85d7e85f4eb20ab9d8",
+      "git_commit": "31646a467d2051eb904e0b45de3a73e91fe1c1e3"
+    },
+    "onnxruntime": {
+      "version": "1.28.0",
+      "archive_sha256": "e15ff8b5d85afe6c144d97c6fd432254bf76a219daaf17658087d6ecb3e8f0bb",
+      "library_size_bytes": 20591712,
+      "library_sha256": "f1ec1a08eb99bd6e5401340f0a2b101381bf4694415480291dc13bcaa30f9ec7",
+      "git_commit": "da9b5e364c465de65c49d91e696cd6485270757f"
+    }
+  },
+  "image": {
+    "size_bytes": 28633295,
+    "platform_manifest": "sha256:dedc1b601040f45682b46e86469d5d1d042bf7b322cee10e27f8cee4907d9447",
+    "config": "sha256:5891f7a4c6b648e77641ce5cd625fafddd164852134ca0cc55882294cdfc6f2b",
+    "local_index": "sha256:7fed8b185244854301e6467ebc1dada76bc8960c83d377ba4f790c533480040d"
+  },
+  "runtime_profile": {
+    "cpus": 4,
+    "memory_bytes": 4294967296,
+    "pids": 64,
+    "network": "none",
+    "root_filesystem": "read_only",
+    "capabilities": "all_dropped",
+    "no_new_privileges": true,
+    "uid_gid": "65532:65532",
+    "models": "read_only_bind_mounts"
+  },
+  "parity": {
+    "cases": 31,
+    "dimensions": 768,
+    "coordinates": 23808,
+    "maximum_absolute_difference": 0.00001811981201171875,
+    "absolute_tolerance": 0.0001,
+    "relative_tolerance": 0.0001,
+    "elapsed_seconds": 2.26,
+    "result": "passed"
+  },
+  "sbom_inventory": {
+    "scanner": "Docker Scout 1.24.0",
+    "format": "CycloneDX 1.5",
+    "detected_component_count": 17,
+    "result": "incomplete",
+    "missing_detected_components": [
+      "onnxruntime 1.28.0",
+      "sentencepiece 0.2.1"
+    ],
+    "manual_component_records": [
+      "spikes/int001-ort-capi/onnxruntime-component.cdx.json",
+      "spikes/int001-sentencepiece-capi/sentencepiece-component.cdx.json"
+    ],
+    "merge_utility": "spikes/int001-sentencepiece-capi/merge_component_sbom.py",
+    "merged_component_count": 1267,
+    "merged_dependency_count": 18,
+    "merged_serial_number": "urn:uuid:07c43c80-c569-5fb0-a549-e37ade4a7005",
+    "merged_output_sha256": "6e340ca72e1cc91fea637cb9af2b1bf463c8eb3ad112613032caeb1616fb9301",
+    "repeat_scan_byte_identical": true,
+    "merged_result": "incomplete"
+  },
+  "limitations": [
+    "the scanner inventory is not a merged or release SBOM",
+    "the inherited glibc vulnerability findings remain unresolved",
+    "native linux/amd64 evidence remains open",
+    "production composition and ADR-0014 approval remain open"
+  ]
+}

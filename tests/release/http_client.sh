@@ -26,6 +26,7 @@ start_release_http_client() {
 	application_container=$2
 	docker run --detach \
 		--name "${client_name}" \
+		--label "foliopath.test.run=${FOLIOPATH_TEST_RUN_ID:-unassigned}" \
 		--network "container:${application_container}" \
 		--pid "container:${application_container}" \
 		--cap-add SYS_PTRACE \

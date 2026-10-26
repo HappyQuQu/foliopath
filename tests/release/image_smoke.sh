@@ -3,6 +3,8 @@ set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${repo_root}/tests/release/http_client.sh"
+. "${repo_root}/tests/release/storage.sh"
+configure_release_storage
 smoke_root=$(mktemp -d "${TMPDIR:-/tmp}/foliopath-release-smoke.XXXXXX")
 image=${FOLIOPATH_RELEASE_IMAGE:-"foliopath:stage5-local-$$"}
 dockerfile=${FOLIOPATH_RELEASE_DOCKERFILE:-"${repo_root}/Dockerfile"}
@@ -23,6 +25,7 @@ cleanup() {
 	docker rm --force "${proxy_container}" >/dev/null 2>&1 || true
 	docker network rm "${proxy_network}" >/dev/null 2>&1 || true
 	docker volume rm "${fixture_volume}" >/dev/null 2>&1 || true
+	remove_release_data "${data_root}"
 	if [ -d "${data_root}" ]; then
 		docker run --rm --entrypoint /bin/chmod \
 			--mount "type=bind,src=${data_root},dst=/data" \
@@ -36,6 +39,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
+create_release_data "${data_root}"
 mkdir -p "${media_root}"
 printf '%s\n' "original media is immutable" >"${media_root}/sentinel.txt"
 chmod 0444 "${media_root}/sentinel.txt"
@@ -85,7 +89,7 @@ docker run --detach \
 	--cap-drop ALL \
 	--security-opt no-new-privileges:true \
 	--tmpfs /tmp:rw,noexec,nosuid,size=16m \
-	--volume "${data_root}:/app/data" \
+	--mount "$(release_data_mount "${data_root}" /app/data)" \
 	--mount "type=bind,src=${media_root},dst=/library,readonly" \
 	--mount "type=volume,src=${fixture_volume},dst=/fixtures" \
 	"${image}" >/dev/null
@@ -119,7 +123,7 @@ docker exec "${http_client}" curl --fail --silent --show-error \
 	http://127.0.0.1:8080/health/ready | grep -q '"status":"ready"'
 "${repo_root}/tests/release/image_media_smoke.sh" "${container}" /fixtures
 
-docker stop --time 10 "${container}" >/dev/null
+docker stop --timeout 10 "${container}" >/dev/null
 docker rm --force "${http_client}" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "${container}")" = "0"
 docker logs "${container}" | grep -q '"msg":"application.stopped"'
@@ -127,7 +131,8 @@ docker logs "${container}" | grep -q '"msg":"application.stopped"'
 sentinel_after=$(sha256sum "${media_root}/sentinel.txt" | cut -d ' ' -f 1)
 test "${sentinel_after}" = "${sentinel_before}"
 
-"${repo_root}/tests/release/compose_smoke.sh" \
+FOLIOPATH_TEST_DATA_VOLUME="$(release_data_volume "${data_root}")" \
+	"${repo_root}/tests/release/compose_smoke.sh" \
 	"${image}" "${media_root}" "${data_root}"
 
 docker network create "${proxy_network}" >/dev/null
@@ -140,7 +145,7 @@ docker run --detach \
 	--cap-drop ALL \
 	--security-opt no-new-privileges:true \
 	--tmpfs /tmp:rw,noexec,nosuid,size=16m \
-	--mount "type=bind,src=${data_root},dst=/app/data" \
+	--mount "$(release_data_mount "${data_root}" /app/data)" \
 	--mount "type=bind,src=${media_root},dst=/library,readonly" \
 	--env FOLIOPATH_LISTEN=0.0.0.0:8080 \
 	--env "FOLIOPATH_TRUSTED_PROXIES=${proxy_gateway}/32" \

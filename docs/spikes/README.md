@@ -1,5 +1,7 @@
 # FolioPath Spike 记录
 
+- [OCR S0：离线中英文推理](../../spikes/ocr/README.md) / [范围与证据](../changes/CR-2026-045-ocr-feasibility.md)：仅隔离实验，非生产OCR索引搜索。
+
 Spike 用于验证高风险假设和收集可复核证据，不直接授权生产实现，也不能替代对应版本的
 Architecture、Contract、Backend、UI 或 Release Gate。
 
@@ -16,6 +18,7 @@ Architecture、Contract、Backend、UI 或 Release Gate。
 
 - [VSP-002：视频故事板](vsp-002-video-storyboard.md)
 - [WCH-001：Linux 文件事件](wch-001-linux-watcher.md)
+- [INT-001：本地智能检索与人脸聚类](int-001-ai-feasibility.md)（本地探索已收口；A+B S0 Go）
 
 实现状态、适用平台和剩余阻断以对应 [Feature](../features/README.md)、
 [Gate](../gates/README.md) 和 [版本记录](../releases/README.md) 为准。

@@ -8,10 +8,13 @@ import { ToastProvider } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   searchAssets,
+  searchFusedAssets,
   searchLibraryAssets,
+  searchSemanticAssets,
+  searchSemanticVideos,
   type Asset,
 } from "../../../lib/api/catalog";
-import { getLibrary } from "../../../lib/api/libraries";
+import { getLibrary, listLibraries } from "../../../lib/api/libraries";
 import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { SearchPage } from "./SearchPage";
 
@@ -20,7 +23,10 @@ vi.mock("../../../lib/api/catalog", async (importOriginal) => {
   return {
     ...actual,
     searchAssets: vi.fn(),
+    searchFusedAssets: vi.fn(),
     searchLibraryAssets: vi.fn(),
+    searchSemanticAssets: vi.fn(),
+    searchSemanticVideos: vi.fn(),
   };
 });
 
@@ -29,6 +35,7 @@ vi.mock("../../../lib/api/libraries", async (importOriginal) => {
   return {
     ...actual,
     getLibrary: vi.fn(),
+    listLibraries: vi.fn(),
   };
 });
 
@@ -86,9 +93,14 @@ const videoResult: Asset = {
 };
 
 beforeEach(() => {
+  vi.mocked(listLibraries).mockResolvedValue({ items: [], nextCursor: null });
   vi.mocked(getLibrary).mockReset();
   vi.mocked(searchAssets).mockReset();
+  vi.mocked(searchFusedAssets).mockReset();
+  vi.mocked(searchFusedAssets).mockResolvedValue({ items: [result], nextCursor: null, searchSemanticState: "ready", searchMatches: { [result.id]: {sources: ["filename", "semantic"], semanticScore: .32} } });
   vi.mocked(searchLibraryAssets).mockReset();
+  vi.mocked(searchSemanticAssets).mockReset();
+  vi.mocked(searchSemanticVideos).mockReset();
   vi.mocked(getLibrary).mockResolvedValue({
     etag: '"library-v1"',
     library: {
@@ -114,13 +126,40 @@ beforeEach(() => {
     items: [result],
     nextCursor: null,
   });
+  vi.mocked(searchSemanticAssets).mockResolvedValue({
+    items: [result],
+    nextCursor: null,
+    semanticCoverage: {
+      complete: false,
+      completed: 8,
+      eligible: 12,
+      excludedLibraries: [],
+      failed: 1,
+      stale: 3,
+    },
+  });
+  vi.mocked(searchSemanticVideos).mockResolvedValue({
+    items: [videoResult],
+    nextCursor: null,
+    semanticCoverage: {
+      complete: true,
+      completed: 1,
+      eligible: 1,
+      excludedLibraries: [],
+      failed: 0,
+      stale: 0,
+    },
+    semanticVideoMatches: {
+      ast_video: { ordinal: 3, planSize: 10, timestampMs: 42_000 },
+    },
+  });
 });
 
 it("restores a library search and exposes the source library and directory", async () => {
-  renderSearch("/libraries/lib_family/search?q=京都");
+  renderSearch("/libraries/lib_family/search?q=京都&mode=filename");
 
   expect(
-    await screen.findByRole("heading", { name: "搜索媒体" }),
+    await screen.findByRole("heading", { name: "“京都”的搜索结果" }),
   ).toBeVisible();
   expect(screen.getByRole("searchbox", { name: "搜索文件名或路径" })).toHaveValue(
     "京都",
@@ -149,7 +188,7 @@ it("restores a library search and exposes the source library and directory", asy
 
 it("refreshes the current search from an explicit button", async () => {
   const user = userEvent.setup();
-  renderSearch("/libraries/lib_family/search?q=京都");
+  renderSearch("/libraries/lib_family/search?q=京都&mode=filename");
 
   expect(await screen.findByText("京都夜景.jpg")).toBeVisible();
   const calls = vi.mocked(searchLibraryAssets).mock.calls.length;
@@ -165,15 +204,15 @@ it("refreshes the current search from an explicit button", async () => {
 
 it("moves scope and filters into the URL and selects the global endpoint", async () => {
   const user = userEvent.setup();
-  renderSearch("/libraries/lib_family/search?q=京都");
+  renderSearch("/libraries/lib_family/search?q=京都&mode=filename");
 
   await screen.findByText("京都夜景.jpg");
-  await user.selectOptions(screen.getByLabelText("范围"), "all");
+  await user.click(screen.getByRole("radio", { name: "全部媒体库" }));
   await user.selectOptions(screen.getByLabelText("媒体类型"), "video");
 
   await waitFor(() =>
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/libraries/lib_family/search?q=%E4%BA%AC%E9%83%BD&scope=all&kind=video",
+      "/libraries/lib_family/search?q=%E4%BA%AC%E9%83%BD&mode=filename&scope=all&kind=video",
     ),
   );
   expect(searchAssets).toHaveBeenCalledWith(
@@ -184,13 +223,68 @@ it("moves scope and filters into the URL and selects the global endpoint", async
   );
 });
 
+it("switches to semantic mode through the canonical URL and fixed relevance query", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?q=夜景&kind=animated&date=30d&mode=filename");
+
+  await screen.findByText("京都夜景.jpg");
+  await user.click(screen.getByRole("radio", { name: "画面内容" }));
+
+  await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent(
+    "/libraries/lib_family/search?q=%E5%A4%9C%E6%99%AF&mode=semantic",
+  ));
+  expect(searchSemanticAssets).toHaveBeenCalledWith({
+    libraryId: "lib_family",
+    q: "夜景",
+  });
+  expect(screen.getByLabelText("媒体类型")).toHaveValue("image");
+  expect(await screen.findByText("部分照片尚未处理，搜索结果可能不完整。")).toBeVisible();
+  expect(screen.queryByLabelText("日期")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("排序")).not.toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "描述画面内容" })).toHaveValue("夜景");
+  expect(screen.getByText("画面语义检索")).toBeVisible();
+  expect(screen.queryByText("文件名或路径检索")).not.toBeInTheDocument();
+});
+
+it("explains empty semantic search without requesting filename results or inventing OCR", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?mode=semantic&scope=directory&directoryId=dir_japan&recursive=1");
+  const input = screen.getByRole("searchbox", { name: "描述画面内容" });
+  expect(input).toHaveAttribute("placeholder", "描述画面，例如：汽车、海边日落、蓝色头发");
+  expect(screen.getByText("描述你想找的画面，例如海边日落。")).toBeVisible();
+  expect(searchSemanticAssets).not.toHaveBeenCalled();
+  expect(searchLibraryAssets).not.toHaveBeenCalled();
+  await user.type(input, "车");
+  await user.keyboard("{Enter}");
+  expect(await screen.findByText("画面语义检索")).toBeVisible();
+  expect(searchSemanticAssets).toHaveBeenCalledWith({ libraryId: "lib_family", directoryId: "dir_japan", recursive: true, q: "车" });
+  expect(searchLibraryAssets).not.toHaveBeenCalled();
+  expect(screen.queryByText(/按画面相似度排序，不代表/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole("radio", { name: "文件名" }));
+  expect(await screen.findByText("文件名或路径检索")).toBeVisible();
+  expect(screen.getByRole("searchbox", { name: "搜索文件名或路径" })).toHaveValue("车");
+  expect(screen.queryByText("画面语义检索")).not.toBeInTheDocument();
+  expect(searchLibraryAssets).toHaveBeenCalledWith(expect.objectContaining({ libraryId: "lib_family", directoryId: "dir_japan", recursive: true, q: "车" }));
+});
+
+it("shows the best matching storyboard frame for semantic video results", async () => {
+  renderSearch("/libraries/lib_family/search?q=散步&mode=semantic&kind=video");
+
+  expect(await screen.findByText("京都散步.mp4")).toBeVisible();
+  expect(screen.getByText("画面语义检索 · 视频 0:42")).toBeVisible();
+  expect(searchSemanticVideos).toHaveBeenCalledWith({
+    libraryId: "lib_family",
+    q: "散步",
+  });
+});
+
 it("preserves an empty query state and clears only active filters", async () => {
   const user = userEvent.setup();
   vi.mocked(searchLibraryAssets).mockResolvedValue({
     items: [],
     nextCursor: null,
   });
-  renderSearch("/libraries/lib_family/search?q=不存在&kind=video");
+  renderSearch("/libraries/lib_family/search?q=不存在&kind=video&mode=filename");
 
   expect(await screen.findByText("没有搜索结果")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "清除筛选" }));
@@ -209,7 +303,7 @@ it("reuses the pinned non-modal preview state machine", async () => {
     items: [result, videoResult],
     nextCursor: null,
   });
-  renderSearch("/libraries/lib_family/search?q=京都");
+  renderSearch("/libraries/lib_family/search?q=京都&mode=filename");
 
   const firstTrigger = await screen.findByRole("button", {
     name: "预览 京都夜景.jpg",
@@ -242,7 +336,7 @@ it("keeps a pinned preview while filters replace the result set", async () => {
     items: input.kinds?.includes("video") ? [] : [result],
     nextCursor: null,
   }));
-  renderSearch("/libraries/lib_family/search?q=京都");
+  renderSearch("/libraries/lib_family/search?q=京都&mode=filename");
 
   await user.click(
     await screen.findByRole("button", { name: "预览 京都夜景.jpg" }),
@@ -289,3 +383,43 @@ function LocationProbe() {
     </output>
   );
 }
+
+it("owns search filters only in the contextual sidebar and retains URL query context", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?q=京都&scope=directory&directoryId=dir_japan&recursive=1&mode=filename");
+  const sidebar = screen.getByRole("complementary", { name: "搜索工具" });
+  expect(within(sidebar).getByRole("radio", { name: "当前目录" })).toBeChecked();
+  expect(within(screen.getByRole("main")).queryByRole("combobox")).not.toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "目录导航" })).not.toBeInTheDocument();
+  await user.selectOptions(within(sidebar).getByRole("combobox", { name: "媒体类型" }), "video");
+  await waitFor(() => expect(searchLibraryAssets).toHaveBeenLastCalledWith(expect.objectContaining({ directoryId: "dir_japan", q: "京都", recursive: true, kinds: ["video"] })));
+});
+
+
+it("defaults to the fused endpoint and shows actual sources with preview evidence", async () => {
+  const user = userEvent.setup();
+  renderSearch("/libraries/lib_family/search?q=京都");
+  expect(await screen.findByText("京都夜景.jpg")).toBeVisible();
+  expect(searchFusedAssets).toHaveBeenCalledWith(expect.objectContaining({libraryId: "lib_family", q: "京都"}));
+  expect(searchLibraryAssets).not.toHaveBeenCalled();
+  expect(searchSemanticAssets).not.toHaveBeenCalled();
+  const tools = screen.getByRole("complementary", {name: "搜索工具"});
+  expect(within(tools).getByRole("radio", {name: "全部来源"})).toBeChecked();
+  expect(within(tools).getByRole("radio", {name: "图片文字"})).toBeEnabled();
+  expect(screen.queryByLabelText("排序")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", {name: "预览 京都夜景.jpg"}));
+  const preview = screen.getByRole("complementary", {name: "预览: 京都夜景.jpg"});
+  expect(within(preview).getByRole("heading", {name: "为什么匹配"})).toBeVisible();
+  expect(within(preview).getByText("文件名")).toBeVisible();
+  expect(within(preview).getByText("画面内容")).toBeVisible();
+  expect(within(preview).queryByText("库内路径")).not.toBeInTheDocument();
+});
+
+it("keeps literal results when semantic service is unavailable without inventing visual matches", async () => {
+  vi.mocked(searchFusedAssets).mockResolvedValue({items: [result], nextCursor: null, searchSemanticState: "unavailable", searchMatches: {[result.id]: {sources: ["path"], semanticScore: null}}});
+  renderSearch("/libraries/lib_family/search?q=日本");
+  expect(await screen.findByText("京都夜景.jpg")).toBeVisible();
+  expect(screen.getByText("画面搜索暂不可用，仍可按文件名和图片文字查找。")).toBeVisible();
+  expect(screen.getByText("库内路径", {selector: "span"})).toBeVisible();
+  expect(screen.queryByText("画面内容", {selector: "span[data-tone]"})).not.toBeInTheDocument();
+});

@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "dataset_id": "wikimedia-commons-cosplay-pilot-v1",
+  "transform": "FolioPath grid thumbnail v/current: 512px WebP quality 82",
+  "arm64": {
+    "execution": "native",
+    "image": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502",
+    "libvips": "8.16.1",
+    "items": [
+      {
+        "filename": "10011168.webp",
+        "id": "colorful-five-person-group",
+        "prepared": {
+          "bytes": 31116,
+          "format": "image/webp",
+          "height": 384,
+          "width": 512
+        },
+        "sha256": "4089262f92d46792c598576860759a0f8937c8171460f79aec481a6572877a64"
+      },
+      {
+        "filename": "25932842.webp",
+        "id": "blue-pink-masked-pair",
+        "prepared": {
+          "bytes": 39970,
+          "format": "image/webp",
+          "height": 512,
+          "width": 341
+        },
+        "sha256": "24ea22113be6839a0e2ad812a2214a0376310a3dbe8b58a4e16e12935ebe3b2d"
+      },
+      {
+        "filename": "28842665.webp",
+        "id": "white-hair-pointed-ears",
+        "prepared": {
+          "bytes": 28816,
+          "format": "image/webp",
+          "height": 512,
+          "width": 339
+        },
+        "sha256": "9834feabb781e92b60217bb559d91a66adc0822f612569718cd6fa2c74534980"
+      },
+      {
+        "filename": "40694738.webp",
+        "id": "black-bat-stage",
+        "prepared": {
+          "bytes": 28616,
+          "format": "image/webp",
+          "height": 512,
+          "width": 409
+        },
+        "sha256": "b6c00a5d3c055517b9d430c69b7acef6478c7f6022a1694af5f9e9ace3283422"
+      },
+      {
+        "filename": "41413823.webp",
+        "id": "red-gold-armor",
+        "prepared": {
+          "bytes": 21308,
+          "format": "image/webp",
+          "height": 512,
+          "width": 340
+        },
+        "sha256": "21edc17fae23704de8881e83c7c32590818f4cd3ad6d396e8fb333efaae1e161"
+      },
+      {
+        "filename": "51503045.webp",
+        "id": "pink-hair-blue-uniform",
+        "prepared": {
+          "bytes": 23464,
+          "format": "image/webp",
+          "height": 512,
+          "width": 288
+        },
+        "sha256": "907ce406ffd9065b26233e4f05f575a6551a4ab81debf86da4b793cf98ebc394"
+      },
+      {
+        "filename": "61535749.webp",
+        "id": "white-hair-sword-closeup",
+        "prepared": {
+          "bytes": 12858,
+          "format": "image/webp",
+          "height": 341,
+          "width": 512
+        },
+        "sha256": "74b0f5a34e3f4a49fa5d1da325731f49e2c397703ada4c72871a2429d4bd0e6d"
+      },
+      {
+        "filename": "81125098.webp",
+        "id": "yellow-dress-photographed",
+        "prepared": {
+          "bytes": 31236,
+          "format": "image/webp",
+          "height": 384,
+          "width": 512
+        },
+        "sha256": "64cbc1e30a3688d9c108d14683087406930933fc5357224f2c41d44f88f5fe7b"
+      },
+      {
+        "filename": "84289090.webp",
+        "id": "pink-twintail-hand-gesture",
+        "prepared": {
+          "bytes": 23978,
+          "format": "image/webp",
+          "height": 512,
+          "width": 384
+        },
+        "sha256": "0d3a29f16c462be2779de6e6950becfcaa0d0149fdb1a98e8de3d7e9d40de36f"
+      },
+      {
+        "filename": "89705311.webp",
+        "id": "purple-hair-colorful-wings",
+        "prepared": {
+          "bytes": 24154,
+          "format": "image/webp",
+          "height": 341,
+          "width": 512
+        },
+        "sha256": "1b10dbf719b5fe94ba6a9ac4b5e1949fb0efa15002f61ad8ae9947e70768bbeb"
+      }
+    ]
+  },
+  "amd64": {
+    "execution": "qemu",
+    "image": "sha256:01ab8caf0eb816fa7e4336aed7cfdfaf57fc2ee5530d6b3e754ac7d395949eb9",
+    "libvips": "8.16.1",
+    "items": [
+      {
+        "filename": "10011168.webp",
+        "id": "colorful-five-person-group",
+        "prepared": {
+          "bytes": 31116,
+          "format": "image/webp",
+          "height": 384,
+          "width": 512
+        },
+        "sha256": "4089262f92d46792c598576860759a0f8937c8171460f79aec481a6572877a64"
+      },
+      {
+        "filename": "25932842.webp",
+        "id": "blue-pink-masked-pair",
+        "prepared": {
+          "bytes": 39970,
+          "format": "image/webp",
+          "height": 512,
+          "width": 341
+        },
+        "sha256": "24ea22113be6839a0e2ad812a2214a0376310a3dbe8b58a4e16e12935ebe3b2d"
+      },
+      {
+        "filename": "28842665.webp",
+        "id": "white-hair-pointed-ears",
+        "prepared": {
+          "bytes": 28816,
+          "format": "image/webp",
+          "height": 512,
+          "width": 339
+        },
+        "sha256": "9834feabb781e92b60217bb559d91a66adc0822f612569718cd6fa2c74534980"
+      },
+      {
+        "filename": "40694738.webp",
+        "id": "black-bat-stage",
+        "prepared": {
+          "bytes": 28616,
+          "format": "image/webp",
+          "height": 512,
+          "width": 409
+        },
+        "sha256": "b6c00a5d3c055517b9d430c69b7acef6478c7f6022a1694af5f9e9ace3283422"
+      },
+      {
+        "filename": "41413823.webp",
+        "id": "red-gold-armor",
+        "prepared": {
+          "bytes": 21308,
+          "format": "image/webp",
+          "height": 512,
+          "width": 340
+        },
+        "sha256": "21edc17fae23704de8881e83c7c32590818f4cd3ad6d396e8fb333efaae1e161"
+      },
+      {
+        "filename": "51503045.webp",
+        "id": "pink-hair-blue-uniform",
+        "prepared": {
+          "bytes": 23464,
+          "format": "image/webp",
+          "height": 512,
+          "width": 288
+        },
+        "sha256": "907ce406ffd9065b26233e4f05f575a6551a4ab81debf86da4b793cf98ebc394"
+      },
+      {
+        "filename": "61535749.webp",
+        "id": "white-hair-sword-closeup",
+        "prepared": {
+          "bytes": 12858,
+          "format": "image/webp",
+          "height": 341,
+          "width": 512
+        },
+        "sha256": "74b0f5a34e3f4a49fa5d1da325731f49e2c397703ada4c72871a2429d4bd0e6d"
+      },
+      {
+        "filename": "81125098.webp",
+        "id": "yellow-dress-photographed",
+        "prepared": {
+          "bytes": 31236,
+          "format": "image/webp",
+          "height": 384,
+          "width": 512
+        },
+        "sha256": "64cbc1e30a3688d9c108d14683087406930933fc5357224f2c41d44f88f5fe7b"
+      },
+      {
+        "filename": "84289090.webp",
+        "id": "pink-twintail-hand-gesture",
+        "prepared": {
+          "bytes": 23978,
+          "format": "image/webp",
+          "height": 512,
+          "width": 384
+        },
+        "sha256": "0d3a29f16c462be2779de6e6950becfcaa0d0149fdb1a98e8de3d7e9d40de36f"
+      },
+      {
+        "filename": "89705311.webp",
+        "id": "purple-hair-colorful-wings",
+        "prepared": {
+          "bytes": 24154,
+          "format": "image/webp",
+          "height": 341,
+          "width": 512
+        },
+        "sha256": "1b10dbf719b5fe94ba6a9ac4b5e1949fb0efa15002f61ad8ae9947e70768bbeb"
+      }
+    ]
+  },
+  "comparison": {
+    "dimensions_equal": true,
+    "bytes_equal": true,
+    "item_sha256_equal": true,
+    "prepared_bytes": 265516
+  },
+  "caveats": [
+    "arm64 production adapter test and preparation were native Docker Desktop linux/arm64.",
+    "amd64 preparation used QEMU and does not provide native amd64 latency or memory evidence.",
+    "Model inference remains macOS arm64 PyTorch; ONNX Linux cross-architecture embedding tolerance is pending."
+  ]
+}

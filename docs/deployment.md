@@ -1,5 +1,223 @@
 # FolioPath 候选部署与运维
 
+2026-10-26当前实例状态：6010仍为主b3419001／AI7739486c，pixiv OCR补齐已终态998成功、1源损坏、0待处理；旧结果、任务、人工标签和删除记录保留，其他库未开OCR，原10源问题继续跳过。完整data位于经停写复制核验的Linux命名卷。状态、启停、备份或更新均须保留同一项目／私有env及**五份Compose**：base、unlimited-memory、multilingual、ocr、data-volume；原件只有单一`/library:ro`，AI不挂data或媒体，禁止恢复启动旧宿主data副本。AI曾为OCR策略重建，后续主应用维护未重启AI。当前固定候选.3已在独立环境完成约定的本地工程／双原生验证和交付准备，未部署到6010，也未正式发布；最终范围／镜像／归档及54项浏览器条件SKIP见候选记录。见[OCR部署](changes/DEPLOY-2026-10-26-ocr-6010.md)和[候选验证](changes/VERIFY-2026-10-26-release-candidate.md)。下文CR记录保留各阶段历史，不能把旧“23张／未部署”当当前状态。
+
+CR-2026-051：migration47新增OCR派生全文表/FTS，启动有界回填已有ready结果，不重新分析、不自动开库；升级仍需遵守已有停写完整备份规则。OCR-only与融合文字检索只在显式部署ocr.identity匹配、库启用后返回文字，不依赖AI当前在线。OCR默认关闭、正式管理界面与原6010切换独立；本片只在合成Docker验证。清理同时移除全文派生文档，关闭则保留结果。
+
+2026-10-26 / CR-2026-050：候选FOLIOPATH_AI_DEPLOYMENT可显式增加ocr.identity（完整ADR-0032字段，输入/输出hash必须匹配本版），与既有Origin共享客户端预算。未提供则不注册OCR管理/worker；配置也不自动启用各库或重新识别。候选AI服务须独立OCR权重只读cache与一次性验证scratch（ADR-0034）。迁移46默认不启用。计划退出使用既有signal标记handoff，普通崩溃保留attempt收费；原6010部署/备份切换不在本片。
+
+2026-10-26 / CR-2026-049：候选迁移00045仅创建休眠OCR派生表，无模型激活/自动任务。OCR正文将属于/app/data备份范围；未来原库部署仍需正常停写完整备份与恢复核验。此次不更新6010、不切模型/任务；清理为逻辑删除，不删除已有备份。
+
+2026-10-25 [浏览工具栏修复](changes/FIX-2026-10-25-browse-toolbar.md)已更新6010；冻结已部署后端，仅更新四个浏览/集合前端文件；完整停写备份、保护摘要及线上静态文件/数据库检查通过，AI容器未重启。
+
+2026-10-25：[搜索首屏修复](changes/FIX-2026-10-25-search-density.md)已更新6010，使用冻结部署源码只替换搜索排版；完整停写备份、程序复现、线上database-check及27组数据/AI保护摘要验证通过，AI容器未重启。
+
+2026-10-25：[库菜单浮层与紧凑标签目录修复](changes/FIX-2026-10-25-sidebar-polish.md)已同步6010，筛选/显示语言/分页合同不变，保留融合搜索、AI及数据。
+
+2026-10-25：6010已应用[分层工作台界面](changes/DEPLOY-2026-10-25-layered-ui-6010.md)。
+先逐字节重现旧后端，再仅更换嵌入SPA；主新镜像049571c1，AI52f4a40c不重启。
+完整停写备份及45条AI任务/27组保护摘要/资源字节验证见该记录；无schema或模型身份变更。
+
+自动标签短暂服务不可用按[ADR-0030](adr/0030-bounded-autotag-service-recovery.md)在原claim内有界恢复，
+首次临时错误后最多60秒、最多2次额外分析，严格校验身份，不依赖Compose启动顺序阻塞核心浏览。
+历史终态不会自动恢复：确认模型已恢复后，管理员通过带修订保护的启用设置解除阻止，既有missing仅补未处理部分。
+不能清空已完成run、直接改claim表或用all替代补齐；源失败与人工整理保留。
+
+## 独立自动标签 PNG 输入（ADR-0029）
+
+`FOLIOPATH_AI_DEPLOYMENT`的`tag.image_preprocessing`可为空（原v3）或`png-v4`；未知值启动失败。
+它与顶层`image_preprocessing`独立，仅改变标签输入和标签身份，不改变语义/人脸或标签词表/模型。
+已启用库按新身份自动missing补齐，旧标签不预清空，人工标签和删除抑制保留；不可把旧run算新覆盖。
+切换前须无旧活动标签任务，停写完整备份data和匹配私有配置并验证。回退需要配对备份，不只是换旧镜像。
+保留base + unlimited-memory + multilingual覆盖、只读原件和原AI镜像。实际部署状态见[本轮记录](changes/FIX-2026-10-24-autotag-png.md)。
+
+## 可选大 PNG 语义输入（ADR-0028）
+
+支持候选中的 `FOLIOPATH_AI_DEPLOYMENT.image_preprocessing="png-v4"`（JSON 字段，不是独立环境变量），
+缺省/空值保持 v3，未知值失败关闭。仅语义 PNG 扩到 64 MiB / 40 MP；人物/自动标签与 AI 镜像无需改动。
+预处理变化创建新语义代次；旧向量保留但不计新覆盖，需要显式重新分析。等待现有任务终态、停主应用完整
+备份 data/私有配置后再切换；保留所有现有 Compose 覆盖，特别是用户选择的 unlimited-memory 与 multilingual。
+回退使用匹配镜像/配置/停写全备份，不能仅改回字段就承诺恢复旧活动代次。
+本地6010已于2026-10-24在终态和停写全备份核验后切换，四库新代次各提交一次；09:16全部终态，
+处理8700/8700、成功8690、源输入失败10。全部22张目标PNG均核对新代次向量及当前源指纹；旧向量与15张保留表摘要仍与备份一致。
+剩余源文件由用户在应用外恢复/纠正，不能盲目重试清零；自动标签输入和失败数不随语义修复改变。
+主/AI均healthy、restart=0/OOM=false，容器内database-check通过。备份、固定镜像、代次、operation与逐项恢复要求见[记录](changes/FIX-2026-10-23-semantic-large-png.md)。
+
+## 有活动分析任务的计划升级（ADR-0027）
+
+新版本正常 SIGTERM/SIGINT 时，图片语义/人物/自动标签 worker 等处理器和 heartbeat 退出后，
+以原 claim fence 交回同一任务，记录 schema 44 审计并撤销该次 claim 消耗；不清零历史 crash 次数。
+取消、终态和旧 fence 不复活；强杀/OOM 仍按原 3 次上限恢复。退出非零或超时不能当交接成功。
+先确认主应用已停止、完整备份 `/app/data` 与匹配配置，再替换镜像；不要删库或重新全量提交来升级。
+
+从不支持此逻辑的旧版本首升，必须在确认 Docker owner 停止/完整备份后，由 Linux 离线工具
+`spikes/job-handoff` 对停写精确 claim 快照执行一次 canonical 交接，不能仅假定旧 SIGTERM 已交回。
+工具不进入生产镜像或浏览器 API，不得对运行中的 owner 使用写模式；失败可能已完成 schema 升级，
+回退需用完整停写备份和旧镜像/配置。不要从宿主打开原挂载 SQLite（停止后也优先用容器核对）。
+旧策略任务在运行时保持旧 AI/身份，新类别策略另行切换。当前 6010 部署/备份与续跑证据见
+[交接修复记录](changes/FIX-2026-10-23-planned-job-handoff.md)。
+
+## 中文标签候选（ADR-0026：标签策略）
+
+主应用本地化展示兼容原 92 类服务，不需改旧标签或重跑；153 类识别扩充另需使用固定
+`services/inference/Dockerfile.photo-tags` 覆盖已核验的多语言镜像，离线 `python -m photo_policy`
+读取新独立标签身份并仅更新部署 JSON 的 tag.identity。搜索/人物字段保持原值，仍只有两个服务。
+语言选择归浏览器，不写 Compose。不得只改策略名称而沿用旧摘要；启用库的新身份补齐保留人工和抑制。
+更换运行服务前遵循下方停主应用/完整备份、AI healthy 后再恢复的顺序；不要用反复重启打断原库任务。
+本地测试候选与 6010 当前部署状态分别见 [CR-2026-033（本地化图片标签）](changes/CR-2026-033-localized-photo-tags.md)。
+
+## 多语言语义覆盖（ADR-0025）
+
+XLM-Roberta-Large-Vit-B-16Plus 640 维需固定覆盖镜像、字节清单与新语义索引，不能只改模型名。
+AI 不挂 DB/媒体；新增 volume 仅为可丢弃 scratch，不是备份真相。更新保留 multilingual 及不限内存覆盖。
+有在途任务时，先停主应用完成全备份，再更新 AI 等 healthy 后启动主应用，避免恢复任务早于 AI 就绪。
+保留旧镜像/配置/完整 data；回退也不重标向量。仅新语义需要补齐，人物/人工标签不清理。
+操作、资源与剩余门禁见[CR-2026-032](changes/CR-2026-032-multilingual-semantic-model.md)。
+
+## 本地 6010 不限容器内存（2026-10-23 用户选择）
+
+后续 [ADR-0024 大图共享准入/回收候选](changes/FIX-2026-10-23-main-face-memory.md) 已通过固定合成 Docker，
+四库终态后已完成停写全备份并单次替换 6010 主应用为 c9f28d7a；保留本节的不限额覆盖和原 AI/身份，
+没有为升级重复提交/清除原分析。健康/容器内完整性/原任务终态复核通过，详见链接中的备份与操作记录。
+本地候选部署不是所有容量/长期或发行批准。
+
+本地 `foliopath-ai-original-review` 使用 `compose.ai.yaml` 加
+`compose.ai.unlimited-memory.yaml`，显式取消主应用与 AI 的 RAM/swap 容器上限；
+不是默认发行预算改变，也不宣称已修复解码内存峰值。Docker Desktop/宿主总容量仍生效。
+CPU/并发、输入大小、PID、超时、tmpfs、只读媒体和内部网络不变。
+后续同实例更新必须保留该覆盖文件；操作及验证见[AI Compose 说明](ai-compose.md#操作者显式取消容器内存上限)。
+下文基准 1024/2304 MiB 和历史测试结果仍属于有界配置，不能套到当前不限额部署。
+
+## 在线 SQLite 检查（ADR-0023，2026-10-23）
+
+Docker Desktop 的 macOS/Windows 宿主机不得直接打开运行中的 bind-mounted SQLite 数据库，即使只执行
+quick_check 或使用 mode=ro，也不能假定与 Linux VM 共用锁域。隔离合成库已复现 I/O 短读（522）并使
+scan-worker fail-closed 退出。请在拥有数据的主应用容器内执行：
+
+```sh
+docker exec foliopath-ai-original-review-foliopath-1 /app/foliopath database-check
+```
+
+成功仅输出 `database check passed`；失败非零退出并输出固定错误，不输出原始 SQL、表名或路径。
+该命令固定 `/app/data/foliopath.db`、Linux-only、mode=ro、15 秒上限，在一个只读快照执行 quick_check 和
+foreign_key_check，不启动应用/worker/模型，不迁移、checkpoint、VACUUM 或尝试修复。readiness 快检不改变。
+不要给命令传主机路径；不要在 AI 服务挂载数据库。备份须先停止主应用，再完整复制其数据目录；
+仅已停止写入的独立备份副本可以在宿主机检查。下文此前宿主机检查结果只作为历史记录，不能照抄为在线操作。
+[故障复现与本地验收](changes/FIX-2026-10-23-scan-worker-exit.md)。
+
+本机 6010 后续已更新主镜像 `sha256:0a0244c0f3d5d9d637cf4ed48746d8d273e723e0a1b136c3ce07bf9325b0c917`，
+AI 保持原镜像，无迁移（43 不变）。停写备份以 `backup-6010-scan-worker-verified-20261023-FBogJQ` 为准；
+较早的 o6klZU 目录未作可靠备份使用。详情及首轮备份检查失败原因见修复记录。离线 WAL 库的只读数据库连接
+可能仍需要目录允许 WAL/SHM sidecar，完全只读目录不等于可以忽略 WAL；不要对活跃数据使用 immutable=1。
+
+## 人物失败诊断升级（2026-10-23 / ADR-0022）
+
+迁移 43 增加派生失败记录，不改原媒体、人工标签或人物关系。必须保留 `/app/data` 的完整停写备份；
+回退需先停止新主应用，再配对恢复旧镜像、旧 env 和完整旧数据，不能把 schema 43 数据直接交给旧程序，
+也不能通过手删新表降级。AI 服务镜像/模型身份本次不变。
+
+原 6010 使用 `foliopath-ai-original-review` 项目更新，备份为
+`/Volumes/extended/foliopath/backup-6010-face-diagnostics-20261023-Q9Ah1V`（旧 env＋schema 42 全数据，
+备份 immutable quick_check=ok）。新库 quick_check=ok、外键检查为空、schema 43、4 库/8,719 媒体；
+最终主镜像为 `sha256:ce6911fb7c63f4974f21043bdd5463ac33d0a80cce65e598180f6a4731e9f7b5`，
+AI 为 `sha256:fa7750b57500031a3282181e3b728646717885b339a0640a76b121468165e0b8`。
+初检双服务 healthy、restart=0/OOM=false；最终主应用 scan-worker 退出后自动重启 1 次，现恢复 healthy，
+主应用 restart=1、AI=0/OOM=false。底层原因未查明，持续运行验收未通过；数据库仍完整、8,719 项保留。
+未向原库发起分析/清理，未实际执行回退。固定镜像与回归见
+[本次记录](changes/FIX-2026-10-23-ai-failure-diagnostics.md)。本机部署不代表 server222 更新或发行批准。
+
+## 自动标签候选升级（2026-10-22 / ADR-0021）
+
+本节描述 [CR-2026-031](changes/CR-2026-031-automatic-photo-tags.md) 当前实现的部署合同，不声明
+任何现有环境已更新或发行已批准。仍使用根 `compose.ai.yaml` 的两个服务，不增加 worker 部署。
+主应用 1024 MiB / AI 2304 MiB、AI 私有快照 tmpfs 1200 MiB、禁 swap 与只读挂载预算保持不变；
+有界推理子进程属于 AI 容器内部，不是第三个服务。
+
+- 用 `services/inference/Dockerfile` 的 `FOLIOPATH_INCLUDE_TAG=1` 显式构建可选 JoyTag 能力；默认不含。
+  这不下载或内置模型权重。只读缓存须具有固定 `tagging/JoyTag/` 三个文件，摘要及完整准备步骤见
+  [AI 镜像说明](../services/inference/README.md#bounded-inference-and-automatic-tags-adr-0021)。
+- 主应用 `FOLIOPATH_AI_DEPLOYMENT` 可增加 `tag: { identity: ... }`；identity 包括 version=1、
+  protocol=`foliopath-tag-v1`、model=`JoyTag`、model/policy/runtime/cache SHA-256。tag 缓存身份独立于
+  CLIP/face，runtime 必须匹配同一服务。请从固定候选镜像离线导出预期身份，不接受未验证的在线响应。
+  未配置模型时原有标签和普通图库仍可用，自动标签显示等待；没有界面模型下载或按库模型选择。
+- 运行时代码/固定 manifest 改变会改变搜索、人脸及标签兼容身份，即使模型文件相同也不能沿用
+  原部署 JSON 或把旧索引重标为新代次。更新配对 app/AI 镜像和预期身份后，按新身份重新分析；
+  旧索引/人物应用状态依各 owner 保留规则处理，旧完成数不计入新身份，禁止直接改数据库绕过验证。
+- 自动标签的 model identity 还包含主应用图片预处理合同。已启用库有界补齐新图、源变更和新模型；
+  每库一个活动任务、全局最多 32。关闭/取消保留已提交标签；任务失败、取消或最多三次领取尝试
+  耗尽会阻止同模型自动重入，重启/服务恢复不会解除。管理员确认重新识别（all）或显式重新启用
+  后恢复调度；同源同模型已记录的逐图失败需 all 重试，不能靠每 30 秒调度无限重试。
+- 正常推理槽暂忙不封锁模型：同图最多 3 次尝试（1/2 秒可取消等待），仍忙则原任务延后 30 秒，
+  释放后台资源后自动继续；保留同一 operation 和已提交进度，不消耗崩溃恢复次数，不生成任务风暴。
+  暂忙探测不把已验证模型标为失联；从未验证成功的模型仍显示等待。
+- 升级前按 SQLite WAL 安全方式备份 `/app/data`；migrations 41/42 包含标签来源、人工删除抑制和
+  有界任务，不能当缓存丢弃。旧关联升级为 manual；源变更只使 AI 关联失效。回退必须配对旧镜像
+  与升级前停写备份，不能把已升级数据库直接交给旧镜像或主动降级删除人工保护状态。
+
+推理按请求冷验证/复制/加载并回收，吞吐和峰值须在同预算实测；参考
+[ADR-0021](adr/0021-bounded-inference-and-automatic-tags.md)，最终 Docker/原件 hash/重启证据由 CR 汇总。
+下文 P3 的“直接重试”仅适用于原搜索/人物任务；自动标签的失败/取消恢复以上述规则为准。
+
+P5 新交付入口：根 [`compose.ai.yaml`](../compose.ai.yaml) 为独立双服务候选配置，不叠加根单容器 Compose。配置、离线镜像/身份准备和运行限制见 [AI Compose 部署说明](ai-compose.md)。P5 5/5 已通过本地工程验收，[最终证据](evidence/int-001/p5-delivery-security-2026-09-17.md)。下文旧 spike 配置仅保留为历史验证，不再作为正式双服务入口；P6 发行批准不因 P5 完成而自动通过。
+
+P4 大 JPEG 兼容候选采用语义预处理 `remote-image-v2`，因此即使 AI 模型文件不变，主应用的 semantic 空间身份也会改变；升级后须按新代次重新分析图片/视频及生成标签建议，不能将旧向量强行重标为新代次。人脸输入身份不变。这不是自动更新线上部署；旧镜像回退仍配对升级前备份。[修复范围](changes/FIX-2026-09-17-semantic-large-jpeg.md)。
+
+P3 排障补充：AI 中断/超时的失败任务保留历史；服务和精确身份恢复后直接提交新重试，无需切换库开关。若修改 `FOLIOPATH_AI_DEPLOYMENT` 身份，新身份验证失败会使同用途旧 service 模型不可用，而不是继续展示假可用；不会删除旧索引或人工关系。恢复正确配置后等待 availability 刷新再重试。迁移 40 存在 service 人脸记录时禁止有损降级，回退必须使用对应旧镜像和升级前停止写入后的备份，不把升级后的数据库直接交给旧版本。
+
+### 可选人脸启动配置（2026-09-16，开发候选）
+
+现有 `FOLIOPATH_AI_DEPLOYMENT` JSON 可增加 `face` 对象：`identity`（version=1、protocol=`foliopath-face-v1`、model=`buffalo_l`、dimension=512 及 runtime/cache hash）、`detector_sha256`、`embedder_sha256`、`threshold`、`model_bytes`、`license_id`。
+`threshold` 使用现有 schemaVersion/profileId/coreSimilarity/edgeSimilarity/minCoreSize/qualitySummarySha256 合同，必须显式提供，不能照抄测试阈值作为质量结论。CLIP 与人脸需绑定同一个服务的 runtime/cache 身份；人脸候选镜像用 `FOLIOPATH_INCLUDE_FACE=1` 构建。
+省略 face 时不启用人脸；格式/兼容性错误会拒绝启动，运行期服务离线只影响 AI。配置启用模型准入、代次激活及有界分析/清理 worker；每库仍须通过既有鉴权 API 显式启用并提交分析任务。人物管理与正式界面已有 P2/P3 本地功能验收，非空人脸质量尚未校准，测试 profile 不可视为生产阈值。示例探针仅用于临时测试，见 [启动证据](evidence/int-001/face-startup-2026-09-16.md)及 [P3 记录](evidence/int-001/p3-acceptance-2026-09-16.md)。
+
+人脸分析和清理各一个 worker，与其他后台任务共享资源控制；远程请求与 CLIP 共用客户端并发上限。激活时本地槽满会等待而不消耗失败次数，等待可取消；取得槽后身份 HTTP 校验仍受超时限制。分析中本地槽满或身份匹配的服务端 busy 均保留 claim，由既有人脸队列在租约过期后恢复（默认约两分钟，最多三次 claim），不将图片计为失败或把模型标离线。真正远程不可用会停止当前分析，按库进入等待模型状态；服务恢复后可重新启用/提交任务。媒体仍仅从主应用只读 `/library` 读取，AI 服务不挂载媒体或数据库。
+
+2026-09-16 人脸接入开发：migration 40 扩展内部 service 模型记录，现已补充上述可选主进程配置入口。升级前备份 `/app/data`；一旦存在人脸 service 记录，不支持直接降回 39，应恢复升级前备份，禁止为了降级删除模型/代次。当前开发验证只运行本地临时 Docker 测试库，未升级现有运行环境。
+
+候选主进程现支持 `FOLIOPATH_AI_DEPLOYMENT` JSON，字段为 `origin`、`identity`、
+`model_bytes`、`license_id`，严格解析并在启动时拒绝不合法配置。身份需从固定候选
+镜像离线读取，不能把 HTTP 实时响应当成可信预期；结构见
+[启动合同](architecture/independent-ml-generation-contract.md)。未设置则保留旧路径。
+本地测试再叠加 `spikes/int001-remote-ml/compose.app.yaml`：主应用仅发布
+`127.0.0.1:6091`，AI 仍仅在内部网络，无媒体或数据库挂载。测试主应用现使用包含
+FFmpeg 的实际 distroless 镜像 `foliopath-app:candidate`，
+挂载合成 fixtures 和独立 candidate-app-data 卷，不是发行 Compose。
+AI 初始离线不阻塞普通图库；每 30 秒核验，恢复后复用活动模型，不清理旧索引。
+激活每个可用性版本最多三次持久化尝试，无直接网络回退。
+
+2026-09-15：migration 39 引入 service 模型类型。出现该类型后不能直接降级数据库到 38；
+迁移会拒绝，不会删除模型以完成降级。测试中显式回滚失败事务验证数据保留；运行时升级
+失败应关闭连接/停止启动，回退须恢复升级前 `/app/data` 备份，不得直接更换旧镜像强行打开。
+
+2026-09-15 ADR-0020 专用 AI 候选镜像使用 `services/inference/Dockerfile`；隔离 Compose
+覆盖文件为 `spikes/int001-remote-ml/compose.foliopath.yaml`。AI 不发布端口，只读 `/cache`，
+容器内 1 GiB `/verified-cache` tmpfs 保存已核验模型快照，另有 128 MiB `/tmp`，
+内存预算 4 GiB（包括快照及模型加载）。健康检查只有校验完成后成功。
+此预算不是四核/4 GiB 整机容量验收，也不是最终正式 Compose，根部署未切换。
+
+2026-09-14：新 AI 双服务方向见 ADR-0019。当前可运行的隔离验证 Compose 位于
+`spikes/int001-remote-ml/compose.yaml`，固定镜像、仅私网、无端口、只读复制模型。
+这是 ML 服务 + 测试客户端，不是主应用已接入的正式 Compose；根 compose.yaml 尚未改变。
+
+## 模型下载代理（POST-MVP-5 / ADR-0017，旧兼容路线）
+
+本节仅适用于旧内置模型下载维护能力，不用于独立 AI Compose 的固定缓存恢复；当前双服务主线见 [AI Compose 部署说明](ai-compose.md)。保留既有 API 兼容性，不表示模型商店仍是主线。
+
+支持显式设置 `FOLIOPATH_MODEL_DOWNLOAD_PROXY=http://192.168.2.231:7890`。
+在支持 ADR-0017 的镜像中为 FolioPath 服务增加此环境变量并重新创建容器后生效。
+默认跟随部署时，未设置/空值为直连；HTTP_PROXY、HTTPS_PROXY、ALL_PROXY、NO_PROXY 不会影响模型下载。
+含 ADR-0018 的镜像还支持「智能 → 模型 → 模型下载代理」：跟随 Docker、直连、自定义。
+界面选择优先于部署值；选择跟随配置可恢复 Docker 默认。设置保存在 /app/data 的 SQLite，
+重启保留。保存无需重启，下一文件连接生效，在途文件不切换。连接测试不会保存表单或安装模型。
+更新前备份 /app/data；本变更增加迁移 00037，旧镜像回退应按既有备份恢复流程执行。
+此变量不是入站 `FOLIOPATH_TRUSTED_PROXIES`，也不改变媒体/更新检查等其他请求。
+
+仅接受无认证 HTTP/HTTPS 代理 origin，可指定端口；不接受账号密码、路径、query 或 fragment。
+代理失败不会自动直连。HTTPS 证书校验不关闭，代理无需也不应解密模型流量。
+代理承担目标域名解析与私网/metadata 地址拦截策略，运营者必须信任它。
+固定模型目录仍须明确允许 CDN 重定向主机；例如本次固定 SigLIP tokenizer 源跳转到
+`us.aws.cdn.hf.co`，不能只允许 huggingface.co，也不能使用通配符允许所有跳转。
+
 ## 状态
 
 本文描述首个可用版本的候选部署方式。Stage 5 `S5-001A` 已建立根 `Dockerfile` 候选镜像：
@@ -18,9 +236,50 @@ provenance 和安全/合规签署阻断。
 [ADR-0012](adr/0012-root-runtime-bind-data.md) 已将当前候选改为 root runtime，以支持
 Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据不能替代新候选复验。
 
+## 模型下载目录
+
+以下为旧兼容维护说明；独立 AI 双服务使用部署配置和只读固定缓存，不要求创建本节目录，不会自动转换或下载缺失权重。
+
+[CR-2026-026](changes/CR-2026-026-ai-model-download-and-ui.md) / [ADR-0016](adr/0016-admin-model-download-catalog.md)
+增加“智能功能 → 模型”的下载操作。**仓库没有默认托管模型下载源，根 Dockerfile 也没有编入 AI
+推理组件**；页面不能替代这两项部署准备。下载完成只代表文件校验安装成功，不代表已启用或质量达标。
+
+部署管理员在现有数据卷中提供 `/app/data/model-downloads.json`（普通文件，最多 1 MiB），重启后载入。
+文件不存在或为空时不配置任何来源；有效 JSON 顶层必须是数组，最多 16 项。`[]` 可显式关闭目录。
+格式错误、未知字段、重复键或不兼容清单会拒绝启动；变更前备份配置，启动失败可恢复旧配置。此文件
+只能由受信任部署管理员写入，不应通过 HTTP 开放编辑，也不需要为媒体增加挂载。
+
+每项结构由 `internal/aimodel.DownloadDefinition` 定义：
+
+| 字段 | 配置要求 |
+| --- | --- |
+| `id` | 稳定、不透明、8–128 字符，字母数字开头，仅字母数字/下划线/连字符；换包时使用新 ID |
+| `name`、`sourceLabel` | 给用户看的模型名和来源名，不含 URL、凭据或宿主路径 |
+| `manifest` | 完整 FolioPath 模型包 manifest；语义 v2 或人脸 v3 必须匹配既有 graph/tokenizer/预处理合同；旧 v1 仅保留兼容读取 |
+| `contentHash` | 审核包的固定 64 位小写十六进制内容标识；同一个包不能重复出现 |
+| `runtimeArchitectures` | 非空 `amd64` / `arm64` 列表，依据该模型实际验证范围填写 |
+| `files` | 文件名到固定 HTTPS URL 的映射，与 manifest 文件列表完全对应；每个文件大小、SHA-256 必须精确填写在 manifest 中 |
+| `redirectHosts` | 可选 CDN 主机名数组（最多 8 个），不含 scheme/端口/路径；仅允许实际必要的重定向主机 |
+
+下载 URL 只能使用公开地址的 HTTPS/443；不支持 HTTP、私网镜像、URL 凭据、动态模型代码或环境代理。
+需要 CDN 重定向时显式配置其主机；不允许依赖会过期的私有签名 URL。FolioPath 不从 Hugging Face
+仓库页自动转换模型，也不把任意 ONNX 当作兼容模型包。下载源与完整包应先由部署者审核；本说明不提供
+假示例权重地址来冒充可用源。完整包合同见[语义 v2 ADR](adr/0014-siglip-sentencepiece-tokenizer-runtime.md)
+和[人脸 v3 ADR](adr/0015-face-model-package-and-generation-activation.md)。
+
+配置后，管理员在界面下载，服务端通过唯一安装 worker 串行流式传输至 `/app/data/models`，复用现有
+空间配额、安全余量、逐文件校验和原子发布。离开页面不会取消任务；进度/最近结果保存在 SQLite，
+可跨浏览器查看。主动取消会结束在途连接；服务重启后排队项继续排队，运行中被打断的任务失败关闭，
+临时文件按既有恢复流程清理。重试从零开始，不支持断点续传。已安装但未启用的模型不会启动分析。
+同模型已有活动下载时另一个幂等键返回冲突，避免重复排队。
+
+离线 `/models:ro` 导入保留在模型页折叠区。目录条目同样用于精确包兼容验证；删除/撤回目录条目需
+重启，会使依赖该包的激活验证失败关闭，不删除原始媒体或已保存模型。备份需包含下载配置、数据库和
+要保留的托管模型；不要把下载配置中的真实服务信息放入公开日志或截图。
+
 ## 部署目标
 
-- 一个容器、一个应用进程、一个 HTTP 端口。
+- 核心模式一个容器、一个应用进程、一个 HTTP 端口；可选 AI 模式为主应用 + 独立 AI 两个容器，仅主应用发布 HTTP 端口。
 - 用户通常只映射一个只读媒体根目录和一个可写数据目录。
 - 新增 `/library` 下的媒体库只需在 Web 设置中操作，不修改 Compose。
 - 媒体原件始终只读；数据库、设置、任务状态和缓存全部位于 `/app/data`。
@@ -34,7 +293,16 @@ Docker 自动创建的 root-owned `./data` bind 目录；既有非 root 证据�
 `vMAJOR.MINOR.PATCH` GitHub Release，并构建包含 `linux/amd64` 与 `linux/arm64` 的
 Docker Hub image index。发布流程对两种原生架构执行最终镜像 smoke；完整测试与其他
 候选 Gate 证据仍由发布者在推送前完成。
-该流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
+
+POST-MVP-5 另有只允许手动触发、只读权限的
+[`Intelligent media native evidence`](../.github/workflows/intelligent-media-native.yml) 验证入口；它不发布镜像、
+不修改部署，也不替代 Docker Hub workflow。只有同一 source SHA 的原生 amd64/arm64 实际成功运行才是
+候选证据；workflow 文件存在或失败后上传诊断 artifact 均不算通过。
+当该文件尚未合入默认分支时，发布者可对已注册的 `dockerhub.yml` 选择待测 branch/ref，并把手动
+`image_tag` 精确设为 `intelligent-media-native-evidence`；该 sentinel 在同一 commit 的 workflow 中互斥跳过
+Docker 发布，只调用只读 native evidence workflow。任何其他 `image_tag` 仍属于真实发布路径，不得用于
+测试。该桥接不改变最终模型、质量、供应链与批准 Gate。
+Docker Hub 发布流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
 
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
 
@@ -63,7 +331,7 @@ Docker Hub image index。发布流程对两种原生架构执行最终镜像 smo
   发布阶段不重建镜像，任一架构失败都阻止最终标签更新。
 - GHA layer cache 和 Go/npm cache mounts 分架构持久化；缓存可丢弃，首次仍需完整编译。
   缓存恢复/注入/导出/保存各有三分钟时限，失败会跳过缓存；镜像验收不能跳过。
-  协议见 [ADR-0026](adr/0026-native-release-image-promotion.md)，结果见
+  协议见 [ADR-0026（原生发布）](adr/0026-native-release-image-promotion.md)，结果见
   [维护记录](changes/FIX-2026-10-23-native-release-builds.md)。
 - 构建附带 SBOM 和 provenance；发布后同步专用 `README.dockerhub.md`。默认复用
   `DOCKERHUB_TOKEN`，也可配置独立的 description token 覆盖它。
@@ -335,6 +603,23 @@ linux/amd64 还分别以两个不同的不可变候选 image ID 通过向前升�
 
 ## 升级与回滚
 
+### 前后端产物一致性
+
+Go 二进制嵌入 Vite dist；只替换二进制也会替换前端。即便只是后端修复，也必须从同一源码快照
+重新生成 dist 后再编译 Go，不能复用未经校验的本地旧 dist。每次部署使用独立镜像版本，记录实际
+image ID、源码状态与前端哈希，不能把旧发布标签重新指向不同内容。
+
+切换前对隔离候选执行、切换后对实际服务再次执行：
+
+```sh
+node --test scripts/verify-deployed-web.test.mjs
+node scripts/verify-deployed-web.mjs http://127.0.0.1:8080 internal/webassets/dist /settings/ai /intelligence
+```
+
+地址需替换为实际候选或部署 origin。该命令不登录、不修改服务器，逐文件比较 HTTP 返回字节与
+本次新构建目录，并验证 SPA 路由返回同一 index；不证明认证后的功能或真实推理通过。应配合独立
+合成环境中的认证/API/页面检查。普通 runtime readiness 不能代替这些检查。
+
 推荐升级流程：
 
 1. 阅读版本说明，确认格式、迁移和平台支持变化。
@@ -434,3 +719,99 @@ linux/arm64 同提交候选证据仍由
 - 明确支持的宿主机、CPU/内存建议和目标库规模，不用未验证的数字宣传。
 - 以约 10 万媒体、1 万目录、4 GiB 内存的四核 NAS/家庭服务器完成主要容量验收；具体吞吐与延迟只能引用可重复 benchmark。
 - 单管理员初始化、登录、会话、退出和 CSRF 测试通过；无认证开发构建不会被文档引导直接暴露到互联网。
+
+## POST-MVP-5 revision 1 模型部署合同
+
+该 revision 保持单容器、单 Go 进程，不增加 worker、GPU、Redis、数据库或网络端口。后端和消费者
+已实现，但最终审核模型、双架构、联合容量、供应链与批准尚未通过 S4，因此发行构建仍失败关闭；
+以下 Compose 片段是 S4 必须以最终镜像验证的目标配置，不应加入当前 Quick Start：
+
+```yaml
+services:
+  foliopath:
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
+      - /srv/foliopath-models:/models:ro
+```
+
+- `/models` 可省略；省略或为空时应用核心 readiness 保持正常，智能能力显示 model unavailable。
+- `/models` 必须是单个只读挂载，其后代不得再含 mount。应用不创建、修改或删除其中任何内容。
+- `/app/data/models` 保存 managed package；`/app/data/ai-indexes` 如后续存在，只能保存可重建索引。
+  SQLite、staging 与 managed final 必须处于支持原子 rename/fsync 的本地文件系统。
+- revision 1 不增加模型源、镜像、代理、凭据或下载环境变量，也不依赖外网。部署者负责通过其可用
+  渠道取得与产品内建兼容清单完全匹配的包。
+- 发布镜像必须以显式 `onnxruntime` Go build tag 构建，包含精确 ORT 1.28.0 runtime、其
+  `libonnxruntime.so.1` SONAME 链接、MIT license、third-party notices 和补充 SBOM component。未带该
+  tag 或 runtime 版本不匹配时，核心浏览仍可启动，但模型激活稳定失败为 runtime unavailable；不得
+  自动回退到另一 ORT 版本。
+- 镜像体积预算不包含模型权重，因为权重不内置。发布说明必须分别列出 runtime 增量、每个审核模型
+  包大小、managed copy 临时峰值、embedding/index 目标档以及数据库/临时写安全余量。
+- 默认 AI worker 并发为 1，受全局后台 admission 约束；4 CPU/4 GiB 档要求整进程 RSS ≤ 3.2 GiB，
+  ordinary browse P95 退化 ≤ 20%。这些是发布门槛，不是当前已经证明的产品承诺。
+- 备份优先保存 SQLite。若不备份 `/app/data/models` 和 AI 可重建数据，恢复后必须重新提供 `/models`
+  并重建；direct `/models` 从不进入 FolioPath 备份。升级不得在新 generation 可用前删除旧包/索引。
+- linux/amd64 与 linux/arm64 必须对同一最终 digest 验证 runtime load、数值容差、取消、盘满、强杀恢复、
+  只读来源失效和 100k 完整进程。缺一架构即不发布智能能力。
+
+若 ADR-0014 后续接受，发布构建不得把实时访问 GitHub 作为 SentencePiece/ORT 编译的必要条件。受控
+获取步骤先固定来源、hash、许可证和签名材料，编译阶段只消费本地或内部镜像提供的 reviewed archive，
+并在解包前重新校验 SHA-256。该规则只约束发布供应链，不增加产品运行时网络、模型下载源或代理配置。
+
+## POST-MVP-5 revision 2 C+D+E 部署与恢复合同
+
+Revision 2 不增加 deployable service、网络模型源或媒体 mount。C/D/E 继续在同一 Go 进程、同一 SQLite
+和 `/app/data` 下的可重建 cache 中运行；`/library:ro` 与可选 `/models:ro` 拓扑不变。face 与 semantic
+native session 延迟加载、空闲卸载、全局后台并发默认 1，interactive browse 始终优先。
+
+- C 的 vocabulary/review application state 与人工 tag 一并进入 SQLite 备份；pending suggestion 可重建。
+- D 不复制原视频或抽第二套帧；只消费已存在的完整 storyboard cache。storyboard 被逐出时 video semantic
+  标为 stale/degraded，保留旧可靠 generation，等待 owner 重建。
+- E 的 person/manual constraint/audit 必须随 SQLite 备份；observation/embedding/crop/anonymous cluster 默认
+  不要求备份。恢复时先恢复应用状态，再以 exact source fingerprint + quantized anchor 重连；歧义进入
+  `needs_review`，不得按 bbox 顺序猜测。备份和恢复报告不得输出 biometric payload。
+- 管理员关闭 E 时停止新任务并卸载 session，但不隐式删除人工人物状态。派生清除和人工关系清除分别
+  演练；后者是不可恢复操作，必须明确备份点与删除审计。
+- 最终同一版本的 linux/amd64 与 linux/arm64 镜像必须分别在 native 主机验证 C/D/E runtime load、数值
+  容差、取消、强杀、ENOSPC、offline、backup/restore 与清除。QEMU、交叉编译或单架构证据不能代替。
+- 4 CPU/4 GiB、100k media/10k directories 的联合档同时包含普通 browse、图片 semantic、tag generation、
+  完整 storyboard video semantic 和 face job；整进程 RSS ≤3.2 GiB，browse P95 退化 ≤20%。超过门槛先
+  降后台调度/关闭对应 slice，不扩大内存承诺或破坏核心浏览。
+
+发布物必须为最终双架构 digest 产出 SPDX/CycloneDX SBOM、VEX、third-party notices、可验证 provenance
+和 model/runtime 再分发签署。缺少 face 模型许可、隐私 intake、合法质量数据或任一 native 架构证据时，
+S2C 已 Backend Ready，但 Release 保持 No-Go；核心浏览和已经可安全发布的较小 slice 不被伪装成全范围通过。
+
+### 智能能力安装、升级与故障排查
+
+- 模型来源：产品只接受内建 reviewed catalog 中的精确 package ID、版本、文件大小、SHA-256、许可、
+  架构和 runtime 合同。公开仓库、文件名、下载成功或“同系列模型”都不能替代精确匹配；当前没有获准
+  发行的最终模型包，也没有产品内下载、国内镜像、URL、代理或凭据设置。
+- 离线安装：在宿主机准备独立模型目录，以 `/models:ro` 单次挂载启动；该目录不能位于媒体根下，
+  后代不能再有 mount。管理员只能扫描服务端批准目录并选择 opaque candidate；应用不写该来源。
+  维护者可用 `make test-intelligent-media-offline` 复验无外网、空 catalog、只读来源和重启边界；该本地
+  候选检查不能替代最终双架构发行证据。
+- 升级：先停止服务并备份完整 SQLite family 和人物、人工 assignment/exclusion/cannot-link/audit 等
+  应用状态，再替换镜像。新 generation 完整验证并可用前保留旧 generation。回滚必须使用“旧镜像＋
+  升级前备份”配对，不能让旧镜像直接打开已前向迁移的数据。
+- 恢复：人物与人工关系随 SQLite 恢复；catalog FTS 缺失或不一致时在数据库打开阶段自动修复；
+  semantic/tag/video/face embedding、匿名 cluster 和派生 cache 可缺省，并通过有界“补齐缺失”任务重建。
+  重连有歧义时进入 `needs_review`，不得按路径、bbox 顺序或近似姓名猜测。
+- 限制：目标验收档为 4 CPU、4 GiB、约 100,000 媒体和 10,000 目录；整进程 RSS ≤3.2 GiB、普通
+  browse P95 退化 ≤20% 是未通过最终双架构联合验证前的 Gate，不是当前性能承诺。后台智能任务默认
+  全局并发 1；禁用能力必须停止 admission 并卸载对应 session。
+- 故障排查：`model_unavailable` 先检查 `/models` 是否存在、只读、无 symlink/hardlink/后代 mount，
+  再核对 catalog 中的精确 digest、大小、架构和 runtime；`model_source_changed` 要求恢复原精确来源或
+  重新走审核安装，不能自动换模型；`model_corrupt`、`runtime_unavailable`、磁盘安全余量不足或数据库
+  损坏都必须保持智能能力或整个 readiness 失败关闭。日志和诊断只能记录 opaque ID、稳定错误码、计数
+  与耗时，不得包含查询、姓名、向量、crop、bbox、媒体/模型路径或 native 原始错误。
+- 清除：派生数据清除可重建；人物和人工关系清除不可恢复，必须先建立备份点并做精确二次确认。两种
+  清除都不得修改 `/library` 原件。模型来源、隐私、许可证或发布证据缺失时，不要绕过 reviewed catalog
+  或启用未签署能力；普通文件夹浏览应继续可用。
+
+
+## Docker Desktop 数据卷修复（ADR-0038）
+
+Docker Desktop上的真实`/app/data`使用经停写复制验证的外部命名卷，避免WAL共享内存经过宿主文件共享层。使用`compose.ai.data-volume.yaml`作为第五覆盖，设置`FOLIOPATH_DATA_VOLUME`为已准备卷；其他四覆盖及`/library:ro`保留。原生Linux本地bind方案不因本轮改变。
+
+切换前停止主应用并确认正常exit0，对完整data及私有env/所有Compose独立备份、逐文件核验；只从停写源向空Linux卷复制，验证清单、原能力/旧OCR摘要及完整性后再起主。旧目录留作历史副本，不代表在线数据；不能启动旧目录或在运行中复制DB。此后停写备份需从卷导出完整data并核验，恢复到独立空卷后检查，不能把更新后的卷与旧目录双向同步。删除卷或重置Docker前必须已有独立完整备份，回退必须先停主且保留切换后新写入。详见[ADR-0038](adr/0038-docker-desktop-linux-sqlite-volume.md)。

@@ -61,6 +61,7 @@ export type SortOrder = "asc" | "desc";
 export type StoryboardReference = components["schemas"]["StoryboardReference"];
 
 export interface Asset {
+  searchSources?: Array<"filename" | "path">;
   directoryId: string;
   durationMs: number | null;
   favorite?: boolean;
@@ -88,9 +89,53 @@ export interface Asset {
 }
 
 export interface AssetPage {
+  searchMatches?: Record<string, SearchMatch>;
+  searchOCRState?: components["schemas"]["FusedSearchPage"]["ocrState"];
+  searchOCRCoverage?: components["schemas"]["FusedSearchPage"]["ocrCoverage"];
+  searchSemanticState?: components["schemas"]["FusedSearchPage"]["semanticState"];
   counts?: AssetCounts;
   items: Asset[];
   nextCursor: string | null;
+  semanticCoverage?: SemanticSearchCoverage;
+  semanticVideoMatches?: Record<string, SemanticVideoMatch>;
+}
+
+export interface SearchMatch {
+  ocr?: Array<{line: number; text: string}> | null;
+  sources: Array<"filename" | "path" | "semantic" | "ocr">;
+  semanticScore: number | null;
+}
+
+export async function searchFusedAssets({ mode="all", q, libraryId, directoryId, recursive, kinds, cursor, modifiedFrom, modifiedBefore, limit = 50 }: {
+  mode?: "all" | "ocr"; q: string; libraryId?: string; directoryId?: string; recursive?: boolean; kinds?: AssetKind[];
+  cursor?: string; modifiedFrom?: string; modifiedBefore?: string; limit?: number;
+}): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/search/assets", { params: { query: {
+      q, mode, limit,
+      ...(libraryId ? { libraryId } : {}), ...(directoryId ? { directoryId, recursive: recursive ?? false } : {}),
+      ...(kinds?.length ? { kind: kinds } : {}), ...(cursor ? { cursor } : {}),
+      ...(modifiedFrom ? { modifiedFrom } : {}), ...(modifiedBefore ? { modifiedBefore } : {}),
+    } } });
+    if (data) return {
+      items: data.items.map(hit => mapAsset(hit.asset)), nextCursor: data.nextCursor,
+      searchMatches: Object.fromEntries(data.items.map(hit => [hit.asset.id, { sources: hit.sources, semanticScore: hit.semanticScore, ocr: hit.ocr }])),
+      searchOCRState: data.ocrState, searchOCRCoverage: data.ocrCoverage, searchSemanticState: data.semanticState, ...(data.coverage ? { semanticCoverage: data.coverage } : {}),
+    };
+    throw createApiError(error, response);
+  } catch (error) { throw createApiError(error); }
+}
+
+export interface SemanticVideoMatch {
+  ordinal: number;
+  planSize: 4 | 10;
+  timestampMs: number;
+}
+
+export type SemanticSearchCoverage = components["schemas"]["SemanticSearchCoverage"];
+
+export interface SemanticAssetPage extends AssetPage {
+  semanticCoverage: SemanticSearchCoverage;
 }
 
 export interface AssetCounts {
@@ -251,6 +296,92 @@ export async function searchAssets({
       },
     });
     if (data) return mapAssetPage(data);
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchSemanticAssets({
+  cursor,
+  directoryId,
+  libraryId,
+  limit = 50,
+  q,
+  recursive,
+}: {
+  cursor?: string;
+  directoryId?: string;
+  libraryId?: string;
+  limit?: number;
+  q: string;
+  recursive?: boolean;
+}): Promise<SemanticAssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/semantic/assets", {
+      params: {
+        query: {
+          limit,
+          q,
+          ...(cursor ? { cursor } : {}),
+          ...(libraryId ? { libraryId } : {}),
+          ...(directoryId ? { directoryId } : {}),
+          ...(directoryId && recursive ? { recursive: true } : {}),
+        },
+      },
+    });
+    if (data) return { ...mapAssetPage(data), semanticCoverage: data.coverage };
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}
+
+export async function searchSemanticVideos({
+  cursor,
+  directoryId,
+  libraryId,
+  limit = 50,
+  q,
+  recursive,
+}: {
+  cursor?: string;
+  directoryId?: string;
+  libraryId?: string;
+  limit?: number;
+  q: string;
+  recursive?: boolean;
+}): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/semantic/videos", {
+      params: {
+        query: {
+          limit,
+          q,
+          ...(cursor ? { cursor } : {}),
+          ...(libraryId ? { libraryId } : {}),
+          ...(directoryId ? { directoryId } : {}),
+          ...(directoryId && recursive ? { recursive: true } : {}),
+        },
+      },
+    });
+    if (data) {
+      return {
+        items: data.items.map((hit) => mapAsset(hit.asset)),
+        nextCursor: data.nextCursor,
+        semanticCoverage: {
+          complete: data.coverage.complete,
+          completed: data.coverage.completed,
+          eligible: data.coverage.eligible,
+          excludedLibraries: data.coverage.excludedLibraries ?? [],
+          failed: data.coverage.failed,
+          stale: data.coverage.stale,
+        },
+        semanticVideoMatches: Object.fromEntries(
+          data.items.map((hit) => [hit.asset.id, hit.matchedFrame]),
+        ),
+      };
+    }
     throw createApiError(error, response);
   } catch (error) {
     throw createApiError(error);

@@ -460,10 +460,7 @@ func seedReadyRuntimeStoryboard(
 		t.Fatal(err)
 	}
 
-	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer db.Close()
 	if _, err := db.Exec(`
         UPDATE media_jobs
@@ -497,10 +494,7 @@ func setRuntimeStoryboardState(
 	errorCode string,
 ) {
 	t.Helper()
-	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer db.Close()
 	var code any
 	if errorCode != "" {
@@ -524,10 +518,7 @@ func setRuntimeStoryboardState(
 
 func waitForRuntimeContentAsset(t *testing.T, dataRoot string, libraryID int64) int64 {
 	t.Helper()
-	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer db.Close()
 	deadline := time.Now().Add(runtimeIntegrationTimeout)
 	for time.Now().Before(deadline) {
@@ -593,10 +584,7 @@ func requestRuntimeContent(
 
 func poisonRuntimeAssetPath(t *testing.T, dataRoot string, assetID int64, relativePath string) {
 	t.Helper()
-	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer db.Close()
 	if _, err := db.Exec(
 		`UPDATE assets SET relative_path = ?, name = ? WHERE id = ?`,
@@ -608,10 +596,7 @@ func poisonRuntimeAssetPath(t *testing.T, dataRoot string, assetID int64, relati
 
 func setRuntimeLibraryStatus(t *testing.T, dataRoot string, libraryID int64, status string) {
 	t.Helper()
-	db, err := sql.Open("sqlite", filepath.Join(dataRoot, databaseFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openDatabaseInspector(t, filepath.Join(dataRoot, databaseFilename))
 	defer db.Close()
 	if _, err := db.Exec(`UPDATE libraries SET status = ? WHERE id = ?`, status, libraryID); err != nil {
 		t.Fatal(err)

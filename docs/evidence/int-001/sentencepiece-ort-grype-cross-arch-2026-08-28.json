@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "status": "failed_release_gate",
+  "scanner": {
+    "name": "grype",
+    "version": "0.116.1",
+    "git_commit": "30394f177175da63ae36b35cdd809c248eb4de7f",
+    "binary_sha256": "361b86bc5906fa38ad24cc8a0c2ce9128ac7d8931e82505236a8d0b16bbf2fbe",
+    "archive_sha256": "f493f169cbaae48bade169532b20235fc16653d2a044a5bc6fe6f69a3923f975",
+    "database": {
+      "schema": "v6.1.9",
+      "built": "2026-08-26T06:18:26Z",
+      "archive_sha256": "52c7374125b0a058db6d19485b76af5dd50590e851a7e2262a9d7900dcfc0fae",
+      "status": "valid",
+      "auto_update": false
+    }
+  },
+  "images": [
+    {
+      "architecture": "arm64",
+      "execution_evidence": "native",
+      "local_index": "sha256:7fed8b185244854301e6467ebc1dada76bc8960c83d377ba4f790c533480040d",
+      "platform_manifest": "sha256:dedc1b601040f45682b46e86469d5d1d042bf7b322cee10e27f8cee4907d9447",
+      "config": "sha256:5891f7a4c6b648e77641ce5cd625fafddd164852134ca0cc55882294cdfc6f2b",
+      "raw_report_sha256": "55ec4beb306e6394b8aa6a0cb31557f30614a2dde6d6e31309e60b799ee3119e",
+      "findings": {
+        "total": 15,
+        "critical": 1,
+        "high": 2,
+        "medium": 3,
+        "low": 1,
+        "negligible": 7,
+        "unknown": 1,
+        "fixed_available": 0
+      }
+    },
+    {
+      "architecture": "amd64",
+      "execution_evidence": "qemu_package_preflight_only",
+      "local_index": "sha256:3dd3520098658912941a2ac001e55780c58548c511d5b14e8c3c435a45ed6901",
+      "platform_manifest": "sha256:45a9b6c082331769d680e20bbef3c3d253a7a98f70d640d764349d8ffe7aad95",
+      "config": "sha256:2c91cc767e8c7417b02234828b6cd05a2b9cde448abd6958da29fc6676fa08cf",
+      "raw_report_sha256": "199797eeba1359202460afd61d2d349d0fe0cdf0534d32cf7c42ff17baf09699",
+      "findings": {
+        "total": 15,
+        "critical": 1,
+        "high": 2,
+        "medium": 3,
+        "low": 1,
+        "negligible": 7,
+        "unknown": 1,
+        "fixed_available": 0
+      }
+    }
+  ],
+  "blocking_findings": [
+    {
+      "id": "CVE-2026-5450",
+      "severity": "Critical",
+      "package": "libc6",
+      "installed_version": "2.41-12+deb13u3",
+      "fixed_versions": []
+    },
+    {
+      "id": "CVE-2026-5928",
+      "severity": "High",
+      "package": "libc6",
+      "installed_version": "2.41-12+deb13u3",
+      "fixed_versions": []
+    },
+    {
+      "id": "CVE-2026-5435",
+      "severity": "High",
+      "package": "libc6",
+      "installed_version": "2.41-12+deb13u3",
+      "fixed_versions": []
+    }
+  ],
+  "limitations": [
+    "the scanner did not identify ONNX Runtime or SentencePiece as packages",
+    "explicit CycloneDX components still require advisory/VEX correlation",
+    "the amd64 image was built and exercised under QEMU rather than native linux/amd64",
+    "no finding is suppressed and the release gate remains failed"
+  ]
+}

@@ -9,7 +9,9 @@ import {
   listAssets,
   listDirectories,
   searchAssets,
+  searchFusedAssets,
   searchLibraryAssets,
+  searchSemanticAssets,
 } from "./catalog";
 
 vi.mock("./client", () => ({
@@ -372,4 +374,59 @@ describe("catalog adapter", () => {
       },
     });
   });
+
+  it("uses the dedicated semantic endpoint without filename sort or filter parameters", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValue({
+      data: {
+        coverage: {
+          complete: false,
+          completed: 8,
+          eligible: 12,
+          excludedLibraries: [],
+          failed: 1,
+          stale: 3,
+        },
+        items: [],
+        nextCursor: "semantic-next",
+      },
+      error: undefined,
+      response: new Response(),
+    } as never);
+
+    await expect(searchSemanticAssets({
+      cursor: "semantic-cursor",
+      directoryId: "dir_japan",
+      libraryId: "lib_family",
+      q: "夜晚城市灯光",
+      recursive: true,
+    })).resolves.toMatchObject({
+      items: [],
+      nextCursor: "semantic-next",
+      semanticCoverage: { completed: 8, eligible: 12 },
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/semantic/assets", {
+      params: {
+        query: {
+          cursor: "semantic-cursor",
+          directoryId: "dir_japan",
+          libraryId: "lib_family",
+          limit: 50,
+          q: "夜晚城市灯光",
+          recursive: true,
+        },
+      },
+    });
+  });
+});
+
+it("maps fused provenance through the generated operation without inferring sources", async () => {
+  const asset = {id: "ast_literal", thumbnail: {status: "ready", url: "/thumb", errorCode: null}, storyboard: {status: "not_applicable"}};
+  vi.mocked(apiClient.GET).mockResolvedValue({data: {items: [{asset, sources: ["path"], semanticScore: null}], nextCursor: "next-page", semanticState: "unavailable", coverage: null}, error: undefined, response: new Response()} as never);
+  const page = await searchFusedAssets({q: "日本", libraryId: "lib_family", directoryId: "dir_japan", recursive: true, kinds: ["image"], cursor: "first-page", modifiedBefore: "2026-10-25T00:00:00Z"});
+  expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/search/assets", {params: {query: {q: "日本", mode: "all", libraryId: "lib_family", directoryId: "dir_japan", recursive: true, kind: ["image"], cursor: "first-page", modifiedBefore: "2026-10-25T00:00:00Z", limit: 50}}});
+  expect(page.searchMatches).toEqual({ast_literal: {sources: ["path"], semanticScore: null}});
+  expect(page.searchSemanticState).toBe("unavailable");
+  expect(page.nextCursor).toBe("next-page");
+  expect(page.semanticCoverage).toBeUndefined();
 });

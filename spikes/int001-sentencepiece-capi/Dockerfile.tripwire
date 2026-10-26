@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1.7
+
+# INT-001 dynamic reachability fixture only. It is not a production image.
+FROM golang:1.26.5-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 AS build
+WORKDIR /src
+COPY spikes/int001-sentencepiece-capi/ungetwc_tripwire.c ./
+COPY spikes/int001-sentencepiece-capi/ungetwc_probe.c ./
+RUN cc -O2 -fPIC -shared -Wl,-z,defs -o /out-ungetwc-tripwire.so ungetwc_tripwire.c \
+    && cc -O2 -o /out-ungetwc-probe ungetwc_probe.c
+
+FROM scratch
+COPY --from=build /out-ungetwc-tripwire.so /ungetwc-tripwire.so
+COPY --from=build /out-ungetwc-probe /ungetwc-probe

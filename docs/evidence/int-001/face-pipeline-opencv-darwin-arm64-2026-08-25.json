@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "evidence_class": "pipeline-smoke-only",
+  "runtime": {"opencv":"4.12.0","backend":"OpenCV DNN CPU"},
+  "fixture": {
+    "id": "opencv-zoo-yunet-largest-selfie",
+    "sha256": "ab8413ad9bb4f53068f4fb63c6747e5989991dd02241c923d5595b614ecf2bf6",
+    "image_shape": [1150,2048,3],
+    "consent_or_identity_ground_truth": false
+  },
+  "iterations": 20,
+  "detected_candidates": 16,
+  "detector_p50_ms": 19.852,
+  "detector_p95_ms": 21.101,
+  "detector_p99_ms": 26.312,
+  "embedding_count": 16,
+  "embedding_shape": [1,128],
+  "caveats": [
+    "The fixture has no reviewed identity or consent ground truth.",
+    "Candidate count is not detector recall and is not quality evidence.",
+    "OpenCV DNN smoke does not approve the planned ONNX Runtime C API adapter."
+  ]
+}

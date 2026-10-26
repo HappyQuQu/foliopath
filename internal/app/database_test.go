@@ -157,9 +157,11 @@ func openDatabaseInspector(t *testing.T, filename string) *sql.DB {
 	if err != nil {
 		t.Fatalf("open database inspector: %v", err)
 	}
-	if err := database.Ping(); err != nil {
+	database.SetMaxOpenConns(1)
+	// Test fault injection shares the synthetic database with live scanner writes.
+	if _, err := database.Exec("PRAGMA busy_timeout = 5000"); err != nil {
 		_ = database.Close()
-		t.Fatalf("ping database inspector: %v", err)
+		t.Fatalf("configure database inspector: %v", err)
 	}
 	return database
 }

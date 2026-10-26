@@ -1,0 +1,117 @@
+{
+  "status": "preliminary-development-evidence",
+  "environment": {
+    "architecture": "linux/arm64",
+    "native": true,
+    "cpus": 4,
+    "memory_limit_bytes": 4294967296,
+    "network": "none",
+    "directories": 10000,
+    "assets": 100000,
+    "paired_runs": 3
+  },
+  "candidate": {
+    "model": "google/siglip-base-patch16-224",
+    "precision": "float16 internal tensors with float32 I/O",
+    "image_encoder_sha256": "4d4260477eaf57ce263d8f65656b030384fd6854513896254b9cae9566432b3d",
+    "text_encoder_sha256": "19f28e2bdb2e1bfb51ec1733b371899784ae0eb4af14d22980e7a6b89a15ef4f"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "baseline_cgroup_peak_bytes": 1604067328,
+      "ai_cgroup_peak_bytes": 2905825280,
+      "ai_cycles": 295,
+      "relative_change_percent": {
+        "scan_duration": 4.713,
+        "concurrent_read_p95": 6.849,
+        "concurrent_search_p95": 1.791,
+        "directory_list_p95": 137.255,
+        "asset_list_p95": 10.494,
+        "recursive_browse_p95": 14.512,
+        "fts_search_p95": 12.499,
+        "short_search_p95": 5.036,
+        "global_search_p95": 41.571,
+        "search_keyset_p95": 6.263,
+        "storyboard_browse_p95": 1.763
+      },
+      "baseline_search_keyset_p95_us": 355609,
+      "ai_search_keyset_p95_us": 377880
+    },
+    {
+      "run": 2,
+      "baseline_cgroup_peak_bytes": 1316818944,
+      "ai_cgroup_peak_bytes": 2859634688,
+      "ai_cycles": 276,
+      "relative_change_percent": {
+        "scan_duration": 0.398,
+        "concurrent_read_p95": 13.742,
+        "concurrent_search_p95": 4.634,
+        "directory_list_p95": 10.0,
+        "asset_list_p95": -47.904,
+        "recursive_browse_p95": 10.375,
+        "fts_search_p95": -2.54,
+        "short_search_p95": 9.634,
+        "global_search_p95": -4.503,
+        "search_keyset_p95": 8.676,
+        "storyboard_browse_p95": 20.335
+      },
+      "baseline_search_keyset_p95_us": 352020,
+      "ai_search_keyset_p95_us": 382561
+    },
+    {
+      "run": 3,
+      "baseline_cgroup_peak_bytes": 1527619584,
+      "ai_cgroup_peak_bytes": 2950885376,
+      "ai_cycles": 295,
+      "relative_change_percent": {
+        "scan_duration": 6.635,
+        "concurrent_read_p95": 11.129,
+        "concurrent_search_p95": 0.438,
+        "directory_list_p95": 2.128,
+        "asset_list_p95": 11.842,
+        "recursive_browse_p95": 6.025,
+        "fts_search_p95": -3.658,
+        "short_search_p95": 7.351,
+        "global_search_p95": -3.305,
+        "search_keyset_p95": 4.001,
+        "storyboard_browse_p95": 15.759
+      },
+      "baseline_search_keyset_p95_us": 362533,
+      "ai_search_keyset_p95_us": 377039
+    }
+  ],
+  "median_relative_change_percent": {
+    "scan_duration": 4.713,
+    "concurrent_read_p95": 11.129,
+    "concurrent_search_p95": 1.791,
+    "directory_list_p95": 10.0,
+    "asset_list_p95": 10.494,
+    "recursive_browse_p95": 10.375,
+    "fts_search_p95": -2.54,
+    "short_search_p95": 7.351,
+    "global_search_p95": -3.305,
+    "search_keyset_p95": 6.263,
+    "storyboard_browse_p95": 15.759
+  },
+  "assessment": {
+    "memory_peak_limit_bytes": 3435973836,
+    "memory_passed_all_runs": true,
+    "recursive_browse_relative_limit": 0.2,
+    "recursive_browse_passed_all_runs": true,
+    "all_query_paths_under_relative_limit_all_runs": false,
+    "storyboard_browse_failed_runs": 1,
+    "global_search_outlier_reproduced": false,
+    "search_keyset_absolute_limit_us": 250000,
+    "search_keyset_baseline_passed_runs": 0,
+    "search_keyset_ai_passed_runs": 0,
+    "int_013_complete": false
+  },
+  "limitations": [
+    "Three pairs bound short-run variance on one native arm64 host only.",
+    "The existing search-keyset absolute budget failed in every baseline and AI run.",
+    "One storyboard-period browse comparison exceeded the 20 percent relative limit by 0.335 percentage points.",
+    "The workload uses repeated pilot inference, not a real 100,000-image embedding backfill.",
+    "Authenticated HTTP, browser rendering, face inference and native linux/amd64 remain unverified."
+  ]
+}

@@ -94,10 +94,10 @@ it("saves explicit resource concurrency limits with the existing settings valida
     </LocaleProvider>,
   );
 
-  await user.clear(screen.getByRole("spinbutton", { name: "后台任务并发数" }));
-  await user.type(screen.getByRole("spinbutton", { name: "后台任务并发数" }), "3");
-  await user.clear(screen.getByRole("spinbutton", { name: "原图与视频读取并发数" }));
-  await user.type(screen.getByRole("spinbutton", { name: "原图与视频读取并发数" }), "12");
+  await user.clear(screen.getByRole("spinbutton", { name: "后台任务数量" }));
+  await user.type(screen.getByRole("spinbutton", { name: "后台任务数量" }), "3");
+  await user.clear(screen.getByRole("spinbutton", { name: "同时打开的媒体数量" }));
+  await user.type(screen.getByRole("spinbutton", { name: "同时打开的媒体数量" }), "12");
   await user.click(screen.getByRole("button", { name: "保存扫描与缓存设置" }));
 
   expect(mocks.update).toHaveBeenCalledWith(

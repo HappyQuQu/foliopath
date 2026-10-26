@@ -489,6 +489,44 @@ func (s *Store) GetThumbnailDelivery(
 	return state, nil
 }
 
+func (s *Store) GetCompleteSemanticStoryboard(
+	ctx context.Context,
+	libraryID, assetID int64,
+) (thumbnail.SemanticStoryboardState, error) {
+	if libraryID < 1 || assetID < 1 {
+		return thumbnail.SemanticStoryboardState{}, thumbnail.ErrSemanticStoryboardNotReady
+	}
+	var value thumbnail.SemanticStoryboardState
+	var fingerprint string
+	err := s.db.QueryRowContext(ctx, `
+        SELECT a.library_id, a.id, a.source_fingerprint, a.duration_ms,
+               t.transform_version, t.cache_rel_path, t.byte_size,
+               t.frame_count, t.sprite_columns, t.sprite_rows, t.cell_width, t.cell_height
+        FROM assets a
+        JOIN libraries l ON l.id = a.library_id AND l.status <> 'offline'
+        JOIN thumbnails t ON t.library_id = a.library_id AND t.asset_id = a.id
+                         AND t.variant = 'storyboard' AND t.status = 'ready'
+                         AND t.source_fingerprint = a.source_fingerprint
+        WHERE a.library_id = ? AND a.id = ? AND a.kind = 'video'
+          AND a.probe_status = 'ready'`, libraryID, assetID,
+	).Scan(
+		&value.LibraryID, &value.AssetID, &fingerprint, &value.DurationMS,
+		&value.TransformVersion, &value.CacheRelativePath, &value.ByteSize,
+		&value.FrameCount, &value.Columns, &value.Rows, &value.CellWidth, &value.CellHeight,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return thumbnail.SemanticStoryboardState{}, thumbnail.ErrSemanticStoryboardNotReady
+	}
+	if err != nil {
+		return thumbnail.SemanticStoryboardState{}, fmt.Errorf("get complete semantic storyboard: %w", err)
+	}
+	value.SourceFingerprint = media.SourceFingerprint(fingerprint)
+	if err := value.Validate(); err != nil {
+		return thumbnail.SemanticStoryboardState{}, err
+	}
+	return value, nil
+}
+
 func (s *Store) TouchThumbnail(
 	ctx context.Context,
 	assetID int64,

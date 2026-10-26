@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -12,6 +13,128 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/library"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
+
+func TestCatalogSparseFTSMatchesKeepScopeAndCursorOrder(t *testing.T) {
+	store, _ := openTestStore(t)
+	var libraries []int64
+	for libraryIndex := 0; libraryIndex < 2; libraryIndex++ {
+		entries := []scanner.CatalogEntry{{Kind: scanner.CatalogEntryDirectory}}
+		for index := 0; index < 200; index++ {
+			prefix := "ordinary"
+			if index < 13 {
+				prefix = "rare-target"
+			}
+			name := fmt.Sprintf("%s-%03d.jpg", prefix, index)
+			entries = append(entries, scanner.CatalogEntry{
+				Kind: scanner.CatalogEntryAsset, RelativePath: name, Name: name,
+				MTimeNS: int64(index + 1), SizeBytes: 10,
+				AssetKind: scanner.AssetKindImage, MediaFormat: scanner.MediaFormatJPEG,
+				MIMEType: "image/jpeg",
+			})
+		}
+		libraries = append(libraries, seedSearchCatalog(t, store, fmt.Sprintf("Library %d", libraryIndex), fmt.Sprintf("root%d", libraryIndex), entries))
+	}
+	service := catalogServiceForStore(t, store)
+	for _, global := range []bool{false, true} {
+		for _, term := range []string{"rare-target", "ordinary", "not-present"} {
+			want := 13
+			if term == "ordinary" {
+				want = 187
+			} else if term == "not-present" {
+				want = 0
+			}
+			if global {
+				want *= 2
+			}
+			seen := make(map[int64]bool)
+			cursor := ""
+			previous := int64(201)
+			for pages := 0; ; pages++ {
+				if pages > 60 {
+					t.Fatal("cursor did not terminate")
+				}
+				var page catalog.AssetPage
+				var err error
+				if global {
+					page, err = service.SearchAssets(context.Background(), catalog.GlobalSearchRequest{SearchQuery: term, Cursor: cursor, Limit: 7})
+				} else {
+					page, err = service.ListAssets(context.Background(), catalog.AssetRequest{LibraryID: libraries[0], SearchQuery: &term, Cursor: cursor, Limit: 7})
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if page.Counts.All != int64(want) {
+					t.Fatalf("global=%v query=%s counts=%+v want=%d", global, term, page.Counts, want)
+				}
+				for _, asset := range page.Items {
+					if seen[asset.ID] || !strings.HasPrefix(asset.Name, term) || asset.ModifiedAtNS > previous || (!global && asset.LibraryID != libraries[0]) {
+						t.Fatalf("invalid sparse search result: %+v", asset)
+					}
+					seen[asset.ID] = true
+					previous = asset.ModifiedAtNS
+				}
+				cursor = page.NextCursor
+				if cursor == "" {
+					break
+				}
+			}
+			if len(seen) != want {
+				t.Fatalf("got %d unique results, want %d", len(seen), want)
+			}
+			query := catalog.AssetQuery{
+				Scope: catalog.Scope{LibraryID: libraries[0]}, ScopeKind: catalog.ScopeLibrary,
+				SearchTerms: []string{term}, Sort: catalog.SortModifiedAt, Order: catalog.OrderDesc,
+			}
+			if global {
+				query.Scope = catalog.Scope{}
+				query.ScopeKind = catalog.ScopeGlobal
+				query.CatalogRevision = 1
+			}
+			var reference []int64
+			for _, hint := range []int64{0, 9999, 10000, 1000000} {
+				items, err := store.ListAssetPage(context.Background(), catalog.AssetListParams{Query: query, Limit: 100, MatchCount: hint})
+				if err != nil {
+					t.Fatal(err)
+				}
+				ids := make([]int64, len(items))
+				for index, item := range items {
+					ids[index] = item.ID
+				}
+				if hint == 0 {
+					reference = ids
+				} else if !slices.Equal(reference, ids) {
+					t.Fatalf("plan hint %d changed search results", hint)
+				}
+			}
+		}
+	}
+}
+
+func TestAssetOrderIndexMatchesFrozenSortAndScope(t *testing.T) {
+	tests := []struct {
+		name  string
+		query catalog.AssetQuery
+		want  string
+	}{
+		{name: "global modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortModifiedAt}, want: "assets_search_global_modified"},
+		{name: "direct modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Sort: catalog.SortModifiedAt}, want: "assets_browse_directory_modified"},
+		{name: "legacy direct modified", query: catalog.AssetQuery{Sort: catalog.SortModifiedAt}, want: "assets_browse_directory_modified"},
+		{name: "recursive modified", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Recursive: true, Sort: catalog.SortModifiedAt}, want: "assets_modified"},
+		{name: "global size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortSize}, want: "assets_search_global_size"},
+		{name: "direct size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeDirectory, Sort: catalog.SortSize}, want: "assets_browse_directory_size"},
+		{name: "legacy direct size", query: catalog.AssetQuery{Sort: catalog.SortSize}, want: "assets_browse_directory_size"},
+		{name: "library size", query: catalog.AssetQuery{ScopeKind: catalog.ScopeLibrary, Sort: catalog.SortSize}, want: "assets_browse_library_size"},
+		{name: "global name", query: catalog.AssetQuery{ScopeKind: catalog.ScopeGlobal, Sort: catalog.SortName}, want: "assets_browse_folder_name_v2"},
+		{name: "library name", query: catalog.AssetQuery{ScopeKind: catalog.ScopeLibrary, Sort: catalog.SortName}, want: "assets_browse_folder_name_v2"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := assetOrderIndex(test.query); got != test.want {
+				t.Fatalf("assetOrderIndex() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
 
 func seedBrowseCatalog(t *testing.T, store *Store) int64 {
 	t.Helper()
@@ -72,6 +195,20 @@ func seedBrowseCatalog(t *testing.T, store *Store) int64 {
 	return record.ID
 }
 
+func TestCatalogAssetBatchProjectionPreservesRequestedOrder(t *testing.T) {
+	store, _ := openTestStore(t)
+	seedBrowseCatalog(t, store)
+	firstID := catalogAssetID(t, store, "photo-10.jpg")
+	secondID := catalogAssetID(t, store, "photo-2.jpg")
+	items, err := store.GetAssetsByIDs(context.Background(), []int64{secondID, firstID})
+	if err != nil || len(items) != 2 || items[0].ID != secondID || items[1].ID != firstID {
+		t.Fatalf("items=%#v err=%v", items, err)
+	}
+	if _, err := store.GetAssetsByIDs(context.Background(), []int64{firstID, 999999}); !errors.Is(err, catalog.ErrAssetNotFound) {
+		t.Fatalf("missing batch error = %v", err)
+	}
+}
+
 func seedSearchCatalog(
 	t *testing.T,
 	store *Store,
@@ -91,8 +228,10 @@ func seedSearchCatalog(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.UpsertCatalogBatch(context.Background(), run.ID, entries); err != nil {
-		t.Fatal(err)
+	for batch := range slices.Chunk(entries, store.maxBatchSize) {
+		if err := store.UpsertCatalogBatch(context.Background(), run.ID, batch); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if _, err := store.CompleteFullScan(
 		context.Background(), run.ID, scanner.SkipCounts{},

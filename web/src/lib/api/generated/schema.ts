@@ -59,6 +59,304 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/face-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply one typed assignment, move, exclusion, split, cannot-link, or merge action
+         * @description The discriminated request carries exact expected revisions. No action
+         *     accepts a path, crop, vector, exact bounding box, or inferred identity.
+         *     Merge is all-or-nothing and fails on cannot-link conflicts.
+         */
+        post: operations["applyFaceReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/face-reviews/{reviewId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque bounded face-review audit ID eligible for guarded undo. */
+                reviewId: components["parameters"]["FaceReviewIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo the latest still-unmodified manual face action */
+        post: operations["undoFaceReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-candidate-scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scan the fixed read-only model directory
+         * @description Scans only the server-configured `/models` boundary. The request has no
+         *     path, URL, source, proxy, mirror, or filename field. Candidate IDs bind
+         *     the resulting scan revision and expire when the source changes.
+         *     Before scanning candidates, the server revalidates every installed
+         *     managed/direct package against its reviewed manifest and updates only
+         *     its availability state; active generation metadata and embeddings are
+         *     preserved when a source is unavailable.
+         *     Online model acquisition uses the separate configured download catalog.
+         */
+        post: operations["scanAIModelCandidates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-candidates/{candidateId}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque, expiring candidate ID bound to one fixed-directory scan revision. */
+                candidateId: components["parameters"]["AIModelCandidateIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Install one candidate by managed copy or strict direct reference */
+        post: operations["installAIModelCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List configured downloadable model packages and latest install progress
+         * @description Returns at most 16 deployment-configured packages without URLs or paths.
+         *     An empty list means no download source is configured. runtimeAvailable
+         *     reports whether the semantic runtime is compiled in, not model quality
+         *     or successful activation. Operation progress for managed model installs
+         *     uses bytes when totalItems is present. History is stored on the server.
+         */
+        get: operations["listAIModelDownloads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-downloads/{downloadId}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download and verify a configured model into managed storage
+         * @description Accepts only a catalog ID, never a URL, path or uploaded weight.
+         *     Shares the durable model install queue with offline installation.
+         *     Cancel through the existing operation cancellation endpoint. On failure
+         *     retry with a new idempotency key; interrupted transfers restart from zero.
+         *     Successful installation does not activate the model automatically.
+         *     The same idempotency key replays its operation. A different key for an
+         *     already active download returns 409 model_download_active.
+         */
+        post: operations["downloadAIModel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-proxy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get administrator model download proxy settings */
+        get: operations["getAIModelProxy"];
+        /** Save model download proxy settings with revision conflict protection */
+        put: operations["saveAIModelProxy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/model-proxy/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test unsaved proxy settings using a fixed verified source without installing */
+        post: operations["testAIModelProxy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List reviewed installed models and their safe status
+         * @description Returns only reviewed package metadata and opaque identifiers. It does
+         *     not expose model filenames, container paths, host paths, source URLs,
+         *     runtime errors, or unreviewed files found below `/models`.
+         */
+        get: operations["listAIModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/models/{modelId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque reviewed model ID with no filename or path semantics. */
+                modelId: components["parameters"]["AIModelIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Build and activate a new semantic generation
+         * @description The old active model and generation remain authoritative until this operation succeeds.
+         *     If-Match uses the selected model ID and its availabilityRevision in the form
+         *     `"{modelId}-r{availabilityRevision}"`.
+         */
+        post: operations["activateAIModel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/operations/{operationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque model or semantic operation ID. */
+                operationId: components["parameters"]["AIOperationIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get a model or semantic operation */
+        get: operations["getAIOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/operations/{operationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque model or semantic operation ID. */
+                operationId: components["parameters"]["AIOperationIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cooperatively cancel an active AI operation */
+        post: operations["cancelAIOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/tag-suggestion-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept or dismiss at most 100 controlled suggestions */
+        post: operations["reviewAITagSuggestions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/tag-vocabulary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the bounded controlled vocabulary used for suggestions */
+        get: operations["getAITagVocabulary"];
+        /** Publish a new controlled vocabulary snapshot */
+        put: operations["replaceAITagVocabulary"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets": {
         parameters: {
             query?: never;
@@ -174,6 +472,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/faces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** List selectable face projections for one multi-face asset */
+        get: operations["listAssetFaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/{assetId}/favorite": {
         parameters: {
             query?: never;
@@ -211,6 +529,26 @@ export interface paths {
          *     stale state fails with `precondition_failed` and no partial update.
          */
         put: operations["replaceAssetTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{assetId}/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add or explicitly retain one tag as manual
+         * @description Adds a manual association or promotes an existing AI association to manual and clears same-name suppression. Changes require the current curation revision; an already-manual association may return idempotently without a mutation. No body is accepted.
+         */
+        put: operations["addManualAssetTag"];
         post?: never;
         delete?: never;
         options?: never;
@@ -613,6 +951,501 @@ export interface paths {
         patch: operations["renameLibrary"];
         trace?: never;
     };
+    "/api/v1/libraries/{libraryId}/ai/automatic-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get automatic image tagging settings and recorded coverage */
+        get: operations["getLibraryAutomaticTagSettings"];
+        /**
+         * Enable automatic incremental tagging for one library
+         * @description Enabling schedules missing/new/changed images with a bounded background reconciler.
+         *     Disabling cancels pending work and fences subsequent commits, but preserves existing
+         *     tags and manual removal suppression. Same-source/model failures are not retried forever.
+         */
+        put: operations["updateLibraryAutomaticTagSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/automatic-tags/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Process missing images or explicitly reprocess automatic tags
+         * @description Creates a bounded restart-safe operation. Manual tags and per-image removal suppression
+         *     survive every run. A successful empty model result only removes old AI associations.
+         *     Full reprocessing can retry recorded failures; it never erases manual curation.
+         *     Cancellation uses the existing AI operation endpoint and preserves committed results.
+         */
+        post: operations["requestLibraryAutomaticTagJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/face-clusters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** List privacy-safe anonymous core and edge clusters for review */
+        get: operations["listAnonymousFaceClusters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/face-clusters/{clusterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clusterId: components["schemas"]["ResourceID"];
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Page privacy-safe members of one active anonymous face cluster */
+        get: operations["getAnonymousFaceCluster"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/faces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get opt-in face-analysis settings and privacy-safe coverage */
+        get: operations["getLibraryFaceSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Enable or disable local face analysis for one library */
+        patch: operations["updateLibraryFaceSettings"];
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/faces/derived-clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear only rebuildable face observations, embeddings, crops, and anonymous clusters */
+        post: operations["clearDerivedFaceData"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/faces/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request bounded missing-only or full face analysis and clustering
+         * @description An enabled library awaiting a previously unavailable model can be retried
+         *     after that same model generation recovers. Admission rechecks availability
+         *     and the library revision; retry never enables a disabled library. A new
+         *     idempotency key creates the retry; the old key retains its recorded result.
+         *     Missing-only work includes current-source persisted failures even when an
+         *     older successful result exists. Per-asset diagnostic details describe the
+         *     current attempt; legacy reasons cannot be reconstructed. An in-flight job
+         *     waits at most 60 seconds per transient catalog scan, rechecking control and
+         *     lease every second, then fails with library_scanning if scanning continues.
+         *     New admission still requires a ready library; offline/disabled/model failures
+         *     do not wait or restart automatically.
+         */
+        post: operations["requestFaceAnalysisJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/faces/manual-clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Irreversibly clear person assignments, exclusions, cannot-links, and face-review audit for one library */
+        post: operations["clearManualFaceRelationships"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get OCR settings and current source-bound coverage
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        get: operations["getLibraryOCR"];
+        /**
+         * Explicitly enable or disable OCR without creating a job
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        put: operations["updateLibraryOCR"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable and clear OCR derived results in bounded batches
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["clearLibraryOCR"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit missing OCR or explicitly retry recorded source failures
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["requestLibraryOCRJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get one job scoped to its library
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        get: operations["getLibraryOCRJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/ocr/jobs/{jobId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cooperatively cancel OCR and retain committed progress
+         * @description CR-2026-050. Registered only with independently pinned OCR deployment configuration.
+         *     Libraries default off; configuration never submits analysis automatically.
+         *     OCR text, original paths and model identity configuration are never returned or accepted here.
+         *     Coverage is recorded current-source/model state, not model health or accuracy.
+         */
+        post: operations["cancelLibraryOCRJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/semantic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get one library's semantic-search settings and coverage */
+        get: operations["getLibrarySemanticSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Enable or disable semantic analysis for one library */
+        patch: operations["updateLibrarySemanticSettings"];
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/semantic/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear only rebuildable semantic data for one library */
+        post: operations["clearLibrarySemanticData"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/semantic/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request missing-only or full semantic generation work */
+        post: operations["requestLibrarySemanticJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/tag-suggestion-reviews/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Irreversibly clear accepted and dismissed suggestion-review records */
+        post: operations["clearAITagSuggestionReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/tag-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * List controlled tag suggestions and review decisions
+         * @description Pending results use confidence DESC, suggestion ID ASC. Reviewed
+         *     results use reviewedAt DESC, suggestion ID ASC. The opaque cursor
+         *     binds library, status, tag, generation, vocabulary and progress.
+         */
+        get: operations["listAITagSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/tag-suggestions/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request missing-only or full controlled suggestion generation */
+        post: operations["requestAITagSuggestionJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/video-semantic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read recorded video indexing progress without inference
+         * @description Returns recorded library-wide coverage for the current active generation. Offline libraries and disabled analysis retain recorded coverage. Null coverage means no progress exists for this generation, not zero eligible or completion. This read does not call inference, start jobs, or indicate model health. Unclassified remainder is pending. Successful removal scans may reset unknown degraded/failed/stale attribution to pending until backfill recomputes it.
+         */
+        get: operations["getLibraryVideoSemanticStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/libraries/{libraryId}/ai/video-semantic/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request missing-only or full complete-storyboard semantic work */
+        post: operations["requestVideoSemanticJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/libraries/{libraryId}/assets": {
         parameters: {
             query?: never;
@@ -862,6 +1695,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List administrator-created people using stable keyset pagination */
+        get: operations["listPeople"];
+        put?: never;
+        /** Create a named person, optionally from a reviewed anonymous core */
+        post: operations["createPerson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** Get one named person and confirmed assignment counts */
+        get: operations["getPerson"];
+        put?: never;
+        post?: never;
+        /** Delete a person entity while preserving original media */
+        delete: operations["deletePerson"];
+        options?: never;
+        head?: never;
+        /** Rename one person without merging duplicate names */
+        patch: operations["renamePerson"];
+        trace?: never;
+    };
+    "/api/v1/people/{personId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        /** List assets with manually confirmed faces for one person */
+        get: operations["listPersonAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/{personId}/merge-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Explain current constraints before a person merge
+         * @description Read-only advisory snapshot. The write transaction always rechecks all constraints. Examples are at most three distinct currently readable photo pairs; no example does not mean no constraint. No face IDs, paths or model outputs are exposed.
+         */
+        get: operations["getPersonMergeCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -929,6 +1845,87 @@ export interface paths {
          *     fails with `scan_already_finished`.
          */
         post: operations["cancelScan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fuse filename, parent path and image semantic matches with actual evidence
+         * @description ADR-0031 relevance v1. All literal terms must occur in the filename and/or
+         *     parent library-relative directory. A filename is not also a parent-path hit.
+         *     Current image vectors with cosine >=0.20 contribute semantic evidence;
+         *     this is a retrieval cutoff, not calibrated confidence. Dual-source hits
+         *     precede literal-only then semantic-only, with cosine DESC and asset ID ASC
+         *     within each tier. Each asset occurs once. Video semantic frames remain on
+         *     the existing semantic/videos endpoint; videos here can match literal fields.
+         *     OCR uses source-bound current enabled-library plaintext, with bounded original line excerpts. OCR-only never calls the semantic encoder. All-mode explicitly degrades to literal/OCR search if
+         *     semantics is disabled or unavailable. Semantic-only reports unavailability.
+         *     The authenticated cursor binds query hash, filters, catalog/semantic snapshot,
+         *     query vector hash and ordering tuple. Snapshot changes require a refresh.
+         */
+        get: operations["searchAssetsWithSources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/semantic/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search indexed images by Chinese or English visual description
+         * @description Omit `libraryId` for all enabled libraries. `directoryId` requires a
+         *     library and selects direct children unless `recursive=true`. Results
+         *     use `score DESC, asset_id ASC`; the score is not exposed as a percent.
+         *     The cursor binds normalized query fingerprint, scope, catalog revision,
+         *     model generation, semantic generation, progress revision, and the last
+         *     ordering tuple. Query text is never logged or placed in the cursor.
+         */
+        get: operations["searchAssetsBySemantics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/semantic/videos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search videos using only complete active storyboard plans
+         * @description A video score is the maximum frame score from one complete 10-frame
+         *     plan, or from one complete 4-frame fallback. Ties use frame ordinal
+         *     then asset ID. Partial or mixed plans never enter results.
+         *     After a successful scan removes videos, coverage retains only proven
+         *     current completed plans. Unattributable aggregate degraded/failed/stale
+         *     counts are reset to pending for surviving videos until backfill runs;
+         *     historical operation outcomes are unchanged.
+         */
+        get: operations["searchVideosBySemantics"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1009,7 +2006,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List manual tags in stable name order */
+        /**
+         * List manual tags in stable name order
+         * @description Without libraryId or kind, returns the global tag vocabulary, including
+         *     tags with no associated assets. When either filter is supplied, returns
+         *     only tags carried by matching assets; assetCount counts distinct asset
+         *     IDs within that scope. Use kind=image,animated for an image-only tag cloud;
+         *     kind=image alone does not include animated images. Cursors are bound to
+         *     library scope, normalized media kinds, normalized search, and the curation
+         *     revision. Unknown libraries fail explicitly and never fall back globally.
+         */
         get: operations["listTags"];
         put?: never;
         /**
@@ -1125,6 +2131,190 @@ export interface components {
             id: components["schemas"]["ResourceID"];
             username: components["schemas"]["Username"];
         };
+        AIModel: {
+            active: boolean;
+            /** @enum {string} */
+            architecture: "amd64" | "arm64";
+            /** Format: int64 */
+            availabilityRevision: number;
+            id: components["schemas"]["ResourceID"];
+            /** @description Reviewed license identifier, not arbitrary package text. */
+            licenseId: string;
+            /** Format: int64 */
+            packageSizeBytes: number;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "face_detection_embedding";
+            /** @enum {string} */
+            state: "installed" | "available" | "unavailable";
+            /**
+             * @description Service models are deployment-owned; legacy file installation and activation endpoints do not accept them.
+             * @enum {string}
+             */
+            storageMode: "managed" | "direct" | "service";
+            version: string;
+        };
+        AIModelCandidate: {
+            /** @enum {string} */
+            architecture: "amd64" | "arm64" | "unknown";
+            /** @enum {string} */
+            compatibility: "compatible" | "unknown_package" | "wrong_architecture" | "invalid_manifest" | "unsafe_source";
+            id: components["schemas"]["ResourceID"];
+            licenseId: string;
+            /** Format: int64 */
+            packageSizeBytes: number;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "unknown";
+            version: string;
+        };
+        AIModelCandidateScan: {
+            candidates: components["schemas"]["AIModelCandidate"][];
+            /** Format: int64 */
+            revision: number;
+            scannedAt: components["schemas"]["Timestamp"];
+            /** @description True when the bounded scan found more entries than may be reported. */
+            truncated: boolean;
+        };
+        AIModelDownload: {
+            /** @enum {string} */
+            compatibility: "compatible" | "architecture_mismatch";
+            id: string;
+            installedModelId: components["schemas"]["NullableResourceID"];
+            licenseId: string;
+            name: string;
+            operation: components["schemas"]["AIModelOperation"] | null;
+            /** Format: int64 */
+            packageSizeBytes: number;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "face_detection_embedding";
+            sourceLabel: string;
+            version: string;
+        };
+        AIModelDownloadPage: {
+            items: components["schemas"]["AIModelDownload"][];
+            /** @description Built-in informational candidates, not installable downloads. Missing in older servers. */
+            presets?: components["schemas"]["AIModelPreset"][];
+            /** @description Semantic inference dependencies are compiled into this build; activation still validates the model. */
+            runtimeAvailable: boolean;
+        };
+        AIModelOperation: {
+            /**
+             * Format: int64
+             * @description Managed model_install reports received bytes; other operation kinds report processed items.
+             */
+            completedItems: number;
+            createdAt: components["schemas"]["Timestamp"];
+            /** @enum {string|null} */
+            errorCode: "model_candidate_stale" | "download_failed" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "model_invalid_output" | "vocabulary_unavailable" | "storyboard_not_ready" | "face_model_unavailable" | "library_not_ready" | "library_scanning" | "library_offline" | "face_disabled" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "operation_interrupted" | "cancelled" | "internal_error" | null;
+            id: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            kind: "model_install" | "model_activate" | "semantic_missing" | "semantic_rebuild" | "semantic_clear" | "tag_suggestion_missing" | "tag_suggestion_rebuild" | "tag_review_clear" | "automatic_tags_missing" | "automatic_tags_rebuild" | "video_semantic_missing" | "video_semantic_rebuild" | "face_missing" | "face_rebuild" | "face_derived_clear" | "face_manual_clear";
+            /** @enum {string} */
+            phase: "queued" | "scanning" | "verifying" | "copying" | "loading" | "building" | "detecting" | "clustering" | "validating" | "clearing" | "finalizing" | "completed";
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+            /**
+             * Format: int64
+             * @description Managed model_install reports manifest package bytes; null means the total is not yet known.
+             */
+            totalItems: number | null;
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        AIModelPage: {
+            activeFaceModelId: components["schemas"]["NullableResourceID"];
+            activeModelId: components["schemas"]["NullableResourceID"];
+            items: components["schemas"]["AIModel"][];
+            /** Format: int64 */
+            revision: number;
+        };
+        AIModelPreset: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            purpose: "semantic_image_text" | "face_detection_embedding";
+            /** @enum {string} */
+            readiness: "package_pending" | "adapter_pending";
+            sourceLabel: string;
+        };
+        AIModelProxySettings: {
+            /** @enum {string} */
+            mode: "inherit" | "direct" | "custom";
+            /** @description Credential-free proxy origin; empty unless custom. Never a download URL. */
+            proxyUrl: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        AIModelProxySnapshot: {
+            deploymentConfigured: boolean;
+            /** @enum {string} */
+            effectiveMode: "direct" | "proxy";
+            /** @enum {string} */
+            mode: "inherit" | "direct" | "custom";
+            /** @description Credential-free proxy origin; empty unless custom. Never a download URL. */
+            proxyUrl: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        AIModelProxyTestResult: {
+            available: boolean;
+        };
+        AITagSuggestion: {
+            asset: components["schemas"]["Asset"];
+            /** Format: float */
+            confidence: number;
+            generationId: components["schemas"]["ResourceID"];
+            id: components["schemas"]["ResourceID"];
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: date-time */
+            reviewedAt: string | null;
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "dismissed";
+            tag: components["schemas"]["AITagVocabularyEntry"];
+            /** Format: int64 */
+            vocabularyRevision: number;
+        };
+        AITagSuggestionPage: {
+            coverage: components["schemas"]["DerivedCoverage"];
+            items: components["schemas"]["AITagSuggestion"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        AITagSuggestionReviewRequest: {
+            items: {
+                /** @enum {string} */
+                action: "accept" | "dismiss";
+                /** Format: int64 */
+                expectedCurationRevision: number;
+                /** Format: int64 */
+                expectedSuggestionRevision: number;
+                suggestionId: components["schemas"]["ResourceID"];
+            }[];
+        };
+        AITagSuggestionReviewResponse: {
+            items: {
+                /** @enum {string} */
+                outcome: "accepted" | "dismissed" | "conflict";
+                /** Format: int64 */
+                revision: number;
+                suggestionId: components["schemas"]["ResourceID"];
+            }[];
+        };
+        AITagVocabulary: {
+            entries: components["schemas"]["AITagVocabularyEntry"][];
+            publishedAt: components["schemas"]["Timestamp"];
+            /** Format: int64 */
+            revision: number;
+        };
+        AITagVocabularyEntry: {
+            /** @description Existing administrator-owned tag display name; never model-generated free text. */
+            name: string;
+            tagId: components["schemas"]["ResourceID"];
+        };
+        AITagVocabularyUpdate: {
+            tagIds: components["schemas"]["ResourceID"][];
+        };
         /**
          * @description Canonical UTF-8 path relative to the allowed `/library` mount, carried
          *     as a JSON string rather than a URL path. The empty string means
@@ -1165,6 +2355,8 @@ export interface components {
             playbackStatus: components["schemas"]["PlaybackStatus"];
             probeStatus: components["schemas"]["ProbeStatus"];
             relativePath: components["schemas"]["LibraryRelativePath"];
+            /** @description Present on literal search results only. Catalog-owned filename/parent-directory evidence; not semantic inference. */
+            searchSources?: ("filename" | "path")[];
             /** Format: int64 */
             sizeBytes: number;
             sourceAvailability: components["schemas"]["SourceAvailability"];
@@ -1192,7 +2384,23 @@ export interface components {
             favoritedAt: string | null;
             /** Format: int64 */
             revision: number;
-            tags: components["schemas"]["Tag"][];
+            tags: components["schemas"]["AssetTag"][];
+        };
+        AssetFace: {
+            assetId: components["schemas"]["ResourceID"];
+            /** @description Sorted opaque peer IDs among the same photo's current face projection only. New servers return an array, including empty; absence on an older server means unknown, not no constraint. No cross-photo IDs are exposed. */
+            readonly cannotLinkFaceIds?: components["schemas"]["ResourceID"][];
+            faceId: components["schemas"]["ResourceID"];
+            ordinal: number;
+            personId: components["schemas"]["NullableResourceID"];
+            region: components["schemas"]["FaceRegion"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "assigned" | "excluded" | "anonymous_core" | "anonymous_edge" | "unclustered";
+        };
+        AssetFacePage: {
+            items: components["schemas"]["AssetFace"][];
         };
         /** @enum {string} */
         AssetKind: "image" | "animated" | "video";
@@ -1204,6 +2412,55 @@ export interface components {
             counts: components["schemas"]["AssetCounts"];
             items: components["schemas"]["Asset"][];
             nextCursor: components["schemas"]["NullableCursor"];
+        };
+        /** @description A per-image association; manual source wins over automatic updates. Global tag vocabulary has no source. */
+        AssetTag: {
+            /** Format: int64 */
+            assetCount: number;
+            createdAt: components["schemas"]["Timestamp"];
+            id: components["schemas"]["ResourceID"];
+            localization?: components["schemas"]["TagLocalization"];
+            name: string;
+            /** @enum {string} */
+            source: "manual" | "ai";
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        AssignClusterReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "assign_cluster";
+            clusterId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            expectedClusterRevision: number;
+            /** Format: int64 */
+            expectedPersonRevision: number;
+            personId: components["schemas"]["ResourceID"];
+        };
+        /**
+         * @description Assign an unbound face, or atomically move a bound face when both
+         *     sourcePersonId and expectedSourceRevision identify its current owner.
+         *     The source fields must be supplied together. Omitting them never steals
+         *     a bound assignment. A detached needs-review lineage may be reassigned;
+         *     its previous owner revision is captured transactionally for guarded undo.
+         *     Existing cannot-link constraints are preserved and block owner transfer.
+         */
+        AssignFaceReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "assign_face";
+            /** Format: int64 */
+            expectedFaceRevision: number;
+            /** Format: int64 */
+            expectedPersonRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
+            faceId: components["schemas"]["ResourceID"];
+            personId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
         };
         AuthStatus: {
             /**
@@ -1218,6 +2475,34 @@ export interface components {
         AutomaticDiscoveryErrorCode: "watch_unavailable" | "watch_resource_limit" | "watch_overflow" | "source_unavailable" | "internal_error" | null;
         /** @enum {string} */
         AutomaticDiscoveryStatus: "active" | "degraded" | "unsupported" | "disabled";
+        AutomaticTagLibrarySettings: {
+            activeOperationId: components["schemas"]["NullableResourceID"];
+            coverage: {
+                /** Format: int64 */
+                completed: number;
+                /** Format: int64 */
+                eligible: number;
+                /** Format: int64 */
+                failed: number;
+                /** Format: int64 */
+                revision: number;
+                /** Format: int64 */
+                stale: number;
+            };
+            enabled: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            model: {
+                displayName: string;
+                identity: string;
+                /** @enum {string} */
+                protocol: "foliopath-tag-v1";
+            } | null;
+            offline: boolean;
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "awaiting_model" | "building" | "ready" | "degraded";
+        };
         /**
          * @description One indexed location in a root-to-current breadcrumb chain. The root
          *     uses the media-library display name and an empty relative path.
@@ -1282,9 +2567,51 @@ export interface components {
              */
             usageBytes: number;
         };
+        /** @description Mark two currently bound faces as belonging to different active people. All four person guard fields must be provided together for a new write and match left/source and right/target owners. An absent guard is accepted only for historical same-key replay; an unfenced new write conflicts without changes. Undo of a new action also checks the recorded person and anchor versions. */
+        CannotLinkFaceReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "cannot_link";
+            /** Format: int64 */
+            expectedLeftRevision: number;
+            /** Format: int64 */
+            expectedRightRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
+            /** Format: int64 */
+            expectedTargetRevision?: number;
+            leftFaceId: components["schemas"]["ResourceID"];
+            rightFaceId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
+            targetPersonId?: components["schemas"]["ResourceID"];
+        };
         CatalogState: {
             /** Format: int64 */
             contentRevision: number;
+        };
+        ClearFaceDataRequest: {
+            /** @enum {string} */
+            confirmation: "clear_derived_face_data";
+        };
+        ClearManualFaceRelationshipsRequest: {
+            /** @enum {string} */
+            confirmation: "clear_manual_face_relationships";
+            /** Format: int64 */
+            expectedAssignmentCount: number;
+            /** Format: int64 */
+            expectedConstraintCount: number;
+            /** Format: int64 */
+            expectedPersonCount: number;
+        };
+        ClearSemanticDataRequest: {
+            /** @enum {string} */
+            confirmation: "clear_semantic_data";
+        };
+        ClearTagSuggestionReviewsRequest: {
+            /** @enum {string} */
+            confirmation: "clear_tag_suggestion_reviews";
         };
         CreateLibraryRequest: {
             /** @description Instance-unique name after server normalization. */
@@ -1294,6 +2621,12 @@ export interface components {
         CreateLibraryResult: {
             library: components["schemas"]["Library"];
             scan: components["schemas"]["ScanRun"];
+        };
+        CreatePersonRequest: {
+            /** Format: int64 */
+            expectedClusterRevision?: number | null;
+            name: string;
+            sourceClusterId?: components["schemas"]["NullableResourceID"];
         };
         CuratedAsset: {
             asset: components["schemas"]["Asset"];
@@ -1309,6 +2642,22 @@ export interface components {
          *     plaintext media-library or filesystem path and must not be parsed by a client.
          */
         Cursor: string;
+        DerivedCoverage: {
+            complete: boolean;
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            degraded: number;
+            /** Format: int64 */
+            eligible: number;
+            excludedLibraries?: components["schemas"]["SemanticExcludedLibrary"][];
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            revision: number;
+            /** Format: int64 */
+            stale: number;
+        };
         /**
          * @description Indexed directory snapshot. For the library root, `name` is derived
          *     from the current library display name, `relativePath` is empty, and
@@ -1375,12 +2724,185 @@ export interface components {
          * @description Stable machine-readable code. New public codes require a contract change.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
+        ErrorCode: "model_download_unavailable" | "model_download_active" | "invalid_request" | "validation_failed" | "invalid_cursor" | "invalid_credentials" | "setup_closed" | "setup_in_progress" | "authentication_required" | "session_expired" | "csrf_invalid" | "origin_invalid" | "forbidden" | "rate_limited" | "resource_not_found" | "library_not_found" | "directory_not_found" | "asset_not_found" | "tag_not_found" | "scan_not_found" | "removal_not_found" | "ai_operation_not_found" | "library_name_conflict" | "tag_name_conflict" | "library_path_overlap" | "library_root_unavailable" | "library_root_outside_allowed" | "library_root_symlink" | "library_root_mount_boundary" | "idempotency_conflict" | "precondition_required" | "precondition_failed" | "settings_invalid" | "scan_already_finished" | "ai_operation_already_finished" | "ai_disabled" | "model_candidate_stale" | "model_incompatible" | "model_source_unavailable" | "model_source_unsafe" | "model_unavailable" | "semantic_not_ready" | "semantic_cursor_stale" | "search_cursor_stale" | "semantic_busy" | "vocabulary_unavailable" | "suggestion_cursor_stale" | "storyboard_not_ready" | "video_semantic_not_ready" | "face_disabled" | "face_model_unavailable" | "face_not_ready" | "library_offline" | "face_cursor_stale" | "face_not_found" | "cluster_not_found" | "cluster_not_group_assignable" | "person_not_found" | "face_constraint_conflict" | "face_review_not_found" | "face_review_not_undoable" | "insufficient_space" | "source_offline" | "source_missing" | "source_unreadable" | "unsupported_media" | "invalid_media" | "thumbnail_failed" | "media_processing_timeout" | "invalid_range" | "range_not_satisfiable" | "service_not_ready" | "application_data_unavailable" | "internal_error";
         ErrorResponse: {
             error: components["schemas"]["Error"];
         };
+        /** @description Exclude one face. The source fields must be supplied together. Omitted source guard asserts the face currently has no person assignment. Assigned faces require both exact source fields; mismatches return face_constraint_conflict without writes. Historical same-key replay remains idempotent. */
+        ExcludeFaceReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "exclude_face";
+            /** Format: int64 */
+            expectedFaceRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision?: number;
+            faceId: components["schemas"]["ResourceID"];
+            sourcePersonId?: components["schemas"]["ResourceID"];
+        };
+        /** @enum {string} */
+        FaceAssetFailureCode: "media_unreadable" | "invalid_media" | "inference_invalid_output" | "inference_timeout" | "analysis_failed";
+        FaceCluster: {
+            id: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            kind: "core" | "edge";
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            memberCount: number;
+            /**
+             * Format: int64
+             * @description Faces without a current manual person assignment or exclusion, at this read snapshot. memberCount remains the total face count.
+             */
+            pendingMemberCount: number;
+            previewAssetIds: components["schemas"]["ResourceID"][];
+            /** Format: int64 */
+            revision: number;
+        };
+        /** @description Exact counts for the selected library and kind in the same snapshot as items, before review filtering and pagination. Faces are not distinct photos. */
+        FaceClusterCounts: {
+            /** Format: int64 */
+            pendingFaces: number;
+            /** Format: int64 */
+            pendingGroups: number;
+            /** Format: int64 */
+            totalFaces: number;
+            /** Format: int64 */
+            totalGroups: number;
+        };
+        FaceClusterDetailPage: {
+            cluster: components["schemas"]["FaceCluster"];
+            items: components["schemas"]["FaceClusterMember"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        FaceClusterMember: {
+            assetId: components["schemas"]["ResourceID"];
+            faceId: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            kind: "core" | "edge";
+            region: components["schemas"]["FaceRegion"];
+            /** Format: int64 */
+            revision: number;
+        };
+        FaceClusterPage: {
+            counts: components["schemas"]["FaceClusterCounts"];
+            coverage: components["schemas"]["DerivedCoverage"];
+            /** @description True only after the frozen legal quality gate proves core precision at least 99.5%. */
+            groupAssignmentAllowed: boolean;
+            items: components["schemas"]["FaceCluster"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        /** @description Current-generation, current-attempt bounded diagnostic summary; no raw exceptions or host paths. Legacy failures may lack details. New attempts replace previous attempt details. */
+        FaceFailureDiagnostics: {
+            latestTask: {
+                /** @description Safe terminal task code; never a raw exception. library_scanning means bounded scan waiting expired. */
+                errorCode: string | null;
+                operationId: components["schemas"]["ResourceID"];
+                /** @enum {string} */
+                state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+                /** Format: date-time */
+                updatedAt: string;
+            } | null;
+            reasons: {
+                code: components["schemas"]["FaceAssetFailureCode"];
+                /** Format: int64 */
+                count: number;
+            }[];
+            /** Format: int64 */
+            recordedFailures: number;
+            /** @description At most 20 failed assets ordered by asset ID; a diagnostic sample, not a complete log listing. */
+            samples: {
+                assetId: components["schemas"]["ResourceID"];
+                code: components["schemas"]["FaceAssetFailureCode"];
+                name: string;
+                /**
+                 * Format: int64
+                 * @description Current catalog source size. Zero with invalid_media identifies an empty original; absent on older servers.
+                 */
+                sizeBytes?: number;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+            /**
+             * Format: int64
+             * @description Historical coverage failures without persisted per-asset reasons; retry is needed to collect reasons.
+             */
+            unrecordedFailures: number;
+        };
+        FaceLibrarySettings: {
+            activeGenerationId: components["schemas"]["NullableResourceID"];
+            coverage: components["schemas"]["DerivedCoverage"];
+            diagnostics?: components["schemas"]["FaceFailureDiagnostics"];
+            enabled: boolean;
+            /** @description Whether this library's bound face generation matches the deployment's active generation, computed in the same read snapshot. Omitted when either generation is unavailable. False means coverage belongs to historical model results; a missing job will use the current model without deleting manual relationships. */
+            generationCurrent?: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "awaiting_model" | "building" | "ready" | "degraded" | "clearing";
+        };
+        FaceLibrarySettingsUpdate: {
+            enabled: boolean;
+        };
+        /** @description Coarse display-only region rounded to integer percentages; not an exact detector box. */
+        FaceRegion: {
+            heightPercent: number;
+            widthPercent: number;
+            xPercent: number;
+            yPercent: number;
+        };
+        FaceReviewRequest: components["schemas"]["AssignFaceReview"] | components["schemas"]["AssignClusterReview"] | components["schemas"]["ExcludeFaceReview"] | components["schemas"]["CannotLinkFaceReview"] | components["schemas"]["MergePeopleReview"] | components["schemas"]["SplitFaceReview"];
+        FaceReviewResult: {
+            /** @enum {string} */
+            action: "assign_face" | "assign_cluster" | "exclude_face" | "cannot_link" | "merge_people" | "split_face" | "undo";
+            affectedPersonIds: components["schemas"]["ResourceID"][];
+            reviewId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            revision: number;
+            undoable: boolean;
+        };
         FavoriteUpdate: {
             favorite: boolean;
+        };
+        FusedSearchPage: {
+            coverage: components["schemas"]["SemanticSearchCoverage"] | null;
+            items: {
+                asset: components["schemas"]["Asset"];
+                /** @description Present only for OCR source. Original-text excerpts, not HTML or a complete transcript; line is 1-based recognition order, not a page number. Scores are not exposed. */
+                ocr: {
+                    line: number;
+                    text: string;
+                }[] | null;
+                /**
+                 * Format: float
+                 * @description Actual cosine for semantic evidence only; never a confidence percentage.
+                 */
+                semanticScore: number | null;
+                sources: ("filename" | "path" | "semantic" | "ocr")[];
+            }[];
+            nextCursor: components["schemas"]["NullableCursor"];
+            /** @description Current scope and enabled ready libraries only; ready includes blank images, failed excludes pending/stale. eligible minus ready minus failed is pending or stale. */
+            ocrCoverage: {
+                /** Format: int64 */
+                eligible: number;
+                /** Format: int64 */
+                failed: number;
+                /** Format: int64 */
+                ready: number;
+            } | null;
+            /**
+             * @description Available means deployment configured, not all images indexed. Stored OCR search does not require live inference.
+             * @enum {string}
+             */
+            ocrState: "available" | "disabled" | "not_requested";
+            /** @enum {string} */
+            semanticState: "ready" | "disabled" | "offline" | "unavailable" | "unsupported_query" | "not_requested";
+        };
+        InstallAIModelRequest: {
+            /** @enum {string} */
+            storageMode: "managed" | "direct";
         };
         /**
          * @default browser
@@ -1586,6 +3108,20 @@ export interface components {
              */
             videoPreviewsPendingEligibility: number;
         };
+        MergePeopleReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "merge_people";
+            conflictsAcknowledged: boolean;
+            /** Format: int64 */
+            expectedSourceRevision: number;
+            /** Format: int64 */
+            expectedTargetRevision: number;
+            sourcePersonId: components["schemas"]["ResourceID"];
+            targetPersonId: components["schemas"]["ResourceID"];
+        };
         NotReadyResponse: {
             /**
              * @description Safe operational reason for a failed readiness probe.
@@ -1606,6 +3142,68 @@ export interface components {
          * @description UTC RFC 3339 timestamp, or null when the event has not occurred.
          */
         NullableTimestamp: string | null;
+        OCRCoverage: {
+            /** Format: int64 */
+            eligible: number;
+            /**
+             * Format: int64
+             * @description Subset of ready with zero lines.
+             */
+            empty: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            ready: number;
+            /**
+             * Format: int64
+             * @description Subset of pending with an outdated source in the selected generation.
+             */
+            stale: number;
+        };
+        OCRJob: {
+            /** Format: int64 */
+            attempts: number;
+            /** Format: int64 */
+            epoch: number;
+            /** @enum {string|null} */
+            errorCode: null | "model_unavailable" | "identity_mismatch" | "inference_failed" | "output_limit" | "preprocess_failed" | "source_unavailable" | "interrupted";
+            /** Format: int64 */
+            failed: number;
+            fingerprint: string;
+            id: string;
+            libraryId: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            mode: "missing" | "retry_failed";
+            /**
+             * Format: int64
+             * @description Recorded attempts including definitive source failures; not images with text.
+             */
+            recorded: number;
+            /**
+             * Format: int64
+             * @description Ownership revision; progress alone does not change this cancellation guard.
+             */
+            revision: number;
+            /** @enum {string} */
+            state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+        };
+        OCRStatus: {
+            clearing: boolean;
+            coverage: components["schemas"]["OCRCoverage"];
+            enabled: boolean;
+            /** Format: int64 */
+            epoch: number;
+            expectedFingerprint: string;
+            fingerprint: string | null;
+            latestJob: components["schemas"]["OCRJob"] | null;
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "clearing" | "model_mismatch" | "queued" | "running" | "cancelling" | "pending" | "ready" | "degraded";
+        };
         PasswordChangeRequest: {
             /**
              * Format: password
@@ -1618,6 +3216,59 @@ export interface components {
              *     has no uppercase, digit, or symbol composition requirement.
              */
             newPassword: string;
+        };
+        Person: {
+            /** Format: int64 */
+            assetCount: number;
+            /** Format: int64 */
+            confirmedFaceCount: number;
+            createdAt: components["schemas"]["Timestamp"];
+            id: components["schemas"]["ResourceID"];
+            /** @description NFC-normalized administrator-supplied name; duplicates are allowed. */
+            name: string;
+            /** @description Latest modified confirmed photo in a ready library, using mtime then asset ID descending. Null when no currently available bound photo exists. Derived full-photo preview, never a writable person cover or face crop. Counts may include offline bound associations. */
+            readonly previewAssetId: components["schemas"]["NullableResourceID"];
+            /** Format: int64 */
+            revision: number;
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        PersonAsset: {
+            asset: components["schemas"]["Asset"];
+            faceIds: components["schemas"]["ResourceID"][];
+        };
+        PersonAssetPage: {
+            items: components["schemas"]["PersonAsset"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        PersonMergeCheck: {
+            /** @description No known blocking constraints at this snapshot; POST must still recheck. */
+            canMerge: boolean;
+            /**
+             * Format: int64
+             * @description Exact number of face-anchor constraints, including detached or offline relationships.
+             */
+            cannotLinkCount: number;
+            /** Format: int64 */
+            duplicateAssignmentCount: number;
+            /** @description Distinct currently readable photo pairs for cannot-link constraints. May be empty even when blocked. Not a complete relationship list. */
+            examples: {
+                sourceAssetId: string;
+                sourceLibraryId: string;
+                targetAssetId: string;
+                targetLibraryId: string;
+            }[];
+            /** @description The source has more anchors than the existing atomic merge batch permits. */
+            sourceLimitExceeded: boolean;
+            sourcePersonId: string;
+            /** Format: int64 */
+            sourceRevision: number;
+            targetPersonId: string;
+            /** Format: int64 */
+            targetRevision: number;
+        };
+        PersonPage: {
+            items: components["schemas"]["Person"][];
+            nextCursor: components["schemas"]["NullableCursor"];
         };
         /** @enum {string} */
         PlaybackStatus: "playable" | "unsupported_codec" | "not_applicable" | "unknown";
@@ -1655,6 +3306,10 @@ export interface components {
             /** @description New instance-unique name. A root path is deliberately not accepted. */
             name: string;
         };
+        RenamePersonRequest: {
+            name: string;
+        };
+        /** @description Differential manual edit with revision CAS. Unchanged associations retain their source. Removed names are persistently suppressed for this image; explicitly added names become manual and clear same-name suppression. AI reruns cannot undo these changes. */
         ReplaceAssetTagsRequest: {
             tagIds: components["schemas"]["ResourceID"][];
         };
@@ -1723,6 +3378,86 @@ export interface components {
         ScanStatus: "queued" | "running" | "succeeded" | "failed" | "cancelled" | "offline" | "interrupted";
         /** @enum {string} */
         ScanTrigger: "library_created" | "startup" | "manual" | "scheduled";
+        SemanticAssetPage: {
+            coverage: components["schemas"]["SemanticSearchCoverage"];
+            items: components["schemas"]["Asset"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
+        SemanticCoverage: {
+            /** @description True only when every currently eligible image has a reliable current-generation result. */
+            complete: boolean;
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            eligible: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            revision: number;
+            /** Format: int64 */
+            stale: number;
+        };
+        SemanticExcludedLibrary: {
+            libraryId: components["schemas"]["ResourceID"];
+            /** @enum {string} */
+            reason: "disabled" | "offline" | "model_unavailable" | "not_ready";
+        };
+        SemanticJobRequest: {
+            /** @enum {string} */
+            mode: "missing" | "all";
+        };
+        /** @description Recorded image indexing settings and coverage for the active generation. Model unavailability does not erase or hide recorded coverage. The state and coverage describe indexing, not model health; enabling analysis still requires an available active model. */
+        SemanticLibrarySettings: {
+            activeGenerationId: components["schemas"]["NullableResourceID"];
+            coverage: components["schemas"]["SemanticCoverage"];
+            /** @description Whether coverage has a stored progress row for the active generation. False means unknown, not zero candidates or complete; coverage.complete is false in this case. Omitted only by older servers. */
+            coverageRecorded?: boolean;
+            enabled: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "disabled" | "awaiting_model" | "building" | "ready" | "degraded" | "clearing";
+        };
+        SemanticLibrarySettingsUpdate: {
+            enabled: boolean;
+        };
+        SemanticSearchCoverage: {
+            complete: boolean;
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            eligible: number;
+            excludedLibraries: components["schemas"]["SemanticExcludedLibrary"][];
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            stale: number;
+        };
+        SemanticVideoHit: {
+            asset: components["schemas"]["Asset"];
+            matchedFrame: {
+                /** Format: int32 */
+                ordinal: number;
+                /**
+                 * Format: int32
+                 * @enum {integer}
+                 */
+                planSize: 4 | 10;
+                /** Format: int64 */
+                timestampMs: number;
+            };
+            /**
+             * Format: float
+             * @description Finite cosine score; clients must not display it as a probability.
+             */
+            score: number;
+        };
+        SemanticVideoPage: {
+            coverage: components["schemas"]["DerivedCoverage"];
+            items: components["schemas"]["SemanticVideoHit"][];
+            nextCursor: components["schemas"]["NullableCursor"];
+        };
         Session: {
             administrator: components["schemas"]["Administrator"];
             /**
@@ -1794,6 +3529,19 @@ export interface components {
         };
         /** @enum {string} */
         SourceAvailability: "available" | "offline" | "missing" | "unreadable";
+        SplitFaceReview: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            action: "split_face";
+            /** Format: int64 */
+            expectedFaceRevision: number;
+            /** Format: int64 */
+            expectedSourceRevision: number;
+            faceId: components["schemas"]["ResourceID"];
+            sourcePersonId: components["schemas"]["ResourceID"];
+        };
         /**
          * @description Derived video storyboard state. `ready` requires a URL and every layout
          *     field. `pending`, `failed`, `unavailable`, and `not_applicable` require
@@ -1872,8 +3620,15 @@ export interface components {
             assetCount: number;
             createdAt: components["schemas"]["Timestamp"];
             id: components["schemas"]["ResourceID"];
+            localization?: components["schemas"]["TagLocalization"];
             name: string;
             updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description Reviewed AI category display metadata only; never rewrites name, tag ID, manual text or curation. Omitted for unknown/manual associations and mixed/manual/unassigned global tags. Locale is a browser preference, not an inference setting. */
+        TagLocalization: {
+            en: string;
+            key: string;
+            zhCN: string;
         };
         TagNameRequest: {
             /** @description Raw input before server-owned Unicode normalization; normalized display length is at most 32 code points. */
@@ -1915,6 +3670,13 @@ export interface components {
          *     after normalization. Authentication compares only `username_key`.
          */
         Username: string;
+        VideoSemanticStatus: {
+            activeGenerationId: components["schemas"]["NullableResourceID"];
+            coverage: components["schemas"]["DerivedCoverage"] | (never | null);
+            enabled: boolean;
+            libraryId: components["schemas"]["ResourceID"];
+            offline: boolean;
+        };
     };
     responses: {
         /** @description The request syntax, cursor, query combination, or encoded input is invalid. */
@@ -2072,6 +3834,18 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
+        /** @description The requested optional capability is unavailable; core application readiness is unaffected. */
+        ServiceUnavailable: {
+            headers: {
+                "Cache-Control": components["headers"]["NoStore"];
+                "Retry-After": components["headers"]["RetryAfter"];
+                "X-Request-ID": components["headers"]["RequestID"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
         /** @description A per-endpoint authentication, browse, scan, thumbnail, or media limit was reached. */
         TooManyRequests: {
             headers: {
@@ -2108,6 +3882,12 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Opaque, expiring candidate ID bound to one fixed-directory scan revision. */
+        AIModelCandidateIDParameter: components["schemas"]["ResourceID"];
+        /** @description Opaque reviewed model ID with no filename or path semantics. */
+        AIModelIDParameter: components["schemas"]["ResourceID"];
+        /** @description Opaque model or semantic operation ID. */
+        AIOperationIDParameter: components["schemas"]["ResourceID"];
         /** @description Opaque indexed-media ID. It contains no path information. */
         AssetIDParameter: components["schemas"]["ResourceID"];
         /** @description Tagged-media pages default to filesystem modification time descending. */
@@ -2135,6 +3915,8 @@ export interface components {
          *     FTS syntax has no operator meaning.
          */
         DirectorySearchQueryParameter: string;
+        /** @description Opaque bounded face-review audit ID eligible for guarded undo. */
+        FaceReviewIDParameter: components["schemas"]["ResourceID"];
         /**
          * @description Client-generated opaque key retained for at least 24 hours. Use a new
          *     key for a different logical action. Reuse with a different request body
@@ -2187,6 +3969,8 @@ export interface components {
         OriginHeader: string;
         /** @description Opaque parent directory ID. Omit it for the media-library root. */
         ParentDirectoryIDParameter: components["schemas"]["ResourceID"];
+        /** @description Opaque administrator-owned person ID with no identity semantics. */
+        PersonIDParameter: components["schemas"]["ResourceID"];
         /**
          * @description Exactly one byte range (`bytes=start-end`, `bytes=start-`, or
          *     `bytes=-suffixLength`). Multiple, malformed, and unsatisfiable ranges
@@ -2212,13 +3996,21 @@ export interface components {
          */
         SearchQueryParameter: string;
         /**
+         * @description Chinese or English visual description. Outer Unicode whitespace is
+         *     trimmed. Literal tokenizer control strings `</s>` and `<unk>` are
+         *     rejected case-insensitively rather than interpreted as user text or
+         *     model control tokens. The value is never logged, persisted, or encoded
+         *     into cursors.
+         */
+        SemanticQueryParameter: string;
+        /**
          * @description Explicit sort field. When omitted, direct non-search browse uses `name`;
          *     recursive browse and every search use `modifiedAt`.
          */
         SortParameter: "name" | "modifiedAt" | "size";
         /** @description Opaque application tag ID. It contains no media path information. */
         TagIDParameter: components["schemas"]["ResourceID"];
-        /** @description Optional normalized literal substring filter over tag display names. */
+        /** @description Optional normalized literal substring filter over original tag names and reviewed Chinese/English aliases of AI categories associated in the requested library/media-kind scope. Manual names remain unchanged. Expansion is applied before keyset pagination. */
         TagSearchParameter: string;
         /**
          * @description Bounded, server-defined transform variant. `grid` is the static image
@@ -2373,6 +4165,560 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    applyFaceReview: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FaceReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description One atomic review action and bounded audit event committed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceReviewResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    undoFaceReview: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque bounded face-review audit ID eligible for guarded undo. */
+                reviewId: components["parameters"]["FaceReviewIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Compensating action committed against unchanged revisions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceReviewResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    scanAIModelCandidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded safe snapshot of reviewed and rejected candidates. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelCandidateScan"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    installAIModelCandidate: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque, expiring candidate ID bound to one fixed-directory scan revision. */
+                candidateId: components["parameters"]["AIModelCandidateIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallAIModelRequest"];
+            };
+        };
+        responses: {
+            /** @description Verification and installation operation accepted. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    /** @description Relative URL of the model operation. */
+                    Location?: string;
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAIModelDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configured models and runtime status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelDownloadPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    downloadAIModel: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download queued. Progress represents received bytes; installation verifies all hashes. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    /** @description Whether the prior operation was returned. */
+                    "Idempotency-Replayed"?: boolean;
+                    /** @description Relative operation URL. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxySnapshot"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    saveAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelProxySettings"];
+            };
+        };
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxySnapshot"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            412: components["responses"]["PreconditionFailed"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    testAIModelProxy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelProxySettings"];
+            };
+        };
+        responses: {
+            /** @description Administrator-only proxy settings or fixed-source test result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelProxyTestResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description A connectivity test is already running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAIModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Installed reviewed model packages. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    activateAIModel: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque reviewed model ID with no filename or path semantics. */
+                modelId: components["parameters"]["AIModelIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Activation operation accepted. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    /** @description Relative URL of the model operation. */
+                    Location?: string;
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAIOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque model or semantic operation ID. */
+                operationId: components["parameters"]["AIOperationIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current operation state. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    cancelAIOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque model or semantic operation ID. */
+                operationId: components["parameters"]["AIOperationIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancellation accepted or already being applied. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    reviewAITagSuggestions: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITagSuggestionReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Per-item outcomes; conflicts never create partial acceptance for an item. */
+            200: {
+                headers: {
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITagSuggestionReviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAITagVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current immutable vocabulary snapshot projection. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITagVocabulary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    replaceAITagVocabulary: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITagVocabularyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Newly published vocabulary snapshot. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITagVocabulary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             412: components["responses"]["PreconditionFailed"];
             422: components["responses"]["UnprocessableEntity"];
             428: components["responses"]["PreconditionRequired"];
@@ -2579,6 +4925,35 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    listAssetFaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Opaque face IDs and coarse regions; no embedding, crop, score, path, or exact box. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetFacePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     setAssetFavorite: {
         parameters: {
             query?: never;
@@ -2645,6 +5020,43 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    addManualAssetTag: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+                /** @description Opaque application tag ID. It contains no media path information. */
+                tagId: components["parameters"]["TagIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current asset curation with manual association ownership. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCuration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             412: components["responses"]["PreconditionFailed"];
             428: components["responses"]["PreconditionRequired"];
@@ -3350,6 +5762,1033 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getLibraryAutomaticTagSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-library settings; deployment model is read-only, not a user vocabulary. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticTagLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibraryAutomaticTagSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved settings with a new optimistic-concurrency revision. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticTagLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestLibraryAutomaticTagJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Required when mode is all.
+                     * @enum {string}
+                     */
+                    confirmation?: "reprocess_automatic_tags";
+                    /** @enum {string} */
+                    mode: "missing" | "all";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted or coalesced; totalItems is null until the bounded traversal finishes. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAnonymousFaceClusters: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                kind?: "core" | "edge";
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /** @description pending includes only groups with unassigned, non-excluded faces. Omitted means all for compatibility. Cursors bind this filter and the current review snapshot. */
+                review?: "all" | "pending";
+            };
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Anonymous review groups without identity inference, embeddings, crops, or exact boxes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceClusterPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAnonymousFaceCluster: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+            };
+            header?: never;
+            path: {
+                clusterId: components["schemas"]["ResourceID"];
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active-build members with opaque IDs and coarse integer-percent regions only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceClusterDetailPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryFaceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Face settings and aggregate coverage; no embeddings, crops, or exact boxes. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceLibrarySettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibraryFaceSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FaceLibrarySettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated settings; disabling does not erase manual person state. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaceLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearDerivedFaceData: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearFaceDataRequest"];
+            };
+        };
+        responses: {
+            /** @description Derived clear accepted; person and manual constraints are retained. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestFaceAnalysisJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Restart-safe face job accepted or equivalent active intent coalesced. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearManualFaceRelationships: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearManualFaceRelationshipsRequest"];
+            };
+        };
+        responses: {
+            /** @description Destructive manual-state clear accepted after exact confirmation. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryOCR: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibraryOCR: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearLibraryOCR: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    confirmation: "clear_ocr_results";
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Required retry_failed_ocr for retry_failed; empty or omitted for missing.
+                     * @enum {string}
+                     */
+                    confirmation?: "" | "retry_failed_ocr";
+                    /** @enum {string} */
+                    mode: "missing" | "retry_failed";
+                };
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    /** @description Same key and epoch/model/mode returns original job; a changed request conflicts. */
+                    "Idempotency-Replayed"?: boolean;
+                    /** @description Library-scoped job metadata URL. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    cancelLibraryOCRJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                jobId: string;
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Bounded OCR metadata. Empty OCR is ready; job recorded includes source failures. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OCRJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibrarySemanticSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Semantic settings and truthful coverage snapshot. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticLibrarySettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateLibrarySemanticSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticLibrarySettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated semantic settings. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticLibrarySettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearLibrarySemanticData: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearSemanticDataRequest"];
+            };
+        };
+        responses: {
+            /** @description Restart-safe bounded deletion operation accepted. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestLibrarySemanticJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticJobRequest"];
+            };
+        };
+        responses: {
+            /** @description A bounded semantic job was created or an equivalent active intent was coalesced. */
+            202: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "Idempotency-Replayed": components["headers"]["IdempotencyReplayed"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    clearAITagSuggestionReviews: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearTagSuggestionReviewsRequest"];
+            };
+        };
+        responses: {
+            /** @description Review-clear operation accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAITagSuggestions: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                status?: "pending" | "accepted" | "dismissed";
+                tagId?: components["schemas"]["ResourceID"];
+            };
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable bounded suggestion page with truthful coverage. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITagSuggestionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestAITagSuggestionJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Restart-safe bounded suggestion job accepted or coalesced. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getLibraryVideoSemanticStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded progress, including disabled or offline libraries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoSemanticStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    requestVideoSemanticJob: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path: {
+                /** @description Opaque media-library ID. It contains no path information. */
+                libraryId: components["parameters"]["LibraryIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Restart-safe bounded video semantic job accepted or coalesced. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     listLibraryAssets: {
         parameters: {
             query?: {
@@ -3702,6 +7141,252 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    listPeople: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable person page. Duplicate display names are valid. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createPerson: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePersonRequest"];
+            };
+        };
+        responses: {
+            /** @description Person created and optional reviewed assignments committed atomically. */
+            201: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current person projection. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deletePerson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Person and its application-state assignments were removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            412: components["responses"]["PreconditionFailed"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    renamePerson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenamePersonRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed person. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            412: components["responses"]["PreconditionFailed"];
+            422: components["responses"]["UnprocessableEntity"];
+            428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listPersonAssets: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+            };
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable asset page with the confirmed opaque face IDs in each asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonAssetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getPersonMergeCheck: {
+        parameters: {
+            query: {
+                targetPersonId: string;
+            };
+            header?: never;
+            path: {
+                /** @description Opaque administrator-owned person ID with no identity semantics. */
+                personId: components["parameters"]["PersonIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current person revisions and merge constraints from one snapshot; not a merge authorization. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonMergeCheck"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getReleaseInformation: {
         parameters: {
             query?: {
@@ -3808,6 +7493,171 @@ export interface operations {
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    searchAssetsWithSources: {
+        parameters: {
+            query: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Opaque directory ID that defines the browse or search root. Omit it for the media-library root. */
+                directoryId?: components["parameters"]["DirectoryFilterParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                mode?: "all" | "filename" | "semantic" | "ocr";
+                /**
+                 * @description Exclusive upper bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and follow `modifiedFrom` when both are present.
+                 */
+                modifiedBefore?: components["parameters"]["ModifiedBeforeParameter"];
+                /**
+                 * @description Inclusive lower bound for filesystem modification time. It must be a
+                 *     UTC RFC 3339 instant and precede `modifiedBefore` when both are present.
+                 */
+                modifiedFrom?: components["parameters"]["ModifiedFromParameter"];
+                /**
+                 * @description Required plain-text filename/path query across all libraries. It is
+                 *     trimmed, must remain non-empty, and follows the same versioned
+                 *     literal-substring profile as library search.
+                 */
+                q: components["parameters"]["RequiredSearchQueryParameter"];
+                /** @description Include media from all descendant directories of the selected browse root. */
+                recursive?: components["parameters"]["RecursiveParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deduplicated relevance page, actual match sources and semantic availability. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FusedSearchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    searchAssetsBySemantics: {
+        parameters: {
+            query: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Opaque directory ID that defines the browse or search root. Omit it for the media-library root. */
+                directoryId?: components["parameters"]["DirectoryFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /**
+                 * @description Chinese or English visual description. Outer Unicode whitespace is
+                 *     trimmed. Literal tokenizer control strings `</s>` and `<unk>` are
+                 *     rejected case-insensitively rather than interpreted as user text or
+                 *     model control tokens. The value is never logged, persisted, or encoded
+                 *     into cursors.
+                 */
+                q: components["parameters"]["SemanticQueryParameter"];
+                /** @description Include media from all descendant directories of the selected browse root. */
+                recursive?: components["parameters"]["RecursiveParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable image-only semantic result page with truthful coverage. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticAssetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    searchVideosBySemantics: {
+        parameters: {
+            query: {
+                /**
+                 * @description Opaque, versioned, integrity-protected keyset cursor containing a query
+                 *     fingerprint, final sort value, and stable resource-ID tie-breaker. It
+                 *     contains no plaintext filesystem path. A cursor from any different
+                 *     scope, filter, search, sort, or order fails with `invalid_cursor`;
+                 *     the server never falls back to the first page.
+                 */
+                cursor?: components["parameters"]["CursorParameter"];
+                /** @description Opaque directory ID that defines the browse or search root. Omit it for the media-library root. */
+                directoryId?: components["parameters"]["DirectoryFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
+                /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
+                limit?: components["parameters"]["LimitParameter"];
+                /**
+                 * @description Chinese or English visual description. Outer Unicode whitespace is
+                 *     trimmed. Literal tokenizer control strings `</s>` and `<unk>` are
+                 *     rejected case-insensitively rather than interpreted as user text or
+                 *     model control tokens. The value is never logged, persisted, or encoded
+                 *     into cursors.
+                 */
+                q: components["parameters"]["SemanticQueryParameter"];
+                /** @description Include media from all descendant directories of the selected browse root. */
+                recursive?: components["parameters"]["RecursiveParameter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stable video semantic page with best-frame evidence and coverage. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticVideoPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     getSettings: {
@@ -3936,9 +7786,13 @@ export interface operations {
                  *     the server never falls back to the first page.
                  */
                 cursor?: components["parameters"]["CursorParameter"];
+                /** @description One or more media-kind filters. Omit it to include every supported kind. */
+                kind?: components["parameters"]["KindFilterParameter"];
+                /** @description Opaque media-library scope. Omit it to include all libraries. */
+                libraryId?: components["parameters"]["OptionalLibraryIDParameter"];
                 /** @description Requested page size. Values above the maximum are rejected rather than silently producing an unbounded page. */
                 limit?: components["parameters"]["LimitParameter"];
-                /** @description Optional normalized literal substring filter over tag display names. */
+                /** @description Optional normalized literal substring filter over original tag names and reviewed Chinese/English aliases of AI categories associated in the requested library/media-kind scope. Manual names remain unchanged. Expansion is applied before keyset pagination. */
                 q?: components["parameters"]["TagSearchParameter"];
             };
             header?: never;
@@ -3958,6 +7812,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

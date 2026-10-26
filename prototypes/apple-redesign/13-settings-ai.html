@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能功能 — FolioPath</title>
+  <meta name="description" content="FolioPath 智能功能、模型运行环境与智能索引设置">
+  <link rel="icon" href="assets/foliopath-mark-tree.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260730-15">
+  <link rel="stylesheet" href="settings-ai.css?v=20260824-1">
+  <script src="theme.js?v=20260730-8"></script>
+  <script src="settings.js?v=20260824-ai1" defer></script>
+  <script src="settings-ai.js?v=20260824-1" defer></script>
+</head>
+<body data-settings-page="intelligence">
+  <header class="global-header" data-global-header></header>
+  <div class="app-layout">
+    <main class="settings-split-layout">
+      <aside class="settings-sidebar" data-settings-sidebar data-active="intelligence"></aside>
+
+      <div class="settings-pane" id="main-content">
+        <div class="settings-hero settings-hero-row ai-settings-hero">
+          <div>
+            <p class="eyebrow">管理中心</p>
+            <h1>智能功能</h1>
+            <p>按媒体库启用语义搜索、标签建议和人脸归类；模型只生成可重建的派生索引，不修改原始媒体。</p>
+          </div>
+          <button class="btn btn-secondary" type="button" data-check-models>检查运行环境</button>
+        </div>
+
+        <div class="ai-readiness-card" data-readiness-card>
+          <span class="ai-readiness-icon" aria-hidden="true">✓</span>
+          <div>
+            <strong>本机运行环境已就绪</strong>
+            <span>兼容模型包完整 · CPU 模式 · 最近检查：刚刚</span>
+          </div>
+          <span class="library-status ready" data-readiness-badge>可用</span>
+        </div>
+
+        <section aria-labelledby="library-ai-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="library-ai-title">媒体库功能</h2>
+              <p class="settings-section-description">新媒体库默认关闭。启用后，后台按受控队列建立智能索引。</p>
+            </div>
+            <a class="settings-inline-link" href="12-ai-features.html">查看使用界面</a>
+          </div>
+
+          <article class="ai-library-card" data-library-card>
+            <div class="ai-library-heading">
+              <div>
+                <span class="ai-library-mark" aria-hidden="true">家</span>
+                <div>
+                  <h3>家庭影像</h3>
+                  <p>4,978 项媒体 · 智能索引第 3 代</p>
+                </div>
+              </div>
+              <label class="ai-master-switch" for="ai-library-enabled">
+                <span data-library-enabled-copy>已启用</span>
+                <input id="ai-library-enabled" type="checkbox" class="apple-switch" checked data-library-enabled>
+              </label>
+            </div>
+            <div class="ai-capability-grid" data-capability-grid>
+              <label class="ai-capability" for="ai-semantic">
+                <span>
+                  <strong>图片与视频语义搜索</strong>
+                  <small>按画面内容搜索；视频使用抽帧索引。</small>
+                </span>
+                <input id="ai-semantic" type="checkbox" class="apple-switch" checked data-capability>
+              </label>
+              <label class="ai-capability" for="ai-tags">
+                <span>
+                  <strong>标签建议</strong>
+                  <small>只提供候选标签，用户确认后才写入。</small>
+                </span>
+                <input id="ai-tags" type="checkbox" class="apple-switch" checked data-capability>
+              </label>
+              <label class="ai-capability" for="ai-faces">
+                <span>
+                  <strong>人脸检测与匿名归类</strong>
+                  <small>先聚类，再由用户命名、合并或归入人物库。</small>
+                </span>
+                <input id="ai-faces" type="checkbox" class="apple-switch" checked data-capability>
+              </label>
+            </div>
+          </article>
+        </section>
+
+        <section aria-labelledby="models-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="models-title">模型与运行环境</h2>
+              <p class="settings-section-description">FolioPath 固定兼容版本和索引代次，不接受任意模型文件或远程 URL。</p>
+            </div>
+            <div class="ai-model-heading-actions">
+              <button class="btn btn-secondary btn-sm" type="button" data-repair-models>校验并修复</button>
+              <button class="btn btn-primary btn-sm" type="button" data-open-acquire-model>获取模型</button>
+            </div>
+          </div>
+          <div class="ai-model-list">
+            <article class="ai-model-row">
+              <div class="ai-model-copy">
+                <span class="status-dot"></span>
+                <div>
+                  <h3>视觉理解模型包</h3>
+                  <p>用于图片语义、视频抽帧和标签建议</p>
+                </div>
+              </div>
+              <dl class="ai-model-meta">
+                <div><dt>兼容版本</dt><dd>fp-vision-1</dd></div>
+                <div><dt>索引代次</dt><dd>3</dd></div>
+                <div><dt>存储</dt><dd>托管 · 812 MiB</dd></div>
+              </dl>
+              <span class="library-status ready">已验证</span>
+            </article>
+            <article class="ai-model-row">
+              <div class="ai-model-copy">
+                <span class="status-dot"></span>
+                <div>
+                  <h3>人脸特征模型包</h3>
+                  <p>用于人脸检测、特征向量和匿名聚类</p>
+                </div>
+              </div>
+              <dl class="ai-model-meta">
+                <div><dt>兼容版本</dt><dd>fp-face-1</dd></div>
+                <div><dt>索引代次</dt><dd>2</dd></div>
+                <div><dt>存储</dt><dd>托管 · 326 MiB</dd></div>
+              </dl>
+              <span class="library-status ready">已验证</span>
+            </article>
+          </div>
+          <details class="ai-model-details">
+            <summary>查看模型来源、许可证和校验信息</summary>
+            <div class="ai-model-details-body">
+              <p><strong>分发方式：</strong>随 FolioPath 兼容清单下载并校验，不自动替换正在使用的索引模型。</p>
+              <p><strong>许可证：</strong>发布前必须完成模型许可证、再分发范围和商用限制审查。</p>
+              <p><strong>升级规则：</strong>新模型写入新索引代次；成功后再切换，失败时保留上一代可靠索引。</p>
+            </div>
+          </details>
+        </section>
+
+        <section aria-labelledby="index-title">
+          <div class="settings-section-heading">
+            <div>
+              <h2 class="settings-section-title" id="index-title">智能索引</h2>
+              <p class="settings-section-description">索引可暂停、重建或清除；这些操作不会触碰原始媒体。</p>
+            </div>
+          </div>
+          <article class="ai-index-card" data-index-card>
+            <div class="ai-index-main">
+              <div>
+                <strong>家庭影像</strong>
+                <span data-index-status>正在后台建立索引 · 剩余约 18 分钟</span>
+              </div>
+              <strong class="ai-index-percent" data-index-percent>86%</strong>
+            </div>
+            <div class="usage-track" aria-hidden="true"><span style="width: 86%" data-index-bar></span></div>
+            <div class="ai-index-footer">
+              <span data-index-count>4,286 / 4,978 项已处理 · 12 项失败待重试</span>
+              <div class="ai-index-actions">
+                <button class="btn btn-secondary btn-sm" type="button" data-toggle-index>暂停</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-open-rebuild>重建索引</button>
+                <button class="btn btn-danger btn-sm" type="button" data-open-clear>清除派生数据</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section aria-labelledby="resources-title">
+          <h2 class="settings-section-title" id="resources-title">资源限制</h2>
+          <div class="settings-group">
+            <label class="settings-item" for="ai-concurrency">
+              <span class="settings-item-info">
+                <strong>后台并发</strong>
+                <span>CPU 模式建议保持 1，降低浏览时的资源竞争。</span>
+              </span>
+              <span class="settings-item-control">
+                <select id="ai-concurrency" data-concurrency>
+                  <option value="1">1 个任务（推荐）</option>
+                  <option value="2">2 个任务</option>
+                </select>
+              </span>
+            </label>
+            <label class="settings-item" for="ai-idle-only">
+              <span class="settings-item-info">
+                <strong>空闲时优先运行</strong>
+                <span>检测到大量浏览或扫描任务时自动让出资源。</span>
+              </span>
+              <span class="settings-item-control">
+                <input id="ai-idle-only" type="checkbox" class="apple-switch" checked data-idle-only>
+              </span>
+            </label>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="dialog-scrim" hidden data-ai-dialog="rebuild">
+    <section class="dialog settings-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rebuild-ai-title">
+      <h2 id="rebuild-ai-title">重建智能索引？</h2>
+      <p>系统会建立新的索引代次。新索引可用前，当前可靠索引继续服务搜索和人物归类。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-ai-dialog>取消</button>
+        <button class="btn btn-primary" type="button" data-confirm-rebuild>开始重建</button>
+      </div>
+    </section>
+  </div>
+  <div class="dialog-scrim" hidden data-ai-dialog="clear">
+    <section class="dialog settings-dialog" role="alertdialog" aria-modal="true" aria-labelledby="clear-ai-title">
+      <h2 id="clear-ai-title">清除智能派生数据？</h2>
+      <p>将清除语义向量、标签建议、人脸特征与匿名聚类。人物名称和用户确认的标签会保留；原始媒体不会被修改。</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" type="button" data-close-ai-dialog>取消</button>
+        <button class="btn btn-danger" type="button" data-confirm-clear>清除派生数据</button>
+      </div>
+    </section>
+  </div>
+  <div class="dialog-scrim" hidden data-ai-dialog="acquire-model">
+    <section class="dialog settings-dialog ai-model-dialog" role="dialog" aria-modal="true" aria-labelledby="acquire-model-title">
+      <div class="ai-dialog-heading">
+        <div>
+          <p class="eyebrow">模型管理</p>
+          <h2 id="acquire-model-title">获取兼容模型</h2>
+          <p>只接受 FolioPath 兼容清单中的模型包，并在启用前校验版本、许可证和 SHA-256。</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" data-close-ai-dialog>关闭</button>
+      </div>
+
+      <div class="segmented-control ai-source-tabs" role="tablist" aria-label="模型获取方式">
+        <button class="active" type="button" role="tab" aria-selected="true" data-model-source-tab="download">在线下载</button>
+        <button type="button" role="tab" aria-selected="false" data-model-source-tab="directory">映射目录</button>
+      </div>
+
+      <div class="ai-source-panel" data-model-source-panel="download">
+        <div class="inline-status info ai-source-note">
+          下载源由已签名发行清单提供。国内镜像只有在项目或部署者实际配置后才会出现。
+        </div>
+        <label class="field" for="model-download-source">
+          <span>下载源</span>
+          <select id="model-download-source" data-model-download-source>
+            <option value="auto">自动选择可用源</option>
+            <option value="release">FolioPath 发行源</option>
+            <option value="mirror">部署者镜像（已配置）</option>
+          </select>
+          <small>自定义镜像地址由部署配置提供；界面不接受临时任意 URL。</small>
+        </label>
+        <div class="ai-package-list" role="radiogroup" aria-label="选择模型包">
+          <label class="ai-package-option">
+            <input type="radio" name="download-package" value="vision" checked>
+            <span class="ai-package-copy">
+              <strong>视觉理解模型包</strong>
+              <small>fp-vision-1 · 812 MiB · 图片/视频语义与标签建议</small>
+            </span>
+            <span class="library-status ready">兼容</span>
+          </label>
+          <label class="ai-package-option">
+            <input type="radio" name="download-package" value="face">
+            <span class="ai-package-copy">
+              <strong>人脸特征模型包</strong>
+              <small>fp-face-1 · 326 MiB · 人脸检测与匿名聚类</small>
+            </span>
+            <span class="library-status ready">兼容</span>
+          </label>
+        </div>
+        <div class="ai-download-progress" hidden data-download-progress>
+          <div><strong data-download-title>正在下载模型包</strong><span data-download-percent>0%</span></div>
+          <div class="usage-track" aria-hidden="true"><span data-download-bar></span></div>
+          <small data-download-detail>正在连接已审核下载源…</small>
+        </div>
+        <div class="dialog-actions ai-source-actions">
+          <button class="btn btn-secondary" type="button" data-close-ai-dialog>取消</button>
+          <button class="btn btn-primary" type="button" data-start-model-download>下载并校验</button>
+        </div>
+      </div>
+
+      <div class="ai-source-panel" hidden data-model-source-panel="directory">
+        <div class="ai-mapped-path">
+          <div>
+            <strong>模型导入目录</strong>
+            <code>/models</code>
+          </div>
+          <span class="library-status ready">只读映射</span>
+        </div>
+        <p class="settings-caption ai-directory-help">把模型包放入宿主机目录并只读映射到 <code>/models</code>。扫描只识别兼容清单中且哈希匹配的模型包。</p>
+        <div class="ai-package-list" data-mapped-package-list>
+          <label class="ai-package-option">
+            <input type="checkbox" value="vision-local" disabled>
+            <span class="ai-package-copy">
+              <strong>fp-vision-1.foliomodel</strong>
+              <small>812 MiB · SHA-256 已匹配 · 当前版本已安装</small>
+            </span>
+            <span class="library-status ready">已安装</span>
+          </label>
+          <label class="ai-package-option">
+            <input type="checkbox" value="face-local" checked data-local-package>
+            <span class="ai-package-copy">
+              <strong>fp-face-1.foliomodel</strong>
+              <small>326 MiB · SHA-256 已匹配 · 可导入</small>
+            </span>
+            <span class="library-status ready">可导入</span>
+          </label>
+          <div class="ai-package-option incompatible">
+            <input type="checkbox" disabled aria-label="不兼容模型不可选择">
+            <span class="ai-package-copy">
+              <strong>custom-face-model.onnx</strong>
+              <small>不在兼容清单中，不会加载或执行</small>
+            </span>
+            <span class="library-status failed">不兼容</span>
+          </div>
+        </div>
+        <fieldset class="ai-local-mode">
+          <legend>使用方式</legend>
+          <label>
+            <input type="radio" name="local-model-mode" value="copy" checked>
+            <span><strong>复制到托管目录（推荐）</strong><small>保存到 /app/data/models；外部目录移除后仍可运行。</small></span>
+          </label>
+          <label>
+            <input type="radio" name="local-model-mode" value="direct">
+            <span><strong>从映射目录直接使用</strong><small>不额外占用空间；目录必须保持只读且模型不能被替换。</small></span>
+          </label>
+        </fieldset>
+        <div class="inline-status warning ai-source-note" data-local-mode-note>
+          导入需要额外 326 MiB 空间。复制完成前不会替换当前可用模型。
+        </div>
+        <div class="dialog-actions ai-source-actions">
+          <button class="btn btn-secondary" type="button" data-rescan-models>重新扫描</button>
+          <button class="btn btn-primary" type="button" data-import-models>应用所选模型</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="toast" role="status" hidden data-toast></div>
+</body>
+</html>

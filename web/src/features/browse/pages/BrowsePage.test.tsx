@@ -335,6 +335,7 @@ it("separates quick-access all media from the library root directory", async () 
   });
   const quickAccess = screen.getByRole("navigation", { name: "快速访问" });
   const allMedia = within(quickAccess).getByRole("link", { name: "全部媒体" });
+  const people = within(quickAccess).getByRole("link", { name: "人物" });
   const libraryRoot = await within(tree).findByRole("link", {
     name: "家庭影像",
   });
@@ -344,6 +345,10 @@ it("separates quick-access all media from the library root directory", async () 
     "/libraries/lib_family/browse?recursive=1&view=all",
   );
   expect(allMedia).not.toHaveAttribute("aria-current");
+  expect(people).toHaveAttribute(
+    "href",
+    "/intelligence?view=clusters&libraryId=lib_family",
+  );
   expect(libraryRoot).toHaveAttribute("aria-current", "page");
 
   await user.click(allMedia);
@@ -437,22 +442,22 @@ it("filters subdirectories and media within the current directory through URL-ba
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/libraries/lib_family/browse/dir_travel?q=%E6%97%A5%E6%9C%AC",
     );
+    expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
+      "modifiedAt:desc",
+    );
+    expect(vi.mocked(listDirectories)).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: "dir_travel", q: "日本" }),
+    );
+    expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        directoryId: "dir_travel",
+        order: "desc",
+        q: "日本",
+        recursive: false,
+        sort: "modifiedAt",
+      }),
+    );
   });
-  expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
-    "modifiedAt:desc",
-  );
-  expect(vi.mocked(listDirectories)).toHaveBeenCalledWith(
-    expect.objectContaining({ parentId: "dir_travel", q: "日本" }),
-  );
-  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      directoryId: "dir_travel",
-      order: "desc",
-      q: "日本",
-      recursive: false,
-      sort: "modifiedAt",
-    }),
-  );
 
   await user.clear(filter);
   await waitFor(() => {

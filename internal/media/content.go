@@ -23,6 +23,7 @@ var (
 // repository remains the only adapter that knows the database schema.
 type ContentAsset struct {
 	ID                int64
+	LibraryID         int64
 	LibraryRoot       string
 	RelativePath      string
 	Format            Format
@@ -49,6 +50,7 @@ type ContentSource interface {
 
 type Content struct {
 	File        ContentFile
+	LibraryID   int64
 	Name        string
 	MIMEType    string
 	SizeBytes   int64
@@ -105,6 +107,7 @@ func (service *ContentService) Open(ctx context.Context, assetID int64) (Content
 	}
 	return Content{
 		File:        file,
+		LibraryID:   asset.LibraryID,
 		Name:        asset.RelativePath,
 		MIMEType:    asset.MIMEType,
 		SizeBytes:   asset.SizeBytes,
@@ -115,7 +118,7 @@ func (service *ContentService) Open(ctx context.Context, assetID int64) (Content
 }
 
 func validateContentAsset(asset ContentAsset) error {
-	if asset.ID <= 0 || asset.RelativePath == "" || asset.SizeBytes < 0 ||
+	if asset.ID <= 0 || asset.LibraryID <= 0 || asset.RelativePath == "" || asset.SizeBytes < 0 ||
 		!asset.SourceFingerprint.Valid() ||
 		!asset.SourceFingerprint.Matches(asset.SizeBytes, asset.ModifiedAtNS) {
 		return ErrInvalidContentState

@@ -1,0 +1,10 @@
+# Explicit operator opt-in; use after compose.ai.yaml, never on its own.
+# No per-container RAM/swap caps. Docker VM/host capacity still applies.
+# This is not evidence that the default constrained release budget passes.
+services:
+  foliopath:
+    mem_limit: 0
+    memswap_limit: 0
+  machine-learning:
+    mem_limit: 0
+    memswap_limit: 0

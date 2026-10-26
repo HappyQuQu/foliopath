@@ -5,6 +5,8 @@ test "$#" -eq 1
 image=$1
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${repo_root}/tests/release/http_client.sh"
+. "${repo_root}/tests/release/storage.sh"
+configure_release_storage
 smoke_root=$(mktemp -d "${TMPDIR:-/tmp}/foliopath-recovery-smoke.XXXXXX")
 container="foliopath-recovery-smoke-$$"
 http_client="foliopath-recovery-http-client-$$"
@@ -20,15 +22,18 @@ cleanup() {
 	docker rm --force "${http_client}" >/dev/null 2>&1 || true
 	docker rm --force "${container}" "${failure_container}" >/dev/null 2>&1 || true
 	docker volume rm "${full_volume}" >/dev/null 2>&1 || true
+	remove_release_data "${source_root}"
+	remove_release_data "${restore_root}"
+	remove_release_data "${corrupt_root}"
 	chmod -R u+w "${smoke_root}" >/dev/null 2>&1 || true
 	rm -rf -- "${smoke_root}"
 }
 trap cleanup EXIT HUP INT TERM
 
-mkdir -p \
-	"${source_root}" "${backup_root}" "${restore_root}" \
-	"${corrupt_root}" "${media_root}"
-chmod 0777 "${source_root}" "${backup_root}" "${restore_root}" "${corrupt_root}"
+mkdir -p "${backup_root}" "${media_root}"
+create_release_data "${source_root}"
+create_release_data "${restore_root}"
+create_release_data "${corrupt_root}"
 printf '%s\n' "recovery media is immutable" >"${media_root}/sentinel.txt"
 chmod 0444 "${media_root}/sentinel.txt"
 chmod 0555 "${media_root}"
@@ -62,7 +67,7 @@ start_application() {
 		--cap-drop ALL \
 		--security-opt no-new-privileges:true \
 		--tmpfs /tmp:rw,noexec,nosuid,size=16m \
-		--mount "type=bind,src=${data_root},dst=/app/data" \
+		--mount "$(release_data_mount "${data_root}" /app/data)" \
 		--mount "type=bind,src=${media_root},dst=/library,readonly" \
 	"${image}" >/dev/null
 	wait_healthy "${container}"
@@ -71,13 +76,14 @@ start_application() {
 
 stop_application() {
 	docker rm --force "${http_client}" >/dev/null
-	docker stop --time 10 "${container}" >/dev/null
+	docker stop --timeout 10 "${container}" >/dev/null
 	test "$(docker inspect --format '{{.State.ExitCode}}' "${container}")" = "0"
 	docker logs "${container}" | grep -q '"msg":"application.stopped"'
 	docker rm "${container}" >/dev/null
 }
 
 assert_initialized() {
+	docker exec "${container}" /app/foliopath database-check | grep -q "database check passed"
 	docker exec "${http_client}" curl --fail --silent --show-error \
 		http://127.0.0.1:8080/api/v1/auth/status |
 		grep -q '"setupRequired":false'
@@ -125,22 +131,15 @@ test "${setup_status}" = "201"
 assert_initialized
 stop_application
 
-# Offline backup deliberately omits reconstructible cache/tmp state and preserves the SQLite family.
-docker run --rm --user 0:0 --entrypoint sh \
-	--mount "type=bind,src=${source_root},dst=/from,readonly" \
-	--mount "type=bind,src=${backup_root},dst=/backup" \
-	"${release_http_client_image}" \
-	-c "cd /from && tar --exclude='./cache' --exclude='./tmp' -cf /backup/data.tar ."
-docker run --rm --user 0:0 --entrypoint sh \
-	--mount "type=bind,src=${backup_root},dst=/backup,readonly" \
-	--mount "type=bind,src=${restore_root},dst=/restore" \
-	"${release_http_client_image}" \
-	-c "cd /restore && tar -xf /backup/data.tar"
+# Complete backup is taken only after the owner exits normally.
+backup_release_data "${source_root}"
+restore_release_data "${restore_root}"
 
 start_application "${restore_root}"
 assert_initialized
-test -d "${restore_root}/cache"
-test -d "${restore_root}/tmp"
+docker run --rm --network none --entrypoint sh \
+	--mount "$(release_data_mount "${restore_root}" /data ,readonly)" \
+	"${release_http_client_image}" -ec 'test -d /data/cache; test -d /data/tmp'
 stop_application
 
 # A same-version restart proves migration idempotence; SIGKILL then proves WAL recovery.
@@ -169,11 +168,24 @@ assert_startup_fails "full data" \
 	--mount "type=volume,src=${full_volume},dst=/app/data"
 docker volume rm "${full_volume}" >/dev/null
 
-printf '%s\n' "not-a-sqlite-database" >"${corrupt_root}/foliopath.db"
-chmod 0666 "${corrupt_root}/foliopath.db"
+docker run --rm --network none --entrypoint sh \
+	--mount "$(release_data_mount "${corrupt_root}" /data)" \
+	"${release_http_client_image}" -ec 'printf "%s\n" "not-a-sqlite-database" >/data/foliopath.db; chmod 0666 /data/foliopath.db'
 assert_startup_fails "corrupt database" \
-	--mount "type=bind,src=${corrupt_root},dst=/app/data"
+	--mount "$(release_data_mount "${corrupt_root}" /app/data)"
+
+# Refuse unwritable data without erasing the backed-up administrator database.
+database_before=$(release_database_hash "${restore_root}")
+assert_startup_fails "read-only data" \
+	--mount "$(release_data_mount "${restore_root}" /app/data ,readonly)"
+assert_startup_fails "data permissions" \
+	--tmpfs /app/data:rw,noexec,nosuid,size=16m,mode=000
+database_after=$(release_database_hash "${restore_root}")
+test "${database_before}" = "${database_after}"
+start_application "${restore_root}"
+assert_initialized
+stop_application
 
 sentinel_after=$(sha256sum "${media_root}/sentinel.txt" | cut -d ' ' -f 1)
 test "${sentinel_after}" = "${sentinel_before}"
-printf '%s\n' "candidate recovery smoke passed"
+printf '%s\n' "data_storage=${release_data_storage}" "candidate recovery smoke passed"

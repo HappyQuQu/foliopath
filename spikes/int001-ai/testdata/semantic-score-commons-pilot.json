@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "dataset_id": "wikimedia-commons-cosplay-pilot-v1",
+  "evidence_class": "public-license-pilot",
+  "input_pipeline": "original-public-file-direct-decode-diagnostic",
+  "legal_basis": "public-license",
+  "source_api": "https://commons.wikimedia.org/w/api.php",
+  "items": [
+    {
+      "id": "colorful-five-person-group",
+      "filename": "10011168.jpg",
+      "sha256": "6f527ac69fa257844d6966ef9b0c4961667ca211a94a10825c080dfe2fab62b4",
+      "source": {"page_id":10011168,"title":"File:Tekkoshocon 2010 cosplay 136.JPG","revision_timestamp":"2010-04-14T23:31:14Z","original_sha1":"3d2e4a163ac83feccdbee5218286e1e6f974744b","bytes":3931105,"mime":"image/jpeg","width":3264,"height":2448,"url":"https://upload.wikimedia.org/wikipedia/commons/6/65/Tekkoshocon_2010_cosplay_136.JPG","page_url":"https://commons.wikimedia.org/wiki/File:Tekkoshocon_2010_cosplay_136.JPG","artist":"Piotrus","license":"CC BY-SA 3.0","license_url":"https://creativecommons.org/licenses/by-sa/3.0"}
+    },
+    {
+      "id": "blue-pink-masked-pair",
+      "filename": "25932842.jpg",
+      "sha256": "136413372f8e64e19206befdc323b351799f163d3ef54da94d41ce8b75509385",
+      "source": {"page_id":25932842,"title":"File:Kitana Mileena New York Comic Con 2011.jpg","revision_timestamp":"2013-05-06T13:49:17Z","original_sha1":"af3b1a1737bcc7e5f7b44cd33c2387a4846e8a84","bytes":2380420,"mime":"image/jpeg","width":1168,"height":1752,"url":"https://upload.wikimedia.org/wikipedia/commons/7/76/Kitana_Mileena_New_York_Comic_Con_2011.jpg","page_url":"https://commons.wikimedia.org/wiki/File:Kitana_Mileena_New_York_Comic_Con_2011.jpg","artist":"Rob Boudon","license":"CC BY 2.0","license_url":"https://creativecommons.org/licenses/by/2.0"}
+    },
+    {
+      "id": "white-hair-pointed-ears",
+      "filename": "28842665.jpg",
+      "sha256": "f883fd477a40a34a720e25e3b0e3bf14ba139fe7567b1ae02e8c6277e37415e0",
+      "source": {"page_id":28842665,"title":"File:DragonCon 2012 cosplay - Yaya Han.jpg","revision_timestamp":"2014-06-12T22:01:03Z","original_sha1":"7bd65766efecacd85c83ff34e0030b01b41b261e","bytes":406999,"mime":"image/jpeg","width":530,"height":800,"url":"https://upload.wikimedia.org/wikipedia/commons/4/44/DragonCon_2012_cosplay_-_Yaya_Han.jpg","page_url":"https://commons.wikimedia.org/wiki/File:DragonCon_2012_cosplay_-_Yaya_Han.jpg","artist":"Kyle Nishioka","license":"CC BY 2.0","license_url":"https://creativecommons.org/licenses/by/2.0"}
+    },
+    {
+      "id": "black-bat-stage",
+      "filename": "40694738.jpg",
+      "sha256": "ac0810285e9d8da30066ceb266b17a0a1b11c865112ffc0a190ee7e4a13c4855",
+      "source": {"page_id":40694738,"title":"File:Yaya Han as Batgirl at Wintercon 2014 (15779072379).jpg","revision_timestamp":"2021-03-12T17:47:09Z","original_sha1":"1d932df73e57bc265c88492e1ce82ad8fb6fce10","bytes":107463,"mime":"image/jpeg","width":659,"height":824,"url":"https://upload.wikimedia.org/wikipedia/commons/8/84/Yaya_Han_as_Batgirl_at_Wintercon_2014_%2815779072379%29.jpg","page_url":"https://commons.wikimedia.org/wiki/File:Yaya_Han_as_Batgirl_at_Wintercon_2014_(15779072379).jpg","artist":"Richie S","license":"CC BY 2.0","license_url":"https://creativecommons.org/licenses/by/2.0"}
+    },
+    {
+      "id": "red-gold-armor",
+      "filename": "41413823.jpg",
+      "sha256": "6aec538ae09047d368bb707413e457d7bb5cb8ea3caf469d276fae3c28f1710d",
+      "source": {"page_id":41413823,"title":"File:NYCC 2010 - Ame-Comi Wonder Woman (5076160319).jpg","revision_timestamp":"2015-07-06T23:57:55Z","original_sha1":"00ba7caefc716381d2f1cd2955be7eedbf431b65","bytes":4840105,"mime":"image/jpeg","width":2689,"height":4049,"url":"https://upload.wikimedia.org/wikipedia/commons/7/7a/NYCC_2010_-_Ame-Comi_Wonder_Woman_%285076160319%29.jpg","page_url":"https://commons.wikimedia.org/wiki/File:NYCC_2010_-_Ame-Comi_Wonder_Woman_(5076160319).jpg","artist":"Marnie Joyce","license":"CC BY 2.0","license_url":"https://creativecommons.org/licenses/by/2.0"}
+    },
+    {
+      "id": "pink-hair-blue-uniform",
+      "filename": "51503045.jpg",
+      "sha256": "3081f241c00fad8bdf13a1eeefef79e7d6c34da77bad5469c24c178f7990fad9",
+      "source": {"page_id":51503045,"title":"File:前開き (29631226961).jpg","revision_timestamp":"2016-09-18T09:14:19Z","original_sha1":"235f3bd6401f6be3d3fae009821c7462ee4f7648","bytes":3532309,"mime":"image/jpeg","width":3171,"height":5637,"url":"https://upload.wikimedia.org/wikipedia/commons/9/9e/%E5%89%8D%E9%96%8B%E3%81%8D_%2829631226961%29.jpg","page_url":"https://commons.wikimedia.org/wiki/File:%E5%89%8D%E9%96%8B%E3%81%8D_(29631226961).jpg","artist":"Miguel Discart","license":"CC BY-SA 2.0","license_url":"https://creativecommons.org/licenses/by-sa/2.0"}
+    },
+    {
+      "id": "white-hair-sword-closeup",
+      "filename": "61535749.jpg",
+      "sha256": "5e5cc06675a1eda4ca9c3c66679dbd1273be9cc9c628020d84fb90cc57dc3643",
+      "source": {"page_id":61535749,"title":"File:Ciri Cosplay (The Witcher 3 Wild Hunt) • 2.jpg","revision_timestamp":"2017-08-07T09:24:21Z","original_sha1":"061a3b28e3f1276cc096d154d04fb253daaadb60","bytes":11581918,"mime":"image/jpeg","width":5388,"height":3592,"url":"https://upload.wikimedia.org/wikipedia/commons/0/06/Ciri_Cosplay_%28The_Witcher_3_Wild_Hunt%29_%E2%80%A2_2.jpg","page_url":"https://commons.wikimedia.org/wiki/File:Ciri_Cosplay_(The_Witcher_3_Wild_Hunt)_%E2%80%A2_2.jpg","artist":"Makar Vinogradov","license":"CC BY-SA 2.0","license_url":"https://creativecommons.org/licenses/by-sa/2.0"}
+    },
+    {
+      "id": "yellow-dress-photographed",
+      "filename": "81125098.jpg",
+      "sha256": "1e72230ef171543d5bf6bd77cae07083d298216a74e7ab34e3017ad1d6011e95",
+      "source": {"page_id":81125098,"title":"File:SZ 深圳 Shenzhen 福田 Futian 深圳會展中心 SZCEC Convention & Exhibition Center July 2019 SSG cosplay 03.jpg","revision_timestamp":"2019-08-08T12:16:28Z","original_sha1":"dfba82476cabe03c688bf025962dc8ac8e25a331","bytes":2669944,"mime":"image/jpeg","width":3264,"height":2448,"url":"https://upload.wikimedia.org/wikipedia/commons/0/0e/SZ_%E6%B7%B1%E5%9C%B3_Shenzhen_%E7%A6%8F%E7%94%B0_Futian_%E6%B7%B1%E5%9C%B3%E6%9C%83%E5%B1%95%E4%B8%AD%E5%BF%83_SZCEC_Convention_%26_Exhibition_Center_July_2019_SSG_cosplay_03.jpg","page_url":"https://commons.wikimedia.org/?curid=81125098","artist":"GARDUENEA moisim","license":"CC BY-SA 4.0","license_url":"https://creativecommons.org/licenses/by-sa/4.0"}
+    },
+    {
+      "id": "pink-twintail-hand-gesture",
+      "filename": "84289090.jpg",
+      "sha256": "499121286302adfbe623f105567190ac07fd944a8332632a5f466313094752ce",
+      "source": {"page_id":84289090,"title":"File:Cosplay of Junko Enoshima from Danganronpa at Katsucon 2014 (13600371944).jpg","revision_timestamp":"2019-11-23T22:03:03Z","original_sha1":"8605f26020ec9cf6f0bda6f564ff19613312967d","bytes":2179608,"mime":"image/jpeg","width":2700,"height":3600,"url":"https://upload.wikimedia.org/wikipedia/commons/2/2f/Cosplay_of_Junko_Enoshima_from_Danganronpa_at_Katsucon_2014_%2813600371944%29.jpg","page_url":"https://commons.wikimedia.org/wiki/File:Cosplay_of_Junko_Enoshima_from_Danganronpa_at_Katsucon_2014_(13600371944).jpg","artist":"greyloch","license":"CC BY-SA 2.0","license_url":"https://creativecommons.org/licenses/by-sa/2.0"}
+    },
+    {
+      "id": "purple-hair-colorful-wings",
+      "filename": "89705311.jpg",
+      "sha256": "8ae14b045cac21dec6c06d45a6b1d56e8c7c97879c14d13870a667522a401ce2",
+      "source": {"page_id":89705311,"title":"File:Yaya Han at Otakon 20140810a.jpg","revision_timestamp":"2020-05-02T08:14:47Z","original_sha1":"7876ef49543ce34eb98c8afa9dae88ea063d93ac","bytes":1586401,"mime":"image/jpeg","width":3600,"height":2400,"url":"https://upload.wikimedia.org/wikipedia/commons/1/14/Yaya_Han_at_Otakon_20140810a.jpg","page_url":"https://commons.wikimedia.org/wiki/File:Yaya_Han_at_Otakon_20140810a.jpg","artist":"greyloch","license":"CC BY-SA 2.0","license_url":"https://creativecommons.org/licenses/by-sa/2.0"}
+    }
+  ],
+  "queries": [
+    {"id":"group-zh","pair_id":"group","language":"zh-CN","text":"室内五个穿蓝色黄色动物服装的人","relevant":["colorful-five-person-group"]},
+    {"id":"group-en","pair_id":"group","language":"en","text":"five people in blue and yellow animal costumes indoors","relevant":["colorful-five-person-group"]},
+    {"id":"pair-zh","pair_id":"pair","language":"zh-CN","text":"戴面罩拿扇子的蓝色和粉色服装两人","relevant":["blue-pink-masked-pair"]},
+    {"id":"pair-en","pair_id":"pair","language":"en","text":"two masked people in blue and pink costumes holding fans","relevant":["blue-pink-masked-pair"]},
+    {"id":"elf-zh","pair_id":"elf","language":"zh-CN","text":"黑色背景下白色短发尖耳朵的人","relevant":["white-hair-pointed-ears"]},
+    {"id":"elf-en","pair_id":"elf","language":"en","text":"person with short white hair and pointed ears on a black background","relevant":["white-hair-pointed-ears"]},
+    {"id":"bat-zh","pair_id":"bat","language":"zh-CN","text":"舞台上穿黑色蝙蝠服装和面罩的人","relevant":["black-bat-stage"]},
+    {"id":"bat-en","pair_id":"bat","language":"en","text":"person in a black bat costume and mask on a stage","relevant":["black-bat-stage"]},
+    {"id":"armor-zh","pair_id":"armor","language":"zh-CN","text":"黑色长发穿红色金色盔甲的人","relevant":["red-gold-armor"]},
+    {"id":"armor-en","pair_id":"armor","language":"en","text":"person with long black hair wearing red and gold armor","relevant":["red-gold-armor"]},
+    {"id":"uniform-zh","pair_id":"uniform","language":"zh-CN","text":"粉色头发戴蓝色帽子和墨镜的人","relevant":["pink-hair-blue-uniform"]},
+    {"id":"uniform-en","pair_id":"uniform","language":"en","text":"person with pink hair wearing a blue cap and sunglasses","relevant":["pink-hair-blue-uniform"]},
+    {"id":"sword-zh","pair_id":"sword","language":"zh-CN","text":"白色短发、绿色眼睛、身后有剑的人物特写","relevant":["white-hair-sword-closeup"]},
+    {"id":"sword-en","pair_id":"sword","language":"en","text":"close-up person with short white hair green eyes and a sword behind","relevant":["white-hair-sword-closeup"]},
+    {"id":"yellow-zh","pair_id":"yellow","language":"zh-CN","text":"户外坐在地上穿黄色长裙并被拍照的人","relevant":["yellow-dress-photographed"]},
+    {"id":"yellow-en","pair_id":"yellow","language":"en","text":"person in a long yellow dress sitting outdoors while being photographed","relevant":["yellow-dress-photographed"]},
+    {"id":"twintail-zh","pair_id":"twintail","language":"zh-CN","text":"粉色双马尾并伸舌头做手势的人物特写","relevant":["pink-twintail-hand-gesture"]},
+    {"id":"twintail-en","pair_id":"twintail","language":"en","text":"close-up person with pink twin tails sticking out their tongue and making a hand gesture","relevant":["pink-twintail-hand-gesture"]},
+    {"id":"wings-zh","pair_id":"wings","language":"zh-CN","text":"紫色头发、条纹上衣、身后有彩色翅膀的人","relevant":["purple-hair-colorful-wings"]},
+    {"id":"wings-en","pair_id":"wings","language":"en","text":"person with purple hair and striped shirt in front of colorful wings","relevant":["purple-hair-colorful-wings"]},
+    {"id":"masks-zh","pair_id":"masks","language":"zh-CN","text":"戴面罩的角色扮演者","relevant":["blue-pink-masked-pair","black-bat-stage"]},
+    {"id":"masks-en","pair_id":"masks","language":"en","text":"cosplayers wearing face masks","relevant":["blue-pink-masked-pair","black-bat-stage"]},
+    {"id":"color-hair-zh","pair_id":"color-hair","language":"zh-CN","text":"彩色头发的人物近景","relevant":["pink-hair-blue-uniform","pink-twintail-hand-gesture","purple-hair-colorful-wings"]},
+    {"id":"color-hair-en","pair_id":"color-hair","language":"en","text":"close-up portrait of a person with colorful hair","relevant":["pink-hair-blue-uniform","pink-twintail-hand-gesture","purple-hair-colorful-wings"]}
+  ],
+  "caveats": [
+    "Ten public-license photographs are a pilot for scorer/model discrimination, not the 1,000-image acceptance set.",
+    "Visual relevance judgments were made for observable attributes only; character or person identity is intentionally not evaluated.",
+    "Several images carry Wikimedia Commons personality-rights warnings; files remain temporary and are not redistributed in Git."
+  ]
+}

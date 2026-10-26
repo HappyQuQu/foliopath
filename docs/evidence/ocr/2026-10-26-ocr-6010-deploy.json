@@ -1,0 +1,362 @@
+{
+  "change": "DEPLOY-2026-10-26-ocr-6010",
+  "recordedAt": "2026-10-26T02:35:17.690078+00:00",
+  "status": "small-library-acceptance-passed",
+  "scope": "OCR-only frozen delta on original 55cec065 application; later workspace face functionality excluded",
+  "server222Connected": false,
+  "gitCommitOrPush": false,
+  "originalMediaModified": false,
+  "backup": {
+    "verified": true,
+    "oldImage": "sha256:55cec06511ac84e70041e6065a700a2a9869e08e712c5960e652e3e67139ec37",
+    "backup": "/Volumes/extended/foliopath/backup-6010-ocr-20261026-dRCgfu",
+    "entries": 38404,
+    "files": 37376,
+    "bytes": 1095937762,
+    "manifestSha256": "937b8bcf904e81b262b61c8d19e034792c57eba361d2d0fc978017b86c8d08fe",
+    "databaseSha256": "6e837e4cded48f366ce073f09046a9789d2258416498793e27c9b058e10d013d",
+    "configurationSha256": {
+      "ai.env": "f43f554ad69af54afb9066e861a584ba7aa0e97fe6cab3f775398a5d50b42f0a",
+      "compose.ai.yaml": "6ce0f2e60e00ebe1a09ab1afe836576a839e211cf7344d456d92a6c26ff441a1",
+      "compose.ai.unlimited-memory.yaml": "e7b676a3193c384eb8ead7af5553cdd692c8daca38e9f8e47c21f016d445c140",
+      "compose.ai.multilingual.yaml": "43d74e28d05f1bd6df119f4e5327ec91e93a67d923afd04947b7a1da2ea0750f"
+    },
+    "aiId": "8388ddc67e948ae50e57d7d69737c6e1ec9c61de1fda8d997191030c32388351",
+    "aiStartedAt": "2026-10-24T13:48:25.033916136Z",
+    "migrationOutput": "candidate migrations and integrity passed\n",
+    "protectedGroups": 27,
+    "migrationProtectedUnchanged": true,
+    "candidateDatabaseCheck": "passed",
+    "validation": "/Volumes/extended/foliopath/validate-6010-ocr-20261026-MjaKuQ",
+    "databaseCheck": "passed"
+  },
+  "deployment": {
+    "deployed": true,
+    "mainImage": "sha256:7e65789d3f6d487449086e501dfe3a28cf566499e781d035d539b4930d515421",
+    "aiImage": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+    "mainStartedAt": "2026-10-26T02:21:16.672993764Z",
+    "aiStartedAt": "2026-10-26T02:21:04.671161966Z",
+    "bothHealthy": true,
+    "memoryAndSwapUnlimited": true,
+    "mediaAndDataMountsUnchanged": true,
+    "semanticFaceTagIdentitiesUnchanged": true,
+    "backup": "/Volumes/extended/foliopath/backup-6010-ocr-20261026-dRCgfu",
+    "databaseCheck": "passed",
+    "configurationDiff": "main/AI images, independent OCR identity and read-only OCR cache only",
+    "ocrDefaultOffBeforeExplicitEnable": true
+  },
+  "containers": [
+    {
+      "name": "foliopath-ai-original-review-foliopath-1",
+      "image": "sha256:7e65789d3f6d487449086e501dfe3a28cf566499e781d035d539b4930d515421",
+      "startedAt": "2026-10-26T02:21:16.672993764Z",
+      "healthy": "healthy",
+      "restartCount": 0,
+      "OOMKilled": false,
+      "memory": 0,
+      "memorySwap": 0
+    },
+    {
+      "name": "foliopath-ai-original-review-machine-learning-1",
+      "image": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+      "startedAt": "2026-10-26T02:21:04.671161966Z",
+      "healthy": "healthy",
+      "restartCount": 0,
+      "OOMKilled": false,
+      "memory": 0,
+      "memorySwap": 0
+    }
+  ],
+  "aiCgroup": {
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\n",
+    "memory.peak": "3555651584\n",
+    "memory.max": "max\n",
+    "memory.swap.max": "max\n"
+  },
+  "protectedBeforeAndFinal": {
+    "ai_model_operations": {
+      "count": 45,
+      "sha256": "d2da1e88f2b1dbe4c38cdaa30088c002c8823dc8d0d7f85c216dec88a78d6456"
+    },
+    "ai_model_state": {
+      "count": 1,
+      "sha256": "d2ca014d81d385aa2bf361f691bc9a4de3d069ec792ca7993f73ab85c9c1330a"
+    },
+    "aliases": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "all_semantic_vectors": {
+      "count": 22365,
+      "sha256": "5feebf36c0c47eada2b99a013d985495c86593f5f89b271272bf2e23ef2d862f"
+    },
+    "anchors": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "asset_tags": {
+      "count": 48917,
+      "sha256": "be284dded2e75423f3eba25b510f87ab7e514c700852b146a6db7645a0f48a6b"
+    },
+    "autotag_asset_runs": {
+      "count": 8700,
+      "sha256": "38cc8d0607530a055ea49946fbcb4f36eb454e3acc9d4e71b52f71a3fc8b586d"
+    },
+    "autotag_jobs": {
+      "count": 15,
+      "sha256": "d690ba406d9fdfc545583340439fc316072fe583e54567bc935350522de738a9"
+    },
+    "cannot_links": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "exclusions": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "face_analysis_jobs": {
+      "count": 10,
+      "sha256": "b88a5ddfa84606f7a89e8387b8d484aa600df1748fbe9576133aeda20356ac47"
+    },
+    "face_clear_jobs": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "face_clusters": {
+      "count": 2488,
+      "sha256": "c4a2bdd1c6916b0dfc3bac86e7d2212ca5b630ae8321a2705e463e95454bcf9b"
+    },
+    "face_members": {
+      "count": 5884,
+      "sha256": "8c0d266f815649e229e0e813f01b6acd7f646839c91ec545c6085d02be1ffa0a"
+    },
+    "face_observations": {
+      "count": 6700,
+      "sha256": "f18ef8942d0ba038daa6b3a52dc9fb5d7f25058488f47a17e4babd172c49a745"
+    },
+    "face_results": {
+      "count": 10623,
+      "sha256": "e9ef4ed8e7e516dc36f4a76029690023371c7a1d072eeca23f463421b84f39ff"
+    },
+    "favorites": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "manual_tags": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "people": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "semantic_clear_jobs": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "semantic_generation_spaces": {
+      "count": 4,
+      "sha256": "737da9179f8984c3b95aa7cbc95139951620edeebe36e79dab29bef6ebfc87b1"
+    },
+    "semantic_generations": {
+      "count": 4,
+      "sha256": "3ebb64d2d82d61913a844c24603cc676c1e12f8fbe4d5c5ad64333e572d00b7e"
+    },
+    "semantic_jobs": {
+      "count": 14,
+      "sha256": "e934d575fbd6379374ed1c071c016fd72e8695c2ec736c75f41ba600621a2552"
+    },
+    "semantic_tag_jobs": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "semantic_video_jobs": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "suppressions": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tags": {
+      "count": 153,
+      "sha256": "2b1093ce93d92d79131643885fcba01b001ad92b1cc48dca1bc3efe90c55184a"
+    }
+  },
+  "protectedGroupsUnchanged": true,
+  "oldTagCoverageUnchanged": [
+    {
+      "eligible": 6202,
+      "failed": 2,
+      "library_id": 1,
+      "pending": 0,
+      "ready": 6200
+    },
+    {
+      "eligible": 707,
+      "failed": 1,
+      "library_id": 2,
+      "pending": 0,
+      "ready": 706
+    },
+    {
+      "eligible": 792,
+      "failed": 7,
+      "library_id": 3,
+      "pending": 0,
+      "ready": 785
+    },
+    {
+      "eligible": 999,
+      "failed": 0,
+      "library_id": 4,
+      "pending": 0,
+      "ready": 999
+    }
+  ],
+  "OCR": {
+    "onlyEnabledLibrary": "lib_4",
+    "libraryName": "pixiv",
+    "eligible": 999,
+    "ready": 23,
+    "blank": 14,
+    "nonempty": 9,
+    "lines": 33,
+    "failed": 0,
+    "pending": 976,
+    "remainingLibrariesDisabled": true,
+    "job": {
+      "attempt_count": 1,
+      "checkpoint_id": 7743,
+      "completed": 23,
+      "epoch": 2,
+      "error_code": "",
+      "failed": 0,
+      "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+      "id": "ocrjob_22bd0730d13602ac324b7e74705cff89",
+      "library_id": 4,
+      "state": "cancelled",
+      "upper_asset_id": 8719
+    },
+    "sourceProblemsSkipped": 10,
+    "skippedSourcesOCRRows": 0,
+    "fullLibraryCompleted": false,
+    "automaticBackgroundFollowupCreated": false
+  },
+  "browserAcceptance": {
+    "authenticatedSession": true,
+    "enableAndSubmitOnce": true,
+    "stoppedAfterSmallBatch": true,
+    "cancelPreservedCommittedResults": true,
+    "OCRModeActualPersistedTextHit": true,
+    "allModeLoadedFirstPage": 40,
+    "allModeRetainsOCRSourceAndLine": true,
+    "semanticCoverage": {
+      "ready": 999,
+      "eligible": 999,
+      "failed": 0
+    },
+    "noNewTaskError": true,
+    "screenshotLocalPrivate": ".artifacts/ocr-6010-deploy-20261026/fused-ocr-evidence.jpg"
+  },
+  "syntheticDocker": {
+    "status": "passed",
+    "aiImage": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+    "probeImage": "sha256:c4750ffe4ce17e45d4ed3a8a174bcc277143324c13426b9735c8f3a6f49560fa",
+    "clientState": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-10-26T02:14:49.748335126Z",
+      "FinishedAt": "2026-10-26T02:15:20.582402209Z"
+    },
+    "serviceMetrics": {
+      "peak": 2187452416,
+      "events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0",
+        "oom_group_kill": "0",
+        "sock_throttled": "0"
+      }
+    },
+    "syntheticSourceSHA256": {
+      "exif-oriented.jpg": "62ece5736adf7c5f0df9f28fdc2300f0f73a2c8a4753f724e5d388f82588b41c",
+      "empty.png": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blank.png": "5eb1fdc728b8345e0068953c619155579223c382a5eeb1d44d5051e0852631c9",
+      "bilingual.png": "1b48e371f0a8a3a11f2d6cfec3155da1994288b623830bb5eca171515b55e5c4",
+      "corrupt.png": "f905923d6dec117507cb7bcabfa94e046b57c37aa023cfb612166477d76912e7"
+    },
+    "observations": {
+      "clearDisabled": true,
+      "clearHidesSearch": true,
+      "currentSourceFulltext": true,
+      "integrity": true,
+      "missingRepeatRecorded": 0,
+      "nonemptyManualPreserved": true,
+      "ocrSearchHTTP": true,
+      "originalJob": "ocrjob_367862bad840c328ebfaecc2f91d31f6",
+      "outcomes": {
+        "bilingual.png": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 4,
+          "outcome": "ready"
+        },
+        "blank.png": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "ready"
+        },
+        "corrupt.png": {
+          "error": "invalid_media",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "failed"
+        },
+        "empty.png": {
+          "error": "invalid_media",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "failed"
+        },
+        "exif-oriented.jpg": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 4,
+          "outcome": "ready"
+        }
+      },
+      "parkedCompleted": 2,
+      "persistedTextMatchesFixture": true,
+      "resumedSameJob": true,
+      "separateOSProcesses": 3,
+      "status": "passed"
+    },
+    "isolation": "internal network, no ports; single readonly synthetic media mount; DB only inside Linux tmpfs",
+    "scope": "actual application/management/safe source/native OCR/durable tasks, not quality or capacity/release"
+  },
+  "finalDatabaseCheck": "passed",
+  "diagnosticExecutableRemoved": true,
+  "notRerunThisDeployment": "CR052 full Go/Web/browser matrix retains earlier evidence; not relabelled as this frozen candidate full verification",
+  "deferred": [
+    "full library OCR",
+    "90-degree/layout/quality",
+    "retention and combined capacity",
+    "multi-architecture release"
+  ],
+  "finalRepositoryChecks": {
+    "make arch-check": "passed",
+    "documentationLinksAndEvidenceTotals": "passed",
+    "changedDocumentationWhitespace": "passed"
+  }
+}

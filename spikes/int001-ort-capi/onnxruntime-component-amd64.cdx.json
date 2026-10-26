@@ -1,0 +1,97 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:9efd3899-c0d5-54eb-bd7e-b457f8ccfd5e",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-28T00:00:00Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "properties": [
+      {
+        "name": "foliopath:int001:scope",
+        "value": "isolated emulated linux/amd64 package preflight; not native, production, or release evidence"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:generic/onnxruntime@1.28.0?arch=amd64&os=linux",
+      "supplier": {
+        "name": "Microsoft"
+      },
+      "name": "onnxruntime",
+      "version": "1.28.0",
+      "description": "Official ONNX Runtime Linux/x64 C/C++ runtime archive used by the isolated INT-001 emulated amd64 preflight",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1461ef7cc3d9e49982591721683cc3e3a55580aeca9a5254e7aac47b75ee4bab"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:generic/onnxruntime@1.28.0?arch=amd64&os=linux",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.28.0/onnxruntime-linux-x64-1.28.0.tgz",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "a3e1b79d7bb1bf09696ce675f49e4064e6c81f6202b8225624fff0e93f8d6407"
+            }
+          ]
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/microsoft/onnxruntime/tree/da9b5e364c465de65c49d91e696cd6485270757f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "foliopath:int001:archive-sha256",
+          "value": "a3e1b79d7bb1bf09696ce675f49e4064e6c81f6202b8225624fff0e93f8d6407"
+        },
+        {
+          "name": "foliopath:int001:library-sha256",
+          "value": "1461ef7cc3d9e49982591721683cc3e3a55580aeca9a5254e7aac47b75ee4bab"
+        },
+        {
+          "name": "foliopath:int001:git-commit",
+          "value": "da9b5e364c465de65c49d91e696cd6485270757f"
+        },
+        {
+          "name": "foliopath:int001:license-sha256",
+          "value": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+        },
+        {
+          "name": "foliopath:int001:third-party-notices-sha256",
+          "value": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+        },
+        {
+          "name": "foliopath:int001:artifact",
+          "value": "lib/libonnxruntime.so.1.28.0"
+        }
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "incomplete",
+      "assemblies": [
+        "pkg:generic/onnxruntime@1.28.0?arch=amd64&os=linux"
+      ]
+    }
+  ]
+}

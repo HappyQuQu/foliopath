@@ -1,0 +1,180 @@
+package aimodel
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"time"
+)
+
+type Repository interface {
+	ListAIModels(context.Context) (Snapshot, error)
+	GetAIModel(context.Context, string) (Model, error)
+	RegisterAIModel(context.Context, Model) (Model, bool, error)
+	SetAIModelAvailability(context.Context, string, int64, State, time.Time) (Model, error)
+}
+
+func (service *Service) Get(ctx context.Context, modelID string) (Model, error) {
+	if modelID == "" {
+		return Model{}, ErrModelNotFound
+	}
+	model, err := service.repository.GetAIModel(ctx, modelID)
+	if err != nil {
+		return Model{}, err
+	}
+	if err := ValidateModel(model); err != nil {
+		return Model{}, err
+	}
+	return model, nil
+}
+
+type IDGenerator func() (string, error)
+
+type Service struct {
+	repository Repository
+	now        func() time.Time
+	newID      IDGenerator
+}
+
+func NewService(repository Repository, now func() time.Time, newID IDGenerator) (*Service, error) {
+	if repository == nil {
+		return nil, errors.New("AI model repository is required")
+	}
+	if now == nil {
+		now = time.Now
+	}
+	if newID == nil {
+		newID = randomModelID
+	}
+	return &Service{repository: repository, now: now, newID: newID}, nil
+}
+
+func (service *Service) List(ctx context.Context) (Snapshot, error) {
+	snapshot, err := service.repository.ListAIModels(ctx)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if snapshot.Revision < 1 {
+		return Snapshot{}, ErrRepositoryState
+	}
+	semanticFound := snapshot.ActiveModelID == ""
+	faceFound := snapshot.ActiveFaceModelID == ""
+	for index := range snapshot.Items {
+		if err := ValidateModel(snapshot.Items[index]); err != nil {
+			return Snapshot{}, err
+		}
+		expectedActive := snapshot.Items[index].ID == snapshot.ActiveModelID ||
+			snapshot.Items[index].ID == snapshot.ActiveFaceModelID
+		if snapshot.Items[index].Active != expectedActive {
+			return Snapshot{}, ErrRepositoryState
+		}
+		if snapshot.Items[index].ID == snapshot.ActiveModelID {
+			semanticFound = snapshot.Items[index].Package.Purpose == PurposeSemanticImageText
+		}
+		if snapshot.Items[index].ID == snapshot.ActiveFaceModelID {
+			faceFound = snapshot.Items[index].Package.Purpose == PurposeFaceDetectionEmbedding
+		}
+	}
+	if !semanticFound || !faceFound ||
+		(snapshot.ActiveModelID != "" && snapshot.ActiveModelID == snapshot.ActiveFaceModelID) {
+		return Snapshot{}, ErrRepositoryState
+	}
+	return snapshot, nil
+}
+
+func (service *Service) RegisterInstalled(
+	ctx context.Context,
+	verified VerifiedPackage,
+	storageMode StorageMode,
+	sourceIdentity string,
+) (Model, bool, error) {
+	if ValidatePackage(verified) != nil ||
+		(storageMode != StorageManaged && storageMode != StorageDirect) ||
+		sourceIdentity == "" || len(sourceIdentity) > 256 {
+		return Model{}, false, ErrInvalidModel
+	}
+	return service.register(ctx, verified, storageMode, sourceIdentity)
+}
+
+// RegisterDeployment records a deployment-verified semantic model, never a file
+// installation. The caller must have verified the identity before calling.
+// ContentHash/SourceIdentity are the space fingerprint, not a URL or path.
+func (service *Service) RegisterDeployment(ctx context.Context, verified VerifiedPackage) (Model, bool, error) {
+	if ValidatePackage(verified) != nil || verified.Purpose != PurposeSemanticImageText {
+		return Model{}, false, ErrInvalidModel
+	}
+	return service.register(ctx, verified, StorageService, verified.ContentHash)
+}
+
+// RegisterFaceDeployment is internal-only. The caller must independently verify
+// the face service and bind its threshold/transform contract in ContentHash.
+func (service *Service) RegisterFaceDeployment(ctx context.Context, verified VerifiedPackage) (Model, bool, error) {
+	if ValidatePackage(verified) != nil || verified.Purpose != PurposeFaceDetectionEmbedding {
+		return Model{}, false, ErrInvalidModel
+	}
+	return service.register(ctx, verified, StorageService, verified.ContentHash)
+}
+
+func (service *Service) register(ctx context.Context, verified VerifiedPackage, storageMode StorageMode, sourceIdentity string) (Model, bool, error) {
+	id, err := service.newID()
+	if err != nil {
+		return Model{}, false, fmt.Errorf("generate AI model ID: %w", err)
+	}
+	now := service.now().UTC()
+	model := Model{
+		ID:                   id,
+		Package:              verified,
+		StorageMode:          storageMode,
+		State:                StateAvailable,
+		SourceIdentity:       sourceIdentity,
+		AvailabilityRevision: 1,
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+	registered, created, err := service.repository.RegisterAIModel(ctx, model)
+	if err != nil {
+		return Model{}, false, err
+	}
+	if err := ValidateModel(registered); err != nil {
+		return Model{}, false, err
+	}
+	if (storageMode == StorageService || registered.StorageMode == StorageService) && registered.StorageMode != storageMode {
+		return Model{}, false, ErrRepositoryState
+	}
+	return registered, created, nil
+}
+
+func (service *Service) SetAvailability(
+	ctx context.Context,
+	modelID string,
+	expectedRevision int64,
+	available bool,
+) (Model, error) {
+	if modelID == "" || expectedRevision < 1 {
+		return Model{}, ErrInvalidModel
+	}
+	state := StateUnavailable
+	if available {
+		state = StateAvailable
+	}
+	model, err := service.repository.SetAIModelAvailability(
+		ctx, modelID, expectedRevision, state, service.now().UTC(),
+	)
+	if err != nil {
+		return Model{}, err
+	}
+	if err := ValidateModel(model); err != nil {
+		return Model{}, err
+	}
+	return model, nil
+}
+
+func randomModelID() (string, error) {
+	var value [18]byte
+	if _, err := rand.Read(value[:]); err != nil {
+		return "", err
+	}
+	return "aim_" + base64.RawURLEncoding.EncodeToString(value[:]), nil
+}

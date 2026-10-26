@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "status": "passed_emulated_preflight_only",
+  "environment": {
+    "host": "macOS arm64",
+    "container_platform": "linux/amd64",
+    "execution": "Docker Desktop QEMU emulation",
+    "docker_server": "29.6.2"
+  },
+  "inputs": {
+    "sentencepiece": {
+      "version": "0.2.1",
+      "archive_size_bytes": 13485527,
+      "archive_sha256": "c1a59e9259c9653ad0ade653dadff074cd31f0a6ff2a11316f67bee4189a8f1b",
+      "library_size_bytes": 1399912,
+      "library_sha256": "2ab8e0156a79cfe44e076d18e9f920bb01682722835bbe7f35d4eac1f43c63fc"
+    },
+    "onnxruntime": {
+      "version": "1.28.0",
+      "archive_size_bytes": 9125960,
+      "archive_sha256": "a3e1b79d7bb1bf09696ce675f49e4064e6c81f6202b8225624fff0e93f8d6407",
+      "library_size_bytes": 24268848,
+      "library_sha256": "1461ef7cc3d9e49982591721683cc3e3a55580aeca9a5254e7aac47b75ee4bab",
+      "git_commit": "da9b5e364c465de65c49d91e696cd6485270757f"
+    },
+    "cc_runtime_manifest": "sha256:1d2e87077bb3b12be8622609c5975fed6a3cba63e68fed53209293be10f7022c",
+    "base_nossl_manifest": "sha256:cc74a68b2924afee50ab111f14d86b9f4e1c461d02ac8382708343f97f6b6f33"
+  },
+  "image": {
+    "size_bytes": 30805741,
+    "platform_manifest": "sha256:45a9b6c082331769d680e20bbef3c3d253a7a98f70d640d764349d8ffe7aad95",
+    "config": "sha256:2c91cc767e8c7417b02234828b6cd05a2b9cde448abd6958da29fc6676fa08cf",
+    "local_index": "sha256:3dd3520098658912941a2ac001e55780c58548c511d5b14e8c3c435a45ed6901"
+  },
+  "runtime_profile": {
+    "cpus": 4,
+    "memory_bytes": 4294967296,
+    "pids": 64,
+    "network": "none",
+    "root_filesystem": "read_only",
+    "capabilities": "all_dropped",
+    "no_new_privileges": true,
+    "uid_gid": "65532:65532",
+    "models": "read_only_bind_mounts"
+  },
+  "parity": {
+    "cases": 31,
+    "dimensions": 768,
+    "coordinates": 23808,
+    "maximum_absolute_difference": 0.0000209808349609375,
+    "absolute_tolerance": 0.0001,
+    "relative_tolerance": 0.0001,
+    "elapsed_seconds": 4.98,
+    "result": "passed"
+  },
+  "sbom_inventory": {
+    "scanner": "Docker Scout 1.24.0",
+    "format": "CycloneDX 1.5",
+    "detected_package_count": 17,
+    "manual_component_records": [
+      "spikes/int001-ort-capi/onnxruntime-component-amd64.cdx.json",
+      "spikes/int001-sentencepiece-capi/sentencepiece-component-amd64.cdx.json"
+    ],
+    "merge_utility": "spikes/int001-sentencepiece-capi/merge_component_sbom.py",
+    "merged_component_count": 1267,
+    "merged_dependency_count": 18,
+    "merged_serial_number": "urn:uuid:5fc56386-38e8-5f44-9a74-3fd2f50f3065",
+    "merged_output_sha256": "da490242a8406fa06e8cfc9b6652c6c3cb0ebdda9b84317fa45cb9035a8a13b8",
+    "repeat_scan_byte_identical": true,
+    "merged_result": "incomplete_emulated_preflight_only"
+  },
+  "limitations": [
+    "QEMU is not native linux/amd64 evidence",
+    "the amd64 scan confirms unresolved glibc findings but is not native release evidence",
+    "the deterministic merged SBOM remains incomplete and unsigned",
+    "production composition and ADR-0014 approval remain open"
+  ]
+}

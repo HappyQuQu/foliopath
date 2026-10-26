@@ -1,0 +1,62 @@
+{
+  "status": "failed-existing-budget-diagnosed",
+  "date": "2026-08-27",
+  "scope": "production catalog capacity baseline without AI runtime",
+  "sourceCommit": "6c2a9b21beff24fc2e7fae44eba01743379e7c9e",
+  "worktreeModified": true,
+  "platform": {
+    "os": "linux",
+    "architecture": "arm64",
+    "cpus": 4,
+    "memoryBytes": 4294967296,
+    "network": "none",
+    "containerImage": "sha256:3686d08675dc8f5a20a34635d30ad90cbe81e8a51a1836dae98526752fd73502"
+  },
+  "fixture": {
+    "directories": 10000,
+    "assets": 100000,
+    "searchQuery": "asset",
+    "sort": "name-ascending",
+    "pageSize": 100,
+    "samplesPerMeasurement": 20
+  },
+  "diagnosticBinary": {
+    "sha256": "4779076ee045dae935a230edbddac41168dc6664755cbf210e1cc947fd13fd68"
+  },
+  "latencyP95Microseconds": {
+    "serviceFirstPage": 167755,
+    "serviceSecondPage": 190937,
+    "serviceFirstThenSecond": 358623,
+    "repositoryCount": 66987,
+    "repositoryListFirstPage": 106750,
+    "repositoryListSecondPage": 130316
+  },
+  "otherMetrics": {
+    "scanDurationMilliseconds": 71148,
+    "ftsSearchP95Microseconds": 24920,
+    "shortSearchP95Microseconds": 37123,
+    "globalSearchP95Microseconds": 21558,
+    "storyboardBrowseP95Microseconds": 35189,
+    "peakRssBytes": 57495552,
+    "databaseAndWalSizeBytes": 156254208
+  },
+  "budget": {
+    "profile": "s4-search-v1",
+    "searchKeysetP95MicrosecondsMaximum": 250000,
+    "changed": false,
+    "violations": [
+      "searchKeysetP95Us > 250000"
+    ]
+  },
+  "interpretation": {
+    "repeatedCountIsMaterial": true,
+    "listQueryIsAlsoMaterial": true,
+    "secondPageSlowerThanFirst": true,
+    "singleRootCauseProven": false,
+    "hypothesesRequiringQueryPlanEvidence": [
+      "broad FTS candidate set followed by exact substring predicates",
+      "name ordering over a derived directory-path expression",
+      "second-page keyset predicate evaluation over the broad match set"
+    ]
+  }
+}
