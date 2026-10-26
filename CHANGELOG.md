@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0](https://github.com/HappyQuQu/foliopath/compare/v1.4.1...v1.5.0) (2026-10-26)
+
+
+### ✨ 新功能
+
+* complete automatic tagging and bounded AI job recovery ([2d4b437](https://github.com/HappyQuQu/foliopath/commit/2d4b437cff7074be3828691e8a60c0a6a6a086fd))
+* 发布智能搜索、图片标签和文字识别 ([5490155](https://github.com/HappyQuQu/foliopath/commit/549015523cff71a182af37732d157ff3179ed0f1))
+* 发布智能搜索、图片标签和文字识别 ([5490155](https://github.com/HappyQuQu/foliopath/commit/549015523cff71a182af37732d157ff3179ed0f1))
+
 ## [1.4.1](https://github.com/HappyQuQu/foliopath/compare/v1.4.0...v1.4.1) (2026-10-23)
 
 
