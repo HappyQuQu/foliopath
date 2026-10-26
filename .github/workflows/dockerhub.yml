@@ -334,7 +334,7 @@ jobs:
         run: |
           set -euo pipefail
           make fmt-check generate-check lint test 2>&1 | tee "${RUNNER_TEMP}/source-checks/go-checks.log"
-          git diff --exit-code
+          git diff --exit-code -- . ':(exclude)internal/webassets/dist/.gitkeep'
 
       - name: Preserve exact-source check logs
         if: always()
