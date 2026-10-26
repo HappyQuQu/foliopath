@@ -77,6 +77,10 @@ export async function clearLibraryOCR(input:{libraryId:string;csrfToken:string;e
 }
 
 export type Person = components["schemas"]["Person"];
+export type PersonMergeCheck = components["schemas"]["PersonMergeCheck"];
+export async function getPersonMergeCheck(sourcePersonId: string, targetPersonId: string): Promise<PersonMergeCheck> {
+ return unwrap(apiClient.GET("/api/v1/people/{personId}/merge-check", { params: { path: { personId: sourcePersonId }, query: { targetPersonId } } }));
+}
 export type PersonAssetPage = components["schemas"]["PersonAssetPage"];
 export type PersonPage = components["schemas"]["PersonPage"];
 
@@ -357,6 +361,7 @@ export async function renamePerson(input: {
 }
 
 export async function listFaceClusters(input: {
+  review?: "all" | "pending";
   cursor?: string;
   kind?: "core" | "edge";
   libraryId: string;
@@ -366,6 +371,7 @@ export async function listFaceClusters(input: {
       path: { libraryId: input.libraryId },
       query: {
         limit: 50,
+        ...(input.review ? { review: input.review } : {}),
         ...(input.cursor ? { cursor: input.cursor } : {}),
         ...(input.kind ? { kind: input.kind } : {}),
       },
@@ -401,6 +407,21 @@ export async function applyFaceReview(input: {
     body: input.review,
     headers: { "X-CSRF-Token": input.csrfToken },
     params: { header: { "Idempotency-Key": input.idempotencyKey } },
+  }));
+}
+
+export async function undoFaceReview(input: {
+  csrfToken: string;
+  idempotencyKey: string;
+  reviewId: string;
+  revision: number;
+}): Promise<FaceReviewResult> {
+  return unwrap(apiClient.POST("/api/v1/ai/face-reviews/{reviewId}/undo", {
+    headers: { "X-CSRF-Token": input.csrfToken },
+    params: { path: { reviewId: input.reviewId }, header: {
+      "Idempotency-Key": input.idempotencyKey,
+      "If-Match": `"face-review-${input.reviewId}-r${input.revision}"`,
+    } },
   }));
 }
 

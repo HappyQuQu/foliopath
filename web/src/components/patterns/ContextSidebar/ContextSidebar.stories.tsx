@@ -10,3 +10,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const PeopleTools: Story = {};
+
+export const CompactFilters: Story = { args: { title: "媒体筛选", density: "compact", description: "" } };

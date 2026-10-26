@@ -1,5 +1,9 @@
 # FolioPath 文档
 
+- [全部分支集成到main](changes/MERGE-2026-10-26-all-branches.md)：用户明确要求保留全部开发提交；冲突处理和521项前端／Go检查记录。已发布v1.5.0与6010不变。
+
+- 产品介绍与暗色界面导览：[简体中文](../README.zh-CN.md) / [English](../README.md)，含基础浏览、可选智能能力、安装与[截图来源](screenshots/dark/README.md)。
+
 - [v1.5.0正式发布](changes/RELEASE-2026-10-26-v1.5.0.md)：已合并main，正式双原生镜像验证和Docker标签推广完成；安装、已知问题与延期范围以此为当前记录。下列候选/未发布描述保留各阶段历史。
 
 - [提交内容与本地产物过滤](changes/CHORE-2026-10-26-commit-filter.md)：源码、测试和必要素材入库；私有配置、运行数据、依赖与临时构建结果留在本地。

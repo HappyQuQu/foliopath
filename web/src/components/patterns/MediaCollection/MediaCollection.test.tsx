@@ -1,6 +1,7 @@
 import { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { readMediaTileSizePreference } from "../../../lib/storage/preferences";
 
 import {
   MediaCollection,
@@ -28,6 +29,25 @@ const labels = {
   unavailableThumbnail: "Thumbnail unavailable",
   video: "Video",
 };
+
+it("keeps one keyboard-accessible size control in the supplied toolbar and persists its value", () => {
+  const toolbar = document.createElement("div");
+  document.body.append(toolbar);
+  const props = { hasNextPage: false, isFetchingNextPage: false, items: [], labels, layout: "grid" as const, onLoadMore: vi.fn() };
+  const view = render(<MediaCollection {...props} sizeControlContainer={null} />);
+  expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  view.rerender(<MediaCollection {...props} sizeControlContainer={toolbar} />);
+  const slider = screen.getByRole("slider", { name: "Thumbnail size" });
+  expect(toolbar).toContainElement(slider);
+  expect(screen.getAllByRole("slider")).toHaveLength(1);
+  slider.focus();
+  expect(slider).toHaveFocus();
+  fireEvent.change(slider, { target: { value: "330" } });
+  expect(readMediaTileSizePreference()).toBe(330);
+  view.unmount();
+  expect(toolbar).toBeEmptyDOMElement();
+  toolbar.remove();
+});
 
 it("exposes an independent accessible favorite action with pressed state", () => {
   const toggleFavorite = vi.fn();
@@ -745,9 +765,9 @@ it("keeps the current scroll position when restoring a card that is already visi
 
 for (const seamless of [true, false]) {
   it(`keeps actual match badges readable with seamless=${seamless}`, () => {
-    render(<MediaCollection hasNextPage={false} isFetchingNextPage={false} items={[{...storyboardItem, badges: [{label: "文件名"}, {label: "画面语义", tone: "accent"}]}]} labels={labels} layout={seamless ? "seamless" : "grid"} onLoadMore={vi.fn()} />);
+    render(<MediaCollection hasNextPage={false} isFetchingNextPage={false} items={[{...storyboardItem, badges: [{label: "文件名"}, {label: "画面内容", tone: "accent"}]}]} labels={labels} layout={seamless ? "seamless" : "grid"} onLoadMore={vi.fn()} />);
     expect(screen.getByText("文件名")).toBeVisible();
-    expect(screen.getByText("画面语义")).toHaveAttribute("data-tone", "accent");
+    expect(screen.getByText("画面内容")).toHaveAttribute("data-tone", "accent");
   });
 }
 

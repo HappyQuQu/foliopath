@@ -53,7 +53,7 @@ func (service *ReviewService) Review(ctx context.Context, idempotencyKey string,
 	}
 	switch request.Action {
 	case "assign_face":
-		if (request.SourcePersonID == "") != (request.ExpectedSourceRevision == 0) || request.ExpectedSourceRevision < 0 {
+		if !ValidReviewSourceGuard(request.SourcePersonID, request.ExpectedSourceRevision) {
 			return ReviewResult{}, ErrInvalidReview
 		}
 		return service.repository.AssignFace(ctx, AssignFaceCommand{
@@ -80,12 +80,21 @@ func (service *ReviewService) Review(ctx context.Context, idempotencyKey string,
 			ExpectedPersonRevision: request.ExpectedPersonRevision, CreatedAt: createdAt,
 		})
 	case "exclude_face":
+		if !ValidReviewSourceGuard(request.SourcePersonID, request.ExpectedSourceRevision) {
+			return ReviewResult{}, ErrInvalidReview
+		}
 		return service.repository.ExcludeFace(ctx, ExcludeFaceCommand{
+			SourcePersonID: request.SourcePersonID, ExpectedSourceRevision: request.ExpectedSourceRevision,
 			EventID: eventID, RequestHash: requestHash, ExclusionID: derivedReviewResourceID("fexclude", eventID, request.FaceID),
 			FaceID: request.FaceID, ExpectedFaceRevision: request.ExpectedFaceRevision, CreatedAt: createdAt,
 		})
 	case "cannot_link":
+		if !ValidReviewPairGuard(request.SourcePersonID, request.ExpectedSourceRevision, request.TargetPersonID, request.ExpectedTargetRevision) {
+			return ReviewResult{}, ErrInvalidReview
+		}
 		return service.repository.CannotLinkFaces(ctx, CannotLinkCommand{
+			SourcePersonID: request.SourcePersonID, TargetPersonID: request.TargetPersonID,
+			ExpectedSourceRevision: request.ExpectedSourceRevision, ExpectedTargetRevision: request.ExpectedTargetRevision,
 			EventID: eventID, RequestHash: requestHash, LeftFaceID: request.LeftFaceID, RightFaceID: request.RightFaceID,
 			ExpectedLeftRevision: request.ExpectedLeftRevision, ExpectedRightRevision: request.ExpectedRightRevision, CreatedAt: createdAt,
 		})

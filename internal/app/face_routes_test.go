@@ -16,10 +16,13 @@ func TestFaceResultsCompositionWithDatabaseLifecycle(t *testing.T) {
 	if err := composeFaceResults(&routes, database); err != nil {
 		t.Fatal(err)
 	}
-	if routes.FaceClusters == nil || routes.FacePeople == nil || routes.FacePerson == nil ||
+	if routes.FaceMergeCheck == nil || routes.FaceClusters == nil || routes.FacePeople == nil || routes.FacePerson == nil ||
 		routes.FaceAssetFaces == nil || routes.FacePersonAssets == nil || routes.FaceClusterDetails == nil ||
 		routes.FaceReviews == nil || routes.FacePersonMutations == nil {
 		t.Fatal("incomplete face routes")
+	}
+	if _, err := routes.FaceMergeCheck.Check(ctx, "person_source", "person_target"); err == nil {
+		t.Fatal("merge check database should not be ready")
 	}
 	if _, err := routes.FacePeople.List(ctx, face.PeopleListRequest{Limit: 10}); err == nil {
 		t.Fatal("database should not be ready")

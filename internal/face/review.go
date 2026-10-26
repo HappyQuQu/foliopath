@@ -43,15 +43,19 @@ type CreatePersonFromClusterCommand struct {
 }
 
 type ExcludeFaceCommand struct {
+	SourcePersonID                            string
+	ExpectedSourceRevision                    int64
 	EventID, RequestHash, ExclusionID, FaceID string
 	ExpectedFaceRevision                      int64
 	CreatedAt                                 time.Time
 }
 
 type CannotLinkCommand struct {
-	EventID, RequestHash, LeftFaceID, RightFaceID string
-	ExpectedLeftRevision, ExpectedRightRevision   int64
-	CreatedAt                                     time.Time
+	SourcePersonID, TargetPersonID                 string
+	ExpectedSourceRevision, ExpectedTargetRevision int64
+	EventID, RequestHash, LeftFaceID, RightFaceID  string
+	ExpectedLeftRevision, ExpectedRightRevision    int64
+	CreatedAt                                      time.Time
 }
 
 type MergePeopleCommand struct {
@@ -85,3 +89,17 @@ type ReviewRepository interface {
 }
 
 func validReviewID(value string) bool { return len(value) >= 8 && len(value) <= 128 }
+
+// ValidReviewSourceGuard owns optional source-person fencing for single-face edits.
+func ValidReviewSourceGuard(personID string, revision int64) bool {
+	return personID == "" && revision == 0 || validReviewID(personID) && revision > 0
+}
+
+// ValidReviewPairGuard permits the historical absent guard only for replay.
+// The repository requires both current owners before a new cannot-link write.
+func ValidReviewPairGuard(source string, sourceRevision int64, target string, targetRevision int64) bool {
+	if source == "" && target == "" && sourceRevision == 0 && targetRevision == 0 {
+		return true
+	}
+	return validReviewID(source) && validReviewID(target) && source != target && sourceRevision > 0 && targetRevision > 0
+}

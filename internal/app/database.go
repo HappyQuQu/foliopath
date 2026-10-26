@@ -47,6 +47,7 @@ type databaseStore interface {
 	face.ClearQueue
 	face.FaceClusterListRepository
 	face.PeopleListRepository
+	face.PersonMergeCheckRepository
 	face.PeopleRepository
 	face.ReviewRepository
 	face.CoreClusterFaceRepository

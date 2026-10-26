@@ -423,3 +423,18 @@ it("keeps literal results when semantic service is unavailable without inventing
   expect(screen.getByText("库内路径", {selector: "span"})).toBeVisible();
   expect(screen.queryByText("画面内容", {selector: "span[data-tone]"})).not.toBeInTheDocument();
 });
+
+it("uses OCR-only contract and renders escaped line excerpts with partial coverage", async () => {
+ const user=userEvent.setup();
+ vi.mocked(searchFusedAssets).mockResolvedValue({items:[result],nextCursor:null,searchSemanticState:"not_requested",searchOCRState:"available",searchOCRCoverage:{eligible:4,ready:1,failed:1},searchMatches:{[result.id]:{sources:["ocr"],semanticScore:null,ocr:[{line:3,text:"京都 <script>alert(1)</script>"}]}}});
+ renderSearch("/libraries/lib_family/search?q=京都&mode=ocr");
+ expect(await screen.findByText("京都夜景.jpg")).toBeVisible();
+ expect(searchFusedAssets).toHaveBeenCalledWith(expect.objectContaining({mode:"ocr",libraryId:"lib_family"}));
+ expect(searchSemanticAssets).not.toHaveBeenCalled();
+ expect(screen.getByText(/部分照片尚未处理/)).toBeVisible();
+ await user.click(screen.getByRole("button",{name:"预览 京都夜景.jpg"}));
+ const preview=screen.getByRole("complementary",{name:"预览: 京都夜景.jpg"});
+ expect(within(preview).getByText("京都 <script>alert(1)</script>")).toBeVisible();
+ expect(preview.querySelector("script")).toBeNull();
+ expect(screen.queryByText(/已索引|多源命中优先|行号按识别顺序|画面向量/)).not.toBeInTheDocument();
+});

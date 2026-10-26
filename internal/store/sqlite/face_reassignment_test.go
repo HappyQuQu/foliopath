@@ -40,7 +40,7 @@ func TestFaceDetachedReassignment(t *testing.T) {
 				if _, err := s.AssignFace(ctx, other); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := s.CannotLinkFaces(ctx, face.CannotLinkCommand{EventID: "event_cannotlink", RequestHash: testFaceRequestHash, LeftFaceID: cmd.FaceID, RightFaceID: other.FaceID, ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now}); err != nil {
+				if _, err := s.CannotLinkFaces(ctx, face.CannotLinkCommand{EventID: "event_cannotlink", RequestHash: testFaceRequestHash, LeftFaceID: cmd.FaceID, RightFaceID: other.FaceID, ExpectedLeftRevision: 1, ExpectedRightRevision: 1, SourcePersonID: "person_source", TargetPersonID: "person_target", ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, CreatedAt: now}); err != nil {
 					t.Fatal(err)
 				}
 			}

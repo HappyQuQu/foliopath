@@ -7,22 +7,13 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/face"
 )
 
-func (service *databaseService) GetFaceClusterSnapshot(ctx context.Context, libraryID int64) (face.FaceClusterSnapshot, error) {
+func (service *databaseService) ReadFaceClusterPage(ctx context.Context, query face.FaceClusterListQuery) (face.FaceClusterReadPage, error) {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 	if service.store == nil {
-		return face.FaceClusterSnapshot{}, errors.New("face repository is not ready")
+		return face.FaceClusterReadPage{}, errors.New("face repository is not ready")
 	}
-	return service.store.GetFaceClusterSnapshot(ctx, libraryID)
-}
-
-func (service *databaseService) ListFaceClusterViews(ctx context.Context, query face.FaceClusterListQuery) ([]face.FaceClusterView, error) {
-	service.mutex.RLock()
-	defer service.mutex.RUnlock()
-	if service.store == nil {
-		return nil, errors.New("face repository is not ready")
-	}
-	return service.store.ListFaceClusterViews(ctx, query)
+	return service.store.ReadFaceClusterPage(ctx, query)
 }
 
 func (service *databaseService) GetPeopleSnapshot(ctx context.Context) (face.PeopleSnapshot, error) {
@@ -212,4 +203,13 @@ func (service *databaseService) UndoFaceReview(ctx context.Context, command face
 		return face.ReviewResult{}, errors.New("face repository is not ready")
 	}
 	return service.store.UndoFaceReview(ctx, command)
+}
+
+func (service *databaseService) GetPersonMergeCheck(ctx context.Context, source, target string) (face.PersonMergeCheck, error) {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+	if service.store == nil {
+		return face.PersonMergeCheck{}, errors.New("face repository is not ready")
+	}
+	return service.store.GetPersonMergeCheck(ctx, source, target)
 }

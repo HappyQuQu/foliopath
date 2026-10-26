@@ -1,0 +1,46 @@
+import { expect, test } from "@playwright/test";
+
+test("isolated Docker preserves the other face and media when organizing a person", async ({ page }, info) => {
+  test.skip(process.env.FOLIOPATH_PERSON_REVIEW_REAL !== "1", "Run tests/release/person_review_smoke.mjs with an isolated candidate.");
+  await page.addInitScript(() => localStorage.setItem("foliopath.preferences.v1", JSON.stringify({ locale: "en", theme: "light" })));
+  await page.goto("/");
+  await page.getByLabel("Username *").fill("person-review-test");
+  await page.getByLabel("Password *").fill(process.env.FOLIOPATH_PERSON_REVIEW_PASSWORD!);
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await expect(page).not.toHaveURL(/login/);
+  const source = process.env.FOLIOPATH_PERSON_REVIEW_SOURCE!;
+  const target = process.env.FOLIOPATH_PERSON_REVIEW_TARGET!;
+  await page.goto(`/intelligence?view=people&libraryId=${process.env.FOLIOPATH_PERSON_REVIEW_LIBRARY}&person=${source}`);
+  await expect(page.getByRole("heading", { name: "Synthetic source", exact: true })).toBeVisible();
+  const photo = page.getByRole("article", { name: "a.png", exact: true });
+  await expect(photo.getByRole("button", { name: "Remove from person", exact: true })).toBeDisabled();
+  await photo.getByRole("combobox", { name: "Face to organize", exact: true }).selectOption(process.env.FOLIOPATH_PERSON_REVIEW_FACE!);
+  await photo.getByRole("button", { name: "Remove from person", exact: true }).click();
+  const removal = page.getByRole("dialog", { name: "Remove this face from the person?", exact: true });
+  await expect(removal).toBeVisible();
+  const response = page.waitForResponse(r => r.url().endsWith("/ai/face-reviews") && r.request().method() === "POST");
+  await removal.getByRole("button", { name: "Confirm assignment change", exact: true }).click();
+  const saved = await response; expect(saved.status()).toBe(200); expect(saved.request().postDataJSON().faceId).toBe(process.env.FOLIOPATH_PERSON_REVIEW_FACE);
+  await expect(page.getByText("1 confirmed faces · 1 assets", { exact: true })).toBeVisible();
+  await expect(photo).toBeVisible(); // The other face still belongs to the source.
+  await photo.getByRole("button", { name: "Move to person", exact: true }).click();
+  await photo.getByRole("combobox", { name: "Target person", exact: true }).selectOption(target);
+  await photo.getByRole("button", { name: "Review move", exact: true }).click();
+  await page.getByRole("dialog", { name: "Move this face?", exact: true }).getByRole("button", { name: "Confirm assignment change", exact: true }).click();
+  await expect(page.getByText("0 confirmed faces · 0 assets", { exact: true })).toBeVisible();
+  await expect(page.getByText("No photos assigned yet", { exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole("heading", { name: "Synthetic source", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Merge people", exact: true }).click();
+  const merge = page.getByRole("dialog", { name: "Merge people", exact: true });
+  await merge.getByRole("combobox").selectOption(target);
+  await expect(merge.getByRole("button", { name: "Confirm merge", exact: true })).toBeDisabled();
+  await merge.getByRole("checkbox").check(); await merge.getByRole("button", { name: "Confirm merge", exact: true }).click();
+  await expect(page).not.toHaveURL(/person=/);
+  await page.goto(`/intelligence?view=people&person=${target}&libraryId=${process.env.FOLIOPATH_PERSON_REVIEW_LIBRARY}`);
+  await expect(page.getByText("2 confirmed faces · 2 assets", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await page.screenshot({ path: info.outputPath("person-review-real-desktop.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 1000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath("person-review-real-mobile.png"), fullPage: true });
+});

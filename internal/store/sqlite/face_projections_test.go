@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,6 +50,17 @@ func TestFaceProjectionsPagePersonAssetsAndExposeOnlyCoarseMultiFaceState(t *tes
 		}
 		revision++
 	}
+	person, err := store.GetPerson(context.Background(), "person_projection_1")
+	if err != nil || person.PreviewAssetID != secondAsset || person.AssetCount != 2 || person.ConfirmedFaceCount != 3 {
+		t.Fatalf("preview/counts=%+v err=%v", person, err)
+	}
+	if _, err := store.CreatePerson(context.Background(), face.CreatePersonCommand{ID: "person_preview_empty", Name: "空", CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	empty, err := store.GetPerson(context.Background(), "person_preview_empty")
+	if err != nil || empty.PreviewAssetID != 0 {
+		t.Fatalf("empty preview=%+v %v", empty, err)
+	}
 	faces, err := store.ListAssetFaceViews(context.Background(), firstAsset)
 	if err != nil || len(faces) != 4 {
 		t.Fatalf("faces=%+v err=%v", faces, err)
@@ -78,6 +90,10 @@ func TestFaceProjectionsPagePersonAssetsAndExposeOnlyCoarseMultiFaceState(t *tes
 	if _, err := store.db.Exec(`UPDATE libraries SET status='offline',revision=revision+1 WHERE id=?`, libraryID); err != nil {
 		t.Fatal(err)
 	}
+	offline, err := store.GetPerson(context.Background(), "person_projection_1")
+	if err != nil || offline.PreviewAssetID != 0 || offline.AssetCount != 2 {
+		t.Fatalf("offline preview/count=%+v err=%v", offline, err)
+	}
 	if _, err := service.List(context.Background(), face.PersonAssetRequest{PersonID: "person_projection_1", Limit: 1}); !errors.Is(err, face.ErrFaceNotReady) {
 		t.Fatalf("offline first page err=%v", err)
 	}
@@ -100,6 +116,24 @@ func TestFaceProjectionsPagePersonAssetsAndExposeOnlyCoarseMultiFaceState(t *tes
 	if _, err := service.List(context.Background(), face.PersonAssetRequest{PersonID: "person_projection_1", Limit: 1, Cursor: fresh.NextCursor}); !errors.Is(err, face.ErrFaceProjectionStale) {
 		t.Fatalf("stale err=%v", err)
 	}
+	// Removing the newest bound photo falls back to the older photo, with two faces deduplicated.
+	for i, id := range []string{"face_projection_05", "face_projection_01", "face_projection_02"} {
+		if _, err := store.SplitFace(context.Background(), face.SplitFaceCommand{EventID: fmt.Sprintf("event_preview_split_%d", i), RequestHash: testFaceRequestHash, FaceID: id, SourcePersonID: "person_projection_1", ExpectedFaceRevision: 1, ExpectedSourceRevision: revision + 1 + int64(i), CreatedAt: now.Add(6 * time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+		p, err := store.GetPerson(context.Background(), "person_projection_1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := firstAsset
+		if i == 2 {
+			want = 0
+		}
+		if p.PreviewAssetID != want {
+			t.Fatalf("after split %d preview=%+v", i, p)
+		}
+	}
+
 }
 
 func TestFaceClusterDetailUsesActiveBuildAndRejectsStaleCursor(t *testing.T) {

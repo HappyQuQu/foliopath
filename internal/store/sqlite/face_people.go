@@ -98,17 +98,22 @@ func (s *Store) ListPeople(ctx context.Context, limit int) ([]face.Person, error
 	return items, nil
 }
 
+// Shared with PersonAsset browsing: preview selection cannot widen its readable scope.
+const personAvailablePhotoJoins = ` JOIN assets asset ON asset.library_id=anchor.library_id AND asset.id=anchor.asset_id JOIN libraries library ON library.id=asset.library_id AND library.status='ready' `
+const personBoundPhotoPredicate = `anchor.state='bound' AND anchor.current_face_id IS NOT NULL`
+
 const personSelect = `SELECT person.id,person.name,
 	(SELECT COUNT(*) FROM person_face_anchors anchor WHERE anchor.person_id=person.id AND anchor.state='bound'),
 	(SELECT COUNT(DISTINCT anchor.asset_id || ':' || anchor.library_id) FROM person_face_anchors anchor WHERE anchor.person_id=person.id AND anchor.state='bound'),
-	person.revision,person.created_at_ms,person.updated_at_ms FROM people person`
+	person.revision,person.created_at_ms,person.updated_at_ms,
+ COALESCE((SELECT asset.id FROM person_face_anchors anchor` + personAvailablePhotoJoins + ` WHERE anchor.person_id=person.id AND ` + personBoundPhotoPredicate + ` ORDER BY asset.mtime_ns DESC,asset.id DESC LIMIT 1),0) FROM people person`
 
 type personScanner interface{ Scan(...any) error }
 
 func scanPerson(row personScanner) (face.Person, error) {
 	var value face.Person
 	var createdAt, updatedAt int64
-	err := row.Scan(&value.ID, &value.Name, &value.ConfirmedFaceCount, &value.AssetCount, &value.Revision, &createdAt, &updatedAt)
+	err := row.Scan(&value.ID, &value.Name, &value.ConfirmedFaceCount, &value.AssetCount, &value.Revision, &createdAt, &updatedAt, &value.PreviewAssetID)
 	value.CreatedAt, value.UpdatedAt = time.UnixMilli(createdAt).UTC(), time.UnixMilli(updatedAt).UTC()
 	return value, err
 }

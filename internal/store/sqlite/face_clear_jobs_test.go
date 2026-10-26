@@ -275,7 +275,7 @@ func TestManualFaceClearRequiresExactImpactAndRetainsDerivedAndPeople(t *testing
 	}
 	// Exercise the RESTRICT cycle between an event, its snapshot and its undo.
 	reviews, _ := face.NewReviewService(store, store, func() time.Time { return now })
-	excluded, err := reviews.Review(context.Background(), "manual-clear-exclude", face.ReviewRequest{Action: "exclude_face", FaceID: "face_manual_001", ExpectedFaceRevision: 1})
+	excluded, err := reviews.Review(context.Background(), "manual-clear-exclude", face.ReviewRequest{Action: "exclude_face", FaceID: "face_manual_001", ExpectedFaceRevision: 1, SourcePersonID: "person_manual_1", ExpectedSourceRevision: 2})
 	if err != nil {
 		t.Fatal(err)
 	}

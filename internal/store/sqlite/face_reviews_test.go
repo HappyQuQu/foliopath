@@ -105,7 +105,10 @@ func TestCannotLinkPreventsPeopleMergeAtomically(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := store.CannotLinkFaces(context.Background(), face.CannotLinkCommand{EventID: "event_cannot_01", RequestHash: testFaceRequestHash, LeftFaceID: "face_merge_0001", RightFaceID: "face_merge_0002", ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now.Add(2 * time.Minute)}); err != nil {
+	if _, err := store.CannotLinkFaces(context.Background(), face.CannotLinkCommand{EventID: "event_cannot_unfenced", RequestHash: testFaceRequestHash, LeftFaceID: "face_merge_0001", RightFaceID: "face_merge_0002", ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now.Add(2 * time.Minute)}); !errors.Is(err, face.ErrReviewConflict) {
+		t.Fatalf("unfenced cannot-link must preserve manual owners without writes: %v", err)
+	}
+	if _, err := store.CannotLinkFaces(context.Background(), face.CannotLinkCommand{SourcePersonID: "person_merge_01", TargetPersonID: "person_merge_02", ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, EventID: "event_cannot_01", RequestHash: testFaceRequestHash, LeftFaceID: "face_merge_0001", RightFaceID: "face_merge_0002", ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now.Add(2 * time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	_, err := store.MergePeople(context.Background(), face.MergePeopleCommand{EventID: "event_merge_fail", RequestHash: testFaceRequestHash, SourcePersonID: "person_merge_01", TargetPersonID: "person_merge_02", ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, ConflictsAcknowledged: true, CreatedAt: now.Add(3 * time.Minute)})
@@ -254,9 +257,17 @@ func TestGuardedUndoRestoresSplitAndRejectsSecondUndo(t *testing.T) {
 	if _, err := store.AssignFace(context.Background(), face.AssignFaceCommand{EventID: "event_undo_assign", RequestHash: testFaceRequestHash, AnchorID: "anchor_undo_001", FaceID: "face_undo_split_1", PersonID: "person_undo_01", ExpectedFaceRevision: 1, ExpectedPersonRevision: 1, CreatedAt: now.Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
-	split, err := store.SplitFace(context.Background(), face.SplitFaceCommand{EventID: "event_undo_split", RequestHash: testFaceRequestHash, FaceID: "face_undo_split_1", SourcePersonID: "person_undo_01", ExpectedFaceRevision: 1, ExpectedSourceRevision: 2, CreatedAt: now.Add(2 * time.Minute)})
+	splitCommand := face.SplitFaceCommand{EventID: "event_undo_split", RequestHash: testFaceRequestHash, FaceID: "face_undo_split_1", SourcePersonID: "person_undo_01", ExpectedFaceRevision: 1, ExpectedSourceRevision: 2, CreatedAt: now.Add(2 * time.Minute)}
+	split, err := store.SplitFace(context.Background(), splitCommand)
 	if err != nil {
 		t.Fatal(err)
+	}
+	replayedSplit, err := store.SplitFace(context.Background(), splitCommand)
+	if err != nil || !replayedSplit.Replayed || replayedSplit.EventID != split.EventID || replayedSplit.Revision != split.Revision {
+		t.Fatalf("replayed split=%+v err=%v", replayedSplit, err)
+	}
+	if current, err := store.GetPerson(context.Background(), "person_undo_01"); err != nil || current.Revision != 3 || current.ConfirmedFaceCount != 0 {
+		t.Fatalf("split replay changed source: %+v %v", current, err)
 	}
 	command := face.UndoReviewCommand{EventID: "event_undo_apply", RequestHash: testFaceRequestHash, ReviewID: split.EventID, ExpectedRevision: split.Revision, CreatedAt: now.Add(3 * time.Minute)}
 	undone, err := store.UndoFaceReview(context.Background(), command)
@@ -297,7 +308,7 @@ func TestGuardedUndoRemovesOnlyNewCannotLink(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	linked, err := store.CannotLinkFaces(context.Background(), face.CannotLinkCommand{EventID: "event_undo_link", RequestHash: testFaceRequestHash, LeftFaceID: items[0].ID, RightFaceID: items[1].ID, ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now.Add(2 * time.Minute)})
+	linked, err := store.CannotLinkFaces(context.Background(), face.CannotLinkCommand{SourcePersonID: "person_undo_link_1", TargetPersonID: "person_undo_link_2", ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, EventID: "event_undo_link", RequestHash: testFaceRequestHash, LeftFaceID: items[0].ID, RightFaceID: items[1].ID, ExpectedLeftRevision: 1, ExpectedRightRevision: 1, CreatedAt: now.Add(2 * time.Minute)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,12 +373,36 @@ func TestGuardedUndoExclusionRestoresPriorAssignment(t *testing.T) {
 	if _, err := store.AssignFace(context.Background(), face.AssignFaceCommand{EventID: "event_undo_exclude_assign", RequestHash: testFaceRequestHash, AnchorID: "anchor_undo_exclude", FaceID: "face_undo_exclude_1", PersonID: "person_undo_exclude", ExpectedFaceRevision: 1, ExpectedPersonRevision: 1, CreatedAt: now.Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
-	excluded, err := store.ExcludeFace(context.Background(), face.ExcludeFaceCommand{EventID: "event_undo_exclusion", RequestHash: testFaceRequestHash, ExclusionID: "exclude_undo_action", FaceID: "face_undo_exclude_1", ExpectedFaceRevision: 1, CreatedAt: now.Add(2 * time.Minute)})
+	for _, guard := range []struct {
+		id, source string
+		revision   int64
+	}{{"stale_anonymous", "", 0}, {"stale_revision", "person_undo_exclude", 1}, {"wrong_person", "person_other_exclude", 2}} {
+		_, err := store.ExcludeFace(context.Background(), face.ExcludeFaceCommand{SourcePersonID: guard.source, ExpectedSourceRevision: guard.revision, EventID: "event_" + guard.id, RequestHash: testFaceRequestHash, ExclusionID: "exclude_" + guard.id, FaceID: "face_undo_exclude_1", ExpectedFaceRevision: 1, CreatedAt: now.Add(2 * time.Minute)})
+		if !errors.Is(err, face.ErrReviewConflict) {
+			t.Fatalf("unfenced exclusion %s=%v, must preserve assignment", guard.id, err)
+		}
+	}
+	var badAudits, badExclusions int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM face_audit_events WHERE id IN ('event_stale_anonymous','event_stale_revision','event_wrong_person')`).Scan(&badAudits); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM face_exclusions WHERE current_face_id='face_undo_exclude_1'`).Scan(&badExclusions); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := store.GetPerson(context.Background(), "person_undo_exclude")
+	if badAudits != 0 || badExclusions != 0 || before.Revision != 2 || before.ConfirmedFaceCount != 1 {
+		t.Fatalf("conflicts wrote data: %d %d %+v", badAudits, badExclusions, before)
+	}
+	excluded, err := store.ExcludeFace(context.Background(), face.ExcludeFaceCommand{SourcePersonID: "person_undo_exclude", ExpectedSourceRevision: 2, EventID: "event_undo_exclusion", RequestHash: testFaceRequestHash, ExclusionID: "exclude_undo_action", FaceID: "face_undo_exclude_1", ExpectedFaceRevision: 1, CreatedAt: now.Add(2 * time.Minute)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.UndoFaceReview(context.Background(), face.UndoReviewCommand{EventID: "event_undo_exclusion_apply", RequestHash: testFaceRequestHash, ReviewID: excluded.EventID, ExpectedRevision: excluded.Revision, CreatedAt: now.Add(3 * time.Minute)}); err != nil {
 		t.Fatal(err)
+	}
+	replay, err := store.ExcludeFace(context.Background(), face.ExcludeFaceCommand{SourcePersonID: "person_undo_exclude", ExpectedSourceRevision: 2, EventID: "event_undo_exclusion", RequestHash: testFaceRequestHash, ExclusionID: "exclude_undo_action", FaceID: "face_undo_exclude_1", ExpectedFaceRevision: 1, CreatedAt: now.Add(4 * time.Minute)})
+	if err != nil || !replay.Replayed {
+		t.Fatalf("after undo replay=%+v %v", replay, err)
 	}
 	var anchors, exclusions int
 	if err := store.db.QueryRow(`SELECT COUNT(*) FROM person_face_anchors WHERE id='anchor_undo_exclude' AND current_face_id='face_undo_exclude_1' AND state='bound'`).Scan(&anchors); err != nil {
@@ -402,9 +437,20 @@ func TestGuardedUndoRestoresAtomicPeopleMerge(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	merged, err := store.MergePeople(context.Background(), face.MergePeopleCommand{EventID: "event_undo_merge", RequestHash: testFaceRequestHash, SourcePersonID: people[0], TargetPersonID: people[1], ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, ConflictsAcknowledged: true, CreatedAt: now.Add(2 * time.Minute)})
+	mergeCommand := face.MergePeopleCommand{EventID: "event_undo_merge", RequestHash: testFaceRequestHash, SourcePersonID: people[0], TargetPersonID: people[1], ExpectedSourceRevision: 2, ExpectedTargetRevision: 2, ConflictsAcknowledged: true, CreatedAt: now.Add(2 * time.Minute)}
+	merged, err := store.MergePeople(context.Background(), mergeCommand)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err := store.GetPerson(context.Background(), people[0]); !errors.Is(err, face.ErrPersonNotFound) {
+		t.Fatalf("merged source should be unavailable, got %v", err)
+	}
+	replayedMerge, err := store.MergePeople(context.Background(), mergeCommand)
+	if err != nil || !replayedMerge.Replayed || replayedMerge.EventID != merged.EventID || replayedMerge.Revision != merged.Revision {
+		t.Fatalf("merged source replay=%+v err=%v", replayedMerge, err)
+	}
+	if current, err := store.GetPerson(context.Background(), people[1]); err != nil || current.Revision != 3 || current.ConfirmedFaceCount != 2 {
+		t.Fatalf("merge replay changed target: %+v %v", current, err)
 	}
 	if _, err := store.UndoFaceReview(context.Background(), face.UndoReviewCommand{EventID: "event_undo_merge_apply", RequestHash: testFaceRequestHash, ReviewID: merged.EventID, ExpectedRevision: merged.Revision, CreatedAt: now.Add(3 * time.Minute)}); err != nil {
 		t.Fatal(err)

@@ -1,0 +1,6 @@
+import {expect,test} from "@playwright/test";
+for(const locale of ["zh-CN","en"])for(const width of [390,1920])test(`${locale} production recovery story at ${width}`,async({page},info)=>{
+ test.skip(process.env.FOLIOPATH_RECOVERY_STORY!=="1","Run the isolated static Storybook probe.");
+ await page.setViewportSize({width,height:1000});await page.goto(`/iframe.html?id=features-intelligence-review--person-detail-recovery&viewMode=story&globals=${encodeURIComponent(`locale:${locale};theme:${locale==="en"?"dark":"light"}`)}`);
+ const dialog=page.getByRole("dialog",{name:locale==="en"?"Merge people":"合并人物",exact:true});await expect(dialog.getByText(locale==="en"?/Saving has not been confirmed/:/尚未确认保存结果/)).toBeVisible();await expect(dialog.getByRole("combobox")).toHaveCount(0);await expect(dialog.getByText(/青岚（合成） →/)).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);await page.screenshot({path:info.outputPath(`story-recovery-${locale}-${width}.png`),fullPage:true});await page.keyboard.press("Escape");await expect(page.getByRole("button",{name:locale==="en"?"Recover the last review":"继续核对上次操作",exact:true})).toBeVisible();
+});

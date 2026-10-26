@@ -3,11 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
 import { getLibraryVideoSemanticStatus } from "./ai";
 import { requestLibraryVideoSemanticJob } from "./ai";
-import { applyFaceReview, downloadAIModel, listAIModelDownloads, getLibraryFaceSettings, listAITagSuggestions, listFaceClusters, reviewAITagSuggestions } from "./ai";
+import { applyFaceReview, undoFaceReview, downloadAIModel, listAIModelDownloads, getLibraryFaceSettings, listAITagSuggestions, listFaceClusters, reviewAITagSuggestions } from "./ai";
 
 vi.mock("./client", () => ({ apiClient: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn() } }));
 
 describe("intelligence API adapters", () => {
+  it("undoes only the confirmed review with its original strong validator and key", async () => {
+    vi.mocked(apiClient.POST).mockResolvedValue({ data: { action: "undo", affectedPersonIds: [], reviewId: "undo_receipt", revision: 1, undoable: false }, response: new Response() } as never);
+    await undoFaceReview({ csrfToken: "csrf", idempotencyKey: "undo-key", reviewId: "review_original", revision: 7 });
+    expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/ai/face-reviews/{reviewId}/undo", {
+      headers: { "X-CSRF-Token": "csrf" }, params: { path: { reviewId: "review_original" }, header: { "Idempotency-Key": "undo-key", "If-Match": '"face-review-review_original-r7"' } },
+    });
+  });
   it("preserves both owners' revision guards for an atomic face move", async () => {
     vi.mocked(apiClient.POST).mockResolvedValue({ data: { action: "assign_face", affectedPersonIds: ["person-target", "person-source"], reviewId: "review-move", revision: 3, undoable: true }, response: new Response() } as never);
     const review = { action: "assign_face" as const, faceId: "face-1", expectedFaceRevision: 1, personId: "person-target", expectedPersonRevision: 2, sourcePersonId: "person-source", expectedSourceRevision: 4 };
@@ -62,8 +69,8 @@ describe("intelligence API adapters", () => {
 
   it("uses privacy-safe anonymous cluster filters", async () => {
     vi.mocked(apiClient.GET).mockResolvedValue({ data: { items: [], nextCursor: null, coverage: coverage(), groupAssignmentAllowed: false }, response: new Response() } as never);
-    await listFaceClusters({ kind: "edge", libraryId: "lib-1" });
-    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/libraries/{libraryId}/ai/face-clusters", { params: { path: { libraryId: "lib-1" }, query: { kind: "edge", limit: 50 } } });
+    await listFaceClusters({ kind: "edge", review: "pending", libraryId: "lib-1" });
+    expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/libraries/{libraryId}/ai/face-clusters", { params: { path: { libraryId: "lib-1" }, query: { kind: "edge", review: "pending", limit: 50 } } });
   });
 
   it("requires the server validator for face settings", async () => {

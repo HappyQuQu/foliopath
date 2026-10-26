@@ -11,7 +11,7 @@ test("real Docker face results support manual people workflows", async ({ page }
   await expect(page).not.toHaveURL(/login/);
   if (process.env.FOLIOPATH_FACE_OFFLINE_E2E === "1") {
     await page.goto(`/intelligence?view=clusters&libraryId=${libraryId}`);
-    await expect(page.getByText("The library is offline. Its index is preserved. Restore the library and retry.")).toBeVisible();
+    await expect(page.getByText("This library is unavailable. Existing content is kept. Reconnect and try again.")).toBeVisible();
     await expect(page.getByText(/Face analysis is not ready/)).toHaveCount(0);
     return;
   }
@@ -30,11 +30,11 @@ test("real Docker face results support manual people workflows", async ({ page }
   await expect(page.getByRole("heading", { name: /Browser renamed/ })).toBeVisible();
 
   await page.goto(`/intelligence?view=clusters&libraryId=${libraryId}`);
-  await expect(page.getByText(/Core-group assignment has not passed/)).toBeVisible();
-  await page.getByRole("button", { name: /Core group.*2 faces/ }).first().click();
-  await expect(page.getByRole("button", { name: "Create person", exact: true })).toBeDisabled();
-  await expect(page.locator('input[type="checkbox"]')).toHaveCount(2);
-  const markedFaces = page.locator('label span[aria-hidden="true"][style*="left:"]');
+  await expect(page.getByText(/Each action saves one face, never an entire batch/)).toBeVisible();
+  await page.getByRole("button", { name: /Person to confirm.*2 faces/ }).first().click();
+  await expect(page.getByRole("button", { name: "Create person", exact: true })).toBeEnabled();
+  await expect(page.getByRole("radio")).toHaveCount(2);
+  const markedFaces = page.getByRole("button", { name: /^Photo \d+ · Marker \d+$/ });
   await expect(markedFaces).toHaveCount(2);
   await expect(markedFaces.first()).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("face-cluster.png"), fullPage: true });
@@ -53,17 +53,19 @@ test("real Docker face results support manual people workflows", async ({ page }
   await page.goto(personURL);
   await expect(page.getByText("1 confirmed faces · 1 assets")).toBeVisible();
   await page.getByRole("button", { name: "Remove from person" }).click();
+  await page.getByRole("dialog", { name: "Remove this face from the person?", exact: true }).getByRole("button", { name: "Confirm assignment change", exact: true }).click();
   await expect(page.getByText("0 confirmed faces · 0 assets")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: /Browser renamed/ })).toBeVisible();
   await page.goto(`/intelligence?view=clusters&libraryId=${libraryId}`);
-  await page.getByRole("button", { name: /Core group.*2 faces/ }).first().click();
-  await page.getByRole("checkbox").nth(0).check();
-  await page.getByRole("checkbox").nth(1).check();
-  await page.getByRole("combobox", { name: "Move to person" }).selectOption(personId);
-  await page.getByRole("button", { name: "Assign to selected person" }).click();
-  await expect(page.getByRole("checkbox").nth(0)).not.toBeChecked();
-  await expect(page.getByRole("checkbox").nth(1)).not.toBeChecked();
+  await page.getByRole("button", { name: /Person to confirm.*2 faces/ }).first().click();
+  await page.getByRole("combobox", { name: "Target person" }).selectOption(personId);
+  for (const index of [0, 1]) {
+    await page.getByRole("radio").nth(index).check();
+    await page.getByRole("button", { name: "Confirm person assignment", exact: true }).click();
+    await page.getByRole("dialog", { name: "Confirm this face belongs to the selected person?", exact: true }).getByRole("button", { name: "Confirm save", exact: true }).click();
+    await expect(page.getByRole("radio").nth(index)).toBeDisabled();
+  }
   await page.goto(personURL);
   await expect(page.getByText("2 confirmed faces · 2 assets")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });

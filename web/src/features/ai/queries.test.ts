@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { aiKeys, useAIModelsQuery, useAIOperationQueries, useFaceSettingsQueries, useSemanticSettingsQueries, useVideoSemanticStatusQuery } from "./queries";
+import { aiKeys, useAIModelsQuery, useAIOperationQueries, useFaceSettingsQueries, useSemanticSettingsQueries, useVideoSemanticStatusQuery, useApplyFaceReviewMutation, useUndoFaceReviewMutation } from "./queries";
 
 const mocks = vi.hoisted(() => ({
   queries: vi.fn((options: unknown) => options),
@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: unknown) => options,
   useQueries: mocks.queries,
-  useMutation: vi.fn(),
+  useMutation: (options: unknown) => options,
   useQueryClient: () => mocks.client,
 }));
 
@@ -82,4 +82,10 @@ it("does not invalidate result queries when operation records are unavailable", 
   mocks.queries.mockReturnValue([{ data: undefined, isError: true }]);
   renderHook(() => useAIOperationQueries(["aio_unavailable"]));
   expect(mocks.client.invalidateQueries).not.toHaveBeenCalled();
+});
+
+it.each([useApplyFaceReviewMutation, useUndoFaceReviewMutation])("refreshes active and inactive review caches on success and uncertain failure", async (hook) => {
+  const options = hook() as unknown as { onSuccess: () => Promise<unknown>; onError: () => Promise<unknown> };
+  await options.onSuccess(); await options.onError();
+  expect(mocks.client.invalidateQueries.mock.calls).toEqual([[{ queryKey: aiKeys.all }], [{ queryKey: aiKeys.all }]]);
 });

@@ -1,4 +1,5 @@
-// Disposable proposal: Storybook-only, bounded synthetic state and no API calls.
+// Historical proposal archive. CR-2026-036 uses the production PersonPanel story
+// for exact face selection and confirmed mutations; this is not acceptance evidence.
 import { ArrowLeft, ArrowRight, UsersThree } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 

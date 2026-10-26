@@ -6,9 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/HappyQuQu/foliopath/internal/face"
 )
+
+// faceCurrentLineageJoins defines the current assigned/excluded projection for an observation.
+const faceCurrentLineageJoins = `
+		LEFT JOIN person_face_anchors anchor ON anchor.library_id=observation.library_id AND anchor.asset_id=observation.asset_id AND anchor.source_fingerprint=observation.source_fingerprint AND anchor.box_x_ppm=observation.box_x_ppm AND anchor.box_y_ppm=observation.box_y_ppm AND anchor.box_width_ppm=observation.box_width_ppm AND anchor.box_height_ppm=observation.box_height_ppm AND anchor.state='bound'
+		LEFT JOIN face_exclusions exclusion ON exclusion.library_id=observation.library_id AND exclusion.asset_id=observation.asset_id AND exclusion.source_fingerprint=observation.source_fingerprint AND exclusion.box_x_ppm=observation.box_x_ppm AND exclusion.box_y_ppm=observation.box_y_ppm AND exclusion.box_width_ppm=observation.box_width_ppm AND exclusion.box_height_ppm=observation.box_height_ppm`
 
 func (s *Store) GetPersonAssetSnapshot(ctx context.Context, personID string) (face.PersonAssetSnapshot, error) {
 	if len(personID) < 8 || len(personID) > 128 {
@@ -22,7 +28,7 @@ func (s *Store) GetPersonAssetSnapshot(ctx context.Context, personID string) (fa
 	if err != nil {
 		return value, err
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT library.id,library.revision,library.status FROM person_face_anchors anchor JOIN libraries library ON library.id=anchor.library_id WHERE anchor.person_id=? AND anchor.state='bound' AND anchor.current_face_id IS NOT NULL GROUP BY library.id,library.revision,library.status ORDER BY library.id`, personID)
+	rows, err := s.db.QueryContext(ctx, `SELECT library.id,library.revision,library.status FROM person_face_anchors anchor JOIN libraries library ON library.id=anchor.library_id WHERE anchor.person_id=? AND `+personBoundPhotoPredicate+` GROUP BY library.id,library.revision,library.status ORDER BY library.id`, personID)
 	if err != nil {
 		return value, err
 	}
@@ -52,14 +58,12 @@ func (s *Store) ListPersonAssetViews(ctx context.Context, query face.PersonAsset
 	}
 	args = append(args, query.Limit, query.PersonID)
 	rows, err := s.db.QueryContext(ctx, `WITH candidates AS(
-		SELECT asset.library_id,asset.id,asset.mtime_ns FROM person_face_anchors anchor
-		JOIN assets asset ON asset.library_id=anchor.library_id AND asset.id=anchor.asset_id
-		JOIN libraries library ON library.id=asset.library_id AND library.status='ready'
-		WHERE anchor.person_id=? AND anchor.state='bound' AND anchor.current_face_id IS NOT NULL`+filter+`
+		SELECT asset.library_id,asset.id,asset.mtime_ns FROM person_face_anchors anchor`+personAvailablePhotoJoins+`
+		WHERE anchor.person_id=? AND `+personBoundPhotoPredicate+``+filter+`
 		GROUP BY asset.library_id,asset.id,asset.mtime_ns ORDER BY asset.mtime_ns DESC,asset.id DESC LIMIT ?)
 		SELECT candidate.library_id,candidate.id,candidate.mtime_ns,anchor.current_face_id
 		FROM candidates candidate JOIN person_face_anchors anchor ON anchor.library_id=candidate.library_id AND anchor.asset_id=candidate.id
-		WHERE anchor.person_id=? AND anchor.state='bound' AND anchor.current_face_id IS NOT NULL
+		WHERE anchor.person_id=? AND `+personBoundPhotoPredicate+`
 		ORDER BY candidate.mtime_ns DESC,candidate.id DESC,anchor.current_face_id`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list person asset views: %w", err)
@@ -84,11 +88,16 @@ func (s *Store) ListAssetFaceViews(ctx context.Context, assetID int64) ([]face.A
 	if assetID < 1 {
 		return nil, face.ErrInvalidFaceProjection
 	}
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 	var libraryID int64
 	var generation, state, libraryState string
 	var enabled int
 	var published bool
-	err := s.db.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(build.generation_id,settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status,build.id IS NOT NULL FROM assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState, &published)
+	err = tx.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(build.generation_id,settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status,build.id IS NOT NULL FROM assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState, &published)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, face.ErrInvalidFaceProjection
 	}
@@ -98,11 +107,9 @@ func (s *Store) ListAssetFaceViews(ctx context.Context, assetID int64) ([]face.A
 	if enabled != 1 || generation == "" || libraryState != "ready" || (state != "ready" && state != "degraded" && !(published && (state == "building" || state == "awaiting_model"))) {
 		return nil, face.ErrFaceNotReady
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT observation.id,observation.asset_id,observation.box_x_ppm,observation.box_y_ppm,observation.box_width_ppm,observation.box_height_ppm,observation.revision,
+	rows, err := tx.QueryContext(ctx, `SELECT observation.id,observation.asset_id,observation.box_x_ppm,observation.box_y_ppm,observation.box_width_ppm,observation.box_height_ppm,observation.revision,
 		COALESCE(anchor.person_id,''),CASE WHEN anchor.id IS NOT NULL THEN 'assigned' WHEN exclusion.id IS NOT NULL THEN 'excluded' WHEN member.role='core' THEN 'anonymous_core' WHEN member.role='edge' THEN 'anonymous_edge' ELSE 'unclustered' END
-		FROM face_observations observation
-		LEFT JOIN person_face_anchors anchor ON anchor.library_id=observation.library_id AND anchor.asset_id=observation.asset_id AND anchor.source_fingerprint=observation.source_fingerprint AND anchor.box_x_ppm=observation.box_x_ppm AND anchor.box_y_ppm=observation.box_y_ppm AND anchor.box_width_ppm=observation.box_width_ppm AND anchor.box_height_ppm=observation.box_height_ppm AND anchor.state='bound'
-		LEFT JOIN face_exclusions exclusion ON exclusion.library_id=observation.library_id AND exclusion.asset_id=observation.asset_id AND exclusion.source_fingerprint=observation.source_fingerprint AND exclusion.box_x_ppm=observation.box_x_ppm AND exclusion.box_y_ppm=observation.box_y_ppm AND exclusion.box_width_ppm=observation.box_width_ppm AND exclusion.box_height_ppm=observation.box_height_ppm
+		FROM face_observations observation`+faceCurrentLineageJoins+`
 		LEFT JOIN face_cluster_members member ON member.face_id=observation.id
 		LEFT JOIN face_cluster_builds build ON build.id=member.build_id AND build.state='active'
 		WHERE observation.generation_id=? AND observation.library_id=? AND observation.asset_id=? AND (member.build_id IS NULL OR build.id IS NOT NULL)
@@ -128,6 +135,54 @@ func (s *Store) ListAssetFaceViews(ctx context.Context, assetID int64) ([]face.A
 	if len(items) > face.MaxCandidatesPerAsset {
 		return nil, face.ErrInvalidFaceProjection
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	index := make(map[string]int, len(items))
+	for i := range items {
+		index[items[i].FaceID] = i
+		items[i].CannotLinkFaceIDs = []string{}
+	}
+	const maxPairs = face.MaxCandidatesPerAsset * (face.MaxCandidatesPerAsset - 1) / 2
+	edges, err := tx.QueryContext(ctx, `SELECT left_anchor.current_face_id,right_anchor.current_face_id
+	 FROM person_face_anchors left_anchor JOIN face_cannot_links link ON link.left_anchor_id=left_anchor.id
+	 JOIN person_face_anchors right_anchor ON right_anchor.id=link.right_anchor_id
+	 WHERE left_anchor.library_id=? AND left_anchor.asset_id=? AND right_anchor.library_id=? AND right_anchor.asset_id=?
+	 AND left_anchor.state='bound' AND right_anchor.state='bound' AND left_anchor.current_face_id IS NOT NULL AND right_anchor.current_face_id IS NOT NULL
+	 ORDER BY left_anchor.current_face_id,right_anchor.current_face_id LIMIT ?`, libraryID, assetID, libraryID, assetID, maxPairs+1)
+	if err != nil {
+		return nil, err
+	}
+	defer edges.Close()
+	count := 0
+	for edges.Next() {
+		count++
+		if count > maxPairs {
+			return nil, face.ErrInvalidFaceProjection
+		}
+		var left, right string
+		if err := edges.Scan(&left, &right); err != nil {
+			return nil, err
+		}
+		li, lok := index[left]
+		ri, rok := index[right]
+		if lok && rok && li != ri && items[li].State == "assigned" && items[ri].State == "assigned" {
+			items[li].CannotLinkFaceIDs = append(items[li].CannotLinkFaceIDs, right)
+			items[ri].CannotLinkFaceIDs = append(items[ri].CannotLinkFaceIDs, left)
+		}
+	}
+	if err := edges.Err(); err != nil {
+		return nil, err
+	}
+	if err := edges.Close(); err != nil {
+		return nil, err
+	}
+	for i := range items {
+		sort.Strings(items[i].CannotLinkFaceIDs)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
@@ -151,7 +206,7 @@ func (s *Store) GetFaceClusterDetailSnapshot(ctx context.Context, libraryID int6
 	}
 	var value face.FaceClusterDetailSnapshot
 	value.Cluster.LibraryID = libraryID
-	err := s.db.QueryRowContext(ctx, `SELECT build.id,build.generation_id,cluster.id,cluster.role,cluster.revision,COUNT(member.face_id) FROM face_cluster_builds build JOIN face_clusters cluster ON cluster.build_id=build.id JOIN face_cluster_members member ON member.build_id=cluster.build_id AND member.cluster_id=cluster.id WHERE build.library_id=? AND build.state='active' AND cluster.id=? GROUP BY build.id,cluster.id`, libraryID, clusterID).Scan(&value.BuildID, &value.GenerationID, &value.Cluster.ID, &value.Cluster.Role, &value.Cluster.Revision, &value.Cluster.MemberCount)
+	err := s.db.QueryRowContext(ctx, `SELECT build.id,build.generation_id,cluster.id,cluster.role,cluster.revision,COUNT(member.face_id),SUM(CASE WHEN anchor.id IS NULL AND exclusion.id IS NULL THEN 1 ELSE 0 END) FROM face_cluster_builds build JOIN face_clusters cluster ON cluster.build_id=build.id JOIN face_cluster_members member ON member.build_id=cluster.build_id AND member.cluster_id=cluster.id JOIN face_observations observation ON observation.id=member.face_id`+faceCurrentLineageJoins+` WHERE build.library_id=? AND build.state='active' AND cluster.id=? GROUP BY build.id,cluster.id`, libraryID, clusterID).Scan(&value.BuildID, &value.GenerationID, &value.Cluster.ID, &value.Cluster.Role, &value.Cluster.Revision, &value.Cluster.MemberCount, &value.Cluster.PendingMemberCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return value, face.ErrFaceNotReady
 	}

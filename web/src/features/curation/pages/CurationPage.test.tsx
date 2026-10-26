@@ -226,7 +226,11 @@ it("replaces the directory tree with a count-weighted tag wall", async () => {
   const largeTag = screen.getByRole("link", { name: /Family/ });
   expect(wall).toContainElement(smallTag);
   expect(largeTag).toHaveAttribute("data-weight", "4");
-  expect(Number(smallTag.getAttribute("data-weight"))).toBeLessThan(4);
+  expect(smallTag).toHaveAttribute("data-weight", "1");
+  const sidebar = screen.getByRole("complementary");
+  const mediaFilters = screen.getByRole("region", { name: /Media filters|媒体筛选/ });
+  expect(sidebar).not.toContainElement(mediaFilters);
+  expect(mediaFilters).toContainElement(screen.getByRole("button", { name: /Video|视频/ }));
   expect(screen.getByLabelText(/64 photos|64 张图片/)).toBeVisible();
   expect(listTags).toHaveBeenCalledWith(undefined, { libraryId: "lib_family", kinds: ["image", "animated"] });
   expect(screen.queryByRole("navigation", { name: /Directory navigation|目录导航/ }))

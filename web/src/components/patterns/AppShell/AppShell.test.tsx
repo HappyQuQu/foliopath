@@ -331,3 +331,20 @@ it("uses feature supplied sidebar names and opens tools without requiring a topb
   expect(opener).toHaveFocus();
   expect(opener).toHaveAttribute("aria-expanded", "false");
 });
+
+it("resizes the shared sidebar by dragging and keyboard and remembers the width", async () => {
+  const user = userEvent.setup();
+  const shell = <ThemeProvider><ToastProvider><MemoryRouter><AppShell active="browse" homeHref="/" identity="管理员" searchHref="/search" settingsHref="/settings/general" title="图库" sidebarContent={<div>目录</div>}><h1>图库</h1></AppShell></MemoryRouter></ToastProvider></ThemeProvider>;
+  const view = render(shell);
+  const separator = screen.getByRole("separator", { name: "调整目录栏宽度" });
+  fireEvent.mouseDown(separator, { button: 0, clientX: 272 });
+  fireEvent.mouseMove(window, { clientX: 320 });
+  fireEvent.mouseUp(window);
+  expect(separator).toHaveAttribute("aria-valuenow", "320");
+  separator.focus();
+  await user.keyboard("{ArrowRight}");
+  expect(separator).toHaveAttribute("aria-valuenow", "344");
+  view.unmount();
+  render(shell);
+  expect(screen.getByRole("separator", { name: "调整目录栏宽度" })).toHaveAttribute("aria-valuenow", "344");
+});

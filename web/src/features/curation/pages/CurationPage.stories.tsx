@@ -31,6 +31,7 @@ type Story = StoryObj<typeof meta>;
 export const FavoritesSidebar: Story = { parameters: { route: "/favorites?libraryId=lib_family" } };
 export const Overview: Story = {};
 export const AnotherLibrary: Story = { parameters: { route: "/tags?libraryId=lib_travel" } };
+export const DenseTagDirectory: Story = { parameters: { fixture: "pagination" } };
 export const Pagination: Story = { parameters: { fixture: "pagination" } };
 export const Empty: Story = { parameters: { fixture: "empty" } };
 export const LoadFailed: Story = { parameters: { fixture: "error" } };
@@ -79,7 +80,7 @@ function makeTags(libraryId: string, paginated: boolean): Tag[] {
   return Array.from({ length: paginated ? 205 : names.length }, (_, index) => ({
     id: `tag_${index}`, name: paginated ? `标签 ${String(index + 1).padStart(3, "0")}` : names[index]!,
     assetCount: counts[index % counts.length]!, createdAt: "2026-10-22T00:00:00Z", updatedAt: "2026-10-22T00:00:00Z",
-    ...(!paginated && index === 2 ? { name: "car", localization: { key: "car", zhCN: "汽车", en: "Car" } } : {}),
+    ...(index % names.length === 2 ? { name: `car${paginated ? index : ""}`, localization: { key: "car", zhCN: "汽车", en: "Car" } } : {}),
   }));
 }
 function fixtureFetch(fixture: Fixture): typeof window.fetch {

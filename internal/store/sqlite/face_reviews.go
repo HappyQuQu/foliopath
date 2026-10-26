@@ -310,7 +310,7 @@ func readCoreClusterLineages(ctx context.Context, tx *sql.Tx, clusterID string, 
 }
 
 func (s *Store) ExcludeFace(ctx context.Context, command face.ExcludeFaceCommand) (face.ReviewResult, error) {
-	if !validResourceID(command.EventID) || !face.ValidReviewDigest(command.RequestHash) || !validResourceID(command.ExclusionID) || !validResourceID(command.FaceID) || command.ExpectedFaceRevision < 1 || command.CreatedAt.IsZero() {
+	if !validResourceID(command.EventID) || !face.ValidReviewDigest(command.RequestHash) || !validResourceID(command.ExclusionID) || !validResourceID(command.FaceID) || command.ExpectedFaceRevision < 1 || command.CreatedAt.IsZero() || !face.ValidReviewSourceGuard(command.SourcePersonID, command.ExpectedSourceRevision) {
 		return face.ReviewResult{}, face.ErrInvalidReview
 	}
 	var result face.ReviewResult
@@ -335,6 +335,11 @@ func (s *Store) ExcludeFace(ctx context.Context, command face.ExcludeFaceCommand
 		err = tx.QueryRowContext(ctx, `SELECT anchor.person_id,person.revision FROM person_face_anchors anchor JOIN people person ON person.id=anchor.person_id WHERE anchor.current_face_id=?`, command.FaceID).Scan(&personID, &personRevision)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
+		}
+		// A detector revision does not fence manual assignment changes. An
+		// anonymous intent must not erase an assignment made after it was read.
+		if (personID.Valid && (command.SourcePersonID != personID.String || command.ExpectedSourceRevision != personRevision.Int64)) || (!personID.Valid && command.SourcePersonID != "") {
+			return face.ErrReviewConflict
 		}
 		if personID.Valid {
 			if _, err := tx.ExecContext(ctx, `DELETE FROM person_face_anchors WHERE current_face_id=?`, command.FaceID); err != nil {
@@ -380,7 +385,7 @@ func (s *Store) ExcludeFace(ctx context.Context, command face.ExcludeFaceCommand
 
 func (s *Store) CannotLinkFaces(ctx context.Context, command face.CannotLinkCommand) (face.ReviewResult, error) {
 	if !validResourceID(command.EventID) || !face.ValidReviewDigest(command.RequestHash) || !validResourceID(command.LeftFaceID) || !validResourceID(command.RightFaceID) || command.LeftFaceID == command.RightFaceID ||
-		command.ExpectedLeftRevision < 1 || command.ExpectedRightRevision < 1 || command.CreatedAt.IsZero() {
+		command.ExpectedLeftRevision < 1 || command.ExpectedRightRevision < 1 || command.CreatedAt.IsZero() || !face.ValidReviewPairGuard(command.SourcePersonID, command.ExpectedSourceRevision, command.TargetPersonID, command.ExpectedTargetRevision) {
 		return face.ReviewResult{}, face.ErrInvalidReview
 	}
 	var result face.ReviewResult
@@ -388,7 +393,11 @@ func (s *Store) CannotLinkFaces(ctx context.Context, command face.CannotLinkComm
 		if revision, replayed, err := replayFaceAudit(ctx, tx, command.EventID, command.RequestHash, "cannot_link", command.LeftFaceID, command.RightFaceID); err != nil {
 			return err
 		} else if replayed {
-			result = reviewResult(command.EventID, "cannot_link", nil, revision, true)
+			var affected []string
+			if command.SourcePersonID != "" {
+				affected = []string{command.SourcePersonID, command.TargetPersonID}
+			}
+			result = reviewResult(command.EventID, "cannot_link", affected, revision, true)
 			result.Replayed = true
 			return nil
 		}
@@ -400,16 +409,21 @@ func (s *Store) CannotLinkFaces(ctx context.Context, command face.CannotLinkComm
 		if err != nil {
 			return err
 		}
-		var leftAnchor, rightAnchor string
-		if err := tx.QueryRowContext(ctx, `SELECT id FROM person_face_anchors WHERE current_face_id=? AND state='bound'`, command.LeftFaceID).Scan(&leftAnchor); err != nil {
+		left, err := readCannotLinkAnchor(ctx, tx, command.LeftFaceID)
+		if err != nil {
+			return err
+		}
+		right, err := readCannotLinkAnchor(ctx, tx, command.RightFaceID)
+		if err != nil {
+			return err
+		}
+		if command.SourcePersonID == "" || left.PersonID != command.SourcePersonID || right.PersonID != command.TargetPersonID || left.PersonRevision != command.ExpectedSourceRevision || right.PersonRevision != command.ExpectedTargetRevision {
 			return face.ErrReviewConflict
 		}
-		if err := tx.QueryRowContext(ctx, `SELECT id FROM person_face_anchors WHERE current_face_id=? AND state='bound'`, command.RightFaceID).Scan(&rightAnchor); err != nil {
-			return face.ErrReviewConflict
+		if left.ID > right.ID {
+			left, right = right, left
 		}
-		if leftAnchor > rightAnchor {
-			leftAnchor, rightAnchor = rightAnchor, leftAnchor
-		}
+		leftAnchor, rightAnchor := left.ID, right.ID
 		inserted, err := tx.ExecContext(ctx, `INSERT INTO face_cannot_links(left_anchor_id,right_anchor_id,revision,created_at_ms) VALUES(?,?,1,?) ON CONFLICT(left_anchor_id,right_anchor_id) DO NOTHING`, leftAnchor, rightAnchor, command.CreatedAt.UTC().UnixMilli())
 		if err != nil {
 			return err
@@ -424,13 +438,27 @@ func (s *Store) CannotLinkFaces(ctx context.Context, command face.CannotLinkComm
 		if err := writeFaceAudit(ctx, tx, command.EventID, command.RequestHash, auditLibrary, "cannot_link", command.LeftFaceID, command.RightFaceID, nil, 1, command.CreatedAt); err != nil {
 			return err
 		}
-		if err := writeFaceUndoSnapshot(ctx, tx, command.EventID, faceUndoPayload{Action: "cannot_link", LeftAnchorID: leftAnchor, RightAnchorID: rightAnchor, LinkRevision: 1}, command.CreatedAt); err != nil {
+		if err := writeFaceUndoSnapshot(ctx, tx, command.EventID, faceUndoPayload{Action: "cannot_link", LeftAnchorID: leftAnchor, RightAnchorID: rightAnchor, LinkRevision: 1, SourcePersonID: left.PersonID, TargetPersonID: right.PersonID, SourcePersonRevision: left.PersonRevision, TargetPersonRevision: right.PersonRevision, LinkAnchors: []faceMergeAnchorUndo{{ID: left.ID, Revision: left.Revision}, {ID: right.ID, Revision: right.Revision}}}, command.CreatedAt); err != nil {
 			return err
 		}
-		result = reviewResult(command.EventID, "cannot_link", nil, 1, true)
+		result = reviewResult(command.EventID, "cannot_link", []string{command.SourcePersonID, command.TargetPersonID}, 1, true)
 		return nil
 	})
 	return result, wrapReview("cannot link faces", err)
+}
+
+type cannotLinkAnchor struct {
+	ID, PersonID             string
+	Revision, PersonRevision int64
+}
+
+func readCannotLinkAnchor(ctx context.Context, tx *sql.Tx, faceID string) (cannotLinkAnchor, error) {
+	var value cannotLinkAnchor
+	err := tx.QueryRowContext(ctx, `SELECT anchor.id,anchor.person_id,anchor.revision,person.revision FROM person_face_anchors anchor JOIN people person ON person.id=anchor.person_id AND person.state='active' WHERE anchor.current_face_id=? AND anchor.state='bound'`, faceID).Scan(&value.ID, &value.PersonID, &value.Revision, &value.PersonRevision)
+	if errors.Is(err, sql.ErrNoRows) {
+		return value, face.ErrReviewConflict
+	}
+	return value, err
 }
 
 func (s *Store) MergePeople(ctx context.Context, command face.MergePeopleCommand) (face.ReviewResult, error) {
@@ -472,19 +500,14 @@ func (s *Store) MergePeople(ctx context.Context, command face.MergePeopleCommand
 		if len(mergeAnchors) > s.maxBatchSize {
 			return face.ErrReviewConflict
 		}
-		var conflicts int
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM face_cannot_links link JOIN person_face_anchors left_anchor ON left_anchor.id=link.left_anchor_id JOIN person_face_anchors right_anchor ON right_anchor.id=link.right_anchor_id WHERE (left_anchor.person_id=? AND right_anchor.person_id=?) OR (left_anchor.person_id=? AND right_anchor.person_id=?)`, command.SourcePersonID, command.TargetPersonID, command.TargetPersonID, command.SourcePersonID).Scan(&conflicts); err != nil {
+		links, duplicates, err := readPersonMergeConflictCounts(ctx, tx, command.SourcePersonID, command.TargetPersonID)
+		if err != nil {
 			return err
 		}
-		if conflicts > 0 {
+		if links > 0 || duplicates > 0 {
 			return face.ErrReviewConflict
 		}
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM person_face_anchors source JOIN person_face_anchors target ON target.person_id=? AND target.library_id=source.library_id AND target.asset_id=source.asset_id AND target.source_fingerprint=source.source_fingerprint AND target.box_x_ppm=source.box_x_ppm AND target.box_y_ppm=source.box_y_ppm AND target.box_width_ppm=source.box_width_ppm AND target.box_height_ppm=source.box_height_ppm WHERE source.person_id=?`, command.TargetPersonID, command.SourcePersonID).Scan(&conflicts); err != nil {
-			return err
-		}
-		if conflicts > 0 {
-			return face.ErrReviewConflict
-		}
+
 		if _, err := tx.ExecContext(ctx, `UPDATE person_face_anchors SET person_id=?,revision=revision+1,updated_at_ms=MAX(created_at_ms,?) WHERE person_id=?`, command.TargetPersonID, command.CreatedAt.UTC().UnixMilli(), command.SourcePersonID); err != nil {
 			return err
 		}

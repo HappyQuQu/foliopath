@@ -76,6 +76,7 @@ type RouteDependencies struct {
 	AutomaticTags       AutomaticTagService
 	FaceSettings        FaceSettingsService
 	FaceClusters        FaceClusterService
+	FaceMergeCheck      PersonMergeCheckQueryService
 	FacePeople          PeopleListService
 	FacePerson          PersonQueryService
 	FaceAssetFaces      AssetFacesQueryService
@@ -209,6 +210,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.FaceSettings != nil && dependencies.FaceJobs != nil && dependencies.FaceClears != nil {
 		registerFaceControlRoutes(mux, dependencies.FaceSettings, dependencies.FaceJobs, dependencies.FaceClears)
+	}
+	if dependencies.FaceMergeCheck != nil {
+		registerPersonMergeCheckRoute(mux, dependencies.FaceMergeCheck)
 	}
 	if dependencies.FaceReviews != nil {
 		registerFaceMutationRoutes(mux, dependencies.FaceReviews)
