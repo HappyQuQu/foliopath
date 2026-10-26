@@ -61,6 +61,7 @@ export type SortOrder = "asc" | "desc";
 export type StoryboardReference = components["schemas"]["StoryboardReference"];
 
 export interface Asset {
+  searchSources?: Array<"filename" | "path">;
   directoryId: string;
   durationMs: number | null;
   favorite?: boolean;
@@ -88,11 +89,41 @@ export interface Asset {
 }
 
 export interface AssetPage {
+  searchMatches?: Record<string, SearchMatch>;
+  searchOCRState?: components["schemas"]["FusedSearchPage"]["ocrState"];
+  searchOCRCoverage?: components["schemas"]["FusedSearchPage"]["ocrCoverage"];
+  searchSemanticState?: components["schemas"]["FusedSearchPage"]["semanticState"];
   counts?: AssetCounts;
   items: Asset[];
   nextCursor: string | null;
   semanticCoverage?: SemanticSearchCoverage;
   semanticVideoMatches?: Record<string, SemanticVideoMatch>;
+}
+
+export interface SearchMatch {
+  ocr?: Array<{line: number; text: string}> | null;
+  sources: Array<"filename" | "path" | "semantic" | "ocr">;
+  semanticScore: number | null;
+}
+
+export async function searchFusedAssets({ mode="all", q, libraryId, directoryId, recursive, kinds, cursor, modifiedFrom, modifiedBefore, limit = 50 }: {
+  mode?: "all" | "ocr"; q: string; libraryId?: string; directoryId?: string; recursive?: boolean; kinds?: AssetKind[];
+  cursor?: string; modifiedFrom?: string; modifiedBefore?: string; limit?: number;
+}): Promise<AssetPage> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/search/assets", { params: { query: {
+      q, mode, limit,
+      ...(libraryId ? { libraryId } : {}), ...(directoryId ? { directoryId, recursive: recursive ?? false } : {}),
+      ...(kinds?.length ? { kind: kinds } : {}), ...(cursor ? { cursor } : {}),
+      ...(modifiedFrom ? { modifiedFrom } : {}), ...(modifiedBefore ? { modifiedBefore } : {}),
+    } } });
+    if (data) return {
+      items: data.items.map(hit => mapAsset(hit.asset)), nextCursor: data.nextCursor,
+      searchMatches: Object.fromEntries(data.items.map(hit => [hit.asset.id, { sources: hit.sources, semanticScore: hit.semanticScore, ocr: hit.ocr }])),
+      searchOCRState: data.ocrState, searchOCRCoverage: data.ocrCoverage, searchSemanticState: data.semanticState, ...(data.coverage ? { semanticCoverage: data.coverage } : {}),
+    };
+    throw createApiError(error, response);
+  } catch (error) { throw createApiError(error); }
 }
 
 export interface SemanticVideoMatch {

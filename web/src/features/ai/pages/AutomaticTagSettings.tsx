@@ -92,7 +92,7 @@ function LibraryAutomaticTagSettings({ libraryId, csrfToken, onOperation, mode =
       <p className={styles.hint}>{t("curation.automaticProtection")}</p>
       <TagLanguageControl />
       <p className={styles.hint}>{t("tagLanguage.hint")}</p>
-      <p className={styles.hint}>{value.model ? t("autoTags.model").replace("{model}", value.model.displayName) : t("autoTags.noModel")}</p>
+      {!value.model && <p className={styles.hint}>{t("autoTags.noModel")}</p>}
       <div className={styles.featureActions}>
         <Link className={styles.textLink} to={`${paths.tags}?${new URLSearchParams({ libraryId })}`}>{t("autoTags.view")}<ArrowRight size={16} aria-hidden="true" /></Link>
         <Button variant="quiet" disabled={missingBlocked} loading={job.isPending} onClick={() => void run("missing")}>{t("autoTags.fill")}</Button>

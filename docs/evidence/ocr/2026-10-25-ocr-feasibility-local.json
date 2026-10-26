@@ -1,0 +1,535 @@
+{
+  "change": "CR-2026-045",
+  "recordedAt": "2026-10-25T13:40:26.601857+00:00",
+  "stage": "POST-MVP-5 follow-up OCR S0 only",
+  "status": "horizontal_feasibility_verified_with_known_quality_limitations",
+  "candidate": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+  "baseRuntime": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+  "architecture": "linux/arm64",
+  "productionOCRReady": false,
+  "original6010Deployed": false,
+  "server222Accessed": false,
+  "realMediaUsed": false,
+  "scope": {
+    "owner": "isolated spikes/ocr; existing scheduler command injection only",
+    "noProductionChanges": [
+      "services/inference",
+      "Go application",
+      "OpenAPI",
+      "SQLite",
+      "frontend",
+      "deployment config"
+    ],
+    "modelCount": 2,
+    "modelBytes": 172695790,
+    "modelManifest": {
+      "schema": 1,
+      "status": "feasibility-only-not-activated",
+      "model": "PP-OCRv5_server",
+      "runtimeImage": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+      "upstream": "immich v3.1.0 / rapidocr 3.8.1",
+      "metadataSource": "https://github.com/RapidAI/RapidOCR/blob/v3.8.1/python/rapidocr/default_models.yaml",
+      "licenseStatus": "Upstream PaddleOCR Apache-2.0; redistribution and dependency review remain open",
+      "files": [
+        {
+          "path": "ocr/PP-OCRv5_server/detection/model.onnx",
+          "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_server.onnx",
+          "sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad",
+          "maxBytes": 536870912,
+          "size": 88118768
+        },
+        {
+          "path": "ocr/PP-OCRv5_server/recognition/model.onnx",
+          "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_server.onnx",
+          "sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a",
+          "maxBytes": 536870912,
+          "size": 84577022
+        }
+      ]
+    },
+    "identity": "experimental contract only; never registered as CLIP/face/tag/OCR production identity"
+  },
+  "probe": {
+    "caseCount": 15,
+    "cases": {
+      "bilingual.png": {
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 1573688,
+          "seconds": 5.5688
+        },
+        "processedSize": [
+          1500,
+          720
+        ],
+        "result": {
+          "lines": [
+            {
+              "box": [
+                0.04533333331346512,
+                0.0902777761220932,
+                0.3766666650772095,
+                0.0902777761220932,
+                0.3766666650772095,
+                0.1666666716337204,
+                0.04533333331346512,
+                0.1666666716337204
+              ],
+              "detectionScore": 0.8783113360404968,
+              "recognitionScore": 0.98778,
+              "text": "FolioPath OCR 2026"
+            },
+            {
+              "box": [
+                0.046666666865348816,
+                0.2847222089767456,
+                0.32600000500679016,
+                0.2847222089767456,
+                0.32600000500679016,
+                0.36944442987442017,
+                0.046666666865348816,
+                0.36944442987442017
+              ],
+              "detectionScore": 0.8927037715911865,
+              "recognitionScore": 0.99878,
+              "text": "中文文字识别测试"
+            },
+            {
+              "box": [
+                0.041999999433755875,
+                0.4791666567325592,
+                0.3140000104904175,
+                0.4722222089767456,
+                0.31466665863990784,
+                0.5625,
+                0.041999999433755875,
+                0.5680555701255798
+              ],
+              "detectionScore": 0.8880590796470642,
+              "recognitionScore": 0.99933,
+              "text": "订单编号123456"
+            },
+            {
+              "box": [
+                0.04333333298563957,
+                0.675000011920929,
+                0.34066668152809143,
+                0.675000011920929,
+                0.34066668152809143,
+                0.75,
+                0.04333333298563957,
+                0.75
+              ],
+              "detectionScore": 0.9073497653007507,
+              "recognitionScore": 0.95367,
+              "text": "LOCAL TEST ONLY"
+            }
+          ]
+        },
+        "sourceSize": [
+          1500,
+          720
+        ],
+        "status": "ready"
+      },
+      "blank.png": {
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 1096088,
+          "seconds": 3.7532
+        },
+        "processedSize": [
+          1000,
+          700
+        ],
+        "result": {
+          "lines": []
+        },
+        "sourceSize": [
+          1000,
+          700
+        ],
+        "status": "ready"
+      },
+      "boundedDeadline": {
+        "childReaped": true,
+        "phase": "worker startup/cache-preprocessing",
+        "seconds": 0.25,
+        "status": "passed"
+      },
+      "corrupt.png": {
+        "error": "invalid_media",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 37948,
+          "seconds": 0.0682
+        },
+        "status": "failed"
+      },
+      "empty": {
+        "error": "invalid_media",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 39728,
+          "seconds": 0.0283
+        },
+        "status": "failed"
+      },
+      "exif-oriented.jpg": {
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 1567480,
+          "seconds": 5.4194
+        },
+        "processedSize": [
+          1500,
+          720
+        ],
+        "result": {
+          "lines": [
+            {
+              "box": [
+                0.04533333331346512,
+                0.0902777761220932,
+                0.3766666650772095,
+                0.0902777761220932,
+                0.3766666650772095,
+                0.1666666716337204,
+                0.04533333331346512,
+                0.1666666716337204
+              ],
+              "detectionScore": 0.877179741859436,
+              "recognitionScore": 0.98889,
+              "text": "FolioPath OCR 2026"
+            },
+            {
+              "box": [
+                0.046666666865348816,
+                0.2847222089767456,
+                0.3253333270549774,
+                0.2847222089767456,
+                0.3253333270549774,
+                0.36944442987442017,
+                0.046666666865348816,
+                0.36944442987442017
+              ],
+              "detectionScore": 0.8909451365470886,
+              "recognitionScore": 0.99923,
+              "text": "中文文字识别测试"
+            },
+            {
+              "box": [
+                0.041999999433755875,
+                0.4791666567325592,
+                0.3140000104904175,
+                0.4722222089767456,
+                0.31466665863990784,
+                0.5625,
+                0.041999999433755875,
+                0.5680555701255798
+              ],
+              "detectionScore": 0.8858051300048828,
+              "recognitionScore": 0.99932,
+              "text": "订单编号123456"
+            },
+            {
+              "box": [
+                0.04333333298563957,
+                0.675000011920929,
+                0.34066668152809143,
+                0.675000011920929,
+                0.34066668152809143,
+                0.75,
+                0.04333333298563957,
+                0.75
+              ],
+              "detectionScore": 0.9092521667480469,
+              "recognitionScore": 0.94333,
+              "text": "LOCAL TEST ONLY"
+            }
+          ]
+        },
+        "sourceSize": [
+          720,
+          1500
+        ],
+        "status": "ready"
+      },
+      "missingModel": {
+        "error": "model_unavailable",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 56112,
+          "seconds": 0.0504
+        },
+        "status": "failed"
+      },
+      "nativeCancellation": {
+        "anonymousAfterReap": 31621120,
+        "anonymousBefore": 31625216,
+        "nextRequestReady": true,
+        "observedChildRSSKiB": 845028,
+        "status": "passed"
+      },
+      "over-bytes": {
+        "error": "input_limit",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 39728,
+          "seconds": 0.0346
+        },
+        "status": "failed"
+      },
+      "over-pixels.png": {
+        "error": "input_limit",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 33188,
+          "seconds": 0.0477
+        },
+        "status": "failed"
+      },
+      "sharedAdmission": {
+        "maxChildrenObserved": 1,
+        "pendingBound": 2,
+        "status": "passed",
+        "thirdRejected": true
+      },
+      "symlinkModel": {
+        "error": "model_unavailable",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 56112,
+          "seconds": 0.0543
+        },
+        "status": "failed"
+      },
+      "tamperedModel": {
+        "error": "model_unavailable",
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 56112,
+          "seconds": 0.1171
+        },
+        "status": "failed"
+      },
+      "vertical.png": {
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 1566600,
+          "seconds": 5.4851
+        },
+        "processedSize": [
+          720,
+          1500
+        ],
+        "result": {
+          "lines": []
+        },
+        "sourceSize": [
+          720,
+          1500
+        ],
+        "status": "ready",
+        "syntheticExpectedLines": 4,
+        "syntheticMatchingLines": 0
+      },
+      "wide.png": {
+        "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+        "metrics": {
+          "peakRSSKiB": 1288204,
+          "seconds": 4.5929
+        },
+        "processedSize": [
+          2048,
+          410
+        ],
+        "result": {
+          "lines": [
+            {
+              "box": [
+                0.02001953125,
+                0.19756098091602325,
+                0.2119140625,
+                0.19756098091602325,
+                0.2119140625,
+                0.2829268276691437,
+                0.02001953125,
+                0.2829268276691437
+              ],
+              "detectionScore": 0.8736487030982971,
+              "recognitionScore": 0.98787,
+              "text": "WIDE IMAGE OCR 2048"
+            }
+          ]
+        },
+        "sourceSize": [
+          3000,
+          600
+        ],
+        "status": "ready"
+      }
+    },
+    "fixtureHashes": {
+      "README.md": "477f468de9f6f8c276ca493c261ce96dabeb3c542705aa4c7bc4bf9e7335fabf",
+      "bilingual.png": "1b48e371f0a8a3a11f2d6cfec3155da1994288b623830bb5eca171515b55e5c4",
+      "blank.png": "5eb1fdc728b8345e0068953c619155579223c382a5eeb1d44d5051e0852631c9",
+      "corrupt.png": "f905923d6dec117507cb7bcabfa94e046b57c37aa023cfb612166477d76912e7",
+      "exif-oriented.jpg": "62ece5736adf7c5f0df9f28fdc2300f0f73a2c8a4753f724e5d388f82588b41c",
+      "over-pixels.png": "9eb78aa6b5d92b2a91a015966577cd24ef18edba4ab563d60e75b060e98b62d3",
+      "vertical.png": "e2414620f2800c16fdf84cfb235612650377729997bdb0119335e310fb1e0864",
+      "wide.png": "826b8bc1f83c13e40d63bc8ec9b8f8f12c7993e49ba810bf55b9fab04246a280"
+    },
+    "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+    "knownLimitations": [
+      "90-degree fixture matched 0/4 lines; no rotation recovery",
+      "synthetic horizontal samples are not a quality benchmark",
+      "no OCR persistence, jobs, API or search integration"
+    ],
+    "memoryEvents": {
+      "high": "0",
+      "low": "0",
+      "max": "0",
+      "oom": "0",
+      "oom_group_kill": "0",
+      "oom_kill": "0",
+      "sock_throttled": "0"
+    },
+    "memoryPeakBytes": 1925079040,
+    "network": "none",
+    "readOnlyMounts": true,
+    "scheduler": "existing command injection seam; visual is experiment transport only, no production registration",
+    "scope": "S0 experiment; not production OCR or semantic search",
+    "sourceHashesPreserved": true,
+    "status": "passed",
+    "image": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+    "containerState": {
+      "exitCode": 0,
+      "oomKilled": false
+    }
+  },
+  "container": {
+    "image": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+    "state": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-10-25T13:38:11.32118493Z",
+      "FinishedAt": "2026-10-25T13:38:56.782761757Z",
+      "Health": {
+        "Status": "unhealthy",
+        "FailingStreak": 1,
+        "Log": [
+          {
+            "Start": "2026-10-25T13:38:41.358408014Z",
+            "End": "2026-10-25T13:38:41.67566575Z",
+            "ExitCode": 1,
+            "Output": ""
+          }
+        ]
+      }
+    },
+    "memoryLimitBytes": 4294967296,
+    "cpus": 2,
+    "isolated": true
+  },
+  "checks": {
+    "spikeDockerUnit": {
+      "status": "passed",
+      "tests": 15
+    },
+    "inheritedSchedulerManifest": {
+      "status": "passed",
+      "tests": 11
+    },
+    "hostContract": {
+      "status": "passed",
+      "tests": 7
+    },
+    "hostDownload": {
+      "status": "passed",
+      "tests": 4
+    },
+    "repository": "make fmt-check arch-check generate-check lint passed",
+    "goFullAndIntegration": "make test test-integration passed with TMPDIR=/Volumes/extended/foliopath/ocr-verification-tmp",
+    "runtimeE2E": "make test-e2e passed after registry EOF retry; isolated synthetic application smoke",
+    "notRun": [
+      "UI/browser matrix (no UI changes)",
+      "OCR index/search/API (not implemented)",
+      "real library OCR",
+      "native amd64",
+      "general OCR quality",
+      "joint model capacity/soak",
+      "release gates"
+    ],
+    "tools": {
+      "node": "24.22.1",
+      "go": "1.27.1 darwin/arm64"
+    }
+  },
+  "initialFailures": [
+    "default temporary filesystem insufficient_space in model-download integration; repeated unchanged on separate temporary disk successfully",
+    "Docker Hub frontend metadata EOF; unchanged runtime E2E retry passed",
+    "old face-candidate lacked scheduler; selected fixed reviewed photo-tags-v2 base",
+    "initial upstream import/cache_dir wiring and score/order adaptation fixed in spike before final verification",
+    "Docker Desktop unconfigured tunnel templates invalidated loopback-only inventory assumption; verified network none/no routes/no egress/ports and readonly mounts instead"
+  ],
+  "remaining": [
+    "90-degree synthetic observation matched 0/4; no rotation/layout quality acceptance",
+    "production architecture/versioned protocol and source-bound generation contract",
+    "OCR bounded jobs, persistence and deletion semantics",
+    "fusion search and UI source integration",
+    "license/redistribution, SBOM, native two-architecture, joint capacity/release"
+  ],
+  "sourceHashes": {
+    "spikes/ocr/Dockerfile": "9109c05147291c0833c0b77a4704ce2744298fc9fc811eb9878b937bb6708c77",
+    "spikes/ocr/README.md": "8b227060c9f4d96f32d3a1749470a7ad262ae4f62e8a4eeaa09bf61468d29663",
+    "spikes/ocr/create_fixtures.py": "1ff620cb9563a983d909a3346753b282d3d99b59d072c104bbe4b75af4fc645d",
+    "spikes/ocr/fetch_models.py": "84ef9cb35fdac4282fb5f9e5d1f35ab6fcb067ee9054b33ef4e14e05bfca6b15",
+    "spikes/ocr/model-manifest.json": "6d21a6e7eb80cef0269cb0e289f2ec7d1e865b195d7fc5aaddafaf957f94c006",
+    "spikes/ocr/ocr_contract.py": "960ffc5185344d5a80142164c87a9ed0fd3f81f978270cf223e481ec49a6c8e4",
+    "spikes/ocr/ocr_worker.py": "a6ea28df83059848e9f70871e522a1449cd3fa9d4f557c4ec57c4238e4564ded",
+    "spikes/ocr/probe.py": "c69eba1042cf9e33d79c67a11060fae54df0df0da3b91c31e20edcfe1a80747e",
+    "spikes/ocr/run_probe.py": "3cde34f1ea3b5e88dae37500ed0b6e1142b50df937c3f61c9e91d027e37cbd8f",
+    "spikes/ocr/test_contract.py": "909903166a23f9f8b094db7ba12e0fb3cfd63c69fec3517b5633867cb4222935",
+    "spikes/ocr/test_fetch_models.py": "afe8e27d487e91e7bb0dfde7b18d9311a1f6001cd96e85d1848e3cea820c2c6c",
+    "spikes/ocr/test_worker.py": "95e12bbc5864a1402c78760fd0d3dc052f7d8247148f0aeb71c094548e9e2fd8"
+  },
+  "fixtureHashes": {
+    "tests/fixtures/ocr/README.md": "477f468de9f6f8c276ca493c261ce96dabeb3c542705aa4c7bc4bf9e7335fabf",
+    "tests/fixtures/ocr/bilingual.png": "1b48e371f0a8a3a11f2d6cfec3155da1994288b623830bb5eca171515b55e5c4",
+    "tests/fixtures/ocr/blank.png": "5eb1fdc728b8345e0068953c619155579223c382a5eeb1d44d5051e0852631c9",
+    "tests/fixtures/ocr/corrupt.png": "f905923d6dec117507cb7bcabfa94e046b57c37aa023cfb612166477d76912e7",
+    "tests/fixtures/ocr/exif-oriented.jpg": "62ece5736adf7c5f0df9f28fdc2300f0f73a2c8a4753f724e5d388f82588b41c",
+    "tests/fixtures/ocr/over-pixels.png": "9eb78aa6b5d92b2a91a015966577cd24ef18edba4ab563d60e75b060e98b62d3",
+    "tests/fixtures/ocr/vertical.png": "e2414620f2800c16fdf84cfb235612650377729997bdb0119335e310fb1e0864",
+    "tests/fixtures/ocr/wide.png": "826b8bc1f83c13e40d63bc8ec9b8f8f12c7993e49ba810bf55b9fab04246a280"
+  },
+  "localLogHashes": {
+    ".artifacts/ocr/build-final.log": "66a53778c204c36e7eac5cfcfc596d3e075ccb9c7c3a3393d69089b707447b56",
+    ".artifacts/ocr/docker-tests-final.log": "af425ba7a29bfe83078713bc8c66e4a02b59cda1fd98d29c43ee45b9df263ff6",
+    ".artifacts/ocr/inherited-tests-final.log": "546b0e121bfbe90b4615c1ae78acce7491765caa0e54249def37c61096f30807",
+    ".artifacts/ocr/contract-tests.log": "83166b089fbcb82fac63f22522fa6ae99bb5e46368cd35d756277fd463dd6346",
+    ".artifacts/ocr/download-tests.log": "80144f3bf12d071a1497821467ab02765712cb11da3f547a5e2b5cf79f938e9a",
+    ".artifacts/ocr/repository-checks-final.log": "eb682907e65bc6308c473c6d3259cfd3a87392928adb1da6fb4ba23684fe73dc",
+    ".artifacts/ocr/backend-regression.log": "512f8a552f45c6fc0addf257034c7b5816360ad81256e3f107d796fe14dddc9d",
+    ".artifacts/ocr/backend-regression-extended-tmp.log": "e2435831e187c9b20fdbb2eb7ef7a1d39f226f97491e8b3d78d336917565437a",
+    ".artifacts/ocr/runtime-e2e-retry.log": "8dbde1ebdefde202dc17a52c1ac37c838b66719392e58dba0ddddc8cd6746a7b",
+    ".artifacts/ocr/run-final.log": "db4a24ff991e15348bc2afd3a3f759e00e271d3e6bf45b1065d7ff826f7102ba",
+    ".artifacts/ocr/probe-final/result.json": "77899f08479fa83b3fcd18ce5704dd36b3000b7013d442038ec51d6cb18985ba",
+    ".artifacts/ocr/probe-final/container.json": "5cc839c2c567f9ab6d38891b0ebde919a0ea61b5e0653b29f97cc7c0b51d262f",
+    ".artifacts/ocr/probe-final/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cleanup": {
+    "testContainersRemoved": true,
+    "childScratchRemoved": true,
+    "temporaryFontRemoved": true,
+    "separateVerifiedModelCacheRetained": true
+  }
+}

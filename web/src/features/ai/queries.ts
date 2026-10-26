@@ -45,6 +45,7 @@ import {
 
 export const aiKeys = {
   all: ["ai"] as const,
+  ocr: (libraryId:string) => ["ai","ocr",libraryId] as const,
   automaticTags: (libraryId: string) => ["ai", "automatic-tags", libraryId] as const,
   videoStatus: (libraryId: string) => ["ai", "video-status", libraryId] as const,
   models: ["ai", "models"] as const,

@@ -1,0 +1,314 @@
+{
+  "change": "CR-2026-051",
+  "recordedAt": "2026-10-26T01:03:43.399297+00:00",
+  "status": "passed_with_documented_contract_warning",
+  "original6010Deployed": false,
+  "server222Connected": false,
+  "originalMediaOrTasksModified": false,
+  "gitCommitOrPush": false,
+  "unitImage": "sha256:eceff499d93f991ee6933f5ffaeffc827bd31ffa0e4a8ef1d48a363a4947a545",
+  "unitContainerState": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-26T00:54:30.433506298Z",
+    "FinishedAt": "2026-10-26T00:57:38.00778701Z"
+  },
+  "unitBudget": {
+    "cpu": 2,
+    "memoryBytes": 2147483648,
+    "memorySwapBytes": 2147483648,
+    "readOnlyRootfs": true,
+    "tmpfs": {
+      "/tmp": "size=512m"
+    },
+    "network": "none"
+  },
+  "unitMatrix": {
+    "topLevelPassCount": 59,
+    "raceBinaries": 4,
+    "tests": [
+      "TestProducerConsumerSharedResultConformance",
+      "TestIdentityFingerprintCanonicalAndIndependent",
+      "TestNormalizePlaintextEmptyAndNFC",
+      "TestNormalizeRejectsWholeInvalidResult",
+      "TestNormalizeExactTextBudgetAndClockwiseBox",
+      "TestImageInputContractIsIndependentAndExplicit",
+      "TestPersistenceResultContractRejectsAmbiguousFailures",
+      "TestPersistenceRequestsBindEpochModelScopeAndMode",
+      "TestOCRAnalyzerSourceChecksAndClosesBeforeReturning",
+      "TestOCRAnalyzerChangedOrCrossLibraryNeverBecomesBadMedia",
+      "TestOCRAnalyzerSourceFailureVersusProgramAndServiceFailure",
+      "TestOCRAnalyzerContractMismatchAndCancel",
+      "TestAutomaticTagsCommitAtomicProgressManualProtectionAndMissing",
+      "TestCurationFavoriteIsIdempotentAndInvalidatesOldCursor",
+      "TestCurationTagsNormalizeReplaceAndCascade",
+      "TestCurationMigrationConstraints",
+      "TestCurationTagListCountsDistinctAssetsWithinOptionalScope",
+      "TestCurationScopedTagPaginationIsStableAndRevisionBound",
+      "TestFaceStateSurvivesSQLiteBackupAndRestore",
+      "TestFusedSQLiteScopesEvidenceStalenessAndDegradation",
+      "TestOCRPersistenceCommitEmptyFailureAndMissing",
+      "TestOCRPersistenceSourceAndGenerationFences",
+      "TestOCRPersistenceRecoveryReopenAndAttemptLimit",
+      "TestOCRPersistenceCancelDisableOfflineAndServiceFailure",
+      "TestOCRPersistenceClearBatchesResumeAndIsolation",
+      "TestOCRPersistenceAtomicRollbackAndConcurrentCommit",
+      "TestOCRPersistenceValidationAndForgedTokens",
+      "TestOCRPersistenceLibraryAssetCascadeAndProtection",
+      "TestOCRPersistenceUpperBoundAndNewSourcesDeferred",
+      "TestOCRPersistenceFreshAndDetachedMigration",
+      "TestOCRPersistenceClearCommitRaceCannotResurrect",
+      "TestOCRPersistenceQueuedCancellationAndDisablePreserveResults",
+      "TestOCRPersistenceGlobalAdmissionBound",
+      "TestOCRPersistenceMigration44AndNonemptyOtherCapabilities",
+      "TestOCRPersistenceOfflineFinishAndCancellationAfterProgress",
+      "TestOCRPersistenceTwoLibrariesClearAndAssetDeleteIsolation",
+      "TestOCRFulltextFusionCurrentSourceScopesAndClear",
+      "TestOCRFulltextUpgradeBackfillAndAtomicRollback",
+      "TestOCRFulltextIdentityVisibilityDoesNotRelabel",
+      "TestOCRWorkerCompletesMissingAndPreservesFailureClassifications",
+      "TestOCRWorkerServiceErrorsNeverWriteBadSource",
+      "TestOCRWorkerBusyDefersExactClaimWithoutBurningAttempt",
+      "TestOCRWorkerPoolPlannedShutdownAndCancellationRace",
+      "TestOCRWorkerSourceFailureMissingNeverLoopsAndClearResumes",
+      "TestOCRHandoffRetainsLatestProgressAndRejectsForgedOrExpiredClaims",
+      "TestOCRWorkerWaitsForTransientScanWithoutReanalysis",
+      "TestOCRClearAcknowledgementAndSnapshotStayConsistentDuringDrain",
+      "TestSemanticEmbeddingRepositoryIsBoundedIdempotentAndInvalidatesSource",
+      "TestSemanticEmbeddingRepositoryRejectsMalformedOrRetiredWrites",
+      "TestFusedHTTPActualSourcesScopeAndDegradedWire",
+      "TestFusedHTTPInvalidAndStaleFailClosed",
+      "TestFusedHTTPOCRExcerptAndPostHydrationFence",
+      "TestOCRHTTPContractSettingsJobsAndConfirmations",
+      "TestOCRHTTPErrorsNeverLeakSourceOrText",
+      "TestOCRHTTPAuthenticationAndCSRFGuardAllRoutes",
+      "TestOCRDeploymentIsExplicitAndDoesNotChangeOtherIdentities",
+      "TestOCRDatabaseLifecycleMethodsFailClosedOutsideOwner",
+      "TestOCRRuntimeInterfaceAndIndependentExpectedIdentity",
+      "TestOCRUnconfiguredApplicationDoesNotRegisterManagement"
+    ],
+    "failures": 0,
+    "skips": 0
+  },
+  "protection": {
+    "tableCount": 17,
+    "sameBeforeAfter": true,
+    "digest": "b82c6ffed9e81fada1d2cee372d7ce2a277f5ff0d2121304d9cbe32d6e71197b",
+    "nonemptyManualAndSuppressionSynthetic": true
+  },
+  "realApplicationProbe": {
+    "status": "passed",
+    "aiImage": "sha256:e995f5748c36ae8de9f3dd86633e4a2f60f3f6d6b7eaaba6616bbdf6ee73da21",
+    "probeImage": "sha256:87ddc674ca50812c056f7d67b78afaf9f59cf3f2defedaed63ea67eab9a78a0b",
+    "clientState": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-10-26T00:54:42.627528345Z",
+      "FinishedAt": "2026-10-26T00:55:15.95268168Z"
+    },
+    "serviceMetrics": {
+      "peak": 2095431680,
+      "events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0",
+        "oom_group_kill": "0",
+        "sock_throttled": "0"
+      }
+    },
+    "syntheticSourceSHA256": {
+      "exif-oriented.jpg": "62ece5736adf7c5f0df9f28fdc2300f0f73a2c8a4753f724e5d388f82588b41c",
+      "empty.png": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blank.png": "5eb1fdc728b8345e0068953c619155579223c382a5eeb1d44d5051e0852631c9",
+      "bilingual.png": "1b48e371f0a8a3a11f2d6cfec3155da1994288b623830bb5eca171515b55e5c4",
+      "corrupt.png": "f905923d6dec117507cb7bcabfa94e046b57c37aa023cfb612166477d76912e7"
+    },
+    "observations": {
+      "clearDisabled": true,
+      "clearHidesSearch": true,
+      "currentSourceFulltext": true,
+      "integrity": true,
+      "missingRepeatRecorded": 0,
+      "nonemptyManualPreserved": true,
+      "ocrSearchHTTP": true,
+      "originalJob": "ocrjob_f0263132771d73c5d27dd38a77401632",
+      "outcomes": {
+        "bilingual.png": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 4,
+          "outcome": "ready"
+        },
+        "blank.png": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "ready"
+        },
+        "corrupt.png": {
+          "error": "invalid_media",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "failed"
+        },
+        "empty.png": {
+          "error": "invalid_media",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 0,
+          "outcome": "failed"
+        },
+        "exif-oriented.jpg": {
+          "error": "",
+          "fingerprint": "9f0a252c001f1194995007921451507609069384daf95dbc0c4d456f0a1b73d7",
+          "lines": 4,
+          "outcome": "ready"
+        }
+      },
+      "parkedCompleted": 2,
+      "persistedTextMatchesFixture": true,
+      "resumedSameJob": true,
+      "separateOSProcesses": 3,
+      "status": "passed"
+    },
+    "isolation": "internal network, no ports; single readonly synthetic media mount; DB only inside Linux tmpfs",
+    "scope": "actual application/management/safe source/native OCR/durable tasks, not quality or capacity/release"
+  },
+  "browser": {
+    "passed": 30,
+    "browsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ],
+    "localesAndThemes": [
+      "zh-CN/light",
+      "en/dark"
+    ],
+    "widths": [
+      320,
+      390,
+      768,
+      1440,
+      1920
+    ],
+    "includes": [
+      "actual source badges",
+      "original OCR excerpts escaped",
+      "mobile preview focus",
+      "wide width and overflow",
+      "axe WCAG2A/AA"
+    ],
+    "syntheticContractOnly": true,
+    "screenshotsManuallyInspected": {
+      "test-results/playwright/fused-search-zh-CN-fused-evidence-at-390px-chromium/fused-zh-CN-390.png": "d355d0ff88503212d6cb1dd088c5a796a0b5e98902ca7ece3e4717547342cf50",
+      "test-results/playwright/fused-search-zh-CN-fused-evidence-at-1920px-chromium/fused-preview-zh-CN-1920.png": "4ccbc7351f0c55d3be6d7ad0aba1790daf54e47952e6693c6fc427aefaf56613"
+    }
+  },
+  "web": {
+    "types": true,
+    "targetedTests": 34,
+    "build": true,
+    "storybookBuild": true,
+    "node": "24.22.1",
+    "npm": "11.19.1",
+    "existingLargeChunkWarning": true
+  },
+  "checksPassed": [
+    "make fmt",
+    "make fmt-check",
+    "make arch-check",
+    "make generate-check",
+    "make lint",
+    "make test",
+    "make test-integration",
+    "make test-e2e",
+    "go test -race ./internal/search ./internal/api -run TestOCR|TestFused|TestFusion|TestSnapshot -count=1"
+  ],
+  "publicContractReview": {
+    "priorLockedSHA256": "63b5e0e8592598d198596d65de88cbad7c0a7bf510c47b6f007cb7110a5da75f",
+    "reconstructedPriorSHA256": "63b5e0e8592598d198596d65de88cbad7c0a7bf510c47b6f007cb7110a5da75f",
+    "priorBytesPreservedAfterReversingCRIncrement": true,
+    "oasdiffStrictWarningGatePassed": false,
+    "errors": 0,
+    "warnings": [
+      "response-property-enum-value-added: ocr"
+    ],
+    "acceptedDecision": "ADR-0037 coordinated unshipped POST-MVP-5 SPA/API extension; cursor audience v2; no original6010 rollout"
+  },
+  "firstAttempts": [
+    "old invalid-mode/test double fixtures and lock file format corrected",
+    "18 first browser cases rejected results pushed down; compact metadata restored without relaxing assertions"
+  ],
+  "limits": [
+    "no OCR management UI or original6010 deployment",
+    "no real-library/90-degree/layout quality or 100k/joint capacity/amd64/release claim",
+    "temporary planned-shutdown cause and separate OS processes tested; not full OS crash matrix",
+    "10 original source problems remain skipped"
+  ],
+  "sourceSHA256": {
+    "AGENTS.md": "98501b64c30678c6ab9cd39ef750263e0fbddb17bd85fd1ebcb292e4bfff6fab",
+    "migrations/00047_ocr_fulltext.sql": "88c461409e1bad9a2da92c9ab6933c0218f2a0fee3e53bcea39acb9599584870",
+    "api/openapi.yaml": "07054d11b1bc57fd1f5fbaf1918b757157a4ad5202738f59a027c07dbc8055a1",
+    "api/openapi.sha256": "70528d5b272afaad7381975d93f074b8feaeeddbb317ead336c8b63a86173a32",
+    "internal/search/search.go": "e16bfd74a0bb7dd09847b5c90d37f56677ffe8b75da49de8ec842f36b1e7f9ad",
+    "internal/search/ocr_test.go": "579e11a6efb42d3f82e02d66459bc82106264cd37f9e970c7d3fab3830834370",
+    "internal/store/sqlite/fused_search.go": "e53d5985c08eb25da5cc981c691b9b554854a7ccfca519736c2ce6cb0771322c",
+    "internal/store/sqlite/ocr_search.go": "7de1d34b832a210f6fe27239ae13350fee610f4b7161f5d4ef28fa56ef512a4e",
+    "internal/store/sqlite/ocr_search_test.go": "cfb6a8ccd6013a373dce704c2babc7c4ed1c5c9f1ed083de40c94e74903ca997",
+    "internal/store/sqlite/ocr_results.go": "e14f9b133a22f012562e810f70e643aa0babec0a3c8d0e0aaf1624e1babc00a8",
+    "internal/store/sqlite/store.go": "a0ee653335dce1bc35df51ece1820b169f02cd698d52d22a464742590cac0223",
+    "internal/app/run.go": "fbde2a93e4b12831dac3e7343cd7fa35527bd406193e993697bbfbc63432b269",
+    "internal/app/database.go": "94f60c7c2e9066ae76086cf1edcd536ba376fe87240d77215c14ade88ca3895a",
+    "internal/app/fused_search.go": "d3de90a08cbc84462da86ab49c1d8300e503b3eade1e5036e7f78d3ca8d05ffb",
+    "internal/app/ocr_worker_probe_test.go": "3d64ae38e09cc8ffd268e2e3f37fb55c7b1d10ef25cc1233b9631506cf82b5fa",
+    "internal/api/fused_search_http.go": "2485b398102c5f909ce4ac34621f221c43d712bffa74ac17932ed0de65e9e594",
+    "internal/api/fused_search_http_test.go": "91a185d3b3296c6299230e0731f4a909e4011f19eda3a19c0a51733c4e0de22a",
+    "tests/architecture/ocr_transport_test.go": "2b502675a2de327594c6f108b6763e3f6c18fb608d4bfe947db0194ad5372244",
+    "web/src/lib/api/generated/schema.ts": "06b76673a43a9b735f84664738eab25bc651f3339e2b10df013207670ef40054",
+    "web/src/lib/api/catalog.ts": "e68a7b8bd6effe7df64fe553efed4a4d0058bb5bbe03bec07627f83e6bf3b3d8",
+    "web/src/lib/i18n/fusedSearchMessages.ts": "2132d0623d5ccc39245e290d06325b8d11339f1782217a4badcdcbec6d6f7165",
+    "web/src/features/search/urlState.ts": "adafd7a9dcb2c1f5b18b1b3785a659ba46fb5b7326bdccf3fc1b26e5b9e369c3",
+    "web/src/features/search/queries.ts": "803c16e868b162fd06c59705e4de4773af77d8dd73cd03d185f42948deeeaa59",
+    "web/src/features/search/pages/SearchPage.tsx": "12316a24dd17f021d1e70c7f8b07d9fc71c9d854dcf5decec16775cf6e8b387a",
+    "web/src/features/search/pages/SearchPage.module.css": "9ec5fe7faa5f92356392a3ba1cdaef6a2704d6d06985e6241cb57767a88288ee",
+    "web/src/features/search/pages/SearchPage.stories.tsx": "f6fbd64efa100d27b2bb68fcbcf742ab20383ef0b31507b54c725803c4440d47",
+    "web/src/features/search/pages/SearchPage.test.tsx": "ad5961b213376199f160dade23bd2b37d2cb3465c29d11b965cf4d716768114c",
+    "web/tests/e2e/fused-search.spec.ts": "43781828160c307c8dda0dc3594855dc0483ebbda44f8b2c5021cb74ebfca3a0"
+  },
+  "logSHA256": {
+    "/tmp/fp-ocr-search-docker-unit-final.log": "5fb9a21080cfbe4829b680ba1d473c0a9369093f2777cb3466a1a4c151746f15",
+    "/tmp/fp-ocr-search-real-final.log": "7796b8a33fc0cf7695b51c72a60623e782bbe81a53895dd3339f562c2ad40975",
+    "/tmp/fp-ocr-search-browser-final.log": "98e76ead2c69cfe7127e163685f124dcf12553f9e61745d5f1ab99351ec5ee25",
+    "/tmp/fp-ocr-search-full-final.log": "7cf0f9119daa2e92aa3452d6f878390df1ed42a559a45804c6e9c29f476f941e",
+    "/tmp/fp-ocr-search-checks-final.log": "d16903e90f870a05346098edf43113b59387e244059978d069f6719274c0d73d",
+    "/tmp/fp-ocr-search-runtime-e2e.log": "9fa30fd22e0c80bb4a229c8a9cf33beb2b8c5db270bed4c5f29acb1b96edf9ae",
+    "/tmp/fp-ocr-search-host-race.log": "0f207c10f5b0ef058e9cc51b61190399628402f4c35c04f6d28d07a0aec1202a",
+    "/tmp/fp-ocr-search-storybook.log": "4a44bb696a34fe717dd006714d6f3616114e73e6f3d24eee3974258b484680dd",
+    "/tmp/fp-ocr-search-compatibility.log": "5d20bb5a439d11fb3ff6bbd449c70665bbbc0d54b5550f03d4eb8ed5c9efc5c4",
+    "/tmp/fp-ocr-search-doc-final-check.log": "ee0aa68266fc433d55cf4ef3a8b61c41b547aa912917e49f2a7c216c7ad44a3b"
+  },
+  "cleanup": {
+    "syntheticClientAndServiceContainersRemoved": true,
+    "syntheticNetworksRemoved": true,
+    "scratchEmpty": true,
+    "unitContainerRemoved": true,
+    "imagesAndLogsRetained": true,
+    "ownedVitePreviewStopped": true
+  }
+}

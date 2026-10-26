@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"mime/multipart"
@@ -14,6 +15,10 @@ import (
 )
 
 const maxTagResponseBytes = 8192
+
+// ErrTagTemporarilyUnavailable identifies a recoverable tag-service outage,
+// never an identity mismatch or malformed model output.
+var ErrTagTemporarilyUnavailable = errors.Join(ErrUnavailable, errors.New("tag service temporarily unavailable"))
 
 // TagIdentity is independently configured, never trusted on first use. Tag cache
 // and policy identities are distinct from the CLIP/face vector-space contract.
@@ -92,6 +97,9 @@ func (t *TagClient) verify(ctx context.Context) error {
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
+		if response.StatusCode == http.StatusServiceUnavailable {
+			return ErrTagTemporarilyUnavailable
+		}
 		return ErrUnavailable
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, 4097))
@@ -162,11 +170,16 @@ func (t *TagClient) Analyze(parent context.Context, encoded []byte) ([]TagLabel,
 			var failure struct {
 				Error string `json:"error"`
 			}
-			if err == nil && len(data) <= 1024 && decodeTagJSON(data, &failure) && failure.Error == "busy" {
-				return nil, ErrBusy
+			if err == nil && len(data) <= 1024 && decodeTagJSON(data, &failure) {
+				switch failure.Error {
+				case "busy":
+					return nil, ErrBusy
+				case "unavailable":
+					return nil, ErrTagTemporarilyUnavailable
+				}
 			}
 		}
-		return nil, tagTransportError(ctx)
+		return nil, ErrUnavailable
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxTagResponseBytes+1))
 	if err != nil {
@@ -182,7 +195,7 @@ func tagTransportError(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
-	return ErrUnavailable
+	return ErrTagTemporarilyUnavailable
 }
 
 func decodeTagJSON(data []byte, target any) bool {

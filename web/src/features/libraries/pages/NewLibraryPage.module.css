@@ -1,6 +1,6 @@
 .page {
-  width: min(var(--size-settings-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
-  margin: var(--space-10) auto 6.25rem;
+  width: min(var(--size-settings-content), calc(100% - calc(var(--workspace-padding) * 2)));
+  margin: var(--space-8) auto var(--space-12);
 }
 
 .heading {
@@ -22,7 +22,7 @@
 
 .heading h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.375rem);
+  font-size: var(--font-size-6);
   letter-spacing: -0.04em;
 }
 
@@ -73,6 +73,7 @@
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius-round);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .stepper li.activeStep {
@@ -93,6 +94,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   box-shadow: var(--shadow-1);
 }
 
@@ -157,6 +159,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-2);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .currentPath {

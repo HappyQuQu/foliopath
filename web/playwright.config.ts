@@ -18,6 +18,11 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "context-visual-chromium",
+      testMatch: /context-sidebar\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], reducedMotion: "reduce" },
+    },
+    {
       name: "chromium",
       testIgnore: /visual-regression\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },

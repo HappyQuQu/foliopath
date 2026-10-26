@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
+import { ContextSidebar } from "../../../components/patterns/ContextSidebar/ContextSidebar";
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
   MediaCollection,
@@ -13,7 +14,7 @@ import {
 } from "../../../components/patterns/MediaPreview/MediaPreview";
 import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
 import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
-import { Button, EmptyState, ErrorState, LoadingState } from "../../../components/ui";
+import { Button, EmptyState, ErrorState, LoadingState, Select } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   assetContentUrl,
@@ -67,6 +68,7 @@ export function CurationPage({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [layout] = useState(readMediaLayoutPreference);
+  const [sizeControlContainer, setSizeControlContainer] = useState<HTMLElement | null>(null);
   const showingTags = location.pathname.startsWith(paths.tags);
   const librariesQuery = useLibrariesQuery();
   const libraries = useMemo(
@@ -130,6 +132,7 @@ export function CurationPage({
   const selectedPathIds = useMemo(() => new Set<string>(), []);
   const preview = useMediaPreviewController({
     items: assets,
+    retainPinnedOutsideResults: false,
     resetKey: `${libraryId ?? "none"}:${kind}:${showingTags ? `tag:${tagId ?? "index"}` : "favorites"}`,
   });
   const previewAsset = preview.previewItem;
@@ -153,6 +156,7 @@ export function CurationPage({
             id: previewAsset.id,
             kind: previewAsset.kind,
             name: previewAsset.name,
+            mimeType: previewAsset.mimeType,
             ...(mediaPosterUrl(previewAsset)
               ? { posterUrl: mediaPosterUrl(previewAsset) }
               : {}),
@@ -193,6 +197,46 @@ export function CurationPage({
     preview.collectionRef,
   ]);
 
+  const mediaFilters = (
+    <div className={styles.filters}>
+      <nav className={styles.kindGroup} aria-label={t("curation.filters")}>
+        {(["all", "image", "video"] as const).map((value) => (
+          <Button
+            key={value}
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              if (value === "all") next.delete("kind"); else next.set("kind", value);
+              setSearchParams(next);
+            }}
+            aria-pressed={kind === value}
+            size="small"
+            variant={kind === value ? "secondary" : "quiet"}
+          >
+            {t(`curation.kind.${value}`)}
+            {!showingTags && <small>{favoritesQuery.data?.pages[0]?.counts[value === "all" ? "all" : value === "image" ? "images" : "videos"] ?? "—"}</small>}
+          </Button>
+        ))}
+      </nav>
+      {showingTags && <div className={styles.densitySlot} ref={setSizeControlContainer} />}
+      <label>
+        <span>{t("curation.sort")}</span>
+        <Select
+          onChange={(event) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("sort", event.target.value);
+            setSearchParams(next);
+          }}
+          value={sort}
+        >
+          {!showingTags && <option value="favoritedAt">{t("curation.sortFavorited")}</option>}
+          <option value="modifiedAt">{t("curation.sortModified")}</option>
+          <option value="name">{t("curation.sortName")}</option>
+          <option value="size">{t("curation.sortSize")}</option>
+        </Select>
+      </label>
+    </div>
+  );
+
   return (
     <AppShell
       active="browse"
@@ -201,8 +245,10 @@ export function CurationPage({
       identity={session.administrator.displayName}
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
-      navigationKey={`${libraryId ?? "none"}:${showingTags ? tagId ?? "tags" : "favorites"}:${kind}`}
+      navigationKey={`${libraryId ?? "none"}:${showingTags ? tagId ?? "tags" : "favorites"}`}
       onLogout={onLogout}
+      navigationLabel={t(showingTags ? "context.openTags" : "context.openFavorites")}
+      sidebarLabel={t(showingTags ? "context.tags" : "context.favorites")}
       searchHref={paths.search}
       settingsHref={paths.generalSettings}
       topbarContent={<span>{currentLibrary?.name ?? heading}</span>}
@@ -214,6 +260,7 @@ export function CurationPage({
             currentLibraryName={currentLibrary?.name}
             {...(favoriteCount !== undefined ? { favoriteCount } : {})}
             hideDirectoryTree
+            detailLayout={showingTags ? "fill" : "scroll"}
             libraries={selectableLibraries}
             libraryId={libraryId}
             onLibraryChange={(nextLibraryId) => {
@@ -221,15 +268,12 @@ export function CurationPage({
               if (showingTags) next.set("kind", "image");
               navigate(`${showingTags ? paths.tags : paths.favorites}?${next.toString()}`);
             }}
-            quickAccessDetail={
-              showingTags ? (
-                <LibraryTagCloud
-                  key={libraryId}
-                  libraryId={libraryId}
-                  {...(tagId ? { selectedTagId: tagId } : {})}
-                />
-              ) : undefined
-            }
+            quickAccessDetail={<div className={showingTags ? styles.tagTools : undefined}>
+              {showingTags && <LibraryTagCloud key={libraryId} libraryId={libraryId} {...(tagId ? { selectedTagId: tagId } : {})} />}
+              {!showingTags && <ContextSidebar title={t("context.favorites")} description={t("context.favoriteScope")}>
+                {mediaFilters}
+              </ContextSidebar>}
+            </div>}
             selectedPathIds={selectedPathIds}
           />
         ) : undefined
@@ -237,55 +281,24 @@ export function CurationPage({
       title={heading}
     >
       <section className={styles.page} aria-labelledby="curation-heading">
-        <header className={styles.header}>
-          <p>{t("curation.quickAccess")}</p>
-          <h1 id="curation-heading">{heading}</h1>
-          <span>{t("curation.loadedCount").replace("{count}", String(assets.length))}</span>
-          {showingTags && tagId && <Button size="small" variant="secondary" onClick={() => {
-            navigate(`${paths.tags}?${searchParams.toString()}`);
-          }}>{t("tagCloud.clearFilter")}</Button>}
-        </header>
-        <div className={styles.filters} role="region" aria-label={t("curation.filters")}>
-          <div className={styles.kindGroup}>
-            {(["all", "image", "video"] as const).map((value) => (
-              <Button
-                key={value}
-                onClick={() => {
-                  const next = new URLSearchParams(searchParams);
-                  if (value === "all") next.delete("kind"); else next.set("kind", value);
-                  setSearchParams(next);
-                }}
-                aria-pressed={kind === value}
-                size="small"
-                variant="secondary"
-              >
-                {t(`curation.kind.${value}`)}
-              </Button>
-            ))}
-          </div>
-          <label>
-            <span>{t("curation.sort")}</span>
-            <select
-              onChange={(event) => {
-                const next = new URLSearchParams(searchParams);
-                next.set("sort", event.target.value);
-                setSearchParams(next);
-              }}
-              value={sort}
-            >
-              {!showingTags && <option value="favoritedAt">{t("curation.sortFavorited")}</option>}
-              <option value="modifiedAt">{t("curation.sortModified")}</option>
-              <option value="name">{t("curation.sortName")}</option>
-              <option value="size">{t("curation.sortSize")}</option>
-            </select>
-          </label>
-        </div>
         <div
           className={styles.workspace}
           data-has-preview={previewItem ? "" : undefined}
           style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
         >
         <div className={styles.results}>
+        <header className={styles.header}>
+          <p>{t("curation.quickAccess")}</p>
+          <h1 id="curation-heading">{heading}</h1>
+          <span>{t("curation.loadedCount").replace("{count}", String(assets.length))}</span>
+        </header>
+        {showingTags && <section className={styles.tagResultTools} aria-label={t("context.mediaFilters")}>
+          {mediaFilters}
+        </section>}
+        <p className={styles.applied} aria-label={t("context.resultsFilters")}>
+          {t(`curation.kind.${kind}`)} · {t(sort === "favoritedAt" ? "curation.sortFavorited" : sort === "name" ? "curation.sortName" : sort === "size" ? "curation.sortSize" : "curation.sortModified")}
+        </p>
+
           {!libraryId ? (
             librariesQuery.isPending || (Boolean(requestedLibraryId) && requestedLibraryQuery.isPending) ? <LoadingState /> :
             librariesQuery.isError || hasRequestedLibrary ? <>
@@ -316,6 +329,7 @@ export function CurationPage({
           ) : (
             <MediaCollection
               ref={preview.collectionRef}
+              {...(showingTags ? { sizeControlContainer } : {})}
               {...(favoriteMutation.variables?.assetId
                 ? { favoritePendingId: favoriteMutation.variables.assetId }
                 : {})}

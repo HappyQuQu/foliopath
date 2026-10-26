@@ -123,6 +123,7 @@ export function BrowsePage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [sizeControlContainer, setSizeControlContainer] = useState<HTMLDivElement | null>(null);
   const [mediaLayout, setMediaLayout] = useState<MediaCollectionLayout>(
     readMediaLayoutPreference,
   );
@@ -228,6 +229,7 @@ export function BrowsePage({
             id: previewAsset.id,
             kind: previewAsset.kind,
             name: previewAsset.name,
+            mimeType: previewAsset.mimeType,
             ...(mediaPosterUrl(previewAsset)
               ? { posterUrl: mediaPosterUrl(previewAsset) }
               : {}),
@@ -390,8 +392,33 @@ export function BrowsePage({
       title={t("browse.title")}
     >
       <section className={styles.page} aria-labelledby="browse-heading">
+
+        <div
+          className={styles.workspace}
+          data-has-preview={previewItem ? "" : undefined}
+          style={
+            {
+              "--preview-sticky-top":
+                "calc(var(--size-header) + var(--size-context-bar) + var(--space-3))",
+              "--preview-width": `${preview.width}px`,
+            } as CSSProperties
+          }
+        >
+          <div className={styles.content}>
+            <div className={styles.browseControls}>
+            <header className={styles.browseHeading}>
+              <div className={styles.browseTitle}>
+                <h1 id="browse-heading">{currentName}</h1>
+                <span>{t("browse.loadedMediaCount").replace("{count}", String(assets.length))}</span>
+              </div>
+              <BrowseScopeControls
+                browseState={browseState}
+                counts={assetsQuery.data?.pages[0]?.counts}
+                mediaSortPreference={mediaSortPreference}
+                onChange={updateBrowseState}
+              />
+            </header>
         <BrowseToolbar
-          counts={assetsQuery.data?.pages[0]?.counts}
           browseState={browseState}
           directoryFilter={directoryFilterDraft}
           mediaLayout={mediaLayout}
@@ -408,7 +435,9 @@ export function BrowsePage({
             }
           }}
           refreshPending={manualRefreshPending}
+          sizeControlRef={setSizeControlContainer}
         />
+            </div>
         {currentLibrary?.status === "offline" && (
           <div className={styles.banner}>
             <InlineStatus tone="warning">
@@ -438,18 +467,6 @@ export function BrowsePage({
           </div>
         )}
 
-        <div
-          className={styles.workspace}
-          data-has-preview={previewItem ? "" : undefined}
-          style={
-            {
-              "--preview-sticky-top":
-                "calc(var(--size-header) + var(--size-context-bar) * 2)",
-              "--preview-width": `${preview.width}px`,
-            } as CSSProperties
-          }
-        >
-          <div className={styles.content}>
             {(libraryQuery.isPending ||
               (directoryId && directoryQuery.isPending)) && (
               <LoadingState label={t("browse.loadingLocation")} />
@@ -466,14 +483,11 @@ export function BrowsePage({
             {libraryQuery.isSuccess &&
               (!directoryId || directoryQuery.isSuccess) && (
                 <>
-                  <h1 className={styles.screenReaderOnly} id="browse-heading">
-                    {currentName}
-                  </h1>
                   {(childrenQuery.isPending ||
                     childrenQuery.isError ||
                     children.length > 0 ||
                     browseState.q) && (
-                    <section aria-labelledby="child-directories-heading">
+                    <section className={styles.foldersSection} aria-labelledby="child-directories-heading">
                       <div className={styles.sectionHeading}>
                         <div>
                           <h2 id="child-directories-heading">
@@ -535,7 +549,7 @@ export function BrowsePage({
                     </section>
                   )}
                   <section aria-labelledby="media-heading">
-                    <div className={styles.sectionHeading}>
+                    <div className={styles.screenReaderOnly}>
                       <div>
                         <h2 id="media-heading">{t("browse.mediaHeading")}</h2>
                         <p>
@@ -621,6 +635,7 @@ export function BrowsePage({
                           video: t("browse.kindVideo"),
                         }}
                         layout={mediaLayout}
+                        sizeControlContainer={sizeControlContainer}
                         {...(favoriteMutation.variables?.assetId
                           ? { favoritePendingId: favoriteMutation.variables.assetId }
                           : {})}
@@ -735,49 +750,15 @@ export function BrowsePage({
   );
 }
 
-function BrowseToolbar({
-  browseState,
-  counts,
-  directoryFilter,
-  mediaLayout,
-  mediaSortPreference,
-  onChange,
-  onDirectoryFilterChange,
-  onLayoutChange,
-  onRefresh,
-  refreshPending,
-}: {
+function BrowseScopeControls({ browseState, counts, mediaSortPreference, onChange }: {
   browseState: BrowseUrlState;
   counts?: AssetCounts | undefined;
-  directoryFilter: string;
-  mediaLayout: MediaCollectionLayout;
   mediaSortPreference: ReturnType<typeof readMediaSortPreference>;
   onChange: (state: BrowseUrlState) => void;
-  onDirectoryFilterChange: (query: string) => void;
-  onLayoutChange: (layout: MediaCollectionLayout) => void;
-  onRefresh: () => Promise<void>;
-  refreshPending: boolean;
 }) {
   const { locale, t } = useLocale();
-  const sortValue = `${browseState.sort}:${browseState.order}`;
-  const defaults = {
-    ...defaultBrowseUrlState(
-      browseState.recursive,
-      browseState.q,
-      mediaSortPreference,
-    ),
-    ...(browseState.allMedia ? { allMedia: true as const } : {}),
-    kind: browseState.kind,
-  };
-  const customSort =
-    browseState.sort !== defaults.sort || browseState.order !== defaults.order;
-
   return (
-    <div
-      className={styles.toolbar}
-      role="region"
-      aria-label={t("browse.tools")}
-    >
+      <div className={styles.scopeControls}>
       <Button
         aria-pressed={browseState.recursive}
         className={styles.recursiveToggle}
@@ -853,6 +834,54 @@ function BrowseToolbar({
           </Button>
         ))}
       </div>
+      </div>
+  );
+}
+
+function BrowseToolbar({
+  browseState,
+  directoryFilter,
+  mediaLayout,
+  mediaSortPreference,
+  onChange,
+  onDirectoryFilterChange,
+  onLayoutChange,
+  onRefresh,
+  refreshPending,
+  sizeControlRef,
+}: {
+  browseState: BrowseUrlState;
+  directoryFilter: string;
+  mediaLayout: MediaCollectionLayout;
+  mediaSortPreference: ReturnType<typeof readMediaSortPreference>;
+  onChange: (state: BrowseUrlState) => void;
+  onDirectoryFilterChange: (query: string) => void;
+  onLayoutChange: (layout: MediaCollectionLayout) => void;
+  onRefresh: () => Promise<void>;
+  refreshPending: boolean;
+  sizeControlRef: (node: HTMLDivElement | null) => void;
+}) {
+  const { t } = useLocale();
+  const sortValue = `${browseState.sort}:${browseState.order}`;
+  const defaults = {
+    ...defaultBrowseUrlState(
+      browseState.recursive,
+      browseState.q,
+      mediaSortPreference,
+    ),
+    ...(browseState.allMedia ? { allMedia: true as const } : {}),
+    kind: browseState.kind,
+  };
+  const customSort =
+    browseState.sort !== defaults.sort || browseState.order !== defaults.order;
+
+  return (
+    <div
+      className={styles.toolbar}
+      role="region"
+      aria-label={t("browse.tools")}
+    >
+      <div className={styles.viewControls}>
       <label className={styles.directoryFilter}>
         <MagnifyingGlass aria-hidden="true" size={17} />
         <span className={styles.screenReaderOnly}>
@@ -868,10 +897,9 @@ function BrowseToolbar({
           value={directoryFilter}
         />
       </label>
+      <div className={styles.displayControls} role="group" aria-label={t("browse.layout")}>
       <div
         className={styles.layoutControls}
-        role="group"
-        aria-label={t("browse.layout")}
       >
         <IconButton
           label={t("browse.layoutGrid")}
@@ -895,6 +923,9 @@ function BrowseToolbar({
           <SquaresFour aria-hidden="true" size={18} weight="fill" />
         </IconButton>
       </div>
+      <div className={styles.sizeControlSlot} ref={sizeControlRef} />
+      </div>
+      <div className={styles.sortActions}>
       <label className={styles.sortControl}>
         <span>{t("browse.sort")}</span>
         <select
@@ -939,6 +970,8 @@ function BrowseToolbar({
       >
         <ArrowClockwise aria-hidden="true" size={17} />
       </Button>
+      </div>
+      </div>
     </div>
   );
 }
@@ -1061,24 +1094,29 @@ export function DirectoryNavigation({
   activeQuickAccess,
   browseState,
   currentLibraryName,
+  scopeLabel,
   favoriteCount,
   libraries,
   libraryId,
   hideDirectoryTree = false,
   onLibraryChange,
   quickAccessDetail,
+  detailLayout = "scroll",
   selectedDirectoryId,
   selectedPathIds,
 }: {
-  activeQuickAccess?: "allMedia" | "people" | "favorites" | "tags" | "suggestions";
+  activeQuickAccess?: "allMedia" | "search" | "people" | "favorites" | "tags" | "suggestions";
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
+  /** Read-only scope for global workspaces; library selection stays on scoped views. */
+  scopeLabel?: string;
   favoriteCount?: number;
   libraries: LibrarySummary[];
   libraryId: string;
   hideDirectoryTree?: boolean;
   onLibraryChange: (libraryId: string) => void;
   quickAccessDetail?: ReactNode;
+  detailLayout?: "scroll" | "fill";
   selectedDirectoryId?: string | undefined;
   selectedPathIds: Set<string>;
 }) {
@@ -1093,7 +1131,7 @@ export function DirectoryNavigation({
   );
   const libraryRootSelected =
     !activeQuickAccess && !selectedDirectoryId && !allMediaSelected;
-  const curationScope = `?${new URLSearchParams({ libraryId }).toString()}`;
+  const curationScope = libraryId ? `?${new URLSearchParams({ libraryId }).toString()}` : "";
 
   function statusLabel(library: LibrarySummary | undefined) {
     return library?.status === "ready"
@@ -1161,9 +1199,17 @@ export function DirectoryNavigation({
   const currentStatusLabel = statusLabel(currentLibrary);
 
   return (
-    <div className={styles.directoryNavigation}>
-      <div
+    <div className={styles.directoryNavigation} data-detail-layout={detailLayout}>
+      {scopeLabel ? <div className={styles.scopeSummary}><span>{t("context.scope")}</span><strong>{scopeLabel}</strong></div> : <div
         className={styles.libraryPicker}
+        onKeyDown={event => {
+          if (libraryMenuOpen && event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            setLibraryMenuOpen(false);
+            libraryTriggerRef.current?.focus();
+          }
+        }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
             setLibraryMenuOpen(false);
@@ -1208,7 +1254,7 @@ export function DirectoryNavigation({
             weight="bold"
           />
         </button>
-        <span className={styles.libraryStatus}>
+        {libraryId && <span className={styles.libraryStatus}>
           <span
             className={styles.libraryStatusDot}
             data-status={currentLibrary?.status}
@@ -1220,7 +1266,7 @@ export function DirectoryNavigation({
                 String(currentLibrary.assetCount),
               )}`
             : ""}
-        </span>
+        </span>}
         {libraryMenuOpen && (
           <div
             aria-label={t("browse.library")}
@@ -1291,7 +1337,7 @@ export function DirectoryNavigation({
             })}
           </div>
         )}
-      </div>
+      </div>}
       <p className={styles.treeLabel}>{t("curation.quickAccess")}</p>
       <nav
         aria-label={t("curation.quickAccess")}
@@ -1300,13 +1346,21 @@ export function DirectoryNavigation({
         <Link
           aria-current={allMediaSelected ? "page" : undefined}
           className={`${styles.treeLink} ${styles.treeAllMedia} ${allMediaSelected ? styles.treeLinkCurrent : ""}`}
-          to={browseUrl(libraryId, undefined, {
+          to={libraryId ? browseUrl(libraryId, undefined, {
             ...defaultBrowseUrlState(true),
             allMedia: true,
-          })}
+          }) : paths.root}
         >
           <ImageSquare aria-hidden="true" size={18} />
           <span>{t("browse.allMedia")}</span>
+        </Link>
+        <Link
+          aria-current={activeQuickAccess === "search" ? "page" : undefined}
+          className={`${styles.treeLink} ${activeQuickAccess === "search" ? styles.treeLinkCurrent : ""}`}
+          to={libraryId ? paths.librarySearch(libraryId) : paths.search}
+        >
+          <MagnifyingGlass aria-hidden="true" size={18} />
+          <span>{t("search.title")}</span>
         </Link>
         <Link
           aria-current={activeQuickAccess === "people" ? "page" : undefined}
@@ -1336,7 +1390,7 @@ export function DirectoryNavigation({
           <span>{t("curation.tags")}</span>
         </Link>
       </nav>
-      {quickAccessDetail}
+      {quickAccessDetail && <div className={styles.contextDetail} data-layout={detailLayout}>{quickAccessDetail}</div>}
       {!hideDirectoryTree && (
         <>
           <p className={`${styles.treeLabel} ${styles.directoryLabel}`}>

@@ -79,6 +79,7 @@ const serviceModels = {
 };
 
 vi.mock("./AITagSettings", () => ({ AITagSettings: () => null }));
+vi.mock("./OCRSettings",()=>({OCRSettings:()=> <div>图片文字 OCR</div>}));
 vi.mock("./AutomaticTagSettings", () => ({ AutomaticTagSettings: () => <div>自动标签</div> }));
 
 vi.mock("../../libraries", () => ({
@@ -147,7 +148,7 @@ it.each(["pending", "error"])("keeps unavailable task rows compact and disables 
   mocks.faces.mockReturnValue([query]);
   mocks.video.mockReturnValue(query);
   renderPage("/settings/ai?view=tasks");
-  for (const name of ["图片搜索索引", "人物分析", "视频搜索索引"]) {
+  for (const name of ["图片分析", "人物分析", "视频分析"]) {
     const row = screen.getByRole("region", { name });
     expect(within(row).getByRole(state === "pending" ? "status" : "alert")).toHaveClass(asyncStyles.compact!);
     expect(within(row).getByRole("button", { name: "补齐缺失" })).toBeDisabled();
@@ -282,7 +283,7 @@ it("uses the server ETag when toggling one library and shows truthful coverage",
 it("keeps full rebuild and semantic clearing behind distinct safety confirmations", async () => {
   const user = userEvent.setup();
   renderPage("/settings/ai?view=tasks");
-  const panel = jobPanel("图片搜索索引");
+  const panel = jobPanel("图片分析");
 
   await user.click(panel.getByRole("button", { name: /更多/ }));
   await user.click(panel.getByRole("button", { name: "全部重建" }));
@@ -292,7 +293,7 @@ it("keeps full rebuild and semantic clearing behind distinct safety confirmation
 
   await user.click(screen.getByRole("button", { name: "清除语义数据" }));
   expect(screen.getByRole("heading", { name: "清除可重建语义数据？" })).toBeVisible();
-  expect(screen.getByText(/不会删除模型、原始媒体、收藏或人工标签/)).toBeVisible();
+  expect(screen.getByText(/原文件、收藏和标签保留/)).toBeVisible();
   await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "清除语义数据" }));
 
   expect(mocks.clear).toHaveBeenCalledWith(expect.objectContaining({
@@ -347,13 +348,13 @@ it("does not enable missing models", () => {
   mocks.semantic.mockReturnValue([{ data: { ...settings, enabled: false }, isPending: false, isError: false }]);
   renderPage("/settings/ai");
   expect(screen.getByRole("switch", { name: "切换 家庭照片 的图片语义搜索" })).toBeDisabled();
-  expect(screen.getByText("智能搜索模型尚未就绪，请检查 AI 容器配置。")).toBeVisible();
+  expect(screen.getByText("智能搜索暂不可用，请稍后重试。")).toBeVisible();
 });
 
 it("keeps unrecorded video coverage unknown instead of complete", async () => {
   renderPage("/settings/ai");
   await userEvent.click(screen.getByRole("button", { name: "处理任务" }));
-  expect(jobPanel("视频搜索索引").getByText("无当前进度记录")).toBeVisible();
+  expect(jobPanel("视频分析").getByText("无当前进度记录")).toBeVisible();
   expect(screen.queryByRole("progressbar", { name: "家庭照片 视频语义分析进度" })).not.toBeInTheDocument();
 });
 
@@ -362,11 +363,11 @@ it("submits video missing work through its own endpoint and confirms full rebuil
   mocks.models.mockReturnValue({ items: [{ id: "model_service", active: true, state: "available", storageMode: "service", purpose: "semantic_image_text", version: "foliopath-ml-v1" }], activeModelId: "model_service", activeFaceModelId: null, revision: 1 });
   renderPage("/settings/ai");
   await user.click(screen.getByRole("button", { name: "处理任务" }));
-  await user.click(jobPanel("视频搜索索引").getByRole("button", { name: "补齐缺失" }));
+  await user.click(jobPanel("视频分析").getByRole("button", { name: "补齐缺失" }));
   expect(mocks.videoJob).toHaveBeenCalledWith(expect.objectContaining({ csrfToken: "csrf-token-that-is-long-enough", libraryId: library.id, mode: "missing", idempotencyKey: expect.any(String) }));
   expect(mocks.job).not.toHaveBeenCalled();
   expect(mocks.operations).toHaveBeenLastCalledWith(expect.arrayContaining(["aio_video"]));
-  await user.click(jobPanel("视频搜索索引").getByRole("button", { name: /更多/ }));
+  await user.click(jobPanel("视频分析").getByRole("button", { name: /更多/ }));
   await user.click(screen.getByRole("button", { name: "重建视频索引" }));
   expect(screen.getByRole("dialog")).toBeVisible();
   expect(mocks.videoJob).toHaveBeenCalledTimes(1);
@@ -381,15 +382,15 @@ it("disables video work when the active model is missing", async () => {
   mocks.models.mockReturnValue({ items: [], activeModelId: null, activeFaceModelId: null, revision: 0 });
   renderPage("/settings/ai");
   await userEvent.click(screen.getByRole("button", { name: "处理任务" }));
-  expect(jobPanel("视频搜索索引").getByRole("button", { name: "补齐缺失" })).toBeDisabled();
-  await userEvent.click(jobPanel("视频搜索索引").getByRole("button", { name: /更多/ }));
+  expect(jobPanel("视频分析").getByRole("button", { name: "补齐缺失" })).toBeDisabled();
+  await userEvent.click(jobPanel("视频分析").getByRole("button", { name: /更多/ }));
   expect(screen.getByRole("button", { name: "重建视频索引" })).toBeDisabled();
 });
 
 it.each(["/settings/ai", "/settings/ai?view=libraries"])("shows unrecorded image progress honestly in %s", (path) => {
   mocks.semantic.mockReturnValue([{ data: { ...settings, coverageRecorded: false, coverage: { ...settings.coverage, completed: 0, eligible: 0, failed: 0, stale: 0, complete: false } }, isPending: false, isError: false }]);
   renderPage(path);
-  expect((path === "/settings/ai" ? screen : jobPanel("图片搜索索引")).getByText(path === "/settings/ai" ? "尚无处理记录" : "无当前进度记录")).toBeVisible();
+  expect((path === "/settings/ai" ? screen : jobPanel("图片分析")).getByText(path === "/settings/ai" ? "尚无处理记录" : "无当前进度记录")).toBeVisible();
   expect(screen.queryByText("0 / 0")).not.toBeInTheDocument();
   expect(screen.queryByRole("progressbar", { name: "家庭照片 图片语义分析进度 覆盖率" })).not.toBeInTheDocument();
 });
@@ -399,7 +400,7 @@ it("separates recorded video completion, degradation and pending work", async ()
   renderPage("/settings/ai");
   await userEvent.click(screen.getByRole("button", { name: "处理任务" }));
   expect(screen.getByRole("progressbar", { name: "家庭照片 视频语义分析进度" })).toHaveAttribute("value", "1");
-  expect(screen.getByText("待处理 2 · 降级 1 · 失败 1 · 待更新 1")).toBeVisible();
+  expect(screen.getByText("待处理 2 · 部分未完成 1 · 失败 1 · 待更新 1")).toBeVisible();
   expect(screen.getByText("已完成 1 / 6")).toBeVisible();
 });
 
@@ -407,7 +408,7 @@ it("hides stale video success when refreshing status fails", () => {
   mocks.video.mockReturnValue({ data: { coverage: { eligible: 1, completed: 1 } }, isPending: false, isError: true, refetch: vi.fn() });
   renderPage("/settings/ai?view=tasks");
   expect(screen.queryByRole("progressbar", { name: "家庭照片 视频语义分析进度" })).not.toBeInTheDocument();
-  expect(jobPanel("视频搜索索引").getByRole("button", { name: "补齐缺失" })).toBeDisabled();
+  expect(jobPanel("视频分析").getByRole("button", { name: "补齐缺失" })).toBeDisabled();
 });
 
 it.each([
@@ -517,13 +518,13 @@ it("preserves the selected library across fixed tabs, jobs and result links", as
   expect(screen.getByRole("link", { name: /查看人物/ })).toHaveAttribute("href", "/intelligence?view=clusters&libraryId=lib_second");
   await user.click(screen.getByRole("button", { name: "处理任务" }));
   expect(screen.queryByRole("switch")).not.toBeInTheDocument();
-  await user.click(jobPanel("图片搜索索引").getByRole("button", { name: "补齐缺失" }));
+  await user.click(jobPanel("图片分析").getByRole("button", { name: "补齐缺失" }));
   await user.click(jobPanel("人物分析").getByRole("button", { name: "补齐缺失" }));
   expect(mocks.job).toHaveBeenCalledWith(expect.objectContaining({ libraryId: second.id, mode: "missing" }));
   expect(mocks.faceJob).toHaveBeenCalledWith(expect.objectContaining({ libraryId: second.id, mode: "missing" }));
   await user.click(screen.getByRole("button", { name: "服务与模型" }));
   expect(screen.getByRole("heading", { name: "全局 AI 服务" })).toBeVisible();
-  expect(screen.getByText(/foliopath-ml-v1/)).toBeVisible();
+  expect(screen.queryByText(/foliopath-ml-v1/)).not.toBeInTheDocument();
   expect(screen.queryByRole("combobox", { name: "当前媒体库" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "功能设置" }));
   expect(screen.getByRole("combobox", { name: "当前媒体库" })).toHaveValue(second.id);
@@ -546,7 +547,7 @@ it.each(["libraries", "faces"])("maps the old %s link to processing without losi
   renderPage(`/settings/ai?view=${view}&library=${second.id}`);
   expect(screen.getByRole("button", { name: "处理任务", pressed: true })).toBeVisible();
   expect(screen.getByRole("combobox", { name: "当前媒体库" })).toHaveValue(second.id);
-  expect(jobPanel("图片搜索索引").getByText(/6 \/ 12 · 失败/)).toBeVisible();
+  expect(jobPanel("图片分析").getByText(/6 \/ 12 · 失败/)).toBeVisible();
   expect(jobPanel("人物分析").getByText(/4 \/ 12 · 失败/)).toBeVisible();
   expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   expect(screen.getByText(/不是完整的服务器任务历史/)).toBeVisible();
@@ -565,7 +566,7 @@ it.each(["", "&view=tasks"])("rejects an unknown library instead of exposing ano
   expect(mocks.faceJob).not.toHaveBeenCalled();
   await user.selectOptions(screen.getByRole("combobox", { name: "当前媒体库" }), library.id);
   expect(screen.queryByText("所选媒体库不可用")).not.toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: view ? "图片搜索索引" : "智能搜索" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: view ? "图片分析" : "智能搜索" })).toBeVisible();
 });
 
 it("does not show an unrelated library's query error in the selected library", () => {

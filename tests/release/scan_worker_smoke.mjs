@@ -24,6 +24,9 @@ for(let library=0;library<4;library++) {
   }
 }
 const hashes=()=>files.map(file=>createHash('sha256').update(readFileSync(file)).digest('hex'));
+const storage=process.env.FOLIOPATH_TEST_STORAGE??'bind';
+assert(['bind','volume'].includes(storage),'supported synthetic data storage required');
+const volume=storage==='volume'?name+'-data':null;
 const before=hashes(),credentials={username:'scan-worker-test',password:'Synthetic-Scan-Worker-2026!'};
 let id,origin,cookie='',csrf='',requests=0,cancelled=0,databaseChecks=0;
 const inspect=()=>JSON.parse(docker('inspect',id))[0];
@@ -40,10 +43,11 @@ async function json(path,method,body,headers) { const r=await request(path,metho
 async function login(){const r=await request('/auth/login','POST',credentials);assert(r.ok);cookie=r.headers.get('set-cookie').split(';')[0];csrf=(await r.json()).csrfToken;}
 async function scanned(job){return until('scan',()=>json('/scans/'+job.id),s=>s.status==='succeeded');}
 try {
+  if(volume)docker('volume','create','--label',`${label}=${runID}`,volume);
   id=docker('create','--pull','never','--name',name,'--label',`${label}=${runID}`,'--restart','unless-stopped','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges:true',
     '--tmpfs','/tmp:rw,noexec,nosuid,size=128m,mode=0700','--memory','1g','--memory-swap','1g','--cpus','1','-p','127.0.0.1::8080',
     ...(process.env.FOLIOPATH_TEST_AI_DEPLOYMENT?['--env','FOLIOPATH_AI_DEPLOYMENT='+process.env.FOLIOPATH_TEST_AI_DEPLOYMENT]:[]),
-    '--mount',`type=bind,src=${join(root,'media')},dst=/library,readonly`,'--mount',`type=bind,src=${join(root,'data')},dst=/app/data`,image);
+    '--mount',`type=bind,src=${join(root,'media')},dst=/library,readonly`,'--mount',volume?`type=volume,src=${volume},dst=/app/data,volume-nocopy`:`type=bind,src=${join(root,'data')},dst=/app/data`,image);
   docker('start',id);refreshOrigin();await until('health',async()=>inspect(),s=>s.State.Health?.Status==='healthy');
   assert.equal((await request('/libraries')).status,401);
   await json('/auth/setup','POST',{...credentials,displayName:'Synthetic scan worker'});await login();
@@ -109,11 +113,12 @@ try {
     if(kind==='missing')assert(!existsSync(join(data,'foliopath.db')));
   }
   assert.equal(inspect().RestartCount,0);assert.equal(inspect().State.OOMKilled,false);
-  console.log(JSON.stringify({passed:true,name,root,origin,image,duration,requests,cancelled,databaseChecks,scans:results.at(-1),restartCount:current.RestartCount,explicitRestart:true}));
+  console.log(JSON.stringify({passed:true,name,root,origin,image,storage,duration,requests,cancelled,databaseChecks,scans:results.at(-1),restartCount:current.RestartCount,explicitRestart:true}));
 } finally {
   if(id) {
     assert.equal(inspect().Config.Labels[label],runID);
     if(process.env.FOLIOPATH_TEST_KEEP==='1') console.log(`Kept isolated ${name}`);
     else {docker('rm','-f',id);console.log(`Removed owned test container ${name}; synthetic data retained at ${root}`);}
   }
+  if(volume&&process.env.FOLIOPATH_TEST_KEEP!=='1')docker('volume','rm',volume);
 }

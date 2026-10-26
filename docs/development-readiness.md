@@ -1,5 +1,21 @@
 # FolioPath 开发就绪评审
 
+CR-2026-052：消费已通过CR050的OCR管理Backend Ready与CR051检索合同，仅推进正式设置/任务UI与稳定Story；不新增API或模型行为，不自动推进原6010或质量/容量/发行Gate。
+
+2026-10-26 / CR-2026-051 / ADR-0037：批准OCR全文索引/融合搜索backend切片，范围FR-OCR-005、FR-SEARCH-001～003。结果/文档/checkpoint事务、部署identity/源/库可见性、快照分页及片段合同先行；生产组件消费此合同，稳定Story为合成证据。验收明细记录在CR，不自动推广原6010/管理UI或质量/联合容量/发行Gate。
+
+2026-10-26 / CR-2026-050 / ADR-0036：接受OCR runtime/显式管理backend子片：安全源读取/复核、现有WorkerPool/资源准入、计划handoff及库作用域认证/CSRF/CAS API。默认无部署OCR配置则无路由/worker，有配置也不自动开库或提交任务。此候选backend的真实模型Linux三进程同任务恢复、52项/race、17表保护与完整性、Go全量/集成/runtime和合同检查已通过。仅这一管理backend Gate可供后续设计消费；搜索/UI/6010部署及质量/容量/发行仍需独立验收。见[记录](changes/CR-2026-050-ocr-runtime-management.md)。
+
+2026-10-26 / CR-2026-049 / ADR-0035：接受独立OCR源绑定结果/持久任务事务/分批清理的内部存储合同（FR-OCR-003）。仅允许实现与合成数据库验证；默认关闭，无API/运行worker/自动启动/搜索/UI/6010激活。runtime及公开管理合同需后续Gate。该内部子片最终固定镜像33项/race、Go全量/集成、runtime与17表保护验收已通过；仍非完整OCR Backend Ready。验证结果见[本轮记录](changes/CR-2026-049-ocr-durable-results.md)。
+
+2026-10-26 / CR-2026-048：OCR producer与共享准入候选已通过隔离实际模型/Go消费者联验，包含缺OCRcache时旧功能继续工作、原生内存取消恢复与冻结身份/输出对照。只允许后续设计源代次/持久任务/事务/清理合同；**尚非全OCR Backend Ready或产品启用**。90°/版面、真实质量、联合容量/双架构/发行及原6010部署继续独立。[producer记录](changes/CR-2026-048-ocr-producer.md)。
+
+2026-10-25 / CR-2026-047：独立OCR安全imagevips输入子片已实现并在本地arm64原生Docker验证，允许下一步审查服务producer/共享调度注册合同；不是全OCR Backend Ready。现有scheduler源码属于旧runtime身份，不能为OCR注册无声重标CLIP/tag/face，或创建第二native准入owner。源指纹/代次、持久任务/事务、结果清理及搜索/UI仍待接受与实施。[输入证据](changes/CR-2026-047-ocr-image-input.md)。
+
+2026-10-25 / CR-2026-046 / ADR-0032：接受OCR独立身份/结果合同与Go传输消费者，仅传输子片可交付。严格预配身份、错误分类、共享准入/取消/截止与隔离Docker证据见[记录](changes/CR-2026-046-ocr-transport.md)。**这不是OCR生产Backend Ready**；AI服务注册、internal/files/imagevips输入合同、源指纹/代次、任务/事务、存储/清理和搜索/UI尚待后续门槛，禁止先行启用。90°方向和真实质量继续未通过。
+
+2026-10-25 / CR-2026-045 OCR：横排离线推理S0已取得可复跑证据，允许继续设计独立OCR内部合同与源指纹/代次、持久化及任务清理语义。**生产Backend Ready仍未签署，OCR搜索/UI保持未接入**；90°旋转图0/4，需先明确旋转/版面范围与质量门槛，不能将进程ready当识别准确。完整记录见[OCR S0](changes/CR-2026-045-ocr-feasibility.md)。
+
 2026-10-23 PNG 语义兼容切片：ADR-0028 接受显式版本化输入合同，Go/native 与真实模型合成 Docker
 已通过，允许候选交付；原库部署验收尚未完成。用户授权当前任务终态、完整停写备份后再切换及重算图片语义。
 不授权中断现有任务、重标旧向量、升级标签策略或跳过质量/容量/发行门禁。[切片证据](changes/FIX-2026-10-23-semantic-large-png.md)。

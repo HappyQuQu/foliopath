@@ -1,0 +1,108 @@
+{
+  "change": "CR-2026-036",
+  "recordedAt": "2026-10-25T05:27:55.322Z",
+  "stage": "POST-MVP-5 existing manual people curation",
+  "tools": {
+    "node": "v24.22.1",
+    "go": "go version go1.27.1 darwin/arm64"
+  },
+  "candidate": "sha256:a0cec535518c850e9b06b918eff8624fb86bfdf678fa0eb14eb6a28c7aa67b1c",
+  "checks": {
+    "backendFocused": "passed",
+    "backendFocusedRace": [
+      "internal/face",
+      "internal/api",
+      "internal/store/sqlite"
+    ],
+    "frontendFull": {
+      "files": 72,
+      "tests": 454,
+      "auditHigh": "passed",
+      "generated": "passed",
+      "architecture": "passed",
+      "types": "passed",
+      "storybook": "passed"
+    },
+    "browser": {
+      "image": "sha256:a0cec535518c850e9b06b918eff8624fb86bfdf678fa0eb14eb6a28c7aa67b1c",
+      "tests": "person-review.spec.ts + context-sidebar.spec.ts",
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "status": "passed",
+      "testsPassed": 60,
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "keyboardAndFocus": true,
+      "singlePhotoCompatibility": true
+    },
+    "fmtCheck": "passed",
+    "repositoryArchitecture": "passed",
+    "generateCheck": "passed",
+    "realDocker": {
+      "timestamp": "2026-10-25T05:23:23.114Z",
+      "appImage": "sha256:a0cec535518c850e9b06b918eff8624fb86bfdf678fa0eb14eb6a28c7aa67b1c",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "multiFaceRemoval": "other face and photo preserved",
+      "exactMove": true,
+      "confirmedMerge": true,
+      "sourceTombstoned": true,
+      "manualTagsPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed",
+      "targetFaceCount": 2,
+      "targetAssetCount": 2
+    }
+  },
+  "prototype": {
+    "stableStory": "features-intelligence-review--person-detail",
+    "oldPeopleStory": "archived",
+    "fixtureLabels": "synthetic, not model quality",
+    "intentionalDifferences": [
+      "exact face actions, not atomic photo batches",
+      "named people remain global; anonymous groups per library",
+      "merge returns to named people list",
+      "no cover selection or hiding without contracts"
+    ]
+  },
+  "original6010": {
+    "deployedThisSlice": false,
+    "image": "sha256:dac00067b3af8857517e5a9045543a9a3aa23dab75d220c0b51282e4046336ae",
+    "startedAt": "2026-10-25T04:35:47.872322254Z",
+    "healthy": "healthy",
+    "originalMediaOrCurationWrites": false,
+    "knownSourceExceptions": "10 deferred, untouched"
+  },
+  "isolatedResources": "removed",
+  "scopeLimits": [
+    "Named-person detail completed, not full people workspace",
+    "No OCR, cover or hiding support",
+    "No accuracy, capacity, cross-architecture or release approval",
+    "No server222, commit or push"
+  ],
+  "failuresPreserved": [
+    "Initial test-only TypeScript options fixed",
+    "First synthetic Docker fixture failed to submit an analysis job; timed out, not passed",
+    "Opaque face-box background fixed and retested",
+    "Restart probe stalled; bounded each fetch and re-read published port; clean final run passed"
+  ]
+}

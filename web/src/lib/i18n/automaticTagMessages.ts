@@ -1,5 +1,6 @@
 export const automaticTagZh = {
   "tagLanguage.label": "AI 标签显示语言",
+  "tagLanguage.shortLabel": "语言",
   "tagLanguage.interface": "跟随界面语言",
   "tagLanguage.bilingual": "中文 / English",
   "tagLanguage.hint": "仅影响此浏览器的显示，不重新识别图片。人工标签保持原文；标签可用中文或英文搜索。",
@@ -26,6 +27,7 @@ export const automaticTagZh = {
 } as const;
 export const automaticTagEn: Record<keyof typeof automaticTagZh, string> = {
   "tagLanguage.label": "AI tag display language",
+  "tagLanguage.shortLabel": "Language",
   "tagLanguage.interface": "Follow interface language",
   "tagLanguage.bilingual": "中文 / English",
   "tagLanguage.hint": "Display preference for this browser only; no image reprocessing. Manual labels stay unchanged. Search AI categories in Chinese or English.",

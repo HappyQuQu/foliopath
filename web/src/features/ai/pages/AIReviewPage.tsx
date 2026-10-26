@@ -1,8 +1,9 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowRight, ImagesSquare, SlidersHorizontal, Sparkle, UsersThree } from "@phosphor-icons/react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { ContextSidebar } from "../../../components/patterns/ContextSidebar/ContextSidebar";
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import { Button, EmptyState, ErrorState, InlineStatus, Input, LoadingState, Select, useToast } from "../../../components/ui";
 import type { AITagSuggestion, AssetFace, FaceReviewRequest, Person } from "../../../lib/api/ai";
@@ -50,36 +51,51 @@ export function AIReviewPage({ logoutPending, onLogout, session }: {
     }
     previousFocusRoute.current = focusRoute;
   }, [focusRoute]);
+  useEffect(() => {
+    if (view !== "people" || personId || !params.has("cursor")) return;
+    const next = new URLSearchParams(params);
+    if (!next.has("peopleCursor")) next.set("peopleCursor", next.get("cursor")!);
+    next.delete("cursor");
+    setParams(next, { replace: true });
+  }, [params, personId, setParams, view]);
   const faceLibraryOffline = (view === "clusters" || view === "faces") && currentLibrary?.status === "offline";
 
   function navigate(nextView: ReviewView, extras: Record<string, string> = {}) {
-    setParams({ view: nextView, ...(libraryId ? { libraryId } : {}), ...extras });
+    setParams({ view: nextView, ...(libraryId ? { libraryId } : {}),
+      ...(nextView === "people" ? { ...(params.get("q") ? { q: params.get("q")! } : {}), ...(params.get("peopleCursor") ? { peopleCursor: params.get("peopleCursor")! } : {}) } : {}), ...extras });
   }
 
   return <AppShell active="settings" homeHref={paths.root} identity={session.administrator.displayName}
     logoutPending={logoutPending} onLogout={onLogout} searchHref={paths.search}
     settingsHref={paths.generalSettings} title={title}
-    sidebarContent={libraryId ? <DirectoryNavigation
+    navigationKey={`${view}:${view === "people" ? personId : `${libraryId}:${clusterId}:${assetId}`}`}
+    navigationLabel={reviewingTags ? undefined : t("context.openPeople")}
+    sidebarLabel={reviewingTags ? undefined : t("context.people")}
+    sidebarContent={<DirectoryNavigation
       activeQuickAccess={reviewingTags ? "suggestions" : "people"}
       browseState={defaultBrowseUrlState()}
       {...(currentLibrary ? { currentLibraryName: currentLibrary.name } : {})}
       hideDirectoryTree
+      {...(view === "people" ? { scopeLabel: t("search.allLibraries") } : {})}
       libraries={libraries}
       libraryId={libraryId}
       onLibraryChange={(nextLibraryId) => setParams({ view: reviewingTags ? "tags" : "clusters", libraryId: nextLibraryId })}
+      quickAccessDetail={!reviewingTags ? <ContextSidebar title={t("context.people")} description={t(view === "people" ? "intelligence.peopleGlobalScope" : "context.groupScope")}>
+        <div className={styles.sidebarViews} role="group" aria-label={t("intelligence.title")}>
+          {(["people", "clusters", ...(assetId || view === "faces" ? ["faces" as const] : [])] as const).map(item => <Button key={item} size="small" aria-pressed={view === item} variant={view === item ? "secondary" : "quiet"} onClick={() => navigate(item)}>{t(`intelligence.${item}`)}</Button>)}
+        </div>
+        {view === "people" && <PeopleSidebar selectedId={personId} onOpen={id => navigate("people", { person: id })} />}
+        {view === "clusters" && <fieldset><legend>{t("intelligence.peopleGroups")}</legend>{(["core", "edge"] as const).map(kind => <Button key={kind} size="small" aria-pressed={(params.get("kind") === "edge" ? "edge" : "core") === kind} variant={(params.get("kind") === "edge" ? "edge" : "core") === kind ? "secondary" : "quiet"} onClick={() => { const next = new URLSearchParams(params); next.delete("cursor"); next.delete("cluster"); if (kind === "core") next.delete("kind"); else next.set("kind", kind); setParams(next); }}>{t(`intelligence.${kind}`)}</Button>)}</fieldset>}
+      </ContextSidebar> : undefined}
       selectedPathIds={new Set<string>()}
-    /> : undefined}
+    />}
     topbarContent={<span>{title}</span>}>
     <div className={styles.main}>
       <header className={styles.heading}><div><p className={styles.eyebrow}><Sparkle aria-hidden="true" size={16} />{t("ai.overview.eyebrow")}</p><h1 ref={headingRef} tabIndex={-1}>{title}</h1><p>{t(reviewingTags ? "intelligence.tagsDescription" : "intelligence.description")}</p></div>
         <Link className={styles.settingsLink} to={`${paths.aiSettings}${libraryId ? `?library=${encodeURIComponent(libraryId)}` : ""}`}><SlidersHorizontal aria-hidden="true" size={18} />{t("intelligence.manageModels")}<ArrowRight aria-hidden="true" size={16} /></Link>
       </header>
-      {!reviewingTags && <div className={styles.tabs} role="group" aria-label={t("intelligence.title")}>
-        {(["clusters", "people", ...(assetId || view === "faces" ? ["faces" as const] : [])] as const).map((item) => <Button key={item}
-          aria-pressed={view === item} variant={view === item ? "secondary" : "quiet"} onClick={() => navigate(item)}>{t(`intelligence.${item}`)}</Button>)}
-      </div>}
       {view === "people" && <p className={styles.scopeNote}>{t("intelligence.peopleGlobalScope")}</p>}
-      {libraries.length > 0 && (view === "tags" || view === "clusters") && <label className={styles.libraryFilter}>{t("intelligence.library")}
+      {libraries.length > 0 && view === "tags" && <label className={styles.libraryFilter}>{t("intelligence.library")}
         <Select value={libraryId} onChange={(event) => setParams({ view, libraryId: event.target.value })}>
           {libraries.map((library) => <option value={library.id} key={library.id}>{library.name}</option>)}
         </Select></label>}
@@ -205,6 +221,27 @@ function SuggestionCard({ items, onSelect, selected, disabled }: { items: AITagS
   </article>;
 }
 
+function PeopleSidebar({ selectedId, onOpen }: { selectedId: string; onOpen: (id: string) => void }) {
+  const { t } = useLocale();
+  const [params, setParams] = useSearchParams();
+  const q = params.get("q") ?? "";
+  const query = usePeopleQuery(q.trim(), params.get("peopleCursor") ?? "");
+  return <>
+    <label>{t("intelligence.searchPeople")}<Input type="search" value={q} maxLength={100} onChange={event => {
+      const next = new URLSearchParams(params);
+      next.delete("peopleCursor");
+      if (event.target.value) next.set("q", event.target.value); else next.delete("q");
+      setParams(next, { replace: true });
+    }} /></label>
+    {query.isPending ? <LoadingState label={t("common.loading")} /> : query.isError ? <ReviewErrorState error={query.error} onRetry={() => void query.refetch()} cursorParam="peopleCursor" /> : query.data.items.length === 0 ? <p>{t("intelligence.noPeople")}</p> : <nav aria-label={t("context.peopleList")}>
+      {query.data.items.map(person => <Button key={person.id} size="small" variant={person.id === selectedId ? "secondary" : "quiet"} aria-current={person.id === selectedId ? "page" : undefined} onClick={() => onOpen(person.id)}>
+        <span>{person.name}</span><small>{person.assetCount}</small>
+      </Button>)}
+    </nav>}
+    <ReviewPagination nextCursor={query.data?.nextCursor} cursorParam="peopleCursor" />
+  </>;
+}
+
 function PeoplePanel({ onOpen, session }: { onOpen: (id: string) => void; session: AuthenticatedSession }) {
   const [name, setName] = useState(""); const create = useCreatePersonMutation(); const toast = useToast();
   async function createEmpty() {
@@ -213,21 +250,21 @@ function PeoplePanel({ onOpen, session }: { onOpen: (id: string) => void; sessio
       onOpen(person.id);
     } catch { toast.show({ message: t("intelligence.actionFailed"), tone: "danger" }); }
   }
-  const { t } = useLocale(); const [params, setParams] = useSearchParams(); const queryText = params.get("q") ?? ""; const query = usePeopleQuery(queryText.trim(), params.get("cursor") ?? "");
+  const { t } = useLocale(); const [params] = useSearchParams(); const queryText = params.get("q") ?? ""; const query = usePeopleQuery(queryText.trim(), params.get("peopleCursor") ?? "");
   if (query.isError) return <ReviewErrorState error={query.error} onRetry={() => void query.refetch()} />;
   return <section><form className={styles.actions} onSubmit={(event) => { event.preventDefault(); if (name.trim() && !create.isPending) void createEmpty(); }}>
     <Input aria-label={t("intelligence.name")} maxLength={100} value={name} onChange={(event) => setName(event.target.value)} />
     <Button type="submit" disabled={!name.trim() || create.isPending}>{t("intelligence.createPerson")}</Button>
-  </form><label>{t("intelligence.searchPeople")}<Input value={queryText} onChange={(e) => { const next = new URLSearchParams(params); next.delete("cursor"); if (e.target.value) next.set("q", e.target.value); else next.delete("q"); setParams(next, { replace: true }); }} /></label><p className={styles.meta}>{t("intelligence.duplicateNames")}</p>
+  </form><p className={styles.meta}>{t("intelligence.duplicateNames")}</p>
     {query.isPending ? <LoadingState label={t("common.loading")} /> : query.data.items.length === 0 ? <EmptyState title={t("intelligence.noPeople")} description={t("intelligence.emptyPersonAssets")} /> : <div className={styles.grid}>{query.data.items.map((person) => <button className={styles.card} key={person.id} onClick={() => onOpen(person.id)}><h2>{person.name}</h2><p>{t("intelligence.personCounts").replace("{faces}", String(person.confirmedFaceCount)).replace("{assets}", String(person.assetCount))}</p><span className={styles.meta}>…{person.id.slice(-6)}</span></button>)}</div>}
-  <ReviewPagination nextCursor={query.data?.nextCursor} /></section>;
+  </section>;
 }
 
 function ClustersPanel({ libraryId, onOpen }: { libraryId: string; onOpen: (id: string) => void }) {
-  const { t } = useLocale(); const [params, setParams] = useSearchParams(); const kind = params.get("kind") === "edge" ? "edge" : "core"; const query = useFaceClustersQuery(libraryId, kind, params.get("cursor") ?? "");
+  const { t } = useLocale(); const [params] = useSearchParams(); const kind = params.get("kind") === "edge" ? "edge" : "core"; const query = useFaceClustersQuery(libraryId, kind, params.get("cursor") ?? "");
   if (!libraryId || query.isPending) return <LoadingState label={t("common.loading")} />;
   if (query.isError) return <ReviewErrorState error={query.error} onRetry={() => void query.refetch()} />;
-  return <section aria-labelledby="people-groups-title"><div className={styles.clusterToolbar}><div><h2 id="people-groups-title">{t("intelligence.peopleGroups")}</h2><p>{t("intelligence.peopleGroupsDescription")}</p></div><div className={styles.filters}>{(["core", "edge"] as const).map((item) => <Button key={item} variant={kind === item ? "secondary" : "quiet"} onClick={() => { const next = new URLSearchParams(params); next.delete("cursor"); if (item === "core") next.delete("kind"); else next.set("kind", item); setParams(next); }}>{t(`intelligence.${item}`)}</Button>)}</div></div>
+  return <section aria-labelledby="people-groups-title"><div className={styles.clusterToolbar}><div><h2 id="people-groups-title">{t("intelligence.peopleGroups")}</h2><p>{t("intelligence.peopleGroupsDescription")}</p></div></div>
     {!query.data.coverage.complete && <InlineStatus tone="warning">{t("intelligence.incomplete")}</InlineStatus>}{!query.data.groupAssignmentAllowed && kind === "core" && <InlineStatus tone="warning">{t("intelligence.groupAssignUnavailable")}</InlineStatus>}
     {query.data.items.length === 0 ? <EmptyState title={t("intelligence.none")} description={t("intelligence.incomplete")} /> : <><p className={styles.resultSummary}>{t("intelligence.pageGroups").replace("{count}", String(query.data.items.length))}</p><div className={styles.clusterGrid}>{query.data.items.map((cluster) => <button aria-label={`${t(`intelligence.${cluster.kind}`)}，${t("intelligence.members").replace("{count}", String(cluster.memberCount))}`} className={styles.clusterCard} key={cluster.id} onClick={() => onOpen(cluster.id)}><ClusterPreview assetIds={cluster.previewAssetIds} /><span className={styles.clusterBody}><span className={styles.clusterTitle}><UsersThree aria-hidden="true" size={19} />{t(`intelligence.${cluster.kind}`)}</span><span>{t("intelligence.members").replace("{count}", String(cluster.memberCount))}</span><span className={styles.openHint}>{t("intelligence.openGroup")}<ArrowRight aria-hidden="true" size={15} /></span></span></button>)}</div></>}
   <ReviewPagination nextCursor={query.data?.nextCursor} /></section>;
@@ -311,17 +348,17 @@ function PersonPanel({ onBack, personId, session }: { onBack: () => void; person
 function parseView(value: string | null): ReviewView { return value === "tags" || value === "people" || value === "faces" ? value : "clusters"; }
 function parseSuggestionStatus(value: string | null): "pending" | "accepted" | "dismissed" { return value === "accepted" || value === "dismissed" ? value : "pending"; }
 
-function ReviewPagination({ nextCursor }: { nextCursor: string | null | undefined }) {
+function ReviewPagination({ nextCursor, cursorParam = "cursor" }: { nextCursor: string | null | undefined; cursorParam?: "cursor" | "peopleCursor" }) {
  const { t } = useLocale(); const [params, setParams] = useSearchParams();
- if (!nextCursor && !params.has("cursor")) return null;
- function go(cursor?: string) { const next = new URLSearchParams(params); if (cursor) next.set("cursor", cursor); else next.delete("cursor"); setParams(next); }
+ if (!nextCursor && !params.has(cursorParam)) return null;
+ function go(cursor?: string) { const next = new URLSearchParams(params); if (cursor) next.set(cursorParam, cursor); else next.delete(cursorParam); setParams(next); }
  return <div className={styles.actions}>
-  <Button variant="quiet" disabled={!params.has("cursor")} onClick={() => go()}>{t("intelligence.firstPage")}</Button>
+  <Button variant="quiet" disabled={!params.has(cursorParam)} onClick={() => go()}>{t("intelligence.firstPage")}</Button>
   <Button disabled={!nextCursor} onClick={() => go(nextCursor!)}>{t("intelligence.nextPage")}</Button>
  </div>;
 }
 
-function ReviewErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+function ReviewErrorState({ error, onRetry, cursorParam = "cursor" }: { error: unknown; onRetry: () => void; cursorParam?: "cursor" | "peopleCursor" }) {
  const { t } = useLocale();
  const [params, setParams] = useSearchParams();
  const code = error instanceof ApiError ? error.code : "";
@@ -330,7 +367,7 @@ function ReviewErrorState({ error, onRetry }: { error: unknown; onRetry: () => v
    : code === "precondition_failed" || code === "face_constraint_conflict" || code === "face_cursor_stale" || code === "suggestion_cursor_stale" ? t("intelligence.revisionConflict")
    : t("intelligence.loadFailed");
  return <ErrorState message={message} onRetry={() => {
-  if ((code === "face_cursor_stale" || code === "suggestion_cursor_stale") && params.has("cursor")) { const next = new URLSearchParams(params); next.delete("cursor"); setParams(next); }
+  if ((code === "face_cursor_stale" || code === "suggestion_cursor_stale") && params.has(cursorParam)) { const next = new URLSearchParams(params); next.delete(cursorParam); setParams(next); }
   else onRetry();
  }} />;
 }

@@ -11,7 +11,7 @@
   background: var(--color-surface);
   box-shadow: none;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--line-height-tight);
   transition:
     color var(--motion-fast) var(--ease-standard),
@@ -79,13 +79,13 @@
 
 .danger {
   color: var(--color-on-accent);
-  border-color: var(--color-danger);
-  background: var(--color-danger);
+  border-color: var(--color-danger-fill);
+  background: var(--color-danger-fill);
 }
 
 .danger:hover:not(:disabled) {
-  border-color: var(--color-danger-hover);
-  background: var(--color-danger-hover);
+  border-color: var(--color-danger-fill-hover);
+  background: var(--color-danger-fill-hover);
 }
 
 .spinner {

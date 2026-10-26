@@ -72,6 +72,21 @@ func limitRequests(
 }
 
 func requestRatePolicyFor(method, path string) (requestRatePolicy, bool) {
+	parts := strings.Split(path, "/")
+	if len(parts) >= 7 && libraryAIPath(strings.Join(parts[:7], "/"), "/ai/ocr") {
+		switch {
+		case method == http.MethodGet && (len(parts) == 7 || (len(parts) == 9 && parts[7] == "jobs")):
+			return requestRatePolicy{operation: "ocr_read", limit: 120}, true
+		case method == http.MethodPut && len(parts) == 7:
+			return requestRatePolicy{operation: "ocr_settings", limit: 20}, true
+		case method == http.MethodPost && len(parts) == 8 && parts[7] == "jobs":
+			return requestRatePolicy{operation: "ocr_job", limit: 10}, true
+		case method == http.MethodPost && len(parts) == 8 && parts[7] == "clear":
+			return requestRatePolicy{operation: "ocr_clear", limit: 5}, true
+		case method == http.MethodPost && len(parts) == 10 && parts[7] == "jobs" && parts[9] == "cancel":
+			return requestRatePolicy{operation: "ocr_cancel", limit: 20}, true
+		}
+	}
 	switch {
 	case method == http.MethodGet && libraryAIPath(path, "/ai/automatic-tags"):
 		return requestRatePolicy{operation: "automatic_tags_read", limit: 60}, true
@@ -103,7 +118,7 @@ func requestRatePolicyFor(method, path string) (requestRatePolicy, bool) {
 		return requestRatePolicy{operation: "cache_cleanup_start", limit: 10}, true
 	case method == http.MethodGet && path == "/api/v1/catalog/state":
 		return requestRatePolicy{operation: "catalog_state", limit: 120}, true
-	case method == http.MethodGet && (path == "/api/v1/semantic/assets" || path == "/api/v1/semantic/videos"):
+	case method == http.MethodGet && (path == "/api/v1/semantic/assets" || path == "/api/v1/semantic/videos" || path == "/api/v1/search/assets"):
 		return requestRatePolicy{operation: "semantic_search", limit: semanticSearchRequestsPerMinute}, true
 	case method == http.MethodGet && path == "/api/v1/ai/tag-vocabulary":
 		return requestRatePolicy{operation: "ai_tag_vocabulary_read", limit: 120}, true

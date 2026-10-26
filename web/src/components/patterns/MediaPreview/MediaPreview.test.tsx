@@ -37,6 +37,7 @@ const item = {
   ],
   id: "photo",
   kind: "image" as const,
+  mimeType: "image/png",
   name: "photo.jpg",
 };
 
@@ -70,6 +71,9 @@ it("renders non-modal media, metadata, navigation, and close controls", () => {
     item.contentUrl,
   );
   expect(screen.getByText("2.4 MB")).toBeVisible();
+  // The source MIME wins over a misleading filename or a generic image badge.
+  expect(screen.getByText("PNG", { exact: true })).toBeVisible();
+  expect(screen.queryByText("JPG", { exact: true })).not.toBeInTheDocument();
   const location = screen.getByText(/2026年7月精品园子视频合集5/);
   expect(location.parentElement).toHaveAttribute("data-layout", "path");
   expect(location).toHaveStyle({
@@ -310,4 +314,21 @@ it("allows an audible video preview preference", () => {
   const video = screen.getByLabelText("clip.mp4");
   expect(video).toHaveProperty("autoplay", true);
   expect(video).toHaveProperty("muted", false);
+});
+
+it("reveals a narrow inline preview once without stealing focus on next item", () => {
+  const matchMedia = vi.spyOn(window, "matchMedia").mockReturnValue({matches: true} as MediaQueryList);
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+  const scroll = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {configurable: true, value: scroll});
+  const props = {canGoNext: true, canGoPrevious: false, item, labels, onClose: vi.fn(), onNext: vi.fn(), onOpenViewer: vi.fn(), onPinnedChange: vi.fn(), onPrevious: vi.fn(), onWidthChange: vi.fn(), pinned: false, width: 406};
+  const {rerender} = render(<MediaPreview {...props} />);
+  expect(screen.getByRole("complementary", {name: "Preview: photo.jpg"})).toHaveFocus();
+  expect(scroll).toHaveBeenCalledOnce();
+  const next = screen.getByRole("button", {name: "Next item"});next.focus();
+  rerender(<MediaPreview {...props} item={{...item,id:"next",name:"next.jpg"}} />);
+  expect(next).toHaveFocus();expect(scroll).toHaveBeenCalledOnce();
+  if (descriptor) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", descriptor);
+  else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  matchMedia.mockRestore();
 });

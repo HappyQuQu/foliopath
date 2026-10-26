@@ -1,0 +1,418 @@
+{
+  "change": "CR-2026-047",
+  "recordedAt": "2026-10-25T15:03:35.738265+00:00",
+  "status": "native_OCR_input_adapter_locally_verified_not_composed",
+  "stage": "POST-MVP-5 follow-up independent image input only",
+  "original6010Deployed": false,
+  "server222Accessed": false,
+  "realMediaUsed": false,
+  "producerImplemented": false,
+  "indexJobsOrSearchImplemented": false,
+  "inputContract": {
+    "profile": "ocr-rgb-png-v1",
+    "sha256": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+    "maxSourceBytes": 67108864,
+    "maxSourcePixels": 40000000,
+    "maxHeaderBytes": 1048576,
+    "maxDimension": 2048,
+    "minDimension": 32,
+    "maxPreparedPixels": 4194304,
+    "maxEncodedBytes": 8388608,
+    "alpha": "white",
+    "frame": "first",
+    "metadata": "strip",
+    "upscale": false
+  },
+  "ownership": {
+    "input": "internal/ocr",
+    "nativeTransformAndAdmission": "internal/media/imagevips existing shared gate",
+    "fileOpen": "caller via internal/files; no pathname parameter",
+    "scopeGuard": "only remoteml and imagevips may consume OCR; app/API/store still blocked"
+  },
+  "checks": {
+    "native": {
+      "status": "passed",
+      "image": "sha256:632bccdf846784da17ec6130b967e46408a36d17e4f4c214d2cc0a8529db4a26",
+      "architecture": "linux/arm64",
+      "go": "1.26.5",
+      "libvips": "8.16.1 pinned project build",
+      "raceEnabled": true,
+      "topLevelPassed": 45,
+      "includingSubtestsPassed": 74,
+      "newOCRTopLevel": 7,
+      "skipped": 0,
+      "network": "none",
+      "readOnlyRoot": true,
+      "ports": false,
+      "memoryLimitBytes": 1073741824,
+      "memorySwapSettingBytes": 2147483648,
+      "nanoCPUs": 2000000000,
+      "exitCode": 0,
+      "oomKilled": false,
+      "mediaOrDatabaseMount": false,
+      "fixtureMount": "separate synthetic progressive JPEG read-only"
+    },
+    "realModelBridge": {
+      "status": "passed",
+      "scope": "synthetic imagevips input + existing S0 OCR worker, not a production OCR endpoint/index",
+      "native": {
+        "cases": [
+          {
+            "bytes": 35839,
+            "fixture": "bilingual.png",
+            "height": 720,
+            "pngSHA256": "ea2d9a6515e1a7b65b6d22da73649809fe54fd1a9a75f3bbc6cefa58e7d10163",
+            "sourceUnchanged": true,
+            "width": 1500
+          },
+          {
+            "bytes": 62103,
+            "fixture": "exif-oriented.jpg",
+            "height": 720,
+            "pngSHA256": "1ab443af44d03ba5e83eb2abd534f2930a88420ed2cf9f7bd76d6741fec4173b",
+            "sourceUnchanged": true,
+            "width": 1500
+          },
+          {
+            "bytes": 14955,
+            "fixture": "wide.png",
+            "height": 410,
+            "pngSHA256": "47dd537b9ab94379067a6b265e398dfaebda8fbd8a91c582bdb8c94a938b92f8",
+            "sourceUnchanged": true,
+            "width": 2048
+          }
+        ],
+        "inputContractSHA256": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+        "scope": "synthetic input bridge only; no production OCR producer/index",
+        "status": "passed"
+      },
+      "nativeContainer": {
+        "image": "sha256:632bccdf846784da17ec6130b967e46408a36d17e4f4c214d2cc0a8529db4a26",
+        "exitCode": 0,
+        "oomKilled": false,
+        "network": "none",
+        "memoryBytes": 1073741824
+      },
+      "cases": {
+        "bilingual.png": {
+          "prepared": {
+            "bytes": 35839,
+            "fixture": "bilingual.png",
+            "height": 720,
+            "pngSHA256": "ea2d9a6515e1a7b65b6d22da73649809fe54fd1a9a75f3bbc6cefa58e7d10163",
+            "sourceUnchanged": true,
+            "width": 1500
+          },
+          "actualOCR": {
+            "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+            "status": "ready",
+            "result": {
+              "lines": [
+                {
+                  "text": "FolioPath OCR 2026",
+                  "box": [
+                    0.04533333331346512,
+                    0.0902777761220932,
+                    0.3766666650772095,
+                    0.0902777761220932,
+                    0.3766666650772095,
+                    0.1666666716337204,
+                    0.04533333331346512,
+                    0.1666666716337204
+                  ],
+                  "detectionScore": 0.8783113360404968,
+                  "recognitionScore": 0.98778
+                },
+                {
+                  "text": "中文文字识别测试",
+                  "box": [
+                    0.046666666865348816,
+                    0.2847222089767456,
+                    0.32600000500679016,
+                    0.2847222089767456,
+                    0.32600000500679016,
+                    0.36944442987442017,
+                    0.046666666865348816,
+                    0.36944442987442017
+                  ],
+                  "detectionScore": 0.8927037715911865,
+                  "recognitionScore": 0.99878
+                },
+                {
+                  "text": "订单编号123456",
+                  "box": [
+                    0.041999999433755875,
+                    0.4791666567325592,
+                    0.3140000104904175,
+                    0.4722222089767456,
+                    0.31466665863990784,
+                    0.5625,
+                    0.041999999433755875,
+                    0.5680555701255798
+                  ],
+                  "detectionScore": 0.8880590796470642,
+                  "recognitionScore": 0.99933
+                },
+                {
+                  "text": "LOCAL TEST ONLY",
+                  "box": [
+                    0.04333333298563957,
+                    0.675000011920929,
+                    0.34066668152809143,
+                    0.675000011920929,
+                    0.34066668152809143,
+                    0.75,
+                    0.04333333298563957,
+                    0.75
+                  ],
+                  "detectionScore": 0.9073497653007507,
+                  "recognitionScore": 0.95367
+                }
+              ]
+            },
+            "sourceSize": [
+              1500,
+              720
+            ],
+            "processedSize": [
+              1500,
+              720
+            ],
+            "metrics": {
+              "seconds": 5.6546,
+              "peakRSSKiB": 1564916
+            }
+          },
+          "container": {
+            "image": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+            "exitCode": 0,
+            "oomKilled": false,
+            "network": "none",
+            "memoryBytes": 4294967296
+          }
+        },
+        "exif-oriented.jpg": {
+          "prepared": {
+            "bytes": 62103,
+            "fixture": "exif-oriented.jpg",
+            "height": 720,
+            "pngSHA256": "1ab443af44d03ba5e83eb2abd534f2930a88420ed2cf9f7bd76d6741fec4173b",
+            "sourceUnchanged": true,
+            "width": 1500
+          },
+          "actualOCR": {
+            "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+            "status": "ready",
+            "result": {
+              "lines": [
+                {
+                  "text": "FolioPath OCR 2026",
+                  "box": [
+                    0.04533333331346512,
+                    0.0902777761220932,
+                    0.3766666650772095,
+                    0.0902777761220932,
+                    0.3766666650772095,
+                    0.1666666716337204,
+                    0.04533333331346512,
+                    0.1666666716337204
+                  ],
+                  "detectionScore": 0.877179741859436,
+                  "recognitionScore": 0.98889
+                },
+                {
+                  "text": "中文文字识别测试",
+                  "box": [
+                    0.046666666865348816,
+                    0.2847222089767456,
+                    0.3253333270549774,
+                    0.2847222089767456,
+                    0.3253333270549774,
+                    0.36944442987442017,
+                    0.046666666865348816,
+                    0.36944442987442017
+                  ],
+                  "detectionScore": 0.8909451365470886,
+                  "recognitionScore": 0.99923
+                },
+                {
+                  "text": "订单编号123456",
+                  "box": [
+                    0.041999999433755875,
+                    0.4791666567325592,
+                    0.3140000104904175,
+                    0.4722222089767456,
+                    0.31466665863990784,
+                    0.5625,
+                    0.041999999433755875,
+                    0.5680555701255798
+                  ],
+                  "detectionScore": 0.8858051300048828,
+                  "recognitionScore": 0.99932
+                },
+                {
+                  "text": "LOCAL TEST ONLY",
+                  "box": [
+                    0.04333333298563957,
+                    0.675000011920929,
+                    0.34066668152809143,
+                    0.675000011920929,
+                    0.34066668152809143,
+                    0.75,
+                    0.04333333298563957,
+                    0.75
+                  ],
+                  "detectionScore": 0.9092521667480469,
+                  "recognitionScore": 0.94333
+                }
+              ]
+            },
+            "sourceSize": [
+              1500,
+              720
+            ],
+            "processedSize": [
+              1500,
+              720
+            ],
+            "metrics": {
+              "seconds": 5.6101,
+              "peakRSSKiB": 1567416
+            }
+          },
+          "container": {
+            "image": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+            "exitCode": 0,
+            "oomKilled": false,
+            "network": "none",
+            "memoryBytes": 4294967296
+          }
+        },
+        "wide.png": {
+          "prepared": {
+            "bytes": 14955,
+            "fixture": "wide.png",
+            "height": 410,
+            "pngSHA256": "47dd537b9ab94379067a6b265e398dfaebda8fbd8a91c582bdb8c94a938b92f8",
+            "sourceUnchanged": true,
+            "width": 2048
+          },
+          "actualOCR": {
+            "identity": "e343e2b7a27eaa03a7967310b02ec31f0ee118fbc3df2d996edb5c50b9738681",
+            "status": "ready",
+            "result": {
+              "lines": [
+                {
+                  "text": "WIDE IMAGE OCR 2048",
+                  "box": [
+                    0.02001953125,
+                    0.19756098091602325,
+                    0.2119140625,
+                    0.19756098091602325,
+                    0.2119140625,
+                    0.2829268276691437,
+                    0.02001953125,
+                    0.2829268276691437
+                  ],
+                  "detectionScore": 0.8655346035957336,
+                  "recognitionScore": 0.9876
+                }
+              ]
+            },
+            "sourceSize": [
+              2048,
+              410
+            ],
+            "processedSize": [
+              2048,
+              410
+            ],
+            "metrics": {
+              "seconds": 4.6543,
+              "peakRSSKiB": 1286784
+            }
+          },
+          "container": {
+            "image": "sha256:a8ac357f181861c713a08fa4fa4acad175e689b84973b9979e3c4f53c756a1a7",
+            "exitCode": 0,
+            "oomKilled": false,
+            "network": "none",
+            "memoryBytes": 4294967296
+          }
+        }
+      },
+      "modelHashesPreserved": true,
+      "syntheticSourceHashesPreserved": true,
+      "containersRemoved": true,
+      "producerImplemented": false
+    },
+    "hostRace": "passed count=1 internal/ocr, imagevips(stub), inference/remoteml",
+    "repository": "make fmt-check arch-check generate-check lint passed",
+    "goFullAndIntegration": "make test test-integration passed with independent extended TMPDIR",
+    "runtimeE2E": "make test-e2e passed",
+    "notRun": [
+      "Web/browser matrix (no UI changes)",
+      "OCR producer/HTTP protocol real-model integration",
+      "source generation/background jobs/persistence/search (not implemented)",
+      "native amd64",
+      "real photo/layout/rotation quality",
+      "joint application/model capacity/soak and release"
+    ]
+  },
+  "firstAttemptCorrections": [
+    "new test target missing LD_LIBRARY_PATH at link time; added same pinned native library path to test target only",
+    "first full native run skipped two existing progressive tests; generated a separate synthetic fixture and reran final immutable native image:45 pass/0 skip",
+    "model bridge initially did not pass docker -i, causing explicit empty-input invalid_media; fixed stdin transport and actual expected text passed"
+  ],
+  "knownLimitations": [
+    "S0 no-EXIF 90-degree fixture 0/4 remains unresolved; EXIF correction does not imply rotation detection",
+    "cooperative cancellation checks do not preempt arbitrary blocking C or IO",
+    "high-entropy PNG output and too-thin image may be explicitly input-limited, never silently recompressed",
+    "source fingerprint/generation and producer scheduler identity compatibility still require contracts"
+  ],
+  "sourceHashes": {
+    "Dockerfile": "5c7b1c392e9c5a7265a8b9d5c0c207c9bdaf751ac7556ff8cdf714bd2cd7755f",
+    "AGENTS.md": "eeb12ae61ba3af11411acbf88c8f960643b4adf68036e0ac6782832dc793013e",
+    "internal/ocr/image.go": "38d8d5c9fa63cabbf554cb68aceaa9b2dfdbc69ea2894cc3ad0a70078d67e8d9",
+    "internal/ocr/image_test.go": "34d114b7f45a0540646f1a8bd8ffdce74fb9f79998db2417505b4b8f3dd59e22",
+    "internal/media/imagevips/ocr_libvips.go": "ec55664e75e2a140c07bad651f932487a374ef85b16edbdb24ffca840fdd0ac0",
+    "internal/media/imagevips/ocr_libvips_test.go": "aeee58043b39abdc3d52fa6bc889e3001b555e7c7149cbdc1272f8f0a7c8e465",
+    "internal/media/imagevips/ocr_stub.go": "dcf288eef8a45c07c2c4e42070805fbfbb72d8a9e4b67f53a88f800af2aa9e7e",
+    "internal/media/imagevips/ocr_stub_test.go": "f7a58e3449b9d80fbadc15478852edb4b833e7bf608e275a162ecdcaf18f6684",
+    "tests/architecture/ocr_transport_test.go": "355460573a4c78ada6be1e83bd37cfbcd36d729a20b678aa431755fa04342000",
+    "spikes/ocr-image-input/main.go": "dda15c30f0d3e3e732b63d144090d56f9ece6711e51305386ca9d540ef2aa986",
+    "spikes/ocr-image-input/run_probe.py": "bccf3d51ffc366ab99210dd1d0e51e5e62dfda99c8b6671246b416fd89683ebf",
+    "spikes/ocr-image-input/README.md": "69be10649a7732e510421da6912113474e1ca20ac69ac03848277883dd462ec1",
+    "docs/adr/0033-ocr-image-preprocessing.md": "f581b725cdbce75c1b90cba0d29fc004d8b08eb6cb1f3d41213203ed6a9b91f8"
+  },
+  "logHashes": {
+    ".artifacts/ocr-input/native-build.log": "1d028ed7ff26b940a1ee8b97eb10b92dd1aa2213549830561808a2c17ff443d6",
+    ".artifacts/ocr-input/native-build-final.log": "3d9197758a395e0751a350ac2ee406896d299cacc41d0bd4225b9b32d0f1680a",
+    ".artifacts/ocr-input/native-tests.log": "c7cd537e6a387c484018d0e76004e835a69e7ec9278171b5e52699f958f0c8d7",
+    ".artifacts/ocr-input/native-tests-final.log": "427b1bd790dd76f4fe11dcbd1d82a0ece505c19425096c60f48f8bc5bb6b27c7",
+    ".artifacts/ocr-input/native-container.json": "fe5778c618454925a92e6eabc8a3ba74d3dc900b3275a6a52919c114e3d2f2e6",
+    ".artifacts/ocr-input/host-race-final.log": "2af544d03b8a0b45ddacdf40f003278ea10ee61218cc1b38e55b1ae20e462cc6",
+    ".artifacts/ocr-input/backend-regression.log": "ac637e073216cea940ba4ef5c13779fcdbb1475cc4c966175205aa6006dd9b58",
+    ".artifacts/ocr-input/runtime-e2e.log": "4651f63fd31c7ca414569e8b6887171975a57ec4c335125e415b24aeede82624",
+    ".artifacts/ocr-input/repository-checks-final.log": "edf3938c288a0767c6c106953b088b52b8d3881d106291a3b74a9f968cc8dd0e",
+    ".artifacts/ocr-input/model-bridge.log": "813f6f2c8132cc1f42c5e74fdd5253f685e27e25dbe92ab21c8d067f8d615a29",
+    ".artifacts/ocr-input/model-bridge-retry.log": "2577f21a098af6dd933e5f00d0c9127cd20f2475b7c7227c7d16c15ea370797b",
+    ".artifacts/ocr-input/model-bridge-final/result.json": "54a5162b24cff8055e83d03d69f4a4bf52a4d44f506bbe330d856c09d50eddfa",
+    ".artifacts/ocr-input/progressive-generation.log": "6edf09bf4087c6507f23f8f4f067534c4e95d75720756d1f161c89d962d427b7",
+    ".artifacts/ocr-input/generator-container.json": "8f9471679268b549582232533d12e9af0bbc4c44d0556803f611de653b02d550"
+  },
+  "progressiveFixture": {
+    "sha256": "c00adb86268a2d1550f5a10cbb23d5f1fcd7073a88b50c0d3aee26854083341a",
+    "bytes": 509038,
+    "synthetic": true,
+    "generatorRAMLimitBytes": 2147483648,
+    "generationIsNotAcceptance": true
+  },
+  "cleanup": {
+    "namedTestContainersRemoved": true,
+    "bridgeContainersRemoved": true,
+    "temporaryPreparedImagesAndLogsRetainedAsIgnoredArtifacts": true,
+    "separateVerifiedOCRCacheReadOnly": true,
+    "originalDataAndModelsUntouched": true
+  }
+}

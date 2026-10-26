@@ -7,35 +7,52 @@ const repositoryRoot = path.resolve(webRoot, "..");
 const manifestPath = path.join(webRoot, "qa", "visual-reference-manifest.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 
-const expectedViewports = [
-  { width: 390, height: 844 },
-  { width: 768, height: 1024 },
-  { width: 1265, height: 800 },
-  { width: 1440, height: 900 },
-];
-const requiredEntries = [
-  "account",
-  "auth-login",
-  "auth-setup",
-  "browse",
-  "general",
-  "libraries",
-  "library-new",
-  "library-status",
-  "search",
-  "storage",
-  "viewer",
-  "welcome",
-];
+const expectedViewports = [390, 768, 1440, 1920].map(width => ({ width, height: 1000 }));
+const requiredViews = {
+  "about": "about",
+  "account": "account",
+  "ai": "ai",
+  "ai-jobs": "jobs",
+  "ai-models": "models",
+  "auth-login": "login",
+  "auth-setup": "setup",
+  "browse": "browse",
+  "cache": "cache",
+  "favorites": "favorites",
+  "general": "general",
+  "libraries": "libraries",
+  "library-new": "libraries",
+  "library-status": "scans",
+  "logs": "logs",
+  "people": "people",
+  "processing-results": "results",
+  "search": "search",
+  "storage": "schedule",
+  "tags": "tags",
+  "unavailable": "unavailable",
+  "viewer": "viewer",
+  "welcome": "libraries"
+};
+const requiredEntries = Object.keys(requiredViews);
 
-assert(manifest.schemaVersion === 1, "schemaVersion must be 1");
+assert(manifest.schemaVersion === 2, "schemaVersion must be 2");
 assert(
-  manifest.sourceOfTruth === "prototypes/apple-redesign",
-  "sourceOfTruth must remain the accepted Apple redesign prototype",
+  manifest.sourceOfTruth === "prototypes/layered-workspace",
+  "sourceOfTruth must be the accepted layered workspace prototype",
 );
 assert(
+  manifest.acceptedChange === "docs/changes/UI-2026-10-25-layered-workspace-alignment.md",
+  "the accepted reference change must be traceable",
+);
+await requireFile(manifest.acceptedChange, "acceptedChange");
+assert(
+  manifest.historicalBaseline?.sourceOfTruth === "prototypes/apple-redesign",
+  "preserve the previous accepted baseline as historical evidence",
+);
+await requireFile(manifest.historicalBaseline.evidence, "historicalBaseline evidence");
+assert(
   JSON.stringify(manifest.viewports) === JSON.stringify(expectedViewports),
-  "viewport matrix must be exactly 390/768/1265/1440 with approved heights",
+  "viewport matrix must be exactly 390/768/1440/1920 at 1000px height",
 );
 assert(
   JSON.stringify(manifest.locales) === JSON.stringify(["zh-CN", "en"]),
@@ -61,10 +78,9 @@ for (const entry of manifest.entries) {
     `${entry.id}: productionRoute must be an application-relative route`,
   );
   assert(
-    typeof entry.source === "string" &&
-      entry.source.startsWith("prototypes/apple-redesign/") &&
-      entry.source.endsWith(".html"),
-    `${entry.id}: source must be an accepted prototype HTML page`,
+    entry.source === "prototypes/layered-workspace/src/App.jsx" &&
+      entry.sourceView === requiredViews[entry.id],
+    `${entry.id}: source and sourceView must match the accepted prototype mapping`,
   );
   await requireFile(entry.source, `${entry.id}: source`);
 

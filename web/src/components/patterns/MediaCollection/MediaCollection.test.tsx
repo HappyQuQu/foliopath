@@ -730,3 +730,33 @@ function setStoryboardMotion({
     })),
   });
 }
+
+it("keeps the current scroll position when restoring a card that is already visible", () => {
+  const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+  const ref = createRef<MediaCollectionHandle>();
+  render(<MediaCollection ref={ref} hasNextPage={false} isFetchingNextPage={false} items={[{ id: "visible-card", name: "Visible.png", kind: "image", modifiedLabel: "Today", width: 1200, height: 800, thumbnailStatus: "pending", thumbnailUrl: null }]} labels={labels} layout="grid" onItemActivate={vi.fn()} onLoadMore={vi.fn()} />);
+  const trigger = screen.getByRole("button", { name: "Preview Visible.png" });
+  vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({ x: 24, y: 240, left: 24, top: 240, right: 224, bottom: 440, width: 200, height: 200, toJSON: () => ({}) });
+  scrollTo.mockClear();
+  act(() => ref.current?.restoreItem("visible-card"));
+  expect(scrollTo).not.toHaveBeenCalled();
+  expect(trigger).toHaveFocus();
+});
+
+for (const seamless of [true, false]) {
+  it(`keeps actual match badges readable with seamless=${seamless}`, () => {
+    render(<MediaCollection hasNextPage={false} isFetchingNextPage={false} items={[{...storyboardItem, badges: [{label: "文件名"}, {label: "画面语义", tone: "accent"}]}]} labels={labels} layout={seamless ? "seamless" : "grid"} onLoadMore={vi.fn()} />);
+    expect(screen.getByText("文件名")).toBeVisible();
+    expect(screen.getByText("画面语义")).toHaveAttribute("data-tone", "accent");
+  });
+}
+
+it("pauses automatic append while previewing but keeps explicit load-more available", () => {
+ const load = vi.fn();
+ const props = {hasNextPage:true, isFetchingNextPage:false, items:[storyboardItem], labels, layout:"grid" as const, onLoadMore:load};
+ const {rerender} = render(<MediaCollection {...props} previewItemId={storyboardItem.id} />);
+ expect(load).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button", {name:"Load more"}));expect(load).toHaveBeenCalledOnce();
+ load.mockClear();rerender(<MediaCollection {...props} />);
+ expect(load).toHaveBeenCalledOnce();
+});

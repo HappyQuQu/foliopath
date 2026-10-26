@@ -8,8 +8,13 @@ on:
       - "v*.*.*"
   workflow_dispatch:
     inputs:
+      verification_only:
+        description: Build and verify immutable digests only; never publish tags or a release
+        required: true
+        default: true
+        type: boolean
       image_tag:
-        description: Docker image tag to publish
+        description: Embedded version; verification-only does not create a tag
         required: true
         default: edge
         type: string
@@ -126,7 +131,8 @@ jobs:
     if: >-
       always() &&
       (needs.release.result == 'success' || needs.release.result == 'skipped') &&
-      !(github.event_name == 'workflow_dispatch' && inputs.image_tag == 'intelligent-media-native-evidence')
+      !(github.event_name == 'workflow_dispatch' && inputs.image_tag == 'intelligent-media-native-evidence') &&
+      !(github.event_name == 'workflow_dispatch' && inputs.verification_only)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -208,7 +214,7 @@ jobs:
   publish:
     name: Publish verified multi-platform image
     needs: [prepare, images]
-    if: ${{ !cancelled() && needs.images.result == 'success' }}
+    if: ${{ !cancelled() && needs.images.result == 'success' && !inputs.verification_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -259,7 +265,82 @@ jobs:
     name: Run intelligent media native evidence without publishing
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      inputs.image_tag == 'intelligent-media-native-evidence'
+      inputs.image_tag == 'intelligent-media-native-evidence' && !inputs.verification_only
     permissions:
       contents: read
     uses: ./.github/workflows/intelligent-media-native.yml
+
+  verification-images:
+    name: Verify both native application and AI images without tag promotion
+    if: github.event_name == 'workflow_dispatch' && inputs.verification_only && inputs.image_tag != 'intelligent-media-native-evidence'
+    uses: ./.github/workflows/native-images.yml
+    with:
+      ref: ${{ github.sha }}
+      version: ${{ inputs.image_tag }}
+      verification_only: true
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  verification-checks:
+    name: Verify exact-source engineering checks without release gates
+    if: github.event_name == 'workflow_dispatch' && inputs.verification_only && inputs.image_tag != 'intelligent-media-native-evidence'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GOFLAGS: -p=2
+      GOMAXPROCS: 2
+    steps:
+      - name: Checkout exact verification source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache: true
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install source-check prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ripgrep
+          mkdir -p "${RUNNER_TEMP}/source-checks"
+
+      - name: Verify generated client, frontend architecture, types and tests
+        working-directory: web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --audit=false 2>&1 | tee "${RUNNER_TEMP}/source-checks/npm-ci.log"
+          npm run generate:check 2>&1 | tee "${RUNNER_TEMP}/source-checks/web-generated.log"
+          npm run check:architecture 2>&1 | tee "${RUNNER_TEMP}/source-checks/web-architecture.log"
+          npm run check:types 2>&1 | tee "${RUNNER_TEMP}/source-checks/web-types.log"
+          node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --types node tests/e2e/*.spec.ts 2>&1 | tee "${RUNNER_TEMP}/source-checks/e2e-types.log"
+          npm run test 2>&1 | tee "${RUNNER_TEMP}/source-checks/web-tests.log"
+          npm run build 2>&1 | tee "${RUNNER_TEMP}/source-checks/web-build.log"
+
+      - name: Verify source formatting, generation, architecture and synthetic Go tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          make fmt-check generate-check lint test 2>&1 | tee "${RUNNER_TEMP}/source-checks/go-checks.log"
+          git diff --exit-code
+
+      - name: Preserve exact-source check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-source-checks
+          path: ${{ runner.temp }}/source-checks
+          if-no-files-found: error
+          retention-days: 7

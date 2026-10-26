@@ -79,6 +79,9 @@ func (r *automaticTagRuntime) Analyze(ctx context.Context, asset autotag.Candida
 	return labels, nil
 }
 func automaticTagInferenceError(err error) error {
+	if errors.Is(err, remoteml.ErrTagTemporarilyUnavailable) {
+		return autotag.ErrTemporarilyUnavailable
+	}
 	if errors.Is(err, remoteml.ErrBusy) {
 		return autotag.ErrBusy
 	}

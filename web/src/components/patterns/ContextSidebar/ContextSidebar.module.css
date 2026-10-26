@@ -1,0 +1,13 @@
+.panel { display: grid; min-width: 0; gap: var(--space-4); padding: var(--space-4) var(--space-1); border-top: var(--border-width) solid var(--color-border); }
+.panel h2 { margin: 0; font-size: var(--font-size-2); }
+.panel p { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-1); line-height: var(--line-height-relaxed); overflow-wrap: anywhere; }
+.panel header p { margin-top: var(--space-2); }
+.panel label { display: grid; min-width: 0; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-1); }
+.panel form, .panel nav, .panel fieldset { display: grid; min-width: 0; gap: var(--space-2); }
+.panel fieldset { padding: 0; margin: 0; border: 0; }
+.panel legend { margin-bottom: var(--space-2); font-size: var(--font-size-1); color: var(--color-text-muted); }
+.panel nav > button { justify-content: space-between; text-align: start; height: auto; overflow-wrap: anywhere; }
+.panel nav > button > span { min-width: 0; width: 100%; justify-content: space-between; }
+.panel small { font-variant-numeric: tabular-nums; }
+
+.panel[data-density="compact"] { gap: var(--space-2); padding-block: var(--space-2); }

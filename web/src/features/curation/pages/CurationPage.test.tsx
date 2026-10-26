@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -244,7 +244,7 @@ function renderPage(route: string, tagId?: string) {
 
 it("never falls back to another library for an explicit unknown library", async () => {
   renderPage("/tags/tag_hidden?libraryId=lib_missing", "tag_hidden");
-  expect(await screen.findByRole("alert")).toHaveTextContent(/no other library|不会自动切换/);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/selected library could not be loaded|无法载入所选媒体库/);
   expect(getLibrary).toHaveBeenCalledWith("lib_missing");
   expect(listTags).not.toHaveBeenCalled();
   expect(listTagAssets).not.toHaveBeenCalled();
@@ -263,7 +263,7 @@ it("resolves a valid deep-linked library beyond the loaded picker page", async (
 
 it("rejects an explicitly empty library without fetching a global tag or media list", async () => {
   renderPage("/tags?libraryId=");
-  expect(await screen.findByRole("alert")).toHaveTextContent(/no other library|不会自动切换/);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/selected library could not be loaded|无法载入所选媒体库/);
   expect(listTags).not.toHaveBeenCalled();
   expect(listTagAssets).not.toHaveBeenCalled();
   expect(listFavorites).not.toHaveBeenCalled();
@@ -290,14 +290,14 @@ it("reads the selected tag name from real result curation even when absent from 
 it("makes an empty tag selection explicit and allows clearing it", async () => {
   const user = renderPage("/tags/tag_empty?libraryId=lib_family&kind=image", "tag_empty");
   expect(await screen.findByRole("heading", { level: 1, name: /Filtered by tag|已按标签筛选/ })).toBeVisible();
-  await user.click(screen.getByRole("button", { name: /Clear tag filter|清除标签筛选/ }));
+  await user.click(await screen.findByRole("link", { name: /Clear tag filter|清除标签筛选/ }));
   expect(screen.getByTestId("location")).toHaveTextContent("/tags?libraryId=lib_family&kind=image");
   expect(screen.getByTestId("location")).not.toHaveTextContent("tag_empty");
 });
 
 it("exposes the existing mobile sidebar toggle and closes it with Escape", async () => {
   const user = renderPage("/tags?libraryId=lib_family");
-  const button = await screen.findByLabelText(/Open navigation|打开导航/);
+  const button = await screen.findByLabelText(/Open tag filters|打开标签筛选/);
   fireEvent.click(button);
   expect(button).toHaveAttribute("aria-expanded", "true");
   await user.keyboard("{Escape}");
@@ -314,4 +314,15 @@ it("resets selected tag, search and cursor when switching libraries", async () =
   expect(screen.getByTestId("location")).toHaveTextContent("/tags?libraryId=lib_two&kind=image");
   expect(screen.getByTestId("location")).not.toHaveTextContent("tagCursor");
   await waitFor(() => expect(listTags).toHaveBeenLastCalledWith(undefined, { libraryId: "lib_two", kinds: ["image", "animated"] }));
+});
+
+it("keeps favorite type counts and sort in the sidebar with the current library", async () => {
+  const user = renderPage("/favorites?libraryId=lib_family");
+  const sidebar = await screen.findByRole("complementary", { name: /Favorite filters|收藏筛选/ });
+  const video = within(sidebar).getByRole("button", { name: /Video|视频/ });
+  await waitFor(() => expect(video).toHaveTextContent("0"));
+  await user.click(video);
+  await user.selectOptions(within(sidebar).getByRole("combobox", { name: /Sort|排序/ }), "name");
+  await waitFor(() => expect(listFavorites).toHaveBeenLastCalledWith(expect.objectContaining({ libraryId: "lib_family", kinds: ["video"], sort: "name" })));
+  expect(within(screen.getByRole("main")).queryByRole("combobox")).not.toBeInTheDocument();
 });

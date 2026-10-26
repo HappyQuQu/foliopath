@@ -4,7 +4,7 @@ import { Button } from "../../../components/ui";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import styles from "./AIProcessingRow.module.css";
 
-// One presentation owner for the four contract-backed processing capabilities.
+// One presentation owner for the contract-backed processing capabilities.
 export function AIProcessingRow({ title, description, icon, children, action, maintenance, headingRef, details }: {
   title: string;
   description: string;

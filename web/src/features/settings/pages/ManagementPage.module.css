@@ -1,6 +1,6 @@
 .main {
   width: 100%;
-  padding: var(--space-10);
+  padding: var(--space-8) var(--workspace-padding) var(--space-12);
 }
 
 .hero {
@@ -33,9 +33,9 @@
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-6);
   margin-bottom: var(--space-6);
-  padding-bottom: var(--space-3);
+  padding-bottom: 0;
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
@@ -61,6 +61,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .form {
@@ -111,6 +112,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .metric span {
@@ -225,3 +227,6 @@
     width: 100%;
   }
 }
+
+.tabs > button, .tabs > a { padding: var(--space-2) var(--space-1) var(--space-3); border: 0; border-bottom: var(--focus-width) solid transparent; border-radius: 0; background: transparent; color: var(--color-text-muted); }
+.tabs > [aria-selected="true"], .tabs > [aria-current="page"] { color: var(--color-accent); border-bottom-color: var(--color-accent); }

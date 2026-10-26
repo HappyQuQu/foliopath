@@ -1,5 +1,79 @@
 # FolioPath 需求—架构追踪
 
+2026-10-26 / FIX-product-language / FR-UI-001～003/006、FR-SEARCH-001～003、FR-OCR-004/005、NFR-UIF-001：Web全页面和中央文案拥有用户表达，后台错误/身份/任务合同不变。稳定Story渲染生产组件，521项/类型/生成/架构及实际6010验收、冻结后台与31组保护见[记录](../changes/FIX-2026-10-26-product-language.md)。
+
+2026-10-26 / CR-2026-050/051/052 / FR-OCR-001～005、FR-SEARCH-001～003：原6010已完整停写备份后部署OCR专用冻结增量，迁移44→47；只开启pixiv、小批23张后停止保留结果。原27组保护摘要、真实OCR-only/融合行证据和容器完整性通过；未顺带发布工作区后续人物功能，非全库/容量/发行结论。[部署证据](../changes/DEPLOY-2026-10-26-ocr-6010.md)。
+
+CR-2026-052 / FR-OCR-004/005：Web ai.ts适配现有生成OCR管理API，复用unwrapWithEtag/错误owner；ocrQueries统一库query key、挂载页面轮询/写后刷新及searchKeys公共入口失效。OCRSettings映射真实合同到现有概览/任务行，独立OCR job不加入AIModelOperation。无后端/存储/模型变化；证据见CR记录。
+
+2026-10-26 / CR-2026-051 / ADR-0037 / FR-OCR-005、FR-SEARCH-001～003、NFR-INT-007/009/010：SQLite拥有源绑定派生文档/FTS/有界回填与transaction revision；OCR原fenced commit同时更新索引；search拥有独立OCR证据/统一rank/heap/cursor与Verify；app仅传显式部署fingerprint，api负责DTO/hydration/再次快照校验。Web生成client/domain adapter、URL/query owner和正式SearchPage/稳定Story一致。fitness扩大OCR只写派生表文件覆盖；事务/可见性/回填/分页/原文转义和真实模型Docker、响应式证据见[CR](../changes/CR-2026-051-ocr-fulltext-search.md)。
+
+2026-10-26 / CR-2026-050 / ADR-0036 / FR-OCR-001～004、NFR-INT-007/009/010：ocr拥有源分析/worker适配/管理用例，app独占组合；SQLite独占lease/claim/clear/handoff，api只处理元数据。复用jobs.WorkerPool与resourcecontrol/ContentService/imagevips/共享ML；启动扫描等待与busy背压有界。fitness放行app/api消费者但禁止存储写其他能力，OpenAPI旧合同字节反向还原hash不变。最终证据见[本轮](../changes/CR-2026-050-ocr-runtime-management.md)。
+
+2026-10-26 / FR-OCR-003、NFR-INT-007/009/010 / CR-2026-049 / ADR-0035：internal/ocr拥有源绑定/结果验证与持久repository合同；SQLite独占epoch/lease/fenced commit/recovery/clear状态转换。迁移45默认关闭，不注册运行worker/API。fitness：OCR直接消费者仅remoteml/imagevips/sqlite、存储不得写其他能力；有合成迁移/崩溃lease/并发清理与保护摘要回归。结果见[记录](../changes/CR-2026-049-ocr-durable-results.md)；不是全OCR Backend Ready。
+
+2026-10-26 / CR-2026-048 / ADR-0034：internal/ocr生成input/output策略JSON，make generate-check校验，Go/Python共享conformance；inference.ocr_contract/engine/worker/server拥有producer。OCRScheduler仅保存请求局部真实kind并持锁绑定固定OCR child/cache，private v1准入类别映射委托原infer；无自有pending/lock/timeout/reap。原28文件/清单不覆盖，base lifespan关闭空owner后替换为唯一路由owner。fitness：scripts/check_ocr_ownership.py进入arch-check、25项Python+共享夹具、实际native取消/坏cache、Go输入/传输HTTP与旧模型输出逐字节对照。app/API/store仍被消费者gate禁止组合；无迁移/新部署或公开OpenAPI。[证据](../changes/CR-2026-048-ocr-producer.md)。
+
+2026-10-25 / CR-2026-047 / ADR-0033 / FR-OCR-001～003：ocr.InputContract/PreparedImage/ImagePreprocessor拥有独立策略与接口；imagevips.Processor实现PrepareOCRImage，复用既有readRemoteSemanticSource与largeImageDecodeSlot/beginLargeImageDecode，ImageRef关闭先于准入释放；不新建内存门/调度器。能力消费者allowlist仅增加imagevips，app/API/SQLite仍被arch-check阻止。无主应用组合/迁移/服务注册/模型身份变化。fitness：stub/输入合同、native race45项无跳过、3场景Go→真实S0模型、旧语义/人脸/native回归及Go全量，详见[记录](../changes/CR-2026-047-ocr-image-input.md)。
+
+2026-10-25 / CR-2026-046 / ADR-0032：internal/ocr拥有独立Identity/Fingerprint/Normalize的规范化与文本/框/分数边界；remoteml.OCRClient拥有严格wire、固定内部路径和现有Client共享准入/截止。传输不拥有媒体/SQLite/任务/激活。tests/architecture将ocr列入capability依赖方向，并限制当前只有remoteml可import该合同；app/API/存储接入前需更新后续Gate。无迁移/公开OpenAPI/UI/服务注册变化，原型现有OCR未接入状态继续真实。fitness为Go/race/httptest及独立Linux Docker40项，详见[记录](../changes/CR-2026-046-ocr-transport.md)。
+
+2026-10-25 / CR-2026-045 / FR-OCR-001～003候选、POST-MVP-5后续S0：spikes/ocr拥有独立实验合同、固定模型准备与输出验证；只通过既有InferenceScheduler命令注入测试点调用隔离子进程，不注册生产visual/OCR能力。复用cache_snapshot验证私有缓存，不修改services/inference、Go/API/SQLite/Web或原6010。fitness为contract/download/worker 15项单测、继承scheduler/manifest 11项和真实模型15个分类/回收场景；90°0/4仅记录负面质量观察。生产ADR/协议/源代次与任务事务、存储/清理/搜索合同仍未接受。见[记录](../changes/CR-2026-045-ocr-feasibility.md)。
+
+2026-10-25 / CR-2026-044 / POST-MVP-5：FR-PEOPLE-025～027承接FR-INT-011/012/016、NFR-INT-006。face.PersonMergeCheckService拥有预检用例，SQLite原合并模块共用约束查询和原batch边界；API只映射DTO，app组合生命周期，Web通过生成adapter/aiKeys/usePersonMergeCheckQuery读取，PersonPanel冻结选择及原请求。无新部署、事务、持久化或模型owner。fitness：PersonMergeCheck服务/存储/API/组合、原预检允许后新关系仍阻止POST、跨库/离线/上限、定向race、正式Story/三浏览器与person_merge_check_smoke真实模型合成Docker。
+
+2026-10-25 / CR-2026-043 / POST-MVP-5：FR-PEOPLE-022～024承接FR-INT-010/012/016与NFR-INT-006，Owner为face审核服务/SQLite原审核事务、face投影、API生成adapter、PhotoFacesPanel及FaceReviewUndo。成对guard验证由face唯一持有，事务内归属/anchor/undo版本由store实现；同图关系不另建状态owner。无新事务、迁移、依赖方向或部署单元。fitness入口：CannotLink定向/race、API投影/生成、PhotoFacesPanel单测、face-cannot-link三浏览器及face_cannot_link_smoke真实模型合成Docker；完成证据见变更记录。
+
+2026-10-25 / CR-2026-042 / POST-MVP-5：FR-PEOPLE-019～021由face既有幂等审核/SQLite undo、生成API边界、PersonPanel单意图快照及统一Query失效实现；源查询状态不再拥有确认/恢复界面的生命周期。reviewErrors仍是已知终态冲突分类唯一owner；FaceReviewUndo仍接收仅已确认回执。无新事务/持久化/部署或跨feature边界。回归入口为store重放/API/定向race、PersonPanel单测、person-recovery三浏览器、正式Story及person_recovery_smoke独立真实模型Docker。
+
+2026-10-25 / CR-2026-041 / POST-MVP-5：FR-PEOPLE-016～018及既有FR-INT-012/016由face.ReviewService/SQLite原undo事务、既有生成API adapter undoFaceReview、统一Query失效和AIReviewPage单回执owner实现；FaceReviewUndo拥有确认/同键重试状态，三个面板只发布已确认回执。成功/失败刷新均由queries的mutationWithInvalidation拥有，不从变化后的禁用人物observer强行refetch；无新部署、持久化、跨feature或事务边界。回归为guarded undo/API/定向race、适配层/回执/Query测试、三浏览器face-review-undo与独立真实模型face_review_undo_smoke。
+
+2026-10-25 / CR-2026-040 / POST-MVP-5：FR-PEOPLE-013～015、FR-INT-010/011及NFR-INT-005由face.ReviewService/ValidReviewSourceGuard、SQLite ExcludeFace事务、既有API/生成合同与PhotoFacesPanel实现。media通过公共export提供canonical useAssetQuery；PhotoFacesPanel冻结当前确认意图，reviewErrors统一审核冲突分类；HTTP/QueryKey/URL仍由既有owner负责。无新部署/持久化/事务边界或模型身份，继续既有架构。回归入口为make arch-check、服务/API/SQLite及定向race、PhotoFacesPanel单测、photo-face-review.spec.ts和独立真实模型photo_faces_smoke.mjs。
+
+2026-10-25 / CR-2026-039 / POST-MVP-5：FR-PEOPLE-010～012由face.Person/SQLite人物读取投影、API生成合同、AIReviewPage及正式Story实现。SQL预览/PersonAsset共享可读关联范围；usePeopleDirectoryState拥有主区/侧栏URL操作，查询键/HTTP仍归queries/生成adapter。usePersonCreationIntent为目录/分组创建重试的唯一页面意图键owner；ReviewPhotoPreview统一照片预览失败/有界展示。无持久化/事务/部署边界变更，沿用既有架构；回归入口为make arch-check、人物投影/API/服务测试、前端及Docker探针，不放宽质量门禁。
+
+2026-10-25 / POST-MVP-5 / FR-SEARCH-001～003、FR-UI-001～003/006、NFR-UIF-001：[搜索首屏修复](../changes/FIX-2026-10-25-search-density.md)由SearchPage拥有布局，复用共享InlineStatus与MediaCollection；API、URL、分页和状态owner不变。12单测、20浏览器、9整体视觉复验及make arch-check通过，冻结后端仅嵌入新前端同步6010，数据/AI保护摘要一致。
+
+2026-10-25 / CR-2026-038 / POST-MVP-5：FR-PEOPLE-007～009由face目录用例、SQLite只读投影、API/OpenAPI与AIReviewPage实现。ReadFaceClusterPage在一事务形成计数/页面/摘要；face服务拥有过滤验证及v2游标绑定，SQLite复用唯一当前lineage joins，API只转换DTO，前端不凭首屏推断全范围。无迁移/新ADR/写事务或部署单元变更。fitness入口仍为make arch-check；功能一致性由cluster_list/face_cluster_list/API、浏览器及真实合成Docker回归验证，容量/质量/发行独立。
+
+
+2026-10-25：[库菜单浮层与紧凑标签目录修复](../changes/FIX-2026-10-25-sidebar-polish.md)已同步6010，筛选/显示语言/分页合同不变，保留融合搜索、AI及数据。
+
+2026-10-25 / FR-PEOPLE-004～006 / POST-MVP-5 / CR-2026-037：face/SQLite继续拥有人工归属、状态与幂等事务。
+ClusterPanel消费既有分组成员＋AssetFace状态，只提交一个冻结FaceReviewRequest；queries统一拥有单/多资产人脸读取key和失效，
+不复制状态查询或在UI循环提交批量事务。AIReviewPage拥有groupsCursor/成员cursor与类型的URL转换，ReviewFeedback复用各资源分页/失效恢复。
+FaceSelectionBox统一空间选择/标记，RadioOption和Dialog沿用共享所有者。
+空人物创建与归类是两个明确动作，自动整组质量门禁不变。无新API/schema/模型身份/部署单元；合同与实际测试见[记录](../changes/CR-2026-037-cluster-review.md)。
+
+2026-10-25 / FR-PEOPLE-001～003 / POST-MVP-5 / CR-2026-036：face服务/SQLite保持唯一的人工归属、修订号与事务所有者；
+OpenAPI既有PersonAsset/AssetFace和FaceReviewRequest合同不变。queries唯一拥有assetFaces key/读取与ai失效，
+PersonPanel负责具体选择和冻结确认快照，ReviewFeedback复用原分页/错误所有者，Dialog保持唯一共享确认组件。
+无新持久化、模型身份或部署单元；多人脸/修订冲突/不能合并后端回归、正式组件/Story及本地Docker证据见[记录](../changes/CR-2026-036-person-review-safety.md)。
+
+2026-10-25 / FR-SEARCH-001～003、FR-INT-003 / POST-MVP-5 / CR-2026-035 / ADR-0031：
+`internal/search`拥有融合/去重/排名与快照游标，catalog唯一拥有字面规范化和来源判定；semantic拥有编码、当前代次/源向量与快照合同；SQLite仅流式提供候选。
+API只解析、调用service并按ID水合资产，水合时再次核对内部源/名称/路径证据摘要；generated client/domain adapter→search feature→shared MediaCollection/Badge。
+共享MediaPreview/controller拥有窄屏首次定位/焦点，MediaCollection拥有预览期间自动分页暂停与显式加载；无新页面局部副本。
+无新表/迁移/模型身份/部署单元；堆limit+1、共享推理HTTP准入，拒绝索引变化后的跨快照翻页。架构依赖检查及SQLite/HTTP、正式Story/浏览器/Docker证据见[记录](../changes/CR-2026-035-fused-search.md)。
+
+2026-10-25 / FR-UI-001～003/006/009/010、NFR-UIF-001 / POST-MVP-5 既有消费者视觉完善：
+中央 tokens、AppShell/ManagementShell、MediaPreview/Collection 及 feature 页面样式对齐已接受分层原型；
+查询/URL/API/权限 owner 不变，补 RadioOption 原生行为与可见媒体无跳动回归。真实后端合成库与 Storybook 分别验证
+真实媒体链和未配置 AI/合成状态，不扩大生产能力。[证据](../changes/UI-2026-10-25-layered-workspace-alignment.md)。
+
+2026-10-24 / FR-BRW-001/004/007、FR-SRH-001～004、FR-CUR-001～008、FR-INT-009～014、FR-UI-001/002/003/006/010：
+UI-2026-10-24-contextual-sidebar / POST-MVP-5 INT-S3 既有消费者完善。AppShell 拥有抽屉和功能名称，
+DirectoryNavigation 拥有库/快速访问/既有 context slot；ContextSidebar 仅布局；SearchPage URL、
+AIReviewPage 全局人物/本库组、CurationPage 收藏/标签合同保持各自所有者。人物列表 peopleCursor 与媒体
+cursor 分离；共享预览 controller 拥有严格整理集合移出策略。依赖检查与组件/E2E 回归见
+[实施记录](../changes/UI-2026-10-24-contextual-sidebar.md)，无新 API 或部署边界。
+
+2026-10-24 / FR-AUTOTAG-001～003 / POST-MVP-5 / ADR-0029：app独立绑定tag profile与fingerprint，
+imagevips复用ADR-0028解码/ADR-0024唯一native准入；curation继续唯一拥有人工优先及删除抑制。
+无新API/表/UI。配置默认/未知值/跨能力身份测试与`TestPNGProfileKeepsSemanticAndTagInputOwnersSeparate`
+约束组合；真实模型合成Docker新增标签profile换代、人工中文同义/移除抑制与重启回归。
+当前进度与证据见[记录](../changes/FIX-2026-10-24-autotag-png.md)，不自动关闭质量/容量/发行门禁。
+
 2026-10-23 `NFR-COMP-001` / S5 构建维护：前端构建 owner 固定 Node 24 LTS，
 `.node-version` 与 Docker 构建镜像版本一致，npm/lockfile 同步；
 `make arch-check` 的工具链一致性回归阻止开发与容器版本漂移。
@@ -88,6 +162,10 @@ AI feature 的 FaceFailureDetails/FaceAnalysisStatus 复用于生产与稳定 St
 404 旧记录折叠/本地移除、确认/焦点等回归已补充，无新 API、迁移或部署单元。
 验证和实际部署状态见[任务页改版记录](../changes/FIX-2026-10-22-ai-task-workspace.md)：64 文件/395 前端测试、
 类型/生成/架构、Storybook、最终 Docker 与 6010 四宽度及焦点复验通过，未关闭其他 AI 门禁。
+
+2026-10-24补充：FR-AUTOTAG-001/002、NFR-OPS-001的[ADR-0030](../adr/0030-bounded-autotag-service-recovery.md)
+由remoteml分类短暂tag服务错误，app映射，autotag唯一拥有有界恢复等待；SQLite既有claim/事务/人工保护保持不变。
+定向恢复/严格身份回归与合成Docker同operation停止再启动验收见[修复记录](../changes/FIX-2026-10-24-autotag-service-recovery.md)。
 
 2026-10-22 / `CR-2026-031` / `FR-AUTOTAG-001～003` / POST-MVP-5：按
 [ADR-0021](../adr/0021-bounded-inference-and-automatic-tags.md) 落地自动标签生产合同与实现。
@@ -631,3 +709,15 @@ composition 只能读取固定配置并保留 face/Release No-Go；下载/集成
 ```
 
 模板字段不得无故删除；不适用项写 `N/A` 及理由。确认后应同步 PRD、本文映射、roadmap、API/数据/安全/测试文档，并在需要时先接受 ADR，再进入实施。
+
+2026-10-26：[标签侧栏层次与调宽修复](../changes/FIX-2026-10-26-tag-sidebar.md)：保留数量字号/颜色编码，AppShell复用PanelResizer与既有sidebarWidth偏好；后端合同不变。
+
+2026-10-26：[侧栏调宽后内容自适应修复](../changes/FIX-2026-10-26-sidebar-reflow.md)，现有界面响应验收修复，API与任务合同不变。
+
+2026-10-26：[标签云排列修正](../changes/FIX-2026-10-26-tag-cloud-layout.md)，仅curation样式，保留API及键盘/有界分页所有权。
+
+
+2026-10-26 / 既有FR-OCR-001～005、NFR-OPS-001/INT-010维护：imagevips用PNG行过滤保留像素/输入身份；OCR producer区分4096原始轮廓与128最终文字行，以新输出策略/指纹执行，不重贴旧结果。ADR-0038接受Docker Desktop完整data向预备Linux命名卷的停写校验切换，既有两服务/原件只读/人工保护边界不变。局部复现、Docker与部署事实见[修复记录](../changes/FIX-2026-10-26-ocr-limits-sqlite.md)；全库进度不能由合成通过推定。
+
+
+2026-10-26 / FR-UI-001～003/006、FR-OCR-004既有布局维护：AISettingsOverview拥有四项逐库能力的统一网格，借用AppShell workspace容器；不新增primitive/API/状态策略。稳定生产Story、71项既有行为及14项Linux几何/axe回归覆盖；冻结候选仅web布局变化，原6010待OCR终态后再备份部署。[记录](../changes/FIX-2026-10-26-ai-feature-grid.md)。

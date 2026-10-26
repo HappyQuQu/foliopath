@@ -69,3 +69,14 @@ it("does not request another page when refreshing the cursor chain fails", async
 
   expect(loadNextPage).not.toHaveBeenCalled();
 });
+
+for (const code of ["search_cursor_stale", "semantic_cursor_stale"] as const) {
+  it(`refreshes the full chain when ${code} invalidates the search snapshot`, async () => {
+    const loadNextPage = vi.fn().mockResolvedValue({isError: false});
+    const refresh = vi.fn().mockResolvedValue({isError: false});
+    await retryInfiniteNextPage({error: new ApiError({code, message: "changed", requestId: undefined, status: 409}), loadNextPage, refresh});
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(loadNextPage).toHaveBeenCalledOnce();
+    expect(refresh.mock.invocationCallOrder[0]).toBeLessThan(loadNextPage.mock.invocationCallOrder[0]!);
+  });
+}

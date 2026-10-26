@@ -63,16 +63,14 @@ for (const locale of ["zh-CN", "en"] as const) for (const width of [320, 390, 76
       await input.press("Tab");
       await expect(submit).toBeFocused();
       await submit.press("Tab");
-      const people = page.getByRole("link", { name: english ? "People" : "人物", exact: true });
-      await expect(people).toBeFocused();
-      expect((await people.boundingBox())!.y).toBeGreaterThan((await input.boundingBox())!.y);
+      await expect(page.getByRole("button", { name: english ? "Switch to 简体中文" : "切换到 English" })).toBeFocused();
     }
-    await expect(page.getByText(english ? "Describe a scene in Chinese or English. Search uses analyzed images or video frames in the selected scope, not filenames." : "用中文或英文描述想找的画面。只检索所选范围内已分析的图片或视频关键帧，不按文件名匹配。")).toBeVisible();
+    await expect(page.getByText(english ? "Describe the scene you want, such as a sunset by the sea." : "描述你想找的画面，例如海边日落。")).toBeVisible();
     expect(requests).toHaveLength(0);
     await input.fill("车");
     await input.press("Enter");
     await expect(page.getByText(semanticSource, { exact: true })).toBeVisible();
-    await expect(page.getByText(english ? "Ranked by visual similarity, not exact keyword matches. Image text recognition (OCR) is not connected." : "按画面相似度排序，不代表关键词精确命中。图片文字识别（OCR）尚未接入。")).toBeVisible();
+    await expect(page.getByText(english ? /Ranked by visual similarity, not exact keyword matches/ : /按画面相似度排序，不代表关键词精确命中/)).toHaveCount(0);
     expect(requests).toHaveLength(1);
     expect(requests[0]!.pathname).toBe("/api/v1/semantic/assets");
     expect(requests[0]!.searchParams.get("q")).toBe("车");
@@ -87,7 +85,8 @@ for (const locale of ["zh-CN", "en"] as const) for (const width of [320, 390, 76
       return rows.every((row, index) => row.rect.height >= row.scrollHeight - 1 && row.rect.top >= parent.top && row.rect.bottom <= parent.bottom + 1 && (index === 0 || row.rect.top >= rows[index - 1]!.rect.bottom));
     })).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`semantic-${locale}-${width}.png`), fullPage: true });
-    await page.getByRole("button", { name: english ? "Filename" : "文件名", exact: true }).click();
+    if (width <= 600) await page.getByRole("button", { name: english ? "Open search tools" : "打开搜索工具" }).click();
+    await page.getByRole("radio", { name: english ? "Filename" : "文件名", exact: true }).click();
     await expect(page.getByRole("searchbox", { name: literalLabel })).toHaveValue("车");
     await expect(page.getByText(literalSource, { exact: true })).toBeVisible();
     await expect(page.getByText(semanticSource, { exact: true })).toHaveCount(0);

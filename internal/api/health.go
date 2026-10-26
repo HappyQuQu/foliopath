@@ -63,6 +63,7 @@ type RouteDependencies struct {
 	ModelProxy          ModelProxyService
 	Semantic            SemanticService
 	SemanticSearch      SemanticSearchService
+	FusedSearch         FusedSearchService
 	VideoSemanticSearch VideoSemanticSearchService
 	VideoSemanticJobs   VideoSemanticJobService
 	VideoSemanticStatus VideoSemanticStatusService
@@ -71,6 +72,7 @@ type RouteDependencies struct {
 	AITagReviews        AITagReviewService
 	AITagReviewClear    AITagReviewClearService
 	AITagJobs           AITagJobService
+	OCR                 OCRService
 	AutomaticTags       AutomaticTagService
 	FaceSettings        FaceSettingsService
 	FaceClusters        FaceClusterService
@@ -160,6 +162,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 		registerSemanticRoutes(mux, dependencies.Semantic)
 	}
 	semanticAdmission := newSemanticSearchAdmission()
+	if dependencies.FusedSearch != nil && dependencies.Catalog != nil {
+		registerFusedSearchRoute(mux, dependencies.FusedSearch, dependencies.Catalog, semanticAdmission)
+	}
 	if dependencies.SemanticSearch != nil && dependencies.Catalog != nil {
 		registerSemanticSearchRouteWithAdmission(mux, dependencies.SemanticSearch, dependencies.Catalog, semanticAdmission)
 	}
@@ -186,6 +191,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.AITagJobs != nil {
 		registerAITagJobRoute(mux, dependencies.AITagJobs)
+	}
+	if dependencies.OCR != nil {
+		registerOCRRoutes(mux, dependencies.OCR)
 	}
 	if dependencies.AutomaticTags != nil {
 		registerAutomaticTagRoutes(mux, dependencies.AutomaticTags)

@@ -1,5 +1,7 @@
 import {
   Brain,
+  ArrowLeft,
+  CaretRight,
   FileText,
   FolderOpen,
   GearSix,
@@ -7,7 +9,7 @@ import {
   UserCircle,
 } from "@phosphor-icons/react";
 import type { ComponentType, ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 import { useLocale, type MessageKey } from "../../../lib/i18n/LocaleProvider";
 import { AppShell } from "../AppShell/AppShell";
@@ -128,10 +130,14 @@ export function ManagementShell({
       searchHref={searchHref}
       settingsHref={generalHref}
       title={t("management.title")}
-    >
-      <div className={styles.layout}>
-        <aside className={styles.sidebar}>
+
+      navigationKey={`management:${active}`}
+      sidebarLabel={t("management.title")}
+      navigationLabel={t("context.openManagement")}
+      sidebarContent={
+        <div className={styles.sidebar}>
           <h2>{t("management.title")}</h2>
+          <Link className={styles.back} to={homeHref}><ArrowLeft aria-hidden="true" size={18} />{t("context.backToMedia")}</Link>
           <nav aria-label={t("management.navigation")}>
             {navigation.map(({ hrefKey, icon: Icon, key, section }) => (
               <NavLink
@@ -147,9 +153,11 @@ export function ManagementShell({
               </NavLink>
             ))}
           </nav>
-        </aside>
-        <div className={styles.pane}>{children}</div>
-      </div>
+        </div>
+      }
+      topbarContent={<><span>{t("management.title")}</span><CaretRight aria-hidden="true" size={14} /><span>{t(navigation.find(item => item.section === active)?.key ?? "management.general")}</span></>}
+    >
+      <div className={styles.pane}>{children}</div>
     </AppShell>
   );
 }

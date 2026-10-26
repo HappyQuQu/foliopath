@@ -140,7 +140,7 @@ export const AdaptiveGrid: Story = {};
 export const SourceAndContext: Story = {
   args: {
     hasNextPage: false,
-    items: items.slice(1, 5).map(item => ({ ...item, sourceHref: "/synthetic", sourceLabel: "合成媒体库 · 示例目录", contextLabel: "画面语义检索" })),
+    items: items.slice(1, 5).map(item => ({ ...item, sourceHref: "/synthetic", sourceLabel: "合成媒体库 · 示例目录", contextLabel: "画面语义检索", badges: [{label: "文件名"}, {label: "画面语义", tone: "accent" as const}] })),
   },
   parameters: { docs: { description: { story: "Synthetic component fixture: filename, source directory and context each retain a visible line without a fixed two-line footer clipping them." } } },
 };

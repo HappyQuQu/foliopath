@@ -1,125 +1,436 @@
 {
-  "schemaVersion": 1,
-  "sourceOfTruth": "prototypes/apple-redesign",
+  "schemaVersion": 2,
+  "sourceOfTruth": "prototypes/layered-workspace",
   "viewports": [
-    { "width": 390, "height": 844 },
-    { "width": 768, "height": 1024 },
-    { "width": 1265, "height": 800 },
-    { "width": 1440, "height": 900 }
+    {
+      "width": 390,
+      "height": 1000
+    },
+    {
+      "width": 768,
+      "height": 1000
+    },
+    {
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "width": 1920,
+      "height": 1000
+    }
   ],
-  "locales": ["zh-CN", "en"],
-  "themes": ["light", "dark"],
+  "locales": [
+    "zh-CN",
+    "en"
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
   "entries": [
     {
+      "id": "about",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "about",
+      "productionRoute": "/settings/about",
+      "fixtures": [
+        "web/src/features/release-info/components/ReleaseNotes.test.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "ready",
+        "error"
+      ]
+    },
+    {
       "id": "account",
-      "source": "prototypes/apple-redesign/09-settings-account.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/account",
-      "fixtures": ["web/tests/e2e/auth.spec.ts"],
-      "states": ["profile", "password", "pending", "error", "success"]
+      "fixtures": [
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "profile",
+        "password",
+        "pending",
+        "error",
+        "success"
+      ],
+      "sourceView": "account"
+    },
+    {
+      "id": "ai",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "ai",
+      "productionRoute": "/settings/ai",
+      "fixtures": [
+        "web/src/features/ai/pages/AISettingsPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "ready",
+        "unavailable",
+        "loading",
+        "error"
+      ]
+    },
+    {
+      "id": "ai-jobs",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "jobs",
+      "productionRoute": "/settings/ai?view=tasks",
+      "fixtures": [
+        "web/src/features/ai/pages/AISettingsPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    {
+      "id": "ai-models",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "models",
+      "productionRoute": "/settings/ai?view=service",
+      "fixtures": [
+        "web/src/features/ai/pages/AISettingsPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "ready",
+        "unavailable",
+        "loading",
+        "error"
+      ]
     },
     {
       "id": "auth-login",
-      "source": "prototypes/apple-redesign/01-auth.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/login",
       "fixtures": [
         "web/src/features/auth/pages/AuthPage.stories.tsx",
         "web/tests/e2e/auth.spec.ts"
       ],
-      "states": ["default", "pending", "error", "session-expired"]
+      "states": [
+        "default",
+        "pending",
+        "error",
+        "session-expired"
+      ],
+      "sourceView": "login"
     },
     {
       "id": "auth-setup",
-      "source": "prototypes/apple-redesign/01-auth.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/setup/admin",
       "fixtures": [
         "web/src/features/auth/pages/AuthPage.stories.tsx",
         "web/tests/e2e/auth.spec.ts"
       ],
-      "states": ["default", "validation", "pending", "error"]
+      "states": [
+        "default",
+        "validation",
+        "pending",
+        "error"
+      ],
+      "sourceView": "setup"
     },
     {
       "id": "browse",
-      "source": "prototypes/apple-redesign/03-browse.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/libraries/:libraryId/browse/:directoryId?",
       "fixtures": [
         "web/src/features/browse/pages/BrowsePage.stories.tsx",
         "web/src/features/browse/pages/BrowsePage.test.tsx",
-        "web/tests/e2e/auth.spec.ts"
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
       ],
-      "states": ["default", "filtered", "recursive", "offline", "error", "preview"]
+      "states": [
+        "default",
+        "filtered",
+        "recursive",
+        "offline",
+        "error",
+        "preview"
+      ],
+      "sourceView": "browse"
+    },
+    {
+      "id": "cache",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "cache",
+      "productionRoute": "/settings/storage?section=cache",
+      "fixtures": [
+        "web/src/features/settings/pages/StorageSettingsPage.test.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "ready",
+        "cleanup-pending",
+        "error"
+      ]
+    },
+    {
+      "id": "favorites",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "favorites",
+      "productionRoute": "/favorites?libraryId=:libraryId",
+      "fixtures": [
+        "web/src/features/curation/pages/CurationPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "results",
+        "empty",
+        "error",
+        "preview"
+      ]
     },
     {
       "id": "general",
-      "source": "prototypes/apple-redesign/07-settings-general.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/general",
       "fixtures": [
         "web/src/features/settings/pages/GeneralSettingsPage.stories.tsx",
-        "web/tests/e2e/auth.spec.ts"
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
       ],
-      "states": ["default", "dirty", "saved"]
+      "states": [
+        "default",
+        "dirty",
+        "saved"
+      ],
+      "sourceView": "general"
     },
     {
       "id": "libraries",
-      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/libraries",
       "fixtures": [
         "web/src/features/libraries/pages/LibrariesPage.test.tsx",
-        "web/tests/e2e/auth.spec.ts"
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
       ],
-      "states": ["empty", "ready", "scanning", "offline", "remove-confirmation"]
+      "states": [
+        "empty",
+        "ready",
+        "scanning",
+        "offline",
+        "remove-confirmation"
+      ],
+      "sourceView": "libraries"
     },
     {
       "id": "library-new",
-      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/libraries/new",
-      "fixtures": ["web/tests/e2e/auth.spec.ts"],
-      "states": ["name", "directory-picker", "validation", "pending"]
+      "fixtures": [
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "name",
+        "directory-picker",
+        "validation",
+        "pending"
+      ],
+      "sourceView": "libraries"
     },
     {
       "id": "library-status",
-      "source": "prototypes/apple-redesign/06-settings-libraries.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/libraries/:libraryId/status",
-      "fixtures": ["web/tests/e2e/auth.spec.ts"],
-      "states": ["queued", "running", "cancelled", "failed", "offline", "completed"]
+      "fixtures": [
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "queued",
+        "running",
+        "cancelled",
+        "failed",
+        "offline",
+        "completed"
+      ],
+      "sourceView": "scans"
+    },
+    {
+      "id": "logs",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "logs",
+      "productionRoute": "/settings/logs",
+      "fixtures": [
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "ready",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "people",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "people",
+      "productionRoute": "/intelligence?view=people&libraryId=:libraryId",
+      "fixtures": [
+        "web/src/features/ai/pages/AIReviewPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "established",
+        "clusters",
+        "empty",
+        "error"
+      ]
+    },
+    {
+      "id": "processing-results",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "results",
+      "productionRoute": "/settings/libraries?view=results",
+      "fixtures": [
+        "web/src/features/libraries/pages/LibraryRecords.test.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "empty",
+        "failed",
+        "error"
+      ]
     },
     {
       "id": "search",
-      "source": "prototypes/apple-redesign/04-search.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/search",
       "fixtures": [
         "web/src/features/search/pages/SearchPage.test.tsx",
-        "web/tests/e2e/auth.spec.ts"
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts",
+        "web/src/features/search/pages/SearchPage.stories.tsx",
+        "web/tests/e2e/fused-search.spec.ts"
       ],
-      "states": ["no-query", "results", "empty", "offline", "error", "preview"]
+      "states": [
+        "no-query",
+        "results",
+        "empty",
+        "offline",
+        "error",
+        "preview",
+        "fused-evidence",
+        "degraded-semantic"
+      ],
+      "sourceView": "search"
     },
     {
       "id": "storage",
-      "source": "prototypes/apple-redesign/08-settings-storage.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/storage",
-      "fixtures": ["web/tests/e2e/auth.spec.ts"],
-      "states": ["loading", "ready", "cleanup-pending", "error", "success"]
+      "fixtures": [
+        "web/tests/e2e/auth.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "loading",
+        "ready",
+        "cleanup-pending",
+        "error",
+        "success"
+      ],
+      "sourceView": "schedule"
+    },
+    {
+      "id": "tags",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "tags",
+      "productionRoute": "/tags/:tagId?libraryId=:libraryId",
+      "fixtures": [
+        "web/src/features/curation/pages/CurationPage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "results",
+        "empty",
+        "manual",
+        "ai",
+        "error"
+      ]
+    },
+    {
+      "id": "unavailable",
+      "source": "prototypes/layered-workspace/src/App.jsx",
+      "sourceView": "unavailable",
+      "productionRoute": "/system/unavailable",
+      "fixtures": [
+        "web/src/features/system/SystemUnavailablePage.stories.tsx",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
+      ],
+      "states": [
+        "maintenance",
+        "unavailable"
+      ]
     },
     {
       "id": "viewer",
-      "source": "prototypes/apple-redesign/05-viewer.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/libraries/:libraryId/media/:assetId",
       "fixtures": [
         "web/src/components/patterns/MediaViewer/MediaViewer.stories.tsx",
         "web/src/features/media/pages/MediaViewerPage.test.tsx",
         "web/tests/e2e/media-matrix.spec.ts",
-        "web/tests/e2e/visual-regression.spec.ts"
+        "web/tests/e2e/visual-regression.spec.ts",
+        "web/tests/e2e/layered-alignment-real.spec.ts"
       ],
-      "states": ["image", "video", "offline", "changed", "missing", "info-open"]
+      "states": [
+        "image",
+        "video",
+        "offline",
+        "changed",
+        "missing",
+        "info-open"
+      ],
+      "sourceView": "viewer"
     },
     {
       "id": "welcome",
-      "source": "prototypes/apple-redesign/02-welcome.html",
+      "source": "prototypes/layered-workspace/src/App.jsx",
       "productionRoute": "/settings/libraries",
       "fixtures": [
         "web/src/features/libraries/pages/LibrariesPage.test.tsx",
         "web/tests/e2e/auth.spec.ts"
       ],
-      "states": ["first-run-empty"]
+      "states": [
+        "first-run-empty"
+      ],
+      "sourceView": "libraries"
     }
-  ]
+  ],
+  "acceptedChange": "docs/changes/UI-2026-10-25-layered-workspace-alignment.md",
+  "historicalBaseline": {
+    "sourceOfTruth": "prototypes/apple-redesign",
+    "viewports": [
+      {
+        "width": 390,
+        "height": 844
+      },
+      {
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "width": 1265,
+        "height": 800
+      },
+      {
+        "width": 1440,
+        "height": 900
+      }
+    ],
+    "evidence": "docs/releases/MVP-2026-07-23-uif-integration-status.md"
+  }
 }

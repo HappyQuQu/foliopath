@@ -48,7 +48,7 @@ func TestIntegrityCheckIsReadOnlyAndSharesLiveWAL(t *testing.T) {
 		t.Fatal("checker DSN allows writes")
 	}
 	var version int
-	if err := store.db.QueryRowContext(ctx, "SELECT MAX(version_id) FROM goose_db_version WHERE is_applied=1").Scan(&version); err != nil || version != 44 {
+	if err := store.db.QueryRowContext(ctx, "SELECT MAX(version_id) FROM goose_db_version WHERE is_applied=1").Scan(&version); err != nil || version != 47 {
 		t.Fatalf("migration changed: %d %v", version, err)
 	}
 }

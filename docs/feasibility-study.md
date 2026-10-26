@@ -1,5 +1,7 @@
 # FolioPath 可行性研究
 
+2026-10-25 / [CR-2026-045 OCR S0](changes/CR-2026-045-ocr-feasibility.md)：独立固定PP-OCRv5_server权重/运行时在无网络、无原库/DB挂载的合成Docker中通过横排中英文、EXIF、空白、输入/模型故障与有界回收验证。最终单arm64实验容器峰值1,925,079,040 B，4 GiB/2CPU测试预算无OOM；不是与CLIP/face/tag联合容量或默认小模型预算证明。90°旋转图0/4，版面/质量/双架构/供应链及生产OCR索引搜索未通过；仅支持继续隔离合同设计，不是Backend Ready或全OCR Go。
+
 2026-09-14 独立 ML 探针证明已有 222 缓存可在本地 Linux/arm64 官方 v3.1.0 服务离线加载，
 详见 [记录](evidence/int-001/independent-ml-local-2026-09-14.md)。这仅支持 ADR-0019 继续合同设计，
 不是新架构 Backend Ready 或中文检索/人脸质量证明。

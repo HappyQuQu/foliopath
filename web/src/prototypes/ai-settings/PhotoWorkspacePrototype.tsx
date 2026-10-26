@@ -145,7 +145,7 @@ export function PhotoWorkspacePrototype({ initialView = "tags" }: { initialView?
           </article>)}</div>}
         </>}
       </>}
-      <footer className={styles.prototypeNote} id="prototype-note">{copy("历史原型归档：图片、中文标签和匹配来源都是演示数据，不访问真实媒体库。标签云、自动打标与人工保护请查看正式组件预览；人物整理、混合搜索与 OCR 仍按各自待办验收。", "Historical design archive: sample images, localized tags and match sources are synthetic; no real library access. See production component stories for the tag cloud, automatic tagging and manual protection. People, mixed search and OCR retain separate acceptance gates.")}</footer>
+      <footer className={styles.prototypeNote} id="prototype-note">{copy("历史原型归档：图片、中文标签和匹配来源都是演示数据，不访问真实媒体库。标签云、自动打标与人工保护请查看正式组件预览；搜索来源与融合请看正式 SearchPage（CR-2026-035）；人物整理与 OCR 仍按各自待办验收。", "Historical design archive: sample images, localized tags and match sources are synthetic; no real library access. See production component stories for the tag cloud, automatic tagging and manual protection. Search provenance and fusion moved to production SearchPage (CR-2026-035); people and OCR retain their own acceptance gates.")}</footer>
     </div>
   </AppShell>;
 }

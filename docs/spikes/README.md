@@ -1,5 +1,7 @@
 # FolioPath Spike 记录
 
+- [OCR S0：离线中英文推理](../../spikes/ocr/README.md) / [范围与证据](../changes/CR-2026-045-ocr-feasibility.md)：仅隔离实验，非生产OCR索引搜索。
+
 Spike 用于验证高风险假设和收集可复核证据，不直接授权生产实现，也不能替代对应版本的
 Architecture、Contract、Backend、UI 或 Release Gate。
 

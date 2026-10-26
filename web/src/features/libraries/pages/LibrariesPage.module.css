@@ -1,9 +1,10 @@
 .statePage {
-  width: min(var(--size-content), calc(100% - clamp(var(--space-8), 7vw, 5.75rem)));
+  width: min(var(--size-content), calc(100% - calc(var(--workspace-padding) * 2)));
   margin: var(--space-10) auto;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .safetyNote {
@@ -26,6 +27,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   box-shadow: var(--shadow-1);
 }
 
@@ -95,8 +97,8 @@
 }
 
 .page {
-  width: calc(100% - clamp(var(--space-8), 7vw, 5.75rem));
-  margin: var(--space-10) auto 6.25rem;
+  width: calc(100% - calc(var(--workspace-padding) * 2));
+  margin: var(--space-8) auto var(--space-12);
 }
 
 .heading {
@@ -109,7 +111,7 @@
 
 .heading h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.375rem);
+  font-size: var(--font-size-6);
   letter-spacing: -0.04em;
 }
 
@@ -143,12 +145,14 @@
 .librarySummary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(100%, 46rem);
+  width: 100%;
+  gap: var(--space-4);
   margin: 0;
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .librarySummaryItem {
@@ -174,19 +178,19 @@
   background: var(--color-accent-soft);
 }
 
-.librarySummaryItem dd,
-.librarySummaryItem dt {
+.librarySummaryItem strong,
+.librarySummaryItem > div > span {
   display: block;
   margin: 0;
 }
 
-.librarySummaryItem dd {
+.librarySummaryItem strong {
   font-size: var(--font-size-5);
   font-weight: 700;
   line-height: var(--line-height-tight);
 }
 
-.librarySummaryItem dt {
+.librarySummaryItem > div > span {
   margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
@@ -202,6 +206,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-3);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .libraryTableHeader {
@@ -256,6 +261,7 @@
   gap: clamp(var(--space-5), 3vw, var(--space-8));
   padding: var(--space-5);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   transition: background var(--motion-fast) var(--ease-standard);
 }
 
@@ -460,6 +466,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-2);
   background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 
 .previewHeading h3 {
@@ -679,3 +686,9 @@
     width: 100%;
   }
 }
+
+.tabs > button, .tabs > a { padding: var(--space-2) var(--space-1) var(--space-3); border: 0; border-bottom: var(--focus-width) solid transparent; border-radius: 0; background: transparent; color: var(--color-text-muted); }
+.tabs > [aria-selected="true"], .tabs > [aria-current="page"] { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+.librarySummary { border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+.librarySummaryItem { border: var(--border-width) solid var(--color-border); border-radius: var(--radius-3); background: var(--color-surface); box-shadow: var(--shadow-panel); padding: var(--space-6); }

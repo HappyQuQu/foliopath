@@ -1,11 +1,45 @@
 # 可选 AI 双服务部署入口
 
+## Docker Desktop数据卷覆盖
+
+6010本轮修复已使用第五覆盖`compose.ai.data-volume.yaml`，由独立停写备份复制并核验完整data后切换。其`FOLIOPATH_DATA_VOLUME`必须是已准备的外部卷；四个既有覆盖仍必须全部加载。原件仍只有单一`/library:ro`，AI不接触数据库。切换后的状态以[本轮记录](changes/FIX-2026-10-26-ocr-limits-sqlite.md)为准；后续命令须追加`-f compose.ai.data-volume.yaml`，不可启动旧宿主data副本。详见[ADR-0038](adr/0038-docker-desktop-linux-sqlite-volume.md)。
+
+
+## 已核验本地增量：OCR显式部署与终态验收
+
+6010当前以已核验OCR overlay `services/inference/Dockerfile.ocr`提供独立PP-OCRv5_server；固定镜像和身份见[部署记录](changes/DEPLOY-2026-10-26-ocr-6010.md)。私有`FOLIOPATH_AI_DEPLOYMENT`新增完整`ocr.identity`，不替换semantic/face/tag身份。新增`FOLIOPATH_OCR_CACHE_PATH`指向已有、按`services/inference/ocr-manifest.json`核验的独立模型缓存，第四覆盖`compose.ai.ocr.yaml`只挂AI `/ocr-cache:ro`，不创建第三服务或公开端口。目录必须存在，禁止将媒体或数据库目录用作OCR缓存或验证scratch。
+
+本地6010后续状态、启停、备份和更新须保留原项目名、私有env及全部五份Compose（base及四个覆盖），例如只读查看：
+
+```sh
+docker compose --project-name foliopath-ai-original-review --env-file ai.env \
+  -f compose.ai.yaml -f compose.ai.unlimited-memory.yaml \
+  -f compose.ai.multilingual.yaml -f compose.ai.ocr.yaml \
+  -f compose.ai.data-volume.yaml ps
+```
+
+不要省略原不限内存、多语言、OCR或data-volume覆盖，不要输出含私有部署配置的完整Compose结果到公共日志。配置OCR身份不会自动开库或提交任务；当前仅pixiv由管理员启用，补齐已终态998成功／1坏JPEG源／0待处理，原984成功及全部历史结果／任务保留。其余库继续关闭，原10个源问题不操作。坏源不标成功、不循环重试；以后恢复原件后再显式补齐。下文仅使用base的命令是最小profile示例，已经叠加其他profile的实例必须始终追加其全部原有覆盖。
+
+
+## 本轮全功能AI候选的原生打包入口
+
+本轮新增 `services/inference/Dockerfile.release`，从既有固定多架构上游重现当前多语言／153类标签／OCR profile的41份Python与JSON。来源为仓库canonical文件，不以本地ARM overlay或脱离源码的runtime导出作唯一构建源；模型权重不打入新增层。原Python、OCR逻辑代次常量、模型／输入输出身份保持不变，旧overlay配方保留历史用途。
+
+本地ARM64与原生AMD64打包均与当前7739的41份runtime及OCR身份逐字核对通过；两个架构各8项真实模型端点和实际OCR任务／同job续跑已通过，原五服务维护恢复经独立复核。模型／输入输出身份保持。本地双架构OCI保存SPDX与SLSA，但AMD AI曾重复cached export，严格build-once发布门不声称通过；未提交Git来源、正式CI promotion与发布批准仍未完成，功能结果不等于准确率。完整候选范围和结果见[统一验证](changes/VERIFY-2026-10-26-release-candidate.md)。本轮未提供新的公开AI镜像或模型下载地址；不得把本地image ID当作已发布的registry引用。
+
+## 独立标签 PNG 输入（ADR-0029）
+
+标签大PNG修复使用部署JSON中独立的`tag.image_preprocessing: "png-v4"`，而不是只修改顶层语义字段。
+空值保留原v3；合法新值绑定新标签身份和同一imagevips预处理器。保留原tag.identity、92类、AI镜像和
+语义/人脸配置，不同时启用下文153类策略。需先完整停写备份、合成Docker验证，再切换并让已启用库按新身份补齐。
+人工标签和移除抑制保留；旧run不计新覆盖，坏源不能标成功。具体测试/6010状态以[本轮记录](changes/FIX-2026-10-24-autotag-png.md)为准。
+
 ## 可选 PNG 输入 profile（ADR-0028）
 
 已验证的新主应用支持在私有 `FOLIOPATH_AI_DEPLOYMENT` JSON 中增加 `"image_preprocessing":"png-v4"`。
 省略保持旧 v3；不要替换模型/face/tag identity。新 profile 仅扩展语义 PNG 至 64 MiB / 40 MP，仍有界解码；
 AI 无需重建，自动标签输入限制不变。切换会建立新语义代次，必须在现有任务终态、停写全备份和明确重算授权后执行。
-旧向量不挪用、不清理；6010 本轮只有候选验证与终态后切换授权，没有即时部署。保留原三份 Compose 覆盖。
+旧向量不挪用、不清理；6010已于2026-10-24完成授权切换及四库语义终态，8690成功、10源失败。保留原三份Compose覆盖。
 详细步骤、固定镜像与验收边界见[修复记录](changes/FIX-2026-10-23-semantic-large-png.md)。
 
 ## 已核验本地增量：153 类标签（CR-2026-033）
@@ -92,13 +126,56 @@ legacy `repository@sha256:…`；Dockerfile FROM 不接受裸 `sha256:…` image
 仅获取固定源/revision 并核对 Git/LFS 摘要，缓存置于仓库外；旧模型保留供 legacy 字节合同校验。
 必须叠加 `compose.ai.multilingual.yaml`，将 `/verified-cache` 改为专用可丢弃 disk scratch volume，
 不是媒体、DB 或模型真相；启动拒绝未知内容/symlink，仅清理已知遗留工作目录。
-该覆盖不改变 RAM/swap。大模型用独立 4 GiB AI 预算测量，不是基础 2304 MiB 通过。
+该覆盖不改变 RAM/swap。历史大模型验证使用过独立 4 GiB AI 测试预算，不是基础 2304 MiB 通过，
+也不是程序固定上限；当前模型的实测与资源预留建议见下文。
 原 6010 用户选择不限额：base + unlimited-memory + multilingual，RAM/swap 仍为 0。
 
 有在途任务时先停主应用完成全数据备份；**先更新 AI 并等 healthy，再启动主应用**，
 防止已恢复的标签任务早于 AI 就绪后终止。不为核心浏览添加 depends_on。
 激活后逐库提交新空间的图片语义 missing，旧结果保留；运行中不标完成。
 详见[本次验证与切换记录](changes/CR-2026-032-multilingual-semantic-model.md)。
+
+## AI 功能内存参考
+
+下面先给资源预留建议，再列实际观测。主应用与AI服务分开运行；模型推理内存不等于主应用常驻占用，
+也不等于整台机器需要的内存。GiB按1024³字节计算。
+
+| 启用的AI功能 | 建议先为AI预留 | 使用方式 |
+| --- | ---: | --- |
+| 人物分析（`buffalo_l`）或153类自动标签（`JoyTag`） | 约2 GiB | 单类任务的工程余量参考 |
+| 图片文字识别（`PP-OCRv5_server`） | 约3 GiB | 包含模型加载与临时工作内存 |
+| 中文语义搜索（640维XLM模型）或包含四类能力的多语言配置 | 约6 GiB | 按较大的语义模型预留，不把各功能峰值相加 |
+
+这些是**工程余量建议，不是实测最低门槛、程序硬上限或稳定性保证**。主应用另外先预留约512 MiB–1 GiB，
+扫描、缩略图和大图处理可能需要更多；再给操作系统、Docker虚拟机及其他服务留出空间。
+专用机器可从8 GiB整机内存考虑；与Immich等多个服务同机时，16 GiB更宽裕，仍需结合实际工作负载调整。
+
+2026-10-26固定镜像的CPU小样本实测如下。使用合成人物、文字和空白图片，推理严格串行；
+人物、标签和OCR专项各自重新启动独立AI容器，并未清空系统文件缓存。
+
+| 测试场景 | 原生平台 | AI容器内存高水位 | 当次AI测试限额 |
+| --- | --- | ---: | ---: |
+| 中文/英文/图片语义、人物、153类标签及OCR完整8项端点 | AMD64 | 2.82 GiB（3,031,310,336字节） | 5 GiB |
+| 人物专项，实际检出2张人脸并返回识别向量 | AMD64 | 0.85 GiB（914,399,232字节） | 5 GiB |
+| 153类标签专项 | AMD64 | 0.74 GiB（799,170,560字节） | 5 GiB |
+| OCR文字及空白图片专项 | AMD64 | 1.42 GiB（1,525,428,224字节） | 5 GiB |
+| 实际OCR任务、同任务续跑与搜索验证 | AMD64 | 1.43 GiB（1,539,919,872字节） | 5 GiB |
+| 同一组完整8项端点 | ARM64 | 3.86 GiB（4,139,548,672字节） | 4 GiB |
+| 独立的实际OCR任务及续跑验证 | ARM64 | 2.12 GiB（2,273,927,168字节） | 4 GiB |
+
+上述成功场景的cgroup内存上限触发、OOM和OOM kill计数均为0。AMD64测试目标原本配置8 GiB，未修改PVE资源。
+新空主应用实例在原生AMD64仅完成启动、健康和数据库检查时，观测高水位37 MiB；这不代表图库扫描或图像处理峰值，
+不能拿空实例占用替代资源预留。精确镜像、字节及测量边界见[内存实测记录](evidence/int-001/ai-memory-reference-2026-10-26.json)。
+
+表中高水位来自容器`memory.peak`，包含进程、模型文件缓存和临时工作内存，不是单进程RSS。
+完整8项端点中的每次读取都是该容器启动以来的累计高水位，不能把后续人物、标签和OCR的累计值当作各自独立用量。
+不同场景、匿名内存与文件缓存的各自最大值也不能直接相加；平台和缓存状态不同，观测会变化。
+历史英语512维模型的旧记录不作为当前中文640维、153类标签及OCR配置的内存需求。
+
+4 GiB、5 GiB都是当次测试容器限额，**不是程序对AI功能的固定硬上限**，也不证明整台4 GiB机器足够。
+操作者现有不限内存选择保持；宿主/虚拟机总内存仍约束进程。输入大小、调度、取消和推理期限保护继续有效。
+早先3 GiB中文请求返回503的失败记录保留；后续5 GiB成功不能单凭这一差异就称为已证实并修复OOM。
+本轮未运行容量、24小时混合负载或正式准确率评测，不据此作最低配置、并发或长期稳定性承诺。
 
 ## 启动与检查
 

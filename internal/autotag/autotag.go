@@ -18,24 +18,26 @@ import (
 )
 
 var (
-	ErrInvalid       = errors.New("invalid automatic tag request")
-	ErrNotFound      = errors.New("automatic tag library not found")
-	ErrDisabled      = errors.New("automatic tags disabled")
-	ErrOffline       = errors.New("automatic tag source offline")
-	ErrUnavailable   = errors.New("automatic tag model unavailable")
-	ErrBusy          = errors.New("automatic tag inference busy")
-	ErrConflict      = errors.New("automatic tag operation conflict")
-	ErrSourceChanged = errors.New("automatic tag source changed")
-	ErrImage         = errors.New("automatic tag image could not be processed")
+	ErrInvalid                = errors.New("invalid automatic tag request")
+	ErrNotFound               = errors.New("automatic tag library not found")
+	ErrDisabled               = errors.New("automatic tags disabled")
+	ErrOffline                = errors.New("automatic tag source offline")
+	ErrUnavailable            = errors.New("automatic tag model unavailable")
+	ErrTemporarilyUnavailable = errors.New("automatic tag service temporarily unavailable")
+	ErrBusy                   = errors.New("automatic tag inference busy")
+	ErrConflict               = errors.New("automatic tag operation conflict")
+	ErrSourceChanged          = errors.New("automatic tag source changed")
+	ErrImage                  = errors.New("automatic tag image could not be processed")
 )
 
 type Mode string
 
 const (
-	Missing           Mode = "missing"
-	All               Mode = "all"
-	MaximumActiveJobs      = 32
-	BusyRetryDelay         = 30 * time.Second
+	Missing               Mode = "missing"
+	All                   Mode = "all"
+	MaximumActiveJobs          = 32
+	BusyRetryDelay             = 30 * time.Second
+	ServiceRecoveryWindow      = 60 * time.Second
 )
 
 type Model struct{ Identity, DisplayName, Protocol string }
@@ -284,7 +286,7 @@ type Processor struct {
 // Three attempts and two cancellable waits bound a busy turn. Persistent busy
 // yields the same durable operation for a later claim; it never commits an empty
 // result, consumes a crash-recovery attempt, or creates a replacement operation.
-func (p Processor) analyze(ctx context.Context, asset Candidate) ([]curation.AutomaticLabel, error) {
+func (p Processor) analyzeBusy(ctx context.Context, asset Candidate) ([]curation.AutomaticLabel, error) {
 	for attempt := 0; attempt < 3; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -302,6 +304,46 @@ func (p Processor) analyze(ctx context.Context, asset Candidate) ([]curation.Aut
 		}
 	}
 	return nil, ErrBusy
+}
+
+func (p Processor) analyze(ctx context.Context, asset Candidate) ([]curation.AutomaticLabel, error) {
+	return p.analyzeRecover(ctx, asset, ServiceRecoveryWindow, time.Second)
+}
+
+// ADR-0030: preserve the same live claim/checkpoint during a short AI outage.
+// Probe before resending input; hard identity/output failures never enter recovery.
+func (p Processor) analyzeRecover(parent context.Context, asset Candidate, window, interval time.Duration) ([]curation.AutomaticLabel, error) {
+	labels, err := p.analyzeBusy(parent, asset)
+	if !errors.Is(err, ErrTemporarilyUnavailable) {
+		return labels, err
+	}
+	ctx, cancel := context.WithTimeout(parent, window)
+	defer cancel()
+	for retry := 0; retry < 2; {
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			if parent.Err() != nil {
+				return nil, parent.Err()
+			}
+			return nil, ErrTemporarilyUnavailable
+		case <-timer.C:
+		}
+		err = p.Analyzer.Verify(ctx)
+		if errors.Is(err, ErrTemporarilyUnavailable) || errors.Is(err, ErrBusy) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		labels, err = p.analyzeBusy(ctx, asset)
+		retry++
+		if !errors.Is(err, ErrTemporarilyUnavailable) {
+			return labels, err
+		}
+	}
+	return nil, ErrTemporarilyUnavailable
 }
 
 func (p Processor) BackgroundAdmissionCancelled(_ context.Context, j Job) {

@@ -1,7 +1,9 @@
 import { List, X } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
+import { readSidebarWidthPreference, writeSidebarWidthPreference } from "../../../lib/storage/preferences";
+import { PanelResizer } from "../../ui/PanelResizer/PanelResizer";
 import { IconButton } from "../../ui/Button/IconButton";
 import { GlobalHeader, type GlobalSearchInputLabels } from "../GlobalHeader/GlobalHeader";
 import styles from "./AppShell.module.css";
@@ -20,6 +22,8 @@ export function AppShell({
   searchInput,
   settingsHref,
   sidebarContent,
+  sidebarLabel,
+  navigationLabel,
   topbarContent,
   title,
 }: {
@@ -39,11 +43,24 @@ export function AppShell({
   settingsHref: string;
   showIdentityLabel?: boolean;
   sidebarContent?: ReactNode;
+  sidebarLabel?: string | undefined;
+  navigationLabel?: string | undefined;
   topbarContent?: ReactNode;
   title: string;
 }) {
   const { t } = useLocale();
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidthPreference);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const minSidebarWidth = 192;
+  const maxSidebarWidth = Math.max(minSidebarWidth, Math.min(480, Math.floor(viewportWidth * 0.45)));
+  const effectiveSidebarWidth = Math.max(minSidebarWidth, Math.min(sidebarWidth, maxSidebarWidth));
+
+  useEffect(() => {
+    const updateWidth = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousNavigationKey = useRef(navigationKey);
@@ -78,7 +95,7 @@ export function AppShell({
   }
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} style={{ "--size-sidebar": `${effectiveSidebarWidth}px` } as CSSProperties}>
       <a className={styles.skipLink} href="#main">
         {t("common.skipToMain")}
       </a>
@@ -103,12 +120,12 @@ export function AppShell({
             type="button"
           />
           <aside
-            aria-label={t("shell.directorySidebar")}
+            aria-label={sidebarLabel ?? t("shell.directorySidebar")}
             className={`${styles.sidebar} ${navigationOpen ? styles.sidebarOpen : ""}`}
             id="primary-navigation"
           >
             <div className={styles.drawerHeader}>
-              <strong>{title}</strong>
+              <strong>{sidebarLabel ?? title}</strong>
               <IconButton
                 ref={closeButtonRef}
                 className={styles.closeButton}
@@ -120,6 +137,9 @@ export function AppShell({
             </div>
             {sidebarContent}
           </aside>
+          <PanelResizer ariaLabel={t("shell.resizeSidebar")} className={styles.sidebarResizer}
+            growDirection="right" min={minSidebarWidth} max={maxSidebarWidth} value={effectiveSidebarWidth}
+            onChange={width => { setSidebarWidth(width); writeSidebarWidthPreference(width); }} />
         </>
       )}
 
@@ -129,13 +149,13 @@ export function AppShell({
         }`}
       >
         <div className={styles.content}>
-          {topbarContent && (
+          {(topbarContent || sidebarContent) && (
             <div className={styles.contextBar}>
               {sidebarContent && (
                 <IconButton
                   ref={menuButtonRef}
                   className={styles.menuButton}
-                  label={t("shell.openNavigation")}
+                  label={navigationLabel ?? t("shell.openNavigation")}
                   onClick={() => setNavigationOpen(true)}
                   aria-controls="primary-navigation"
                   aria-expanded={navigationOpen}

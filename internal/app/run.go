@@ -30,10 +30,12 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/media/imagevips"
 	"github.com/HappyQuQu/foliopath/internal/media/videoffmpeg"
+	"github.com/HappyQuQu/foliopath/internal/ocr"
 	"github.com/HappyQuQu/foliopath/internal/releaseinfo"
 	releasegithub "github.com/HappyQuQu/foliopath/internal/releaseinfo/github"
 	"github.com/HappyQuQu/foliopath/internal/resourcecontrol"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
+	"github.com/HappyQuQu/foliopath/internal/search"
 	"github.com/HappyQuQu/foliopath/internal/semantic"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 	"github.com/HappyQuQu/foliopath/internal/systemlog"
@@ -506,6 +508,8 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	var faceDeployment *deploymentBootstrap
 	var faceService *face.ControlService
 	var faceWorkers []aiBackgroundWorker
+	var ocrWorkers []aiBackgroundWorker
+	var ocrService *ocr.Service
 	var remoteEncoder *semantic.BoundEncoder
 	var textEncoder semantic.TextEncoder = semanticTextSessions
 	automaticRuntime := &automaticTagRuntime{content: contentService, preprocessor: imagevips.New()}
@@ -532,12 +536,23 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		}
 		textEncoder = remoteEncoder
 		deployment = &deploymentBootstrap{client: client, models: aiModels, admission: aiActivationAdmission, config: config}
+		if config.OCR != nil {
+			ocrService, ocrWorkers, createErr = composeOCR(database, contentService, client, *config.OCR, resourceController)
+			if createErr != nil {
+				return nil, createErr
+			}
+		}
 		if config.Tag != nil {
+			tagImages, err := imagevips.NewRemoteImagePreprocessor(config.Tag.ImagePreprocessing)
+			if err != nil {
+				return nil, err
+			}
 			tagClient, err := client.BindTag(config.Tag.Identity)
 			if err != nil {
 				return nil, err
 			}
 			automaticRuntime.client = tagClient
+			automaticRuntime.preprocessor = tagImages
 			automaticRuntime.model = &autotag.Model{Identity: config.Tag.fingerprint(), DisplayName: config.Tag.Identity.Model, Protocol: config.Tag.Identity.Protocol}
 		}
 		if config.Face != nil {
@@ -752,6 +767,18 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic image search: %w", err)
 	}
+	var ocrSearchFingerprint []string
+	if configuration.deployment != nil && configuration.deployment.OCR != nil {
+		fp, fpErr := configuration.deployment.OCR.Identity.Fingerprint()
+		if fpErr != nil {
+			return nil, fpErr
+		}
+		ocrSearchFingerprint = []string{fp}
+	}
+	fusedSearch, err := search.New(database, fusedTextEncoder{textEncoder}, nil, ocrSearchFingerprint...)
+	if err != nil {
+		return nil, fmt.Errorf("construct fused search: %w", err)
+	}
 	videoSemanticSearch, err := semantic.NewVideoSearchService(database, database, textEncoder, nil)
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic video search: %w", err)
@@ -786,6 +813,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		aiWorkers = append(aiWorkers, faceDeployment)
 	}
 	aiWorkers = append(aiWorkers, faceWorkers...)
+	aiWorkers = append(aiWorkers, ocrWorkers...)
 	aiWorkerComponent, err := newAIWorkerComponent(
 		aiWorkers, aiOperations, aiOrphans, managedModels,
 	)
@@ -823,6 +851,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		AIModels:         aiManagement,
 		Semantic:         semanticService,
 		SemanticSearch:   semanticSearch,
+		FusedSearch:      fusedSearch,
 
 		AITagVocabulary:   tagVocabulary,
 		AutomaticTags:     automaticService,
@@ -831,6 +860,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		AITagReviews:      idempotentTagReviews,
 		AITagReviewClear:  semanticService,
 		VideoSemanticJobs: semanticService,
+	}
+	if ocrService != nil {
+		routeDependencies.OCR = ocrService
 	}
 	if faceService != nil {
 		routeDependencies.FaceSettings = faceService

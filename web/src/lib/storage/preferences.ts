@@ -198,7 +198,7 @@ export function writeSidebarWidthPreference(sidebarWidth: number): void {
 }
 
 export function readPreviewWidthPreference(): number {
-  return readWidthPreference(readPreferences().previewWidth, 406);
+  return readWidthPreference(readPreferences().previewWidth, 342);
 }
 
 export function writePreviewWidthPreference(previewWidth: number): void {

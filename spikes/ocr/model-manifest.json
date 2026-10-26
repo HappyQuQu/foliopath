@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "status": "feasibility-only-not-activated",
+  "model": "PP-OCRv5_server",
+  "runtimeImage": "sha256:52f4a40c9f0169e87783b138200e24c8e96492fccf244b9d329ec1e05e45f626",
+  "upstream": "immich v3.1.0 / rapidocr 3.8.1",
+  "metadataSource": "https://github.com/RapidAI/RapidOCR/blob/v3.8.1/python/rapidocr/default_models.yaml",
+  "licenseStatus": "Upstream PaddleOCR Apache-2.0; redistribution and dependency review remain open",
+  "files": [
+    {
+      "path": "ocr/PP-OCRv5_server/detection/model.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_server.onnx",
+      "sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad",
+      "maxBytes": 536870912,
+      "size": 88118768
+    },
+    {
+      "path": "ocr/PP-OCRv5_server/recognition/model.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_server.onnx",
+      "sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a",
+      "maxBytes": 536870912,
+      "size": 84577022
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "recordedOn": "2026-10-26",
+  "scope": "bounded synthetic CPU/strict-serial functional memory reference; not release, capacity,24h or model-quality acceptance",
+  "models": {
+    "semantic": "XLM-Roberta-Large-Vit-B-16Plus,640 dimensions",
+    "face": "buffalo_l,512 dimensions",
+    "automaticTags": "JoyTag,153 allowed categories",
+    "ocr": "PP-OCRv5_server"
+  },
+  "measurement": "cgroup memory.peak; includes processes, model/file cache and temporary work; not processRSS",
+  "aiMeasurements": [
+    {
+      "architecture": "linux/amd64",
+      "scenario": "endpoint-results-5g",
+      "image": "sha256:4f4b83894225937d76ee7e1028e3afce19b364c7f0b2966968bce3b86825209b",
+      "peakBytes": 3031310336,
+      "peakGiB": 2.8231,
+      "testMemoryLimitBytes": 5368709120,
+      "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/endpoint-results-5g/result.json",
+      "sourceRecordSHA256": "03d1dd026a16b449c43fa6b43cd8f04bfa6c9aeef18b9585d2afb1a4821dc654",
+      "boundary": "fresh AI container per scenario; system page cache not dropped"
+    },
+    {
+      "architecture": "linux/amd64",
+      "scenario": "memory-face-only-5g",
+      "image": "sha256:4f4b83894225937d76ee7e1028e3afce19b364c7f0b2966968bce3b86825209b",
+      "peakBytes": 914399232,
+      "peakGiB": 0.8516,
+      "testMemoryLimitBytes": 5368709120,
+      "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/memory-face-only-5g/result.json",
+      "sourceRecordSHA256": "75987ce1fd7b0acb71447175359704138b87a02f6ee1a8f3cf184e6baf627dfa",
+      "boundary": "fresh AI container per scenario; system page cache not dropped"
+    },
+    {
+      "architecture": "linux/amd64",
+      "scenario": "memory-tag-only-5g",
+      "image": "sha256:4f4b83894225937d76ee7e1028e3afce19b364c7f0b2966968bce3b86825209b",
+      "peakBytes": 799170560,
+      "peakGiB": 0.7443,
+      "testMemoryLimitBytes": 5368709120,
+      "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/memory-tag-only-5g/result.json",
+      "sourceRecordSHA256": "d6f5a920d00d8368930166b378f81931d7ffe8be7d6d7f1b2400765149876ba1",
+      "boundary": "fresh AI container per scenario; system page cache not dropped"
+    },
+    {
+      "architecture": "linux/amd64",
+      "scenario": "memory-ocr-only-5g",
+      "image": "sha256:4f4b83894225937d76ee7e1028e3afce19b364c7f0b2966968bce3b86825209b",
+      "peakBytes": 1525428224,
+      "peakGiB": 1.4207,
+      "testMemoryLimitBytes": 5368709120,
+      "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/memory-ocr-only-5g/result.json",
+      "sourceRecordSHA256": "8c626aaac5ee3acc156196f7cdf1515f8de03356f90da762af4e2a70566a711a",
+      "boundary": "fresh AI container per scenario; system page cache not dropped"
+    },
+    {
+      "architecture": "linux/amd64",
+      "scenario": "actual OCR application worker, same-job resume and search",
+      "image": "sha256:4f4b83894225937d76ee7e1028e3afce19b364c7f0b2966968bce3b86825209b",
+      "peakBytes": 1539919872,
+      "peakGiB": 1.4342,
+      "testMemoryLimitBytes": 5368709120,
+      "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/worker-results-5g/result.json",
+      "sourceRecordSHA256": "fcd55d9c4dc5c13e02123fd442e73a58b365e9358c812c05d22d95ca2e4d81dc",
+      "boundary": "independent OCR application-worker run"
+    },
+    {
+      "architecture": "linux/arm64",
+      "scenario": "actual OCR application worker, same-job resume and search",
+      "image": "sha256:07ab113c0c1d0ec87b8db13322402c3158dc1cdd0c94279bfaef507d4b3cd6a2",
+      "peakBytes": 2273927168,
+      "peakGiB": 2.1178,
+      "testMemoryLimitBytes": 4294967296,
+      "sourceRecord": ".artifacts/release-candidate-20261026/ai/worker-arm64/result.json",
+      "sourceRecordSHA256": "91077c424031a5f7095b2c29552dd6b8f2166f93ec27489d4a26b891eac627bd",
+      "boundary": "independent OCR application-worker run"
+    },
+    {
+      "architecture": "linux/arm64",
+      "scenario": "complete eight serial endpoint cases",
+      "image": "sha256:07ab113c0c1d0ec87b8db13322402c3158dc1cdd0c94279bfaef507d4b3cd6a2",
+      "peakBytes": 4139548672,
+      "peakGiB": 3.8553,
+      "testMemoryLimitBytes": 4294967296,
+      "sourceRecord": ".artifacts/release-candidate-20261026/ai/native-arm64/endpoint-suite/result.json",
+      "sourceRecordSHA256": "978846349a6bb667b234f96ae00cf34af8a5dc8406c74f8c9fc307166641ee3c",
+      "boundary": "one AI container; since-start cumulative peak, not per-case peaks"
+    }
+  ],
+  "nativeTarget": {
+    "architecture": "linux/amd64",
+    "cpuCount": 4,
+    "configuredMemoryGiB": 8,
+    "PVEResourcesChanged": false,
+    "sourcePageCacheDropped": false
+  },
+  "mainApplication": {
+    "architecture": "linux/amd64",
+    "scenario": "new empty synthetic instance: startup,health,database check",
+    "image": "sha256:bf36584a84d65c40ad3c4309bf451b08904fabe39452935b0cf293f92e5aa116",
+    "peakBytes": 38797312,
+    "peakGiB": 0.0361,
+    "testMemoryLimitBytes": 402653184,
+    "sourceRecord": ".artifacts/release-candidate-20261026/native/attempt3-prep/main-native-smoke-5g.json",
+    "sourceRecordSHA256": "20d1e9b6e8976a5c294eb704494cea77a1a9ecc252961e62e0e8c9e2488d3c1e",
+    "boundary": "does not cover large-library scanning,thumbnail creation or image preprocessing",
+    "version": "foliopath post-mvp5-local-rc-20261026.3"
+  },
+  "engineeringHeadroomRecommendations": {
+    "faceOrAutomaticTagAIApproxGiB": 2,
+    "ocrAIApproxGiB": 3,
+    "multilingualOrCompleteAIApproxGiB": 6,
+    "mainApplicationReserveMiB": [
+      512,
+      1024
+    ],
+    "dedicatedWholeHostStartingGiB": 8,
+    "multipleCoResidentServicesMoreHeadroomGiB": 16,
+    "meaning": "planning suggestions with headroom; not measured minimums,program caps or guarantees;OS and other services need separate allowance"
+  },
+  "interpretation": [
+    "Do not add independent peaks or anonymous/file maxima.",
+    "Full-suite per-request observations are cumulative since container startup.",
+    "ARM64 and AMD64 observations are separate; different workloads/platform/cache states may differ.",
+    "4GiB and5GiB caps are test settings,not whole-machine requirements or fixed program limits.",
+    "Existing operator unlimited-memory option and source/admission/deadline safeguards are unchanged.",
+    "Previous3GiB ChineseHTTP503 remains a failure; later success alone does not establish anOOM cause or fix.",
+    "Historical512-dimensional model measurements are not current640-dimensional/OCR requirements.",
+    "No production media or6010 data was used; no capacity,24h or formal quality test ran."
+  ],
+  "historicalMain158044160Excluded": "only an older prose record was located,no primary machine result for current candidate",
+  "wholeReleaseStatus": "not established by these memory observations; final browser/native-maintenance results owned separately"
+}

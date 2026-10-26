@@ -44,8 +44,8 @@
 .main {
   min-width: 0;
   display: grid;
-  align-items: center;
-  padding-block: var(--space-8);
+  align-items: start;
+  padding-block: calc(var(--space-10) * 2);
 }
 
 .page > footer {

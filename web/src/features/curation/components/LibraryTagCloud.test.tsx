@@ -32,10 +32,10 @@ it("shows distinct photo counts with stable size/color bands and image-scoped li
   vi.mocked(listTags).mockResolvedValue({ items: [tag("small", 2), tag("medium", 10), tag("large", 200)], nextCursor: null });
   setup(undefined, "medium");
   expect(await screen.findByRole("link", { name: /large/ })).toHaveAttribute("data-weight", "5");
-  expect(screen.getByRole("link", { name: /small/ })).toHaveAttribute("data-frequency", "rare");
+  expect(screen.getByRole("link", { name: /small/ })).toHaveAttribute("data-weight", "1");
   const medium = screen.getByRole("link", { name: /medium/ });
   expect(medium).toHaveAttribute("data-weight", "3");
-  expect(medium).toHaveAttribute("data-frequency", "regular");
+  expect(medium).not.toHaveAttribute("data-frequency");
   expect(medium).toHaveAttribute("aria-current", "page");
   expect(medium).toHaveAttribute("href", "/tags/medium?libraryId=lib_one&kind=image");
   expect(screen.getByLabelText(/200 photos|200 张图片/)).toBeVisible();
@@ -105,7 +105,7 @@ it("offers first-page recovery after revision invalidates a cursor without retry
     return { items: [tag("current")], nextCursor: null };
   });
   const user = setup("/tags?libraryId=lib_one&tagCursor=expired");
-  expect(await screen.findByRole("alert")).toHaveTextContent(/expired|分页已失效/);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/Tags changed|标签已|标签发生/);
   expect(listTags).toHaveBeenCalledTimes(1);
   await user.click(screen.getByRole("button", { name: /First page|返回第一页/ }));
   expect(await screen.findByRole("link", { name: /current/ })).toBeVisible();
@@ -115,7 +115,7 @@ it("offers first-page recovery after revision invalidates a cursor without retry
 it("does not misrepresent a network failure as an empty library", async () => {
   vi.mocked(listTags).mockRejectedValue(new Error("offline"));
   setup();
-  expect(await screen.findByRole("alert")).toHaveTextContent(/other libraries|其他媒体库/);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/could not be loaded|无法载入/);
   expect(screen.queryByText(/No photo tags yet|暂无图片标签/)).not.toBeInTheDocument();
 });
 

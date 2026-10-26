@@ -1,6 +1,5 @@
 import {
   ArrowClockwise,
-  FunnelSimple,
   MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
+import { ContextSidebar } from "../../../components/patterns/ContextSidebar/ContextSidebar";
 import { AppShell } from "../../../components/patterns/AppShell/AppShell";
 import {
   MediaCollection,
@@ -26,10 +26,13 @@ import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/m
 import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
 import {
   Button,
+  Badge,
   EmptyState,
   ErrorState,
   InlineStatus,
   OfflineState,
+  Select,
+  RadioOption,
 } from "../../../components/ui";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
@@ -37,6 +40,7 @@ import {
   type Asset,
   type SemanticSearchCoverage,
   type SemanticVideoMatch,
+  type SearchMatch,
 } from "../../../lib/api/catalog";
 import { ApiError } from "../../../lib/api/errors";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
@@ -57,7 +61,8 @@ import {
   createViewerLocationState,
   readViewerReturnState,
 } from "../../../lib/navigation/viewer";
-import { useLibraryQuery } from "../../libraries";
+import { defaultBrowseUrlState, DirectoryNavigation } from "../../browse";
+import { useLibrariesQuery, useLibraryQuery } from "../../libraries";
 import { AssetCurationControls, useFavoriteMutation } from "../../curation";
 import {
   refreshSearchResults,
@@ -69,7 +74,6 @@ import {
   serializeSearchUrlState,
   type SearchDate,
   type SearchKind,
-  type SearchScope,
   type SearchUrlState,
 } from "../urlState";
 import styles from "./SearchPage.module.css";
@@ -100,6 +104,7 @@ export function SearchPage({
   const layout = useState<MediaLayoutPreference>(
     readMediaLayoutPreference,
   )[0];
+  const librariesQuery = useLibrariesQuery();
   const libraryQuery = useLibraryQuery(libraryId ?? "");
   const resultsQuery = useSearchResultsQuery({
     state,
@@ -135,6 +140,7 @@ export function SearchPage({
             id: previewAsset.id,
             kind: previewAsset.kind,
             name: previewAsset.name,
+            mimeType: previewAsset.mimeType,
             ...(mediaPosterUrl(previewAsset)
               ? { posterUrl: mediaPosterUrl(previewAsset) }
               : {}),
@@ -144,6 +150,15 @@ export function SearchPage({
   );
   const semanticCoverage = semanticCoverageFromPages(resultsQuery.data?.pages);
   const semanticVideoMatches = semanticVideoMatchesFromPages(resultsQuery.data?.pages);
+  const searchMatches = useMemo<Record<string, SearchMatch>>(() => {
+    const matches = Object.assign({}, ...(resultsQuery.data?.pages.map(page => page.searchMatches ?? {}) ?? [])) as Record<string, SearchMatch>;
+    for (const asset of assets) {
+      if (!matches[asset.id]) matches[asset.id] = { sources: asset.searchSources ?? (state.mode === "semantic" ? ["semantic"] : []), semanticScore: null };
+    }
+    return matches;
+  }, [assets, resultsQuery.data, state.mode]);
+  const ocrPage = resultsQuery.data?.pages.findLast(page => page.searchOCRState);
+  const semanticState = resultsQuery.data?.pages.findLast(page => page.searchSemanticState)?.searchSemanticState;
   const mediaItems = useMemo(
     () => mapSearchItems(
       assets,
@@ -151,9 +166,11 @@ export function SearchPage({
       t("search.source"),
       semanticVideoMatches,
       t("search.videoMatch"),
-      t(state.mode === "semantic" ? "search.matchSemantic" : "search.matchLiteral"),
+      (state.mode === "all" || state.mode === "ocr") ? "" : t(state.mode === "semantic" ? "search.matchSemantic" : "search.matchLiteral"),
+      searchMatches,
+      source => sourceLabel(source, t),
     ),
-    [assets, locale, semanticVideoMatches, state.mode, t],
+    [assets, locale, semanticVideoMatches, searchMatches, state.mode, t],
   );
   const canonicalSearch = serializeSearchUrlState(state);
 
@@ -199,18 +216,7 @@ export function SearchPage({
     });
   }
 
-  const defaultSort = defaultSearchUrlState(
-    libraryId,
-    undefined,
-    mediaSortPreference,
-  );
   const currentLibrary = libraryQuery.data?.library;
-  const hasFilters =
-    state.kind !== "all" ||
-    state.date !== "any" ||
-    state.sort !== defaultSort.sort ||
-    state.order !== defaultSort.order ||
-    state.recursive;
 
   return (
     <AppShell
@@ -221,34 +227,60 @@ export function SearchPage({
       librariesHref={paths.libraries}
       logoutPending={logoutPending}
       onLogout={onLogout}
-      peopleHref={`${paths.intelligence}?view=clusters`}
       searchHref={`${libraryId ? paths.librarySearch(libraryId) : paths.search}?${canonicalSearch}`}
       searchInput={{
-        label: t(state.mode === "semantic" ? "search.semanticInputLabel" : "search.inputLabel"),
-        placeholder: t(state.mode === "semantic" ? "search.semanticPlaceholder" : "search.placeholder"),
+        label: t(state.mode === "ocr" ? "search.modeOCR" : state.mode === "all" ? "search.fusedInputLabel" : state.mode === "semantic" ? "search.semanticInputLabel" : "search.inputLabel"),
+        placeholder: t(state.mode === "ocr" ? "search.ocrPlaceholder" : state.mode === "all" ? "search.fusedPlaceholder" : state.mode === "semantic" ? "search.semanticPlaceholder" : "search.placeholder"),
       }}
       settingsHref={
         libraryId
           ? paths.generalSettingsForLibrary(libraryId)
           : paths.generalSettings
       }
+      navigationKey={`search:${libraryId ?? "all"}`}
+      navigationLabel={t("context.openSearch")}
+      sidebarLabel={t("context.search")}
+      sidebarContent={<DirectoryNavigation
+        activeQuickAccess="search"
+        browseState={defaultBrowseUrlState()}
+        currentLibraryName={currentLibrary?.name ?? t("search.allLibraries")}
+        hideDirectoryTree
+        libraries={(() => {
+          const listed = librariesQuery.data?.pages.flatMap(page => page.items) ?? [];
+          return currentLibrary && !listed.some(item => item.id === currentLibrary.id) ? [...listed, currentLibrary] : listed;
+        })()}
+        libraryId={libraryId ?? ""}
+        onLibraryChange={id => {
+          const next = { ...state, scope: "library" as const, recursive: false };
+          delete next.directoryId;
+          navigate(`${paths.librarySearch(id)}?${serializeSearchUrlState(next)}`);
+        }}
+        quickAccessDetail={<ContextSidebar title={t("context.search")}>
+          <SearchFilters canUseDirectory={Boolean(state.directoryId)} hasLibrary={Boolean(libraryId)} onChange={updateState} state={state} />
+          <Button size="small" variant="quiet" onClick={clearFilters}>{t("search.clearFilters")}</Button>
+        </ContextSidebar>}
+        selectedPathIds={new Set<string>()}
+      />}
+      topbarContent={<span>{t(state.scope === "all" ? "search.scopeAll" : state.scope === "directory" ? "search.scopeDirectory" : "search.scopeLibrary")}{state.scope !== "all" && currentLibrary ? ` · ${currentLibrary.name}` : ""}</span>}
       title={t("search.title")}
     >
       <section className={styles.page} aria-labelledby="search-heading">
+        <div
+          className={styles.workspace}
+          data-has-preview={previewItem ? "" : undefined}
+          style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
+        >
+        <div className={styles.results}>
         <header className={styles.header}>
-          <p className={styles.eyebrow}>
-            {currentLibrary?.name ?? t("search.allLibraries")}
-          </p>
-          <h1 id="search-heading">{t("search.heading")}</h1>
-        </header>
-
+          <div className={styles.titleRow}>
+            <h1 id="search-heading">{state.q ? t("search.resultsFor").replace("{query}", state.q) : t("search.heading")}</h1>
+            {assets.length > 0 && <span className={styles.resultCount} aria-live="polite">{t("search.loadedCount").replace("{count}", String(assets.length))}</span>}
+          </div>
         <div className={styles.command}>
-          <SearchFilters
-            canUseDirectory={Boolean(state.directoryId)}
-            hasLibrary={Boolean(libraryId)}
-            onChange={updateState}
-            state={state}
-          />
+          <p className={styles.applied} aria-label={t("context.resultsFilters")}>
+            {t(state.mode === "ocr" ? "search.modeOCR" : state.mode === "all" ? "search.modeAll" : state.mode === "semantic" ? "search.modeSemantic" : "search.modeFilename")} · {t(state.kind === "all" ? "search.kindAll" : state.kind === "video" ? "browse.kindVideo" : state.kind === "animated" ? "browse.kindAnimated" : "browse.kindImage")}
+            {state.mode === "semantic" ? ` · ${t("context.similarityOrder")}` : ` · ${t(state.date === "30d" ? "search.date30d" : state.date === "year" ? "search.dateYear" : "search.dateAny")}`}
+          </p>
           <Button
             className={styles.refresh}
             disabled={!state.q}
@@ -267,16 +299,11 @@ export function SearchPage({
             {t("search.refresh")}
           </Button>
         </div>
+        </header>
 
-        <div
-          className={styles.workspace}
-          data-has-preview={previewItem ? "" : undefined}
-          style={{ "--preview-width": `${preview.width}px` } as CSSProperties}
-        >
-        <div className={styles.results}>
           {!state.q && (
             <EmptyState
-              description={t(state.mode === "semantic" ? "search.semanticStartDescription" : "search.startDescription")}
+              description={t(state.mode === "ocr" ? "search.ocrDescription" : state.mode === "all" ? "search.fusedStart" : state.mode === "semantic" ? "search.semanticStartDescription" : "search.startDescription")}
               icon={MagnifyingGlass}
               title={t("search.startTitle")}
             />
@@ -290,14 +317,12 @@ export function SearchPage({
               onRetry={() => void retryResults()}
             />
           )}
-          {state.q && semanticCoverage && (
-            <InlineStatus tone={semanticCoverage.complete ? "success" : "warning"}>
-              {t("search.semanticCoverage")
-                .replace("{completed}", String(semanticCoverage.completed))
-                .replace("{eligible}", String(semanticCoverage.eligible))
-                .replace("{failed}", String(semanticCoverage.failed))}
-            </InlineStatus>
-          )}
+          {state.q && (ocrPage?.searchOCRState === "disabled" || (ocrPage?.searchOCRCoverage && ocrPage.searchOCRCoverage.ready < ocrPage.searchOCRCoverage.eligible) || (semanticCoverage && !semanticCoverage.complete) || (semanticState && !["ready", "not_requested"].includes(semanticState))) && <div className={styles.resultMeta}>
+          {state.q && ocrPage?.searchOCRState === "disabled" && <InlineStatus tone="warning">{t("search.ocrDisabled")}</InlineStatus>}
+          {((ocrPage?.searchOCRCoverage && ocrPage.searchOCRCoverage.ready < ocrPage.searchOCRCoverage.eligible) || (semanticCoverage && !semanticCoverage.complete)) && <InlineStatus appearance="plain" tone="warning">{t("search.incompleteResults")}</InlineStatus>}
+          {state.q && semanticState && !["ready", "not_requested"].includes(semanticState) && <InlineStatus tone="warning">{t("search.semanticDegraded")}</InlineStatus>}
+          {state.q && state.mode === "all" && semanticCoverage && semanticCoverage.excludedLibraries.length > 0 && <InlineStatus tone="warning">{t("search.semanticExcluded")}</InlineStatus>}
+          </div>}
           {state.q &&
             resultsQuery.isSuccess &&
             assets.length === 0 &&
@@ -318,11 +343,6 @@ export function SearchPage({
             currentLibrary?.status !== "offline" && (
               <EmptyState
                 action={
-                  hasFilters ? (
-                    <Button onClick={clearFilters}>
-                      {t("search.clearFilters")}
-                    </Button>
-                  ) : (
                     <Button
                       onClick={() =>
                         document.querySelector<HTMLInputElement>(
@@ -332,7 +352,6 @@ export function SearchPage({
                     >
                       {t("search.editQuery")}
                     </Button>
-                  )
                 }
                 description={t(state.mode === "semantic" && semanticCoverage && !semanticCoverage.complete
                   ? "search.semanticEmptyIncomplete"
@@ -343,25 +362,8 @@ export function SearchPage({
             )}
           {assets.length > 0 && (
             <>
-              <div className={styles.summary} aria-live="polite">
-                <div>
-                  <strong>
-                    {t("search.resultsFor").replace("{query}", state.q)}
-                  </strong>
-                  <span>
-                    {t("search.loadedCount").replace(
-                      "{count}",
-                      String(assets.length),
-                    )}
-                  </span>
-                  <span>{t(state.mode === "semantic" ? "search.semanticResultsDescription" : "search.literalResultsDescription")}</span>
-                </div>
-                {resultsQuery.isFetchNextPageError && (
-                  <InlineStatus tone="danger">
-                    {t("search.loadMoreFailed")}
-                  </InlineStatus>
-                )}
-              </div>
+              {resultsQuery.isFetchNextPageError && <InlineStatus tone="danger">{t("search.loadMoreFailed")}</InlineStatus>}
+              <div className={styles.media}>
               <MediaCollection
                 ref={preview.collectionRef}
                 hasNextPage={resultsQuery.hasNextPage}
@@ -420,6 +422,7 @@ export function SearchPage({
                   ? { selectedItemId: preview.selectedItemId }
                   : {})}
               />
+              </div>
             </>
           )}
         </div>
@@ -443,10 +446,21 @@ export function SearchPage({
             canGoPrevious={preview.previewIndex > 0}
             curationContent={
               previewAsset ? (
+                <>
+                {searchMatches[previewAsset.id]?.sources.length ? <section className={styles.evidence} aria-label={t("search.whyMatched")}>
+                  <h3>{t("search.whyMatched")}</h3>
+                  {searchMatches[previewAsset.id]!.sources.map(source => <div key={source}>
+                    <Badge tone={source === "semantic" ? "accent" : "neutral"}>{sourceLabel(source, t)}</Badge>
+                    {source === "ocr" ? <>
+                      {searchMatches[previewAsset.id]?.ocr?.map(excerpt => <p key={excerpt.line}>{excerpt.text}</p>)}
+                    </> : source !== "semantic" ? <p>{source === "filename" ? previewAsset.name : previewAsset.relativePath}</p> : null}
+                  </div>)}
+                </section> : null}
                 <AssetCurationControls
                   assetId={previewAsset.id}
                   csrfToken={session.csrfToken}
                 />
+                </>
               ) : undefined
             }
             item={previewItem}
@@ -519,57 +533,15 @@ function SearchFilters({
   return (
     <fieldset className={styles.filters}>
       <legend className={styles.visuallyHidden}>
-        <FunnelSimple aria-hidden="true" size={18} />
         {t("search.filters")}
       </legend>
-      <div className={styles.modeControl} role="group" aria-label={t("search.mode")}>
-        <Button
-          aria-pressed={state.mode === "filename"}
-          onClick={() => onChange({ ...state, mode: "filename" })}
-          size="small"
-          variant={state.mode === "filename" ? "secondary" : "quiet"}
-        >
-          {t("search.modeFilename")}
-        </Button>
-        <Button
-          aria-pressed={state.mode === "semantic"}
-          onClick={() => onChange({
-            ...state,
-            date: "any",
-            kind: "image",
-            mode: "semantic",
-            order: "desc",
-            sort: "modifiedAt",
-          })}
-          size="small"
-          variant={state.mode === "semantic" ? "secondary" : "quiet"}
-        >
-          {t("search.modeSemantic")}
-        </Button>
-      </div>
-      <label>
-        <span>{t("search.scope")}</span>
-        <select
-          onChange={(event) =>
-            onChange({
-              ...state,
-              recursive: false,
-              scope: event.target.value as SearchScope,
-            })
-          }
-          value={state.scope}
-        >
-          {hasLibrary && (
-            <option value="library">{t("search.scopeLibrary")}</option>
-          )}
-          {hasLibrary && (
-            <option disabled={!canUseDirectory} value="directory">
-              {t("search.scopeDirectory")}
-            </option>
-          )}
-          <option value="all">{t("search.scopeAll")}</option>
-        </select>
-      </label>
+
+      <fieldset>
+        <legend>{t("search.scope")}</legend>
+        {hasLibrary && <RadioOption name="search-scope" value="library" checked={state.scope === "library"} onChange={() => onChange({ ...state, recursive: false, scope: "library" })}>{t("search.scopeLibrary")}</RadioOption>}
+        {hasLibrary && <RadioOption name="search-scope" value="directory" checked={state.scope === "directory"} disabled={!canUseDirectory} onChange={() => onChange({ ...state, recursive: false, scope: "directory" })}>{t("search.scopeDirectory")}</RadioOption>}
+        <RadioOption name="search-scope" value="all" checked={state.scope === "all"} onChange={() => onChange({ ...state, recursive: false, scope: "all" })}>{t("search.scopeAll")}</RadioOption>
+      </fieldset>
       {state.scope === "directory" && (
         <label className={styles.checkLabel}>
           <input
@@ -582,23 +554,30 @@ function SearchFilters({
           <span>{t("search.includeChildren")}</span>
         </label>
       )}
+      <fieldset className={styles.modeControl}>
+        <legend>{t("search.mode")}</legend>
+        <RadioOption name="search-mode" value="all" checked={state.mode === "all"} onChange={() => onChange({ ...state, mode: "all" })}>{t("search.modeAll")}</RadioOption>
+        <RadioOption name="search-mode" value="filename" checked={state.mode === "filename"} onChange={() => onChange({ ...state, mode: "filename" })}>{t("search.modeFilename")}</RadioOption>
+        <RadioOption name="search-mode" value="semantic" checked={state.mode === "semantic"} onChange={() => onChange({ ...state, date: "any", kind: "image", mode: "semantic", order: "desc", sort: "modifiedAt" })}>{t("search.modeSemantic")}</RadioOption>
+        <RadioOption name="search-mode" value="ocr" checked={state.mode === "ocr"} onChange={() => onChange({ ...state, mode: "ocr", order: "desc", sort: "modifiedAt" })}>{t("search.modeOCR")}</RadioOption>
+      </fieldset>
       <label>
         <span>{t("search.kind")}</span>
-        <select
+        <Select
           onChange={(event) =>
             onChange({ ...state, kind: event.target.value as SearchKind })
           }
           value={state.kind}
         >
-          {state.mode === "filename" && <option value="all">{t("search.kindAll")}</option>}
+          {state.mode !== "semantic" && <option value="all">{t("search.kindAll")}</option>}
           <option value="image">{t("browse.kindImage")}</option>
-          {state.mode === "filename" && <option value="animated">{t("browse.kindAnimated")}</option>}
+          {state.mode !== "semantic" && <option value="animated">{t("browse.kindAnimated")}</option>}
           <option value="video">{t("browse.kindVideo")}</option>
-        </select>
+        </Select>
       </label>
-      {state.mode === "filename" && <label>
+      {state.mode !== "semantic" && <label>
         <span>{t("search.date")}</span>
-        <select
+        <Select
           onChange={(event) =>
             onChange({ ...state, date: event.target.value as SearchDate })
           }
@@ -607,11 +586,11 @@ function SearchFilters({
           <option value="any">{t("search.dateAny")}</option>
           <option value="30d">{t("search.date30d")}</option>
           <option value="year">{t("search.dateYear")}</option>
-        </select>
+        </Select>
       </label>}
       {state.mode === "filename" && <label>
         <span>{t("search.sort")}</span>
-        <select
+        <Select
           onChange={(event) => {
             const [sort, order] = event.target.value.split(":") as [
               SearchUrlState["sort"],
@@ -631,7 +610,7 @@ function SearchFilters({
           <option value="name:desc">{t("browse.sortNameDescending")}</option>
           <option value="size:desc">{t("browse.sortSizeDescending")}</option>
           <option value="size:asc">{t("browse.sortSizeAscending")}</option>
-        </select>
+        </Select>
       </label>}
     </fieldset>
   );
@@ -657,6 +636,7 @@ function semanticErrorMessage(
   mode: SearchUrlState["mode"],
   t: ReturnType<typeof useLocale>["t"],
 ): string {
+  if (error instanceof ApiError && error.code === "search_cursor_stale") return t("search.fusedStale");
   if (mode !== "semantic" || !(error instanceof ApiError)) return t("search.failed");
   if (error.code === "ai_disabled") return t("search.semanticDisabled");
   if (error.code === "model_unavailable") return t("search.semanticModelUnavailable");
@@ -673,6 +653,8 @@ function mapSearchItems(
   videoMatches: Record<string, SemanticVideoMatch>,
   videoMatchTemplate: string,
   retrievalLabel: string,
+  matches: Record<string, SearchMatch>,
+  label: (source: SearchMatch["sources"][number]) => string,
 ): MediaCollectionItem[] {
   const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -682,11 +664,12 @@ function mapSearchItems(
     const storyboard = mediaStoryboard(asset);
     const videoMatch = videoMatches[asset.id];
     return {
-      contextLabel: videoMatch
+      ...(matches[asset.id]?.sources.length ? { badges: matches[asset.id]!.sources.map(source => ({ label: label(source), tone: source === "semantic" ? "accent" as const : "neutral" as const })) } : {}),
+      ...(retrievalLabel ? { contextLabel: videoMatch
         ? `${retrievalLabel} · ${videoMatchTemplate
             .replace("{time}", formatDuration(videoMatch.timestampMs))
             .replace("{plan}", String(videoMatch.planSize))}`
-        : retrievalLabel,
+        : retrievalLabel } : {}),
       favorite: asset.favorite ?? false,
       height: asset.height,
       id: asset.id,
@@ -708,6 +691,10 @@ function mapSearchItems(
 function formatDuration(milliseconds: number): string {
   const totalSeconds = Math.floor(milliseconds / 1000);
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function sourceLabel(source: SearchMatch["sources"][number], t: ReturnType<typeof useLocale>["t"]): string {
+  return t(source === "filename" ? "search.sourceFilename" : source === "path" ? "search.sourcePath" : source === "ocr" ? "search.modeOCR" : "search.sourceSemantic");
 }
 
 function sourceDirectory(relativePath: string): string {

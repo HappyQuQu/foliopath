@@ -1,5 +1,15 @@
 # FolioPath 前端子系统目标架构
 
+2026-10-25 / UI-2026-10-25-layered-workspace-alignment：共享所有权不变，ManagementShell 改为消费现有 AppShell
+sidebar/topbar 插槽，删除第二份导航布局。中央 tokens/theming 唯一拥有分层视觉；RadioOption 唯一拥有原生单选样式，
+MediaPreview/MediaCollection 拥有浮动预览与可见项焦点恢复。原型不进入生产导入图，正式 Storybook 与视觉基线为验收证据。
+见[记录](../changes/UI-2026-10-25-layered-workspace-alignment.md)。
+
+2026-10-24 既有侧栏插槽扩展：AppShell 接收功能提供的可访问名称，不解析业务 URL；
+DirectoryNavigation 的 quickAccessDetail 承载独立滚动工具区。共享 ContextSidebar 只提供分区布局，
+搜索/人物/收藏/标签的字段与 Query 仍由 feature 持有。生产页稳定 Storybook 取代已接受的侧栏原型副本。
+[记录](../changes/UI-2026-10-24-contextual-sidebar.md)。
+
 ## 状态
 
 本文定义 FolioPath MVP 前端的**目标架构与实施门槛**。`web/` 已落地

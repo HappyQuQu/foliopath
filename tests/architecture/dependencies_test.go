@@ -1413,7 +1413,7 @@ func checkDependency(t *testing.T, source, imported string) {
 		}
 	case "pathpolicy", "cursor":
 		t.Errorf("pure policy/mechanism package %s must not import repository package %s", source, imported)
-	case "auth", "settings", "library", "catalog", "scanner", "thumbnail", "media", "jobs":
+	case "auth", "settings", "library", "catalog", "search", "ocr", "scanner", "thumbnail", "media", "jobs":
 		if slices.Contains([]string{"api", "app", "files", "store", "webassets"}, importedArea) {
 			t.Errorf("capability/policy package %s must not import outer area %s", source, imported)
 		}

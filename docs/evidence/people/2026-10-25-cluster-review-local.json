@@ -1,0 +1,116 @@
+{
+  "change": "CR-2026-037",
+  "recordedAt": "2026-10-25T06:34:10.936Z",
+  "stage": "POST-MVP-5 manual per-face group review",
+  "candidate": "sha256:cc679add1beccab2031545083f3edc8f5beec469912a843f95bb43cf2688c168",
+  "checks": {
+    "backend": "face unit tests uncached; focused API/SQLite transaction tests passed",
+    "backendFocusedRace": [
+      "internal/api",
+      "internal/store/sqlite"
+    ],
+    "frontend": {
+      "files": 73,
+      "tests": 464,
+      "fullCheck": "passed",
+      "auditHigh": "passed",
+      "types": "passed",
+      "storybook": "passed"
+    },
+    "browser": {
+      "image": "sha256:cc679add1beccab2031545083f3edc8f5beec469912a843f95bb43cf2688c168",
+      "tests": "cluster-review.spec.ts + person-review.spec.ts + context-sidebar.spec.ts",
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "status": "passed",
+      "testsPassed": 117,
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "axe": true,
+      "navigation": {
+        "groupKindRetained": true,
+        "separateGroupsAndMembersCursors": true,
+        "legacyListCursorMigration": true,
+        "resetOnKindChange": true
+      }
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed",
+    "realDocker": {
+      "timestamp": "2026-10-25T06:26:04.003Z",
+      "appImage": "sha256:cc679add1beccab2031545083f3edc8f5beec469912a843f95bb43cf2688c168",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "prototype": {
+    "stories": [
+      "features-intelligence-review--group-detail",
+      "features-intelligence-review--similar-group-detail"
+    ],
+    "syntheticContracts": true,
+    "staticContentFixtures": "storybook only, byte copies of synthetic gradient fixture",
+    "productionComponent": true
+  },
+  "semantics": {
+    "oneFacePerRequest": true,
+    "photoGroupingWithinBoundedPage": true,
+    "memberCount": "face observations, not unique photos or pending-only count",
+    "states": "existing AssetFace service, assigned/excluded/unavailable disabled",
+    "confirmations": "frozen revisions; unknown-response retry explicit with same in-memory intent key",
+    "creation": "empty person only, no sourceCluster, no automatic assignment",
+    "wholeGroupQualityGateUnchanged": true
+  },
+  "original6010": {
+    "deployedThisSlice": false,
+    "image": "sha256:1a0324a53d64e45f9a96d5004113d05702ea364b79de59c7e7145b4680aad6af",
+    "startedAt": "2026-10-25T06:02:16.444546795Z",
+    "healthy": "healthy",
+    "tenSourceExceptions": "untouched",
+    "writesByThisSlice": false,
+    "inspectionOnly": true,
+    "note": "Different immutable image observed after a concurrent deployment; this slice did not deploy or verify that image."
+  },
+  "isolatedResources": "removed",
+  "limits": [
+    "No pending-only group directory/count API added",
+    "No browser-reload recovery promise for unknown in-memory confirmation objects",
+    "No OCR, cover selection, hiding or automatic naming",
+    "No quality/capacity/full Go-race/cross-architecture/release acceptance",
+    "No server222, commit or push"
+  ],
+  "failuresPreserved": [
+    "CompactFilters Story exact-optional type failure fixed without relaxing types",
+    "First real-model run passed browser writes but checked faces before post-restart activation; complete run not passed until functional readiness wait added",
+    "Back navigation lost group type/list position; fixed with separate groupsCursor and revalidated on final immutable image"
+  ]
+}

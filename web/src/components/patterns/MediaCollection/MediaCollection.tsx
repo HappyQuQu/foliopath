@@ -8,6 +8,7 @@ import {
   Play,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { createPortal } from "react-dom";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
   forwardRef,
@@ -25,12 +26,13 @@ import {
   writeMediaTileSizePreference,
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
-import { Button, IconButton, InlineStatus, Slider } from "../../ui";
+import { Badge, Button, IconButton, InlineStatus, Slider } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
 export type MediaCollectionLayout = MediaLayoutPreference;
 
 export interface MediaCollectionItem {
+  badges?: Array<{ label: string; tone?: "neutral" | "accent" }>;
   contextLabel?: string;
   favorite?: boolean;
   height: number | null;
@@ -133,6 +135,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   previewItemId?: string;
   favoritePendingId?: string;
   selectedItemId?: string;
+  /** Optional toolbar slot. null defers rendering until the slot mounts. */
+  sizeControlContainer?: HTMLElement | null;
 }>(function MediaCollection(
   {
     hasNextPage,
@@ -148,6 +152,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     previewItemId,
     favoritePendingId,
     selectedItemId,
+    sizeControlContainer,
   },
   ref,
 ) {
@@ -204,6 +209,15 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
 
         if (focusRestoreFrameRef.current !== undefined) {
           cancelAnimationFrame(focusRestoreFrameRef.current);
+        }
+        const visibleTrigger = Array.from(hostRef.current?.querySelectorAll<HTMLButtonElement>("[data-media-id]") ?? [])
+          .find(candidate => candidate.dataset.mediaId === id);
+        const bounds = visibleTrigger?.getBoundingClientRect();
+        if (visibleTrigger && bounds && bounds.height > 0 && bounds.bottom > 0 && bounds.top < window.innerHeight) {
+          // Opening the floating preview must not recenter an already visible card.
+          visibleTrigger.focus({ preventScroll: true });
+          focusRestoreFrameRef.current = undefined;
+          return;
         }
         virtualizer.scrollToIndex(index, { align: "center" });
         const focusTrigger = (remainingFrames: number) => {
@@ -270,7 +284,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
 
   useEffect(() => {
     if (
-      shouldLoadNextMediaPage({
+      !previewItemId && shouldLoadNextMediaPage({
         columns,
         hasNextPage,
         isFetchingNextPage,
@@ -289,11 +303,11 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     lastVirtualIndex,
     onLoadMore,
     paginationError,
+    previewItemId,
   ]);
 
-  return (
-    <>
-      <div className={styles.sizeControl}>
+  const sizeControl = (
+      <div className={styles.sizeControl} data-placement={sizeControlContainer === undefined ? undefined : "toolbar"}>
         <Slider
           label={labels.tileSize}
           min={mediaTileSizeRange.min}
@@ -306,6 +320,11 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
           }}
         />
       </div>
+  );
+
+  return (
+    <>
+      {sizeControlContainer === undefined ? sizeControl : sizeControlContainer ? createPortal(sizeControl, sizeControlContainer) : null}
       <div ref={hostRef} className={styles.host}>
         <ul
           className={styles.collection}
@@ -547,6 +566,9 @@ function MediaCard({
             <Play size={12} weight="fill" />
           </span>
         )}
+        {item.badges && item.badges.length > 0 && <div className={styles.evidenceBadges}>
+          {item.badges.map(badge => <Badge key={badge.label} tone={badge.tone ?? "neutral"}>{badge.label}</Badge>)}
+        </div>}
         {previewing && (
           <span className={styles.previewBadge} title={labels.previewing}>
             <Eye aria-hidden="true" size={14} weight="fill" />

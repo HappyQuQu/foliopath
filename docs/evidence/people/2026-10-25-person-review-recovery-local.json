@@ -1,0 +1,172 @@
+{
+  "change": "CR-2026-042",
+  "recordedAt": "2026-10-25T10:50:55.017833+00:00",
+  "stage": "POST-MVP-5 person detail confirmed-review recovery",
+  "candidate": "sha256:05868d43cee18ae32011f58bdbe56ac21eb5e20590a0e1cddee365f07b8b7e39",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "endpoint": "existing POST /api/v1/ai/face-reviews; no new schema, generated type or migration",
+    "intent": "PersonPanel freezes exactly one confirmed request, original source/target context and idempotency key",
+    "uncertain": "explicit same-key retry after closing/reopening; source GET404 or empty media page must not destroy the intent",
+    "knownTerminalFailures": "precondition_failed/face_constraint_conflict/face_cursor_stale/idempotency_conflict/person_not_found/face_not_found are classified by the canonical reviewErrors owner, without automatic resend",
+    "success": "publish original confirmed receipt to existing workspace undo; navigate after merge only after response confirmation",
+    "lifetime": "unresolved intent blocks this panel new review/rename; dismiss/navigation away/reload does not promise recovery or cancel server action",
+    "rename": "existing If-Match PATCH unchanged; no rename idempotency or undo promise",
+    "newModelGenerations": false
+  },
+  "checks": {
+    "backendFocused": "passed count=1; new committed split/merge replay tests preserve receipt/version and guarded undo, existing face/API checks",
+    "focusedRace": {
+      "packages": [
+        "internal/face",
+        "internal/api",
+        "internal/store/sqlite"
+      ],
+      "pattern": "TestGuardedUndo|TestFaceMutationRoutesDecodeTypedReviewAndStrongUndoPrecondition|TestReviewService|TestFaceDetachedReassignment",
+      "status": "passed count=1"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed SQLC and API client/hash consistency",
+    "lint": "passed contract checks and go vet",
+    "goFull": "passed using normal cache, disposable larger-volume TMPDIR and GOFLAGS=-p=1",
+    "integration": "passed",
+    "runtimeDockerSmoke": "passed",
+    "openapiLint": "valid,2 existing health missing4xx warnings",
+    "frontend": {
+      "files": 76,
+      "tests": 497,
+      "fullCheck": "passed audit:high, generated consistency, architecture/visual inventory, types, Vitest and Storybook; final Story test import uses storybook/test"
+    },
+    "finalBrowser": {
+      "image": "sha256:05868d43cee18ae32011f58bdbe56ac21eb5e20590a0e1cddee365f07b8b7e39",
+      "tests": [
+        "person-recovery.spec.ts",
+        "face-review-undo.spec.ts",
+        "photo-face-review.spec.ts",
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "passed": 288,
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "recoveryWidths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "recoveryThemeLocalePairs": {
+        "zh-CN": "light",
+        "en": "dark"
+      },
+      "axe": true,
+      "source404Recovery": true,
+      "disappearingPhotoRecovery": true,
+      "sameRequestKey": true,
+      "beforeCommitFailureThenRevisionConflict": true,
+      "localDiscardAndReloadBoundary": true,
+      "recoveredReceiptUndo": true,
+      "strictUnexpectedEndpointAssertions": true
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T10:26:35.748Z",
+      "appImage": "sha256:05868d43cee18ae32011f58bdbe56ac21eb5e20590a0e1cddee365f07b8b7e39",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "photoFaceReview": true,
+      "faceReviewUndo": true,
+      "personReviewRecovery": true,
+      "committedSplitMoveNonemptyMergeReplay": true,
+      "mergedSource404Recovery": true,
+      "undoAcrossPhotoPersonMergeGroup": true,
+      "undoConflictPreservesLaterCuration": true,
+      "committedUndoSameKeyReplay": true,
+      "exclusionAnonymousRaceRejected": true,
+      "realUnknownSuccessReplay": true,
+      "peopleDirectoryPreview": false,
+      "emptyDirectoryPerson": false,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    },
+    "storybook": {
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "productionComponent": true,
+      "passed": 4,
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "widths": [
+        390,
+        1920
+      ],
+      "story": "features-intelligence-review--person-detail-recovery",
+      "fixture": "production component, synthetic503/merged-source404; all API writes intercepted; no real review or success",
+      "sourceSHA256": "1e3a56065a13dd68ac319931818d3bf54660bdfc97a7f9e086858a4992a4da7d",
+      "indexSHA256": "d0ca7db9834855954c8f580f1d692e05777418a11795377701a608b204544177"
+    }
+  },
+  "realTestDetails": [
+    "Actual4-stage synthetic-model harness: group review, photo review, guarded undo, then this person recovery probe.",
+    "For removal/move/merge, real POST commits, response is deliberately replaced with503, then exact same body/key returns actual Idempotency-Replayed=true after firstfalse.",
+    "Removal/move disappear from source media; merge source GET404 is explicitly observed while recovery UI remains visible.",
+    "Merge source has1 assigned face/1 photo; target has0. This is a nonempty-source merge, not a claim that both real UI people were populated. Executed backend merge replay/undo test has both people populated.",
+    "After confirmed replay, real guarded undo restores counts and person revisions advance only once per commit plus once per undo.",
+    "Final1 assigned/1 excluded/2 anonymous retained, tags/source hashes checked before/after restart and database-check runs in owning synthetic app."
+  ],
+  "firstRunFailures": [
+    "Focused browser fixture omitted canonical /assets/asset_recovery/thumbnail used by the directory after replay/undo. Added that exact synthetic endpoint; did not weaken strict request assertions or alter production preview owner.",
+    "Storybook production play imported @testing-library/react, whose act wrapper is unavailable in the production Story bundle. Switched only Story imports to the installed storybook/test API; final4-case static Docker Story probe passed.",
+    "Static test server Python availability probe failed; reused pinned browser image Node runtime for a read-only internal static server, no dependency install or production topology change."
+  ],
+  "protection": {
+    "originalMediaOrCurationTouched": false,
+    "server222Connected": false,
+    "tenSourceIssues": "remain deferred; no source retry/modification",
+    "manualTagAndSourceHash": "nonempty synthetic manual tag/original hashes preserved before and after restart",
+    "databaseCheck": "passed in owning synthetic app Linux lock domain",
+    "testResources": "dedicated synthetic app/AI/browser/Story server containers, networks, volumes and source copies cleaned by precise finally handlers"
+  },
+  "limits": [
+    "No original6010 deployment, model reprocessing or source repair.",
+    "One mounted-panel recovery intent, no cross-reload/history/login restoration guarantee.",
+    "Rename/cannot-link UI/OCR/quality/capacity/cross-architecture/release are not completed by this slice.",
+    "No full Go race or release-level full Cartesian locale/theme/device matrix claim.",
+    "Production image unchanged by later Story-only fixture/import changes; final288 cases and real-model probe share the same05868d43 image; Story has separate build/probe evidence."
+  ],
+  "logs": [
+    ".artifacts/person-recovery-backend.log",
+    ".artifacts/person-recovery-race-final.log",
+    ".artifacts/person-recovery-full.log",
+    ".artifacts/person-recovery-final-check.log",
+    ".artifacts/person-recovery-web-story-final.log",
+    ".artifacts/person-recovery-browser-focus.log",
+    ".artifacts/person-recovery-browser-final.log",
+    ".artifacts/person-recovery-real.log",
+    ".artifacts/person-recovery-story.log",
+    ".artifacts/person-recovery-story-final.log",
+    ".artifacts/person-recovery-build.log"
+  ]
+}

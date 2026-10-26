@@ -124,7 +124,7 @@ try {
   assert.equal((await person(alice.id)).confirmedFaceCount,2);
   assert.equal((await request('/people/'+alice.id+'/assets')).value.items.length,2);
   let observed=await faces();
-  const excluded=await review({action:'exclude_face',faceId:observed[0].faceId,expectedFaceRevision:observed[0].revision});
+  const excluded=await review({action:'exclude_face',faceId:observed[0].faceId,expectedFaceRevision:observed[0].revision,sourcePersonId:observed[0].personId,expectedSourceRevision:(await person(observed[0].personId)).revision});
   assert.equal((await person(alice.id)).confirmedFaceCount,1);
   await undo(excluded);
   assert.equal((await person(alice.id)).confirmedFaceCount,2);
@@ -136,7 +136,7 @@ try {
   await undo(merged);
   assert.equal((await person(alice.id)).confirmedFaceCount,2);
   observed=await faces();
-  await review({action:'cannot_link',leftFaceId:observed[0].faceId,rightFaceId:observed[1].faceId,expectedLeftRevision:observed[0].revision,expectedRightRevision:observed[1].revision});
+  await review({action:'cannot_link',leftFaceId:observed[0].faceId,rightFaceId:observed[1].faceId,expectedLeftRevision:observed[0].revision,expectedRightRevision:observed[1].revision,sourcePersonId:observed[0].personId,targetPersonId:observed[1].personId,expectedSourceRevision:(await person(observed[0].personId)).revision,expectedTargetRevision:(await person(observed[1].personId)).revision});
   await request('/ai/face-reviews','POST',{action:'merge_people',sourcePersonId:bob.id,targetPersonId:alice.id,expectedSourceRevision:(await person(bob.id)).revision,expectedTargetRevision:(await person(alice.id)).revision,conflictsAcknowledged:true},{'Idempotency-Key':randomUUID()},409);
   console.log('PASS individual assignment, projections, exclusion/split/merge undo, cannot-link, server group gate');
   await analyze(base,'missing');

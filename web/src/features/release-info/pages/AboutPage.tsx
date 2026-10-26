@@ -74,7 +74,6 @@ export function AboutPage({
             <div>
               <span>{t("about.installedVersion")}</span>
               <strong>{status.data.version}</strong>
-              <small>API {status.data.apiVersion}</small>
             </div>
             <div className={styles.updateState}>
               {releases.data?.updateAvailable ? (

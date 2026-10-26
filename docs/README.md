@@ -1,9 +1,82 @@
 # FolioPath 文档
 
-2026-10-23：[大 PNG 语义输入修复](changes/FIX-2026-10-23-semantic-large-png.md) / [ADR-0028](adr/0028-versioned-png-semantic-input.md)：
-显式新 profile 的 native/真实模型合成 Docker 通过，旧向量与人工标签保留；原 6010 尚未切换。
-用户同意在当前任务结束、完整备份后切换并重算图片语义索引，不打断现有任务、不重标旧向量。
-20:00 coser 语义 1379/6202 成功、13 失败；标签 ready=4407、failed=15，仍在运行。下文为此前快照。
+- [本轮固定候选与交付验证](changes/VERIFY-2026-10-26-release-candidate.md)：最终.3／7de02／54673775，约定本地工程与双原生已收尾；最终嵌入UI231通过／54条件SKIP，双架构OCI／SPDX／SLSA本地保留，未正式发布或更新6010。容量24小时取消，质量／漏洞处理暂缓，Git／CI promotion及打包偏差不冒称通过。
+
+- [当前 AI 候选并行发布验收](changes/AUDIT-2026-10-26-release-readiness.md)：本机工程/当前镜像漏洞扫描已收尾；质量数据暂缓，安全/双架构/容量长稳未通过项仍阻断正式发布。
+
+- [全界面用户文案清理](changes/FIX-2026-10-26-product-language.md)：覆盖浏览/设置/账户/媒体库/日志及智能功能；已备份更新6010，保留数据和识别进度。
+
+- [6010 OCR备份部署与小库验收](changes/DEPLOY-2026-10-26-ocr-6010.md)：pixiv最终998成功/1坏源/0待处理，旧结果/任务保留；实际文字与融合来源核验、完整备份后6010布局更新通过，其余库未启用。
+
+- [OCR按库管理界面 CR-2026-052](changes/CR-2026-052-ocr-management-ui.md)：消费现有管理合同，概览开关与任务操作；默认关闭，原6010部署独立。
+
+- [OCR全文索引与融合搜索 CR-2026-051](changes/CR-2026-051-ocr-fulltext-search.md) / [ADR-0037](adr/0037-ocr-fulltext-fused-search.md)：正式搜索组件/有界行证据；默认关闭，管理UI及6010部署独立。
+
+- [OCR后台与显式管理 CR-2026-050](changes/CR-2026-050-ocr-runtime-management.md) / [ADR-0036](adr/0036-ocr-runtime-management.md)：候选backend，默认关闭；搜索/UI及6010部署另行验收。
+
+- [OCR持久结果/任务基础 CR-2026-049](changes/CR-2026-049-ocr-durable-results.md) / [ADR-0035](adr/0035-ocr-durable-results.md) / [内部存储合同](architecture/ocr-persistence-contract.md)：默认关闭，运行worker/API/搜索尚未接入。
+
+- [CR-2026-048：OCR producer与共享调度](changes/CR-2026-048-ocr-producer.md)：实际Go→HTTP→OCR、native取消与缺cache恢复；旧28文件/身份/输出对照，尚未启用主应用索引或搜索。[ADR-0034](adr/0034-ocr-producer-shared-admission.md)。
+
+- [CR-2026-047：OCR安全图片输入](changes/CR-2026-047-ocr-image-input.md)：独立2048/RGB PNG预处理、共享native准入、原生45项与3场景真实OCR桥接；未接入服务/后台索引/搜索。[ADR-0033](adr/0033-ocr-image-preprocessing.md)。
+
+- [CR-2026-046：OCR独立合同与Go传输](changes/CR-2026-046-ocr-transport.md)：严格身份/文本/故障与共享准入；仅传输消费者，未启用后台OCR或搜索。[内部合同](architecture/ocr-transport-contract.md) / [ADR-0032](adr/0032-independent-ocr-transport.md)。
+
+- [CR-2026-045：OCR 离线推理可行性](changes/CR-2026-045-ocr-feasibility.md)：固定中英文模型与隔离Docker实验；横排通过，90°样本未识别，生产索引/搜索仍未接入。
+
+- [CR-2026-044：人物合并冲突预检](changes/CR-2026-044-person-merge-check.md)：只读原因/版本快照、最多三组照片核对，正式提交仍重新校验；本地Docker证据按记录收口。
+
+- [CR-2026-043：同图人物防误合并](changes/CR-2026-043-people-cannot-link.md)：成对人工归属版本保护、同图关系投影与正式单图入口、受保护撤销；独立本地Docker证据。
+
+2026-10-25：[浏览工具栏合并与层次修复](changes/FIX-2026-10-25-browse-toolbar.md)已落实并更新6010；仅关闭全面审查F05中的浏览工具区部分，其余问题保持未完成状态。
+
+2026-10-25：[最新原型一致性审查：整体尚未通过](changes/AUDIT-2026-10-25-prototype-alignment.md)。22入口盘点，确认9项界面偏差及2项合同/运行问题；不以既有功能测试或实现基线替代原型一致性。
+
+- [CR-2026-042：人物详情审核请求恢复](changes/CR-2026-042-person-review-recovery.md)：未知响应同键核对、源404/照片消失仍可恢复并接统一撤销；本地合成与真实模型Docker证据。
+- [CR-2026-041：受保护的人脸整理撤销](changes/CR-2026-041-face-review-undo.md)：既有guarded undo接口的统一工作区入口；单回执、确认和同键重试，本地Docker验证，不是全局历史。
+- [CR-2026-040：单图人脸整理与排除并发保护](changes/CR-2026-040-photo-face-review.md)：正式单图确认、冻结修订和同键重试；既有POST-MVP-5事务内保护，本地Docker证据，未部署原6010。
+- [CR-2026-039：已命名人物目录、照片预览与主区分页](changes/CR-2026-039-people-directory.md)：既有POST-MVP-5人工整理范围；原型/合同/本地Docker证据在同一记录，非身份或发行通过。
+
+2026-10-25：[搜索结果首屏密度修复与6010更新](changes/FIX-2026-10-25-search-density.md)：标题、数量与筛选收紧，图片上移，保留覆盖状态、数据和AI任务。
+
+- [CR-2026-038：人物待处理分组目录与真实计数](changes/CR-2026-038-pending-groups.md)：POST-MVP-5既有人工整理切片；状态与本地Docker证据见记录，不代表发行验收。
+
+
+2026-10-25：[待整理分组逐张确认](changes/CR-2026-037-cluster-review.md)：当前状态守卫、单脸确认、空人物创建分离、分组类型/游标保持；本地Docker与117项浏览器回归完成，原6010未部署此人物版。
+
+2026-10-25：[库菜单浮层与紧凑标签目录修复](changes/FIX-2026-10-25-sidebar-polish.md)已同步6010，筛选/显示语言/分页合同不变，保留融合搜索、AI及数据。
+
+2026-10-25：[人物详情整理与明确确认](changes/CR-2026-036-person-review-safety.md)：既有人脸合同下的明确选择、移动/移出确认及人物合并核对；开发测试与原6010部署状态分别记录，不冒充完整人物质量验收。
+
+- 已执行运维记录：[2026-10-25 6010融合搜索安全更新与原库验收](changes/DEPLOY-2026-10-25-fused-search-6010.md)；此前[分层界面更新与数据/AI任务保留](changes/DEPLOY-2026-10-25-layered-ui-6010.md)。
+
+2026-10-25：[融合搜索与真实命中来源](changes/CR-2026-035-fused-search.md) / [ADR-0031](adr/0031-fused-search-provenance.md)。
+搜索默认合并文件名/父目录与图片语义、服务端去重、固定排名与快照翻页；卡片来源和预览依据使用正式wire证据。
+语义故障可明确降级；OCR未接入，视频画面仍走既有独立入口。最终本地Docker/640维真实模型联验、必需Go表面、前端446项与三浏览器90项通过；原6010随后已安全更新并完成原库验收。额外整包race超时与资源压力边界如实保留，见记录。
+
+2026-10-25 05:54终态：[6010的153类标签策略](changes/DEPLOY-2026-10-24-photo-tags-153.md)：
+真实Docker的92→153＋png-v4换代、非空人工/删除抑制和故障恢复通过；正常停写完整备份m1T7oV逐文件与Linux完整性核验后，
+仅切换AI52f4a40c及tag身份cf642648，原主/语义/人物/三Compose保留。新主database-check、13组保护摘要及22365向量hash一致。
+四库新身份原任务全部succeeded/attempt1/error=null，8690成功/10已知源失败/0待处理，无新增model_unavailable。
+22PNG、13组保护摘要、22365向量及database-check终态复核通过；10源文件继续暂不修复，后台6010-153已确认删除。下方92类结果为历史记录，质量/容量/发行门禁仍保留。
+
+2026-10-24：[自动标签服务恢复](changes/FIX-2026-10-24-autotag-service-recovery.md) /
+[ADR-0030](adr/0030-bounded-autotag-service-recovery.md)：短暂tag服务不可用的60秒有界恢复、严格身份与人工保护；
+Go/race/全量/集成/runtime E2E及真实模型Docker故障回归通过，备份后已更新6010；8k/pixiv仅missing续补均结束，21:08终态复核。
+四库当前身份/当前源共8690成功、10既有源失败、未处理0；无新增任务级model_unavailable，22PNG与13组保护摘要一致、database-check通过。
+10项源问题按用户要求暂不修复；本轮跟进停止，不代表AI全部功能或发行验收通过。
+
+2026-10-24：[自动标签大PNG修复](changes/FIX-2026-10-24-autotag-png.md) / [ADR-0029](adr/0029-independent-tag-png-input.md)：
+停写全备份/逐文件核验、Go/race/native及真实模型合成Docker通过；12:17已更新6010主镜像和独立tag profile，
+四库新标签任务各自动创建一次；18:26的22张PNG标签验收通过。19:32 coser/4k终态，8k/pixiv遇服务不可用，恢复另见上方记录。
+人工/抑制/全部语义向量/人物数据摘要保留；12:17部署未重启AI，19:30双容器另有正常停止再启动记录。
+该轮不把已通过的语义22张PNG或旧标签成功数计作新标签完成，不修复/伪造那10项源错误；153类在该轮尚未启用，后续切换见页首。
+
+2026-10-24：[大 PNG 语义输入修复](changes/FIX-2026-10-23-semantic-large-png.md) / [ADR-0028](adr/0028-versioned-png-semantic-input.md)：
+native/真实模型合成 Docker 通过；原任务全部终态后完成停写全备份，02:02已更新原6010。
+09:16四库新operation全部终态：coser 6200/2、4k 706/1、8k 785/7、pixiv 999/0（成功/失败），共处理8700/8700、成功8690、源输入失败10。
+22张目标大PNG全部逐张核对新代次向量及当前源指纹；旧8668向量及15张人物/标签/人工整理表摘要与停写备份一致。
+剩余10项需外部恢复或纠正源文件，旧标签输入/失败未改；质量/容量/发行门禁不因此关闭。下文为此前快照。
 
 2026-10-23：[搜索模式提示与中文索引续验](changes/FIX-2026-10-23-search-mode-guidance.md)：
 搜索输入/结果卡说明与手机 Header 已修复，Docker 三浏览器五宽度 30 项通过；
@@ -308,6 +381,12 @@ Closed Unverified / Release No-Go。按
 联合容量、供应链与隐私/合规签署由 S4 持有。国内镜像仍没有承诺；S4 Go 前 reviewed catalog、face
 composition 与发行 UI 继续失败关闭。
 
+## 界面原型与实施
+
+- [分层工作台：正式界面对齐原型](changes/UI-2026-10-25-layered-workspace-alignment.md)：用户接受整体视觉，生产组件/真实后端合成验收与 Storybook 同步。
+
+- [按功能切换上下文侧栏（生产实施）](changes/UI-2026-10-24-contextual-sidebar.md)：用户已接受，生产组件/Storybook/回归保持一致；[原型](changes/PROTOTYPE-2026-10-24-contextual-sidebar.md)作为历史接受证据。
+
 ## 当前权威文档
 
 ### 产品与体验
@@ -376,3 +455,15 @@ composition 与发行 UI 继续失败关闭。
 | Docker、权限、备份或升级 | README、部署、安全模型 |
 | 测试门槛或支持矩阵 | 测试策略、readiness、README |
 | 可行性假设、spike 或风险状态 | 可行性研究、风险登记、开发就绪评审 |
+
+2026-10-26：[标签侧栏层次修复](changes/FIX-2026-10-26-tag-sidebar.md)。
+
+2026-10-26：[侧栏调宽后内容自适应修复](changes/FIX-2026-10-26-sidebar-reflow.md)，现有界面响应验收修复，API与任务合同不变。
+
+2026-10-26：[标签云排列修正](changes/FIX-2026-10-26-tag-cloud-layout.md)，按用户澄清恢复自由换行词云。
+
+- [OCR限制与SQLite恢复维护](changes/FIX-2026-10-26-ocr-limits-sqlite.md)：本地候选、停写数据保护与后续新OCR代次。
+
+- [智能分析四功能统一布局](changes/FIX-2026-10-26-ai-feature-grid.md)：生产组件预览与响应式验证，待现有OCR任务结束后更新6010。
+
+- [干净源码、正式 CI 与 6010 更新验收](changes/VERIFY-2026-10-26-formal-ci-6010.md)

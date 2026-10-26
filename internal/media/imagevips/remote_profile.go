@@ -11,7 +11,7 @@ import (
 type remoteImagePreprocessor struct{ profile semantic.RemoteImageProfile }
 
 // NewRemoteImagePreprocessor binds a reviewed deployment profile. New() retains
-// the legacy contract for automatic tags and existing callers.
+// the legacy contract for unconfigured automatic tags and existing callers.
 func NewRemoteImagePreprocessor(profile semantic.RemoteImageProfile) (semantic.EncodedImagePreprocessor, error) {
 	if _, ok := profile.Contract(); !ok {
 		return nil, semantic.ErrInvalidImageInput

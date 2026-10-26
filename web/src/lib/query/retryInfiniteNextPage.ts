@@ -13,7 +13,7 @@ interface RetryableInfiniteQuery {
 export async function retryInfiniteNextPage(
   query: RetryableInfiniteQuery,
 ): Promise<void> {
-  if (!(query.error instanceof ApiError) || query.error.code !== "invalid_cursor") {
+  if (!(query.error instanceof ApiError) || !["invalid_cursor", "search_cursor_stale", "semantic_cursor_stale"].includes(query.error.code)) {
     await query.loadNextPage();
     return;
   }

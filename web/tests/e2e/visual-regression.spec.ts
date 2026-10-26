@@ -126,7 +126,7 @@ test("global header keeps the approved desktop composition", async ({
 }) => {
   await page.goto("/settings/general");
   await expect(
-    page.getByRole("heading", { name: "General", level: 1 }),
+    page.getByRole("heading", { name: "Configuration", level: 1 }),
   ).toBeVisible();
 
   await expect(page.getByRole("banner").first()).toHaveScreenshot(
@@ -139,7 +139,7 @@ for (const managementPage of [
   {
     name: "general",
     path: "/settings/general",
-    heading: "General",
+    heading: "Configuration",
   },
   {
     name: "libraries",
@@ -149,7 +149,7 @@ for (const managementPage of [
   {
     name: "storage",
     path: "/settings/storage",
-    heading: "Scanning and cache",
+    heading: "Configuration",
   },
   {
     name: "account",

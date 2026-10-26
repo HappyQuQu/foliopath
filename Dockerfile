@@ -286,6 +286,48 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 go test -count=1 -tags=libvips \
       ./internal/media/imagevips
 
+# OCR input contract tests use the same pinned native build, never the runtime.
+FROM build AS ocr-image-tests
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go test -c -race -tags=libvips -o /out/ocr-image.test ./internal/media/imagevips
+ENV LD_LIBRARY_PATH=/opt/vips/lib:/opt/glib/lib:/opt/expat/lib
+ENTRYPOINT ["/out/ocr-image.test"]
+CMD ["-test.v", "-test.timeout=5m"]
+
+FROM ocr-image-tests AS ocr-image-probe
+COPY spikes/ocr-image-input ./spikes/ocr-image-input
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go build -tags=libvips -o /out/ocr-image-probe ./spikes/ocr-image-input
+ENTRYPOINT ["/out/ocr-image-probe"]
+CMD []
+
+# Synthetic-only real OCR application/worker/management probe.
+FROM ocr-image-tests AS ocr-worker-probe
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go test -c -race -tags=libvips,ocrprobe -o /out/ocr-worker-probe.test ./internal/app
+ENTRYPOINT ["/out/ocr-worker-probe.test"]
+CMD ["-test.run", "^TestOCRWorkerRealApplication$", "-test.v", "-test.timeout=8m"]
+
+# Opt-in actual OCR producer/Go consumer probe; no application composition.
+FROM ocr-image-tests AS ocr-service-probe
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    PKG_CONFIG_PATH=/opt/vips/lib/pkgconfig:/opt/glib/lib/pkgconfig:/opt/expat/lib/pkgconfig \
+    CGO_LDFLAGS="-L/opt/vips/lib -L/opt/glib/lib -L/opt/expat/lib" \
+    CGO_ENABLED=1 go test -c -race -tags=libvips,ocrprobe -o /out/ocr-service-probe.test ./internal/inference/remoteml
+ENTRYPOINT ["/out/ocr-service-probe.test"]
+CMD ["-test.run", "^TestOCRProducerRealService$", "-test.v", "-test.timeout=5m"]
+
 # Opt-in synthetic probe only; not included in the release runtime stage.
 FROM build AS remote-ml-image-probe
 RUN --mount=type=cache,target=/go/pkg/mod \

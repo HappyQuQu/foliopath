@@ -294,7 +294,7 @@ it("switches language directly in the global header", async () => {
   ).toBeVisible();
 });
 
-it("uses the fixed redesign sidebar without a resize control", () => {
+it("exposes the accepted workspace sidebar resize control", () => {
   render(
     <ThemeProvider>
       <ToastProvider>
@@ -318,5 +318,16 @@ it("uses the fixed redesign sidebar without a resize control", () => {
   expect(
     screen.getByRole("complementary", { name: "媒体库和目录" }),
   ).toBeVisible();
-  expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  expect(screen.getByRole("separator", { name: "调整目录栏宽度" })).toBeVisible();
+});
+
+it("uses feature supplied sidebar names and opens tools without requiring a topbar slot", async () => {
+  const user = userEvent.setup();
+  render(<ThemeProvider><ToastProvider><MemoryRouter><AppShell active="search" homeHref="/" identity="Admin" searchHref="/search" settingsHref="/settings/general" title="Search" sidebarLabel="Search tools" navigationLabel="Open search tools" sidebarContent={<input aria-label="Sidebar query" />}><h1>Results</h1></AppShell></MemoryRouter></ToastProvider></ThemeProvider>);
+  expect(screen.getByRole("complementary", { name: "Search tools" })).toBeVisible();
+  const opener = screen.getByLabelText("Open search tools");
+  await user.click(opener);
+  await user.keyboard("{Escape}");
+  expect(opener).toHaveFocus();
+  expect(opener).toHaveAttribute("aria-expanded", "false");
 });

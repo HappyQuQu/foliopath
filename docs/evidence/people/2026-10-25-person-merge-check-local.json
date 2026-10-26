@@ -1,0 +1,182 @@
+{
+  "change": "CR-2026-044",
+  "recordedAt": "2026-10-25T12:32:24.857426+00:00",
+  "stage": "POST-MVP-5 person merge advisory check",
+  "status": "locally_verified_not_deployed",
+  "candidate": "sha256:c2969f15e506e45d5d0732bca7ca3b72a2aca8b096f41e767e32eaa6e5d86501",
+  "architecture": "arm64",
+  "original6010Deployed": false,
+  "contracts": {
+    "endpoint": "GET /api/v1/people/{personId}/merge-check?targetPersonId=...",
+    "advisory": "no write authorization or reservation; POST rechecks the same canonical conflict queries in its original transaction",
+    "snapshot": "both active people IDs/revisions, cannot-link and duplicate counts, source atomic batch limit; one read-only transaction",
+    "examples": "at most3 distinct ordered photo pairs from ready libraries with bound/current anchors; opaque library and asset IDs only; missing examples never erase constraints",
+    "newConfirm": "known allowed check matching the frozen source/target IDs and revisions; read error or changed version blocks new confirmation",
+    "recovery": "submitted uncertain merge uses its original request/key even after source404; no new preflight requirement for replay",
+    "compatibility": "new additive GET/schema/client; no migration/model/deployment-boundary change; new UI pauses new merges against old server404"
+  },
+  "checks": {
+    "backendFocused": "passed count=1 in internal/face,sqlite,api,app; no-write preview, newly added constraint invalidates prior allowed preview, reverse pair, cross-library5 constraints/3 photo examples, offline/detached hiding without losing constraints, batch bound, strict query, ID mapping, not-ready lifecycle",
+    "race": {
+      "status": "passed count=1",
+      "packages": [
+        "internal/face",
+        "internal/store/sqlite",
+        "internal/api",
+        "internal/app"
+      ],
+      "pattern": "TestPersonMergeCheck|TestCannotLink|TestGuardedUndo|TestFaceDetachedReassignment|TestFaceResultsComposition"
+    },
+    "fmtCheck": "passed",
+    "architecture": "passed",
+    "generateCheck": "passed SQLC and generated client/hash",
+    "lint": "passed exact operation contract and go vet",
+    "openapiLint": "valid,2 existing health missing4xx warnings",
+    "goFull": "passed normal cache; dedicated larger-volume disposable TMPDIR; GOFLAGS=-p=1",
+    "integration": "passed",
+    "genericRuntimeDockerSmoke": {
+      "status": "passed",
+      "image": "sha256:bb525685ec7ae8801123ced283d95cf12d080ca2e6368bb1762a4e7e5094e3e9",
+      "note": "separate generic smoke image; final SPA image is verified by finalBrowser and realDocker"
+    },
+    "localTools": {
+      "node": "v24.22.1",
+      "go": "go1.27.1 darwin/arm64"
+    },
+    "frontend": {
+      "files": 76,
+      "tests": 510,
+      "personPanelTests": 21,
+      "fullCheck": "passed audit:high, generation, architecture, visual-reference inventory, types, Vitest and Storybook"
+    },
+    "finalBrowser": {
+      "image": "sha256:c2969f15e506e45d5d0732bca7ca3b72a2aca8b096f41e767e32eaa6e5d86501",
+      "passed": 363,
+      "newSliceCases": 39,
+      "projects": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "specs": [
+        "person-merge-check.spec.ts",
+        "face-cannot-link.spec.ts",
+        "person-recovery.spec.ts",
+        "face-review-undo.spec.ts",
+        "photo-face-review.spec.ts",
+        "people-directory.spec.ts",
+        "cluster-review.spec.ts",
+        "person-review.spec.ts",
+        "context-sidebar.spec.ts"
+      ],
+      "widths": [
+        390,
+        768,
+        1440,
+        1920
+      ],
+      "themeLocalePairs": {
+        "zh-CN": "light",
+        "en": "dark"
+      },
+      "axe": true,
+      "cancelFocus": true,
+      "readOnlyRetry": true,
+      "staleSnapshotNeverAdopted": true,
+      "offlineNoExamplesStillBlocked": true,
+      "distinctReasons": true,
+      "strictUnexpectedEndpointAssertions": true
+    },
+    "productionStories": {
+      "passed": 12,
+      "newBlockedMergeCases": 4,
+      "priorRecoveryCases": 4,
+      "priorSamePhotoCases": 4,
+      "locales": [
+        "zh-CN",
+        "en"
+      ],
+      "widths": [
+        390,
+        1920
+      ],
+      "synthetic": true,
+      "productionComponents": true,
+      "apiWritesInterceptedForBlockedAndRecoveryStories": true
+    },
+    "realDocker": {
+      "timestamp": "2026-10-25T12:17:58.504Z",
+      "appImage": "sha256:c2969f15e506e45d5d0732bca7ca3b72a2aca8b096f41e767e32eaa6e5d86501",
+      "aiImage": "sha256:28f8fb6351234b5e94d09477f9d112ef36f2b41bc8537268d50e6bd1459f0d85",
+      "browserImage": "sha256:13131a07430ca9e761d91d8967ae23bd2b86b02b3174148d46b33f1d594ad7dd",
+      "synthetic": true,
+      "realModel": true,
+      "photoFaceReview": true,
+      "faceReviewUndo": true,
+      "personReviewRecovery": true,
+      "cannotLinkReview": true,
+      "personMergeCheck": true,
+      "mergeBlockedThenAllowedAfterUndo": true,
+      "cannotLinkCommittedReplay": true,
+      "committedSplitMoveNonemptyMergeReplay": true,
+      "mergedSource404Recovery": true,
+      "undoAcrossPhotoPersonMergeGroup": true,
+      "undoConflictPreservesLaterCuration": true,
+      "committedUndoSameKeyReplay": true,
+      "exclusionAnonymousRaceRejected": true,
+      "realUnknownSuccessReplay": true,
+      "peopleDirectoryPreview": false,
+      "emptyDirectoryPerson": false,
+      "pendingDirectoryCounts": true,
+      "allGroupsHistory": true,
+      "reviewCursorStale": true,
+      "groupAssignmentAllowed": false,
+      "emptyPersonCreatedSeparately": true,
+      "exactAssignment": true,
+      "exactExclusion": true,
+      "unchangedAnonymousFaces": 2,
+      "assigned": 1,
+      "excluded": 1,
+      "manualTagPreserved": true,
+      "sourceHashesPreserved": true,
+      "restart": "passed",
+      "database": "passed"
+    }
+  },
+  "corrections": [
+    "initial API implementation referenced nonexistent public-ID helper names; reused existing libraryID/assetID and recompiled",
+    "initial invalid-ID fixture confused a length-valid missing opaque ID with a malformed value; corrected to short ID, no filesystem/path rule changed",
+    "one component test expected retry label重试, canonical shared ErrorState label is重新尝试; corrected assertion and all21 passed",
+    "exact operation contract initially rejected missing approved GET whitelist entry and malformed single-column digest; added only the new endpoint and restored existing two-column hash format, then complete checks passed"
+  ],
+  "screenshots": [
+    {
+      "path": "test-results/merge-check-final/person-merge-check-en-pre-merge-reasons-at-1920-chromium/merge-check-en-1920.png",
+      "sha256": "3d5740df7fb3ce59eae1660eb4e19e78dae28f5cbb83d2965139be40fd93c154",
+      "visuallyInspected": true
+    },
+    {
+      "path": "test-results/merge-check-story/person-merge-check-story-e-e783c--blocked-merge-story-at-390-chromium/merge-check-story-en-390.png",
+      "sha256": "89661f500483f52ee6a422e474734713cb6acbbd9d26f84dc6b88efac78fef46",
+      "visuallyInspected": true
+    }
+  ],
+  "protection": {
+    "testMedia": "repository synthetic pair and blue-violet fixtures only",
+    "nonemptySyntheticManualTagPreserved": true,
+    "sourceHashesAndOtherFacesPreserved": true,
+    "originalMediaOrRealCurationModified": false,
+    "original6010TasksTouched": false,
+    "server222Connected": false,
+    "testContainersVolumesNetworksCleaned": true,
+    "sourceIssuesStillDeferred": 10,
+    "submittedOrPushed": false
+  },
+  "remaining": [
+    "original6010 rollout not performed",
+    "OCR backend and UI",
+    "global/cross-photo relationship management and history",
+    "real identity quality calibration",
+    "capacity and cross-architecture release checks"
+  ]
+}
