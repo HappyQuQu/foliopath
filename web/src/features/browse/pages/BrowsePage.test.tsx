@@ -442,22 +442,22 @@ it("filters subdirectories and media within the current directory through URL-ba
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/libraries/lib_family/browse/dir_travel?q=%E6%97%A5%E6%9C%AC",
     );
+    expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
+      "modifiedAt:desc",
+    );
+    expect(vi.mocked(listDirectories)).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: "dir_travel", q: "日本" }),
+    );
+    expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        directoryId: "dir_travel",
+        order: "desc",
+        q: "日本",
+        recursive: false,
+        sort: "modifiedAt",
+      }),
+    );
   });
-  expect(screen.getByRole("combobox", { name: "排序" })).toHaveValue(
-    "modifiedAt:desc",
-  );
-  expect(vi.mocked(listDirectories)).toHaveBeenCalledWith(
-    expect.objectContaining({ parentId: "dir_travel", q: "日本" }),
-  );
-  expect(vi.mocked(listAssets)).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      directoryId: "dir_travel",
-      order: "desc",
-      q: "日本",
-      recursive: false,
-      sort: "modifiedAt",
-    }),
-  );
 
   await user.clear(filter);
   await waitFor(() => {

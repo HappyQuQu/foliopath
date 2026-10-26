@@ -1,4 +1,4 @@
-2026-10-26 / NFR-UIF-001、FR-UI-001～003/006 / POST-MVP-5 候选维护：AppShell 独占上下文栏长名称收缩/换行，保留控件及 Breadcrumbs 既有行为；生产组件 LongLibraryName Story、既有 auth 实际溢出断言与各宽度回归负责证据。macOS WebKit 使用原生 Option-Tab 的测试适配仍保留焦点顺序，不扩展产品焦点状态机。[记录](../changes/FIX-2026-10-26-context-name-wrap.md)。
+2026-10-26 / NFR-UIF-001、FR-UI-001～003/006 / POST-MVP-5 候选维护：AppShell 独占上下文栏长名称收缩/单行省略，保留控件及 Breadcrumbs 既有行为；生产组件 LongLibraryName Story、既有 auth 实际溢出断言与各宽度回归负责证据。macOS WebKit 使用原生 Option-Tab 的测试适配仍保留焦点顺序，不扩展产品焦点状态机。[记录](../changes/FIX-2026-10-26-context-name-wrap.md)。
 
 # FolioPath 需求—架构追踪
 
