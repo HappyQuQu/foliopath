@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.3](https://github.com/HappyQuQu/foliopath/compare/v1.6.2...v1.6.3) (2026-10-27)
+
+
+### 🐛 修复
+
+* 优化子目录排布并保留首屏媒体空间 ([317315d](https://github.com/HappyQuQu/foliopath/commit/317315d1d6a85978b8f496886f0069868b1d324f))
+
 ## [1.6.2](https://github.com/HappyQuQu/foliopath/compare/v1.6.1...v1.6.2) (2026-10-27)
 
 
