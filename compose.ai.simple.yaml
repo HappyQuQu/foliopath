@@ -1,4 +1,4 @@
-# Automatic AI setup (1.6.1+): use matching main/AI release versions.
+# Candidate: use matching verified main/AI release tags after native promotion.
 services:
   foliopath:
     image: evanqu/foliopath:${FOLIOPATH_VERSION:-latest}
