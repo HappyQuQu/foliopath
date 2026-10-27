@@ -79,8 +79,8 @@ const meta = {
   title: "Features/Browse/Directory",
   component: BrowsePage,
   decorators: [
-    (Story) => (
-      <StoryApiBoundary>
+    (Story, context) => (
+      <StoryApiBoundary manyDirectories={context.parameters.manyDirectories === true}>
         <ThemeProvider>
           <QueryClientProvider client={new QueryClient()}>
             <ToastProvider>
@@ -110,15 +110,32 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-function StoryApiBoundary({ children }: { children: ReactNode }) {
-  window.fetch = storyFetch(passthroughFetch);
+export const ManyDirectories: Story = {
+  parameters: { manyDirectories: true },
+  name: "Many directories (synthetic contract fixtures)",
+};
+
+function StoryApiBoundary({ children, manyDirectories }: { children: ReactNode; manyDirectories: boolean }) {
+  window.fetch = storyFetch(passthroughFetch, manyDirectories);
   useEffect(() => () => {
     window.fetch = passthroughFetch;
   }, []);
   return children;
 }
 
-function storyFetch(originalFetch: typeof window.fetch): typeof window.fetch {
+function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean): typeof window.fetch {
+  const fixtureDirectories = manyDirectories ? [
+    ...directories,
+    ...Array.from({ length: 24 }, (_, index) => directory(
+      `dir_extra_${index}`,
+      index % 2 === 0
+        ? `2026 年旅行影像 · 第 ${index + 1} 辑 · 京都与周边城市的街道、公园和日常记录`
+        : `Travel Collection ${index + 1} — A very long folder name without spaces: ${"photographs".repeat(6)}`,
+      `旅行/日本/京都/合集${index + 1}`,
+      "dir_kyoto",
+      index * 11,
+    )),
+  ] : directories;
   return async (input, init) => {
     const url = new URL(
       input instanceof Request ? input.url : String(input),
@@ -133,7 +150,7 @@ function storyFetch(originalFetch: typeof window.fetch): typeof window.fetch {
         items: [
           {
             assetCount: 12_480,
-            directoryCount: directories.length,
+            directoryCount: fixtureDirectories.length,
             displayPath: "/library/family",
             id: "lib_family",
             lastSuccessfulScanAt: "2026-07-29T08:00:00Z",
@@ -149,7 +166,7 @@ function storyFetch(originalFetch: typeof window.fetch): typeof window.fetch {
       return json(
         {
           assetCount: 12_480,
-          directoryCount: directories.length,
+          directoryCount: fixtureDirectories.length,
           displayPath: "/library/family",
           id: "lib_family",
           lastSuccessfulScanAt: "2026-07-29T08:00:00Z",
@@ -162,7 +179,7 @@ function storyFetch(originalFetch: typeof window.fetch): typeof window.fetch {
     }
     if (url.pathname === "/api/v1/directories/dir_kyoto") {
       return json({
-        ...directories.find(({ id }) => id === "dir_kyoto"),
+        ...fixtureDirectories.find(({ id }) => id === "dir_kyoto"),
         breadcrumbs: [
           { id: "dir_root", name: "家庭影像", relativePath: "" },
           { id: "dir_travel", name: "旅行", relativePath: "旅行" },
@@ -178,13 +195,14 @@ function storyFetch(originalFetch: typeof window.fetch): typeof window.fetch {
     if (url.pathname === "/api/v1/libraries/lib_family/directories") {
       const parentId = url.searchParams.get("parentId");
       const q = url.searchParams.get("q")?.toLocaleLowerCase() ?? "";
+      const matches = fixtureDirectories.filter(
+        (item) => item.parentId === (parentId || "dir_root") &&
+          (!q || item.name.toLocaleLowerCase().includes(q)),
+      );
+      const start = Number(url.searchParams.get("cursor") ?? 0);
       return json({
-        items: directories.filter(
-          (item) =>
-            item.parentId === (parentId || "dir_root") &&
-            (!q || item.name.toLocaleLowerCase().includes(q)),
-        ),
-        nextCursor: null,
+        items: matches.slice(start, start + 16),
+        nextCursor: start + 16 < matches.length ? String(start + 16) : null,
       });
     }
     if (url.pathname === "/api/v1/libraries/lib_family/assets") {

@@ -479,3 +479,5 @@ composition 与发行 UI 继续失败关闭。
 - [长媒体库名称上下文栏修复](changes/FIX-2026-10-26-context-name-wrap.md)
 
 - [自助AI部署变更与验证](changes/CR-2026-053-simple-ai-deployment.md)：1.6.1起提供，配对主/AI镜像已通过双原生验证并发布。
+
+- [浏览页子目录布局修复（2026-10-27）](changes/FIX-2026-10-27-directory-layout.md)：POST-MVP-5 既有 UI 修复与本地验证。
