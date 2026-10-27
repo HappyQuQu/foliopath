@@ -271,11 +271,11 @@ FOLIOPATH_TEST_MODEL_CACHE=/absolute/path/to/copied-model-cache \
 
 追加 `--delivery --offline`（与 `--faults` 分开），并显式设置 `FOLIOPATH_TEST_APP_IMAGE` 为旧版、`FOLIOPATH_TEST_UPGRADE_IMAGE` 为新版本，执行配对升级/回退、安全检查及两类清除。离线测试叠加 `tests/release/compose.ai.offline.yaml` 将主应用网络也设为 internal，生产配置不变。已加载镜像及缓存就绪后执行，不下载依赖，不操作现有数据。
 
-## 简化自动安装入口（CR-2026-053，开发分支）
+## 简化自动安装入口（CR-2026-053，已发布）
 
-新增 `compose.ai.simple.yaml`，与旧离线入口分别使用，不叠加。该入口需要本次代码构建的配对主/AI镜像；已发布的1.5.0不支持 `FOLIOPATH_AI_PROFILE`，当前尚未发布新的配对 `latest-ai`，不能直接把新配置用于旧镜像。
+`compose.ai.simple.yaml` 已随1.6.1发布，与旧离线入口分别使用，不叠加。配对镜像 `evanqu/foliopath:1.6.1` / `:1.6.1-ai` 以及 `:latest` / `:latest-ai` 均通过AMD64与ARM64原生验证和推广。1.5.0不支持 `FOLIOPATH_AI_PROFILE`，不能把新配置用于旧镜像。
 
-发布并完成双原生验证后，用户只需保存这一份 Compose，修改媒体目录、data目录及端口，然后执行 `docker compose -f compose.ai.simple.yaml up -d`。无必填 .env、手工身份JSON或生成程序。普通图库先启动；首次自动准备约3.3GB模型，建议为缓存和验证临时副本留出至少8GiB空间，AI运行内存先预留约6GiB。服务与模型页面显示检查、下载进度、准备完成和失败重试提示。
+用户只需保存这一份 Compose，修改媒体目录、data目录及端口，然后执行 `docker compose -f compose.ai.simple.yaml up -d`。无必填 .env、手工身份JSON或生成程序。普通图库先启动；首次自动准备约3.3GB模型，建议为缓存和验证临时副本留出至少8GiB空间，AI运行内存先预留约6GiB。服务与模型页面显示检查、下载进度、准备完成和失败重试提示。
 
 映射为单一 `/library:ro`、`/app/data`，以及AI专用的 `/cache`、`/ocr-cache`、`/verified-cache`。示例目录位于 `/root/foliopath`；现有照片位于别处时只修改 media 映射左侧，不能移动原件或用软链接代替媒体挂载。删除models会触发重新下载；删除data会丢失账号、设置、人工收藏/标签等。scratch可重建，不能与模型真相、媒体或data共用。
 

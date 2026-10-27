@@ -19,3 +19,7 @@
 - 验证清单及边界见[机器记录](../evidence/release/2026-10-27-managed-ai-local.json)。Go完整面、集成、runtime E2E、生成/架构/lint、Python安装/发布测试、525项前端测试、Storybook构建通过。OpenAPI lint仅保留既有两个health端点4xx警告。
 
 尚未执行AMD64或双原生CI、公开镜像推广、正式标注质量和24小时容量验收；当前是可验证的开发实现，不把本地tag当成已发布镜像。未更新任何生产实例。
+
+## 2026-10-27 正式双原生发布补充
+
+修复原生测试清理权限后，[v1.6.1流水线](https://github.com/HappyQuQu/foliopath/actions/runs/40444109761)四个原生镜像验证及main/AI两项推广全部success，主/AI配对标签已公开。此前本地记录的“未执行双原生/推广”保留为历史；本次结果补齐这两项，不补写正式质量或24小时容量通过。详见[清理修复记录](FIX-2026-10-27-managed-ai-ci-cleanup.md)。

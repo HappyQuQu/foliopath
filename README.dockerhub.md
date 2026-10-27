@@ -220,6 +220,6 @@ docker compose up -d
 
 <p align="center"><strong>Your folders, beautifully browsed.</strong></p>
 
-## Automatic AI setup (development)
+## Automatic AI setup
 
-The new `compose.ai.simple.yaml` adds managed model downloads and preparation status without a required `.env`. It requires the matching main and `-ai` images from CR-2026-053; existing 1.5.0 images do not support this entry point. See the repository AI deployment guide for model licenses, directories and release status.
+Use `compose.ai.simple.yaml` with version 1.6.1 or newer. The paired tags are `evanqu/foliopath:1.6.1` and `evanqu/foliopath:1.6.1-ai` (or `latest` and `latest-ai`), both supporting AMD64 and ARM64. Fixed models download automatically and Settings shows progress; no required `.env`. See the repository AI deployment guide for directories, licenses and offline compatibility.

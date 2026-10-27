@@ -11,3 +11,5 @@
 后续流水线结果以GitHub实际运行记录为准；本记录不将之前的推理通过等同于镜像已发布。
 
 本地验证：真实Docker清理回归（正常/异常两路径）、实际AI镜像profile及安装测试、18项原生发布协议测试、make arch-check、make generate-check、make lint均通过。
+
+修复提交 `bd4ace6`；[流水线40444109761](https://github.com/HappyQuQu/foliopath/actions/runs/40444109761)整体success。v1.6.1源码 `b4157b2`，AMD64/ARM64的主/AI四个验证任务全部通过，两个发布任务success；1.6.1/1.6.1-ai及latest/latest-ai均已推广。原失败记录保留，不重写为通过。
