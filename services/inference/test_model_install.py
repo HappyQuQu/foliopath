@@ -5,10 +5,11 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+import urllib.error
 import urllib.request
 
 from model_install import (Cancelled, InvalidDownload, Preparation, destination,
-                           download_opener, prepare, read_catalog, validate_url)
+                           download_opener, failure_reason, prepare, read_catalog, validate_url)
 
 
 class InstallTests(unittest.TestCase):
@@ -18,11 +19,12 @@ class InstallTests(unittest.TestCase):
         self.payload = b'model-bytes' * 4096
         self.served = self.payload
         self.requests = 0
+        self.response_status = 200
         owner = self
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 owner.requests += 1
-                self.send_response(200)
+                self.send_response(owner.response_status)
                 self.send_header('Content-Length', str(len(owner.served)))
                 self.end_headers()
                 self.wfile.write(owner.served)
@@ -62,12 +64,39 @@ class InstallTests(unittest.TestCase):
         target = destination(self.root, self.entry['path'])
         target.write_bytes(b'previous-cache')
         self.served = b'x' * len(self.payload)
-        with self.assertRaises(InvalidDownload): self.prepare()
+        with self.assertLogs('foliopath.models', level='INFO') as logs:
+            with self.assertRaises(InvalidDownload): self.prepare()
+        self.assertIn('file=family/model.onnx', '\n'.join(logs.output))
+        self.assertIn('reason=download checksum mismatch', '\n'.join(logs.output))
         self.assertEqual(target.read_bytes(), b'previous-cache')
         self.assertEqual(list(target.parent.glob('.download-*')), [])
         self.served = self.payload
         self.prepare()
         self.assertEqual(target.read_bytes(), self.payload)
+
+    def test_download_logs_start_verification_and_cached_restart(self):
+        with self.assertLogs('foliopath.models', level='INFO') as logs:
+            self.prepare()
+        output = '\n'.join(logs.output)
+        self.assertIn('Downloading model file 1/1: file=family/model.onnx source=127.0.0.1', output)
+        self.assertIn('Model file verified: file=family/model.onnx', output)
+        self.assertIn('reused_files=0', output)
+        with self.assertLogs('foliopath.models', level='INFO') as logs:
+            self.prepare()
+        self.assertIn('reused_files=1', '\n'.join(logs.output))
+        self.assertNotIn('Downloading model file', '\n'.join(logs.output))
+
+    def test_http_failure_log_omits_url_query_and_credentials(self):
+        self.response_status = 503
+        self.entry['url'] += '?token=private-token'
+        with self.assertLogs('foliopath.models', level='INFO') as logs:
+            with self.assertRaises(urllib.error.HTTPError) as caught: self.prepare()
+        caught.exception.close()
+        output = '\n'.join(logs.output)
+        self.assertIn('reason=HTTP 503', output)
+        self.assertNotIn('private-token', output)
+        self.assertEqual(failure_reason(urllib.error.URLError(TimeoutError('secret-url'))),
+                         'connection/read timeout')
 
     def test_truncated_and_oversized_downloads(self):
         for payload in (b'truncated', self.payload + b'extra'):

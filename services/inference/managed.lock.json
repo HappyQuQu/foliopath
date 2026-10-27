@@ -5,5 +5,5 @@
     "services/inference/managed-cache.generated.json": "d8946c8af2bbe1614712a830b32407fc802a95ccf0342b8532d22e204b38f304",
     "services/inference/managed-catalog.generated.json": "1f93f961be0e73232eb544fa4c3fdbc317d9c1167a90aa9803bc66b876b216d5"
   },
-  "source_sha256": "bde957d8934156812c40ddc20e2e7923bbca4471bb8f6fa4d5c371d2aeea6b69"
+  "source_sha256": "208dec7d552b4672f69de82285121ee955278642dfbf62fc585ca20cdbbc2b20"
 }

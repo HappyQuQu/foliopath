@@ -3,6 +3,7 @@ import hashlib
 import http.client
 import ipaddress
 import json
+import logging
 import os
 from pathlib import Path
 import socket
@@ -16,10 +17,31 @@ import urllib.request
 
 HERE = Path(__file__).parent
 ALLOWED_HOSTS = ('huggingface.co', 'hf.co', 'modelscope.cn')
+logger = logging.getLogger('foliopath.models')
 
 
 class Cancelled(Exception): pass
 class InvalidDownload(Exception): pass
+
+
+def failure_reason(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return f'HTTP {error.code}'
+    if isinstance(error, urllib.error.URLError):
+        return failure_reason(error.reason)
+    if isinstance(error, TimeoutError):
+        return 'connection/read timeout'
+    if isinstance(error, socket.gaierror):
+        return 'DNS resolution failed'
+    if isinstance(error, ssl.SSLError):
+        return 'TLS connection failed'
+    if isinstance(error, ConnectionError):
+        return 'connection failed'
+    if isinstance(error, InvalidDownload):
+        return str(error)
+    if isinstance(error, OSError):
+        return f'{type(error).__name__} (errno={error.errno})'
+    return type(error).__name__
 
 
 def validate_url(url):
@@ -164,13 +186,43 @@ class Preparation:
 
 def prepare(entries, roots, opener, stop, status):
     total, completed = sum(e['size'] for e in entries), 0
+    reused = 0
+    logger.info('Checking model cache: files=%d total_bytes=%d', len(entries), total)
     status.update(state='preparing', totalFiles=len(entries), totalBytes=total, completedFiles=0, completedBytes=0)
     for index, entry in enumerate(entries):
         if stop.is_set(): raise Cancelled()
-        target = destination(roots[entry['root']], entry['path'])
-        if not verified(target, entry, stop):
-            status.update(state='downloading')
-            install(entry, target, opener, stop, lambda count: status.update(completedBytes=completed + count))
+        try:
+            target = destination(roots[entry['root']], entry['path'])
+            if verified(target, entry, stop):
+                reused += 1
+            else:
+                status.update(state='downloading')
+                host = urllib.parse.urlsplit(entry['url']).hostname
+                logger.info('Downloading model file %d/%d: file=%s source=%s bytes=%d',
+                            index + 1, len(entries), entry['path'], host, entry['size'])
+                started = last_report = time.monotonic()
+
+                def progress(count):
+                    nonlocal last_report
+                    status.update(completedBytes=completed + count)
+                    now = time.monotonic()
+                    if now - last_report >= 15:
+                        logger.info('Model download progress: file=%s bytes=%d/%d total_bytes=%d/%d elapsed_seconds=%.1f',
+                                    entry['path'], count, entry['size'], completed + count, total, now - started)
+                        last_report = now
+
+                install(entry, target, opener, stop, progress)
+                logger.info('Model file verified: file=%s bytes=%d elapsed_seconds=%.1f',
+                            entry['path'], entry['size'], time.monotonic() - started)
+        except Cancelled:
+            logger.info('Model preparation cancelled: file=%s', entry['path'])
+            raise
+        except Exception as error:
+            logger.error('Model preparation failed: file=%s source=%s reason=%s',
+                         entry['path'], urllib.parse.urlsplit(entry['url']).hostname, failure_reason(error))
+            raise
         completed += entry['size']
         status.update(completedFiles=index + 1, completedBytes=completed)
     status.update(state='loading')
+    logger.info('Model cache verified: files=%d reused_files=%d total_bytes=%d; loading inference runtime',
+                len(entries), reused, total)
