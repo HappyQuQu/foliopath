@@ -40,8 +40,11 @@ def validate_plan(plan):
     if plan.get("verification_only") is True:
         if tags != []:
             raise ValueError("Verification-only plans must not contain tags")
-    elif not isinstance(tags, list) or not tags or kind != "main":
-        raise ValueError("Publication requires a main-image plan and at least one tag")
+    elif not isinstance(tags, list) or not tags:
+        raise ValueError("Publication requires at least one tag")
+    if kind == "ai" and not plan.get("verification_only") and (
+            labels.get("org.foliopath.component") != "ai" or any(not tag.endswith("-ai") for tag in tags)):
+        raise ValueError("AI publication requires component labels and AI-only tags")
     for tag in tags:
         if not isinstance(tag, str) or not tag.startswith(plan["image"] + ":") or not TAG.fullmatch(tag[len(plan["image"]) + 1:]):
             raise ValueError("Invalid image tag")
@@ -74,21 +77,29 @@ def verify(plan, arch, digest, output, run=subprocess.run, environ=None, archive
     image = docker_json(["image", "inspect", reference], run)[0]
     labels = image.get("Config", {}).get("Labels", {})
     expected_labels = ["org.opencontainers.image.version", "org.opencontainers.image.revision"]
-    if plan.get("verification_only"):
+    if plan.get("verification_only") or plan.get("component") == "ai":
         expected_labels.append("org.foliopath.component")
     if image.get("Architecture") != arch or image.get("Os") != "linux" or any(
             labels.get(key) != plan["labels"][key] for key in
             expected_labels):
         raise ValueError("Built image identity does not match the plan")
     if plan.get("component", "main") == "ai":
-        run(["python3", "tests/release/inference_existing_image.py", "--image", reference,
-             "--output", str(Path(output).parent / "ai-runtime")], check=True)
+        checker = "inference_existing_image.py" if plan.get("verification_only") else "managed_ai_image.py"
+        evidence_root = Path(output).parent if plan.get("verification_only") else Path(output).parent / arch
+        run(["python3", "tests/release/" + checker, "--image", reference,
+             "--output", str(evidence_root / "ai-runtime")], check=True)
+        if not plan.get("verification_only"):
+            run(["python3", "tests/release/managed_ai_real.py", "--image", reference,
+                 "--output", str(evidence_root / "ai-real")], check=True)
     else:
         env = dict(environ, FOLIOPATH_RELEASE_IMAGE=reference,
                    FOLIOPATH_RELEASE_BUILD_IMAGE="0",
                    FOLIOPATH_RELEASE_EXPECTED_VERSION=plan["version"])
         run(["sh", "tests/release/image_smoke.sh"], check=True, env=env)
-    record = dict(image=plan["image"], source=plan["source"], version=plan["version"], arch=arch, digest=digest)
+    record = dict(image=plan["image"], component=plan.get("component", "main"), source=plan["source"], version=plan["version"], arch=arch, digest=digest)
+    if plan.get("component") == "ai" and not plan.get("verification_only"):
+        record.update(model_inference="synthetic-real", checks=["identity-parity", "installer-recovery",
+            "fresh-download-cancel", "offline-restart", "synthetic-inference"])
     if plan.get("verification_only"):
         index_descriptors(reference, arch, run, plan["image"])
         record["oci"] = verify_oci_archive(archive, reference, arch, plan, run)
@@ -210,14 +221,20 @@ def publish(plan, records, run=subprocess.run):
     for arch in sorted(ARCHITECTURES):
         record = json.loads((root / (arch + ".json")).read_text())
         if any(record.get(key) != value for key, value in dict(
-                image=IMAGE, source=plan["source"], version=plan["version"], arch=arch).items()):
+                image=plan["image"], source=plan["source"], version=plan["version"], arch=arch).items()):
             raise ValueError("Verified image record does not match the plan")
         if record.get("verification_only"):
             raise ValueError("Verification-only records cannot publish tags")
+        if record.get("component", "main") != plan.get("component", "main"):
+            raise ValueError("Verified component does not match the plan")
+        if plan.get("component") == "ai" and (
+                record.get("model_inference") != "synthetic-real" or
+                not {"identity-parity", "installer-recovery", "fresh-download-cancel", "offline-restart", "synthetic-inference"} <= set(record.get("checks", []))):
+            raise ValueError("AI publication requires real model preparation and inference evidence")
         digest = record.get("digest", "")
         if not DIGEST.fullmatch(digest):
             raise ValueError("Invalid verified digest")
-        references.append(IMAGE + "@" + digest)
+        references.append(plan["image"] + "@" + digest)
     if len(set(references)) != 2:
         raise ValueError("Native digests must be distinct")
     expected = set()
@@ -241,6 +258,9 @@ def main():
     verification_parser = sub.add_parser("verification-plan")
     verification_parser.add_argument("--kind", choices=sorted(IMAGES), required=True)
     verification_parser.add_argument("--output", required=True)
+    managed_parser = sub.add_parser("managed-plan")
+    managed_parser.add_argument("--plan", required=True)
+    managed_parser.add_argument("--output", required=True)
     labels_parser = sub.add_parser("labels")
     labels_parser.add_argument("--plan", required=True)
     labels_parser.add_argument("--output", required=True)
@@ -268,12 +288,22 @@ def main():
                                       "org.opencontainers.image.version": version,
                                       "org.foliopath.component": args.kind}))
         write_json(args.output, plan)
+    elif args.command == "managed-plan":
+        plan = read_plan(args.plan)
+        if plan.get("verification_only") or plan.get("component", "main") != "main":
+            raise ValueError("Managed AI publication needs a release main-image plan")
+        plan.update(component="ai", tags=[tag + "-ai" for tag in plan["tags"]])
+        plan["labels"]["org.foliopath.component"] = "ai"
+        write_json(args.output, validate_plan(plan))
     elif args.command == "labels":
         plan = read_plan(args.plan)
         boundary = secrets.token_hex(16)
         with open(args.output, "a") as output:
             output.write("image=" + plan["image"] + "\n")
-            output.write("dockerfile=" + RECIPES[plan.get("component", "main")] + "\n")
+            recipe = RECIPES[plan.get("component", "main")]
+            if plan.get("component") == "ai" and not plan.get("verification_only"):
+                recipe = "services/inference/Dockerfile.managed"
+            output.write("dockerfile=" + recipe + "\n")
             output.write("labels<<" + boundary + "\n")
             output.write("\n".join(k + "=" + v for k, v in plan["labels"].items()) + "\n" + boundary + "\n")
     elif args.command == "verify":

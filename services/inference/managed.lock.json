@@ -1,0 +1,9 @@
+{
+  "outputs": {
+    "internal/app/managed_ai.generated.json": "45bbb3b7b1e3792dc5b5e0ea7bcb5ecd6c0f8c999b5a184efa2615172b65627f",
+    "services/inference/Dockerfile.managed": "427bdb72693337247a07cb4081dcf09ebb9bf6772b48995c5b8cf1c84fc25d2b",
+    "services/inference/managed-cache.generated.json": "d8946c8af2bbe1614712a830b32407fc802a95ccf0342b8532d22e204b38f304",
+    "services/inference/managed-catalog.generated.json": "1f93f961be0e73232eb544fa4c3fdbc317d9c1167a90aa9803bc66b876b216d5"
+  },
+  "source_sha256": "bde957d8934156812c40ddc20e2e7923bbca4471bb8f6fa4d5c371d2aeea6b69"
+}

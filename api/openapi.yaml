@@ -2734,6 +2734,27 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/ai/preparation:
+    get:
+      tags: [AI models]
+      operationId: getAIPreparation
+      summary: Read automatic AI model preparation progress
+      x-requirements: [FR-INT-017, FR-INT-019, NFR-INT-007, NFR-INT-009]
+      x-error-codes:
+        '401': [authentication_required, session_expired]
+        '429': [rate_limited]
+      responses:
+        '200':
+          description: Informational progress; never grants model admission or enables a library.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIPreparation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
   /api/v1/ai/models:
     get:
       tags: [AI models]
@@ -5873,6 +5894,7 @@ components:
         state: {type: string, enum: [disabled, clearing, model_mismatch, queued, running, cancelling, pending, ready, degraded]}
         coverage: {$ref: '#/components/schemas/OCRCoverage'}
         latestJob:
+          type: object
           allOf:
             - $ref: '#/components/schemas/OCRJob'
           nullable: true
@@ -7847,6 +7869,35 @@ components:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/AIModelOperation'
+
+    AIPreparation:
+      type: object
+      additionalProperties: false
+      required: [state, completedFiles, totalFiles, completedBytes, totalBytes]
+      properties:
+        state:
+          type: string
+          enum: [disabled, unavailable, preparing, downloading, loading, ready, failed]
+        completedFiles:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 512
+        totalFiles:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 512
+        completedBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 8589934592
+        totalBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 8589934592
 
     AIModelPage:
       type: object

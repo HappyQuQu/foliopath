@@ -113,7 +113,7 @@ func listenFromEnvironment(environ []string) (string, bool, error) {
 				name,
 			)
 		}
-		if name == proxiesEnvironment || name == modelProxyEnvironment || name == deploymentEnvironment {
+		if name == proxiesEnvironment || name == modelProxyEnvironment || name == deploymentEnvironment || name == managedProfileEnvironment {
 			continue
 		}
 		if name != listenEnvironment {

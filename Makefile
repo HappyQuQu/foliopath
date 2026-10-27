@@ -141,6 +141,7 @@ generate-sql:
 		-f internal/store/sqlite/sqlc.yaml
 
 generate-check: generate-sql-check
+	$(PYTHON) scripts/generate_managed_ai.py --check
 	$(GO) run ./spikes/ocr-service/contractgen -check
 	cd web && $(NPM) run generate:check
 
@@ -271,3 +272,9 @@ capacity-trend:
 		GOMAXPROCS=4 $(GO) test -timeout=20m -count=1 \
 		-run '^TestCapacityBaseline$$' -v ./tests/performance; \
 	done
+
+.PHONY: test-managed-ai
+test-managed-ai:
+	$(PYTHON) scripts/generate_managed_ai.py --check
+	PYTHONPATH=services/inference $(PYTHON) -m unittest -v test_model_install
+	$(GO) test ./internal/app ./internal/api ./internal/inference/remoteml -run 'TestManagedProfile|TestPreparation' -count=1

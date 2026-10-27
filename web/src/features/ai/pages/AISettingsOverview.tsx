@@ -1,4 +1,5 @@
 import { ArrowRight, Brain, MagnifyingGlass, Users } from "@phosphor-icons/react";
+import type { AIPreparation } from "../../../lib/api/ai";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -82,19 +83,27 @@ function CapabilityStatus({ enabled, state }: { enabled: boolean; state: Semanti
   return <InlineStatus tone={!enabled ? "info" : state === "ready" ? "success" : state === "degraded" ? "warning" : "info"}>{t(!enabled ? "ai.disabled" : `ai.state.${state}`)}</InlineStatus>;
 }
 
-export function AIServiceSettings({ models, activeModelId, activeFaceModelId, children }: { models: AIModel[]; activeModelId: string | null; activeFaceModelId: string | null; children?: ReactNode }) {
+export function AIServiceSettings({ preparation, models, activeModelId, activeFaceModelId, children }: { preparation?: AIPreparation | undefined; models: AIModel[]; activeModelId: string | null; activeFaceModelId: string | null; children?: ReactNode }) {
   const { t } = useLocale();
+  const preparing = preparation && ["preparing", "downloading", "loading"].includes(preparation.state);
   return <div className={styles.overview}>
     <section className={styles.feature} aria-labelledby="ai-global-title">
       <header className={styles.featureHeader}><Brain className={styles.featureIcon} size={24} aria-hidden="true" /><div><h2 id="ai-global-title">{t("ai.settings.globalService")}</h2><p>{t("ai.settings.globalServiceDescription")}</p></div><span className={styles.scopeLabel}>{t("ai.settings.deploymentManaged")}</span></header>
-      <ModelRow label={t("ai.settings.semanticModel")} model={models.find(item => item.id === activeModelId && item.active)} />
-      <ModelRow label={t("ai.settings.peopleModel")} model={models.find(item => item.id === activeFaceModelId && item.active)} />
+      {preparation && preparation.state !== "disabled" && <div className={styles.coverage}>
+        <p className={styles.hint} role="status">{t(`ai.preparation.${preparation.state}`)}</p>
+        {preparation.state === "downloading" && preparation.totalBytes > 0 && <>
+          <progress aria-label={t("ai.preparation.progress")} max={preparation.totalBytes} value={preparation.completedBytes} />
+          <span>{t("ai.preparation.files").replace("{completed}", String(preparation.completedFiles)).replace("{total}", String(preparation.totalFiles))}</span>
+        </>}
+      </div>}
+      <ModelRow preparing={Boolean(preparing)} label={t("ai.settings.semanticModel")} model={models.find(item => item.id === activeModelId && item.active)} />
+      <ModelRow preparing={Boolean(preparing)} label={t("ai.settings.peopleModel")} model={models.find(item => item.id === activeFaceModelId && item.active)} />
     </section>
     {children}
   </div>;
 }
 
-function ModelRow({ label, model }: { label: string; model: AIModel | undefined }) {
+function ModelRow({ label, model, preparing }: { label: string; model: AIModel | undefined; preparing: boolean }) {
   const { t } = useLocale();
-  return <div className={styles.modelRow}><strong>{label}</strong>{!model && <span>{t("ai.settings.noActiveModel")}</span>}<InlineStatus tone={model?.state === "available" ? "success" : "warning"}>{t(model?.state === "available" ? "ai.state.ready" : "ai.settings.serviceUnavailable")}</InlineStatus></div>;
+  return <div className={styles.modelRow}><strong>{label}</strong>{!model && <span>{preparing ? t("ai.preparation.pending") : t("ai.settings.noActiveModel")}</span>}<InlineStatus tone={preparing ? "info" : model?.state === "available" ? "success" : "warning"}>{t(preparing ? "ai.preparation.pending" : model?.state === "available" ? "ai.state.ready" : "ai.settings.serviceUnavailable")}</InlineStatus></div>;
 }

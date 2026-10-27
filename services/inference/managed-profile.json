@@ -1,0 +1,15 @@
+{
+  "name": "standard-v1",
+  "face_repository": "immich-app/buffalo_l",
+  "face_revision": "d09715916a0778919a770c343533641e250b8699",
+  "face_license": "LicenseRef-InsightFace-noncommercial-research",
+  "face_files": [
+    {"path": "facial-recognition/buffalo_l/detection/model.onnx", "size": 16923827, "sha256": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91"},
+    {"path": "facial-recognition/buffalo_l/recognition/model.onnx", "size": 174383860, "sha256": "4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43"}
+  ],
+  "semantic_repository": "immich-app/XLM-Roberta-Large-Vit-B-16Plus",
+  "semantic_revision": "f8857d09bd30188c40214543d2181f732e64eab4",
+  "semantic_license": "MIT",
+  "face_threshold": {"schemaVersion": 1, "profileId": "standard-v1-engineering", "coreSimilarity": 0.75, "edgeSimilarity": 0.70, "minCoreSize": 2},
+  "face_quality_note": "Engineering default for explicit opt-in grouping, not a labelled accuracy or commercial-license approval. Higher thresholds favor separate groups; users can correct groups. No test-profile quality claim is inherited."
+}

@@ -1,0 +1,61 @@
+{
+  "face": {
+    "detector_sha256": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91",
+    "embedder_sha256": "4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43",
+    "identity": {
+      "cache_manifest_sha256": "3c0a158799432ba18d5b07f46e31d45455c561a5a852891d1eeb5e7d6d7886e7",
+      "dimension": 512,
+      "model": "buffalo_l",
+      "protocol": "foliopath-face-v1",
+      "runtime_contract_sha256": "be1d1baaccb2f8532d9df872483b0453e66e1221d5d1768432357dc76c1cfc8a",
+      "version": 1
+    },
+    "license_id": "LicenseRef-InsightFace-noncommercial-research",
+    "model_bytes": 191307687,
+    "threshold": {
+      "coreSimilarity": 0.75,
+      "edgeSimilarity": 0.7,
+      "minCoreSize": 2,
+      "profileId": "standard-v1-engineering",
+      "qualitySummarySha256": "27763327c995e80ad4aa78d1447f7b5160c07384c45181dba70d0cdce7869315",
+      "schemaVersion": 1
+    }
+  },
+  "identity": {
+    "cache_manifest_sha256": "858e52d6c74b5d597d8e1e7883b18f0d4db870a211336498d08cda767a00fb8d",
+    "dimension": 640,
+    "model": "XLM-Roberta-Large-Vit-B-16Plus",
+    "protocol": "foliopath-ml-v1",
+    "runtime_contract_sha256": "81ec3de561ee05318103ba0f354b6472cb2d1dc0d2ef0f33bf2becee2c710659",
+    "version": 1
+  },
+  "image_preprocessing": "png-v4",
+  "license_id": "MIT",
+  "model_bytes": 2729566266,
+  "ocr": {
+    "identity": {
+      "cache_manifest_sha256": "bc91be9833804f73a05a5436b15ea47b36b6c2a3a4414818097b71cbc40c7dbe",
+      "detector_sha256": "0f8846b1d4bba223a2a2f9d9b44022fbc22cc019051a602b41a7fda9667e4cad",
+      "input_contract_sha256": "753de4384b85c73f55020829b8dc96d41700881f01e9064afbbb8f963df46a4e",
+      "model": "PP-OCRv5_server",
+      "output_contract_sha256": "b81a6e724db1e2a47fc6cc5b529c24ea1fffb4e4a8a229dc98b63fb845e394be",
+      "protocol": "foliopath-ocr-v1",
+      "recognizer_sha256": "e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a",
+      "runtime_contract_sha256": "b993ea73314be4c8e7471034db274d31c1566aa23c36723b060ae61c8c86440c",
+      "version": 1
+    }
+  },
+  "origin": "http://machine-learning:3003",
+  "tag": {
+    "identity": {
+      "cache_manifest_sha256": "f40fd0e4b9bcb69b901353bccd62bd5822bdcff3974e2604f846cc1f28523d73",
+      "model": "JoyTag",
+      "model_sha256": "f85b7130e6e549b5b0822537007b7482e8c4c8e754c8d9a5bee08e27050e1097",
+      "policy_sha256": "a2f8b363f83db8d76cbc903bb532d2eb90c985d6eced957ec9b68cc80b6eb628",
+      "protocol": "foliopath-tag-v1",
+      "runtime_contract_sha256": "71ae7a7694c66ca3e4b19cb1fda4a4a5d0ba2344cd8fb5d796b6c0acc8229d90",
+      "version": 1
+    },
+    "image_preprocessing": "png-v4"
+  }
+}

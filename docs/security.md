@@ -530,3 +530,7 @@ Backend Ready。CR-2026-022 没有取消 `INT-015` 隐私和合法数据要求�
 所有 C/D/E transport 使用独立固定窗口 bucket，并共享有界总 bucket；后台 admission 低于浏览任务且全局
 有界。原模型/runtime、双架构最终镜像必须具备审核 hash/license、SBOM、VEX、notices、provenance 和安全
 签署；缺签、漏洞无处置或来源失效时能力 unavailable，保留最后可靠派生状态与人工应用状态。
+
+## ADR-0039：自动模型准备边界
+
+仅显式managed AI容器可出站并写专用模型目录；主应用无模型/AI目录及Docker socket挂载。固定HTTPS源、摘要与长度，重定向限受信模型域，直连解析拒绝非公网地址并连接已验证IP；显式HTTP代理负责目标DNS/地址限制，无ambient代理或失败后直连。原件保持单一只读挂载；安装不调用媒体API。缓存拒绝符号链接，完成校验后原子替换。主镜像独立预期身份不来自准备状态或在线自报。新增进度API要求现有管理员会话，只返回固定状态和有界计数。

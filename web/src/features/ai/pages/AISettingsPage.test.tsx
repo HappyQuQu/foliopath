@@ -94,6 +94,7 @@ vi.mock("../../libraries", () => ({
 }));
 
 vi.mock("../queries", () => ({
+  useAIPreparationQuery: () => ({ data: { state: "disabled", completedFiles: 0, totalFiles: 0, completedBytes: 0, totalBytes: 0 }, isError: false }),
   useVideoSemanticStatusQuery: mocks.video,
   useRequestVideoSemanticJobMutation: () => ({ isPending: false, mutateAsync: mocks.videoJob }),
   useAIModelProxyQuery: () => ({ data: { mode: "inherit", proxyUrl: "", revision: 1, deploymentConfigured: false, effectiveMode: "direct" }, isPending: false, isError: false }),

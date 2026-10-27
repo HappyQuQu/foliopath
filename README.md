@@ -182,3 +182,7 @@ Screenshots show the actual local deployment in dark mode on 2026-10-26. UI lang
 ## License
 
 [GNU Affero General Public License v3.0 or later](LICENSE) (`AGPL-3.0-or-later`)
+
+### Automatic AI setup (in development)
+
+The new `compose.ai.simple.yaml` prepares fixed AI models automatically, with download progress and recovery in Settings. It needs the matching main/AI images from this change; the published 1.5.0 image does not support it yet. No required `.env` or manual model identity JSON. See [AI setup](docs/ai-compose.md#简化自动安装入口cr-2026-053开发分支) for paths, model licenses, offline compatibility and verification status.

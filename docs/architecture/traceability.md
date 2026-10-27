@@ -725,3 +725,7 @@ composition 只能读取固定配置并保留 face/Release No-Go；下载/集成
 2026-10-26 / FR-UI-001～003/006、FR-OCR-004既有布局维护：AISettingsOverview拥有四项逐库能力的统一网格，借用AppShell workspace容器；不新增primitive/API/状态策略。稳定生产Story、71项既有行为及14项Linux几何/axe回归覆盖；冻结候选仅web布局变化，原6010待OCR终态后再备份部署。[记录](../changes/FIX-2026-10-26-ai-feature-grid.md)。
 
 2026-10-26 / FR-OCR-001～005、FR-UI-001～003/006维护收尾：imagevips独占native失败后的明确坏JPEG分类，成功像素/身份不变；合成native48项及真实worker恢复/源后续处理通过。最终主b3419001仅合入四卡UI，原31组/984结果保护及真实搜索通过，998成功/1坏源/0pending；停写备份后在Linux卷更新，不改原任务终态。工程/漏洞结果和未通过发行门详见[汇总](../changes/AUDIT-2026-10-26-release-readiness.md)，不扩大产品范围。
+
+## CR-2026-053 / ADR-0039
+
+POST-MVP-5 P6；FR-INT-017/019/020、NFR-INT-007/009/010。Owner app配置装配、aimodel状态合同、remoteml进度适配、AI model_install单一串行安装器。OpenAPI /ai/preparation只读状态，独立生成profile绑定原身份owner。fitness：managed_ai_test、native release组件隔离、生成锁及真实HTTP安装恢复测试。发行Gate仍须配对镜像双原生验证；不改旧离线和任务事务owner。

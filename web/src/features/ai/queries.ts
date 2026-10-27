@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 import {
   activateAIModel,
+  getAIPreparation,
   getAIModelProxy, saveAIModelProxy, testAIModelProxy,
   downloadAIModel,
   listAIModelDownloads,
@@ -46,6 +47,7 @@ import {
 } from "../../lib/api/ai";
 
 export const aiKeys = {
+  preparation: ["ai", "preparation"] as const,
   all: ["ai"] as const,
   ocr: (libraryId:string) => ["ai","ocr",libraryId] as const,
   automaticTags: (libraryId: string) => ["ai", "automatic-tags", libraryId] as const,
@@ -222,4 +224,8 @@ export function useFaceClusterQuery(libraryId: string, clusterId: string, cursor
 
 export function operationIsActive(operation: AIModelOperation): boolean {
   return ["queued", "running", "cancelling"].includes(operation.state);
+}
+
+export function useAIPreparationQuery(enabled: boolean) {
+  return useQuery({ queryKey: aiKeys.preparation, queryFn: getAIPreparation, enabled, refetchInterval: 5_000 });
 }

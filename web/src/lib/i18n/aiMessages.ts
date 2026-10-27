@@ -1,4 +1,13 @@
 export const aiZh = {
+  "ai.preparation.pending": "准备中",
+  "ai.preparation.preparing": "正在检查 AI 模型。准备期间可以继续浏览照片。",
+  "ai.preparation.downloading": "正在下载 AI 模型，首次准备可能需要一些时间。可以继续浏览照片。",
+  "ai.preparation.loading": "模型下载完成，正在准备 AI 服务。",
+  "ai.preparation.ready": "AI 模型已准备好，可以为媒体库开启需要的功能。",
+  "ai.preparation.failed": "AI 模型准备暂时失败，系统会自动重试。请检查服务器的网络连接和可用空间。",
+  "ai.preparation.unavailable": "暂时无法连接 AI 服务。请检查 AI 容器是否运行；普通图库仍可使用。",
+  "ai.preparation.progress": "AI 模型下载进度",
+  "ai.preparation.files": "已准备 {completed} / {total} 个文件",
   "ai.settings.peopleProgress": "人物分析进度",
   "ai.settings.workspaceDescription": "按媒体库开启智能搜索、人物分析、自动标签和 OCR，查看处理进度。",
   "ai.settings.navigation": "智能分析导航",
@@ -379,6 +388,15 @@ export const aiZh = {
 } as const;
 
 export const aiEn: Record<keyof typeof aiZh, string> = {
+  "ai.preparation.pending": "Preparing",
+  "ai.preparation.preparing": "Checking AI models. You can continue browsing photos.",
+  "ai.preparation.downloading": "Downloading AI models. The first setup may take a while; you can continue browsing photos.",
+  "ai.preparation.loading": "Models downloaded. Preparing the AI service.",
+  "ai.preparation.ready": "AI models are ready. Enable the features you need for each library.",
+  "ai.preparation.failed": "AI preparation failed temporarily and will retry automatically. Check the server network and available disk space.",
+  "ai.preparation.unavailable": "Cannot connect to the AI service. Check that its container is running; photo browsing remains available.",
+  "ai.preparation.progress": "AI model download progress",
+  "ai.preparation.files": "Prepared {completed} / {total} files",
   "ai.settings.peopleProgress": "People analysis progress",
   "ai.settings.workspaceDescription": "Enable smart search, people analysis, automatic tags and OCR per library, and track processing progress.",
   "ai.settings.navigation": "Analysis navigation",

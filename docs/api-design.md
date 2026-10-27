@@ -600,3 +600,5 @@ OpenAPI 第一版已经固定：
 创建库、唯一 creation scan 与摘要化幂等记录同事务；改名/移除使用强 ETag；异步 removal
 先阻止新扫描并协作取消活动扫描，只清理应用数据。扫描详情、取消与 schedule 的完整契约
 已由 [S2-101 Contract Ready](gates/MVP-2026-07-23/s2-scan-contract-ready.md)冻结。
+
+CR-2026-053新增鉴权只读 `/api/v1/ai/preparation`，固定状态与有界文件/字节计数；以OpenAPI为准，不承载模型身份或启用权限。

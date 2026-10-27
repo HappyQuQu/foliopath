@@ -504,6 +504,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct semantic text inference sessions: %w", err)
 	}
+	var preparation aimodel.PreparationReader
 	var deployment *deploymentBootstrap
 	var faceDeployment *deploymentBootstrap
 	var faceService *face.ControlService
@@ -518,6 +519,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		client, createErr := remoteml.NewConfigured(config.Origin, config.Identity)
 		if createErr != nil {
 			return nil, createErr
+		}
+		if config.Managed {
+			preparation = client
 		}
 		activationRuntime, createErr := newDeploymentActivationRuntime(client, database, config.space())
 		if createErr != nil {
@@ -849,6 +853,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Content:          contentService,
 		ContentAdmission: resourceController,
 		AIModels:         aiManagement,
+		AIPreparation:    preparation,
 		Semantic:         semanticService,
 		SemanticSearch:   semanticSearch,
 		FusedSearch:      fusedSearch,

@@ -35,6 +35,10 @@ them.
   and public-network exposure are deployment concerns outside FolioPath's required
   single-container topology.
 
+## Managed AI deployment
+
+- ADR-0039 accepts explicit `standard-v1` automatic model preparation in the existing AI container and an independently embedded main-image profile. Fixed sources/hashes only; never trust live identity as configuration. AI alone may write its dedicated model cache and use network downloads; media/data and the bounded inference scheduler remain unchanged. Legacy offline deployments remain supported. New cache manifests get new identities; never relabel old results. Promotion still requires native amd64/arm64 matching verification.
+
 ## Repository and dependency boundaries
 
 - Use a modular Go monolith with one HTTP process and an embedded React SPA.

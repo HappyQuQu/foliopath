@@ -216,6 +216,9 @@ jobs:
     needs: [prepare, images]
     if: ${{ !cancelled() && needs.images.result == 'success' && !inputs.verification_only }}
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        component: [main, ai]
     timeout-minutes: 10
     steps:
       - name: Checkout verified source
@@ -242,17 +245,27 @@ jobs:
       - name: Download both verified digests
         uses: actions/download-artifact@v4
         with:
-          pattern: verified-digest-*
+          pattern: verified-digest-${{ matrix.component }}-*
           path: ${{ runner.temp }}/verified-digests
           merge-multiple: true
 
       - name: Publish verified digests without rebuilding
+        env:
+          COMPONENT: ${{ matrix.component }}
         run: |
+          if [ "$COMPONENT" = ai ]; then
+            python3 scripts/native_release.py managed-plan \
+              --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+              --output "${RUNNER_TEMP}/image-plan/component-plan.json"
+          else
+            cp "${RUNNER_TEMP}/image-plan/image-plan.json" "${RUNNER_TEMP}/image-plan/component-plan.json"
+          fi
           python3 scripts/native_release.py publish \
-            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --plan "${RUNNER_TEMP}/image-plan/component-plan.json" \
             --records "${RUNNER_TEMP}/verified-digests"
 
       - name: Update Docker Hub overview
+        if: matrix.component == 'main'
         uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}

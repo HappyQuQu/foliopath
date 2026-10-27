@@ -1,0 +1,21 @@
+# Candidate: use matching verified main/AI release tags after native promotion.
+services:
+  foliopath:
+    image: evanqu/foliopath:${FOLIOPATH_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "9090:8080"
+    environment:
+      TZ: Asia/Shanghai
+      FOLIOPATH_AI_PROFILE: standard-v1
+    volumes:
+      - /root/foliopath/media:/library:ro
+      - /root/foliopath/data:/app/data
+
+  machine-learning:
+    image: evanqu/foliopath:${FOLIOPATH_VERSION:-latest}-ai
+    restart: unless-stopped
+    volumes:
+      - /root/foliopath/models/cache:/cache
+      - /root/foliopath/models/ocr:/ocr-cache
+      - /root/foliopath/models/scratch:/verified-cache

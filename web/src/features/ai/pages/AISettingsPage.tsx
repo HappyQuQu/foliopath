@@ -41,6 +41,7 @@ import {
   operationIsActive,
   useAIOperationQueries,
   useAIModelsQuery,
+  useAIPreparationQuery,
   useAIModelDownloadsQuery,
   useCancelAIOperationMutation,
   useClearDerivedFaceDataMutation,
@@ -90,6 +91,7 @@ export function AISettingsPage({
   const semanticQueries = useSemanticSettingsQueries(libraries.map((library) => library.id));
   const faceQueries = useFaceSettingsQueries(libraries.map((library) => library.id));
   const modelsQuery = useAIModelsQuery();
+  const preparationQuery = useAIPreparationQuery(view === "service");
   const downloadsQuery = useAIModelDownloadsQuery();
   const [operationIds, setOperationIds] = useState(readAIOperationIds);
   const trackedOperationIds = useMemo(() => [...new Set([
@@ -239,7 +241,7 @@ export function AISettingsPage({
           ><AutomaticTagSettings key={selectedLibrary.id} libraryId={selectedLibrary.id} csrfToken={session.csrfToken} onOperation={rememberOperation} /><OCRSettings libraryId={selectedLibrary.id} csrfToken={session.csrfToken} offline={selectedLibrary.status!=="ready"} onSettings={()=>navigateView("overview")} onTasks={()=>navigateView("tasks")} /></AISettingsOverview>}
 
           {view === "service" && !modelsQuery.isPending && !modelsQuery.isError && <AIServiceSettings
-            models={modelsQuery.data?.items ?? []} activeModelId={modelsQuery.data?.activeModelId ?? null} activeFaceModelId={modelsQuery.data?.activeFaceModelId ?? null}>
+            preparation={preparationQuery.isError ? { state: "unavailable", completedFiles: 0, totalFiles: 0, completedBytes: 0, totalBytes: 0 } : preparationQuery.data} models={modelsQuery.data?.items ?? []} activeModelId={modelsQuery.data?.activeModelId ?? null} activeFaceModelId={modelsQuery.data?.activeFaceModelId ?? null}>
           </AIServiceSettings>}
 
           {view === "tasks" && <>

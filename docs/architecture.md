@@ -164,3 +164,5 @@ Architecture Ready，随后固定 OpenAPI/数据契约；后端领域、适配�
 MVP 功能范围已经冻结。新能力默认进入后续版本，范围变更、阶段/版本关系、Gate 和豁免规则见
 [交付与架构治理](architecture/delivery-governance.md)。阶段完成不等于版本完成；阶段 0～5、PRD 验收、
 发布测试和阻断风险全部满足后，才能称为稳定 MVP。
+
+CR-2026-053 / [ADR-0039](adr/0039-managed-ai-bootstrap.md)扩展自助AI部署：预期身份由主镜像内嵌，既有AI容器串行准备固定模型，进度通过鉴权API呈现；旧离线profile保留，模型缓存写入及外网权限只属于AI。

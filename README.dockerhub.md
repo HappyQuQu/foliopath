@@ -219,3 +219,7 @@ docker compose up -d
 ---
 
 <p align="center"><strong>Your folders, beautifully browsed.</strong></p>
+
+## Automatic AI setup (development)
+
+The new `compose.ai.simple.yaml` adds managed model downloads and preparation status without a required `.env`. It requires the matching main and `-ai` images from CR-2026-053; existing 1.5.0 images do not support this entry point. See the repository AI deployment guide for model licenses, directories and release status.

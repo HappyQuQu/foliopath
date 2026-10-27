@@ -14,7 +14,7 @@ const meta = {
   title: "Features/Intelligence/Settings",
   component: AISettingsPage,
   args: { session: { administrator: { displayName: "管理员", id: "adm-story", username: "admin" }, csrfToken: "storybook-csrf-token-that-is-long-enough", expiresAt: "2099-01-01T00:00:00Z" } },
-  decorators: [(Story, context) => <SettingsStory route={context.parameters.route ?? "/settings/ai"} configured={context.parameters.configured ?? true} automaticState={context.parameters.automaticState ?? "ready"} ocrState={context.parameters.ocrState ?? "disabled"} taskPrototype={context.parameters.taskPrototype ?? false} taskStatusUnavailable={context.parameters.taskStatusUnavailable ?? false} faceFailures={context.parameters.faceFailures ?? false} historicalFaces={context.parameters.historicalFaces ?? false}><Story /></SettingsStory>],
+  decorators: [(Story, context) => <SettingsStory route={context.parameters.route ?? "/settings/ai"} preparationState={context.parameters.preparationState ?? "disabled"} configured={context.parameters.configured ?? true} automaticState={context.parameters.automaticState ?? "ready"} ocrState={context.parameters.ocrState ?? "disabled"} taskPrototype={context.parameters.taskPrototype ?? false} taskStatusUnavailable={context.parameters.taskStatusUnavailable ?? false} faceFailures={context.parameters.faceFailures ?? false} historicalFaces={context.parameters.historicalFaces ?? false}><Story /></SettingsStory>],
   parameters: { layout: "fullscreen", docs: { description: { component: "Contract-backed UI states using synthetic model and library metadata. These are visual fixtures, not available production model sources." } } },
 } satisfies Meta<typeof AISettingsPage>;
 export default meta;
@@ -47,7 +47,7 @@ export const ConfigurationPrototype: Story = {
   },
 };
 
-function SettingsStory({ children, route, configured, automaticState, taskPrototype, taskStatusUnavailable, faceFailures, historicalFaces, ocrState }: { children: ReactNode; route: string; configured: boolean; automaticState: "ready" | "building" | "awaiting_model" | "degraded"; taskPrototype: boolean; taskStatusUnavailable: boolean; faceFailures: boolean; historicalFaces: boolean;ocrState:"disabled"|"running"|"degraded"|"clearing"|"ready"|"unavailable" }) {
+function SettingsStory({ preparationState, children, route, configured, automaticState, taskPrototype, taskStatusUnavailable, faceFailures, historicalFaces, ocrState }: { preparationState: "disabled" | "downloading" | "failed" | "ready"; children: ReactNode; route: string; configured: boolean; automaticState: "ready" | "building" | "awaiting_model" | "degraded"; taskPrototype: boolean; taskStatusUnavailable: boolean; faceFailures: boolean; historicalFaces: boolean;ocrState:"disabled"|"running"|"degraded"|"clearing"|"ready"|"unavailable" }) {
   const [originalRecords] = useState(readAIOperationIds);
   const [client] = useState(() => {
     const client = new QueryClient({ defaultOptions: { queries: { enabled: false, retry: false, staleTime: Infinity } } });
@@ -91,6 +91,7 @@ function SettingsStory({ children, route, configured, automaticState, taskProtot
         client.getQueryCache().find({ queryKey, exact: true })!.setState({ status: "error", fetchStatus: "idle", error: new ApiError({ status: 503, code: "internal_error", message: "Synthetic status failure", requestId: "story-fixture" }) });
       }
     }
+    client.setQueryData(aiKeys.preparation, { state: preparationState, completedFiles: 16, totalFiles: 186, completedBytes: 123456789, totalBytes: 3450000000 });
     client.setQueryData(aiKeys.downloads, { runtimeAvailable: configured, items: [] });
     return client;
   });
@@ -102,7 +103,7 @@ function SettingsStory({ children, route, configured, automaticState, taskProtot
       const match = /^\/api\/v1\/libraries\/([^/]+)\/ai\/(automatic-tags|semantic|faces|video-semantic|ocr)$/.exec(url.pathname);
       const method = init?.method ?? (input instanceof Request ? input.method : "GET");
       if (method === "GET" && match && taskStatusUnavailable) return Response.json({ error: { code: "internal_error", message: "Synthetic status failure", requestId: "story-fixture" } }, { status: 503 });
-      const key = match ? match[2] === "ocr" ? aiKeys.ocr(match[1]!) : match[2] === "semantic" ? aiKeys.semantic(match[1]!) : match[2] === "faces" ? aiKeys.faces(match[1]!) : match[2] === "video-semantic" ? aiKeys.videoStatus(match[1]!) : aiKeys.automaticTags(match[1]!) : url.pathname === "/api/v1/ai/models" ? aiKeys.models : url.pathname === "/api/v1/ai/model-downloads" ? aiKeys.downloads : null;
+      const key = match ? match[2] === "ocr" ? aiKeys.ocr(match[1]!) : match[2] === "semantic" ? aiKeys.semantic(match[1]!) : match[2] === "faces" ? aiKeys.faces(match[1]!) : match[2] === "video-semantic" ? aiKeys.videoStatus(match[1]!) : aiKeys.automaticTags(match[1]!) : url.pathname === "/api/v1/ai/preparation" ? aiKeys.preparation : url.pathname === "/api/v1/ai/models" ? aiKeys.models : url.pathname === "/api/v1/ai/model-downloads" ? aiKeys.downloads : null;
       if(method==="GET"&&match?.[2]==="ocr"&&ocrState==="unavailable")return Response.json({error:{code:"ocr_not_found",message:"Synthetic unavailable OCR"}},{status:404});
       const value = key && client.getQueryData<Record<string, unknown>>(key);
       if (method === "GET" && value) {
@@ -117,3 +118,7 @@ function SettingsStory({ children, route, configured, automaticState, taskProtot
   }, [client, originalRecords, taskPrototype, taskStatusUnavailable]);
   return <ThemeProvider><QueryClientProvider client={client}><ToastProvider><MemoryRouter initialEntries={[route]}>{children}<aside role="note" style={{ background: "var(--color-surface)", color: "var(--color-text-muted)", padding: "var(--space-2)", fontSize: "var(--font-size-2)" }}>只读组件预览 · 合成数据 / Read-only component preview · synthetic data</aside></MemoryRouter></ToastProvider></QueryClientProvider></ThemeProvider>;
 }
+
+export const ModelsDownloading: Story = { parameters: { route: "/settings/ai?view=service", configured: false, preparationState: "downloading", a11y: { manual: true } } };
+export const ModelDownloadFailed: Story = { parameters: { route: "/settings/ai?view=service", configured: false, preparationState: "failed", a11y: { manual: true } } };
+export const ModelsReady: Story = { parameters: { route: "/settings/ai?view=service", preparationState: "ready", a11y: { manual: true } } };

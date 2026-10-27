@@ -322,6 +322,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/preparation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read automatic AI model preparation progress */
+        get: operations["getAIPreparation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/tag-suggestion-reviews": {
         parameters: {
             query?: never;
@@ -2258,6 +2275,18 @@ export interface components {
         };
         AIModelProxyTestResult: {
             available: boolean;
+        };
+        AIPreparation: {
+            /** Format: int64 */
+            completedBytes: number;
+            /** Format: int64 */
+            completedFiles: number;
+            /** @enum {string} */
+            state: "disabled" | "unavailable" | "preparing" | "downloading" | "loading" | "ready" | "failed";
+            /** Format: int64 */
+            totalBytes: number;
+            /** Format: int64 */
+            totalFiles: number;
         };
         AITagSuggestion: {
             asset: components["schemas"]["Asset"];
@@ -4620,6 +4649,28 @@ export interface operations {
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    getAIPreparation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Informational progress; never grants model admission or enables a library. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPreparation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     reviewAITagSuggestions: {

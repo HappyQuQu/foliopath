@@ -25,17 +25,25 @@ permissions:
 jobs:
   image:
     if: ${{ !inputs.verification_only }}
-    name: Build and verify ${{ matrix.arch }}
+    name: Build and verify ${{ matrix.component }} on ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ matrix.component == 'ai' && 75 || 45 }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: amd64
             runner: ubuntu-24.04
+            component: main
           - arch: arm64
             runner: ubuntu-24.04-arm
+            component: main
+          - arch: amd64
+            runner: ubuntu-24.04
+            component: ai
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            component: ai
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v4
@@ -74,11 +82,23 @@ jobs:
           name: image-plan
           path: ${{ runner.temp }}/image-plan
 
+      - name: Bind component publication plan
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          if [ "$COMPONENT" = ai ]; then
+            python3 scripts/native_release.py managed-plan \
+              --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+              --output "${RUNNER_TEMP}/image-plan/component-plan.json"
+          else
+            cp "${RUNNER_TEMP}/image-plan/image-plan.json" "${RUNNER_TEMP}/image-plan/component-plan.json"
+          fi
+
       - name: Read validated image labels
         id: metadata
         run: |
           python3 scripts/native_release.py labels \
-            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --plan "${RUNNER_TEMP}/image-plan/component-plan.json" \
             --output "${GITHUB_OUTPUT}"
 
       - name: Build final native image once by digest
@@ -86,13 +106,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ steps.metadata.outputs.dockerfile }}
           platforms: linux/${{ matrix.arch }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             VERSION=${{ inputs.version }}
           outputs: type=image,name=evanqu/foliopath,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=foliopath-${{ matrix.arch }}
-          cache-to: type=gha,scope=foliopath-${{ matrix.arch }},mode=max
+          cache-from: type=gha,scope=foliopath-${{ matrix.component }}-${{ matrix.arch }}
+          cache-to: type=gha,scope=foliopath-${{ matrix.component }}-${{ matrix.arch }},mode=max
           sbom: true
           provenance: true
 
@@ -104,7 +125,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           python3 scripts/native_release.py verify \
-            --plan "${RUNNER_TEMP}/image-plan/image-plan.json" \
+            --plan "${RUNNER_TEMP}/image-plan/component-plan.json" \
             --arch "${ARCH}" --digest "${DIGEST}" \
             --output "${RUNNER_TEMP}/verified-digests/${ARCH}.json"
 
@@ -127,8 +148,8 @@ jobs:
       - name: Upload verified digest
         uses: actions/upload-artifact@v4
         with:
-          name: verified-digest-${{ matrix.arch }}
-          path: ${{ runner.temp }}/verified-digests/${{ matrix.arch }}.json
+          name: verified-digest-${{ matrix.component }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/verified-digests
           if-no-files-found: error
           retention-days: 7
 

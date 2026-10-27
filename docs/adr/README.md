@@ -75,3 +75,5 @@ API 兼容策略、关键事务或任务一致性，以及共享前端架构。
 - [ADR-0036 OCR后台与显式管理](0036-ocr-runtime-management.md)：接受复用既有owner的opt-in组合，库默认关闭。
 
 - [ADR-0037 OCR全文索引与融合搜索](0037-ocr-fulltext-fused-search.md)：同事务派生FTS、当前源/identity、快照分页和有界原文证据。
+
+- [ADR-0039：固定 AI profile 与自动模型准备](0039-managed-ai-bootstrap.md)：接受双容器自助安装、内置独立身份、固定源校验及可写专用模型缓存；保留旧离线入口。

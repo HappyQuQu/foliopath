@@ -1131,3 +1131,7 @@ migration/handler/worker 测试只有 S1R2 Gate Go 后才允许出现。测试�
 FR-OCR输入错误在imagevips native失败分支以标准JPEG完整解码的明确格式/截断证据分类；未知native故障仍为处理错误，取消优先。真实native测试用合成坏熵流/有效JPEG，不能复制真实媒体作fixture。成功像素和OCR身份不变。新增分类需通过真实模型合成worker坏源后继续、同job恢复、非空人工保护和搜索，不以仅错误码单测代替。
 
 本轮固定源SQLite race累计超时后，用同一native Linux编译测试二进制、独立tmpfs四分片执行全部359项，核对编译-list与实际PASS集合相等、0跳过/无race/OOM；单进程超时原记录仍失败。分片用于避免累计包超时，不降低单例断言或伪造整体命令通过。454前端/132三浏览器/19集成和19集成race等版本边界见[验收台账](changes/AUDIT-2026-10-26-release-readiness.md)。安全扫描完成也必须按精确镜像保存未修复发现，不因当前本地部署通过而关闭发行No-Go。
+
+## CR-2026-053：managed AI安装验证
+
+`make test-managed-ai`执行生成锁检查、真实本地HTTP安装/缓存/取消/损坏恢复测试和配置/状态API测试；`make arch-check`覆盖双服务挂载/发布组件隔离，`make generate-check`覆盖固定profile。`tests/release/managed_ai_image.py`验证同一实际AI镜像中的身份与主应用嵌入JSON一致，并运行安装测试；这不等于真实模型推理或质量验收。两个原生架构各构建一次并验证同一digest，全部通过后才推广配对主及-ai标签。

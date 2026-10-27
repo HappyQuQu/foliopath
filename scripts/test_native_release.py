@@ -20,6 +20,24 @@ def plan():
                 tags=[release.IMAGE + ":1.4.0", release.IMAGE + ":latest"])
 
 
+class ManagedPlanTests(unittest.TestCase):
+    def test_actual_cli_derives_paired_tags_and_rejects_component_mix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            main, ai = Path(directory) / "main.json", Path(directory) / "ai.json"
+            release.write_json(main, plan())
+            subprocess.run(["python3", str(Path(release.__file__)), "managed-plan", "--plan", str(main), "--output", str(ai)], check=True)
+            value = release.read_plan(ai)
+            self.assertEqual(value["tags"], [release.IMAGE+":1.4.0-ai", release.IMAGE+":latest-ai"])
+            self.assertEqual(value["component"], "ai")
+            for arch in release.ARCHITECTURES:
+                release.write_json(Path(directory) / "records" / (arch+".json"), dict(image=release.IMAGE,
+                    source=value["source"], version=value["version"], arch=arch, digest="sha256:"+"c"*64))
+            with self.assertRaisesRegex(ValueError, "component"):
+                release.publish(value, Path(directory) / "records")
+            value["tags"] = [release.IMAGE+":latest"]
+            with self.assertRaises(ValueError): release.validate_plan(value)
+
+
 class NativeReleaseTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

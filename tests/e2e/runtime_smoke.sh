@@ -53,6 +53,7 @@ wait_healthy() {
 start_application() {
 	docker run --detach \
 		--name "${container}" \
+		"$@" \
 		--mount "type=bind,src=${data_root},dst=/app/data" \
 		--mount "type=bind,src=${media_root},dst=/library,readonly" \
 		"${image}" >/dev/null
@@ -85,6 +86,13 @@ stop_application
 # A second real process against the same data volume proves that embedded
 # migrations and application-data preparation are restart-safe.
 start_application
+stop_application
+
+# Managed AI must not block core readiness when its separate service is absent.
+start_application --env FOLIOPATH_AI_PROFILE=standard-v1
+status_code=$(docker exec "${container}" curl --silent --output /dev/null \
+	--write-out '%{http_code}' http://127.0.0.1:8080/api/v1/ai/preparation)
+test "${status_code}" = "401"
 stop_application
 
 sentinel_after=$(sha256sum "${media_root}/sentinel.txt" | cut -d ' ' -f 1)

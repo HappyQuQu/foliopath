@@ -1,0 +1,88 @@
+{
+  "change": "CR-2026-053",
+  "date": "2026-10-27",
+  "branch": "codex/simple-ai-deployment",
+  "localPlatform": "linux/arm64",
+  "testedAIImageID": "sha256:438b039c4877e125d2c1d13d98773feb57bb2059b718671288a21530c1d5ed35",
+  "profileSHA256": "45bbb3b7b1e3792dc5b5e0ea7bcb5ecd6c0f8c999b5a184efa2615172b65627f",
+  "download": {
+    "files": 186,
+    "bytes": 3459762979,
+    "fixedPublicSources": true,
+    "verifiedBeforeReady": true
+  },
+  "offlineRestart": {
+    "state": "ready",
+    "completedFiles": 186,
+    "totalFiles": 186,
+    "completedBytes": 3459762979,
+    "totalBytes": 3459762979
+  },
+  "syntheticInference": {
+    "textDimension": 640,
+    "imageDimension": 640,
+    "faces": 2,
+    "tags": 3,
+    "ocrLines": 4,
+    "blankOCR": true
+  },
+  "cgroupEvents": {
+    "oom": 0,
+    "oomKill": 0
+  },
+  "uiChecks": {
+    "count": 48,
+    "widths": [
+      390,
+      768,
+      1280,
+      1920
+    ],
+    "locales": [
+      "zh-CN",
+      "en"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "horizontalOverflow": false,
+    "seriousOrCriticalAccessibilityViolations": 0
+  },
+  "checks": [
+    "make fmt",
+    "make arch-check",
+    "make generate-check",
+    "make lint",
+    "make test",
+    "make test-integration",
+    "make test-e2e",
+    "make test-managed-ai",
+    "npm ci --ignore-scripts",
+    "npm run check:types",
+    "npm run check:architecture",
+    "npm run check:visual-references",
+    "npm run lint:openapi",
+    "npm run audit:high",
+    "npm run test (525 tests)",
+    "npm run build:storybook",
+    "18 native release protocol tests",
+    "actual ARM64 AI image profile parity and installer suite",
+    "48 responsive/accessibility browser checks"
+  ],
+  "notClaimed": [
+    "AMD64 execution",
+    "native two-architecture publication",
+    "registry tag publication",
+    "labelled AI accuracy",
+    "24-hour load/capacity",
+    "production deployment"
+  ],
+  "notes": [
+    "OpenAPI lint succeeds with two existing health-endpoint 4xx warnings.",
+    "Real-image test used isolated temporary model directories and synthetic fixtures; no original media or application database mounted.",
+    "AI runtime remains based on pinned upstream; dedicated models are not Immich application data.",
+    "The real model probe reused the ongoing empty-cache validation container; automatic fresh-download interruption is additionally exercised by the release harness and installer cancellation unit test."
+  ],
+  "finalImageHealthcheckStartPeriodSeconds": 2700
+}

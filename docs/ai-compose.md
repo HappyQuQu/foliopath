@@ -270,3 +270,19 @@ FOLIOPATH_TEST_MODEL_CACHE=/absolute/path/to/copied-model-cache \
 追加 `--faults` 执行 F02：使用支持人脸的候选镜像，显式配置仅合成测试阈值，验证两个模型实际分析后，空缓存、同长度损坏缓存和错误身份的失败关闭、结果保留及逐项恢复。坏文件只写临时副本，原模型缓存始终只读；退出清除临时坏文件。不证明准确率或 G02 全部安全项通过。
 
 追加 `--delivery --offline`（与 `--faults` 分开），并显式设置 `FOLIOPATH_TEST_APP_IMAGE` 为旧版、`FOLIOPATH_TEST_UPGRADE_IMAGE` 为新版本，执行配对升级/回退、安全检查及两类清除。离线测试叠加 `tests/release/compose.ai.offline.yaml` 将主应用网络也设为 internal，生产配置不变。已加载镜像及缓存就绪后执行，不下载依赖，不操作现有数据。
+
+## 简化自动安装入口（CR-2026-053，开发分支）
+
+新增 `compose.ai.simple.yaml`，与旧离线入口分别使用，不叠加。该入口需要本次代码构建的配对主/AI镜像；已发布的1.5.0不支持 `FOLIOPATH_AI_PROFILE`，当前尚未发布新的配对 `latest-ai`，不能直接把新配置用于旧镜像。
+
+发布并完成双原生验证后，用户只需保存这一份 Compose，修改媒体目录、data目录及端口，然后执行 `docker compose -f compose.ai.simple.yaml up -d`。无必填 .env、手工身份JSON或生成程序。普通图库先启动；首次自动准备约3.3GB模型，建议为缓存和验证临时副本留出至少8GiB空间，AI运行内存先预留约6GiB。服务与模型页面显示检查、下载进度、准备完成和失败重试提示。
+
+映射为单一 `/library:ro`、`/app/data`，以及AI专用的 `/cache`、`/ocr-cache`、`/verified-cache`。示例目录位于 `/root/foliopath`；现有照片位于别处时只修改 media 映射左侧，不能移动原件或用软链接代替媒体挂载。删除models会触发重新下载；删除data会丢失账号、设置、人工收藏/标签等。scratch可重建，不能与模型真相、媒体或data共用。
+
+AI自动下载使用镜像内固定HTTPS源、版本、大小与SHA256；先验证再原子发布，崩溃遗留的同名临时文件下次重新写入，已完成文件复用。失败间隔60秒重试，退出取消下载。默认不继承HTTP_PROXY等；需要出站代理时，在AI服务显式设置 `FOLIOPATH_MODEL_DOWNLOAD_PROXY=http://代理主机:端口`，当前自动安装支持无认证HTTP代理，保留目标TLS，不自动回退直连。旧模型管理界面的下载代理设置属于主应用，不控制AI容器。
+
+profile 固定为 `standard-v1`，与 `FOLIOPATH_AI_DEPLOYMENT` 互斥。主镜像嵌入的预期身份来自canonical runtime；准备状态没有身份/信任作用。旧离线镜像、配置、缓存和历史向量不会被修改。新profile只下载多语言语义、公开版buffalo_l、JoyTag和OCR实际运行文件，不下载旧英文CLIP或Hugging Face本机元数据；buffalo_l识别权重与历史私有缓存不同，清单和face代次独立。迁移现有实例前正常停写全备份，不可重标旧结果。
+
+模型说明：语义模型MIT；JoyTag/PaddleOCR按上游Apache-2.0说明；buffalo_l预训练权重受InsightFace研究用途限制，不代表获得商业许可。人物聚类使用版本化工程默认阈值，不声称通过正式标注准确率验收；每库仍须管理员显式启用，自动下载不会为未启用的库提交分析；将已有启用库切换到新身份时，按既有规则补齐/重新分析，迁移前应正常停写备份。
+
+源码开发者用 `docker build -f services/inference/Dockerfile.managed -t foliopath-managed-ai:dev .` 构建AI；主应用按根Dockerfile构建，通过 `FOLIOPATH_VERSION` 或Compose覆盖选择本地配对标签。修改runtime、模型或策略后，在包含FastAPI/uvicorn/python-multipart的推理Python环境运行 `python scripts/generate_managed_ai.py`；普通 `--check` 只需标准库。生成器复用既有身份owner，不重写旧runtime源。生成JSON、catalog、Dockerfile.managed及lock必须一起提交。

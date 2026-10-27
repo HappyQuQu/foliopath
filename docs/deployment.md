@@ -819,3 +819,7 @@ S2C 已 Backend Ready，但 Release 保持 No-Go；核心浏览和已经可安�
 Docker Desktop上的真实`/app/data`使用经停写复制验证的外部命名卷，避免WAL共享内存经过宿主文件共享层。使用`compose.ai.data-volume.yaml`作为第五覆盖，设置`FOLIOPATH_DATA_VOLUME`为已准备卷；其他四覆盖及`/library:ro`保留。原生Linux本地bind方案不因本轮改变。
 
 切换前停止主应用并确认正常exit0，对完整data及私有env/所有Compose独立备份、逐文件核验；只从停写源向空Linux卷复制，验证清单、原能力/旧OCR摘要及完整性后再起主。旧目录留作历史副本，不代表在线数据；不能启动旧目录或在运行中复制DB。此后停写备份需从卷导出完整data并核验，恢复到独立空卷后检查，不能把更新后的卷与旧目录双向同步。删除卷或重置Docker前必须已有独立完整备份，回退必须先停主且保留切换后新写入。详见[ADR-0038](adr/0038-docker-desktop-linux-sqlite-volume.md)。
+
+## 自动准备 AI（开发分支）
+
+CR-2026-053 / ADR-0039 新增 `compose.ai.simple.yaml`，配对镜像自动安装模型，详情见 [简化自动安装入口](ai-compose.md#简化自动安装入口cr-2026-053开发分支)。旧离线部署保持原配置。新入口尚未公开发布，不能用于1.5.0旧主镜像。

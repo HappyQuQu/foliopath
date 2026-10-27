@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -16,8 +17,13 @@ import (
 )
 
 const deploymentEnvironment = "FOLIOPATH_AI_DEPLOYMENT"
+const managedProfileEnvironment = "FOLIOPATH_AI_PROFILE"
+
+//go:embed managed_ai.generated.json
+var managedDeploymentJSON string
 
 type deploymentConfiguration struct {
+	Managed            bool                         `json:"-"`
 	OCR                *ocrDeploymentConfiguration  `json:"ocr,omitempty"`
 	Origin             string                       `json:"origin"`
 	Identity           remoteml.ServiceIdentity     `json:"identity"`
@@ -67,6 +73,10 @@ func (c faceDeploymentConfiguration) model() aimodel.VerifiedPackage {
 }
 
 func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, error) {
+	environ, err := managedDeploymentEnvironment(environ)
+	if err != nil {
+		return nil, err
+	}
 	var result *deploymentConfiguration
 	for _, entry := range environ {
 		name, value, ok := strings.Cut(entry, "=")
@@ -120,6 +130,13 @@ func deploymentFromEnvironment(environ []string) (*deploymentConfiguration, erro
 		}
 		result = &config
 	}
+	if result != nil {
+		for _, entry := range environ {
+			if entry == managedProfileEnvironment+"=standard-v1" {
+				result.Managed = true
+			}
+		}
+	}
 	return result, nil
 }
 
@@ -135,4 +152,27 @@ func (c deploymentConfiguration) model() aimodel.VerifiedPackage {
 	fingerprint, _ := c.space().Fingerprint()
 	return aimodel.VerifiedPackage{PackageID: c.Identity.Model, Purpose: aimodel.PurposeSemanticImageText, Version: c.Identity.Protocol,
 		Architecture: runtime.GOARCH, ContentHash: fingerprint, LicenseID: c.LicenseID, PackageSizeByte: c.ModelBytes}
+}
+
+func managedDeploymentEnvironment(environ []string) ([]string, error) {
+	profile, explicit := false, false
+	for _, entry := range environ {
+		name, value, ok := strings.Cut(entry, "=")
+		switch name {
+		case managedProfileEnvironment:
+			if !ok || profile || value != "standard-v1" {
+				return nil, errInvalidConfiguration
+			}
+			profile = true
+		case deploymentEnvironment:
+			explicit = true
+		}
+	}
+	if profile && explicit {
+		return nil, errInvalidConfiguration
+	}
+	if profile {
+		return append(append([]string(nil), environ...), deploymentEnvironment+"="+managedDeploymentJSON), nil
+	}
+	return environ, nil
 }

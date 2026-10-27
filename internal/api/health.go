@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/HappyQuQu/foliopath/internal/aimodel"
 	appsettings "github.com/HappyQuQu/foliopath/internal/settings"
 )
 
@@ -58,6 +59,7 @@ type RouteDependencies struct {
 	Thumbnails          ThumbnailService
 	Content             ContentService
 	ContentAdmission    ContentAdmission
+	AIPreparation       aimodel.PreparationReader
 	AIModels            AIModelManagementService
 	AIModelDownloads    AIModelDownloadService
 	ModelProxy          ModelProxyService
@@ -150,6 +152,7 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	if dependencies.Content != nil {
 		registerContentRoutes(mux, dependencies.Content, dependencies.ContentAdmission)
 	}
+	registerAIPreparationRoute(mux, dependencies.AIPreparation)
 	if dependencies.AIModels != nil {
 		registerAIModelRoutes(mux, dependencies.AIModels)
 	}

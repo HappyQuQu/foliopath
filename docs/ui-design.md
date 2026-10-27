@@ -912,3 +912,7 @@ generationCurrent=false 时明确“旧模型结果”和历史计数，未知�
 
 
 2026-10-26 发布候选无障碍修正：`MediaViewer` 的查看器配色同时覆盖普通表面和悬停表面，复用已有深色查看器token。触屏点击后保留的悬停状态及鼠标悬停都必须保持文字对比度；不能让浅色应用主题的按钮悬停底色进入白字查看器。共享Button语义、DOM、焦点及重试动作不变，稳定MediaViewer Story仍直接复用同一生产组件。中英文／浅深主题／390、768、1280、1920宽度的交互与axe回归见[统一候选记录](changes/VERIFY-2026-10-26-release-candidate.md)。
+
+## CR-2026-053：AI模型准备状态
+
+既有“服务与模型”生产组件增加只读状态：检查、下载（字节进度和完成文件数）、加载、就绪、失败重试及无法连接。使用既有hint/coverage样式、原生有名称progress及role=status，中文/英文一致。错误时隐藏过时进度；不显示URL、路径、身份或原始异常。旧离线入口不显示自动安装状态。页面沿用流式宽度，不引入布局上限。Storybook ModelsDownloading/ModelDownloadFailed/ModelsReady为标明的合成合同状态。

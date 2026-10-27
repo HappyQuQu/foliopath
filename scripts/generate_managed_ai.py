@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Generate the managed profile from canonical runtime owners; --check needs stdlib only."""
+import argparse
+import hashlib
+import importlib
+import json
+from pathlib import Path
+import shutil
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNTIME = ROOT / 'services/inference'
+LOCK = RUNTIME / 'managed.lock.json'
+OUTPUTS = ['services/inference/managed-catalog.generated.json',
+           'services/inference/managed-cache.generated.json',
+           'internal/app/managed_ai.generated.json', 'services/inference/Dockerfile.managed']
+
+
+def source_digest():
+    sources = sorted([*RUNTIME.glob('*.py'), RUNTIME / 'Dockerfile.release', RUNTIME / 'managed-profile.json',
+                      RUNTIME / 'ocr-manifest.json', RUNTIME / 'ocr-input.generated.json',
+                      RUNTIME / 'ocr-output.generated.json', ROOT / 'internal/curation/tag_categories.json',
+                      ROOT / 'internal/ocr/conformance.json', ROOT / 'spikes/int001-remote-ml/cache-baseline.json',
+                      ROOT / 'spikes/int001-remote-ml/multilingual/cache-baseline.json',
+                      ROOT / 'spikes/automatic-tags/model-manifest.json', ROOT / 'spikes/ocr/model-manifest.json',
+                      Path(__file__)])
+    digest = hashlib.sha256()
+    for path in sources:
+        digest.update(str(path.relative_to(ROOT)).encode() + b'\0' + path.read_bytes())
+    return digest.hexdigest()
+
+
+def write(relative, value):
+    (ROOT / relative).write_text(json.dumps(value, sort_keys=True, indent=2) + '\n')
+
+
+def generate():
+    spec = json.loads((RUNTIME / 'managed-profile.json').read_text())
+    with tempfile.TemporaryDirectory() as directory:
+        runtime = Path(directory)
+        for line in (RUNTIME / 'Dockerfile.release').read_text().splitlines():
+            if line.startswith('COPY '):
+                source, dest = json.loads(line[5:])
+                shutil.copyfile(ROOT / source, runtime / Path(dest).name)
+        (runtime / 'cache-manifest.json').write_text(json.dumps(spec['face_files']))
+        sys.path.insert(0, directory)
+        tag = importlib.import_module('tag_contract')
+        (runtime / 'tag-manifest.json').write_text(json.dumps(tag.MANIFEST))
+        server = importlib.import_module('server')
+        semantic = importlib.import_module('multilingual_contract')
+        photo = importlib.import_module('photo_policy')
+        ocr = importlib.import_module('ocr_contract')
+        multilingual = json.loads((runtime / 'multilingual-manifest.json').read_text())
+        threshold = dict(spec['face_threshold'], qualitySummarySha256=hashlib.sha256(spec['face_quality_note'].encode()).hexdigest())
+        face_identity = dict(server.expected_identity(spec['face_files']), protocol='foliopath-face-v1', model='buffalo_l')
+        deployment = dict(origin='http://machine-learning:3003', identity=semantic.expected_identity(),
+                          model_bytes=sum(e['size'] for e in multilingual), license_id=spec['semantic_license'],
+                          image_preprocessing='png-v4', tag=dict(identity=photo.expected_identity(), image_preprocessing='png-v4'),
+                          ocr=dict(identity=ocr.expected_identity()), face=dict(identity=face_identity,
+                          detector_sha256=spec['face_files'][0]['sha256'], embedder_sha256=spec['face_files'][1]['sha256'],
+                          threshold=threshold, model_bytes=sum(e['size'] for e in spec['face_files']), license_id=spec['face_license']))
+        catalog = []
+        for entries, repo, revision, prefix in [
+            (multilingual, spec['semantic_repository'], spec['semantic_revision'], 'clip/XLM-Roberta-Large-Vit-B-16Plus/'),
+            (spec['face_files'], spec['face_repository'], spec['face_revision'], 'facial-recognition/buffalo_l/'),
+        ]:
+            for entry in entries:
+                catalog.append(dict(entry, root='cache', url=f'https://huggingface.co/{repo}/resolve/{revision}/'+entry['path'].removeprefix(prefix)))
+        joy = json.loads((ROOT / 'spikes/automatic-tags/model-manifest.json').read_text())
+        for entry in tag.MANIFEST:
+            catalog.append(dict(entry, root='cache', url=f"https://huggingface.co/{joy['repository']}/resolve/{joy['revision']}/"+Path(entry['path']).name))
+        sources = json.loads((ROOT / 'spikes/ocr/model-manifest.json').read_text())['files']
+        for entry in ocr.MANIFEST:
+            source = next(s for s in sources if s['path'] == entry['path'])
+            assert source['sha256'] == entry['sha256'] and source['size'] == entry['size']
+            catalog.append(dict(entry, root='ocr', url=source['url']))
+        write(OUTPUTS[0], catalog)
+        write(OUTPUTS[1], spec['face_files'])
+        write(OUTPUTS[2], deployment)
+        recipe = '\n'.join(line for line in (RUNTIME / 'Dockerfile.release').read_text().splitlines() if not line.startswith('CMD ')) + '\n'
+        recipe += '\n# Generated by scripts/generate_managed_ai.py; do not edit.\n'
+        for source, dest in [('services/inference/managed-cache.generated.json', 'cache-manifest.json'),
+                             ('services/inference/managed-catalog.generated.json', 'managed-catalog.generated.json'),
+                             ('services/inference/model_install.py', 'model_install.py'),
+                             ('services/inference/managed_runtime.py', 'managed_runtime.py'),
+                             ('internal/app/managed_ai.generated.json', 'managed-deployment.generated.json')]:
+            recipe += 'COPY ' + json.dumps([source, '/opt/foliopath-inference/' + dest]) + '\n'
+        recipe += 'HEALTHCHECK --interval=10s --timeout=3s --retries=6 --start-period=45m CMD ' + json.dumps(['python', '-c', "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:3003/ping',timeout=2).read()==b'pong'"]) + '\n'
+        recipe += 'CMD ["python", "-m", "managed_runtime"]\n'
+        (ROOT / OUTPUTS[3]).write_text('# Generated by scripts/generate_managed_ai.py; do not edit.\n' + recipe)
+    write('services/inference/managed.lock.json', dict(source_sha256=source_digest(), outputs={p: hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in OUTPUTS}))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check', action='store_true')
+    args = parser.parse_args()
+    if not args.check:
+        generate()
+        return
+    lock = json.loads(LOCK.read_text())
+    if lock['source_sha256'] != source_digest() or lock['outputs'] != {p: hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in OUTPUTS}:
+        raise SystemExit('Managed AI profile stale: run scripts/generate_managed_ai.py in the inference Python environment')
+
+
+if __name__ == '__main__':
+    main()

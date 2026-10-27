@@ -61,10 +61,10 @@ func TestDockerHubPublicationKeepsTagAndPlatformBoundaries(t *testing.T) {
 	requireFragments(t, "native-images.yml", string(native), []string{
 		"runner: ubuntu-24.04", "runner: ubuntu-24.04-arm", "fail-fast: false",
 		"platforms: linux/${{ matrix.arch }}", "VERSION=${{ inputs.version }}",
-		"scope=foliopath-${{ matrix.arch }}", "native-mounts-v1-${{ matrix.arch }}",
+		"scope=foliopath-${{ matrix.component }}-${{ matrix.arch }}", "native-mounts-v1-${{ matrix.arch }}",
 		"scripts/buildkit_cache_mounts.py inject", "scripts/buildkit_cache_mounts.py extract",
 		"push-by-digest=true", "sbom: true", "provenance: true",
-		"scripts/native_release.py verify", "verified-digest-${{ matrix.arch }}",
+		"scripts/native_release.py verify", "verified-digest-${{ matrix.component }}-${{ matrix.arch }}", "component: ai", "component: main", "scripts/native_release.py managed-plan",
 		"actions/cache/restore@v4", "actions/cache/save@v4", "timeout-minutes: 3",
 	})
 	if strings.Contains(workflow+string(native), "setup-qemu") {

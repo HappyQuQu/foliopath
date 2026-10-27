@@ -486,3 +486,8 @@ function requireEtag(response: Response): string {
   if (!etag) throw new Error("Required representation validator was not returned.");
   return etag;
 }
+
+export type AIPreparation = components["schemas"]["AIPreparation"];
+export async function getAIPreparation(): Promise<AIPreparation> {
+  return unwrap(apiClient.GET("/api/v1/ai/preparation"));
+}
