@@ -308,6 +308,9 @@ Docker 发布，只调用只读 native evidence workflow。任何其他 `image_t
 测试。该桥接不改变最终模型、质量、供应链与批准 Gate。
 Docker Hub 发布流程使用仓库 `GITHUB_TOKEN` 完成 PR 和 Release，不连接或更新任何实际部署实例。
 
+只修改 Docker Hub 文案时，可提交 `README.dockerhub.md` 后手动运行
+[`Sync Docker Hub overview`](../.github/workflows/dockerhub-overview.yml)。它复用现有 Hub 凭据和固定版本的说明同步 action，只更新 Overview 与简介，不构建镜像、不修改标签或实际部署。文案提交可使用 `[skip ci]` 避免触发完整镜像发布，再通过 `gh workflow run dockerhub-overview.yml --ref main` 同步。
+
 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
 
 | 类型 | 名称 | 示例 / 用途 |

@@ -1,239 +1,35 @@
 # FolioPath
 
-<p align="center">
-  <strong><a href="#english">English</a></strong> · <a href="#简体中文">简体中文</a>
-</p>
+**把已有照片目录变成图库，用画面、文字、标签和人物找照片。**
 
-<a id="english"></a>
+A self-hosted photo and video browser with local AI. Browse your existing folders and keep originals untouched.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/HappyQuQu/foliopath/main/web/public/foliopath-mark-tree.svg" alt="FolioPath logo" width="96">
-</p>
+[简体中文](#简体中文) · [English](#english) · [GitHub](https://github.com/HappyQuQu/foliopath) · [文档 / Docs](https://github.com/HappyQuQu/foliopath/blob/main/docs/README.md)
 
-<p align="center">
-  <strong>📚 A read-only, self-hosted media browser built for browsing complete photo and video sets</strong>
-</p>
-
-<p align="center">
-  No imports. No reorganization. Browse the folders you already have while your originals remain untouched.
-</p>
-
-<p align="center">
-  <a href="https://github.com/HappyQuQu/foliopath"><img alt="Source code" src="https://img.shields.io/badge/source-GitHub-181717?logo=github"></a>
-  <a href="https://github.com/HappyQuQu/foliopath/blob/main/LICENSE"><img alt="License: AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg"></a>
-  <img alt="Platforms: Linux amd64 and arm64" src="https://img.shields.io/badge/platform-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey.svg">
-</p>
-
-<p align="center">
-  <strong>⭐ Enjoying FolioPath? Your stars help more people discover the project.</strong>
-</p>
-
-<p align="center">
-  <a href="https://github.com/HappyQuQu/foliopath"><img alt="Star FolioPath on GitHub" src="https://img.shields.io/github/stars/HappyQuQu/foliopath?style=for-the-badge&amp;logo=github&amp;label=Star%20on%20GitHub"></a>
-  <a href="https://hub.docker.com/r/evanqu/foliopath"><img alt="Star FolioPath on Docker Hub" src="https://img.shields.io/badge/Star_on-Docker_Hub-2496ED?style=for-the-badge&amp;logo=docker&amp;logoColor=white"></a>
-</p>
-
-FolioPath directly reads an existing directory tree and lets you browse a folder and all its descendants as one set. It is designed for photography archives, family media, NAS libraries, and collections already organized by project, trip, event, person, or date.
-
-![FolioPath home](https://raw.githubusercontent.com/HappyQuQu/foliopath/main/docs/screenshots/home-light.webp)
-
-## Highlights
-
-- Browse a directory and its descendants without creating albums.
-- Keep source paths visible in aggregated views.
-- Use adaptive grid and masonry layouts for mixed media dimensions.
-- Choose seamless masonry for photo sets with no gaps, rounded corners, filenames, or time rows.
-- Search by filename, path, media type, date, and scope.
-- Zoom, pan, view at 1:1, navigate between items, use fullscreen, and play videos.
-- Configure multiple non-overlapping libraries below one read-only `/library` mount.
-- Preserve the last reliable index when a library is offline or a scan is interrupted.
-- Find photos by describing a scene in Chinese or English; combine content, filename, path, and OCR matches.
-- Search Chinese and English words inside processed images, with matching text shown in the preview.
-- Automatically add tags from 153 photo categories while preserving manual edits and removed-tag choices.
-- Group similar faces, name people yourself, and correct photo assignments.
-- Enable AI features per library and manage processing progress, missing results, cancellation, and retries.
-- Run as one container, or add one local AI container. Media and queries stay local.
-
-## Supported media
-
-| Type | Formats |
-| --- | --- |
-| Images | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`) |
-| Video | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`), AVI (`.avi`) |
-
-Videos are not transcoded, so direct playback depends on browser codec support. SVG, HEIC/HEIF, AVIF, RAW, and other unlisted formats are outside the current support contract.
-
-## Quick start
-
-FolioPath requires Linux on `amd64` or `arm64`, Docker, and Docker Compose v2.
-
-Create an empty directory, save the following as `compose.yaml`, and replace `/mnt/photos` with the single host directory containing your media:
-
-```yaml
-services:
-  foliopath:
-    image: evanqu/foliopath:latest
-    restart: unless-stopped
-    environment:
-      TZ: Asia/Shanghai
-    ports:
-      - "8080:8080"
-    volumes:
-      - /mnt/photos:/library:ro
-      - ./data:/app/data
-```
-
-Start the container:
-
-```bash
-docker compose up -d
-```
-
-Open `http://<your-server-LAN-address>:8080`, create the administrator account, then add directories under **Administration → Libraries**.
-
-For controlled upgrades, replace `latest` with a specific version tag or immutable digest. See the repository's [authoritative Compose file](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml) for configurable path, address, port, image, and timezone values.
-
-## With local AI
-
-Version 1.5 introduced intelligent search, automatic tags, OCR, and people analysis. Version 1.6.1 adds automatic model preparation. To use these features, replace the basic configuration above with this two-container setup, then run `docker compose up -d`:
-
-```yaml
-services:
-  foliopath:
-    image: evanqu/foliopath:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      TZ: Asia/Shanghai
-      FOLIOPATH_AI_PROFILE: standard-v1
-    volumes:
-      - /mnt/photos:/library:ro
-      - ./data:/app/data
-
-  machine-learning:
-    image: evanqu/foliopath:latest-ai
-    restart: unless-stopped
-    volumes:
-      - ./models/cache:/cache
-      - ./models/ocr:/ocr-cache
-      - ./models/scratch:/verified-cache
-```
-
-The first startup downloads about 3.5 GB of fixed models. Ordinary browsing remains available while they prepare. Check **AI Analysis → Service and models**, then enable the features you need for each library. Reserve about 6 GiB of AI memory and at least 8 GiB of disk space for models and working copies. No required `.env` or setup script. For pinned upgrades, pair `1.6.1` with `1.6.1-ai`.
-
-## Storage and permissions
-
-| Container path | Access | Purpose |
-| --- | --- | --- |
-| `/library` | Read-only | The one allowed media root and all selectable library directories below it |
-| `/app/data` | Read-write | SQLite database, settings, jobs, thumbnails, posters, and temporary state |
-
-The container runs as root so a bind-mounted `./data` directory created by Docker is writable without a host-side ownership step. Keep `/library` read-only; root runtime increases the impact of a container compromise, so do not expose FolioPath directly to an untrusted network.
-
-Mount the media tree exactly once at `/library`. Nested volumes, bind mounts, or other mount points below `/library` are unsupported and rejected. FolioPath never moves, renames, edits, or deletes original media.
-
-## Network safety
-
-Direct HTTP is intended for an authenticated, trusted LAN. For public or otherwise untrusted network access, use an external HTTPS reverse proxy and prevent clients from bypassing it. Review the [deployment guide](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md) and [security model](https://github.com/HappyQuQu/foliopath/blob/main/docs/security.md) before exposing the service.
-
-## Documentation and support
-
-- [English project overview](https://github.com/HappyQuQu/foliopath/blob/main/README.md)
-- [简体中文项目说明](https://github.com/HappyQuQu/foliopath/blob/main/README.zh-CN.md)
-- [Deployment, upgrades, backup, restore, and reverse proxy](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md)
-- [Documentation index](https://github.com/HappyQuQu/foliopath/blob/main/docs/README.md)
-- [Issue tracker](https://github.com/HappyQuQu/foliopath/issues)
-- [AGPL-3.0-or-later license](https://github.com/HappyQuQu/foliopath/blob/main/LICENSE)
-
----
-
-<p align="center"><strong>Your folders, beautifully browsed.</strong></p>
-
----
-
-<a id="简体中文"></a>
+![FolioPath media library](https://raw.githubusercontent.com/HappyQuQu/foliopath/main/docs/screenshots/home-light.webp)
 
 ## 简体中文
 
-<p align="center">
-  <a href="#english">English</a> · <strong><a href="#简体中文">简体中文</a></strong>
-</p>
+FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、摄影归档和套图收藏。文件夹和子目录可以一起浏览，原始照片和视频始终只读，无需重新上传或调整目录。
 
-FolioPath 是一款为整套照片和视频浏览而生的只读、自托管媒体浏览器。它直接读取现有目录树，让你把一个文件夹及其所有子目录作为完整内容集浏览，不需要重新上传、建立相册或改变原有归档方式。
+### 可以做什么
 
-适合摄影归档、家庭影像、NAS 媒体库，以及已经按作品、旅行、活动、人物或日期整理好的收藏。
-
-<p align="center">
-  <strong>⭐ 喜欢 FolioPath？你的 Star 能帮助更多人发现这个项目。</strong>
-</p>
-
-<p align="center">
-  <a href="https://github.com/HappyQuQu/foliopath"><img alt="在 GitHub 为 FolioPath 点 Star" src="https://img.shields.io/github/stars/HappyQuQu/foliopath?style=for-the-badge&amp;logo=github&amp;label=Star%20on%20GitHub"></a>
-  <a href="https://hub.docker.com/r/evanqu/foliopath"><img alt="在 Docker Hub 为 FolioPath 点 Star" src="https://img.shields.io/badge/Star_on-Docker_Hub-2496ED?style=for-the-badge&amp;logo=docker&amp;logoColor=white"></a>
-</p>
-
-![FolioPath 主页](https://raw.githubusercontent.com/HappyQuQu/foliopath/main/docs/screenshots/home-light.webp)
-
-### 主要功能
-
-- 穿透浏览文件夹及其所有子目录，无需另建相册。
-- 汇总浏览时保留媒体来源路径。
-- 使用自适应网格和瀑布流展示不同尺寸的媒体。
-- 使用无缝瀑布流连贯浏览套图：隐藏文件名和时间栏，图片零间距、无圆角。
-- 按文件名、路径、媒体类型、日期和范围搜索。
-- 支持缩放、平移、1:1、前后切换、全屏和视频播放。
-- 在唯一的只读 `/library` 挂载下配置多个互不重叠的媒体库。
-- 媒体库离线或扫描中断时保留最后可靠索引。
-- 用中文或英文描述画面找照片，融合文件名、路径、画面和 OCR 匹配。
-- 按已识别图片中的中英文文字搜索，并在预览中查看匹配原文。
-- 自动添加 153 类图片标签，保留手动标签和已移除标签的选择。
-- 将相似人脸分组，人工命名人物，并核对、调整照片归类。
-- 按媒体库开启智能功能，管理处理进度、补齐缺失、取消和重试。
-- 主应用单容器运行，也可增加一个本地 AI 容器；媒体和查询留在本地。
-
-### 支持格式
-
-| 类型 | 格式 |
+| 功能 | 使用方式 |
 | --- | --- |
-| 图片 | JPEG（`.jpg`、`.jpeg`）、PNG（`.png`）、WebP（`.webp`）、GIF（`.gif`） |
-| 视频 | MP4（`.mp4`）、MOV（`.mov`）、MKV（`.mkv`）、AVI（`.avi`） |
+| 文件夹穿透浏览 | 查看当前目录及全部子目录，保留来源路径 |
+| 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览 |
+| 智能搜索 | 用中文或英文描述画面，结合文件名、路径和图片文字查找 |
+| 图片文字搜索 | 搜索已识别的中英文文字，在预览中查看匹配原文 |
+| 自动标签 | 153 类图片标签，保留手动标签和已移除标签的选择 |
+| 人物整理 | 将相似人脸分组，人工命名并调整照片归类 |
+| 本地处理 | 按媒体库开启 AI，查看进度、补齐缺失、取消或重试 |
+| 图片与视频查看 | 缩放、平移、1:1、全屏、前后切换和视频播放 |
 
-视频不会转码，能否直接播放取决于浏览器支持的内部编码。SVG、HEIC/HEIF、AVIF、RAW 以及其他未列出的格式不在当前支持范围内。
+### 快速部署（带 AI）
 
-### 快速开始
+需要 Linux `amd64` 或 `arm64`、Docker 和 Docker Compose v2。主应用与 AI 共两个容器，无需编写程序，也无需必填 `.env`。
 
-需要 Linux `amd64` 或 `arm64`、Docker 和 Docker Compose v2。
-
-新建一个空目录，把下面内容保存为 `compose.yaml`，并将 `/mnt/photos` 替换为宿主机上唯一的媒体根目录：
-
-```yaml
-services:
-  foliopath:
-    image: evanqu/foliopath:latest
-    restart: unless-stopped
-    environment:
-      TZ: Asia/Shanghai
-    ports:
-      - "8080:8080"
-    volumes:
-      - /mnt/photos:/library:ro
-      - ./data:/app/data
-```
-
-启动容器：
-
-```bash
-docker compose up -d
-```
-
-打开 `http://<服务器局域网地址>:8080`，创建管理员账户，然后在 **管理中心 → 媒体库** 中添加要浏览的目录。
-
-需要可控升级时，请把 `latest` 替换为明确版本标签或不可变 digest。路径、监听地址、端口、镜像和时区等可配置项见仓库中的[权威 Compose 文件](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml)。
-
-### 带本地 AI
-
-1.5 起支持智能搜索、自动标签、OCR 和人物分析；1.6.1 起支持自动准备模型。需要这些功能时，将上面的基础配置替换为以下双容器配置，再执行 `docker compose up -d`：
+将以下内容保存为 `compose.yaml`，把 `/mnt/photos` 替换成你的照片根目录：
 
 ```yaml
 services:
@@ -258,32 +54,111 @@ services:
       - ./models/scratch:/verified-cache
 ```
 
-首次启动会自动下载约 3.5 GB 固定模型，期间仍可浏览照片。在“智能分析 → 服务与模型”查看进度，就绪后按库开启所需功能。建议为 AI 预留约 6 GiB 内存，为模型及工作副本预留至少 8 GiB 磁盘。无需必填 `.env` 或初始化程序；固定版本升级时，成对使用 `1.6.1` 和 `1.6.1-ai`。
+```bash
+docker compose up -d
+```
 
-### 存储与权限
+打开 `http://服务器IP:8080`，创建管理员账户，在 **管理中心 → 媒体库** 添加目录。
 
-| 容器路径 | 权限 | 用途 |
+首次启动自动下载约 **3.5 GB** 模型，准备期间仍可浏览照片。在 **智能分析 → 服务与模型** 查看状态，就绪后按库开启所需功能。建议为 AI 预留约 **6 GiB 内存**，为模型和工作副本预留至少 **8 GiB 磁盘**。
+
+只需普通浏览时，可使用[单容器基础配置](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml)。
+
+### 模型下载代理与日志
+
+需要代理时，在 `machine-learning` 服务中加入以下配置，再执行 `docker compose up -d`：
+
+```yaml
+    environment:
+      FOLIOPATH_MODEL_DOWNLOAD_PROXY: http://代理服务器IP:7890
+```
+
+使用无需认证的 HTTP 代理。此变量只影响 AI 模型下载，不读取通用 `HTTP_PROXY`、`HTTPS_PROXY`；主应用界面的旧模型代理设置也不控制 AI 容器。
+
+```bash
+docker compose logs -f machine-learning
+```
+
+日志显示当前文件、下载进度、缓存校验、加载状态，以及超时、HTTP 状态码或校验失败等原因；失败后每 60 秒重试。
+
+### 更新
+
+`latest` 是主程序，`latest-ai` 是配套 AI 镜像。请一起拉取、更新：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### 目录映射
+
+| 宿主机目录 | 容器路径 | 内容 |
 | --- | --- | --- |
-| `/library` | 只读 | 唯一媒体允许根，以及其下可选择的所有媒体库目录 |
-| `/app/data` | 读写 | SQLite 数据库、设置、任务、缩略图、视频封面和临时状态 |
+| `/mnt/photos` | `/library:ro` | 原始照片与视频，只读 |
+| `./data` | `/app/data` | 数据库、账户、设置、收藏、标签、任务和缩略图 |
+| `./models/cache` | `/cache` | 语义搜索、人脸、自动标签模型 |
+| `./models/ocr` | `/ocr-cache` | 图片文字识别模型 |
+| `./models/scratch` | `/verified-cache` | AI 运行时使用的已校验模型工作副本 |
 
-容器以 root 运行，因此 Docker 自动创建的 bind mount `./data` 无需在宿主机额外修改所有权即可写入。必须保持 `/library` 只读；root 运行会扩大容器被攻破后的影响，因此不要把 FolioPath 直接暴露到不可信网络。
+媒体根目录只挂载一次；在界面里添加其下多个互不重叠的目录作为媒体库。`/library` 内不支持嵌套挂载。FolioPath 不移动、重命名、编辑或删除原始媒体；媒体库离线、扫描失败或中断时保留最后可靠索引。`data` 请使用本地磁盘，勿放在 SMB/NFS 上。
 
-媒体目录只能整体挂载一次到 `/library`。不支持并会拒绝 `/library` 下的嵌套 volume、bind mount 或其他挂载点。FolioPath 不会移动、重命名、编辑或删除原始媒体。
+### 支持格式与访问
 
-### 网络安全
+- **图片：** JPEG、PNG、WebP、GIF。
+- **视频：** MP4、MOV、MKV、AVI。不转码，播放取决于浏览器对视频编码的支持。
+- 暂不支持 SVG、HEIC/HEIF、AVIF、RAW。
 
-直接 HTTP 仅适用于经过认证的受信局域网。若要通过公网或其他不可信网络访问，请使用外部 HTTPS 反向代理，并阻止客户端绕过代理直连应用。暴露服务前请阅读[部署指南](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md)和[安全模型](https://github.com/HappyQuQu/foliopath/blob/main/docs/security.md)。
+容器以 root 运行。直接 HTTP 适用于受信局域网，公网访问请使用 HTTPS 反向代理。部署、备份与恢复见[部署指南](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md)和[安全说明](https://github.com/HappyQuQu/foliopath/blob/main/docs/security.md)。Docker Desktop 的数据卷要求也请参阅部署指南。
 
-### 文档与支持
+## English
 
-- [简体中文项目说明](https://github.com/HappyQuQu/foliopath/blob/main/README.zh-CN.md)
-- [English project overview](https://github.com/HappyQuQu/foliopath/blob/main/README.md)
-- [部署、升级、备份、恢复与反向代理](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md)
-- [项目文档索引](https://github.com/HappyQuQu/foliopath/blob/main/docs/README.md)
-- [问题反馈](https://github.com/HappyQuQu/foliopath/issues)
-- [AGPL-3.0-or-later 许可证](https://github.com/HappyQuQu/foliopath/blob/main/LICENSE)
+FolioPath turns your existing directory tree into a photo and video library. Browse a folder and all its descendants together, with source paths preserved. Originals remain read-only.
 
----
+### Features
 
-<p align="center"><strong>Your folders, beautifully browsed.</strong></p>
+- Adaptive grid, masonry, and seamless photo-set browsing.
+- Describe scenes in Chinese or English; search across filenames, paths, visual content, and recognized text.
+- Search Chinese and English text inside processed images and preview matching lines.
+- Automatic tags from 153 categories, with manual edits and removal choices preserved.
+- Group similar faces, name people, and correct photo assignments.
+- Enable AI per library; track progress, process missing results, cancel, and retry.
+- Zoom, pan, view at 1:1, use fullscreen, and play videos.
+
+### Deploy with local AI
+
+Requires Linux `amd64` or `arm64`, Docker, and Docker Compose v2. Save the [two-service configuration above](#快速部署带-ai) as `compose.yaml`, replacing `/mnt/photos` with your media root, then run:
+
+```bash
+docker compose up -d
+```
+
+Open `http://<server-IP>:8080`, create your administrator account, and add directories under **Administration → Libraries**. No required `.env` or setup program. For browsing alone, use the [single-container configuration](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml).
+
+The AI container downloads about **3.5 GB** of models on first startup. Check **AI Analysis → Service and models**, then enable features per library once ready. Ordinary browsing stays available during preparation. Reserve about **6 GiB of AI memory** and at least **8 GiB of model/workspace disk space**.
+
+If needed, add `FOLIOPATH_MODEL_DOWNLOAD_PROXY: http://proxy-host:7890` under the AI service's `environment`. Only an unauthenticated HTTP proxy is supported; generic proxy environment variables and the main application's legacy proxy settings do not control these downloads. Use `docker compose logs -f machine-learning` to see progress and specific failure reasons. Preparation retries every 60 seconds after failure.
+
+### Images, storage, and upgrades
+
+| Image | Role |
+| --- | --- |
+| `evanqu/foliopath:latest` | Main application |
+| `evanqu/foliopath:latest-ai` | Local AI service |
+
+Update both together with `docker compose pull` followed by `docker compose up -d`.
+
+Mount originals once at `/library:ro`; nested mounts are rejected. Keep persistent application data, curation, and thumbnails in `/app/data` on local storage. AI models use `/cache` and `/ocr-cache`; verified working copies use `/verified-cache`. An offline library or interrupted scan preserves the last reliable index. Original media is never moved, renamed, edited, or deleted.
+
+**Images:** JPEG, PNG, WebP, GIF. **Video:** MP4, MOV, MKV, AVI. Videos are not transcoded; playback depends on browser codec support. SVG, HEIC/HEIF, AVIF, and RAW are unsupported.
+
+The container runs as root. Direct HTTP is for a trusted LAN; use an external HTTPS reverse proxy for public access. See the [deployment guide](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md) for permissions, Docker Desktop data volumes, backups, and upgrades, and the [security model](https://github.com/HappyQuQu/foliopath/blob/main/docs/security.md) for exposure requirements.
+
+## Links
+
+[GitHub](https://github.com/HappyQuQu/foliopath) · [中文说明](https://github.com/HappyQuQu/foliopath/blob/main/README.zh-CN.md) · [English README](https://github.com/HappyQuQu/foliopath/blob/main/README.md) · [Issues](https://github.com/HappyQuQu/foliopath/issues) · [AGPL-3.0-or-later](https://github.com/HappyQuQu/foliopath/blob/main/LICENSE)
+
+⭐ 喜欢 FolioPath？你的 Star 能帮助更多人发现这个项目。
+
+⭐ Enjoying FolioPath? Your stars help more people discover the project.
+
+[![Star on GitHub](https://img.shields.io/github/stars/HappyQuQu/foliopath?logo=github&label=Star%20on%20GitHub)](https://github.com/HappyQuQu/foliopath) [![Star on Docker Hub](https://img.shields.io/badge/Star_on-Docker_Hub-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/evanqu/foliopath)

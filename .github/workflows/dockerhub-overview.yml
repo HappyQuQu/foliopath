@@ -1,0 +1,30 @@
+name: Sync Docker Hub overview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dockerhub-overview
+  cancel-in-progress: false
+
+jobs:
+  overview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout overview source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Update Docker Hub overview
+        uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN }}
+          repository: evanqu/foliopath
+          readme-filepath: README.dockerhub.md
+          short-description: Self-hosted photo and video browser with local AI. Keep your folders and originals untouched.
