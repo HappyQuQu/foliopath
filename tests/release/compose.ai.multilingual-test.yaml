@@ -1,5 +1,0 @@
-# Explicit synthetic test budget; not the default small-model acceptance tier.
-services:
-  machine-learning:
-    mem_limit: 4096m
-    memswap_limit: 4096m

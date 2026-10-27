@@ -54,3 +54,33 @@ foliopath-data/
 *.sqlite3-wal
 *.sqlite3-journal
 *.log
+
+# Local-only test sources, fixtures, snapshots, and reports
+test/
+tests/
+__tests__/
+testdata/
+fixtures/
+__mocks__/
+__snapshots__/
+*_test.go
+*.test.*
+*.spec.*
+test_*.py
+*_test.py
+*_tests.py
+*.snap
+*.spec.*-snapshots/
+*.test.*-snapshots/
+.pytest_cache/
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+junit.xml
+# Standalone test fixture generators and test container helpers
+*_fixture*.py
+create_fixtures.py
+prepare-app-fixtures.sh
+browser-test.Dockerfile

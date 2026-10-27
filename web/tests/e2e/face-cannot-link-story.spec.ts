@@ -1,6 +1,0 @@
-import {expect,test} from "@playwright/test";
-for(const locale of ["zh-CN","en"])for(const width of [390,1920])test(`${locale} production same-photo pair story at ${width}`,async({page},info)=>{
- test.skip(process.env.FOLIOPATH_CANNOT_LINK_STORY!=="1","Run the isolated static Storybook probe.");
- await page.setViewportSize({width,height:1000});await page.goto(`/iframe.html?id=features-intelligence-review--single-photo-separate-people&viewMode=story&globals=${encodeURIComponent(`locale:${locale};theme:${locale==="en"?"dark":"light"}`)}`);const en=locale==="en";
- const dialog=page.getByRole("dialog",{name:en?"Do these two faces belong to different people?":"确认这两张脸属于不同人物？",exact:true});await expect(dialog).toBeVisible();await expect(dialog.getByText(en?"Face 1":"人脸 1",{exact:true})).toBeVisible();await expect(dialog.getByText(en?"Face 2":"人脸 2",{exact:true})).toBeVisible();await expect(dialog.getByText(/青岚（合成）/)).toBeVisible();await expect(dialog.getByText(/白露（合成）/)).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);await page.screenshot({path:info.outputPath(`story-separate-${locale}-${width}.png`),fullPage:true});await page.keyboard.press("Escape");await expect(page.getByRole("button",{name:en?"Mark as different people":"标记为不同人物",exact:true})).toBeFocused();
-});

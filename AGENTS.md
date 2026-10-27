@@ -405,6 +405,12 @@ them.
 
 ## Tests and verification
 
+- 2026-10-27 user decision: test sources, fixtures, snapshot baselines, and test
+  output are local-only and excluded by `.gitignore`. Untrack existing files while
+  preserving local copies. Do not force-add new test files. Keep test commands and
+  CI configuration, but a fresh clone lacks the local test suite and cannot
+  reproduce the full verification surface below without those files.
+
 - ADR-0026: build each release image once on its native architecture, verify the same
   immutable digest, and promote tags only from two matching successful records.
   Preserve SPDX SBOM and SLSA provenance when merging indexes. Build caches are
