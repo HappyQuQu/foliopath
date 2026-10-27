@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/HappyQuQu/foliopath/compare/v1.6.1...v1.6.2) (2026-10-27)
+
+
+### 🐛 修复
+
+* **ai:** expose model preparation progress and failure reasons ([0ca2cdd](https://github.com/HappyQuQu/foliopath/commit/0ca2cdd0ef46ca8001739a651ac2eb3e0254f892))
+
 ## [1.6.1](https://github.com/HappyQuQu/foliopath/compare/v1.6.0...v1.6.1) (2026-10-27)
 
 
