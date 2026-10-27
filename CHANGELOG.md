@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/HappyQuQu/foliopath/compare/v1.5.0...v1.6.0) (2026-10-27)
+
+
+### ✨ 新功能
+
+* simplify AI deployment with managed model preparation ([0690b55](https://github.com/HappyQuQu/foliopath/commit/0690b55c89e0f44abbe4982ccc6f14beb01c4803))
+
 ## [1.5.0](https://github.com/HappyQuQu/foliopath/compare/v1.4.1...v1.5.0) (2026-10-26)
 
 
