@@ -171,6 +171,8 @@ const zhCN = {
   "browse.linkCopied": "当前目录链接已复制。",
   "browse.linkCopyFailed": "无法复制链接，请从浏览器地址栏复制。",
   "browse.loadMoreDirectories": "载入更多目录",
+  "browse.expandDirectories": "展开更多目录",
+  "browse.collapseDirectories": "收起目录",
   "browse.loadMoreMedia": "载入更多媒体",
   "browse.loadMoreMediaFailed": "更多媒体未能载入，已显示的项目仍然保留。",
   "browse.loadingDirectories": "正在载入目录…",
@@ -992,6 +994,8 @@ const en: Record<MessageKey, string> = {
   "browse.linkCopyFailed":
     "Could not copy the link. Copy it from the browser address bar.",
   "browse.loadMoreDirectories": "Load more directories",
+  "browse.expandDirectories": "Show more folders",
+  "browse.collapseDirectories": "Show fewer folders",
   "browse.loadMoreMedia": "Load more media",
   "browse.loadMoreMediaFailed":
     "More media could not be loaded. Items already shown are preserved.",

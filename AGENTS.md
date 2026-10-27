@@ -410,6 +410,11 @@ them.
   preserving local copies. Do not force-add new test files. Keep test commands and
   CI configuration, but a fresh clone lacks the local test suite and cannot
   reproduce the full verification surface below without those files.
+- 2026-10-27 explicit release exception: retain only the 25 allowlisted build and
+  native-release verification inputs in `.gitignore`, as recorded in
+  `docs/changes/RELEASE-2026-10-27-directory-layout.md`. These include production
+  Dockerfile dependencies, native image smoke/recovery helpers, and their minimal
+  synthetic fixtures. Ordinary test suites, snapshots, and outputs stay local-only.
 
 - ADR-0026: build each release image once on its native architecture, verify the same
   immutable digest, and promote tags only from two matching successful records.

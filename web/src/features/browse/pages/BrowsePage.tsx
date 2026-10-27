@@ -130,6 +130,9 @@ export function BrowsePage({
   const [mediaSortPreference] = useState(readMediaSortPreference);
   const [directoryFilterDraft, setDirectoryFilterDraft] = useState("");
   const [manualRefreshPending, setManualRefreshPending] = useState(false);
+  const [folderGrid, setFolderGrid] = useState<HTMLDivElement | null>(null);
+  const [folderPreviewCount, setFolderPreviewCount] = useState(6);
+  const [expandedFolderScope, setExpandedFolderScope] = useState<string | null>(null);
   const favoriteMutation = useFavoriteMutation();
   const browseState = useMemo(
     () => parseBrowseUrlState(searchParams, mediaSortPreference),
@@ -255,6 +258,24 @@ export function BrowsePage({
   const canonicalSearch = serializeBrowseUrlState(browseState);
   const navigationScope = `${libraryId}:${directoryId ?? "root"}`;
   const previousNavigationScope = useRef(navigationScope);
+  const folderScope = `${navigationScope}:${browseState.q}`;
+  const foldersExpanded = expandedFolderScope === folderScope;
+  const visibleChildren = foldersExpanded
+    ? children
+    : children.slice(0, folderPreviewCount);
+  const canExpandFolders =
+    children.length > folderPreviewCount || childrenQuery.hasNextPage;
+
+  useEffect(() => {
+    if (!folderGrid) return;
+    const observer = new ResizeObserver(() => {
+      const columns =
+        getComputedStyle(folderGrid).gridTemplateColumns.split(" ").length;
+      setFolderPreviewCount(columns * 2);
+    });
+    observer.observe(folderGrid);
+    return () => observer.disconnect();
+  }, [folderGrid]);
 
   useEffect(() => {
     setDirectoryFilterDraft(browseState.q);
@@ -510,10 +531,15 @@ export function BrowsePage({
                         />
                       )}
                       {children.length > 0 && (
-                        <div className={styles.folderGrid}>
-                          {children.map((directory) => (
+                        <div
+                          className={styles.folderGrid}
+                          id="child-directories-grid"
+                          ref={setFolderGrid}
+                        >
+                          {visibleChildren.map((directory) => (
                             <Link
                               className={styles.folderCard}
+                              title={directory.name}
                               key={directory.id}
                               to={browseUrl(
                                 libraryId,
@@ -537,14 +563,29 @@ export function BrowsePage({
                           ))}
                         </div>
                       )}
-                      {childrenQuery.hasNextPage && (
-                        <Button
-                          className={styles.loadMore}
-                          loading={childrenQuery.isFetchingNextPage}
-                          onClick={() => void loadMoreChildren()}
-                        >
-                          {t("browse.loadMoreDirectories")}
-                        </Button>
+                      {(canExpandFolders || foldersExpanded) && (
+                        <div className={styles.folderActions}>
+                          <Button
+                            variant="quiet"
+                            size="small"
+                            aria-expanded={foldersExpanded}
+                            aria-controls="child-directories-grid"
+                            onClick={() =>
+                              setExpandedFolderScope(foldersExpanded ? null : folderScope)
+                            }
+                          >
+                            {t(foldersExpanded ? "browse.collapseDirectories" : "browse.expandDirectories")}
+                          </Button>
+                          {foldersExpanded && childrenQuery.hasNextPage && (
+                            <Button
+                              size="small"
+                              loading={childrenQuery.isFetchingNextPage}
+                              onClick={() => void loadMoreChildren()}
+                            >
+                              {t("browse.loadMoreDirectories")}
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </section>
                   )}
