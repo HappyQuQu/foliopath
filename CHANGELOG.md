@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/HappyQuQu/foliopath/compare/v1.6.0...v1.6.1) (2026-10-27)
+
+
+### 🐛 修复
+
+* clean native AI verification caches through Docker ([bd4ace6](https://github.com/HappyQuQu/foliopath/commit/bd4ace688908a354955e97f41ed092ba59096870))
+
 ## [1.6.0](https://github.com/HappyQuQu/foliopath/compare/v1.5.0...v1.6.0) (2026-10-27)
 
 
