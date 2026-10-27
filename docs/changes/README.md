@@ -194,3 +194,7 @@
 - [管理页按钮前景色](FIX-2026-07-31-management-button-contrast.md)
 - [当前目录筛选继承递归范围](FIX-2026-07-31-recursive-directory-filter.md)
 - [移除账户页首版限制文案](FIX-2026-07-31-remove-account-release-copy.md)
+
+## 集成记录
+
+- [2026-10-26：全部开发分支集成到 main](MERGE-2026-10-26-all-branches.md)

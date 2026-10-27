@@ -1,5 +1,3 @@
-[v1.5.0 release and upgrade notes](https://github.com/HappyQuQu/foliopath/releases/tag/v1.5.0) · [本次分支集成记录](docs/changes/MERGE-2026-10-26-all-branches.md)
-
 <p align="center">
   <img src="web/public/foliopath-mark-tree.svg" alt="FolioPath" width="80">
 </p>
@@ -24,8 +22,6 @@
 ![FolioPath in dark mode: a seamless photo wall backed by your existing folders](docs/screenshots/dark/browse.jpg)
 
 No re-uploading, album setup, or folder reorganization. Browse the collections you already organize by project, trip, event, or date, with search and curation on your NAS or home server.
-
-> **Version status:** screenshots show the current development/local deployment UI. Intelligent search, OCR, automatic tagging, and face analysis are optional POST-MVP-5 candidates, **not officially released**. The `latest` image may not include them. Check the [candidate scope and verification status](docs/changes/VERIFY-2026-10-26-release-candidate.md) before installing.
 
 ## Browse complete sets, straight from your folders
 
@@ -57,28 +53,27 @@ Keep browsing with the **side preview**, then open the full viewer for a closer 
 
 </details>
 
-## New: find photos from the clues you remember
+## Find photos by content, text, tags, or people
 
-Optional intelligent features run in a local AI service and are enabled per library. Media and queries are not uploaded to the cloud. Ordinary browsing and filename search work independently of AI.
+Version 1.5 introduced intelligent search, automatic image tags, image text recognition, and people analysis. Describe a scene, search words inside a picture, or browse by tag or person—all with a local AI service. Enable each feature per library; media and queries are not uploaded to the cloud. Ordinary browsing and filename search work independently of AI.
 
 ### Combined search and image text search
 
 - **All sources:** combine and deduplicate filename, library-relative path, visual, and enabled OCR matches, with actual match-source labels.
-- **Visual content:** describe a scene in natural language. An optional multilingual model supports Chinese and English queries; video visuals use a separate semantic entry point.
-- **Image text (OCR):** find Chinese, English, and multiword text inside processed images, with original matching lines in the preview. Off by default; requires an OCR deployment, explicit per-library enablement, and processing. Searches only the current image version; video OCR is unsupported.
+- **Visual content:** describe a scene in natural language. Multilingual search supports Chinese and English queries; video visuals use a separate semantic entry point.
+- **Image text (OCR):** find Chinese, English, and multiword text inside processed images, with original matching lines in the preview. Enable it for a library and process its images first. Matching text follows the current image contents; video OCR is unsupported.
 - **Search scope:** current library, current directory with optional descendants, or all libraries. Inspect “Why this matched” in the preview.
 
 ![Dark combined search showing filename and visual matches for a forest query](docs/screenshots/dark/search.jpg)
 
 ### Automatic tags and people curation
 
-| Intelligent feature | Current implementation |
+| Intelligent feature | What it does |
 | --- | --- |
-| Automatic image tags | Add content tags directly, without reviewing a suggestion queue. An optional 153-category photo profile supports Chinese, English, and bilingual display and lookup. |
+| Automatic image tags | Add content tags directly, without reviewing a suggestion queue. The 153-category photo profile supports Chinese, English, and bilingual display and lookup. |
 | Manual edits take priority | Show AI/manual provenance, preserve manual tags during reprocessing, and keep removed tags suppressed. Changing display language needs no reanalysis. |
 | Image tag directory | Browse tags and distinct image counts per library, search categories, and open matching photos. Counts include still images and animations. |
 | People & faces | Anonymous face groups, administrator-named people, photo browsing, and explicit face assignment, removal, or exclusion. Does not identify real-world identities. |
-| Safer people review (workspace candidate) | Per-photo face confirmation, protected undo, recovery of uncertain save results, “different people” relationships, and merge-conflict checks. Deployment inclusion follows the individual change records. |
 
 ![Dark tag workspace with bilingual categories, counts, and beach photos](docs/screenshots/dark/tags.jpg)
 
@@ -95,7 +90,7 @@ Enable search, people, automatic tags, and OCR for each library, then manage pro
 
 </details>
 
-**AI is optional.** The main application browses media on its own. AI adds one independent inference container and deployment-managed models, with no model store. See [AI setup](docs/ai-compose.md), [feature progress and limits](docs/features/intelligent-media-discovery-remaining-tasks.md), and the [people-review change records](docs/changes/CR-2026-044-person-merge-check.md).
+**AI is optional.** Run the main application on its own, or add the AI container for content search, tags, people, and OCR. Since 1.6.1, the AI setup downloads and verifies its models automatically; Settings shows preparation progress and retries. No model identity JSON or setup script is required. [Choose a setup below](#quick-start).
 
 For planning, reserve about **2 GiB** for AI face analysis or tagging, **3 GiB** for OCR, or **6 GiB** for multilingual search and the complete profile. Separately allow about **512 MiB–1 GiB** for the main app, plus headroom for scanning, large images, the OS, and other services. These are engineering allowances, not measured minimums; see [measured scenarios and limits](docs/ai-compose.md#ai-功能内存参考).
 
@@ -129,7 +124,11 @@ Videos are never transcoded. Playback depends on your browser's codec support. S
 
 You need Linux `amd64` or `arm64`, Docker, and Compose v2. Ordinary browsing needs no AI container.
 
-**1. Save the configuration.** Create an empty directory, save this as `compose.yaml`, and replace `/mnt/photos` with your media directory:
+Create an empty directory, choose **one** of the configurations below, and save it as `compose.yaml`. Replace `/mnt/photos` with your existing media directory.
+
+### Basic browsing
+
+For galleries, filename search, favorites, and manual tags:
 
 ```yaml
 services:
@@ -145,23 +144,53 @@ services:
       - ./data:/app/data
 ```
 
-**2. Start the application.**
+### With local AI
+
+For intelligent search, automatic tags, people, and OCR, use version **1.6.1 or newer** with this two-container configuration instead:
+
+```yaml
+services:
+  foliopath:
+    image: evanqu/foliopath:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      FOLIOPATH_AI_PROFILE: standard-v1
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
+
+  machine-learning:
+    image: evanqu/foliopath:latest-ai
+    restart: unless-stopped
+    volumes:
+      - ./models/cache:/cache
+      - ./models/ocr:/ocr-cache
+      - ./models/scratch:/verified-cache
+```
+
+On first startup, the AI container downloads about **3.5 GB** of model files. Ordinary browsing remains available while it prepares. Check **AI Analysis → Service and models**, then enable the features you need for each library. Allow at least **8 GiB** of free disk space for models and temporary working copies.
+
+### Start the application
 
 ```sh
 docker compose up -d
 ```
 
-**3. Open and add a library.** Visit `http://<your-server-LAN-address>:8080`, create the administrator, and select directories under **Administration → Libraries**.
+Visit `http://<your-server-LAN-address>:8080`, create the administrator, and select directories under **Administration → Libraries**.
 
 ### Configuration
 
 | Setting | Meaning |
 | --- | --- |
-| `image` | The example uses `latest`; pin a published version or digest for controlled upgrades. Candidate features may not be in this tag. |
+| `image` | The example uses `latest`; pin a published version or digest for controlled upgrades. With AI, keep the versions paired, e.g. `1.6.1` and `1.6.1-ai`. |
 | `TZ` | Set your timezone. |
 | `8080:8080` | The left number is the host port, e.g. `9000:8080`. |
 | `/mnt/photos:/library:ro` | Mount one read-only media root with no nested mount points. Select multiple libraries in the UI. |
-| `./data:/app/data` | Database, settings, jobs, and cache. On native Linux, use local disk and stop the application before backups; avoid SMB/NFS. |
+| `./data:/app/data` | Accounts, settings, favorites, tags, indexes, jobs, and thumbnails. Use local disk; stop the app before backups and avoid SMB/NFS. |
+| `./models/…` | AI model cache and temporary working copies. Models are prepared automatically and reused on restart. |
 
 > **Docker Desktop:** use a Linux named volume for application data. Stop the app, back up, copy, and verify existing data before switching. Never open the live SQLite database from the host or synchronize the old data copy. See [deployment and maintenance](docs/deployment.md) and [ADR-0038](docs/adr/0038-docker-desktop-linux-sqlite-volume.md).
 
@@ -171,9 +200,9 @@ Built for folder-based photography archives, family media, and NAS collections. 
 
 - [Deployment, upgrades, backup, restore, and reverse proxy](docs/deployment.md)
 - [Optional local AI setup](docs/ai-compose.md)
-- [Candidate verification and release boundaries](docs/changes/VERIFY-2026-10-26-release-candidate.md)
+- [Releases](https://github.com/HappyQuQu/foliopath/releases) · [Changelog](CHANGELOG.md)
 - [Security and filesystem boundaries](docs/security.md)
-- [Documentation and development entry point](docs/README.md) · [Architecture](docs/architecture/README.md) · [Changelog](CHANGELOG.md)
+- [Documentation and development entry point](docs/README.md) · [Architecture](docs/architecture/README.md)
 
 Source tooling uses Node.js **24.22.1** from `.node-version` and npm **11.19.1**. Go backend, React/TypeScript frontend, and SQLite application state; one container by default, two with optional AI.
 
@@ -182,7 +211,3 @@ Screenshots show the actual local deployment in dark mode on 2026-10-26. UI lang
 ## License
 
 [GNU Affero General Public License v3.0 or later](LICENSE) (`AGPL-3.0-or-later`)
-
-### Automatic AI setup
-
-Use `compose.ai.simple.yaml` with version 1.6.1 or newer. Edit the photo directory, data/model directories and port, then run `docker compose -f compose.ai.simple.yaml up -d`. The paired main and AI images support AMD64 and ARM64. Models download automatically; Settings shows preparation progress and recovery. No required `.env` or manual model identity JSON. See [AI setup](docs/ai-compose.md#简化自动安装入口cr-2026-053已发布) for model licenses, directories and offline compatibility.

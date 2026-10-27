@@ -47,14 +47,19 @@ FolioPath directly reads an existing directory tree and lets you browse a folder
 - Zoom, pan, view at 1:1, navigate between items, use fullscreen, and play videos.
 - Configure multiple non-overlapping libraries below one read-only `/library` mount.
 - Preserve the last reliable index when a library is offline or a scan is interrupted.
-- Run as one container with SQLite and rebuildable thumbnails and posters.
+- Find photos by describing a scene in Chinese or English; combine content, filename, path, and OCR matches.
+- Search Chinese and English words inside processed images, with matching text shown in the preview.
+- Automatically add tags from 153 photo categories while preserving manual edits and removed-tag choices.
+- Group similar faces, name people yourself, and correct photo assignments.
+- Enable AI features per library and manage processing progress, missing results, cancellation, and retries.
+- Run as one container, or add one local AI container. Media and queries stay local.
 
 ## Supported media
 
 | Type | Formats |
 | --- | --- |
 | Images | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`) |
-| Video | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`) |
+| Video | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`), AVI (`.avi`) |
 
 Videos are not transcoded, so direct playback depends on browser codec support. SVG, HEIC/HEIF, AVIF, RAW, and other unlisted formats are outside the current support contract.
 
@@ -87,6 +92,35 @@ docker compose up -d
 Open `http://<your-server-LAN-address>:8080`, create the administrator account, then add directories under **Administration → Libraries**.
 
 For controlled upgrades, replace `latest` with a specific version tag or immutable digest. See the repository's [authoritative Compose file](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml) for configurable path, address, port, image, and timezone values.
+
+## With local AI
+
+Version 1.5 introduced intelligent search, automatic tags, OCR, and people analysis. Version 1.6.1 adds automatic model preparation. To use these features, replace the basic configuration above with this two-container setup, then run `docker compose up -d`:
+
+```yaml
+services:
+  foliopath:
+    image: evanqu/foliopath:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      FOLIOPATH_AI_PROFILE: standard-v1
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
+
+  machine-learning:
+    image: evanqu/foliopath:latest-ai
+    restart: unless-stopped
+    volumes:
+      - ./models/cache:/cache
+      - ./models/ocr:/ocr-cache
+      - ./models/scratch:/verified-cache
+```
+
+The first startup downloads about 3.5 GB of fixed models. Ordinary browsing remains available while they prepare. Check **AI Analysis → Service and models**, then enable the features you need for each library. Reserve about 6 GiB of AI memory and at least 8 GiB of disk space for models and working copies. No required `.env` or setup script. For pinned upgrades, pair `1.6.1` with `1.6.1-ai`.
 
 ## Storage and permissions
 
@@ -151,14 +185,19 @@ FolioPath 是一款为整套照片和视频浏览而生的只读、自托管媒�
 - 支持缩放、平移、1:1、前后切换、全屏和视频播放。
 - 在唯一的只读 `/library` 挂载下配置多个互不重叠的媒体库。
 - 媒体库离线或扫描中断时保留最后可靠索引。
-- 使用单容器和 SQLite，并可重建缩略图和视频封面。
+- 用中文或英文描述画面找照片，融合文件名、路径、画面和 OCR 匹配。
+- 按已识别图片中的中英文文字搜索，并在预览中查看匹配原文。
+- 自动添加 153 类图片标签，保留手动标签和已移除标签的选择。
+- 将相似人脸分组，人工命名人物，并核对、调整照片归类。
+- 按媒体库开启智能功能，管理处理进度、补齐缺失、取消和重试。
+- 主应用单容器运行，也可增加一个本地 AI 容器；媒体和查询留在本地。
 
 ### 支持格式
 
 | 类型 | 格式 |
 | --- | --- |
 | 图片 | JPEG（`.jpg`、`.jpeg`）、PNG（`.png`）、WebP（`.webp`）、GIF（`.gif`） |
-| 视频 | MP4（`.mp4`）、MOV（`.mov`）、MKV（`.mkv`） |
+| 视频 | MP4（`.mp4`）、MOV（`.mov`）、MKV（`.mkv`）、AVI（`.avi`） |
 
 视频不会转码，能否直接播放取决于浏览器支持的内部编码。SVG、HEIC/HEIF、AVIF、RAW 以及其他未列出的格式不在当前支持范围内。
 
@@ -192,6 +231,35 @@ docker compose up -d
 
 需要可控升级时，请把 `latest` 替换为明确版本标签或不可变 digest。路径、监听地址、端口、镜像和时区等可配置项见仓库中的[权威 Compose 文件](https://github.com/HappyQuQu/foliopath/blob/main/compose.yaml)。
 
+### 带本地 AI
+
+1.5 起支持智能搜索、自动标签、OCR 和人物分析；1.6.1 起支持自动准备模型。需要这些功能时，将上面的基础配置替换为以下双容器配置，再执行 `docker compose up -d`：
+
+```yaml
+services:
+  foliopath:
+    image: evanqu/foliopath:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      FOLIOPATH_AI_PROFILE: standard-v1
+    volumes:
+      - /mnt/photos:/library:ro
+      - ./data:/app/data
+
+  machine-learning:
+    image: evanqu/foliopath:latest-ai
+    restart: unless-stopped
+    volumes:
+      - ./models/cache:/cache
+      - ./models/ocr:/ocr-cache
+      - ./models/scratch:/verified-cache
+```
+
+首次启动会自动下载约 3.5 GB 固定模型，期间仍可浏览照片。在“智能分析 → 服务与模型”查看进度，就绪后按库开启所需功能。建议为 AI 预留约 6 GiB 内存，为模型及工作副本预留至少 8 GiB 磁盘。无需必填 `.env` 或初始化程序；固定版本升级时，成对使用 `1.6.1` 和 `1.6.1-ai`。
+
 ### 存储与权限
 
 | 容器路径 | 权限 | 用途 |
@@ -219,7 +287,3 @@ docker compose up -d
 ---
 
 <p align="center"><strong>Your folders, beautifully browsed.</strong></p>
-
-## Automatic AI setup
-
-Use `compose.ai.simple.yaml` with version 1.6.1 or newer. The paired tags are `evanqu/foliopath:1.6.1` and `evanqu/foliopath:1.6.1-ai` (or `latest` and `latest-ai`), both supporting AMD64 and ARM64. Fixed models download automatically and Settings shows progress; no required `.env`. See the repository AI deployment guide for directories, licenses and offline compatibility.
