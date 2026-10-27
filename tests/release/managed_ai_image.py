@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -16,6 +17,7 @@ def main():
     expected = json.loads((repo / 'internal/app/managed_ai.generated.json').read_text())
     command = '''
 import json
+import os
 from pathlib import Path
 import server, multilingual_contract, photo_policy, ocr_contract
 from model_install import read_catalog
@@ -43,9 +45,12 @@ print(json.dumps(d,sort_keys=True))
                         '--mount', f'type=bind,src={repo / "services/inference/test_model_install.py"},dst=/checks/test_model_install.py,readonly',
                         '--entrypoint', 'python', args.image, '-m', 'unittest', '-v', 'test_model_install'],
                        check=True, stdout=log, stderr=subprocess.STDOUT)
+    subprocess.run(['python3', '-m', 'unittest', 'discover', '-s', 'tests/release',
+                    '-p', 'test_managed_ai_real.py', '-v'], check=True,
+                   env=dict(os.environ, FOLIOPATH_TEST_AI_IMAGE=args.image), cwd=repo)
     (args.output / 'verification.json').write_text(json.dumps(dict(image=args.image,
         profile='standard-v1', profile_sha256=hashlib.sha256(json.dumps(expected, sort_keys=True).encode()).hexdigest(),
-        identity_parity=True, installer_tests=True, real_model_inference='not_run'), indent=2)+'\n')
+        identity_parity=True, installer_tests=True, cleanup_regression=True, real_model_inference='not_run'), indent=2)+'\n')
 
 
 if __name__ == '__main__': main()

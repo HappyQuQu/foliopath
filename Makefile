@@ -278,3 +278,8 @@ test-managed-ai:
 	$(PYTHON) scripts/generate_managed_ai.py --check
 	PYTHONPATH=services/inference $(PYTHON) -m unittest -v test_model_install
 	$(GO) test ./internal/app ./internal/api ./internal/inference/remoteml -run 'TestManagedProfile|TestPreparation' -count=1
+
+.PHONY: test-managed-ai-cleanup
+test-managed-ai-cleanup:
+	@test -n "$(FOLIOPATH_TEST_AI_IMAGE)" || (echo "FOLIOPATH_TEST_AI_IMAGE is required" >&2; exit 2)
+	FOLIOPATH_TEST_AI_IMAGE="$(FOLIOPATH_TEST_AI_IMAGE)" $(PYTHON) -m unittest discover -s tests/release -p test_managed_ai_real.py -v

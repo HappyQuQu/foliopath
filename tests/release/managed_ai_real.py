@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Empty-cache preparation, interrupted resume, offline restart and real synthetic inference."""
 import argparse
+from contextlib import contextmanager, nullcontext
 import json
 from pathlib import Path
-import shutil
 import subprocess
-import tempfile
 import time
 import uuid
 
@@ -86,6 +85,26 @@ print(json.dumps({'faces':len(face['faces']),'tags':len(tags['labels']),'ocrLine
         raise
 
 
+@contextmanager
+def validation_container(image):
+    container = 'fp-managed-native-' + uuid.uuid4().hex[:12]
+    volumes = []
+    try:
+        for suffix in ('cache', 'ocr', 'scratch'):
+            volume = container + '-' + suffix
+            docker('volume', 'create', volume)
+            volumes.append(volume)
+        docker('run', '-d', '--name', container, '--memory', '6g', '--memory-swap', '6g', '--cpus', '3',
+               '-v', volumes[0] + ':/cache', '-v', volumes[1] + ':/ocr-cache',
+               '-v', volumes[2] + ':/verified-cache', image)
+        yield container
+    finally:
+        # Docker owns root-created cache files; the unprivileged runner never unlinks them.
+        subprocess.run(['docker', 'rm', '-f', container], check=False, capture_output=True)
+        if volumes:
+            docker('volume', 'rm', *volumes)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--image',required=True)
@@ -94,16 +113,11 @@ def main():
     args=parser.parse_args()
     repo=Path(__file__).resolve().parents[2]
     owned=not args.container
-    container=args.container or 'fp-managed-native-'+uuid.uuid4().hex[:12]
-    root=Path(tempfile.mkdtemp(prefix='fp-managed-native-')) if owned else None
     args.output.mkdir(parents=True,exist_ok=True)
     deadline=time.monotonic()+2700
-    try:
+    owner = validation_container(args.image) if owned else nullcontext(args.container)
+    with owner as container:
         if owned:
-            for name in ['cache','ocr','scratch']: (root/name).mkdir()
-            docker('run','-d','--name',container,'--memory','6g','--memory-swap','6g','--cpus','3',
-                   '-v',str(root/'cache')+':/cache','-v',str(root/'ocr')+':/ocr-cache',
-                   '-v',str(root/'scratch')+':/verified-cache',args.image)
             while time.monotonic()<deadline:
                 try:
                     if status(container)['completedFiles']>0: break
@@ -128,10 +142,6 @@ def main():
             freshInterruptedDownload=owned,preparation=value,offlineRestart=warm,realInference=True,
             syntheticFixturesOnly=True),indent=2)+'\n')
         print(result,flush=True)
-    finally:
-        if owned:
-            docker('rm','-f',container)
-            shutil.rmtree(root)
 
 
 if __name__=='__main__': main()
