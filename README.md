@@ -27,7 +27,7 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 
 | Core feature | What it does |
 | --- | --- |
-| Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Subfolders use a compact two-row grid, with expansion and paged loading. |
+| Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Subfolders use a compact two-row grid, with expansion and paged loading. Collapse Quick access to give the tree more room; browsing controls condense and stay available while scrolling. |
 | Three gallery layouts | Switch between adaptive grid, masonry, and seamless masonry. Adjust thumbnail size and remember it in this browser. |
 | Search, filters & sorting | Find filenames or paths; filter by media type, modification date, and scope. Sort by name, modification time, or file size. |
 | Side preview | Inspect an image while keeping the collection visible. Pin and resize the preview; view its source directory and basic information. |

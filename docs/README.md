@@ -483,3 +483,5 @@ composition 与发行 UI 继续失败关闭。
 - [浏览页子目录布局修复（2026-10-27）](changes/FIX-2026-10-27-directory-layout.md)：POST-MVP-5 既有 UI 修复与本地验证。
 
 - [子目录布局修复发行与最小依赖恢复（2026-10-27）](changes/RELEASE-2026-10-27-directory-layout.md)：用户批准的 25 文件发行例外。
+
+- [浏览侧栏折叠与滚动工具栏（2026-10-28）](changes/FIX-2026-10-28-browse-navigation-dock.md)：既有 UI 修复。
