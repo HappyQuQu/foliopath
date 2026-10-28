@@ -737,3 +737,7 @@ composition 只能读取固定配置并保留 face/Release No-Go；下载/集成
 ## CR-2026-053 / ADR-0039
 
 POST-MVP-5 P6；FR-INT-017/019/020、NFR-INT-007/009/010。Owner app配置装配、aimodel状态合同、remoteml进度适配、AI model_install单一串行安装器。OpenAPI /ai/preparation只读状态，独立生成profile绑定原身份owner。fitness：managed_ai_test、native release组件隔离、生成锁及真实HTTP安装恢复测试。发行Gate仍须配对镜像双原生验证；不改旧离线和任务事务owner。
+
+### CR-2026-054：精简拍摄信息与预览修正
+
+POST-MVP-5维护；FR-EXIF-001～003由media.ExifService、imagevips固定标签适配、API只读合同及media feature共同实现。ContentService/files拥有源打开与指纹，resourcecontrol/imagevips拥有既有内容/内存准入；不新增持久化或调度。S0合同先行，S1原生合成图片及HTTP/服务测试，S2正式预览/查看器组件和响应式验证。测试源保持本地，发行输入白名单不变。

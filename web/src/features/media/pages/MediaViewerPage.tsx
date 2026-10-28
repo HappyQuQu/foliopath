@@ -1,3 +1,4 @@
+import { AssetExifPanel } from "../AssetExifPanel";
 import { useMemo } from "react";
 import {
   useLocation,
@@ -146,6 +147,7 @@ export function MediaViewerPage({
       availability={availability}
       canGoNext={Boolean(next)}
       canGoPrevious={Boolean(previous)}
+      metadataContent={asset && asset.libraryId === libraryId ? <AssetExifPanel assetId={asset.id} kind={asset.kind} /> : undefined}
       curationContent={
         asset && asset.libraryId === libraryId && session ? (
           <AssetCurationControls assetId={asset.id} csrfToken={session.csrfToken} />

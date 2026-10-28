@@ -66,6 +66,7 @@ export function MediaPreview({
   onWidthChange,
   pinned,
   curationContent,
+  metadataContent,
   width,
 }: {
   autoPlayVideo?: boolean;
@@ -85,6 +86,7 @@ export function MediaPreview({
   onWidthChange: (width: number) => void;
   pinned: boolean;
   curationContent?: ReactNode;
+  metadataContent?: ReactNode;
   width: number;
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -162,6 +164,9 @@ export function MediaPreview({
             <PushPin aria-hidden="true" size={15} weight={pinned ? "fill" : "regular"} />
             {labels.pin}
           </Button>
+          <IconButton label={labels.openViewer} onClick={onOpenViewer}>
+            <ArrowsOut aria-hidden="true" size={18} />
+          </IconButton>
           <IconButton label={labels.close} onClick={onClose}>
             <X aria-hidden="true" size={19} />
           </IconButton>
@@ -195,15 +200,6 @@ export function MediaPreview({
       </div>
 
       <div className={styles.navigation}>
-        <Button
-          className={styles.openViewer}
-          onClick={onOpenViewer}
-          size="small"
-          variant="primary"
-        >
-          <ArrowsOut aria-hidden="true" size={16} />
-          {labels.openViewer}
-        </Button>
         <nav className={styles.navGroup} aria-label={labels.preview}>
           <Button
             disabled={!canGoPrevious}
@@ -225,7 +221,6 @@ export function MediaPreview({
             <CaretRight aria-hidden="true" size={15} />
           </Button>
         </nav>
-
       </div>
 
       <div className={styles.content}>
@@ -248,6 +243,7 @@ export function MediaPreview({
             </div>
           ))}
         </dl>
+        {metadataContent && <div className={styles.metadata}>{metadataContent}</div>}
         {curationContent}
         <div className={styles.pinStatus} role="status">
           <PushPin aria-hidden="true" size={18} weight={pinned ? "fill" : "regular"} />

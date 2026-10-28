@@ -52,6 +52,8 @@
   --radius-auth: 1.125rem;
   --workspace-padding: clamp(var(--space-6), 3vw, var(--space-12));
   --workspace-gap: var(--space-3);
+  --size-preview-stage-min: 12rem;
+  --size-preview-stage-max: 28rem;
   --size-preview-default: 21.375rem;
   --shadow-panel: 0 2px 6px rgb(33 56 85 / 0.03);
   --shadow-preview: 0 6px 26px rgb(37 60 88 / 0.065);

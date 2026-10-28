@@ -60,6 +60,7 @@ function SearchStory({ children, route, unavailable }: { children: ReactNode; ro
     window.fetch = async (input, init) => {
       const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
       if (!url.pathname.startsWith("/api/v1/")) return previous(input, init);
+    if (/^\/api\/v1\/assets\/[^/]+\/exif$/.test(url.pathname)) return Response.json({ fields: [{ key: "cameraModel", value: "Synthetic Camera" }, { key: "aperture", value: "f/2.8" }] });
       return Response.json({ error: { code: "precondition_failed", message: "Read-only synthetic fixture", requestId: "story-fixture" } }, { status: 412 });
     };
     return () => { window.fetch = previous; client.clear(); };

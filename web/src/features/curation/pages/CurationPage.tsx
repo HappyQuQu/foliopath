@@ -1,3 +1,4 @@
+import { AssetExifPanel } from "../../media";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -398,7 +399,8 @@ export function CurationPage({
               preview.previewIndex < assets.length - 1
             }
             canGoPrevious={preview.previewIndex > 0}
-            curationContent={
+            metadataContent={<AssetExifPanel assetId={previewItem.id} kind={previewItem.kind} />}
+              curationContent={
               previewAsset ? (
                 <AssetCurationControls
                   assetId={previewAsset.id}

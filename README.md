@@ -211,3 +211,5 @@ Screenshots show the actual local deployment in dark mode on 2026-10-26. UI lang
 ## License
 
 [GNU Affero General Public License v3.0 or later](LICENSE) (`AGPL-3.0-or-later`)
+
+选中图片后，侧边预览与完整查看器的信息面板可显示文件中已有的拍摄时间、相机、镜头、光圈、曝光时间、ISO及焦距；不显示GPS位置或完整EXIF。
