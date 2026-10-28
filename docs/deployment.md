@@ -1,5 +1,7 @@
 # FolioPath 候选部署与运维
 
+2026-10-28：[v1.6.4 已正式发布](changes/FIX-2026-10-28-browse-navigation-dock.md)，主镜像 `evanqu/foliopath:1.6.4` 与可选 AI 镜像 `evanqu/foliopath:1.6.4-ai` 均通过 AMD64／ARM64 原生验证和索引推广。包含快速访问折叠记忆与滚动紧凑工具栏过渡；无 API、SQLite 或模型变更。本次未替换其他实例，本地 6010 合成测试容器继续保留。以下记录为历史发布及部署状态。
+
 2026-10-27：[v1.6.3 已正式发布](changes/RELEASE-2026-10-27-directory-layout.md)，主镜像 `evanqu/foliopath:1.6.3` 与可选 AI 镜像 `evanqu/foliopath:1.6.3-ai` 均通过 AMD64／ARM64 原生验证和索引推广。子目录网格优化已包含；仅恢复现有构建／发行验证必需的 25 个文件，普通测试仍仅本地保留。本次没有替换已有部署实例，本机 6010 仅为独立合成数据测试。以下旧部署记录保留历史状态。
 
 2026-10-26最终发布状态：[v1.5.0已正式发布](changes/RELEASE-2026-10-26-v1.5.0.md)，主镜像 `evanqu/foliopath:1.5.0` 同时支持AMD64／ARM64，正式双原生验证及索引推广通过。6010本次保持已验收rc-20261026.7（主ca3b43／AIa87f73），没有再次更新或停服；数据、任务与五份Compose保留。可选AI镜像按Release中独立平台digest选择，不把主应用标签当作AI标签。升级与回退仍须完整停写备份／独立恢复核验。

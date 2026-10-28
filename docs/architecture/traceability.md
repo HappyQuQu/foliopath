@@ -1,3 +1,5 @@
+2026-10-28 / FR-BRW-001/004/005、FR-UI-001～003/006、NFR-UIF-001、NFR-OPS-001：PR #66/#67 已合并，v1.6.4 四个 main/AI 原生构建验证及两个推广任务首轮通过。浏览侧栏/吸顶与存储偏好 owner 不变，25 文件发行例外不扩大；见[正式结果](../changes/FIX-2026-10-28-browse-navigation-dock.md#正式发布结果)。
+
 2026-10-28 / FR-BRW-001/004/005、FR-UI-001～003/006、NFR-UIF-001 / POST-MVP-5 既有 UI 修复：DirectoryNavigation 统一快速访问折叠，shared preferences 拥有本地偏好；BrowseControls 拥有同一操作区的紧凑吸顶与文档占位，MediaCollection/Preview 沿用各自焦点和预览 owner。无 API 或架构边界变化；证据见[记录](../changes/FIX-2026-10-28-browse-navigation-dock.md)。
 
 2026-10-27 / NFR-OPS-001、NFR-COMP-001、NFR-UIF-001 / POST-MVP-5：用户明确接受 25 个精确白名单的构建/发行验证输入例外，普通测试/截图/输出仍仅本地保留。PR #64/#65 合并，v1.6.3 四个 main/AI 原生镜像与两个推广任务通过，原生验证/索引保留 owner 不变。见[发行记录](../changes/RELEASE-2026-10-27-directory-layout.md)。
