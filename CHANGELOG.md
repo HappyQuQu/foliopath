@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.4](https://github.com/HappyQuQu/foliopath/compare/v1.6.3...v1.6.4) (2026-10-28)
+
+
+### 🐛 修复
+
+* 支持折叠快速访问并保留滚动时的浏览操作 ([01ca9e7](https://github.com/HappyQuQu/foliopath/commit/01ca9e71b21f6962caf4ee9a1739f9656c039dc9))
+
 ## [1.6.3](https://github.com/HappyQuQu/foliopath/compare/v1.6.2...v1.6.3) (2026-10-27)
 
 
