@@ -1,3 +1,4 @@
+import { AssetExifPanel } from "../../media";
 import {
   ArrowClockwise,
   MagnifyingGlass,
@@ -444,7 +445,8 @@ export function SearchPage({
               preview.previewIndex < assets.length - 1
             }
             canGoPrevious={preview.previewIndex > 0}
-            curationContent={
+            metadataContent={<AssetExifPanel assetId={previewItem.id} kind={previewItem.kind} />}
+              curationContent={
               previewAsset ? (
                 <>
                 {searchMatches[previewAsset.id]?.sources.length ? <section className={styles.evidence} aria-label={t("search.whyMatched")}>

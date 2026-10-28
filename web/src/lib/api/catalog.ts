@@ -482,3 +482,17 @@ function mapAsset(data: Asset): Asset {
     thumbnail: { ...data.thumbnail },
   };
 }
+
+export type AssetExif = components["schemas"]["AssetExif"];
+
+export async function getAssetExif(assetId: string, signal?: AbortSignal): Promise<AssetExif> {
+  try {
+    const { data, error, response } = await apiClient.GET("/api/v1/assets/{assetId}/exif", {
+      params: { path: { assetId } }, ...(signal ? { signal } : {}),
+    });
+    if (data) return data;
+    throw createApiError(error, response);
+  } catch (error) {
+    throw createApiError(error);
+  }
+}

@@ -489,6 +489,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/exif": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read bounded shooting information from the current original
+         * @description Authenticated on-demand read through the content boundary. Only eight
+         *     allowlisted photographic fields are returned, as bounded plain text.
+         *     Missing tags and non-image assets return an empty fields array. No GPS,
+         *     serial numbers, raw metadata, file paths or HTML are returned. Reading
+         *     never modifies originals, the catalog, jobs, thumbnails or AI results.
+         *     The current source is checked before and after extraction. The request
+         *     shares content admission and native image memory admission and has a
+         *     ten-second deadline. Responses are not cached by HTTP intermediaries.
+         */
+        get: operations["getAssetExif"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/{assetId}/faces": {
         parameters: {
             query?: never;
@@ -2414,6 +2441,14 @@ export interface components {
             /** Format: int64 */
             revision: number;
             tags: components["schemas"]["AssetTag"][];
+        };
+        AssetExif: {
+            fields: {
+                /** @enum {string} */
+                key: "capturedAt" | "cameraMake" | "cameraModel" | "lensModel" | "aperture" | "exposureTime" | "iso" | "focalLength";
+                /** @description Plain text from the original EXIF, without native type annotations. Capture time retains its recorded wall time; no timezone is invented. */
+                value: string;
+            }[];
         };
         AssetFace: {
             assetId: components["schemas"]["ResourceID"];
@@ -4972,6 +5007,36 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAssetExif: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Opaque indexed-media ID. It contains no path information. */
+                assetId: components["parameters"]["AssetIDParameter"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current source-bound shooting fields, or an empty list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetExif"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
         };

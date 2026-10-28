@@ -2334,6 +2334,53 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/assets/{assetId}/exif:
+    get:
+      tags: [Media]
+      operationId: getAssetExif
+      summary: Read bounded shooting information from the current original
+      description: |
+        Authenticated on-demand read through the content boundary. Only eight
+        allowlisted photographic fields are returned, as bounded plain text.
+        Missing tags and non-image assets return an empty fields array. No GPS,
+        serial numbers, raw metadata, file paths or HTML are returned. Reading
+        never modifies originals, the catalog, jobs, thumbnails or AI results.
+        The current source is checked before and after extraction. The request
+        shares content admission and native image memory admission and has a
+        ten-second deadline. Responses are not cached by HTTP intermediaries.
+      x-requirements: [FR-EXIF-001, FR-EXIF-002, FR-EXIF-003, NFR-SAFE-001]
+      x-error-codes:
+        '400': [invalid_request]
+        '401': [authentication_required, session_expired]
+        '404': [asset_not_found]
+        '409': [source_offline, source_missing, source_unreadable]
+        '422': [invalid_media, unsupported_media, media_processing_timeout]
+        '429': [rate_limited]
+        '500': [internal_error]
+      parameters:
+        - $ref: '#/components/parameters/AssetIDParameter'
+      responses:
+        '200':
+          description: Current source-bound shooting fields, or an empty list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetExif'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/assets/{assetId}/thumbnail:
     get:
       tags: [Media]
@@ -6035,6 +6082,28 @@ components:
           type: boolean
           enum: [true]
           description: Stable MVP capability flag. Anonymous LAN mode is not supported.
+
+    AssetExif:
+      type: object
+      additionalProperties: false
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          maxItems: 8
+          items:
+            type: object
+            additionalProperties: false
+            required: [key, value]
+            properties:
+              key:
+                type: string
+                enum: [capturedAt, cameraMake, cameraModel, lensModel, aperture, exposureTime, iso, focalLength]
+              value:
+                type: string
+                minLength: 1
+                maxLength: 160
+                description: Plain text from the original EXIF, without native type annotations. Capture time retains its recorded wall time; no timezone is invented.
 
     SetupRequest:
       type: object

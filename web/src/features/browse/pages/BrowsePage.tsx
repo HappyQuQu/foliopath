@@ -1,3 +1,4 @@
+import { AssetExifPanel } from "../../media";
 import {
   ArrowClockwise,
   CaretDown,
@@ -425,7 +426,7 @@ export function BrowsePage({
           style={
             {
               "--preview-sticky-top":
-                "calc(var(--size-header) + var(--size-context-bar) + var(--browse-controls-visible-height) + var(--space-3))",
+                "calc(var(--size-header) + var(--size-context-bar) + var(--space-3))",
               "--browse-controls-visible-height": `${browseControlsHeight}px`,
               "--preview-width": `${preview.width}px`,
             } as CSSProperties
@@ -739,6 +740,7 @@ export function BrowsePage({
                 preview.previewIndex < assets.length - 1
               }
               canGoPrevious={preview.previewIndex > 0}
+              metadataContent={<AssetExifPanel assetId={previewItem.id} kind={previewItem.kind} />}
               curationContent={
                 previewAsset ? (
                   <AssetCurationControls

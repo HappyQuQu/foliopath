@@ -850,6 +850,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Catalog:          catalogService,
 		Curation:         curationService,
 		Thumbnails:       thumbnailDelivery,
+		Exif:             media.NewExifService(contentService, imagevips.New()),
 		Content:          contentService,
 		ContentAdmission: resourceController,
 		AIModels:         aiManagement,

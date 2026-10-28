@@ -1151,3 +1151,7 @@ FR-OCR输入错误在imagevips native失败分支以标准JPEG完整解码的明
 ## CR-2026-053：managed AI安装验证
 
 `make test-managed-ai`执行生成锁检查、真实本地HTTP安装/缓存/取消/损坏恢复测试和配置/状态API测试；`make arch-check`覆盖双服务挂载/发布组件隔离，`make generate-check`覆盖固定profile。`tests/release/managed_ai_image.py`验证同一实际AI镜像中的身份与主应用嵌入JSON一致，并运行安装测试；这不等于真实模型推理或质量验收。两个原生架构各构建一次并验证同一digest，全部通过后才推广配对主及-ai标签。
+
+### 拍摄信息验证（CR-2026-054）
+
+使用本地合成JPEG验证真实libvips读取、八字段白名单、数值单位、无元数据、原件指纹变化和只读字节；服务/HTTP测试覆盖固定错误和空数组。前端验证字段纯文本、空值、失败重试、视频不读取；预览在手机、平板、桌面及1920px宽屏验证。普通测试源和图片继续仅保留本地。

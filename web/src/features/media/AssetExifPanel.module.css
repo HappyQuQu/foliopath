@@ -1,0 +1,40 @@
+.panel {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.panel h3 {
+  margin: 0;
+  font-size: var(--font-size-2);
+}
+
+.panel p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+}
+
+.panel dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-1);
+}
+
+.panel dl > div {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr);
+  gap: var(--space-3);
+}
+
+.panel dt {
+  color: var(--color-text-muted);
+}
+
+.panel dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}

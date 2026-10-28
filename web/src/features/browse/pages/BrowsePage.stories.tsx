@@ -153,6 +153,7 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
       return originalFetch(input, init);
     }
 
+    if (/^\/api\/v1\/assets\/[^/]+\/exif$/.test(url.pathname)) return Response.json({ fields: [{ key: "cameraModel", value: "Synthetic Camera" }, { key: "aperture", value: "f/2.8" }] });
     if (url.pathname === "/api/v1/libraries") {
       return json({
         items: [

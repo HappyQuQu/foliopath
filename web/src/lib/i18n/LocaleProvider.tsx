@@ -1,3 +1,4 @@
+import { exifZh, exifEn } from "./exifMessages";
 import {
   createContext,
   useContext,
@@ -25,6 +26,7 @@ import { taskWorkspaceEn, taskWorkspaceZh } from "./taskWorkspaceMessages";
 import { contextSidebarEn, contextSidebarZh } from "./contextSidebarMessages";
 
 const zhCN = {
+  ...exifZh,
   ...ocrZh,
   ...fusedSearchZh,
   ...contextSidebarZh,
@@ -828,6 +830,7 @@ export type MessageKey = keyof typeof zhCN;
 export type Locale = LocalePreference;
 
 const en: Record<MessageKey, string> = {
+  ...exifEn,
   ...ocrEn,
   ...fusedSearchEn,
   ...contextSidebarEn,

@@ -87,6 +87,7 @@ function fixtureFetch(fixture: Fixture): typeof window.fetch {
   return async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
     if (!url.pathname.startsWith("/api/v1/")) return passthroughFetch(input, init);
+    if (/^\/api\/v1\/assets\/[^/]+\/exif$/.test(url.pathname)) return Response.json({ fields: [{ key: "cameraModel", value: "Synthetic Camera" }, { key: "aperture", value: "f/2.8" }] });
     if (url.pathname === "/api/v1/libraries") return Response.json({ items: libraries, nextCursor: null });
     if (url.pathname === "/api/v1/favorites") return Response.json({ counts: { all: 0, images: 0, videos: 0 }, items: [], nextCursor: null });
     if (url.pathname === "/api/v1/tags") {

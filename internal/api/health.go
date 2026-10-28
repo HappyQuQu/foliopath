@@ -57,6 +57,7 @@ type RouteDependencies struct {
 	Catalog             CatalogService
 	Curation            CurationService
 	Thumbnails          ThumbnailService
+	Exif                ExifService
 	Content             ContentService
 	ContentAdmission    ContentAdmission
 	AIPreparation       aimodel.PreparationReader
@@ -151,6 +152,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Content != nil {
 		registerContentRoutes(mux, dependencies.Content, dependencies.ContentAdmission)
+	}
+	if dependencies.Exif != nil {
+		registerExifRoutes(mux, dependencies.Exif, dependencies.ContentAdmission)
 	}
 	registerAIPreparationRoute(mux, dependencies.AIPreparation)
 	if dependencies.AIModels != nil {

@@ -69,6 +69,7 @@ export function MediaViewer({
   onPrevious,
   position,
   curationContent,
+  metadataContent,
 }: {
   canGoNext: boolean;
   canGoPrevious: boolean;
@@ -80,6 +81,7 @@ export function MediaViewer({
   onPrevious: () => void;
   position: string;
   curationContent?: ReactNode;
+  metadataContent?: ReactNode;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const dragRef = useRef({ originX: 0, originY: 0, pointerX: 0, pointerY: 0 });
@@ -388,7 +390,8 @@ export function MediaViewer({
               </div>
             ))}
           </dl>
-          {curationContent}
+          {metadataContent}
+        {curationContent}
         </aside>
       )}
 
