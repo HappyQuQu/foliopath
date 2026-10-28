@@ -110,6 +110,14 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const CollapsibleNavigationAndDock: Story = {
+  name: "Collapsible navigation and scroll dock (synthetic fixtures)",
+  parameters: {
+    manyDirectories: true,
+    docs: { description: { story: "Production BrowsePage with synthetic contract fixtures. Collapse Quick access to expand the directory tree, then scroll to see the compact toolbar transition. The same controls retain their values and focus." } },
+  },
+};
+
 export const ManyDirectories: Story = {
   parameters: { manyDirectories: true },
   name: "Many directories (synthetic contract fixtures)",

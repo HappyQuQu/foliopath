@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -75,6 +76,8 @@ import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage"
 import {
   readMediaLayoutPreference,
   readMediaSortPreference,
+  readQuickAccessExpandedPreference,
+  writeQuickAccessExpandedPreference,
   writeMediaLayoutPreference,
 } from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
@@ -103,6 +106,7 @@ import {
   serializeBrowseUrlState,
   type BrowseUrlState,
 } from "../urlState";
+import { BrowseControls } from "./BrowseControls";
 import styles from "./BrowsePage.module.css";
 
 export function BrowsePage({
@@ -130,6 +134,7 @@ export function BrowsePage({
   const [mediaSortPreference] = useState(readMediaSortPreference);
   const [directoryFilterDraft, setDirectoryFilterDraft] = useState("");
   const [manualRefreshPending, setManualRefreshPending] = useState(false);
+  const [browseControlsHeight, setBrowseControlsHeight] = useState(0);
   const [folderGrid, setFolderGrid] = useState<HTMLDivElement | null>(null);
   const [folderPreviewCount, setFolderPreviewCount] = useState(6);
   const [expandedFolderScope, setExpandedFolderScope] = useState<string | null>(null);
@@ -420,45 +425,50 @@ export function BrowsePage({
           style={
             {
               "--preview-sticky-top":
-                "calc(var(--size-header) + var(--size-context-bar) + var(--space-3))",
+                "calc(var(--size-header) + var(--size-context-bar) + var(--browse-controls-visible-height) + var(--space-3))",
+              "--browse-controls-visible-height": `${browseControlsHeight}px`,
               "--preview-width": `${preview.width}px`,
             } as CSSProperties
           }
         >
           <div className={styles.content}>
-            <div className={styles.browseControls}>
-            <header className={styles.browseHeading}>
-              <div className={styles.browseTitle}>
-                <h1 id="browse-heading">{currentName}</h1>
-                <span>{t("browse.loadedMediaCount").replace("{count}", String(assets.length))}</span>
-              </div>
-              <BrowseScopeControls
+            <BrowseControls
+              onHeightChange={setBrowseControlsHeight}
+              heading={
+                <>
+                  <div className={styles.browseTitle}>
+                    <h1 id="browse-heading">{currentName}</h1>
+                    <span>{t("browse.loadedMediaCount").replace("{count}", String(assets.length))}</span>
+                  </div>
+                  <BrowseScopeControls
+                    browseState={browseState}
+                    counts={assetsQuery.data?.pages[0]?.counts}
+                    mediaSortPreference={mediaSortPreference}
+                    onChange={updateBrowseState}
+                  />
+                </>
+              }
+            >
+              <BrowseToolbar
                 browseState={browseState}
-                counts={assetsQuery.data?.pages[0]?.counts}
+                directoryFilter={directoryFilterDraft}
+                mediaLayout={mediaLayout}
                 mediaSortPreference={mediaSortPreference}
                 onChange={updateBrowseState}
+                onDirectoryFilterChange={setDirectoryFilterDraft}
+                onLayoutChange={updateMediaLayout}
+                onRefresh={async () => {
+                  setManualRefreshPending(true);
+                  try {
+                    await refreshCurrentScope();
+                  } finally {
+                    setManualRefreshPending(false);
+                  }
+                }}
+                refreshPending={manualRefreshPending}
+                sizeControlRef={setSizeControlContainer}
               />
-            </header>
-        <BrowseToolbar
-          browseState={browseState}
-          directoryFilter={directoryFilterDraft}
-          mediaLayout={mediaLayout}
-          mediaSortPreference={mediaSortPreference}
-          onChange={updateBrowseState}
-          onDirectoryFilterChange={setDirectoryFilterDraft}
-          onLayoutChange={updateMediaLayout}
-          onRefresh={async () => {
-            setManualRefreshPending(true);
-            try {
-              await refreshCurrentScope();
-            } finally {
-              setManualRefreshPending(false);
-            }
-          }}
-          refreshPending={manualRefreshPending}
-          sizeControlRef={setSizeControlContainer}
-        />
-            </div>
+            </BrowseControls>
         {currentLibrary?.status === "offline" && (
           <div className={styles.banner}>
             <InlineStatus tone="warning">
@@ -1163,6 +1173,8 @@ export function DirectoryNavigation({
 }) {
   const { t } = useLocale();
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
+  const [quickAccessExpanded, setQuickAccessExpanded] = useState(readQuickAccessExpandedPreference);
+  const quickAccessId = useId();
   const libraryPickerRef = useRef<HTMLDivElement>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const libraryOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -1379,7 +1391,23 @@ export function DirectoryNavigation({
           </div>
         )}
       </div>}
-      <p className={styles.treeLabel}>{t("curation.quickAccess")}</p>
+      <Button
+        aria-controls={quickAccessId}
+        aria-expanded={quickAccessExpanded}
+        aria-label={t(quickAccessExpanded ? "curation.collapseQuickAccess" : "curation.expandQuickAccess")}
+        className={styles.quickAccessToggle}
+        onClick={() => {
+          const expanded = !quickAccessExpanded;
+          setQuickAccessExpanded(expanded);
+          writeQuickAccessExpandedPreference(expanded);
+        }}
+        size="small"
+        variant="quiet"
+      >
+        <span>{t("curation.quickAccess")}</span>
+        <CaretDown aria-hidden="true" size={14} />
+      </Button>
+      <div hidden={!quickAccessExpanded} id={quickAccessId}>
       <nav
         aria-label={t("curation.quickAccess")}
         className={`${styles.tree} ${styles.quickAccess}`}
@@ -1431,6 +1459,7 @@ export function DirectoryNavigation({
           <span>{t("curation.tags")}</span>
         </Link>
       </nav>
+      </div>
       {quickAccessDetail && <div className={styles.contextDetail} data-layout={detailLayout}>{quickAccessDetail}</div>}
       {!hideDirectoryTree && (
         <>

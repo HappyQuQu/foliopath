@@ -786,7 +786,6 @@
 .browseControls {
   display: grid;
   gap: var(--space-3);
-  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;
   padding: var(--space-6) var(--space-6) var(--space-3);
   border-bottom: var(--border-width) solid var(--color-border);
   background: var(--color-workspace-heading);
@@ -797,7 +796,7 @@
 .foldersSection h2 { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-2); font-weight: 500; }
 .foldersSection .sectionHeading p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 48rem) {
-  .browseControls { margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) 0; padding: var(--space-5) var(--space-4) var(--space-3); }
+  .browseControls { padding: var(--space-5) var(--space-4) var(--space-3); }
 }
 
 .contextDetail[data-layout="fill"] { display: flex; flex-direction: column; overflow: hidden; }
@@ -962,7 +961,7 @@
 }
 @container workspace (max-width: 48rem) {
   .content { padding: var(--space-4); }
-  .browseControls { margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; padding: var(--space-4) var(--space-4) var(--space-3); }
+  .browseControls { padding: var(--space-4) var(--space-4) var(--space-3); }
   .scopeControls { width: 100%; }
   .scopeControls .kindControls { width: auto; flex: 0 1 auto; }
   .viewControls { flex-basis: 100%; max-width: 100%; }
@@ -971,4 +970,68 @@
 @container workspace (max-width: 30rem) {
   .displayControls, .sortActions { width: 100%; flex-wrap: wrap; }
   .sortActions .sortControl { flex: 1 1 10rem; }
+}
+
+.quickAccessToggle {
+  flex: none;
+  width: calc(100% - var(--space-4));
+  margin: 0 var(--space-2) var(--space-2);
+  color: var(--color-sidebar-text);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
+
+.quickAccessToggle > span {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.quickAccessToggle svg {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.quickAccessToggle[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+
+.browseControlsSlot {
+  position: sticky;
+  z-index: calc(var(--layer-header) - 2);
+  top: calc(var(--size-header) + var(--size-context-bar));
+  align-self: start;
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;
+  pointer-events: none;
+}
+
+.browseControlsSlot .browseControls {
+  pointer-events: auto;
+}
+
+.browseControlsSlot[data-compact] .browseControls {
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  box-shadow: var(--shadow-preview);
+  animation: browseControlsDock var(--motion-normal) var(--ease-standard);
+}
+
+.browseControlsSlot[data-compact] .browseTitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes browseControlsDock {
+  from { opacity: 0.75; transform: translateY(calc(-1 * var(--space-2))); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@container workspace (max-width: 48rem) {
+  .browseControlsSlot { margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browseControlsSlot[data-compact] .browseControls { animation: none; }
 }

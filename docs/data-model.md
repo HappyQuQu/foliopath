@@ -1,5 +1,7 @@
 # FolioPath 数据模型
 
+2026-10-28 浏览侧栏修复：快速访问展开状态仅保存为现有 `foliopath.preferences.v1` 中的可选 `quickAccessExpanded` 布尔值，缺失时默认展开。复用 shared storage/preferences，保存时保留其他字段；不写 SQLite、`/app/data`，不触发扫描或模型任务。滚动收紧状态仅在内存中，不属于 URL 或持久偏好。
+
 CR-2026-051 / ADR-0037 / migration47：ocr_search_documents是ocr_asset_results的复合外键派生文档，独立rowid用于external-content FTS5 trigram索引；正文NFKC/casefold复用catalog。OCR提交结果、文档与checkpoint同事务，结果更新先移除旧文档再重建，删除/清理/资产库删除级联维护FTS。Open有界每批100条回填已存ready结果，含空白，不触发推理。全文索引/结果/设置/库状态和源相关字段触发同事务catalog_search_state revision，原有search cursor不继续混用旧证据。OCR关闭不删除正文；确认clear才删除结果与全文文档，历史保留策略仍未完成。
 
 2026-10-26 / ADR-0036：迁移00046在OCR任务增加next_attempt_ms（busy背压延后）和独立ocr_job_handoffs（精确claim/尝试/最新checkpoint与计数，最多10收据/任务）。不改旧analysis_job_handoffs或ai_model_operations。计划handoff由原WorkerPool收尾调用，普通取消不退attempt；库取消优先，源失败/服务失败分开。当前模型/源统计单查询，empty⊆ready、stale⊆pending，元数据保留策略仍独立待验收。

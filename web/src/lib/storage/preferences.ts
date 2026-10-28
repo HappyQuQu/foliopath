@@ -29,6 +29,7 @@ interface Preferences {
   previewPinned?: boolean;
   previewWidth?: number;
   sidebarWidth?: number;
+  quickAccessExpanded?: boolean;
   theme?: ThemePreference;
 }
 
@@ -250,4 +251,12 @@ export function writeClearedMediaFailureRevision(value: string): void {
 export function clearClearedMediaFailureRevision(): void {
   const { clearedMediaFailureRevision: _revision, ...preferences } = readPreferences();
   writePreferences(preferences);
+}
+
+export function readQuickAccessExpandedPreference(): boolean {
+  return readPreferences().quickAccessExpanded !== false;
+}
+
+export function writeQuickAccessExpandedPreference(quickAccessExpanded: boolean): void {
+  writePreferences({ ...readPreferences(), quickAccessExpanded });
 }

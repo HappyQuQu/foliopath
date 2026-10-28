@@ -54,6 +54,7 @@
 }
 
 .previewTrigger {
+  scroll-margin-block-start: calc(var(--size-header) + var(--size-context-bar) + var(--browse-controls-visible-height, 0px) + var(--space-4));
   position: absolute;
   z-index: 1;
   inset: 0;
