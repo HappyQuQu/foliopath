@@ -487,3 +487,5 @@ composition 与发行 UI 继续失败关闭。
 - [浏览侧栏折叠与滚动工具栏（2026-10-28）](changes/FIX-2026-10-28-browse-navigation-dock.md)：既有 UI 修复。
 
 - [CR-2026-054：预览布局与精简拍摄信息](changes/CR-2026-054-preview-exif.md)（POST-MVP-5维护）
+
+- [v1.7.0 发布与222升级](changes/RELEASE-2026-10-28-v1.7.0.md)（已完成，预览布局与拍摄信息）
