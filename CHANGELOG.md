@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/HappyQuQu/foliopath/compare/v1.6.4...v1.7.0) (2026-10-28)
+
+
+### ✨ 新功能
+
+* 优化媒体预览布局并显示拍摄信息 ([#68](https://github.com/HappyQuQu/foliopath/issues/68)) ([e359df8](https://github.com/HappyQuQu/foliopath/commit/e359df81ca07abbee5934cdd6d83877a9fb9d500))
+
 ## [1.6.4](https://github.com/HappyQuQu/foliopath/compare/v1.6.3...v1.6.4) (2026-10-28)
 
 
