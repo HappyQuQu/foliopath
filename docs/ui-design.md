@@ -1,3 +1,5 @@
+2026-10-29 / CR-2026-055：ZIP-S1 复用 BrowsePage 的流式目录网格、侧栏、MediaCollection 与查看器。ZIP 根卡片使用当前成员缩略图封面、ZIP 标记和已有图片计数，包内子目录仍用文件夹；缩略图失败回退图标。既有 InlineStatus 表达加密/损坏/不支持/超限恢复动作，中英文保持一致。深链和内部目录以显式 archivePath 识别 ZIP 默认名称排序。四档宽度和正式生产组件 Story 证据见[变更记录](changes/CR-2026-055-zip-image-browsing.md)。
+
 2026-10-26 / FR-UI-001～003/006、NFR-UIF-001：共享 AppShell 上下文栏中的媒体库长名称在可收缩的文字容器内单行省略，完整文字仍可访问，不使页面横向溢出或增高遮挡预览控件；按钮、图标和已有 Breadcrumbs 的单行省略保持各自所有者。最大长度名称由生产组件 LongLibraryName Story 展示合成数据，实际浏览器验证移动/平板/桌面/1920px、滚动预览与键盘焦点。[修复记录](changes/FIX-2026-10-26-context-name-wrap.md)。
 
 # FolioPath 界面设计规格

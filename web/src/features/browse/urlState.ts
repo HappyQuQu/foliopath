@@ -1,4 +1,4 @@
-import type { AssetKind, AssetSort, SortOrder } from "../../lib/api/catalog";
+import type { AssetKind, AssetSort, Directory, SortOrder } from "../../lib/api/catalog";
 import type { MediaSortPreference } from "../../lib/storage/preferences";
 import { paths } from "../../routes/paths";
 
@@ -97,4 +97,16 @@ export function browseUrl(
 export function kindsForBrowse(kind: BrowseKind): AssetKind[] | undefined {
   if (kind === "all") return undefined;
   return kind === "image" ? ["image", "animated"] : ["video"];
+}
+
+export function directoryBrowseUrl(
+  libraryId: string,
+  directory: Directory,
+  state: BrowseUrlState,
+): string {
+  return browseUrl(libraryId, directory.id,
+    directory.archivePath === directory.relativePath
+      ? { ...state, sort: "name", order: "asc" }
+      : state,
+  );
 }

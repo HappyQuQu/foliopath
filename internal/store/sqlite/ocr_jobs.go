@@ -79,7 +79,7 @@ func (s *Store) AdmitOCRJob(ctx context.Context, id, revision int64, mode ocr.Mo
 			return ocr.ErrConflict
 		}
 		var upper int64
-		if err = tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0) FROM assets WHERE library_id=? AND kind IN ('image','animated')`, id).Scan(&upper); err != nil {
+		if err = tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0) FROM assets WHERE library_id=? AND kind IN ('image','animated') AND archive_path = ''`, id).Scan(&upper); err != nil {
 			return err
 		}
 		_, err = tx.ExecContext(ctx, `INSERT INTO ocr_jobs(id,library_id,epoch,fingerprint,mode,state,upper_asset_id,created_at_ms,updated_at_ms) VALUES(?,?,?,?,?,'queued',?,?,?)`, jobID, id, current.Epoch, current.Fingerprint, mode, upper, now.UnixMilli(), now.UnixMilli())

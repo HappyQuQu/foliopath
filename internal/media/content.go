@@ -22,6 +22,7 @@ var (
 // ContentAsset is the indexed source identity needed to open an original. The
 // repository remains the only adapter that knows the database schema.
 type ContentAsset struct {
+	ArchiveMember     *ArchiveMember
 	ID                int64
 	LibraryID         int64
 	LibraryRoot       string
@@ -88,16 +89,22 @@ func (service *ContentService) Open(ctx context.Context, assetID int64) (Content
 	if err := validateContentAsset(asset); err != nil {
 		return Content{}, err
 	}
-	file, err := service.source.OpenContent(ctx, asset.LibraryRoot, asset.RelativePath)
+	file, err := service.openSource(ctx, asset)
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return Content{}, ctxErr
+		}
+		if errors.Is(err, ErrContentSourceChanged) {
+			return Content{}, ErrContentSourceChanged
 		}
 		return Content{}, ErrContentUnavailable
 	}
 	info, err := file.Stat()
 	if err != nil {
 		_ = file.Close()
+		if errors.Is(err, ErrContentSourceChanged) {
+			return Content{}, ErrContentSourceChanged
+		}
 		return Content{}, ErrContentUnavailable
 	}
 	if !info.Mode().IsRegular() ||
@@ -117,10 +124,29 @@ func (service *ContentService) Open(ctx context.Context, assetID int64) (Content
 	}, nil
 }
 
+func (service *ContentService) openSource(ctx context.Context, asset ContentAsset) (ContentFile, error) {
+	if asset.ArchiveMember != nil {
+		source, ok := service.source.(ArchiveContentSource)
+		if !ok {
+			return nil, ErrContentUnavailable
+		}
+		return source.OpenArchiveContent(ctx, asset.LibraryRoot, *asset.ArchiveMember)
+	}
+	return service.source.OpenContent(ctx, asset.LibraryRoot, asset.RelativePath)
+}
+
 func validateContentAsset(asset ContentAsset) error {
 	if asset.ID <= 0 || asset.LibraryID <= 0 || asset.RelativePath == "" || asset.SizeBytes < 0 ||
 		!asset.SourceFingerprint.Valid() ||
 		!asset.SourceFingerprint.Matches(asset.SizeBytes, asset.ModifiedAtNS) {
+		return ErrInvalidContentState
+	}
+	if asset.ArchiveMember != nil {
+		expected, err := NewArchiveSourceFingerprint(asset.SizeBytes, asset.ModifiedAtNS, *asset.ArchiveMember)
+		if err != nil || expected != asset.SourceFingerprint {
+			return ErrInvalidContentState
+		}
+	} else if _, _, archive := archiveFingerprintFields(asset.SourceFingerprint); archive {
 		return ErrInvalidContentState
 	}
 	_, format, mimeType, ok := ClassifyPath(asset.RelativePath)

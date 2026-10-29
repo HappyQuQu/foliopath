@@ -326,6 +326,31 @@
   font-variant-numeric: tabular-nums;
 }
 
+.archiveCard {
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+}
+
+.archiveCover {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  overflow: hidden;
+  border-radius: var(--radius-1);
+  background: var(--color-surface-hover);
+}
+
+.archiveCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.archiveCover svg {
+  grid-row: auto;
+}
+
 .folderActions {
   display: flex;
   flex-wrap: wrap;

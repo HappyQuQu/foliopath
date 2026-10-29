@@ -2730,6 +2730,15 @@ export interface components {
          *     running or the library is offline.
          */
         Directory: {
+            /** @description Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath. */
+            archivePath?: string | null;
+            /**
+             * @description Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+             * @enum {string|null}
+             */
+            archiveStatus?: "ready" | "unreadable" | "encrypted" | "unsupported" | "limit_exceeded" | null;
+            /** @description Current member with a ready grid thumbnail, for ZIP roots only; otherwise null. */
+            coverAssetId?: components["schemas"]["NullableResourceID"];
             /** Format: int64 */
             directAssetCount: number;
             hasChildren: boolean;
@@ -2743,12 +2752,21 @@ export interface components {
         };
         /** @description Indexed directory plus its complete safe root-to-current breadcrumb chain. */
         DirectoryDetail: {
+            /** @description Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath. */
+            archivePath?: string | null;
+            /**
+             * @description Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+             * @enum {string|null}
+             */
+            archiveStatus?: "ready" | "unreadable" | "encrypted" | "unsupported" | "limit_exceeded" | null;
             /**
              * @description Ordered root-to-current, inclusive. The 2049-item response bound
              *     covers the root plus 2048 one-character path components within the
              *     4096-character relative-path bound.
              */
             breadcrumbs: components["schemas"]["Breadcrumb"][];
+            /** @description Current member with a ready grid thumbnail, for ZIP roots only; otherwise null. */
+            coverAssetId?: components["schemas"]["NullableResourceID"];
             /** Format: int64 */
             directAssetCount: number;
             hasChildren: boolean;

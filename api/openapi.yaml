@@ -7323,6 +7323,20 @@ components:
           minimum: 0
         hasChildren:
           type: boolean
+        archivePath:
+          type: string
+          nullable: true
+          maxLength: 4096
+          description: Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath.
+        archiveStatus:
+          type: string
+          nullable: true
+          enum: [ready, unreadable, encrypted, unsupported, limit_exceeded, null]
+          description: Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+        coverAssetId:
+          allOf:
+            - $ref: '#/components/schemas/NullableResourceID'
+          description: Current member with a ready grid thumbnail, for ZIP roots only; otherwise null.
 
     DirectoryDetail:
       type: object
@@ -7361,6 +7375,20 @@ components:
           minimum: 0
         hasChildren:
           type: boolean
+        archivePath:
+          type: string
+          nullable: true
+          maxLength: 4096
+          description: Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath.
+        archiveStatus:
+          type: string
+          nullable: true
+          enum: [ready, unreadable, encrypted, unsupported, limit_exceeded, null]
+          description: Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+        coverAssetId:
+          allOf:
+            - $ref: '#/components/schemas/NullableResourceID'
+          description: Current member with a ready grid thumbnail, for ZIP roots only; otherwise null.
         breadcrumbs:
           type: array
           minItems: 1

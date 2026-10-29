@@ -129,6 +129,9 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct allowed media root: %w", err)
 	}
+	if err := directorySource.ConfigureArchiveTemp(filepath.Join(configuration.dataRoot, "tmp", "zip")); err != nil {
+		return nil, fmt.Errorf("construct archive temporary storage: %w", err)
+	}
 	libraryPaths, err := library.NewPathService(
 		directorySource,
 		database,

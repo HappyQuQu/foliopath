@@ -35,6 +35,16 @@ them.
   and public-network exposure are deployment concerns outside FolioPath's required
   single-container topology.
 
+## ZIP image sources
+
+- ADR-0040 accepts ZIP-S1: read-only ZIP containers project into
+  virtual catalog directories; explicit member locators never become disk paths.
+  `media` owns the v1:z fingerprint subtype; `files` owns bounded parsing and
+  request-scoped temporary extraction under `/app/data/tmp/zip`. Preserve ordinary
+  v1 identities, the single media mount, existing pagination, thumbnail quota and
+  scan-generation ownership. Failed archives preserve their previous subtree.
+  ZIP members stay excluded from AI admission/coverage until a later accepted slice.
+
 ## Managed AI deployment
 
 - ADR-0039 accepts explicit `standard-v1` automatic model preparation in the existing AI container and an independently embedded main-image profile. Fixed sources/hashes only; never trust live identity as configuration. AI alone may write its dedicated model cache and use network downloads; media/data and the bounded inference scheduler remain unchanged. Legacy offline deployments remain supported. New cache manifests get new identities; never relabel old results. Promotion still requires native amd64/arm64 matching verification.

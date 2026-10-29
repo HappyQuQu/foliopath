@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 	"github.com/HappyQuQu/foliopath/internal/scanner"
 )
@@ -92,6 +94,13 @@ func (walker *ScanWalker) Walk(
 		if err != nil {
 			return scannerWalkError(err)
 		}
+		if info.Mode().IsRegular() && scanner.IsArchivePath(libraryRelative) {
+			err := walker.walkArchive(ctx, relative, libraryRelative, info, visit)
+			if err != nil {
+				visitErr = err
+			}
+			return err
+		}
 		decision, err := visit(scanner.WalkEntry{
 			RelativePath: libraryRelative,
 			IsDirectory:  info.IsDir(),
@@ -167,12 +176,17 @@ func (walker *ScanWalker) ReadDirectory(
 			skipped := info.Mode()&fs.ModeSymlink != 0 ||
 				!walker.root.identity.sameFilesystem(info) ||
 				(!info.IsDir() && !info.Mode().IsRegular())
+			archivePath := ""
+			if !skipped && info.Mode().IsRegular() && scanner.IsArchivePath(libraryRelative) {
+				archivePath = libraryRelative
+			}
 			if err := visit(scanner.WalkEntry{
 				RelativePath: libraryRelative,
-				IsDirectory:  info.IsDir(),
+				IsDirectory:  info.IsDir() || archivePath != "",
 				SizeBytes:    info.Size(),
 				MTimeNS:      info.ModTime().UnixNano(),
 				Skipped:      skipped,
+				ArchivePath:  archivePath,
 			}); err != nil {
 				return err
 			}
@@ -183,6 +197,132 @@ func (walker *ScanWalker) ReadDirectory(
 		if readErr != nil {
 			return scannerWalkError(readErr)
 		}
+	}
+}
+
+func (walker *ScanWalker) walkArchive(ctx context.Context, allowedPath, relativePath string, info fs.FileInfo, visit func(scanner.WalkEntry) (scanner.WalkDecision, error)) error {
+	entries, err := walker.archiveEntries(ctx, allowedPath, relativePath, info)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	status := "ready"
+	if err != nil {
+		status = archiveScanStatus(err)
+	}
+	decision, err := visit(scanner.WalkEntry{
+		RelativePath: relativePath, IsDirectory: true, MTimeNS: info.ModTime().UnixNano(),
+		ArchivePath: relativePath, ArchiveStatus: status,
+	})
+	if err != nil || decision == scanner.WalkSkipDirectory || status != "ready" {
+		return err
+	}
+	var skipPrefix string
+	for _, entry := range entries {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if skipPrefix != "" && strings.HasPrefix(entry.RelativePath, skipPrefix) {
+			continue
+		}
+		decision, err := visit(entry)
+		if err != nil {
+			return err
+		}
+		if decision == scanner.WalkSkipDirectory && entry.IsDirectory {
+			skipPrefix = entry.RelativePath + "/"
+		}
+	}
+	return nil
+}
+
+func (walker *ScanWalker) archiveEntries(ctx context.Context, allowedPath, relativePath string, expected fs.FileInfo) ([]scanner.WalkEntry, error) {
+	file, err := walker.root.Open(allowedPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if info.Size() != expected.Size() || info.ModTime() != expected.ModTime() {
+		return nil, media.ErrContentSourceChanged
+	}
+	manifest, err := ReadArchive(ctx, file)
+	if err != nil {
+		return nil, err
+	}
+	entries := make(map[string]scanner.WalkEntry, len(manifest.Entries))
+	for _, member := range manifest.Entries {
+		for parent := path.Dir(member.Path); parent != "."; parent = path.Dir(parent) {
+			entries[parent] = scanner.WalkEntry{
+				RelativePath: path.Join(relativePath, parent), IsDirectory: true,
+				MTimeNS: info.ModTime().UnixNano(), ArchivePath: relativePath, ArchiveStatus: "ready",
+			}
+		}
+		entry := scanner.WalkEntry{
+			RelativePath: path.Join(relativePath, member.Path), IsDirectory: member.IsDirectory,
+			SizeBytes: member.SizeBytes, MTimeNS: member.MTimeNS,
+		}
+		if member.IsDirectory {
+			entry.ArchivePath, entry.ArchiveStatus = relativePath, "ready"
+		} else {
+			kind, _, _, supported := media.ClassifyPath(member.Path)
+			entry.Skipped = !supported || kind == media.KindVideo
+			entry.ArchiveMember = &media.ArchiveMember{
+				ArchivePath: relativePath, MemberPath: member.Path,
+				ArchiveSizeBytes: info.Size(), ArchiveMTimeNS: info.ModTime().UnixNano(), CRC32: member.CRC32,
+			}
+		}
+		entries[member.Path] = entry
+		if len(entries) > MaxArchiveEntries {
+			return nil, ErrArchiveLimit
+		}
+	}
+	paths := make([]string, 0, len(entries))
+	for memberPath := range entries {
+		paths = append(paths, memberPath)
+	}
+	slices.SortFunc(paths, compareArchivePaths)
+	ordered := make([]scanner.WalkEntry, 0, len(paths))
+	for _, memberPath := range paths {
+		ordered = append(ordered, entries[memberPath])
+	}
+	return ordered, nil
+}
+
+// Compare components so a directory's descendants stay together even when a
+// sibling name begins with the same bytes, such as "album" and "album-backup".
+func compareArchivePaths(left, right string) int {
+	for {
+		leftName, leftRest, leftChild := strings.Cut(left, "/")
+		rightName, rightRest, rightChild := strings.Cut(right, "/")
+		if order := strings.Compare(leftName, rightName); order != 0 {
+			return order
+		}
+		if !leftChild && !rightChild {
+			return 0
+		}
+		if !leftChild {
+			return -1
+		}
+		if !rightChild {
+			return 1
+		}
+		left, right = leftRest, rightRest
+	}
+}
+
+func archiveScanStatus(err error) string {
+	switch {
+	case errors.Is(err, ErrArchiveEncrypted):
+		return "encrypted"
+	case errors.Is(err, ErrArchiveUnsupported):
+		return "unsupported"
+	case errors.Is(err, ErrArchiveLimit):
+		return "limit_exceeded"
+	default:
+		return "unreadable"
 	}
 }
 

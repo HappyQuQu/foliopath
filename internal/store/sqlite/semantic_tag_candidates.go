@@ -32,7 +32,7 @@ func (s *Store) CountTagJobCandidates(ctx context.Context, libraryID int64, gene
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(SUM(CASE WHEN `+where+` THEN 1 ELSE 0 END),0)
         FROM assets asset JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id
           AND embedding.asset_id=asset.id AND embedding.source_fingerprint=asset.source_fingerprint
-        WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated')`, args...).Scan(&value.Eligible, &value.Pending)
+        WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`, args...).Scan(&value.Eligible, &value.Pending)
 	if err != nil {
 		return value, fmt.Errorf("count semantic tag candidates: %w", err)
 	}
@@ -55,7 +55,7 @@ func (s *Store) ListTagJobCandidates(ctx context.Context, libraryID int64, gener
         JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
           AND embedding.source_fingerprint=asset.source_fingerprint
         WHERE asset.library_id=? AND embedding.generation_id=? AND asset.id>?
-          AND asset.kind IN ('image','animated') AND `+where+` ORDER BY asset.id LIMIT ?`, args...)
+          AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND `+where+` ORDER BY asset.id LIMIT ?`, args...)
 	if err != nil {
 		return semantic.TagJobCandidatePage{}, fmt.Errorf("list semantic tag candidates: %w", err)
 	}

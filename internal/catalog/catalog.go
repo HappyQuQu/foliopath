@@ -129,6 +129,9 @@ type Directory struct {
 	DirectAssetCount    int64
 	RecursiveAssetCount int64
 	HasChildren         bool
+	ArchivePath         string
+	ArchiveStatus       string
+	CoverAssetID        *int64
 }
 
 type DirectoryLineage struct {

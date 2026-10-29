@@ -337,6 +337,13 @@ func (s *Store) CommitDirectoryReconcile(
 		if err != nil {
 			return err
 		}
+		for _, entry := range entries {
+			if entry.ArchivePath != "" {
+				committed.FullScanRequired = true
+				committed.Requeued, err = completeReconcileTx(ctx, tx, current, s.nowMS())
+				return err
+			}
+		}
 		var generation int64
 		if err := tx.QueryRowContext(ctx, `
 			SELECT current_generation
@@ -496,38 +503,9 @@ func (s *Store) CommitDirectoryReconcile(
 			return err
 		}
 
-		if current.RequestedRevision == *current.ClaimedRevision {
-			result, err := tx.ExecContext(ctx, `
-				DELETE FROM catalog_reconcile_jobs
-				WHERE id = ? AND status = 'running' AND claimed_revision = ?
-			`, current.ID, *current.ClaimedRevision)
-			if err != nil {
-				return fmt.Errorf("complete reconciliation job: %w", err)
-			}
-			rows, err := result.RowsAffected()
-			if err != nil || rows != 1 {
-				return scanner.ErrReconcileNotActive
-			}
-		} else {
-			if _, err := tx.ExecContext(ctx, `
-				UPDATE catalog_reconcile_jobs
-				SET status = 'queued',
-				    claimed_revision = NULL,
-				    lease_expires_at_ms = NULL,
-				    attempt_count = 0,
-				    last_error_code = NULL,
-				    available_at_ms = ?,
-				    updated_at_ms = ?
-				WHERE id = ? AND status = 'running' AND claimed_revision = ?
-			`,
-				now+scanner.ReconcileDebounce.Milliseconds(),
-				now,
-				current.ID,
-				*current.ClaimedRevision,
-			); err != nil {
-				return fmt.Errorf("requeue changed reconciliation job: %w", err)
-			}
-			committed.Requeued = true
+		committed.Requeued, err = completeReconcileTx(ctx, tx, current, now)
+		if err != nil {
+			return err
 		}
 
 		contentIncrement := 0
@@ -558,6 +536,43 @@ func (s *Store) CommitDirectoryReconcile(
 		return nil
 	})
 	return committed, err
+}
+
+func completeReconcileTx(ctx context.Context, tx *sql.Tx, current scanner.ReconcileJob, now int64) (bool, error) {
+	if current.RequestedRevision == *current.ClaimedRevision {
+		result, err := tx.ExecContext(ctx, `
+			DELETE FROM catalog_reconcile_jobs
+			WHERE id = ? AND status = 'running' AND claimed_revision = ?
+		`, current.ID, *current.ClaimedRevision)
+		if err != nil {
+			return false, fmt.Errorf("complete reconciliation job: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil || rows != 1 {
+			return false, scanner.ErrReconcileNotActive
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE catalog_reconcile_jobs
+			SET status = 'queued',
+			    claimed_revision = NULL,
+			    lease_expires_at_ms = NULL,
+			    attempt_count = 0,
+			    last_error_code = NULL,
+			    available_at_ms = ?,
+			    updated_at_ms = ?
+			WHERE id = ? AND status = 'running' AND claimed_revision = ?
+		`,
+			now+scanner.ReconcileDebounce.Milliseconds(),
+			now,
+			current.ID,
+			*current.ClaimedRevision,
+		); err != nil {
+			return false, fmt.Errorf("requeue changed reconciliation job: %w", err)
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (s *Store) FailDirectoryReconcile(

@@ -1,3 +1,5 @@
+2026-10-29 / POST-MVP ZIP-S1：用户已授权独立分支实现并在试用后要求合并发布，S0 以 ADR-0040、CR-2026-055、zip-source-contract 和加法 OpenAPI 为输入；先完成真实扫描/读取/存储回归，再开始正式 UI，最终合成 Linux 实例和四档宽度验证。Gate 状态见[变更记录](changes/CR-2026-055-zip-image-browsing.md)。
+
 # FolioPath 开发就绪评审
 
 CR-2026-052：消费已通过CR050的OCR管理Backend Ready与CR051检索合同，仅推进正式设置/任务UI与稳定Story；不新增API或模型行为，不自动推进原6010或质量/容量/发行Gate。

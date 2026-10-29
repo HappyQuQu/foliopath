@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/thumbnail"
 )
 
 func (s *Store) ResolveGlobalCatalogRevision(ctx context.Context) (int64, error) {
@@ -122,7 +124,7 @@ func (s *Store) ListDirectoryPage(
                    SELECT 1 FROM directories child
                    WHERE child.library_id = directories.library_id
                      AND child.parent_id = directories.id
-               )
+               ), archive_path, archive_status, ` + archiveCoverSQL("directories") + `
         FROM directories
         WHERE library_id = ? AND parent_id = ?`
 	args := []any{params.Scope.LibraryID, params.Scope.DirectoryID}
@@ -163,10 +165,11 @@ func (s *Store) ListDirectoryPage(
 		var item catalog.Directory
 		var parentID sql.NullInt64
 		var hasChildren int64
+		var coverAssetID sql.NullInt64
 		if err := rows.Scan(
 			&item.ID, &item.LibraryID, &parentID, &item.RelativePath,
 			&item.Name, &item.NaturalNameKey, &item.DirectAssetCount,
-			&item.RecursiveAssetCount, &hasChildren,
+			&item.RecursiveAssetCount, &hasChildren, &item.ArchivePath, &item.ArchiveStatus, &coverAssetID,
 		); err != nil {
 			return nil, fmt.Errorf("read catalog directory: %w", err)
 		}
@@ -174,6 +177,9 @@ func (s *Store) ListDirectoryPage(
 			item.ParentID = &parentID.Int64
 		}
 		item.HasChildren = hasChildren != 0
+		if coverAssetID.Valid {
+			item.CoverAssetID = &coverAssetID.Int64
+		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -225,6 +231,7 @@ func (s *Store) GetDirectoryLineage(
 		var item catalog.Directory
 		var parentID sql.NullInt64
 		var hasChildren int64
+		var coverAssetID sql.NullInt64
 		err := s.db.QueryRowContext(ctx, `
             SELECT d.id, d.library_id, d.parent_id, d.relative_path, d.name,
                    d.natural_name_key, d.direct_asset_count,
@@ -233,14 +240,14 @@ func (s *Store) GetDirectoryLineage(
                        SELECT 1 FROM directories child
                        WHERE child.library_id = d.library_id
                          AND child.parent_id = d.id
-                   )
+                   ), d.archive_path, d.archive_status, `+archiveCoverSQL("d")+`
             FROM directories d
             WHERE d.id = ? AND d.library_id = ?`,
 			currentID, libraryID,
 		).Scan(
 			&item.ID, &item.LibraryID, &parentID, &item.RelativePath, &item.Name,
 			&item.NaturalNameKey, &item.DirectAssetCount, &item.RecursiveAssetCount,
-			&hasChildren,
+			&hasChildren, &item.ArchivePath, &item.ArchiveStatus, &coverAssetID,
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -249,6 +256,9 @@ func (s *Store) GetDirectoryLineage(
 			return catalog.DirectoryLineage{}, fmt.Errorf("read catalog directory ancestor: %w", err)
 		}
 		item.HasChildren = hasChildren != 0
+		if coverAssetID.Valid {
+			item.CoverAssetID = &coverAssetID.Int64
+		}
 		if parentID.Valid {
 			parent := parentID.Int64
 			item.ParentID = &parent
@@ -265,6 +275,16 @@ func (s *Store) GetDirectoryLineage(
 		items[len(reversed)-1-index] = reversed[index]
 	}
 	return catalog.DirectoryLineage{LibraryName: libraryName, Items: items}, nil
+}
+
+func archiveCoverSQL(directory string) string {
+	return `CASE WHEN ` + directory + `.archive_path <> '' AND ` + directory + `.relative_path = ` + directory + `.archive_path AND ` + directory + `.archive_status = 'ready' THEN (
+        SELECT a.id FROM assets a JOIN thumbnails t ON t.asset_id = a.id
+          AND t.variant = 'grid' AND t.status = 'ready' AND t.source_fingerprint = a.source_fingerprint
+          AND t.transform_version = ` + strconv.Itoa(thumbnail.GridTransformVersion) + `
+        WHERE a.library_id = ` + directory + `.library_id AND a.archive_path = ` + directory + `.archive_path
+        ORDER BY a.natural_name_key, a.name, a.id LIMIT 1
+    ) END`
 }
 
 func (s *Store) ListAssetPage(

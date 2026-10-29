@@ -53,7 +53,7 @@ func (s *Store) GetTagSuggestionListSnapshot(ctx context.Context, libraryID int6
 		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset JOIN semantic_embeddings embedding
 			ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
 			AND embedding.source_fingerprint=asset.source_fingerprint
-			WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated')`,
+			WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`,
 			libraryID, snapshot.GenerationID).Scan(&snapshot.Coverage.Eligible); err != nil {
 			return semantic.TagSuggestionListSnapshot{}, err
 		}

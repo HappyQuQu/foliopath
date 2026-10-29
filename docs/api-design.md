@@ -1,3 +1,5 @@
+2026-10-29 / ZIP-S1：目录列表及详情增加 archivePath、archiveStatus、coverAssetId，普通目录返回 null；包内资产复用原 ID/缩略图/内容/Range 端点。公开合同仍以 api/openapi.yaml 为准；[来源合同](architecture/zip-source-contract.md)解释虚拟层级及失败保留。
+
 # FolioPath API 设计与契约说明
 
 CR-2026-051：公开合同仍以api/openapi.yaml为准。GET /api/v1/search/assets增加mode=ocr、实际sources=ocr、最多8个{line,text}片段，以及ocrState/ocrCoverage。OCR不要求实时推理，查询不会启动任务。all中OCR当字面来源，语义故障保留文字匹配；OCR-only不编码语义。快照在检索末尾和资产hydration后核验，变化409 search_cursor_stale，无部分正文。sources新增枚举对穷举旧客户端有兼容影响，按本CR协调同版本内嵌SPA升级（尚未部署6010），不是无条件向后兼容声明。

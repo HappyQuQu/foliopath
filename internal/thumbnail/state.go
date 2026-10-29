@@ -15,6 +15,7 @@ var (
 )
 
 type Asset struct {
+	ArchiveMember     *media.ArchiveMember
 	ID                int64
 	LibraryID         int64
 	LibraryRoot       string

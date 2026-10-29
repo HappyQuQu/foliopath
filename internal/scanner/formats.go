@@ -1,10 +1,15 @@
 package scanner
 
 import (
+	"path"
 	"strings"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
 )
+
+func IsArchivePath(relativePath string) bool {
+	return strings.EqualFold(path.Ext(relativePath), ".zip")
+}
 
 var systemDirectories = map[string]struct{}{
 	"@eadir":       {},

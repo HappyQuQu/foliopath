@@ -1,3 +1,5 @@
+[ADR-0040：只读 ZIP 图片来源](0040-read-only-zip-images.md)（2026-10-29 Accepted；显式成员来源与有界展开，发行仍经原生双架构门禁）。
+
 # FolioPath 架构决策记录
 
 [ADR-0038：Docker Desktop SQLite使用Linux数据卷](0038-docker-desktop-linux-sqlite-volume.md)（本地恢复维护；停写校验后切换）。

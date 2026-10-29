@@ -1,3 +1,5 @@
+2026-10-29 / FR-ZIP-001～004、NFR-ZIP-001 / POST-MVP ZIP-S1：media 拥有显式成员来源与 v1:z 指纹；files 拥有已打开 ZIP 解析及有界请求临时展开；scanner/SQLite 沿用代次/事务/计数/派生任务；catalog/API 添加目录来源/状态/封面，Web browse 复用正式组件。AI 首版排除 ZIP；不增加部署单元。Gate/验证见[CR-2026-055](../changes/CR-2026-055-zip-image-browsing.md)，[来源合同](zip-source-contract.md)。
+
 2026-10-28 / FR-BRW-001/004/005、FR-UI-001～003/006、NFR-UIF-001、NFR-OPS-001：PR #66/#67 已合并，v1.6.4 四个 main/AI 原生构建验证及两个推广任务首轮通过。浏览侧栏/吸顶与存储偏好 owner 不变，25 文件发行例外不扩大；见[正式结果](../changes/FIX-2026-10-28-browse-navigation-dock.md#正式发布结果)。
 
 2026-10-28 / FR-BRW-001/004/005、FR-UI-001～003/006、NFR-UIF-001 / POST-MVP-5 既有 UI 修复：DirectoryNavigation 统一快速访问折叠，shared preferences 拥有本地偏好；BrowseControls 拥有同一操作区的紧凑吸顶与文档占位，MediaCollection/Preview 沿用各自焦点和预览 owner。无 API 或架构边界变化；证据见[记录](../changes/FIX-2026-10-28-browse-navigation-dock.md)。
