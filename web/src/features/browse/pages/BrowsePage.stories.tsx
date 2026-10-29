@@ -83,6 +83,8 @@ const meta = {
       <StoryApiBoundary
         manyDirectories={context.parameters.manyDirectories === true}
         archiveFixtures={context.parameters.archiveFixtures === true}
+        sevenZipFixtures={context.parameters.sevenZipFixtures === true}
+        folderCoverFixtures={context.parameters.folderCoverFixtures === true}
       >
         <ThemeProvider>
           <QueryClientProvider client={new QueryClient()}>
@@ -122,8 +124,13 @@ export const CollapsibleNavigationAndDock: Story = {
 };
 
 export const ManyDirectories: Story = {
-  parameters: { manyDirectories: true },
   name: "Many directories (synthetic contract fixtures)",
+  parameters: { manyDirectories: true, docs: { description: { story: "Production directory tree and grid with paginated synthetic directory contracts. Scroll the tree near its bottom to append; expand the grid before scrolling to load subsequent pages. Manual buttons remain available." } } },
+};
+
+export const FolderCovers: Story = {
+  name: "Folder covers (synthetic contract fixtures)",
+  parameters: { folderCoverFixtures: true, docs: { description: { story: "Production folder cards with synthetic directory contracts: existing thumbnail, cover selected from a descendant, no thumbnail, and thumbnail failure. Folder names, counts, navigation and the folder icon remain available." } } },
 };
 
 export const ZipArchives: Story = {
@@ -152,15 +159,26 @@ export const ZipEncrypted: Story = {
   parameters: { archiveFixtures: true },
 };
 
-function StoryApiBoundary({ children, manyDirectories, archiveFixtures }: { children: ReactNode; manyDirectories: boolean; archiveFixtures: boolean }) {
-  window.fetch = storyFetch(passthroughFetch, manyDirectories, archiveFixtures);
+export const SevenZipArchives: Story = {
+  name: "7z archives (synthetic contract fixtures)",
+  parameters: { archiveFixtures: true, sevenZipFixtures: true },
+};
+
+export const SevenZipContents: Story = {
+  name: "7z contents (synthetic contract fixtures)",
+  args: { directoryId: "dir_zip" },
+  parameters: { archiveFixtures: true, sevenZipFixtures: true },
+};
+
+function StoryApiBoundary({ children, manyDirectories, archiveFixtures, sevenZipFixtures, folderCoverFixtures }: { children: ReactNode; manyDirectories: boolean; archiveFixtures: boolean; sevenZipFixtures: boolean; folderCoverFixtures: boolean }) {
+  window.fetch = storyFetch(passthroughFetch, manyDirectories, archiveFixtures, sevenZipFixtures, folderCoverFixtures);
   useEffect(() => () => {
     window.fetch = passthroughFetch;
   }, []);
   return children;
 }
 
-function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean, archiveFixtures: boolean): typeof window.fetch {
+function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean, archiveFixtures: boolean, sevenZipFixtures: boolean, folderCoverFixtures: boolean): typeof window.fetch {
   const archivePath = "旅行/日本/京都/京都图集.zip";
   const zipDirectories: Directory[] = [
     { ...directory("dir_zip", "京都图集.zip", archivePath, "dir_kyoto", 6, true), archivePath, archiveStatus: "ready", coverAssetId: "ast_zip_1", directAssetCount: 3 },
@@ -172,7 +190,12 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
   ];
   const fixtureDirectories = archiveFixtures ? [
     ...directories.filter(item => item.id === "dir_root" || item.id === "dir_travel" || item.id === "dir_japan" || item.id === "dir_kyoto" || item.id === "dir_kiyomizu"),
-    ...zipDirectories,
+    ...zipDirectories.map((entry) => sevenZipFixtures ? {
+      ...entry,
+      name: entry.name.replace(/\.zip$/i, ".7z"),
+      relativePath: entry.relativePath.replace(/\.zip(?=\/|$)/gi, ".7z"),
+      archivePath: entry.archivePath?.replace(/\.zip$/i, ".7z") ?? null,
+    } : entry),
   ] : manyDirectories ? [
     ...directories,
     ...Array.from({ length: 24 }, (_, index) => directory(
@@ -184,7 +207,12 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
       "dir_kyoto",
       index * 11,
     )),
-  ] : directories;
+  ] : folderCoverFixtures ? directories.map(entry => ({
+    ...entry,
+    ...(entry.id === "dir_kiyomizu" ? { coverAssetId: "ast_folder_1" } : {}),
+    ...(entry.id === "dir_fushimi" ? { coverAssetId: "ast_folder_2", directAssetCount: 0, hasChildren: true } : {}),
+    ...(entry.id === "dir_arashiyama" ? { coverAssetId: "ast_folder_failed" } : {}),
+  })) : directories;
   return async (input, init) => {
     const url = new URL(
       input instanceof Request ? input.url : String(input),
@@ -194,9 +222,10 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
       return originalFetch(input, init);
     }
 
-    if (/^\/api\/v1\/assets\/ast_zip_\d+\/(thumbnail|content)$/.test(url.pathname)) {
-      const warm = url.pathname.includes("ast_zip_2");
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"><rect width="960" height="640" fill="${warm ? "#ad755c" : "#447b91"}"/><circle cx="710" cy="160" r="70" fill="#f1d59a"/><path d="M0 550L280 230L640 640H0" fill="${warm ? "#785c46" : "#335b69"}"/><text x="50" y="590" fill="white" font-family="sans-serif" font-size="35">Synthetic ZIP image</text></svg>`;
+    if (url.pathname === "/api/v1/assets/ast_folder_failed/thumbnail") return new Response("", { status: 404 });
+    if (/^\/api\/v1\/assets\/ast_(zip|folder)_\d+\/(thumbnail|content)$/.test(url.pathname)) {
+      const warm = url.pathname.includes("_2");
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"><rect width="960" height="640" fill="${warm ? "#ad755c" : "#447b91"}"/><circle cx="710" cy="160" r="70" fill="#f1d59a"/><path d="M0 550L280 230L640 640H0" fill="${warm ? "#785c46" : "#335b69"}"/><text x="50" y="590" fill="white" font-family="sans-serif" font-size="35">Synthetic image</text></svg>`;
       return new Response(svg, { headers: { "Content-Type": "image/svg+xml" } });
     }
 

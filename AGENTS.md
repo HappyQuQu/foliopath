@@ -35,7 +35,7 @@ them.
   and public-network exposure are deployment concerns outside FolioPath's required
   single-container topology.
 
-## ZIP image sources
+## Archive image sources
 
 - ADR-0040 accepts ZIP-S1: read-only ZIP containers project into
   virtual catalog directories; explicit member locators never become disk paths.
@@ -44,6 +44,10 @@ them.
   v1 identities, the single media mount, existing pagination, thumbnail quota and
   scan-generation ownership. Failed archives preserve their previous subtree.
   ZIP members stay excluded from AI admission/coverage until a later accepted slice.
+- ADR-0041 extends the same source contract to read-only 7z. files owns bounded
+  descriptor-only 7zip subprocesses, with prlimit applied before decoder startup.
+  Preserve all ZIP identities and global temporary quotas; do not extract archive
+  paths into the media tree or admit 7z members to AI.
 
 ## Managed AI deployment
 

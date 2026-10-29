@@ -45,4 +45,14 @@ if docker exec "${container}" /opt/ffmpeg/bin/ffprobe \
 	exit 1
 fi
 
+docker exec "${container}" /usr/bin/prlimit --as=268435456 --cpu=60 -- \
+    /usr/lib/7zip/7z a -t7z -ms=on -mmt=1 -bd \
+    "${fixture_root}/images.7z" "${fixture_root}/sample.jpg" "${fixture_root}/sample.png" >/dev/null
+docker exec "${container}" /usr/bin/prlimit --as=268435456 --cpu=60 -- \
+    /usr/lib/7zip/7z l -slt -ba -t7z "${fixture_root}/images.7z" | grep -q '^Path = sample.jpg$'
+source_hash=$(docker cp "${container}:${fixture_root}/sample.jpg" - | tar -xOf - | sha256sum | cut -d ' ' -f 1)
+member_hash=$(docker exec "${container}" /usr/bin/prlimit --as=268435456 --cpu=60 -- \
+    /usr/lib/7zip/7z x -so -spd -t7z -- "${fixture_root}/images.7z" sample.jpg | sha256sum | cut -d ' ' -f 1)
+test "${source_hash}" = "${member_hash}"
+
 printf '%s\n' "candidate image media matrix passed"

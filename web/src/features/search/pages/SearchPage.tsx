@@ -368,11 +368,7 @@ export function SearchPage({
               <MediaCollection
                 ref={preview.collectionRef}
                 hasNextPage={resultsQuery.hasNextPage}
-                isFetchingNextPage={
-                  resultsQuery.isFetchingNextPage ||
-                  (resultsQuery.isFetchNextPageError &&
-                    resultsQuery.isRefetching)
-                }
+                isFetchingNextPage={resultsQuery.isFetching}
                 items={mediaItems}
                 labels={{
                   activatePreview: preview.pinned

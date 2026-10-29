@@ -1,3 +1,7 @@
+2026-10-29 / CR-2026-057：目录封面是catalog查询时从当前源/变换匹配的ready grid缩略图推导的资产ID，可来自直接内容或后代；不新增列、表、封面文件或扫描任务。驱逐/过期后重新选可用候选，无候选返回null。见[变更](changes/CR-2026-057-directory-covers.md)。
+
+2026-10-29 / ARCHIVE-S2：7z复用migration48的归档定位、CRC和目录状态，v1:z来源族绑定归档路径/版本及成员；ZIP已有身份不改变，不增加migration。没有跨请求7z原图缓存。
+
 2026-10-29 / ADR-0040 / ZIP-S1：新增迁移扩展目录的 ZIP 来源/状态及资产的显式包路径、成员路径、包版本和 CRC；资产 logical relative_path 保留唯一键以维持人工整理。新 v1:z 指纹子类型绑定完整 ZIP 来源，普通三段 v1 不变，符合原派生表指纹长度约束。失败包保留成员代次，成功清单才回收陈旧成员，AI 候选/覆盖排除 ZIP。见[来源合同](architecture/zip-source-contract.md)。
 
 # FolioPath 数据模型

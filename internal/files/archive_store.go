@@ -73,6 +73,13 @@ func (store *ArchiveStore) OpenMember(ctx context.Context, source *os.File, memb
 	if err != nil {
 		return nil, err
 	}
+	if manifest.sevenZip {
+		result, err = store.openSevenZipContent(ctx, source, member, manifest)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
 	entry, ok := manifest.members[member.MemberPath]
 	if !ok || entry.CRC32 != member.CRC32 {
 		return nil, media.ErrContentSourceChanged

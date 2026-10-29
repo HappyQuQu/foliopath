@@ -335,7 +335,7 @@ export function CurationPage({
                 ? { favoritePendingId: favoriteMutation.variables.assetId }
                 : {})}
               hasNextPage={activeQuery.hasNextPage}
-              isFetchingNextPage={activeQuery.isFetchingNextPage}
+              isFetchingNextPage={activeQuery.isFetching}
               items={mediaItems}
               labels={{
                 activatePreview: preview.pinned

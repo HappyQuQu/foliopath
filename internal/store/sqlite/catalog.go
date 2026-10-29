@@ -124,7 +124,7 @@ func (s *Store) ListDirectoryPage(
                    SELECT 1 FROM directories child
                    WHERE child.library_id = directories.library_id
                      AND child.parent_id = directories.id
-               ), archive_path, archive_status, ` + archiveCoverSQL("directories") + `
+               ), archive_path, archive_status, ` + directoryCoverSQL("directories") + `
         FROM directories
         WHERE library_id = ? AND parent_id = ?`
 	args := []any{params.Scope.LibraryID, params.Scope.DirectoryID}
@@ -240,7 +240,7 @@ func (s *Store) GetDirectoryLineage(
                        SELECT 1 FROM directories child
                        WHERE child.library_id = d.library_id
                          AND child.parent_id = d.id
-                   ), d.archive_path, d.archive_status, `+archiveCoverSQL("d")+`
+                   ), d.archive_path, d.archive_status, `+directoryCoverSQL("d")+`
             FROM directories d
             WHERE d.id = ? AND d.library_id = ?`,
 			currentID, libraryID,
@@ -277,14 +277,34 @@ func (s *Store) GetDirectoryLineage(
 	return catalog.DirectoryLineage{LibraryName: libraryName, Items: items}, nil
 }
 
-func archiveCoverSQL(directory string) string {
-	return `CASE WHEN ` + directory + `.archive_path <> '' AND ` + directory + `.relative_path = ` + directory + `.archive_path AND ` + directory + `.archive_status = 'ready' THEN (
-        SELECT a.id FROM assets a JOIN thumbnails t ON t.asset_id = a.id
+func directoryCoverSQL(directory string) string {
+	ready := `SELECT a.id FROM assets a
+        JOIN thumbnails t ON t.asset_id = a.id
           AND t.variant = 'grid' AND t.status = 'ready' AND t.source_fingerprint = a.source_fingerprint
           AND t.transform_version = ` + strconv.Itoa(thumbnail.GridTransformVersion) + `
-        WHERE a.library_id = ` + directory + `.library_id AND a.archive_path = ` + directory + `.archive_path
+        WHERE a.library_id = ` + directory + `.library_id
+          AND (a.archive_path = '' OR EXISTS (
+            SELECT 1 FROM directories archive
+            WHERE archive.library_id = a.library_id AND archive.relative_path = a.archive_path
+              AND archive.archive_status = 'ready'
+          ))`
+	return `CASE
+      WHEN ` + directory + `.archive_path <> '' AND ` + directory + `.archive_status <> 'ready' THEN NULL
+      WHEN ` + directory + `.archive_path <> '' AND ` + directory + `.relative_path = ` + directory + `.archive_path THEN (
+        ` + ready + ` AND a.archive_path = ` + directory + `.archive_path
         ORDER BY a.natural_name_key, a.name, a.id LIMIT 1
-    ) END`
+      )
+      ELSE COALESCE((
+        ` + ready + ` AND a.directory_id = ` + directory + `.id
+        ORDER BY a.natural_name_key, a.name, a.id LIMIT 1
+      ), CASE WHEN ` + directory + `.relative_path = '' THEN (
+        ` + ready + ` ORDER BY a.relative_path LIMIT 1
+      ) ELSE (
+        ` + ready + ` AND a.relative_path >= ` + directory + `.relative_path || '/'
+          AND a.relative_path < ` + directory + `.relative_path || '0'
+        ORDER BY a.relative_path LIMIT 1
+      ) END)
+    END`
 }
 
 func (s *Store) ListAssetPage(

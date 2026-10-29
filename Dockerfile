@@ -366,6 +366,7 @@ CMD ["/out/semantic.test -test.timeout=3m && /out/imagevips.test -test.timeout=3
 FROM debian:trixie-slim@sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd AS runtime-assemble
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
+       7zip=25.01+dfsg-1~deb13u2 util-linux libsmartcols1 \
        libatomic1 libdav1d7 libexpat1 libexif12 libffi8 \
        libjpeg62-turbo libpng16-16t64 libwebp7 libwebpdemux2 \
        libwebpmux3 libpcre2-8-0 zlib1g \
@@ -386,6 +387,8 @@ RUN set -eu; \
     mkdir -p /rootfs/app/data /rootfs/library /rootfs/opt \
       /rootfs/usr/local/bin /rootfs/var/lib/dpkg/status.d; \
     for package in \
+      7zip \
+      libsmartcols1 \
       libatomic1 \
       libdav1d7 \
       libexif12 \
@@ -406,6 +409,8 @@ RUN set -eu; \
           fi; \
         done; \
     done; \
+    cp -a --parents /usr/bin/prlimit /usr/share/doc/util-linux/copyright /rootfs; \
+    dpkg-query --status util-linux >/rootfs/var/lib/dpkg/status.d/util-linux; \
     cp -a /app/foliopath /rootfs/app/foliopath; \
     cp -a /opt/expat /rootfs/opt/expat; \
     cp -a /opt/ffmpeg /rootfs/opt/ffmpeg; \

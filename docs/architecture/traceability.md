@@ -1,3 +1,9 @@
+2026-10-29 / FR-BRW-001/005、FR-UI-001～003/006、NFR-UIF-001 / POST-MVP-5：catalog SQLite `directoryCoverSQL` 唯一拥有目录封面候选选择，列表/详情共用并沿用已有索引与thumbnail身份；BrowsePage DirectoryCard拥有封面显示与图标回退，API客户端由OpenAPI生成。既有S3 Backend Ready + 本轮SQLite封面回归通过后接UI，无数据库迁移；证据及阶段见[CR-2026-057](../changes/CR-2026-057-directory-covers.md)。
+
+2026-10-29 / FR-BRW-001/004/005、FR-UI-001～003/006 / POST-MVP-5 既有浏览修复：共享 `useScrollPagination` 拥有底部触发、容器识别、请求合并和手势重试；MediaCollection 保留虚拟窗口预加载，browse 目录树/展开网格复用该 hook。失效游标恢复仍由 `retryInfiniteNextPage` 独占。无 API/持久化变化；既有 S3 Backend Ready，hook/组件回归与实际 Linux 预览浏览器验证见[记录](../changes/FIX-2026-10-29-scroll-pagination.md)。
+
+2026-10-29 / FR-7Z-001～003、NFR-7Z-001 / POST-MVP ARCHIVE-S2：files拥有7z清单及有界子进程，scanner/media/SQLite复用归档来源，browse复用目录组件；Backend Ready及本地Linux arm64生产镜像/正式组件验收通过，原生双架构发行验证待执行。见[CR-2026-056](../changes/CR-2026-056-7z-image-browsing.md)。
+
 2026-10-29 / FR-ZIP-001～004、NFR-ZIP-001 / POST-MVP ZIP-S1：media 拥有显式成员来源与 v1:z 指纹；files 拥有已打开 ZIP 解析及有界请求临时展开；scanner/SQLite 沿用代次/事务/计数/派生任务；catalog/API 添加目录来源/状态/封面，Web browse 复用正式组件。AI 首版排除 ZIP；不增加部署单元。PR #70/#71 已合并，v1.8.0 四个原生镜像验证与两个推广任务全部通过；见[正式发布记录](../changes/RELEASE-2026-10-29-v1.8.0.md)。Gate/验证见[CR-2026-055](../changes/CR-2026-055-zip-image-browsing.md)，[来源合同](zip-source-contract.md)。
 
 2026-10-28 / FR-BRW-001/004/005、FR-UI-001～003/006、NFR-UIF-001、NFR-OPS-001：PR #66/#67 已合并，v1.6.4 四个 main/AI 原生构建验证及两个推广任务首轮通过。浏览侧栏/吸顶与存储偏好 owner 不变，25 文件发行例外不扩大；见[正式结果](../changes/FIX-2026-10-28-browse-navigation-dock.md#正式发布结果)。

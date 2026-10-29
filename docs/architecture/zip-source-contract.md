@@ -1,3 +1,7 @@
+2026-10-29：[CR-2026-057](../changes/CR-2026-057-directory-covers.md) 扩展既有 `coverAssetId` 到物理目录和包内子目录；当前目录自然文件名优先，再选后代相对路径顺序。压缩包根目录仍按成员自然顺序；不可读压缩包及其保留成员不作封面，无可用grid缩略图返回null，字段权威语义见OpenAPI。
+
+2026-10-29 / [ADR-0041](../adr/0041-read-only-7z-images.md)：相同成员/目录/API合同扩展到未加密单卷7z；files通过继承文件描述符的有界原生解码器列出与读取成员，不新增schema或来源字段。固实读取可能处理压缩块前缀，仍按请求只保留目标图片，实际Gate见[CR-2026-056](../changes/CR-2026-056-7z-image-browsing.md)。
+
 # ZIP-S1 来源与浏览合同
 
 2026-10-29；CR-2026-055 / ADR-0040；POST-MVP 已接受范围，Owner 为 media / files / scanner / catalog / SQLite / app。

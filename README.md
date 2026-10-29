@@ -27,8 +27,8 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 
 | Core feature | What it does |
 | --- | --- |
-| Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Subfolders use a compact two-row grid, with expansion and paged loading. Collapse Quick access to give the tree more room; browsing controls condense and stay available while scrolling. |
-| ZIP image browsing | Open ZIP archives as read-only folders, with covers, internal directories, natural filename ordering, and continuous image viewing. |
+| Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Folders show an available media thumbnail as their cover; empty folders keep their icon. Subfolders use a compact two-row grid; expand it to load more as you scroll, just like the directory tree and media list. Collapse Quick access to give the tree more room; browsing controls condense and stay available while scrolling. |
+| Archive image browsing | Open ZIP and 7z archives as read-only folders, with covers, internal directories, natural filename ordering, and continuous image viewing. |
 | Three gallery layouts | Switch between adaptive grid, masonry, and seamless masonry. Adjust thumbnail size and remember it in this browser. |
 | Search, filters & sorting | Find filenames or paths; filter by media type, modification date, and scope. Sort by name, modification time, or file size. |
 | Side preview | Inspect an image while keeping the collection visible. Pin and resize the preview; view its source directory and basic information. |
@@ -44,6 +44,12 @@ Place ZIP files anywhere inside a configured library and scan it. Each archive a
 Supported archives are **unencrypted, single-volume ZIPs with UTF-8 filenames**, using Store or Deflate compression, containing JPEG, PNG, WebP, or GIF images. ZIP64, split/encrypted archives, nested archives, and video inside ZIPs are unsupported. ZIP images are not included in AI analysis, visual search, automatic tags, people analysis, or OCR.
 
 Archives support up to **10,000 entries** and **64 MiB per image**; [complete limits and source behavior](docs/architecture/zip-source-contract.md) apply. A ZIP icon appears while its first thumbnail is being generated; refresh the directory afterward to see the cover. Unreadable archives keep their previously indexed contents and show recovery guidance.
+
+### 7z image sets
+
+Browse unencrypted, single-volume `.7z` image sets, including solid and non-solid archives. JPEG, PNG, WebP, GIF, internal directories, covers, natural ordering, continuous viewing, filename search, favorites, and manual tags reuse the existing browser. Originals stay read-only; only the requested image is written to temporary storage.
+
+Limits remain 10,000 entries, 4 GiB declared expanded total, and 64 MiB per image. Passwords, split/self-extracting/nested archives, archived video, and AI analysis are unsupported. Solid random access can repeatedly decode earlier content; archives exceeding decoder memory or time budgets cannot be browsed. This does not add support for 50 GB archives or configurable limits.
 
 ### From a whole collection to a single image
 
@@ -126,6 +132,7 @@ For planning, reserve about **2 GiB** for AI face analysis or tagging, **3 GiB**
 | --- | --- |
 | Images | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`) |
 | Videos | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`), AVI (`.avi`) |
+| 7z image sets | Unencrypted, single-volume `.7z`; see [7z requirements](#7z-image-sets) |
 | ZIP image sets | `.zip` containing the supported image formats, subject to the [ZIP requirements above](#browse-zip-image-sets-without-extracting-them-first) |
 
 Videos are never transcoded. Playback depends on your browser's codec support. SVG, HEIC/HEIF, AVIF, and RAW are currently unsupported. Image and video processing use bounded resources and timeouts; preview failures never modify originals.
@@ -138,7 +145,7 @@ Create an empty directory, choose **one** of the configurations below, and save 
 
 ### Basic browsing
 
-For galleries, ZIP image sets, filename search, favorites, and manual tags:
+For galleries, ZIP/7z image sets, filename search, favorites, and manual tags:
 
 ```yaml
 services:
@@ -206,7 +213,11 @@ Visit `http://<your-server-LAN-address>:8080`, create the administrator, and sel
 
 ### Upgrading an existing installation
 
-ZIP support adds catalog migration 48. Stop the application and back up the complete application data before upgrading. To roll back, restore the matching pre-upgrade backup with the previous image; changing only the image is insufficient. Follow the [backup and restore](docs/deployment.md#备份与恢复) and [upgrade and rollback](docs/deployment.md#升级与回滚) instructions.
+ZIP support introduced catalog migration 48; the 7z, folder-cover and scrolling changes add no further migration. Stop the application and back up the complete application data before upgrading. To roll back, restore the matching pre-upgrade backup with the previous image; changing only the image is insufficient. Follow the [backup and restore](docs/deployment.md#备份与恢复) and [upgrade and rollback](docs/deployment.md#升级与回滚) instructions.
+
+## Known issue: repeated full scans
+
+Automatic discovery can fall back to repeated full scans after an incremental update error. These fallback runs currently appear as “Scheduled” in task history. If this occurs, temporarily turn off automatic discovery and use manual full scans or the scheduled scan interval (24 hours by default). Turning off scheduled scans alone does not disable this fallback. This release does not fix the loop; see [the investigation](docs/changes/KNOWN-2026-10-29-scan-fallback-loop.md).
 
 ## Documentation & project status
 

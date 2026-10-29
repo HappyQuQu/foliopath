@@ -8,7 +8,8 @@ import (
 )
 
 func IsArchivePath(relativePath string) bool {
-	return strings.EqualFold(path.Ext(relativePath), ".zip")
+	extension := path.Ext(relativePath)
+	return strings.EqualFold(extension, ".zip") || strings.EqualFold(extension, ".7z")
 }
 
 var systemDirectories = map[string]struct{}{

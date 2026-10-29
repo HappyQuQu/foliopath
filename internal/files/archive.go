@@ -41,8 +41,9 @@ type ArchiveEntry struct {
 }
 
 type ArchiveManifest struct {
-	Entries []ArchiveEntry
-	members map[string]*zip.File
+	Entries  []ArchiveEntry
+	members  map[string]*zip.File
+	sevenZip bool
 }
 
 // ReadArchive validates a bounded central directory before exposing any member.
@@ -58,17 +59,27 @@ func ReadArchive(ctx context.Context, file *os.File) (*ArchiveManifest, error) {
 	if !info.Mode().IsRegular() {
 		return nil, ErrArchiveInvalid
 	}
-	if err := validateArchiveDirectory(file, info.Size()); err != nil {
+	var signature [6]byte
+	if _, err := file.ReadAt(signature[:], 0); err != nil {
+		return nil, ErrArchiveInvalid
+	}
+	var manifest *ArchiveManifest
+	if signature == [6]byte{'7', 'z', 0xbc, 0xaf, 0x27, 0x1c} {
+		manifest, err = readSevenZipArchive(ctx, file)
+	} else {
+		if err := validateArchiveDirectory(file, info.Size()); err != nil {
+			return nil, err
+		}
+		reader, openErr := zip.NewReader(file, info.Size())
+		if openErr != nil {
+			return nil, errors.Join(ErrArchiveInvalid, openErr)
+		}
+		manifest, err = archiveManifest(ctx, reader)
+	}
+	if err != nil {
 		return nil, err
 	}
-	reader, err := zip.NewReader(file, info.Size())
-	if err != nil {
-		return nil, errors.Join(ErrArchiveInvalid, err)
-	}
-	manifest, err := archiveManifest(ctx, reader)
-	if err != nil {
-		return nil, err
-	}
+
 	after, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -163,6 +174,21 @@ func archiveEntry(member *zip.File) (ArchiveEntry, error) {
 		return ArchiveEntry{}, ErrArchiveUnsupported
 	}
 	name := strings.TrimSuffix(member.Name, "/")
+	info := member.FileInfo()
+	if info.Mode()&fs.ModeSymlink != 0 || (!info.IsDir() && !info.Mode().IsRegular()) {
+		return ArchiveEntry{}, ErrArchiveInvalid
+	}
+	if info.IsDir() != strings.HasSuffix(member.Name, "/") {
+		return ArchiveEntry{}, ErrArchiveInvalid
+	}
+	return validateArchiveEntry(ArchiveEntry{
+		Path: name, IsDirectory: info.IsDir(), SizeBytes: int64(member.UncompressedSize64),
+		MTimeNS: info.ModTime().UnixNano(), CRC32: member.CRC32,
+	})
+}
+
+func validateArchiveEntry(entry ArchiveEntry) (ArchiveEntry, error) {
+	name := entry.Path
 	if !utf8.ValidString(name) {
 		return ArchiveEntry{}, ErrArchiveUnsupported
 	}
@@ -172,24 +198,12 @@ func archiveEntry(member *zip.File) (ArchiveEntry, error) {
 	if strings.Count(name, "/") >= MaxArchiveDepth || len(name) > 4096 {
 		return ArchiveEntry{}, ErrArchiveLimit
 	}
-	info := member.FileInfo()
-	if info.Mode()&fs.ModeSymlink != 0 || (!info.IsDir() && !info.Mode().IsRegular()) {
-		return ArchiveEntry{}, ErrArchiveInvalid
-	}
-	if info.IsDir() != strings.HasSuffix(member.Name, "/") {
-		return ArchiveEntry{}, ErrArchiveInvalid
-	}
 	kind, _, _, supported := media.ClassifyPath(name)
-	if supported && kind != media.KindVideo && member.UncompressedSize64 > MaxArchiveMemberBytes {
+	if entry.SizeBytes < 0 || uint64(entry.SizeBytes) > MaxArchiveExpandedBytes ||
+		(supported && kind != media.KindVideo && entry.SizeBytes > MaxArchiveMemberBytes) {
 		return ArchiveEntry{}, ErrArchiveLimit
 	}
-	if member.UncompressedSize64 > MaxArchiveExpandedBytes {
-		return ArchiveEntry{}, ErrArchiveLimit
-	}
-	return ArchiveEntry{
-		Path: name, IsDirectory: info.IsDir(), SizeBytes: int64(member.UncompressedSize64),
-		MTimeNS: info.ModTime().UnixNano(), CRC32: member.CRC32,
-	}, nil
+	return entry, nil
 }
 
 type archiveContextReader struct {

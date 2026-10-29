@@ -26,6 +26,7 @@ import {
   writeMediaTileSizePreference,
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
+import { useScrollPagination } from "../../../lib/useScrollPagination";
 import { Badge, Button, IconButton, InlineStatus, Slider } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
@@ -282,29 +283,16 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     virtualizer.measure();
   }, [columns, layout, virtualizer]);
 
-  useEffect(() => {
-    if (
-      !previewItemId && shouldLoadNextMediaPage({
-        columns,
-        hasNextPage,
-        isFetchingNextPage,
-        itemCount: items.length,
-        lastVirtualIndex,
-        paginationError,
-      })
-    ) {
-      onLoadMore();
-    }
-  }, [
-    columns,
+  const pagination = useScrollPagination({
+    enabled: !previewItemId,
+    failed: paginationError,
     hasNextPage,
-    isFetchingNextPage,
-    items.length,
-    lastVirtualIndex,
+    isFetching: isFetchingNextPage,
+    nearEnd: shouldLoadNextMediaPage({ columns, hasNextPage, isFetchingNextPage, itemCount: items.length, lastVirtualIndex, paginationError }),
     onLoadMore,
-    paginationError,
-    previewItemId,
-  ]);
+    onRetry: onRetryLoadMore,
+    progressKey: `${items[0]?.id ?? "empty"}:${items.length}`,
+  });
 
   const sizeControl = (
       <div className={styles.sizeControl} data-placement={sizeControlContainer === undefined ? undefined : "toolbar"}>
@@ -381,7 +369,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
             {onRetryLoadMore && (
               <Button
                 loading={isFetchingNextPage}
-                onClick={onRetryLoadMore}
+                ref={pagination.ref}
+                onClick={pagination.loadMore}
                 size="small"
                 variant="secondary"
               >
@@ -394,7 +383,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
           <div className={styles.pagination} role="status" aria-live="polite">
             <Button
               loading={isFetchingNextPage}
-              onClick={onLoadMore}
+              ref={pagination.ref}
+              onClick={pagination.loadMore}
               variant="secondary"
             >
               {isFetchingNextPage ? labels.loadingMore : labels.loadMore}
