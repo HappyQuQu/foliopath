@@ -1,3 +1,5 @@
+2026-10-29 / FR-7Z-001～003、NFR-7Z-001、FR-BRW-001/005、FR-UI-001～003/006 / POST-MVP：7z、目录封面与滚动加载经PR #72/#73随v1.9.0发布，main/AI四个原生验证和两个推广任务首轮通过；Owner/合同及25项发行输入边界不变。自动发现回退循环仍为已知问题，实际222部署不变。见[正式结果](../changes/RELEASE-2026-10-29-v1.9.0.md#正式发布结果)。
+
 2026-10-29 / FR-BRW-001/005、FR-UI-001～003/006、NFR-UIF-001 / POST-MVP-5：catalog SQLite `directoryCoverSQL` 唯一拥有目录封面候选选择，列表/详情共用并沿用已有索引与thumbnail身份；BrowsePage DirectoryCard拥有封面显示与图标回退，API客户端由OpenAPI生成。既有S3 Backend Ready + 本轮SQLite封面回归通过后接UI，无数据库迁移；证据及阶段见[CR-2026-057](../changes/CR-2026-057-directory-covers.md)。
 
 2026-10-29 / FR-BRW-001/004/005、FR-UI-001～003/006 / POST-MVP-5 既有浏览修复：共享 `useScrollPagination` 拥有底部触发、容器识别、请求合并和手势重试；MediaCollection 保留虚拟窗口预加载，browse 目录树/展开网格复用该 hook。失效游标恢复仍由 `retryInfiniteNextPage` 独占。无 API/持久化变化；既有 S3 Backend Ready，hook/组件回归与实际 Linux 预览浏览器验证见[记录](../changes/FIX-2026-10-29-scroll-pagination.md)。
