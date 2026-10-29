@@ -1,5 +1,10 @@
 .header {
   position: fixed;
+  transform: translateY(var(--workspace-chrome-shift, 0%));
+  opacity: var(--workspace-chrome-opacity, 1);
+  visibility: var(--workspace-chrome-visibility, visible);
+  pointer-events: var(--workspace-chrome-pointer-events, auto);
+  transition: transform var(--motion-normal) var(--ease-standard), opacity var(--motion-normal) var(--ease-standard), visibility var(--motion-normal);
   z-index: var(--layer-header);
   top: 0;
   right: 0;

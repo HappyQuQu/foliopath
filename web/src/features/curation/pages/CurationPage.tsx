@@ -240,6 +240,7 @@ export function CurationPage({
 
   return (
     <AppShell
+      autoHideChrome={layout === "seamless" && mediaItems.length > 0}
       active="browse"
       browseHref={paths.root}
       homeHref={paths.root}

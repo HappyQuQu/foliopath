@@ -1,5 +1,5 @@
 .preview {
-  --preview-top: var(--preview-sticky-top, calc(var(--size-header) + var(--size-context-bar) + var(--space-3)));
+  --preview-top: var(--preview-sticky-top, calc(var(--workspace-header-height, var(--size-header)) + var(--workspace-context-height, var(--size-context-bar)) + var(--space-3)));
 
   scroll-margin-block-start: var(--preview-top);
   position: sticky;

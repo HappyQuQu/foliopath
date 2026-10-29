@@ -1,0 +1,19 @@
+# 无缝瀑布流：隐藏卡片快捷操作与滚动收起顶部
+
+2026-10-29 用户通过三张截图要求无缝模式隐藏收藏/来源图标，并在向下滚动时过渡收起浏览工具、顶部搜索账户区和面包屑，最大化图片展示；向上滚动恢复。范围FR-BRW-014/015、FR-UI-001～003/006、NFR-ACC-001，POST-MVP现有浏览维护，后续维护版；Owner为MediaCollection卡片呈现、AppShell滚动chrome状态及共享offset、GlobalHeader呈现、BrowseControls既有吸顶。沿用既有Backend Ready，无API/存储/权限变化。
+
+- 无缝卡片不渲染收藏按钮或来源目录图标（鼠标/触摸/键盘一致），保留可访问媒体名称、点图/键盘预览、真实匹配证据及媒体状态。其他两种布局保留操作。来源信息仍可在现有预览查看。
+- AppShell以显式opt-in启用无缝滚动收起；浏览/搜索/收藏/标签的现有媒体集合共同消费。向下滚动积累48px且无缝集合进入视区后隐藏，向上12px或回到顶部恢复；不响应目录侧栏自己的滚动。保留原文档占位，不推移媒体位置。
+- 搜索输入、打开的菜单/弹窗、移动导航操作时不收起；Tab/Escape可恢复顶部。动效复用现有motion/ease tokens并遵守减少动态效果偏好。AppShell统一提供可见header/context高度，侧栏、浏览吸顶与预览使用同一offset；不复制滚动方向状态机。
+- 生产Seamless Story展示带来源及收藏合同数据的无快捷操作卡片；AppShell生产Story展示合成滚动。验证见下文，普通测试/截图依约本地专用。无正式发布或222更新。
+
+## 本地验证（2026-10-29）
+
+- `npm --prefix web run check` 通过：审计、生成检查、前端架构、视觉清单、TypeScript、81文件/553项测试、Storybook构建。Storybook保留已有大chunk提示。定向57项先通过；完整运行暴露既有ZIP地址归一化测试异步断言时序，测试改为等待URL提交后重跑完整检查通过，未改ZIP生产行为。
+- 新hook实际事件测试覆盖向下阈值、微小反向滚动、向上/回顶恢复、普通布局不启用、导航阻塞、搜索与打开菜单、Tab/Escape恢复、侧栏滚动隔离和集合未入视区不隐藏。MediaCollection回归覆盖无缝不渲染快捷操作、媒体可访问名称/匹配说明/预览仍可用、其他两布局保留收藏。
+- `make arch-check` 与 `git diff --check` 通过；无Go/API业务变化，本轮未重复运行完整Go/集成/全部浏览器E2E目标。
+- 最终Linux arm64生产镜像构建成功，image ID `sha256:48640a3ee2e0bfb0ec76157b3e910044af72f75e93e01b716aa419cb239dce13`；独立6020合成预览沿用只读媒体挂载和Linux命名数据卷，容器healthy、容器内database-check通过。
+- 实际IAB在390/768/1440/1920×1000分别验证下滑隐藏全部三层顶部、上滑恢复，无横向溢出。修正误随可见header高度缩小的shell padding后，同一集合收起前后文档Y分别保持789.03125、705.03125、547.03125、547.03125，四档位移均为0px；顶部控件退出后可见chrome数为0。保留原文档占位，未用空白替代可用视区。
+- 手机导航打开和PageDown操作保持顶部可见；搜索输入聚焦时PageDown不隐藏。实际普通网格向下滚动仍显示顶部与收藏/来源入口；切回无缝后卡片不含快捷操作。Tab可恢复顶部，实际点击图片可打开预览并正常关闭。553项包含其余共享消费者回归，不宣称全部页面均另做实际浏览器矩阵。
+- 模拟减少动态效果后，header/context/controls计算transitionDuration均为0.001s，随后已取消模拟；viewport已恢复默认。触摸向下滚动产生的文档scroll共享同一逻辑，但未宣称真机测试。
+- 实施、截图、geometry.json及构建日志留在 `/tmp/foliopath-seamless-preview/`，完整前端和架构日志为 `/tmp/foliopath-seamless-check.log`、`/tmp/foliopath-seamless-arch.log`；普通测试/输出不入库。当前分支 `codex/seamless-hide-overlays` 尚未提交或发布，未更新222，v1.9.0发行镜像不变。

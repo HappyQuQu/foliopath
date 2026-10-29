@@ -1018,21 +1018,25 @@
 .browseControlsSlot {
   position: sticky;
   z-index: calc(var(--layer-header) - 2);
-  top: calc(var(--size-header) + var(--size-context-bar));
+  top: calc(var(--workspace-header-height, var(--size-header)) + var(--workspace-context-height, var(--size-context-bar)));
   align-self: start;
   margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;
   pointer-events: none;
 }
 
 .browseControlsSlot .browseControls {
-  pointer-events: auto;
+  transform: translateY(var(--workspace-chrome-shift, 0%));
+  opacity: var(--workspace-chrome-opacity, 1);
+  visibility: var(--workspace-chrome-visibility, visible);
+  transition: transform var(--motion-normal) var(--ease-standard), opacity var(--motion-normal) var(--ease-standard), visibility var(--motion-normal);
+  pointer-events: var(--workspace-chrome-pointer-events, auto);
 }
 
 .browseControlsSlot[data-compact] .browseControls {
   gap: var(--space-2);
   padding-block: var(--space-2);
   box-shadow: var(--shadow-preview);
-  animation: browseControlsDock var(--motion-normal) var(--ease-standard);
+  animation: var(--workspace-dock-animation, browseControlsDock) var(--motion-normal) var(--ease-standard);
 }
 
 .browseControlsSlot[data-compact] .browseTitle {

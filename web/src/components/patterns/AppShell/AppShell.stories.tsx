@@ -6,6 +6,7 @@ import { ThemeProvider } from "../../../lib/theme/ThemeProvider";
 import { ToastProvider } from "../../ui/Toast/ToastProvider";
 import { IconButton } from "../../ui/Button/IconButton";
 import { HeaderAddonProvider } from "../GlobalHeader/HeaderAddonContext";
+import { MediaCollection } from "../MediaCollection/MediaCollection";
 import { AppShell } from "./AppShell";
 
 const meta = {
@@ -64,5 +65,30 @@ export const LongLibraryName: Story = {
   args: {
     topbarContent: <span>{"Family archive ".padEnd(128, "A")}</span>,
     children: <p>2026</p>,
+  },
+};
+
+export const ImmersiveSeamless: Story = {
+  name: "Scroll-hidden chrome (synthetic media)",
+  parameters: { docs: { description: { story: "Production AppShell and MediaCollection with synthetic media. Scroll down to hide the global header and context bar, up to reveal; search input, keyboard navigation and menus retain access. Seamless cards omit favorite and source shortcuts." } } },
+  args: {
+    autoHideChrome: true,
+    topbarContent: <span>合成媒体库 · 滚动体验</span>,
+    children: <MediaCollection
+      hasNextPage={false}
+      isFetchingNextPage={false}
+      layout="seamless"
+      items={Array.from({ length: 80 }, (_, index) => ({
+        id: `synthetic-${index}`, name: `Synthetic ${index + 1}.png`, kind: "image" as const,
+        width: 600, height: index % 2 ? 900 : 500, modifiedLabel: "Synthetic fixture",
+        thumbnailStatus: "ready" as const,
+        thumbnailUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><rect width="600" height="900" fill="hsl(${index * 37 % 360} 42% 48%)"/></svg>`)}`,
+        sourceHref: "/synthetic", sourceLabel: "合成来源", favorite: index % 3 === 0,
+      }))}
+      labels={{ activatePreview: "预览 {name}", tileSize: "缩略图大小", animated: "动图", failedThumbnail: "缩略图生成失败", image: "图片", loadMore: "载入更多", loadMoreFailed: "更多媒体未能载入", loadingMore: "正在载入", pendingThumbnail: "正在生成", previewing: "正在预览", retryLoadMore: "重试", unavailableThumbnail: "缩略图不可用", video: "视频" }}
+      onLoadMore={() => undefined}
+      onItemActivate={() => undefined}
+      onFavoriteToggle={() => undefined}
+    />,
   },
 };

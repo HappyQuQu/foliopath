@@ -1,6 +1,7 @@
 import { List, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
+import { useScrollChrome } from "../../../lib/useScrollChrome";
 import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { readSidebarWidthPreference, writeSidebarWidthPreference } from "../../../lib/storage/preferences";
 import { PanelResizer } from "../../ui/PanelResizer/PanelResizer";
@@ -12,6 +13,7 @@ export type AppSection = "browse" | "libraries" | "search" | "settings";
 
 export function AppShell({
   children,
+  autoHideChrome = false,
   homeHref,
   identity,
   logoutPending = false,
@@ -28,6 +30,7 @@ export function AppShell({
   title,
 }: {
   active: AppSection;
+  autoHideChrome?: boolean;
   browseHref?: string;
   children: ReactNode;
   homeHref: string;
@@ -50,6 +53,8 @@ export function AppShell({
 }) {
   const { t } = useLocale();
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const chromeHidden = useScrollChrome(autoHideChrome, navigationOpen, shellRef);
   const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidthPreference);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const minSidebarWidth = 192;
@@ -95,7 +100,7 @@ export function AppShell({
   }
 
   return (
-    <div className={styles.shell} style={{ "--size-sidebar": `${effectiveSidebarWidth}px` } as CSSProperties}>
+    <div className={styles.shell} ref={shellRef} data-scroll-autohide={autoHideChrome ? "" : undefined} data-chrome-hidden={chromeHidden ? "" : undefined} style={{ "--size-sidebar": `${effectiveSidebarWidth}px` } as CSSProperties}>
       <a className={styles.skipLink} href="#main">
         {t("common.skipToMain")}
       </a>
@@ -150,7 +155,7 @@ export function AppShell({
       >
         <div className={styles.content}>
           {(topbarContent || sidebarContent) && (
-            <div className={styles.contextBar}>
+            <div className={styles.contextBar} data-scroll-chrome>
               {sidebarContent && (
                 <IconButton
                   ref={menuButtonRef}

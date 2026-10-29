@@ -221,6 +221,7 @@ export function SearchPage({
 
   return (
     <AppShell
+      autoHideChrome={layout === "seamless" && mediaItems.length > 0}
       active="search"
       browseHref={libraryId ? paths.browse(libraryId) : paths.root}
       homeHref={paths.root}

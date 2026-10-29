@@ -165,6 +165,7 @@ export const Masonry: Story = {
 
 // Synthetic contract fixtures rendered by the production collection component.
 export const Seamless: Story = {
+  parameters: { docs: { description: { story: "Synthetic fixtures rendered by the production collection. Seamless cards hide favorite and source shortcuts, including on hover/focus/touch, while keeping media activation and accessible names." } } },
   args: {
     layout: "seamless",
     hasNextPage: false,
@@ -179,6 +180,7 @@ export const Seamless: Story = {
       )}`,
     })),
     onItemActivate: () => undefined,
+    onFavoriteToggle: () => undefined,
   },
 };
 
