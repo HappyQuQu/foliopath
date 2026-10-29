@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0](https://github.com/HappyQuQu/foliopath/compare/v1.8.0...v1.9.0) (2026-10-29)
+
+
+### ✨ 新功能
+
+* 支持7z图集、文件夹封面和滚动加载 ([#72](https://github.com/HappyQuQu/foliopath/issues/72)) ([d3025ac](https://github.com/HappyQuQu/foliopath/commit/d3025ac1efbe1d29b7fb856d81846a7af3b1b04e))
+
+
+### ⚠️ 注意事项
+
+* 自动发现增量失败后的重复全扫循环仍未修复，README与发行记录说明临时关闭自动发现、使用手动或定时扫描。 ([d3025ac](https://github.com/HappyQuQu/foliopath/commit/d3025ac1efbe1d29b7fb856d81846a7af3b1b04e))
+
 ## [1.8.0](https://github.com/HappyQuQu/foliopath/compare/v1.7.0...v1.8.0) (2026-10-29)
 
 
