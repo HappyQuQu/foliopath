@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/HappyQuQu/foliopath/compare/v1.7.0...v1.8.0) (2026-10-29)
+
+
+### ✨ 新功能
+
+* 支持只读 ZIP 图片图集浏览 ([#70](https://github.com/HappyQuQu/foliopath/issues/70)) ([06cc1ff](https://github.com/HappyQuQu/foliopath/commit/06cc1ff5a54626a1451d23d81ae2cdc47641c0e8))
+
 ## [1.7.0](https://github.com/HappyQuQu/foliopath/compare/v1.6.4...v1.7.0) (2026-10-28)
 
 
