@@ -2730,14 +2730,14 @@ export interface components {
          *     running or the library is offline.
          */
         Directory: {
-            /** @description Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath. */
+            /** @description Library-relative containing ZIP or 7z path; null for a physical directory. An archive root has relativePath equal to archivePath. */
             archivePath?: string | null;
             /**
-             * @description Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+             * @description Containing archive readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
              * @enum {string|null}
              */
             archiveStatus?: "ready" | "unreadable" | "encrypted" | "unsupported" | "limit_exceeded" | null;
-            /** @description Current member with a ready grid thumbnail, for ZIP roots only; otherwise null. */
+            /** @description Asset with a current ready grid thumbnail from this directory or its descendants; null when none is available. Prefer direct assets in natural filename order, then descendants in relative-path order. Archive roots retain natural member filename order. */
             coverAssetId?: components["schemas"]["NullableResourceID"];
             /** Format: int64 */
             directAssetCount: number;
@@ -2752,10 +2752,10 @@ export interface components {
         };
         /** @description Indexed directory plus its complete safe root-to-current breadcrumb chain. */
         DirectoryDetail: {
-            /** @description Library-relative containing ZIP path; null for a physical directory. A ZIP root has relativePath equal to archivePath. */
+            /** @description Library-relative containing ZIP or 7z path; null for a physical directory. An archive root has relativePath equal to archivePath. */
             archivePath?: string | null;
             /**
-             * @description Containing ZIP readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
+             * @description Containing archive readability. Failed archives retain previously indexed members until a successful scan can reconcile them.
              * @enum {string|null}
              */
             archiveStatus?: "ready" | "unreadable" | "encrypted" | "unsupported" | "limit_exceeded" | null;
@@ -2765,7 +2765,7 @@ export interface components {
              *     4096-character relative-path bound.
              */
             breadcrumbs: components["schemas"]["Breadcrumb"][];
-            /** @description Current member with a ready grid thumbnail, for ZIP roots only; otherwise null. */
+            /** @description Asset with a current ready grid thumbnail from this directory or its descendants; null when none is available. Prefer direct assets in natural filename order, then descendants in relative-path order. Archive roots retain natural member filename order. */
             coverAssetId?: components["schemas"]["NullableResourceID"];
             /** Format: int64 */
             directAssetCount: number;

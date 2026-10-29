@@ -348,3 +348,21 @@ function withoutStoryboard(
   const { storyboard: _storyboard, ...fallback } = item;
   return fallback;
 }
+
+export const ScrollPagination: Story = {
+  name: "Scroll to load and retry (synthetic fixtures)",
+  parameters: { docs: { description: { story: "Production MediaCollection with 80 synthetic items in pages of 20. Scroll near the end to append; the first next-page attempt fails. Another downward gesture or the retry button resumes without dropping loaded items." } } },
+  render: function ScrollPaginationStory(args) {
+    const [count, setCount] = useState(20);
+    const [loading, setLoading] = useState(false);
+    const [failed, setFailed] = useState(false);
+    const [failedOnce, setFailedOnce] = useState(false);
+    const append = () => {
+      setLoading(true);
+      window.setTimeout(() => { setCount(value => Math.min(value + 20, items.length)); setFailed(false); setLoading(false); }, 200);
+    };
+    return <MediaCollection {...args} items={items.slice(0, count)} hasNextPage={count < items.length} isFetchingNextPage={loading} paginationError={failed} onRetryLoadMore={append} onLoadMore={() => {
+      if (!failedOnce) { setFailedOnce(true); setFailed(true); } else append();
+    }} />;
+  },
+};

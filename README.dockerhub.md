@@ -2,7 +2,7 @@
 
 **把已有照片目录变成图库，用画面、文字、标签和人物找照片。**
 
-A self-hosted photo and video browser with local AI. Browse your existing folders and keep originals untouched.
+A self-hosted photo and video browser with local AI. Browse existing folders and ZIP/7z image sets, with folder covers and automatic loading as you scroll. Keep originals untouched.
 
 [简体中文](#简体中文) · [English](#english) · [GitHub](https://github.com/HappyQuQu/foliopath) · [文档 / Docs](https://github.com/HappyQuQu/foliopath/blob/main/docs/README.md)
 
@@ -16,7 +16,8 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 
 | 功能 | 使用方式 |
 | --- | --- |
-| ZIP 图集浏览 | 直接打开 ZIP，保留内部目录、封面与图片数量，连续看图 |
+| ZIP / 7z 图集浏览 | 直接打开未加密单卷图集，保留内部目录、封面与图片数量，连续看图 |
+| 文件夹封面与滚动加载 | 普通文件夹也显示已有缩略图；目录树、展开后的子目录和媒体列表向下滚动自动加载 |
 | 文件夹穿透浏览 | 查看当前目录及全部子目录，保留来源路径 |
 | 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览 |
 | 智能搜索 | 用中文或英文描述画面，结合文件名、路径和图片文字查找 |
@@ -31,6 +32,14 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 把 ZIP 放进已有媒体库并扫描，即可像文件夹一样浏览包内图片，也可搜索文件名、收藏和手动标记。原 ZIP 保持只读，无需提前解压。
 
 支持 UTF-8 文件名、Store/Deflate 压缩的未加密单卷 ZIP，包内图片为 JPEG、PNG、WebP、GIF；最多 10,000 个条目，单张图片最多 64 MiB。暂不支持 ZIP64、分卷／加密包、包内视频或嵌套包，ZIP 图片不参与 AI 分析。首次生成缩略图后刷新目录即可看到封面。[完整支持范围](https://github.com/HappyQuQu/foliopath/blob/main/docs/architecture/zip-source-contract.md)。
+
+### 7z 图集
+
+支持未加密单卷 `.7z`，包含固实与非固实包；只临时保存请求的图片，不整体解压到磁盘。沿用10,000条目、展开合计4 GiB、单图64 MiB；不支持密码、分卷、自解压、嵌套包、包内视频或AI。大字典或解码超过时间/内存额度的包无法浏览，当前不支持50 GB大包。
+
+### 已知问题
+
+自动发现增量更新失败后可能反复触发完整扫描，历史显示为“定时任务”。出现时可暂时关闭自动发现，改用手动或定时完整扫描；本次尚未修复该循环。[说明与调查](https://github.com/HappyQuQu/foliopath/blob/main/docs/changes/KNOWN-2026-10-29-scan-fallback-loop.md)。
 
 ### 快速部署（带 AI）
 
@@ -114,7 +123,7 @@ docker compose up -d
 ### 支持格式与访问
 
 - **图片：** JPEG、PNG、WebP、GIF。
-- **ZIP 图集：** 上述图片格式，须符合前述 ZIP 范围。
+- **ZIP / 7z 图集：** 上述图片格式，须符合前述各格式范围。
 - **视频：** MP4、MOV、MKV、AVI。不转码，播放取决于浏览器对视频编码的支持。
 - 暂不支持 SVG、HEIC/HEIF、AVIF、RAW。
 
@@ -126,7 +135,8 @@ FolioPath turns your existing directory tree into a photo and video library. Bro
 
 ### Features
 
-- Browse ZIP image sets as read-only folders, preserving internal directories, covers, and image counts.
+- Browse ZIP and 7z image sets as read-only folders, preserving internal directories, covers, and image counts.
+- Folder cards reuse media thumbnails; directory and media lists load more automatically as you scroll.
 - Adaptive grid, masonry, and seamless photo-set browsing.
 - Describe scenes in Chinese or English; search across filenames, paths, visual content, and recognized text.
 - Search Chinese and English text inside processed images and preview matching lines.
@@ -138,6 +148,12 @@ FolioPath turns your existing directory tree into a photo and video library. Bro
 ### ZIP image sets
 
 Add ZIP files to an existing library and scan it. Browse images with the existing viewer, filename search, favorites, and manual tags; originals stay untouched. Supports unencrypted, single-volume ZIPs with UTF-8 names, Store/Deflate compression, and JPEG/PNG/WebP/GIF images, up to 10,000 entries and 64 MiB per image. ZIP64, split/encrypted archives, nested archives, video members, and AI processing of ZIP images are unsupported. Refresh the directory after the first thumbnail is generated to see its cover. See the [complete limits](https://github.com/HappyQuQu/foliopath/blob/main/docs/architecture/zip-source-contract.md).
+
+### 7z image sets and known issue
+
+Unencrypted single-volume solid and non-solid `.7z` archives use the image browser. Limits are 10,000 entries, 4 GiB expanded total and 64 MiB per image, with bounded decoder memory/time. Passwords, split/self-extracting/nested archives, archived video and AI are unsupported; 50 GB archives are unsupported.
+
+Automatic discovery can repeatedly fall back to full scans after incremental errors. These runs appear as “Scheduled”. If affected, temporarily disable automatic discovery and use manual or scheduled scans; this release does not fix the loop. See the [investigation](https://github.com/HappyQuQu/foliopath/blob/main/docs/changes/KNOWN-2026-10-29-scan-fallback-loop.md).
 
 ### Deploy with local AI
 

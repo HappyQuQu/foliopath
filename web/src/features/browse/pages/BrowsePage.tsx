@@ -75,6 +75,7 @@ import {
   mediaPosterUrl,
   mediaStoryboard,
 } from "../../../lib/media/availability";
+import { useScrollPagination } from "../../../lib/useScrollPagination";
 import { retryInfiniteNextPage } from "../../../lib/query/retryInfiniteNextPage";
 import {
   readMediaLayoutPreference,
@@ -277,6 +278,16 @@ export function BrowsePage({
     : children.slice(0, folderPreviewCount);
   const canExpandFolders =
     children.length > folderPreviewCount || childrenQuery.hasNextPage;
+  const childPagination = useScrollPagination({
+    enabled: foldersExpanded,
+    failed: childrenQuery.isFetchNextPageError,
+    hasNextPage: childrenQuery.hasNextPage,
+    isFetching: childrenQuery.isFetching,
+    onLoadMore: () => void loadMoreChildren(),
+    onRetry: () => void retryInfiniteNextPage({ error: childrenQuery.error, loadNextPage: loadMoreChildren, refresh: refreshChildren }),
+    progressKey: `${folderScope}:${children.length}`,
+  });
+
 
   useEffect(() => {
     if (!folderGrid) return;
@@ -547,7 +558,7 @@ export function BrowsePage({
                       {childrenQuery.isPending && (
                         <LoadingState label={t("browse.loadingDirectories")} />
                       )}
-                      {childrenQuery.isError && (
+                      {childrenQuery.isError && !childrenQuery.data && (
                         <ErrorState
                           message={t("browse.directoriesFailed")}
                           onRetry={() => void refreshChildren()}
@@ -569,6 +580,9 @@ export function BrowsePage({
                           ))}
                         </div>
                       )}
+                      {childrenQuery.isFetchNextPageError && (
+                        <InlineStatus tone="danger">{t("browse.loadMoreDirectoriesFailed")}</InlineStatus>
+                      )}
                       {(canExpandFolders || foldersExpanded) && (
                         <div className={styles.folderActions}>
                           <Button
@@ -582,13 +596,14 @@ export function BrowsePage({
                           >
                             {t(foldersExpanded ? "browse.collapseDirectories" : "browse.expandDirectories")}
                           </Button>
-                          {foldersExpanded && childrenQuery.hasNextPage && (
+                          {foldersExpanded && (childrenQuery.hasNextPage || childrenQuery.isFetchNextPageError) && (
                             <Button
                               size="small"
-                              loading={childrenQuery.isFetchingNextPage}
-                              onClick={() => void loadMoreChildren()}
+                              loading={childrenQuery.isFetching}
+                              ref={childPagination.ref}
+                              onClick={childPagination.loadMore}
                             >
-                              {t("browse.loadMoreDirectories")}
+                              {t(childrenQuery.isFetchNextPageError ? "browse.retryLoadMoreDirectories" : "browse.loadMoreDirectories")}
                             </Button>
                           )}
                         </div>
@@ -655,11 +670,7 @@ export function BrowsePage({
                       <MediaCollection
                         ref={preview.collectionRef}
                         hasNextPage={assetsQuery.hasNextPage}
-                        isFetchingNextPage={
-                          assetsQuery.isFetchingNextPage ||
-                          (assetsQuery.isFetchNextPageError &&
-                            assetsQuery.isRefetching)
-                        }
+                        isFetchingNextPage={assetsQuery.isFetching}
                         items={mediaItems}
                         labels={{
                           activatePreview: preview.pinned
@@ -808,31 +819,30 @@ function DirectoryCard({ browseState, directory, libraryId }: {
   const [failedCoverId, setFailedCoverId] = useState<string | null>(null);
   const isArchive = directory.archivePath === directory.relativePath;
   const problem = archiveStatusMessages(directory.archiveStatus);
-  const coverId = isArchive ? directory.coverAssetId : null;
+  const archiveFormat = directory.archivePath?.toLowerCase().endsWith(".7z") ? "7Z" : "ZIP";
+  const coverId = directory.coverAssetId;
   const count = t(isArchive ? "browse.archiveImageCount" : "browse.mediaCount")
     .replace("{count}", String(directory.recursiveAssetCount));
 
   return (
     <Link
-      className={`${styles.folderCard} ${isArchive ? styles.archiveCard : ""}`}
+      className={styles.folderCard}
       title={directory.name}
       to={directoryBrowseUrl(libraryId, directory, browseState)}
     >
-      {isArchive ? (
-        <div className={styles.archiveCover} aria-hidden="true">
-          {coverId && coverId !== failedCoverId ? (
-            <img
-              alt=""
-              decoding="async"
-              loading="lazy"
-              onError={() => setFailedCoverId(coverId)}
-              src={assetGridThumbnailUrl(coverId)}
-            />
-          ) : <FileZip size={30} weight="fill" />}
-        </div>
-      ) : <Folder aria-hidden="true" size={30} weight="fill" />}
+      <div className={styles.folderCover} aria-hidden="true">
+        {coverId && coverId !== failedCoverId ? (
+          <img
+            alt=""
+            decoding="async"
+            loading="lazy"
+            onError={() => setFailedCoverId(coverId)}
+            src={assetGridThumbnailUrl(coverId)}
+          />
+        ) : isArchive ? <FileZip size={30} weight="fill" /> : <Folder size={30} weight="fill" />}
+      </div>
       <strong>{directory.name}</strong>
-      <span>{isArchive ? `ZIP · ${problem ? t(problem.label) : count}` : count}</span>
+      <span>{isArchive ? `${archiveFormat} · ${problem ? t(problem.label) : count}` : count}</span>
     </Link>
   );
 }
@@ -1575,12 +1585,21 @@ function DirectoryChildren({
     [query.data],
   );
 
+  const pagination = useScrollPagination({
+    failed: query.isFetchNextPageError,
+    hasNextPage: query.hasNextPage,
+    isFetching: query.isFetching,
+    onLoadMore: () => void loadMoreDirectories(),
+    onRetry: () => void retryInfiniteNextPage({ error: query.error, loadNextPage: loadMoreDirectories, refresh: refreshDirectories }),
+    progressKey: `${libraryId}:${parentId ?? "root"}:${directories.length}`,
+  });
+
   if (query.isPending) {
     return (
       <span className={styles.treeState}>{t("browse.loadingDirectories")}</span>
     );
   }
-  if (query.isError) {
+  if (query.isError && !query.data) {
     return (
       <Button
         size="small"
@@ -1605,14 +1624,18 @@ function DirectoryChildren({
           selectedPathIds={selectedPathIds}
         />
       ))}
-      {query.hasNextPage && (
+      {query.isFetchNextPageError && (
+        <InlineStatus tone="danger">{t("browse.loadMoreDirectoriesFailed")}</InlineStatus>
+      )}
+      {(query.hasNextPage || query.isFetchNextPageError) && (
         <Button
-          loading={query.isFetchingNextPage}
+          loading={query.isFetching}
           size="small"
           variant="quiet"
-          onClick={() => void loadMoreDirectories()}
+          ref={pagination.ref}
+          onClick={pagination.loadMore}
         >
-          {t("browse.loadMoreDirectories")}
+          {t(query.isFetchNextPageError ? "browse.retryLoadMoreDirectories" : "browse.loadMoreDirectories")}
         </Button>
       )}
     </>

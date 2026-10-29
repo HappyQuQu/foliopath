@@ -1,3 +1,5 @@
+[ADR-0041：只读7z图片来源](0041-read-only-7z-images.md)（2026-10-29 Accepted，复用归档来源与有界原生工具）。
+
 [ADR-0040：只读 ZIP 图片来源](0040-read-only-zip-images.md)（2026-10-29 Accepted；显式成员来源与有界展开，发行仍经原生双架构门禁）。
 
 # FolioPath 架构决策记录
