@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.1](https://github.com/HappyQuQu/foliopath/compare/v1.9.0...v1.9.1) (2026-10-29)
+
+
+### 🐛 修复
+
+* 优化无缝沉浸浏览并完善关于页 ([#74](https://github.com/HappyQuQu/foliopath/issues/74)) ([44d3334](https://github.com/HappyQuQu/foliopath/commit/44d33342be0e422b0483c00c2c0cb0d2a56cd591))
+
+
+### ⚠️ 注意事项
+
+* 自动发现增量失败后的重复完整扫描循环仍未修复；出现时可暂时关闭自动发现，改用手动或定时完整扫描。 ([44d3334](https://github.com/HappyQuQu/foliopath/commit/44d33342be0e422b0483c00c2c0cb0d2a56cd591))
+
 ## [1.9.0](https://github.com/HappyQuQu/foliopath/compare/v1.8.0...v1.9.0) (2026-10-29)
 
 
