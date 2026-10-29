@@ -1,4 +1,4 @@
-2026-10-29：[ZIP 图片浏览 CR-2026-055](changes/CR-2026-055-zip-image-browsing.md) / [ADR-0040](adr/0040-read-only-zip-images.md)。ZIP 虚拟目录、只读成员来源及现有浏览链已正式发布为 [v1.8.0](changes/RELEASE-2026-10-29-v1.8.0.md)，四个原生镜像验证与两个推广任务全部通过。
+2026-10-29：[ZIP 图片浏览 CR-2026-055](changes/CR-2026-055-zip-image-browsing.md) / [ADR-0040](adr/0040-read-only-zip-images.md)。ZIP 虚拟目录、只读成员来源及现有浏览链已正式发布为 [v1.8.0](changes/RELEASE-2026-10-29-v1.8.0.md)，四个原生镜像验证与两个推广任务全部通过；用户随后授权的 [222 升级](changes/RELEASE-2026-10-29-v1.8.0.md#222-主应用升级)也已完成。
 
 # FolioPath 文档
 
