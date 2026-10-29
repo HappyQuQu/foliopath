@@ -19,13 +19,15 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 | ZIP / 7z 图集浏览 | 直接打开未加密单卷图集，保留内部目录、封面与图片数量，连续看图 |
 | 文件夹封面与滚动加载 | 普通文件夹也显示已有缩略图；目录树、展开后的子目录和媒体列表向下滚动自动加载 |
 | 文件夹穿透浏览 | 查看当前目录及全部子目录，保留来源路径 |
-| 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览 |
+| 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览；无缝模式下滑收起顶部、上滑恢复 |
 | 智能搜索 | 用中文或英文描述画面，结合文件名、路径和图片文字查找 |
 | 图片文字搜索 | 搜索已识别的中英文文字，在预览中查看匹配原文 |
 | 自动标签 | 153 类图片标签，保留手动标签和已移除标签的选择 |
 | 人物整理 | 将相似人脸分组，人工命名并调整照片归类 |
 | 本地处理 | 按媒体库开启 AI，查看进度、补齐缺失、取消或重试 |
 | 图片与视频查看 | 缩放、平移、1:1、全屏、前后切换和视频播放 |
+
+关于页提供项目介绍、支持格式与限额、文档和反馈入口，并在页内展示版本记录；检查更新失败时保留已有记录。
 
 ### ZIP 图集
 
@@ -144,6 +146,8 @@ FolioPath turns your existing directory tree into a photo and video library. Bro
 - Group similar faces, name people, and correct photo assignments.
 - Enable AI per library; track progress, process missing results, cancel, and retry.
 - Zoom, pan, view at 1:1, use fullscreen, and play videos.
+
+The About page includes project details, supported formats and limits, documentation and support links, and inline release notes. Seamless masonry hides the top controls as you scroll down and restores them as you scroll up.
 
 ### ZIP image sets
 

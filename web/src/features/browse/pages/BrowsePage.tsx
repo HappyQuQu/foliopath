@@ -395,6 +395,7 @@ export function BrowsePage({
   return (
     <AppShell
       active="browse"
+      autoHideChrome={mediaLayout === "seamless" && mediaItems.length > 0}
       browseHref={browseUrl(libraryId, directoryId, browseState)}
       homeHref={paths.root}
       identity={session.administrator.displayName}
@@ -444,7 +445,7 @@ export function BrowsePage({
           style={
             {
               "--preview-sticky-top":
-                "calc(var(--size-header) + var(--size-context-bar) + var(--space-3))",
+                "calc(var(--workspace-header-height, var(--size-header)) + var(--workspace-context-height, var(--size-context-bar)) + var(--space-3))",
               "--browse-controls-visible-height": `${browseControlsHeight}px`,
               "--preview-width": `${preview.width}px`,
             } as CSSProperties

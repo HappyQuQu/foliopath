@@ -92,7 +92,7 @@ export function GlobalHeader({
   }
 
   return (
-    <header className={styles.header}>
+    <header className={styles.header} data-scroll-chrome>
       <Link aria-label="FolioPath" className={styles.brand} to={homeHref}>
         <BrandMark size="small" />
         <span className={styles.wordmark}>FolioPath</span>

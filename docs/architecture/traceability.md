@@ -1,3 +1,7 @@
+2026-10-29 / FR-UI-001～003/006、FR-OPS-001～006 / Post-MVP维护：release-info/AboutPage拥有项目概览与资源导航，继续消费既有SystemStatus/ReleaseInformation；版本比较与缓存仍由releaseinfo拥有。无API、持久化或部署变化，沿用Backend Ready；生产Story、更新状态回归与响应式证据见[记录](../changes/FIX-2026-10-29-about-project-overview.md).
+
+2026-10-29 / FR-BRW-014/015、FR-UI-001～003/006、NFR-ACC-001 / Post-MVP维护：MediaCollection拥有无缝快捷操作隐藏；AppShell/useScrollChrome独占滚动chrome状态和可见offset，GlobalHeader/BrowseControls及预览消费同一CSS变量。沿用既有Backend Ready，无API/持久化变化。生产Story、hook/组件回归与实际响应式证据见[记录](../changes/FIX-2026-10-29-seamless-immersive-scroll.md)。
+
 2026-10-29 / FR-7Z-001～003、NFR-7Z-001、FR-BRW-001/005、FR-UI-001～003/006 / POST-MVP：7z、目录封面与滚动加载经PR #72/#73随v1.9.0发布，main/AI四个原生验证和两个推广任务首轮通过；Owner/合同及25项发行输入边界不变。自动发现回退循环仍为已知问题，实际222部署不变。见[正式结果](../changes/RELEASE-2026-10-29-v1.9.0.md#正式发布结果)。
 
 2026-10-29 / FR-BRW-001/005、FR-UI-001～003/006、NFR-UIF-001 / POST-MVP-5：catalog SQLite `directoryCoverSQL` 唯一拥有目录封面候选选择，列表/详情共用并沿用已有索引与thumbnail身份；BrowsePage DirectoryCard拥有封面显示与图标回退，API客户端由OpenAPI生成。既有S3 Backend Ready + 本轮SQLite封面回归通过后接UI，无数据库迁移；证据及阶段见[CR-2026-057](../changes/CR-2026-057-directory-covers.md)。

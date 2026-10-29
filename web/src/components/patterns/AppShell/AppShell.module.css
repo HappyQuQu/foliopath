@@ -1,4 +1,6 @@
 .shell {
+  --workspace-header-height: var(--size-header);
+  --workspace-context-height: var(--size-context-bar);
   min-height: 100dvh;
   padding-top: var(--size-header);
   background: var(--color-canvas);
@@ -33,7 +35,7 @@
 .sidebar {
   position: fixed;
   z-index: var(--layer-header);
-  top: var(--size-header);
+  top: var(--workspace-header-height);
   bottom: 0;
   left: 0;
   width: var(--size-sidebar);
@@ -62,7 +64,7 @@
 .contextBar {
   position: sticky;
   z-index: calc(var(--layer-header) - 1);
-  top: var(--size-header);
+  top: var(--workspace-header-height);
   min-height: var(--size-context-bar);
   display: flex;
   align-items: center;
@@ -163,8 +165,29 @@
   }
 }
 
-.sidebarResizer { position: fixed; z-index: var(--layer-header); top: var(--size-header); bottom: 0; left: calc(var(--size-sidebar) - var(--space-1)); right: auto; }
+.sidebarResizer { position: fixed; z-index: var(--layer-header); top: var(--workspace-header-height); bottom: 0; left: calc(var(--size-sidebar) - var(--space-1)); right: auto; }
 @media (max-width: 37.5rem) {
   .sidebarResizer { display: none; }
   .sidebar { width: min(var(--size-sidebar-drawer), calc(100vw - var(--space-12))); }
+}
+
+.shell[data-scroll-autohide] {
+  --workspace-dock-animation: none;
+}
+
+.shell[data-chrome-hidden] {
+  --workspace-header-height: 0px;
+  --workspace-context-height: 0px;
+  --workspace-chrome-shift: -100%;
+  --workspace-chrome-opacity: 0;
+  --workspace-chrome-visibility: hidden;
+  --workspace-chrome-pointer-events: none;
+}
+
+.contextBar {
+  transform: translateY(var(--workspace-chrome-shift, 0%));
+  opacity: var(--workspace-chrome-opacity, 1);
+  visibility: var(--workspace-chrome-visibility, visible);
+  pointer-events: var(--workspace-chrome-pointer-events, auto);
+  transition: top var(--motion-normal) var(--ease-standard), transform var(--motion-normal) var(--ease-standard), opacity var(--motion-normal) var(--ease-standard), visibility var(--motion-normal);
 }

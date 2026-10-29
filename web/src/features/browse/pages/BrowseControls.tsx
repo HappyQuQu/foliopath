@@ -57,7 +57,7 @@ export function BrowseControls({
       ref={slotRef}
       style={{ height: expandedHeight }}
     >
-      <div className={styles.browseControls} ref={surfaceRef}>
+      <div className={styles.browseControls} ref={surfaceRef} data-scroll-chrome>
         <header className={styles.browseHeading} ref={headingRef}>
           {heading}
         </header>

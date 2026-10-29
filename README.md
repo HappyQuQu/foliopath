@@ -37,6 +37,8 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 | Favorites & manual tags | Collect media across folders, add/select/remove tags, and browse by favorite or tag without changing original files. |
 | Appearance & language | Light, dark, or system theme; Simplified Chinese and English. Desktop sidebars become tool drawers on phones. |
 
+The **About** page includes a project overview, supported formats and archive limits, documentation and support links, plus the current version and inline release notes. Update-check failures keep previously loaded notes available.
+
 ### Browse ZIP image sets without extracting them first
 
 Place ZIP files anywhere inside a configured library and scan it. Each archive appears alongside folders with a cover and image count. Open it to browse its internal directories and images with the existing viewer. Filename/path search, favorites, and manual tags also work for ZIP images. The original ZIP stays read-only, and temporary image copies are removed after use.
@@ -53,7 +55,7 @@ Limits remain 10,000 entries, 4 GiB declared expanded total, and 64 MiB per imag
 
 ### From a whole collection to a single image
 
-Use the **adaptive grid** to inspect filenames and origins, or **seamless masonry** to keep the pictures flowing. Aggregated views retain a route back to the source directory.
+Use the **adaptive grid** to inspect filenames and origins, or **seamless masonry** to keep the pictures flowing: cards omit favorite/source shortcuts, and the top controls hide as you scroll down and return as you scroll up. Aggregated views retain a route back to the source directory.
 
 ![Dark adaptive grid with photo cards, source directories, and adjustable thumbnails](docs/screenshots/dark/grid.jpg)
 

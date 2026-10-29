@@ -91,33 +91,6 @@
   pointer-events: none;
 }
 
-.sourceShortcut {
-  position: absolute;
-  z-index: 3;
-  bottom: var(--space-2);
-  left: var(--space-2);
-  width: var(--size-control-md);
-  height: var(--size-control-md);
-  display: inline-grid;
-  place-items: center;
-  color: var(--color-on-scrim);
-  border-radius: var(--radius-1);
-  background: var(--color-scrim);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.card:hover .sourceShortcut,
-.card:focus-within .sourceShortcut {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.sourceShortcut:focus-visible {
-  outline: var(--focus-width) solid var(--color-focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
-
 .sizeControl {
   display: flex;
   justify-content: flex-end;
@@ -136,13 +109,6 @@
 .sizeControl[data-placement="toolbar"] input {
   width: clamp(4rem, 8vw, 7rem);
   min-height: var(--size-control-md);
-}
-
-@media (hover: none) {
-  .sourceShortcut {
-    opacity: 1;
-    pointer-events: auto;
-  }
 }
 
 .thumbnail {

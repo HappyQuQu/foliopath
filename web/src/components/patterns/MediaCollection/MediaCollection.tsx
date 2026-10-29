@@ -2,7 +2,6 @@ import {
   Eye,
   FileImage,
   FilmSlate,
-  FolderOpen,
   HourglassMedium,
   Heart,
   Play,
@@ -565,7 +564,7 @@ function MediaCard({
             <span className={styles.visuallyHidden}>{labels.previewing}</span>
           </span>
         )}
-        {onFavoriteToggle && (
+        {layout !== "seamless" && onFavoriteToggle && (
           <IconButton
             className={styles.favoriteButton}
             disabled={favoritePending}
@@ -582,11 +581,6 @@ function MediaCard({
           </IconButton>
         )}
       </div>
-      {layout === "seamless" && item.sourceHref && item.sourceLabel && (
-        <a className={styles.sourceShortcut} href={item.sourceHref} aria-label={item.sourceLabel}>
-          <FolderOpen aria-hidden="true" size={18} />
-        </a>
-      )}
       {layout !== "seamless" && (
         <div className={styles.identity}>
           <strong title={item.name}>{item.name}</strong>
