@@ -17,3 +17,8 @@
 - 手机导航打开和PageDown操作保持顶部可见；搜索输入聚焦时PageDown不隐藏。实际普通网格向下滚动仍显示顶部与收藏/来源入口；切回无缝后卡片不含快捷操作。Tab可恢复顶部，实际点击图片可打开预览并正常关闭。553项包含其余共享消费者回归，不宣称全部页面均另做实际浏览器矩阵。
 - 模拟减少动态效果后，header/context/controls计算transitionDuration均为0.001s，随后已取消模拟；viewport已恢复默认。触摸向下滚动产生的文档scroll共享同一逻辑，但未宣称真机测试。
 - 实施、截图、geometry.json及构建日志留在 `/tmp/foliopath-seamless-preview/`，完整前端和架构日志为 `/tmp/foliopath-seamless-check.log`、`/tmp/foliopath-seamless-arch.log`；普通测试/输出不入库。当前分支 `codex/seamless-hide-overlays` 尚未提交或发布，未更新222，v1.9.0发行镜像不变。
+
+
+## 正式交付
+
+随后用户授权提交、推送、合并、发布并更新222；已通过PR #74/#75随v1.9.1正式发布，双原生镜像验证及推广成功，222完成停机备份、恢复验证和主应用升级。上述本地阶段状态保留为历史，正式结果见[发布与部署记录](RELEASE-2026-10-29-v1.9.1.md)。

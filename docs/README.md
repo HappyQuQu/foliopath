@@ -1,8 +1,8 @@
 2026-10-29：[v1.9.1发布与222升级](changes/RELEASE-2026-10-29-v1.9.1.md)，本轮沉浸浏览及关于页的发布和部署结果记录。
 
-2026-10-29：[关于页项目概览](changes/FIX-2026-10-29-about-project-overview.md)，补充项目介绍、核心能力、格式限制与支持入口；本地维护分支，尚未发布。
+2026-10-29：[关于页项目概览](changes/FIX-2026-10-29-about-project-overview.md)，补充项目介绍、核心能力、格式限制与支持入口；已随[v1.9.1](changes/RELEASE-2026-10-29-v1.9.1.md)发布并升级222。
 
-2026-10-29：[无缝瀑布流沉浸浏览](changes/FIX-2026-10-29-seamless-immersive-scroll.md)，隐藏卡片收藏/来源图标，向下滚动收起顶部、向上恢复；本地分支，尚未发布。
+2026-10-29：[无缝瀑布流沉浸浏览](changes/FIX-2026-10-29-seamless-immersive-scroll.md)，隐藏卡片收藏/来源图标，向下滚动收起顶部、向上恢复；已随[v1.9.1](changes/RELEASE-2026-10-29-v1.9.1.md)发布并升级222。
 
 2026-10-29：[v1.9.0发布记录](changes/RELEASE-2026-10-29-v1.9.0.md)，本次交付7z、目录封面与滚动加载；[自动发现回退循环](changes/KNOWN-2026-10-29-scan-fallback-loop.md)仍是已知问题。主应用与AI的原生双架构验证及镜像推广已全部通过，Docker Hub概览已同步。
 

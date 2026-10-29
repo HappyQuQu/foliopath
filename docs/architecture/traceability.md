@@ -1,3 +1,5 @@
+2026-10-29 / FR-BRW-014/015、FR-UI-001～003/006、FR-OPS-001～006 / Post-MVP维护：沉浸浏览与关于页经PR #74/#75随v1.9.1发布，main/AI双原生验证及两个推广任务全部成功；222经停机完整备份/恢复验证升级主应用，AI身份及原挂载不变。Owner/合同和25项发行输入边界不变，见[发布记录](../changes/RELEASE-2026-10-29-v1.9.1.md)。
+
 2026-10-29 / FR-UI-001～003/006、FR-OPS-001～006 / Post-MVP维护：release-info/AboutPage拥有项目概览与资源导航，继续消费既有SystemStatus/ReleaseInformation；版本比较与缓存仍由releaseinfo拥有。无API、持久化或部署变化，沿用Backend Ready；生产Story、更新状态回归与响应式证据见[记录](../changes/FIX-2026-10-29-about-project-overview.md).
 
 2026-10-29 / FR-BRW-014/015、FR-UI-001～003/006、NFR-ACC-001 / Post-MVP维护：MediaCollection拥有无缝快捷操作隐藏；AppShell/useScrollChrome独占滚动chrome状态和可见offset，GlobalHeader/BrowseControls及预览消费同一CSS变量。沿用既有Backend Ready，无API/持久化变化。生产Story、hook/组件回归与实际响应式证据见[记录](../changes/FIX-2026-10-29-seamless-immersive-scroll.md)。
