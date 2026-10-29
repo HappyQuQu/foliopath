@@ -1,3 +1,5 @@
+2026-10-29 / ADR-0040 / ZIP-S1：新增迁移扩展目录的 ZIP 来源/状态及资产的显式包路径、成员路径、包版本和 CRC；资产 logical relative_path 保留唯一键以维持人工整理。新 v1:z 指纹子类型绑定完整 ZIP 来源，普通三段 v1 不变，符合原派生表指纹长度约束。失败包保留成员代次，成功清单才回收陈旧成员，AI 候选/覆盖排除 ZIP。见[来源合同](architecture/zip-source-contract.md)。
+
 # FolioPath 数据模型
 
 2026-10-28 浏览侧栏修复：快速访问展开状态仅保存为现有 `foliopath.preferences.v1` 中的可选 `quickAccessExpanded` 布尔值，缺失时默认展开。复用 shared storage/preferences，保存时保留其他字段；不写 SQLite、`/app/data`，不触发扫描或模型任务。滚动收紧状态仅在内存中，不属于 URL 或持久偏好。

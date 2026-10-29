@@ -34,7 +34,7 @@ func (s *Store) CountSemanticBackfillCandidates(ctx context.Context, libraryID i
         LEFT JOIN semantic_embeddings AS embedding
           ON embedding.generation_id = ? AND embedding.library_id = asset.library_id
          AND embedding.asset_id = asset.id
-		WHERE asset.library_id = ? AND asset.kind IN ('image','animated')`,
+		WHERE asset.library_id = ? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`,
 		generationID, libraryID).Scan(&counts.Eligible, &counts.Pending)
 	if err != nil {
 		return semantic.BackfillCandidateCounts{}, fmt.Errorf("count semantic candidates: %w", err)
@@ -63,7 +63,7 @@ func (s *Store) ListSemanticBackfillCandidates(
         LEFT JOIN semantic_embeddings AS embedding
           ON embedding.generation_id = ? AND embedding.library_id = asset.library_id
          AND embedding.asset_id = asset.id
-        WHERE asset.library_id = ? AND asset.kind IN ('image','animated')
+        WHERE asset.library_id = ? AND asset.kind IN ('image','animated') AND asset.archive_path = ''
           AND asset.id > ? AND `+where+`
         ORDER BY asset.id ASC LIMIT ?`, generationID, libraryID, checkpoint, limit+1)
 	if err != nil {

@@ -392,22 +392,50 @@ func upsertDirectory(
 	if err := tx.QueryRowContext(ctx, `
         INSERT INTO directories(
             library_id, parent_id, relative_path, name, natural_name_key,
-            search_name_key, mtime_ns, last_seen_generation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            search_name_key, mtime_ns, last_seen_generation, archive_path, archive_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(library_id, relative_path) DO UPDATE SET
             parent_id = excluded.parent_id,
             name = excluded.name,
             natural_name_key = excluded.natural_name_key,
             search_name_key = excluded.search_name_key,
             mtime_ns = excluded.mtime_ns,
-            last_seen_generation = excluded.last_seen_generation
+            last_seen_generation = excluded.last_seen_generation,
+            archive_path = excluded.archive_path,
+            archive_status = excluded.archive_status
         RETURNING id`,
 		run.LibraryID, parentID, entry.RelativePath, entry.Name,
 		catalog.NaturalNameKey(entry.Name), catalog.SearchTextKey(entry.Name),
-		entry.MTimeNS, run.Generation).Scan(&directoryID); err != nil {
+		entry.MTimeNS, run.Generation, entry.ArchivePath, entry.ArchiveStatus).Scan(&directoryID); err != nil {
 		return false, 0, fmt.Errorf("upsert directory %q: %w", entry.RelativePath, err)
 	}
+	if entry.ArchivePath == entry.RelativePath && entry.ArchiveStatus != "" && entry.ArchiveStatus != "ready" {
+		if err := preserveArchiveIndex(ctx, tx, run, entry); err != nil {
+			return false, 0, err
+		}
+	}
 	return newlySeen, directoryID, nil
+}
+
+// An unreadable archive is still present. Its last reliable members must not
+// become stale merely because this scan could not enumerate them.
+func preserveArchiveIndex(ctx context.Context, tx *sql.Tx, run scanner.ScanRun, entry scanner.CatalogEntry) error {
+	if _, err := tx.ExecContext(ctx, `UPDATE directories SET last_seen_generation = ?, archive_status = ?
+        WHERE library_id = ? AND archive_path = ?`, run.Generation, entry.ArchiveStatus, run.LibraryID, entry.ArchivePath); err != nil {
+		return fmt.Errorf("preserve archive directories: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE assets SET last_seen_generation = ?
+        WHERE library_id = ? AND archive_path = ?`, run.Generation, run.LibraryID, entry.ArchivePath); err != nil {
+		return fmt.Errorf("preserve archive members: %w", err)
+	}
+	return nil
+}
+
+func catalogEntryFingerprint(entry scanner.CatalogEntry) (media.SourceFingerprint, error) {
+	if entry.ArchiveMember != nil {
+		return media.NewArchiveSourceFingerprint(entry.SizeBytes, entry.MTimeNS, *entry.ArchiveMember)
+	}
+	return media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
 }
 
 type mediaJobAdmission struct {
@@ -469,7 +497,7 @@ func loadAssetUpsertStateChunk(
         WITH requested(relative_path, parent_path, source_fingerprint) AS (VALUES `)
 	args := make([]any, 0, len(entries)*3+1)
 	for index, entry := range entries {
-		fingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
+		fingerprint, err := catalogEntryFingerprint(entry)
 		if err != nil {
 			return fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
 		}
@@ -545,7 +573,7 @@ func prepareAssetUpsert(
 	if entry.RelativePath == "" || entry.Name == "" || entry.SizeBytes < 0 {
 		return preparedAssetUpsert{}, scanner.ErrInvalidEntry
 	}
-	sourceFingerprint, err := media.NewSourceFingerprint(entry.SizeBytes, entry.MTimeNS)
+	sourceFingerprint, err := catalogEntryFingerprint(entry)
 	if err != nil {
 		return preparedAssetUpsert{}, fmt.Errorf("%w: %w", scanner.ErrInvalidEntry, err)
 	}
@@ -602,21 +630,27 @@ func upsertAssetChunk(
             library_id, directory_id, relative_path, name, kind, media_format,
             mime_type, size_bytes, mtime_ns, source_fingerprint,
             natural_name_key, search_name_key, search_path_key,
-            last_seen_generation
+            last_seen_generation, archive_path, archive_member_path,
+            archive_size_bytes, archive_mtime_ns, archive_crc32
         ) VALUES `)
-	args := make([]any, 0, len(assets)*14)
+	args := make([]any, 0, len(assets)*19)
 	for index, asset := range assets {
 		if index > 0 {
 			statement.WriteByte(',')
 		}
-		statement.WriteString("(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		statement.WriteString("(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		entry := asset.entry
+		member := media.ArchiveMember{}
+		if entry.ArchiveMember != nil {
+			member = *entry.ArchiveMember
+		}
 		args = append(args,
 			run.LibraryID, asset.state.directoryID, entry.RelativePath, entry.Name,
 			string(entry.AssetKind), string(entry.MediaFormat), entry.MIMEType,
 			entry.SizeBytes, entry.MTimeNS, asset.sourceFingerprint,
 			asset.naturalNameKey, asset.searchNameKey, asset.searchPathKey,
-			run.Generation,
+			run.Generation, member.ArchivePath, member.MemberPath,
+			member.ArchiveSizeBytes, member.ArchiveMTimeNS, member.CRC32,
 		)
 	}
 	statement.WriteString(`
@@ -647,6 +681,11 @@ func upsertAssetChunk(
                 WHEN assets.source_fingerprint <> excluded.source_fingerprint THEN 'unknown'
                 ELSE assets.playback_status END,
             source_fingerprint = excluded.source_fingerprint,
+            archive_path = excluded.archive_path,
+            archive_member_path = excluded.archive_member_path,
+            archive_size_bytes = excluded.archive_size_bytes,
+            archive_mtime_ns = excluded.archive_mtime_ns,
+            archive_crc32 = excluded.archive_crc32,
             natural_name_key = excluded.natural_name_key,
             search_name_key = excluded.search_name_key,
             search_path_key = excluded.search_path_key,
@@ -684,7 +723,7 @@ func upsertAssetChunk(
 		}
 		// A newly inserted asset cannot own stale derived rows. Avoid issuing
 		// indexed DELETE statements for first-generation assets.
-		if !asset.state.existingAssetID.Valid && (asset.entry.AssetKind == scanner.AssetKindImage || asset.entry.AssetKind == scanner.AssetKindAnimated) {
+		if !asset.state.existingAssetID.Valid && asset.entry.ArchiveMember == nil && (asset.entry.AssetKind == scanner.AssetKindImage || asset.entry.AssetKind == scanner.AssetKindAnimated) {
 			if err := addSemanticCandidate(ctx, tx, run.LibraryID, run.CreatedAtMS); err != nil {
 				return nil, fmt.Errorf("update semantic candidate coverage: %w", err)
 			}

@@ -18,6 +18,7 @@ func (s *Store) GetAssetForDerivation(
 		return thumbnail.Asset{}, thumbnail.ErrAssetNotFound
 	}
 	var asset thumbnail.Asset
+	var member media.ArchiveMember
 	var kind, format, fingerprint, probeStatus string
 	var width, height, duration sql.NullInt64
 	var gridReady int
@@ -32,7 +33,8 @@ func (s *Store) GetAssetForDerivation(
                      AND grid.variant = 'grid'
                      AND grid.status = 'ready'
                      AND grid.source_fingerprint = a.source_fingerprint
-               )
+               ), a.archive_path, a.archive_member_path, a.archive_size_bytes,
+               a.archive_mtime_ns, a.archive_crc32
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
         WHERE a.id = ?`,
@@ -41,6 +43,8 @@ func (s *Store) GetAssetForDerivation(
 		&asset.ID, &asset.LibraryID, &asset.LibraryRoot, &asset.RelativePath,
 		&kind, &format, &asset.SizeBytes, &asset.ModifiedAtNS, &fingerprint,
 		&width, &height, &duration, &probeStatus, &gridReady,
+		&member.ArchivePath, &member.MemberPath, &member.ArchiveSizeBytes,
+		&member.ArchiveMTimeNS, &member.CRC32,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return thumbnail.Asset{}, thumbnail.ErrAssetNotFound
@@ -58,6 +62,9 @@ func (s *Store) GetAssetForDerivation(
 	}
 	asset.ProbeStatus = media.ProbeStatus(probeStatus)
 	asset.GridReady = gridReady != 0
+	if member.ArchivePath != "" {
+		asset.ArchiveMember = &member
+	}
 	return asset, nil
 }
 

@@ -81,9 +81,10 @@ type ReconcileReader interface {
 }
 
 type ReconcileCommitResult struct {
-	Changed        bool
-	Requeued       bool
-	NewDirectories []string
+	Changed          bool
+	Requeued         bool
+	NewDirectories   []string
+	FullScanRequired bool
 }
 
 type ReconcileExecutionRepository interface {
@@ -178,6 +179,7 @@ func (processor *ReconcileProcessor) Process(
 					ParentPath:   job.RelativeDirectory,
 					Name:         path.Base(relative),
 					MTimeNS:      entry.MTimeNS,
+					ArchivePath:  entry.ArchivePath,
 				})
 				return nil
 			}
@@ -214,6 +216,9 @@ func (processor *ReconcileProcessor) Process(
 	}
 	if result.Changed {
 		processor.mediaWaker.Wake()
+	}
+	if result.FullScanRequired && processor.observer != nil {
+		return processor.observer.ReconcileFailed(ctx, job, "archive_requires_scan")
 	}
 	if processor.observer != nil {
 		for _, relativeDirectory := range result.NewDirectories {

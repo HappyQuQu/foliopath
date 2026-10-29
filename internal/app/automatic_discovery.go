@@ -390,6 +390,13 @@ func (coordinator *automaticDiscoveryCoordinator) ReconcileFailed(
 	job scanner.ReconcileJob,
 	code string,
 ) error {
+	if code == "archive_requires_scan" {
+		_, err := coordinator.scanAdmission.RequestAutomaticFallback(ctx, job.LibraryID)
+		if errors.Is(err, scanner.ErrAdmissionConflict) || errors.Is(err, scanner.ErrAdmissionCapacity) || errors.Is(err, scanner.ErrLibraryNotFound) {
+			return nil
+		}
+		return err
+	}
 	libraryCode := "internal_error"
 	if code == "source_unavailable" || code == "source_changed" ||
 		code == "source_unreadable" {

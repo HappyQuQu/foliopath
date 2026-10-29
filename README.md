@@ -28,6 +28,7 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 | Core feature | What it does |
 | --- | --- |
 | Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Subfolders use a compact two-row grid, with expansion and paged loading. Collapse Quick access to give the tree more room; browsing controls condense and stay available while scrolling. |
+| ZIP image browsing | Open ZIP archives as read-only folders, with covers, internal directories, natural filename ordering, and continuous image viewing. |
 | Three gallery layouts | Switch between adaptive grid, masonry, and seamless masonry. Adjust thumbnail size and remember it in this browser. |
 | Search, filters & sorting | Find filenames or paths; filter by media type, modification date, and scope. Sort by name, modification time, or file size. |
 | Side preview | Inspect an image while keeping the collection visible. Pin and resize the preview; view its source directory and basic information. |
@@ -35,6 +36,14 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 | Video browsing | Posters, 4- or 10-frame hover previews, and browser-native playback. No transcoding; incompatible videos keep their posters and information. |
 | Favorites & manual tags | Collect media across folders, add/select/remove tags, and browse by favorite or tag without changing original files. |
 | Appearance & language | Light, dark, or system theme; Simplified Chinese and English. Desktop sidebars become tool drawers on phones. |
+
+### Browse ZIP image sets without extracting them first
+
+Place ZIP files anywhere inside a configured library and scan it. Each archive appears alongside folders with a cover and image count. Open it to browse its internal directories and images with the existing viewer. Filename/path search, favorites, and manual tags also work for ZIP images. The original ZIP stays read-only, and temporary image copies are removed after use.
+
+Supported archives are **unencrypted, single-volume ZIPs with UTF-8 filenames**, using Store or Deflate compression, containing JPEG, PNG, WebP, or GIF images. ZIP64, split/encrypted archives, nested archives, and video inside ZIPs are unsupported. ZIP images are not included in AI analysis, visual search, automatic tags, people analysis, or OCR.
+
+Archives support up to **10,000 entries** and **64 MiB per image**; [complete limits and source behavior](docs/architecture/zip-source-contract.md) apply. A ZIP icon appears while its first thumbnail is being generated; refresh the directory afterward to see the cover. Unreadable archives keep their previously indexed contents and show recovery guidance.
 
 ### From a whole collection to a single image
 
@@ -117,6 +126,7 @@ For planning, reserve about **2 GiB** for AI face analysis or tagging, **3 GiB**
 | --- | --- |
 | Images | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`) |
 | Videos | MP4 (`.mp4`), MOV (`.mov`), MKV (`.mkv`), AVI (`.avi`) |
+| ZIP image sets | `.zip` containing the supported image formats, subject to the [ZIP requirements above](#browse-zip-image-sets-without-extracting-them-first) |
 
 Videos are never transcoded. Playback depends on your browser's codec support. SVG, HEIC/HEIF, AVIF, and RAW are currently unsupported. Image and video processing use bounded resources and timeouts; preview failures never modify originals.
 
@@ -128,7 +138,7 @@ Create an empty directory, choose **one** of the configurations below, and save 
 
 ### Basic browsing
 
-For galleries, filename search, favorites, and manual tags:
+For galleries, ZIP image sets, filename search, favorites, and manual tags:
 
 ```yaml
 services:
@@ -193,6 +203,10 @@ Visit `http://<your-server-LAN-address>:8080`, create the administrator, and sel
 | `./models/…` | AI model cache and temporary working copies. Models are prepared automatically and reused on restart. |
 
 > **Docker Desktop:** use a Linux named volume for application data. Stop the app, back up, copy, and verify existing data before switching. Never open the live SQLite database from the host or synchronize the old data copy. See [deployment and maintenance](docs/deployment.md) and [ADR-0038](docs/adr/0038-docker-desktop-linux-sqlite-volume.md).
+
+### Upgrading an existing installation
+
+ZIP support adds catalog migration 48. Stop the application and back up the complete application data before upgrading. To roll back, restore the matching pre-upgrade backup with the previous image; changing only the image is insufficient. Follow the [backup and restore](docs/deployment.md#备份与恢复) and [upgrade and rollback](docs/deployment.md#升级与回滚) instructions.
 
 ## Documentation & project status
 

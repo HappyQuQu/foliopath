@@ -22,10 +22,35 @@ import (
 type mediaRootService struct {
 	path string
 
-	mutex  sync.RWMutex
-	root   *files.Root
-	source *files.DirectorySource
-	walker *files.ScanWalker
+	mutex        sync.RWMutex
+	root         *files.Root
+	source       *files.DirectorySource
+	walker       *files.ScanWalker
+	archiveStore *files.ArchiveStore
+}
+
+func (service *mediaRootService) ConfigureArchiveTemp(path string) error {
+	store, err := files.NewArchiveStore(path, thumbnail.CacheSafeFreeBytes)
+	if err != nil {
+		return err
+	}
+	service.archiveStore = store
+	return nil
+}
+
+func (service *mediaRootService) OpenArchiveContent(ctx context.Context, libraryRoot string, member media.ArchiveMember) (media.ContentFile, error) {
+	if service.archiveStore == nil {
+		return nil, media.ErrContentUnavailable
+	}
+	file, err := service.openMediaFile(ctx, libraryRoot, member.ArchivePath)
+	if err != nil {
+		return nil, err
+	}
+	return service.archiveStore.OpenMember(ctx, file, member)
+}
+
+func (service *mediaRootService) OpenArchiveAsset(ctx context.Context, libraryRoot string, member media.ArchiveMember) (thumbnail.SourceFile, error) {
+	return service.OpenArchiveContent(ctx, libraryRoot, member)
 }
 
 func (service *mediaRootService) OpenAsset(
@@ -97,6 +122,11 @@ func newMediaRootService(path string) (*mediaRootService, component, error) {
 }
 
 func (service *mediaRootService) start(context.Context) error {
+	if service.archiveStore != nil {
+		if err := service.archiveStore.Start(); err != nil {
+			return err
+		}
+	}
 	root, err := files.OpenRoot(service.path)
 	if err != nil {
 		return err

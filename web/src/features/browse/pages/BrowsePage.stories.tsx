@@ -80,13 +80,16 @@ const meta = {
   component: BrowsePage,
   decorators: [
     (Story, context) => (
-      <StoryApiBoundary manyDirectories={context.parameters.manyDirectories === true}>
+      <StoryApiBoundary
+        manyDirectories={context.parameters.manyDirectories === true}
+        archiveFixtures={context.parameters.archiveFixtures === true}
+      >
         <ThemeProvider>
           <QueryClientProvider client={new QueryClient()}>
             <ToastProvider>
               <MemoryRouter
                 initialEntries={[
-                  "/libraries/lib_family/browse/dir_kyoto",
+                  `/libraries/lib_family/browse/${context.args.directoryId ?? "dir_kyoto"}`,
                 ]}
               >
                 <Story />
@@ -123,16 +126,54 @@ export const ManyDirectories: Story = {
   name: "Many directories (synthetic contract fixtures)",
 };
 
-function StoryApiBoundary({ children, manyDirectories }: { children: ReactNode; manyDirectories: boolean }) {
-  window.fetch = storyFetch(passthroughFetch, manyDirectories);
+export const ZipArchives: Story = {
+  name: "ZIP archives (synthetic contract fixtures)",
+  parameters: {
+    archiveFixtures: true,
+    docs: { description: { story: "Production BrowsePage with synthetic ZIP directory contracts: ready cover, long filename, unreadable archive, encrypted archive. Originals in the application remain read-only." } },
+  },
+};
+
+export const ZipContents: Story = {
+  name: "ZIP contents (synthetic contract fixtures)",
+  args: { directoryId: "dir_zip" },
+  parameters: { archiveFixtures: true },
+};
+
+export const ZipUnreadable: Story = {
+  name: "Unreadable ZIP (synthetic contract fixtures)",
+  args: { directoryId: "dir_zip_bad" },
+  parameters: { archiveFixtures: true },
+};
+
+export const ZipEncrypted: Story = {
+  name: "Encrypted ZIP (synthetic contract fixtures)",
+  args: { directoryId: "dir_zip_encrypted" },
+  parameters: { archiveFixtures: true },
+};
+
+function StoryApiBoundary({ children, manyDirectories, archiveFixtures }: { children: ReactNode; manyDirectories: boolean; archiveFixtures: boolean }) {
+  window.fetch = storyFetch(passthroughFetch, manyDirectories, archiveFixtures);
   useEffect(() => () => {
     window.fetch = passthroughFetch;
   }, []);
   return children;
 }
 
-function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean): typeof window.fetch {
-  const fixtureDirectories = manyDirectories ? [
+function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean, archiveFixtures: boolean): typeof window.fetch {
+  const archivePath = "旅行/日本/京都/京都图集.zip";
+  const zipDirectories: Directory[] = [
+    { ...directory("dir_zip", "京都图集.zip", archivePath, "dir_kyoto", 6, true), archivePath, archiveStatus: "ready", coverAssetId: "ast_zip_1", directAssetCount: 3 },
+    { ...directory("dir_zip_day", "第一天", `${archivePath}/第一天`, "dir_zip", 3), archivePath, archiveStatus: "ready" },
+    { ...directory("dir_zip_empty", "空目录", `${archivePath}/空目录`, "dir_zip", 0), archivePath, archiveStatus: "ready" },
+    { ...directory("dir_zip_long", "一份很长名称的旅行图集 · 京都街道与山间日常的合成演示图片.zip", "旅行/日本/京都/长名称图集.zip", "dir_kyoto", 12), archivePath: "旅行/日本/京都/长名称图集.zip", archiveStatus: "ready", coverAssetId: "ast_zip_2" },
+    { ...directory("dir_zip_bad", "损坏压缩包.zip", "旅行/日本/京都/损坏压缩包.zip", "dir_kyoto", 0), archivePath: "旅行/日本/京都/损坏压缩包.zip", archiveStatus: "unreadable" },
+    { ...directory("dir_zip_encrypted", "需要密码.zip", "旅行/日本/京都/需要密码.zip", "dir_kyoto", 0), archivePath: "旅行/日本/京都/需要密码.zip", archiveStatus: "encrypted" },
+  ];
+  const fixtureDirectories = archiveFixtures ? [
+    ...directories.filter(item => item.id === "dir_root" || item.id === "dir_travel" || item.id === "dir_japan" || item.id === "dir_kyoto" || item.id === "dir_kiyomizu"),
+    ...zipDirectories,
+  ] : manyDirectories ? [
     ...directories,
     ...Array.from({ length: 24 }, (_, index) => directory(
       `dir_extra_${index}`,
@@ -153,6 +194,12 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
       return originalFetch(input, init);
     }
 
+    if (/^\/api\/v1\/assets\/ast_zip_\d+\/(thumbnail|content)$/.test(url.pathname)) {
+      const warm = url.pathname.includes("ast_zip_2");
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"><rect width="960" height="640" fill="${warm ? "#ad755c" : "#447b91"}"/><circle cx="710" cy="160" r="70" fill="#f1d59a"/><path d="M0 550L280 230L640 640H0" fill="${warm ? "#785c46" : "#335b69"}"/><text x="50" y="590" fill="white" font-family="sans-serif" font-size="35">Synthetic ZIP image</text></svg>`;
+      return new Response(svg, { headers: { "Content-Type": "image/svg+xml" } });
+    }
+
     if (/^\/api\/v1\/assets\/[^/]+\/exif$/.test(url.pathname)) return Response.json({ fields: [{ key: "cameraModel", value: "Synthetic Camera" }, { key: "aperture", value: "f/2.8" }] });
     if (url.pathname === "/api/v1/libraries") {
       return json({
@@ -165,7 +212,7 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
             lastSuccessfulScanAt: "2026-07-29T08:00:00Z",
             latestScanId: "scan_story",
             name: "家庭影像",
-            status: "scanning",
+            status: archiveFixtures ? "ready" : "scanning",
           },
         ],
         nextCursor: null,
@@ -181,24 +228,24 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
           lastSuccessfulScanAt: "2026-07-29T08:00:00Z",
           latestScanId: "scan_story",
           name: "家庭影像",
-          status: "scanning",
+          status: archiveFixtures ? "ready" : "scanning",
         },
         { ETag: '"library-story"' },
       );
     }
-    if (url.pathname === "/api/v1/directories/dir_kyoto") {
+    if (url.pathname.startsWith("/api/v1/directories/")) {
+      const selected = fixtureDirectories.find(item => item.id === url.pathname.split("/").at(-1));
+      if (!selected) return json({ code: "not_found", message: "Not found" }, {}, 404);
+      const breadcrumbs = [];
+      let ancestor: Directory | undefined = selected;
+      while (ancestor) {
+        breadcrumbs.unshift({ id: ancestor.id, name: ancestor.name, relativePath: ancestor.relativePath });
+        const parentId: string | null = ancestor.parentId;
+        ancestor = fixtureDirectories.find(item => item.id === parentId);
+      }
       return json({
-        ...fixtureDirectories.find(({ id }) => id === "dir_kyoto"),
-        breadcrumbs: [
-          { id: "dir_root", name: "家庭影像", relativePath: "" },
-          { id: "dir_travel", name: "旅行", relativePath: "旅行" },
-          { id: "dir_japan", name: "日本", relativePath: "旅行/日本" },
-          {
-            id: "dir_kyoto",
-            name: "京都",
-            relativePath: "旅行/日本/京都",
-          },
-        ],
+        ...selected,
+        breadcrumbs,
       });
     }
     if (url.pathname === "/api/v1/libraries/lib_family/directories") {
@@ -217,8 +264,26 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
     if (url.pathname === "/api/v1/libraries/lib_family/assets") {
       const q = url.searchParams.get("q")?.toLocaleLowerCase() ?? "";
       const kinds = url.searchParams.getAll("kind");
+      const directoryId = url.searchParams.get("directoryId");
+      const fixtureAssets = archiveFixtures && directoryId?.startsWith("dir_zip")
+        ? directoryId === "dir_zip_bad" || directoryId === "dir_zip_encrypted"
+          ? []
+          : [1, 2, 10].map((ordinal, index): Asset => ({
+              ...assets[index]!,
+              directoryId,
+              durationMs: null,
+              id: `ast_zip_${ordinal}`,
+              kind: "image",
+              mimeType: "image/png",
+              name: `${ordinal}.png`,
+              relativePath: `${archivePath}/${ordinal}.png`,
+              playbackStatus: "not_applicable",
+              thumbnail: { errorCode: null, status: "ready", url: `/api/v1/assets/ast_zip_${ordinal}/thumbnail?variant=grid` },
+              width: 960, height: 640,
+            }))
+        : assets;
       return json({
-        items: assets.filter(
+        items: fixtureAssets.filter(
           (item) =>
             (!q || item.name.toLocaleLowerCase().includes(q)) &&
             (kinds.length === 0 || kinds.includes(item.kind)),

@@ -1,3 +1,5 @@
+2026-10-29：[ZIP 图片浏览 CR-2026-055](changes/CR-2026-055-zip-image-browsing.md) / [ADR-0040](adr/0040-read-only-zip-images.md)。ZIP 虚拟目录、只读成员来源及现有浏览链已完成本地验收，用户授权合并发布；原生发行结果见记录。
+
 # FolioPath 文档
 
 - [全部分支集成到main](changes/MERGE-2026-10-26-all-branches.md)：用户明确要求保留全部开发提交；冲突处理和521项前端／Go检查记录。已发布v1.5.0与6010不变。

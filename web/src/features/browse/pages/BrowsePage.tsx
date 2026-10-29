@@ -7,6 +7,7 @@ import {
   CheckSquare,
   CircleNotch,
   Columns,
+  FileZip,
   Folder,
   GridFour,
   House,
@@ -61,6 +62,7 @@ import {
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import {
   assetContentUrl,
+  assetGridThumbnailUrl,
   type Asset,
   type AssetCounts,
   type Breadcrumb,
@@ -102,6 +104,7 @@ import {
 import {
   browseUrl,
   defaultBrowseUrlState,
+  directoryBrowseUrl,
   kindsForBrowse,
   parseBrowseUrlState,
   serializeBrowseUrlState,
@@ -140,13 +143,14 @@ export function BrowsePage({
   const [folderPreviewCount, setFolderPreviewCount] = useState(6);
   const [expandedFolderScope, setExpandedFolderScope] = useState<string | null>(null);
   const favoriteMutation = useFavoriteMutation();
+  const directoryQuery = useDirectoryQuery(directoryId);
+  const defaultMediaSort = directoryQuery.data?.archivePath ? "name:asc" : mediaSortPreference;
   const browseState = useMemo(
-    () => parseBrowseUrlState(searchParams, mediaSortPreference),
-    [mediaSortPreference, searchParams],
+    () => parseBrowseUrlState(searchParams, defaultMediaSort),
+    [defaultMediaSort, searchParams],
   );
   const librariesQuery = useLibrariesQuery();
   const libraryQuery = useLibraryQuery(libraryId);
-  const directoryQuery = useDirectoryQuery(directoryId);
   const childrenQuery = useDirectoriesQuery({
     libraryId,
     parentId: directoryId,
@@ -155,6 +159,7 @@ export function BrowsePage({
   const browseKinds = kindsForBrowse(browseState.kind);
   const assetsQuery = useAssetsQuery({
     directoryId,
+    enabled: !directoryId || directoryQuery.isSuccess,
     kinds: browseKinds,
     libraryId,
     order: browseState.order,
@@ -247,6 +252,7 @@ export function BrowsePage({
     [locale, previewAsset, t],
   );
   const currentLibrary = libraryQuery.data?.library;
+  const archiveProblem = archiveStatusMessages(directoryQuery.data?.archiveStatus);
   const breadcrumbs: Breadcrumb[] = directoryQuery.data?.breadcrumbs ?? [];
   const selectedPathIds = useMemo(
     () => new Set(breadcrumbs.map((item) => item.id)),
@@ -296,7 +302,7 @@ export function BrowsePage({
       const defaults = defaultBrowseUrlState(
         browseState.recursive,
         q,
-        mediaSortPreference,
+        defaultMediaSort,
       );
       updateBrowseState({
         ...browseState,
@@ -305,7 +311,7 @@ export function BrowsePage({
       });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [browseState, directoryFilterDraft, mediaSortPreference]);
+  }, [browseState, directoryFilterDraft, defaultMediaSort]);
 
   const refreshCurrentScope = useCallback(async () => {
     await Promise.all([
@@ -338,10 +344,11 @@ export function BrowsePage({
   }, [navigationScope, refreshCurrentScope]);
 
   useEffect(() => {
+    if (directoryId && !directoryQuery.isSuccess) return;
     if (searchParams.toString() !== canonicalSearch) {
       setSearchParams(canonicalSearch, { replace: true });
     }
-  }, [canonicalSearch, searchParams, setSearchParams]);
+  }, [canonicalSearch, directoryId, directoryQuery.isSuccess, searchParams, setSearchParams]);
 
   useEffect(() => {
     const returnState = readViewerReturnState(location.state);
@@ -444,7 +451,7 @@ export function BrowsePage({
                   <BrowseScopeControls
                     browseState={browseState}
                     counts={assetsQuery.data?.pages[0]?.counts}
-                    mediaSortPreference={mediaSortPreference}
+                    mediaSortPreference={defaultMediaSort}
                     onChange={updateBrowseState}
                   />
                 </>
@@ -454,7 +461,7 @@ export function BrowsePage({
                 browseState={browseState}
                 directoryFilter={directoryFilterDraft}
                 mediaLayout={mediaLayout}
-                mediaSortPreference={mediaSortPreference}
+                mediaSortPreference={defaultMediaSort}
                 onChange={updateBrowseState}
                 onDirectoryFilterChange={setDirectoryFilterDraft}
                 onLayoutChange={updateMediaLayout}
@@ -470,6 +477,11 @@ export function BrowsePage({
                 sizeControlRef={setSizeControlContainer}
               />
             </BrowseControls>
+        {archiveProblem && (
+          <div className={styles.banner}>
+            <InlineStatus tone="warning">{t(archiveProblem.description)}</InlineStatus>
+          </div>
+        )}
         {currentLibrary?.status === "offline" && (
           <div className={styles.banner}>
             <InlineStatus tone="warning">
@@ -548,29 +560,12 @@ export function BrowsePage({
                           ref={setFolderGrid}
                         >
                           {visibleChildren.map((directory) => (
-                            <Link
-                              className={styles.folderCard}
-                              title={directory.name}
+                            <DirectoryCard
+                              browseState={browseState}
+                              directory={directory}
                               key={directory.id}
-                              to={browseUrl(
-                                libraryId,
-                                directory.id,
-                                browseState,
-                              )}
-                            >
-                              <Folder
-                                aria-hidden="true"
-                                size={30}
-                                weight="fill"
-                              />
-                              <strong>{directory.name}</strong>
-                              <span>
-                                {t("browse.mediaCount").replace(
-                                  "{count}",
-                                  String(directory.recursiveAssetCount),
-                                )}
-                              </span>
-                            </Link>
+                              libraryId={libraryId}
+                            />
                           ))}
                         </div>
                       )}
@@ -638,6 +633,7 @@ export function BrowsePage({
                       )}
                     {assetsQuery.isSuccess &&
                       assets.length === 0 &&
+                      !archiveProblem &&
                       currentLibrary?.status !== "offline" && (
                         <EmptyMedia
                           browseState={browseState}
@@ -648,7 +644,7 @@ export function BrowsePage({
                               ...defaultBrowseUrlState(
                                 true,
                                 browseState.q,
-                                mediaSortPreference,
+                                defaultMediaSort,
                               ),
                               kind: browseState.kind,
                             })
@@ -801,6 +797,59 @@ export function BrowsePage({
       </section>
     </AppShell>
   );
+}
+
+function DirectoryCard({ browseState, directory, libraryId }: {
+  browseState: BrowseUrlState;
+  directory: Directory;
+  libraryId: string;
+}) {
+  const { t } = useLocale();
+  const [failedCoverId, setFailedCoverId] = useState<string | null>(null);
+  const isArchive = directory.archivePath === directory.relativePath;
+  const problem = archiveStatusMessages(directory.archiveStatus);
+  const coverId = isArchive ? directory.coverAssetId : null;
+  const count = t(isArchive ? "browse.archiveImageCount" : "browse.mediaCount")
+    .replace("{count}", String(directory.recursiveAssetCount));
+
+  return (
+    <Link
+      className={`${styles.folderCard} ${isArchive ? styles.archiveCard : ""}`}
+      title={directory.name}
+      to={directoryBrowseUrl(libraryId, directory, browseState)}
+    >
+      {isArchive ? (
+        <div className={styles.archiveCover} aria-hidden="true">
+          {coverId && coverId !== failedCoverId ? (
+            <img
+              alt=""
+              decoding="async"
+              loading="lazy"
+              onError={() => setFailedCoverId(coverId)}
+              src={assetGridThumbnailUrl(coverId)}
+            />
+          ) : <FileZip size={30} weight="fill" />}
+        </div>
+      ) : <Folder aria-hidden="true" size={30} weight="fill" />}
+      <strong>{directory.name}</strong>
+      <span>{isArchive ? `ZIP · ${problem ? t(problem.label) : count}` : count}</span>
+    </Link>
+  );
+}
+
+function archiveStatusMessages(status: Directory["archiveStatus"]) {
+  switch (status) {
+    case "unreadable":
+      return { label: "browse.archiveUnreadableLabel", description: "browse.archiveUnreadable" } as const;
+    case "encrypted":
+      return { label: "browse.archiveEncryptedLabel", description: "browse.archiveEncrypted" } as const;
+    case "unsupported":
+      return { label: "browse.archiveUnsupportedLabel", description: "browse.archiveUnsupported" } as const;
+    case "limit_exceeded":
+      return { label: "browse.archiveLimitLabel", description: "browse.archiveLimit" } as const;
+    default:
+      return null;
+  }
 }
 
 function BrowseScopeControls({ browseState, counts, mediaSortPreference, onChange }: {
@@ -1625,9 +1674,11 @@ function DirectoryTreeItem({
         <Link
           aria-current={selected ? "page" : undefined}
           className={`${styles.treeLink} ${selected ? styles.treeLinkCurrent : ""}`}
-          to={browseUrl(libraryId, directory.id, browseState)}
+          to={directoryBrowseUrl(libraryId, directory, browseState)}
         >
-          <Folder aria-hidden="true" size={17} />
+          {directory.archivePath === directory.relativePath
+            ? <FileZip aria-hidden="true" size={17} />
+            : <Folder aria-hidden="true" size={17} />}
           <span>{directory.name}</span>
         </Link>
       </div>

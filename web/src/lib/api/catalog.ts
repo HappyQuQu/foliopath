@@ -36,6 +36,9 @@ export async function getCatalogState(etag?: string): Promise<CatalogStateResult
 }
 
 export interface Directory {
+  archivePath?: string | null;
+  archiveStatus?: components["schemas"]["Directory"]["archiveStatus"];
+  coverAssetId?: string | null;
   directAssetCount: number;
   hasChildren: boolean;
   id: string;
@@ -157,6 +160,10 @@ export interface SearchAssetsInput {
 
 export function assetContentUrl(assetId: string): string {
   return `/api/v1/assets/${encodeURIComponent(assetId)}/content`;
+}
+
+export function assetGridThumbnailUrl(assetId: string): string {
+  return `/api/v1/assets/${encodeURIComponent(assetId)}/thumbnail?variant=grid`;
 }
 
 export async function listAssets({
@@ -450,16 +457,7 @@ export async function getDirectory(
   }
 }
 
-function mapDirectory(data: {
-  directAssetCount: number;
-  hasChildren: boolean;
-  id: string;
-  libraryId: string;
-  name: string;
-  parentId: string | null;
-  recursiveAssetCount: number;
-  relativePath: string;
-}): Directory {
+function mapDirectory(data: components["schemas"]["Directory"]): Directory {
   return { ...data };
 }
 

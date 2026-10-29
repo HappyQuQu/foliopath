@@ -131,6 +131,7 @@ export function useDirectoriesQuery({
 
 export function useAssetsQuery({
   directoryId,
+  enabled = true,
   kinds,
   libraryId,
   order,
@@ -139,6 +140,7 @@ export function useAssetsQuery({
   sort,
 }: {
   directoryId?: string | undefined;
+  enabled?: boolean;
   kinds?: AssetKind[] | undefined;
   libraryId: string;
   order: SortOrder;
@@ -169,6 +171,7 @@ export function useAssetsQuery({
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled,
     refetchInterval: (query) =>
       pendingThumbnailRefreshInterval(query.state.data?.pages),
     staleTime: 15_000,

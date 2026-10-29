@@ -35,6 +35,9 @@ type directoryResponse struct {
 	DirectAssetCount    int64   `json:"directAssetCount"`
 	RecursiveAssetCount int64   `json:"recursiveAssetCount"`
 	HasChildren         bool    `json:"hasChildren"`
+	ArchivePath         *string `json:"archivePath"`
+	ArchiveStatus       *string `json:"archiveStatus"`
+	CoverAssetID        *string `json:"coverAssetId"`
 }
 
 type breadcrumbResponse struct {
@@ -411,12 +414,24 @@ func directoryWire(item catalog.Directory) directoryResponse {
 		value := directoryIDString(*item.ParentID)
 		parentID = &value
 	}
+	var archivePath, archiveStatus, coverAssetID *string
+	if item.ArchivePath != "" {
+		archivePath = &item.ArchivePath
+		archiveStatus = &item.ArchiveStatus
+	}
+	if item.CoverAssetID != nil {
+		value := assetIDString(*item.CoverAssetID)
+		coverAssetID = &value
+	}
 	return directoryResponse{
 		ID: directoryIDString(item.ID), LibraryID: libraryID(item.LibraryID),
 		ParentID: parentID, Name: item.Name, RelativePath: item.RelativePath,
 		DirectAssetCount:    item.DirectAssetCount,
 		RecursiveAssetCount: item.RecursiveAssetCount,
 		HasChildren:         item.HasChildren,
+		ArchivePath:         archivePath,
+		ArchiveStatus:       archiveStatus,
+		CoverAssetID:        coverAssetID,
 	}
 }
 

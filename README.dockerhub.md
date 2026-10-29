@@ -16,6 +16,7 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 
 | 功能 | 使用方式 |
 | --- | --- |
+| ZIP 图集浏览 | 直接打开 ZIP，保留内部目录、封面与图片数量，连续看图 |
 | 文件夹穿透浏览 | 查看当前目录及全部子目录，保留来源路径 |
 | 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览 |
 | 智能搜索 | 用中文或英文描述画面，结合文件名、路径和图片文字查找 |
@@ -24,6 +25,12 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 | 人物整理 | 将相似人脸分组，人工命名并调整照片归类 |
 | 本地处理 | 按媒体库开启 AI，查看进度、补齐缺失、取消或重试 |
 | 图片与视频查看 | 缩放、平移、1:1、全屏、前后切换和视频播放 |
+
+### ZIP 图集
+
+把 ZIP 放进已有媒体库并扫描，即可像文件夹一样浏览包内图片，也可搜索文件名、收藏和手动标记。原 ZIP 保持只读，无需提前解压。
+
+支持 UTF-8 文件名、Store/Deflate 压缩的未加密单卷 ZIP，包内图片为 JPEG、PNG、WebP、GIF；最多 10,000 个条目，单张图片最多 64 MiB。暂不支持 ZIP64、分卷／加密包、包内视频或嵌套包，ZIP 图片不参与 AI 分析。首次生成缩略图后刷新目录即可看到封面。[完整支持范围](https://github.com/HappyQuQu/foliopath/blob/main/docs/architecture/zip-source-contract.md)。
 
 ### 快速部署（带 AI）
 
@@ -83,6 +90,8 @@ docker compose logs -f machine-learning
 
 ### 更新
 
+升级到支持 ZIP 的版本前，请停止应用并完整备份应用数据；回退须配合对应的升级前备份，不能只切换旧镜像。[升级与恢复流程](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md#升级与回滚)。
+
 `latest` 是主程序，`latest-ai` 是配套 AI 镜像。请一起拉取、更新：
 
 ```bash
@@ -105,6 +114,7 @@ docker compose up -d
 ### 支持格式与访问
 
 - **图片：** JPEG、PNG、WebP、GIF。
+- **ZIP 图集：** 上述图片格式，须符合前述 ZIP 范围。
 - **视频：** MP4、MOV、MKV、AVI。不转码，播放取决于浏览器对视频编码的支持。
 - 暂不支持 SVG、HEIC/HEIF、AVIF、RAW。
 
@@ -116,6 +126,7 @@ FolioPath turns your existing directory tree into a photo and video library. Bro
 
 ### Features
 
+- Browse ZIP image sets as read-only folders, preserving internal directories, covers, and image counts.
 - Adaptive grid, masonry, and seamless photo-set browsing.
 - Describe scenes in Chinese or English; search across filenames, paths, visual content, and recognized text.
 - Search Chinese and English text inside processed images and preview matching lines.
@@ -123,6 +134,10 @@ FolioPath turns your existing directory tree into a photo and video library. Bro
 - Group similar faces, name people, and correct photo assignments.
 - Enable AI per library; track progress, process missing results, cancel, and retry.
 - Zoom, pan, view at 1:1, use fullscreen, and play videos.
+
+### ZIP image sets
+
+Add ZIP files to an existing library and scan it. Browse images with the existing viewer, filename search, favorites, and manual tags; originals stay untouched. Supports unencrypted, single-volume ZIPs with UTF-8 names, Store/Deflate compression, and JPEG/PNG/WebP/GIF images, up to 10,000 entries and 64 MiB per image. ZIP64, split/encrypted archives, nested archives, video members, and AI processing of ZIP images are unsupported. Refresh the directory after the first thumbnail is generated to see its cover. See the [complete limits](https://github.com/HappyQuQu/foliopath/blob/main/docs/architecture/zip-source-contract.md).
 
 ### Deploy with local AI
 
@@ -144,6 +159,8 @@ If needed, add `FOLIOPATH_MODEL_DOWNLOAD_PROXY: http://proxy-host:7890` under th
 | --- | --- |
 | `evanqu/foliopath:latest` | Main application |
 | `evanqu/foliopath:latest-ai` | Local AI service |
+
+Before upgrading to ZIP support, stop the application and back up all application data. Rollback requires restoring the matching pre-upgrade backup with the old image. See the [upgrade and rollback guide](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md#升级与回滚).
 
 Update both together with `docker compose pull` followed by `docker compose up -d`.
 

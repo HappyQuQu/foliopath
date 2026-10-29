@@ -17,11 +17,13 @@ func (s *Store) GetContentAsset(
 		return media.ContentAsset{}, media.ErrContentAssetNotFound
 	}
 	var asset media.ContentAsset
+	var member media.ArchiveMember
 	var format, fingerprint, libraryStatus string
 	err := s.db.QueryRowContext(ctx, `
 		SELECT a.id, a.library_id, l.root_rel_path, a.relative_path, a.media_format,
                a.mime_type, a.size_bytes, a.mtime_ns, a.source_fingerprint,
-               l.status
+               l.status, a.archive_path, a.archive_member_path, a.archive_size_bytes,
+               a.archive_mtime_ns, a.archive_crc32
         FROM assets a
         JOIN libraries l ON l.id = a.library_id
         WHERE a.id = ?`,
@@ -29,7 +31,8 @@ func (s *Store) GetContentAsset(
 	).Scan(
 		&asset.ID, &asset.LibraryID, &asset.LibraryRoot, &asset.RelativePath, &format,
 		&asset.MIMEType, &asset.SizeBytes, &asset.ModifiedAtNS, &fingerprint,
-		&libraryStatus,
+		&libraryStatus, &member.ArchivePath, &member.MemberPath, &member.ArchiveSizeBytes,
+		&member.ArchiveMTimeNS, &member.CRC32,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return media.ContentAsset{}, media.ErrContentAssetNotFound
@@ -40,5 +43,8 @@ func (s *Store) GetContentAsset(
 	asset.Format = media.Format(format)
 	asset.SourceFingerprint = media.SourceFingerprint(fingerprint)
 	asset.LibraryOffline = libraryStatus == "offline"
+	if member.ArchivePath != "" {
+		asset.ArchiveMember = &member
+	}
 	return asset, nil
 }

@@ -74,7 +74,7 @@ func ocrSearchLines(raw string) ([]string, error) {
 
 func (s *Store) GetOCRSearchCoverage(ctx context.Context, scan search.Scan) (search.OCRCoverage, error) {
 	var c search.OCRCoverage
-	query := `SELECT COUNT(*),COALESCE(SUM(r.outcome='ready' AND r.source_fingerprint=a.source_fingerprint AND d.id IS NOT NULL),0),COALESCE(SUM(r.outcome='failed' AND r.source_fingerprint=a.source_fingerprint),0) FROM assets a JOIN libraries l ON l.id=a.library_id JOIN ocr_library_settings os ON os.library_id=a.library_id AND os.enabled=1 AND os.clearing=0 AND os.fingerprint=? LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=os.fingerprint LEFT JOIN ocr_search_documents d ON d.library_id=r.library_id AND d.fingerprint=r.fingerprint AND d.asset_id=r.asset_id WHERE l.status='ready' AND a.kind IN ('image','animated')`
+	query := `SELECT COUNT(*),COALESCE(SUM(r.outcome='ready' AND r.source_fingerprint=a.source_fingerprint AND d.id IS NOT NULL),0),COALESCE(SUM(r.outcome='failed' AND r.source_fingerprint=a.source_fingerprint),0) FROM assets a JOIN libraries l ON l.id=a.library_id JOIN ocr_library_settings os ON os.library_id=a.library_id AND os.enabled=1 AND os.clearing=0 AND os.fingerprint=? LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=os.fingerprint LEFT JOIN ocr_search_documents d ON d.library_id=r.library_id AND d.fingerprint=r.fingerprint AND d.asset_id=r.asset_id WHERE l.status='ready' AND a.kind IN ('image','animated') AND a.archive_path = ''`
 	args := []any{scan.OCRFingerprint}
 	query, args = searchScopeSQL(query, args, scan.Request)
 	err := s.db.QueryRowContext(ctx, query, args...).Scan(&c.Eligible, &c.Ready, &c.Failed)

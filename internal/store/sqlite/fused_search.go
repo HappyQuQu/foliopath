@@ -28,7 +28,7 @@ func (s *Store) StreamSearchCandidates(ctx context.Context, scan search.Scan, of
  LEFT JOIN semantic_embeddings e ON e.library_id=a.library_id AND e.asset_id=a.id
  AND e.generation_id=? AND e.source_fingerprint=a.source_fingerprint
  AND setting.enabled=1 AND l.status<>'offline'
- LEFT JOIN ocr_library_settings os ON os.library_id=a.library_id AND os.enabled=1 AND os.clearing=0 AND os.fingerprint=? AND l.status='ready' AND a.kind IN ('image','animated')
+ LEFT JOIN ocr_library_settings os ON os.library_id=a.library_id AND os.enabled=1 AND os.clearing=0 AND os.fingerprint=? AND l.status='ready' AND a.kind IN ('image','animated') AND a.archive_path = ''
  LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=os.fingerprint AND r.source_fingerprint=a.source_fingerprint AND r.outcome='ready'
  LEFT JOIN ocr_search_documents d ON d.library_id=r.library_id AND d.fingerprint=r.fingerprint AND d.asset_id=r.asset_id WHERE 1=1`
 	args := []any{scan.GenerationID, scan.OCRFingerprint}

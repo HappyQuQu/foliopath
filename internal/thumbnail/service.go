@@ -24,6 +24,10 @@ type Source interface {
 	OpenAsset(context.Context, string, string) (SourceFile, error)
 }
 
+type ArchiveSource interface {
+	OpenArchiveAsset(context.Context, string, media.ArchiveMember) (SourceFile, error)
+}
+
 type Published struct {
 	CacheRelativePath string
 	ByteSize          int64
@@ -96,8 +100,11 @@ func (service *Service) process(
 	if err != nil {
 		return ErrInvalidState
 	}
-	source, err := service.source.OpenAsset(ctx, asset.LibraryRoot, asset.RelativePath)
+	source, err := service.openSource(ctx, asset)
 	if err != nil {
+		if errors.Is(err, media.ErrContentSourceChanged) {
+			return ErrSourceChanged
+		}
 		return ErrSourceUnavailable
 	}
 	defer source.Close()
@@ -153,6 +160,11 @@ func (service *Service) process(
 	if err := media.ValidateProcessingResult(asset.Kind, asset.Format, result); err != nil {
 		return ErrInvalidState
 	}
+	if asset.ArchiveMember != nil {
+		if _, err := source.Stat(); err != nil {
+			return ErrSourceChanged
+		}
+	}
 	reservation, err := service.capacity.Reserve(
 		ctx, int64(len(result.Thumbnail.Bytes)),
 	)
@@ -180,4 +192,15 @@ func (service *Service) process(
 		*warning = result.Warning
 	}
 	return nil
+}
+
+func (service *Service) openSource(ctx context.Context, asset Asset) (SourceFile, error) {
+	if asset.ArchiveMember != nil {
+		source, ok := service.source.(ArchiveSource)
+		if !ok {
+			return nil, ErrSourceUnavailable
+		}
+		return source.OpenArchiveAsset(ctx, asset.LibraryRoot, *asset.ArchiveMember)
+	}
+	return service.source.OpenAsset(ctx, asset.LibraryRoot, asset.RelativePath)
 }

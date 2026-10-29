@@ -88,14 +88,14 @@ func (s *Store) CountFaceJobCandidates(ctx context.Context, libraryID int64, gen
 		return face.JobCandidateCounts{}, face.ErrInvalidFaceJob
 	}
 	var value face.JobCandidateCounts
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets WHERE library_id=? AND kind IN ('image','animated')`, libraryID).Scan(&value.Eligible); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets WHERE library_id=? AND kind IN ('image','animated') AND archive_path = ''`, libraryID).Scan(&value.Eligible); err != nil {
 		return value, err
 	}
 	if mode == face.JobAll {
 		value.Pending = value.Eligible
 		return value, nil
 	}
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND `+faceMissingCandidate, libraryID, generationID, generationID).Scan(&value.Pending); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND `+faceMissingCandidate, libraryID, generationID, generationID).Scan(&value.Pending); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -106,7 +106,7 @@ func (s *Store) ListFaceJobCandidates(ctx context.Context, libraryID int64, gene
 		return face.JobCandidatePage{}, face.ErrInvalidFaceJob
 	}
 	query := `SELECT asset.id,asset.source_fingerprint FROM assets asset
-		WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.id>?`
+		WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND asset.id>?`
 	args := []any{libraryID, checkpointID}
 	if mode == face.JobMissing {
 		query += ` AND ` + faceMissingCandidate
@@ -368,7 +368,7 @@ func (s *Store) CommitFaceJobProgress(ctx context.Context, commit face.JobProgre
 		if current.Revision != commit.ExpectedProgressRevision || current.CheckpointID != commit.ExpectedCheckpointID || current.Completed+current.Failed+current.Stale+1 > current.Eligible {
 			return face.ErrFaceJobConflict
 		}
-		err = tx.QueryRowContext(ctx, `SELECT source_fingerprint FROM assets WHERE library_id=? AND id=? AND kind IN('image','animated')`, libraryID, commit.NextCheckpointID).Scan(&currentSource)
+		err = tx.QueryRowContext(ctx, `SELECT source_fingerprint FROM assets WHERE library_id=? AND id=? AND kind IN('image','animated') AND archive_path = ''`, libraryID, commit.NextCheckpointID).Scan(&currentSource)
 		if errors.Is(err, sql.ErrNoRows) {
 			currentSource = ""
 		} else if err != nil {

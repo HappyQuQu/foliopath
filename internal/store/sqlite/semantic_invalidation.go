@@ -21,7 +21,7 @@ func addSemanticCandidate(ctx context.Context, tx *sql.Tx, libraryID, now int64)
 func removeSemanticCandidates(ctx context.Context, tx *sql.Tx, libraryID, generation, now int64) error {
 	_, err := tx.ExecContext(ctx, `WITH removed AS (
         SELECT id,source_fingerprint FROM assets
-        WHERE library_id=? AND last_seen_generation<? AND kind IN ('image','animated')
+        WHERE library_id=? AND last_seen_generation<? AND kind IN ('image','animated') AND archive_path = ''
     ), counts AS (
         SELECT p.generation_id, COUNT(r.id) AS eligible,
           COALESCE(SUM(e.source_fingerprint=r.source_fingerprint),0) AS completed,

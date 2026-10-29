@@ -8,6 +8,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/HappyQuQu/foliopath/internal/media"
 	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 )
 
@@ -123,15 +124,18 @@ const (
 )
 
 type CatalogEntry struct {
-	Kind         CatalogEntryKind
-	RelativePath string
-	ParentPath   string
-	Name         string
-	MTimeNS      int64
-	AssetKind    AssetKind
-	MediaFormat  MediaFormat
-	MIMEType     string
-	SizeBytes    int64
+	Kind          CatalogEntryKind
+	RelativePath  string
+	ParentPath    string
+	Name          string
+	MTimeNS       int64
+	AssetKind     AssetKind
+	MediaFormat   MediaFormat
+	MIMEType      string
+	SizeBytes     int64
+	ArchivePath   string
+	ArchiveStatus string
+	ArchiveMember *media.ArchiveMember
 }
 
 // Repository is owned by the scanner capability. CompleteFullScan is the only
@@ -166,11 +170,14 @@ const (
 )
 
 type WalkEntry struct {
-	RelativePath string
-	IsDirectory  bool
-	SizeBytes    int64
-	MTimeNS      int64
-	Skipped      bool
+	RelativePath  string
+	IsDirectory   bool
+	SizeBytes     int64
+	MTimeNS       int64
+	Skipped       bool
+	ArchivePath   string
+	ArchiveStatus string
+	ArchiveMember *media.ArchiveMember
 }
 
 // Walker supplies a streaming, pre-order traversal. It must invoke visit
@@ -341,11 +348,13 @@ func (s *Service) RunClaimedFullScan(
 				return WalkSkipDirectory, nil
 			}
 			err := appendEntry(CatalogEntry{
-				Kind:         CatalogEntryDirectory,
-				RelativePath: relativePath,
-				ParentPath:   parentPath(relativePath),
-				Name:         path.Base(relativePath),
-				MTimeNS:      entry.MTimeNS,
+				Kind:          CatalogEntryDirectory,
+				RelativePath:  relativePath,
+				ParentPath:    parentPath(relativePath),
+				Name:          path.Base(relativePath),
+				MTimeNS:       entry.MTimeNS,
+				ArchivePath:   entry.ArchivePath,
+				ArchiveStatus: entry.ArchiveStatus,
 			})
 			return WalkContinue, err
 		}
@@ -359,15 +368,16 @@ func (s *Service) RunClaimedFullScan(
 			return WalkContinue, ErrInvalidEntry
 		}
 		err = appendEntry(CatalogEntry{
-			Kind:         CatalogEntryAsset,
-			RelativePath: relativePath,
-			ParentPath:   parentPath(relativePath),
-			Name:         path.Base(relativePath),
-			MTimeNS:      entry.MTimeNS,
-			AssetKind:    assetKind,
-			MediaFormat:  format,
-			MIMEType:     mimeType,
-			SizeBytes:    entry.SizeBytes,
+			Kind:          CatalogEntryAsset,
+			RelativePath:  relativePath,
+			ParentPath:    parentPath(relativePath),
+			Name:          path.Base(relativePath),
+			MTimeNS:       entry.MTimeNS,
+			AssetKind:     assetKind,
+			MediaFormat:   format,
+			MIMEType:      mimeType,
+			SizeBytes:     entry.SizeBytes,
+			ArchiveMember: entry.ArchiveMember,
 		})
 		return WalkContinue, err
 	})

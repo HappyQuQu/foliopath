@@ -31,11 +31,17 @@ func (fingerprint SourceFingerprint) String() string {
 }
 
 func (fingerprint SourceFingerprint) Matches(sizeBytes, mtimeNS int64) bool {
+	if size, mtime, ok := archiveFingerprintFields(fingerprint); ok {
+		return size == sizeBytes && mtime == mtimeNS
+	}
 	expected, err := NewSourceFingerprint(sizeBytes, mtimeNS)
 	return err == nil && fingerprint == expected
 }
 
 func (fingerprint SourceFingerprint) Valid() bool {
+	if _, _, ok := archiveFingerprintFields(fingerprint); ok {
+		return true
+	}
 	parts := strings.Split(string(fingerprint), ":")
 	if len(parts) != 3 || parts[0]+":" != sourceFingerprintPrefix {
 		return false
