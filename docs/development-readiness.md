@@ -1,4 +1,4 @@
-2026-10-29 / POST-MVP ZIP-S1：用户已授权独立分支实现并在试用后要求合并发布，S0 以 ADR-0040、CR-2026-055、zip-source-contract 和加法 OpenAPI 为输入；先完成真实扫描/读取/存储回归，再开始正式 UI，最终合成 Linux 实例和四档宽度验证。Gate 状态见[变更记录](changes/CR-2026-055-zip-image-browsing.md)。
+2026-10-29 / POST-MVP ZIP-S1：用户已授权独立分支实现并在试用后要求合并发布，S0 以 ADR-0040、CR-2026-055、zip-source-contract 和加法 OpenAPI 为输入；先完成真实扫描/读取/存储回归，再开始正式 UI，最终合成 Linux 实例和四档宽度验证。v1.8.0 原生双架构发布门禁已通过，见[正式记录](changes/RELEASE-2026-10-29-v1.8.0.md)；Gate 状态见[变更记录](changes/CR-2026-055-zip-image-browsing.md)。
 
 # FolioPath 开发就绪评审
 
