@@ -36,3 +36,13 @@ migration 50 的原生 amd64 候选 `foliopath:release-perf-20261030`（仅合�
 | main | arm64 | `sha256:8f2e190e3515e8740354aac7a6fea9886ee04eb8b1e53044844947439341a635` | `sha256:b950cb609c860fddfb37bf4f180f458de3624d7dc7c5a4d1e6242ecfeddd9307` |
 
 本地原始工程日志、正式 workflow 日志、image-plan、四份验证记录及公开标签核对位于 `/tmp/foliopath-direct-release/`；普通测试、日志、截图和产物不提交。此次未再次调整 222 的运行配置、PVE 或原件。收尾只补发行证据，使用 `[skip ci]` 文档提交；不重新构建、不移动既有发行标签。
+
+## 222 正式版升级
+
+2026-10-30 用户要求更新 222，并在执行中明确要求“不用备份”。初始备份校验脚本因 Python 3.10 不支持 file_digest 而退出，旧服务自动恢复；未迁移或切换原数据。用户取消备份后没有重新执行备份；本次已产生、未完成恢复验证的临时归档已撤掉，原有历史备份保留。
+
+- 9090 已固定主应用 `evanqu/foliopath:1.10.0@sha256:3d7623b7db0948fc44588dcf3aacc88ffe200acec5fa8de3cb5b31b478ca677e`，实际 amd64 配置 ID `sha256:890baa9fac1eebc8f01d0031facfaf4a748299ee5e95e1388768b0a04ff9adbb`，版本 v1.10.0、源码 6a9d482e93349e9ad2d991ce978ef38d06244cf4。
+- schema 49 → 50；前后 3 库、128,731 资产、2,446 目录、1 用户一致，三个库最终 ready。删除设置 enabled=1、recycle=0、retention=null、revision=4 保持，原账号与整理数据保留。
+- 只切换主服务 image，已比较有效 Compose、环境摘要、端口与媒体/数据挂载；AI 容器 ID、镜像、启动时间、重启次数、挂载完全一致。没有修改 PVE、媒体原件或 AI。
+- 运行 version、healthcheck/database-check 和容器 healthy 通过；同源码 Vite 构建与 8 项部署文件/SPA 路由逐字节比较通过。真实媒体未用于删除测试。
+- 结果和脱敏状态在服务器 `/root/foliopath/upgrades/v1.10.0-20261030`，本地 `/tmp/foliopath-222-v1.10.0/`。磁盘归因结果仅保留本地，不作为性能或容量验收证据。
