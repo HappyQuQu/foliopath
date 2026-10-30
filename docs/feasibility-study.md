@@ -1,3 +1,5 @@
+2026-10-30 / DELETE-S2：真实 Linux 合成环境已验证有界子进程删除、整目录回收/恢复、父目录移出后的隔离、逐阶段 SIGKILL 恢复和 HTTP 任务链。整目录 rename 减少递归操作，但直接删除仍按条目处理；尚无本项目容量/固定加速比证据。网络/FUSE/CD2/云盘和 Docker Desktop 宿主媒体写入不继承结论，生产镜像与双原生验证仍待 S4。见[后端证据](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。
+
 # FolioPath 可行性研究
 
 2026-10-25 / [CR-2026-045 OCR S0](changes/CR-2026-045-ocr-feasibility.md)：独立固定PP-OCRv5_server权重/运行时在无网络、无原库/DB挂载的合成Docker中通过横排中英文、EXIF、空白、输入/模型故障与有界回收验证。最终单arm64实验容器峰值1,925,079,040 B，4 GiB/2CPU测试预算无OOM；不是与CLIP/face/tag联合容量或默认小模型预算证明。90°旋转图0/4，版面/质量/双架构/供应链及生产OCR索引搜索未通过；仅支持继续隔离合同设计，不是Backend Ready或全OCR Go。

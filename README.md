@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Your folders. Your media library.</strong><br>
-  A read-only, self-hosted photo and video browser for the archives you already have.
+  A self-hosted photo and video browser, read-only by default, for the archives you already have.
 </p>
 
 <p align="center">
@@ -23,11 +23,14 @@
 
 No re-uploading, album setup, or folder reorganization. Browse the collections you already organize by project, trip, event, or date, with search and curation on your NAS or home server.
 
+**New file management:** select files or folders and confirm once to delete permanently. Results appear in the notification bell. Deletion is opt-in; the default deployment remains read-only. [Enable deletion](#enable-original-file-deletion).
+
 ## Browse complete sets, straight from your folders
 
 | Core feature | What it does |
 | --- | --- |
 | Multiple libraries & directory tree | Select non-overlapping libraries within one media root. Preserve hierarchy, empty folders, and counts; browse a directory and all descendants together. Folders show an available media thumbnail as their cover; empty folders keep their icon. Subfolders use a compact two-row grid; expand it to load more as you scroll, just like the directory tree and media list. Collapse Quick access to give the tree more room; browsing controls condense and stay available while scrolling. |
+| Directory actions & deletion | Use the top action menu or desktop context menu; expand or collapse the tree. Enter selection mode in the collection to delete batches and receive results in the notification center. |
 | Archive image browsing | Open ZIP and 7z archives as read-only folders, with covers, internal directories, natural filename ordering, and continuous image viewing. |
 | Three gallery layouts | Switch between adaptive grid, masonry, and seamless masonry. Adjust thumbnail size and remember it in this browser. |
 | Search, filters & sorting | Find filenames or paths; filter by media type, modification date, and scope. Sort by name, modification time, or file size. |
@@ -35,13 +38,13 @@ No re-uploading, album setup, or folder reorganization. Browse the collections y
 | Full viewer | Fit, zoom, pan, 1:1, previous/next, fullscreen, and basic file details. |
 | Video browsing | Posters, 4- or 10-frame hover previews, and browser-native playback. No transcoding; incompatible videos keep their posters and information. |
 | Favorites & manual tags | Collect media across folders, add/select/remove tags, and browse by favorite or tag without changing original files. |
-| Appearance & language | Light, dark, or system theme; Simplified Chinese and English. Desktop sidebars become tool drawers on phones. |
+| Appearance & language | Light, dark, or system theme; Simplified Chinese and English. Desktop sidebars become tool drawers on phones. Your selected library survives refresh, home navigation, and login. |
 
 The **About** page includes a project overview, supported formats and archive limits, documentation and support links, plus the current version and inline release notes. Update-check failures keep previously loaded notes available.
 
 ### Browse ZIP image sets without extracting them first
 
-Place ZIP files anywhere inside a configured library and scan it. Each archive appears alongside folders with a cover and image count. Open it to browse its internal directories and images with the existing viewer. Filename/path search, favorites, and manual tags also work for ZIP images. The original ZIP stays read-only, and temporary image copies are removed after use.
+Place ZIP files anywhere inside a configured library and scan it. Each archive appears alongside folders with a cover and image count. Open it to browse its internal directories and images with the existing viewer. Filename/path search, favorites, and manual tags also work for ZIP images. Browsing never rewrites the original ZIP, and temporary image copies are removed after use.
 
 Supported archives are **unencrypted, single-volume ZIPs with UTF-8 filenames**, using Store or Deflate compression, containing JPEG, PNG, WebP, or GIF images. ZIP64, split/encrypted archives, nested archives, and video inside ZIPs are unsupported. ZIP images are not included in AI analysis, visual search, automatic tags, people analysis, or OCR.
 
@@ -49,7 +52,7 @@ Archives support up to **10,000 entries** and **64 MiB per image**; [complete li
 
 ### 7z image sets
 
-Browse unencrypted, single-volume `.7z` image sets, including solid and non-solid archives. JPEG, PNG, WebP, GIF, internal directories, covers, natural ordering, continuous viewing, filename search, favorites, and manual tags reuse the existing browser. Originals stay read-only; only the requested image is written to temporary storage.
+Browse unencrypted, single-volume `.7z` image sets, including solid and non-solid archives. JPEG, PNG, WebP, GIF, internal directories, covers, natural ordering, continuous viewing, filename search, favorites, and manual tags reuse the existing browser. Reading never rewrites the archive; only the requested image is written to temporary storage.
 
 Limits remain 10,000 entries, 4 GiB declared expanded total, and 64 MiB per image. Passwords, split/self-extracting/nested archives, archived video, and AI analysis are unsupported. Solid random access can repeatedly decode earlier content; archives exceeding decoder memory or time budgets cannot be browsed. This does not add support for 50 GB archives or configurable limits.
 
@@ -113,7 +116,7 @@ For planning, reserve about **2 GiB** for AI face analysis or tagging, **3 GiB**
 
 ## Your originals stay yours
 
-- **Read-only media:** never move, rename, edit, or delete originals. Removing a library only clears its application configuration, index, curation assignments, and cache.
+- **Read-only by default:** browsing, scanning and analysis do not change originals. Administrators can explicitly enable permanent deletion; there is no recycle bin. Removing a library still only clears its application configuration, index, curation assignments and cache.
 - **Filesystem first:** directories determine what exists. Indexes, thumbnails, and posters can be rebuilt. Offline libraries and interrupted scans retain the last reliable index.
 - **Separate curation:** favorites, tags, people, and jobs live under `/app/data`. When a successful scan confirms media removal, its favorite/tag assignments are removed; tag names remain.
 - **Administrator access:** first-run single-administrator setup, login, logout, and CSRF protection. Direct HTTP is intended for a trusted LAN; public exposure needs external HTTPS and access controls.
@@ -213,9 +216,21 @@ Visit `http://<your-server-LAN-address>:8080`, create the administrator, and sel
 
 > **Docker Desktop:** use a Linux named volume for application data. Stop the app, back up, copy, and verify existing data before switching. Never open the live SQLite database from the host or synchronize the old data copy. See [deployment and maintenance](docs/deployment.md) and [ADR-0038](docs/adr/0038-docker-desktop-linux-sqlite-volume.md).
 
+### Enable original-file deletion
+
+The default configuration keeps `/library:ro` and deletion disabled. To enable deletion, use the repository's [deletion overlay](compose.media-mutations.yaml) and set `FOLIOPATH_LIBRARY_PATH` to your existing absolute media root. Preserve all current AI/data overlays and append the deletion overlay last. For a basic deployment:
+
+```bash
+FOLIOPATH_LIBRARY_PATH=/mnt/photos docker compose -f compose.yaml -f compose.media-mutations.yaml up -d
+```
+
+Then enable deletion under **Administration → File management → Deletion settings**. Click **Select** in the collection to select loaded files or folders, or use the directory action/context menu. Review the confirmation and click **Delete permanently**; processing continues in the background after the page closes. **Deleting a folder includes subfolders, hidden files, and non-media files. Deletion cannot be undone, and there is no recycle bin.** Archives are deleted as whole files; individual archive members cannot be deleted.
+
+The notification bell reports completion, partial completion, or failure and links to File tasks for details. Tasks can be paused or resumed when their state allows it. Directories and lists refresh after deletion. Other programs must not move the target directory or its ancestors while deletion runs. Previously trashed files from preview versions are preserved without automatic cleanup; see the [upgrade guide](docs/deployment.md).
+
 ### Upgrading an existing installation
 
-ZIP support introduced catalog migration 48; the 7z, folder-cover and scrolling changes add no further migration. Stop the application and back up the complete application data before upgrading. To roll back, restore the matching pre-upgrade backup with the previous image; changing only the image is insufficient. Follow the [backup and restore](docs/deployment.md#备份与恢复) and [upgrade and rollback](docs/deployment.md#升级与回滚) instructions.
+This release adds catalog migrations 49–50 for file operations and query performance (ZIP support introduced migration 48). Stop the application and back up the complete application data before upgrading. To roll back, restore the matching pre-upgrade backup with the previous image; changing only the image is insufficient. Follow the [backup and restore](docs/deployment.md#备份与恢复) and [upgrade and rollback](docs/deployment.md#升级与回滚) instructions.
 
 ## Known issue: repeated full scans
 

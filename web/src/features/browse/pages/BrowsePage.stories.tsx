@@ -115,6 +115,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const DirectoryActions: Story = {
+  name: "Directory actions and context menu (synthetic contract fixtures)",
+  parameters: { docs: { description: { story: "Production navigation: use Actions to expand/collapse all, or right-click a directory for its own action. The tree loads and renders a bounded visible window. Deletion is disabled in these navigation-only fixtures; file management has separate accepted contract stories." } } },
+};
+
 export const CollapsibleNavigationAndDock: Story = {
   name: "Collapsible navigation and scroll dock (synthetic fixtures)",
   parameters: {

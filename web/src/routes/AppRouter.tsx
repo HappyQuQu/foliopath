@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BrowserRouter,
@@ -18,6 +18,7 @@ import {
   useLogoutMutation,
   useSessionQuery,
 } from "../features/auth";
+import { FileManagementPage } from "../features/deletion";
 import { BrowsePage, catalogKeys } from "../features/browse";
 import {
   refreshChangedCatalogQueries,
@@ -29,6 +30,7 @@ import {
   ScanStatusPage,
   libraryKeys,
   useLibrariesQuery,
+  useLibraryQuery,
 } from "../features/libraries";
 import { SystemUnavailablePage } from "../features/system/SystemUnavailablePage";
 import {
@@ -49,6 +51,7 @@ import {
 import type { AuthenticatedSession } from "../lib/api/auth";
 import { ApiError, isAuthenticationError } from "../lib/api/errors";
 import { useLocale } from "../lib/i18n/LocaleProvider";
+import { readLastLibraryId } from "../lib/storage/preferences";
 import { paths } from "./paths";
 
 export function AppRouter() {
@@ -68,6 +71,7 @@ export function AppRoutes() {
         <Route path={paths.setup} element={<PublicAuthRoute mode="setup" />} />
         <Route path={paths.login} element={<PublicAuthRoute mode="login" />} />
         <Route path={paths.generalSettings} element={<ProtectedAccountRoute />} />
+        <Route path={paths.files} element={<ProtectedFilesRoute />} />
         <Route path={paths.storageSettings} element={<ProtectedStorageRoute />} />
         <Route path={paths.aiSettings} element={<ProtectedAIRoute />} />
         <Route path={paths.intelligence} element={<ProtectedAIReviewRoute />} />
@@ -181,6 +185,10 @@ function RootRoute() {
 
 function DefaultAuthenticatedRoute() {
   const librariesQuery = useLibrariesQuery();
+  const [lastLibraryId] = useState(readLastLibraryId);
+  const libraries = librariesQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const listedLibrary = libraries.find((item) => item.id === lastLibraryId);
+  const rememberedLibraryQuery = useLibraryQuery(listedLibrary ? "" : lastLibraryId ?? "");
 
   if (librariesQuery.isPending) return <RouteLoading />;
   if (librariesQuery.isError) {
@@ -192,8 +200,14 @@ function DefaultAuthenticatedRoute() {
     );
   }
 
-  const libraries = librariesQuery.data.pages.flatMap((page) => page.items);
+  if (lastLibraryId && !listedLibrary) {
+    if (rememberedLibraryQuery.isPending) return <RouteLoading />;
+    if (rememberedLibraryQuery.isError && !(rememberedLibraryQuery.error instanceof ApiError && rememberedLibraryQuery.error.status === 404)) {
+      return <RouteError error={rememberedLibraryQuery.error} retry={rememberedLibraryQuery.refetch} />;
+    }
+  }
   const library =
+    listedLibrary ?? rememberedLibraryQuery.data?.library ??
     libraries.find((item) => item.status === "ready") ??
     libraries.find((item) => item.assetCount > 0) ??
     libraries[0];
@@ -222,7 +236,7 @@ function PublicAuthRoute({ mode }: { mode: "login" | "setup" }) {
   }
   if (mode === "login" && sessionQuery.isPending) return <RouteLoading />;
   if (mode === "login" && sessionQuery.isSuccess) {
-    return <Navigate replace to={paths.libraries} />;
+    return <Navigate replace to={paths.root} />;
   }
   if (mode === "login" && sessionQuery.isError && !isAuthenticationError(sessionQuery.error)) {
     return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
@@ -247,6 +261,21 @@ function ProtectedAccountRoute() {
         session={sessionQuery.data}
       />
     );
+  }
+  if (isAuthenticationError(sessionQuery.error)) {
+    return <Navigate replace to={`${paths.login}?reason=session_expired`} />;
+  }
+
+  return <RouteError error={sessionQuery.error} retry={sessionQuery.refetch} />;
+}
+
+function ProtectedFilesRoute() {
+  const sessionQuery = useSessionQuery();
+  const logout = useRouteLogout(sessionQuery.data);
+
+  if (sessionQuery.isPending) return <RouteLoading />;
+  if (sessionQuery.isSuccess) {
+    return <FileManagementPage {...logout} session={sessionQuery.data} />;
   }
   if (isAuthenticationError(sessionQuery.error)) {
     return <Navigate replace to={`${paths.login}?reason=session_expired`} />;

@@ -4,6 +4,11 @@
 
 # FolioPath 架构决策记录
 
+- [ADR-0044 简化媒体删除执行](0044-simple-media-deletion.md)：用户明确撤回 Landlock 和隔离子进程；沿用后台任务及 openat2，不动 PVE，授权 222/9090 候选升级。
+- [ADR-0043 Linux 媒体变更子进程隔离](0043-linux-media-mutation-sandbox.md)：已由 ADR-0044 取代，保留历史决策和验证记录。
+
+- [ADR-0042 媒体删除与回收站](0042-media-deletion-and-trash.md)：接受默认只读与显式有限写入方向；S1/S2 本地合同与后端、S3 UI 集成通过，部署和发布仍受 S4 门禁。
+
 [ADR-0038：Docker Desktop SQLite使用Linux数据卷](0038-docker-desktop-linux-sqlite-volume.md)（本地恢复维护；停写校验后切换）。
 
 [ADR-0034：OCR producer与兼容共享准入](0034-ocr-producer-shared-admission.md)（隔离接入，未启用持久任务或搜索）。

@@ -156,6 +156,7 @@ func (s *Store) ClaimNextReconcile(
 				SELECT candidate.id
 				FROM catalog_reconcile_jobs AS candidate
 				WHERE candidate.status = 'queued'
+                  AND NOT EXISTS(SELECT 1 FROM media_mutation_blocked_libraries WHERE library_id=candidate.library_id)
 				  AND candidate.available_at_ms <= ?
 				  AND candidate.attempt_count < ?
 				  AND NOT EXISTS (
@@ -715,7 +716,7 @@ func listDirectDirectoryState(
 ) (map[string]directDirectoryState, error) {
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id, relative_path, name, mtime_ns
-		FROM directories
+		FROM visible_directories AS directories
 		WHERE library_id = ? AND parent_id = ?
 	`, libraryID, parentID)
 	if err != nil {
@@ -770,7 +771,7 @@ func listDirectAssetState(
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id, relative_path, name, kind, media_format,
 		       mime_type, size_bytes, mtime_ns
-		FROM assets
+		FROM visible_assets AS assets
 		WHERE library_id = ? AND directory_id = ?
 	`, libraryID, directoryID)
 	if err != nil {
@@ -833,7 +834,7 @@ func scheduleDirectoryCacheDeletionTx(
 		SELECT thumbnail.library_id, thumbnail.cache_rel_path,
 		       thumbnail.byte_size, ?
 		FROM thumbnails AS thumbnail
-		JOIN assets AS asset ON asset.id = thumbnail.asset_id
+		JOIN visible_assets AS asset ON asset.id = thumbnail.asset_id
 		WHERE asset.library_id = ?
 		  AND thumbnail.status = 'ready'
 		  AND (

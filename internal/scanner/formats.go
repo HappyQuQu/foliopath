@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/HappyQuQu/foliopath/internal/media"
+	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 )
 
 func IsArchivePath(relativePath string) bool {
@@ -13,14 +14,15 @@ func IsArchivePath(relativePath string) bool {
 }
 
 var systemDirectories = map[string]struct{}{
-	"@eadir":       {},
-	".thumbnails":  {},
-	"__macosx":     {},
-	"#recycle":     {},
-	"@recycle":     {},
-	".trash":       {},
-	".trashes":     {},
-	"$recycle.bin": {},
+	pathpolicy.TrashDirectory: {},
+	"@eadir":                  {},
+	".thumbnails":             {},
+	"__macosx":                {},
+	"#recycle":                {},
+	"@recycle":                {},
+	".trash":                  {},
+	".trashes":                {},
+	"$recycle.bin":            {},
 }
 
 func ClassifyPath(relativePath string) (AssetKind, MediaFormat, string, bool) {

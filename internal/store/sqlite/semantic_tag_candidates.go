@@ -30,7 +30,7 @@ func (s *Store) CountTagJobCandidates(ctx context.Context, libraryID int64, gene
 	}
 	var value semantic.TagJobCandidateCounts
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(SUM(CASE WHEN `+where+` THEN 1 ELSE 0 END),0)
-        FROM assets asset JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id
+        FROM visible_assets asset JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id
           AND embedding.asset_id=asset.id AND embedding.source_fingerprint=asset.source_fingerprint
         WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`, args...).Scan(&value.Eligible, &value.Pending)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *Store) ListTagJobCandidates(ctx context.Context, libraryID int64, gener
 	if mode == semantic.JobAll {
 		where, args = "1=1", []any{libraryID, generationID, checkpoint, limit + 1}
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT asset.id FROM assets asset
+	rows, err := s.db.QueryContext(ctx, `SELECT asset.id FROM visible_assets asset
         JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
           AND embedding.source_fingerprint=asset.source_fingerprint
         WHERE asset.library_id=? AND embedding.generation_id=? AND asset.id>?
@@ -112,7 +112,7 @@ func (s *Store) LoadTagSuggestionInputs(ctx context.Context, generationID, snaps
 	var assetRaw []byte
 	var dimension int
 	err := s.db.QueryRowContext(ctx, `SELECT asset.source_fingerprint,embedding.vector,generation.embedding_dimension
-        FROM assets asset JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
+        FROM visible_assets asset JOIN semantic_embeddings embedding ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
         JOIN semantic_generations generation ON generation.id=embedding.generation_id
         WHERE asset.library_id=? AND asset.id=? AND embedding.generation_id=? AND embedding.source_fingerprint=asset.source_fingerprint`, libraryID, assetID, generationID).Scan(&fingerprint, &assetRaw, &dimension)
 	if errors.Is(err, sql.ErrNoRows) {

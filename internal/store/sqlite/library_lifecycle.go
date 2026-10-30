@@ -28,8 +28,8 @@ SELECT
         ORDER BY created_at_ms DESC, id DESC
         LIMIT 1
     ),
-    (SELECT COUNT(*) FROM assets WHERE library_id = l.id),
-    (SELECT COUNT(*) FROM directories WHERE library_id = l.id),
+    (SELECT COUNT(*) FROM visible_assets AS assets WHERE library_id = l.id),
+    (SELECT COUNT(*) FROM visible_directories AS directories WHERE library_id = l.id),
     l.automatic_discovery_status,
     l.automatic_discovery_error_code,
     l.last_automatic_discovery_at_ms,
@@ -435,6 +435,13 @@ func (s *Store) RequestLibraryRemoval(
 		if details.Revision != command.ExpectedRevision {
 			return library.ErrPreconditionFailed
 		}
+		var mediaPending bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM media_trash_entries WHERE library_id=? AND state<>'moving') OR EXISTS(SELECT 1 FROM media_deletion_items item JOIN media_deletion_operations op ON op.id=item.operation_id WHERE item.library_id=? AND (op.state NOT IN ('succeeded','cancelled') OR EXISTS(SELECT 1 FROM media_mutation_scopes WHERE item_id=item.id AND active=1)))`, command.LibraryID, command.LibraryID).Scan(&mediaPending); err != nil {
+			return err
+		}
+		if mediaPending {
+			return library.ErrMediaDeletionPending
+		}
 		var activeID int64
 		err = tx.QueryRowContext(ctx, `
             SELECT id FROM library_removals
@@ -461,27 +468,8 @@ func (s *Store) RequestLibraryRemoval(
 		if err != nil {
 			return fmt.Errorf("read removal ID: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `
-            UPDATE scan_runs
-            SET status = 'cancelled', phase = 'completed',
-                cancel_requested_at_ms = COALESCE(cancel_requested_at_ms, ?),
-                finished_at_ms = ?, revision = revision + 1
-            WHERE library_id = ? AND status = 'queued'`,
-			now, now, command.LibraryID,
-		); err != nil {
-			return fmt.Errorf("cancel queued library scan: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
-            UPDATE scan_runs
-            SET cancel_requested_at_ms = COALESCE(cancel_requested_at_ms, ?),
-                revision = CASE
-                    WHEN cancel_requested_at_ms IS NULL THEN revision + 1
-                    ELSE revision
-                END
-            WHERE library_id = ? AND status = 'running'`,
-			now, command.LibraryID,
-		); err != nil {
-			return fmt.Errorf("request running library scan cancellation: %w", err)
+		if err := s.cancelLibraryScansTx(ctx, tx, command.LibraryID); err != nil {
+			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
             INSERT INTO idempotency_records(
@@ -734,13 +722,13 @@ func (s *Store) CleanupLibraryRemovalBatch(
 		}
 		for _, statement := range []string{
 			`DELETE FROM assets WHERE id IN (
-                SELECT id FROM assets WHERE library_id = ? LIMIT ?
+                SELECT id FROM visible_assets AS assets WHERE library_id = ? LIMIT ?
             )`,
 			`DELETE FROM directories WHERE id IN (
-                SELECT d.id FROM directories d
+                SELECT d.id FROM visible_directories d
                 WHERE d.library_id = ?
                   AND NOT EXISTS (
-                      SELECT 1 FROM directories child WHERE child.parent_id = d.id
+                      SELECT 1 FROM visible_directories child WHERE child.parent_id = d.id
                   )
                 LIMIT ?
             )`,

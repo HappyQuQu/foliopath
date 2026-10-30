@@ -1,5 +1,8 @@
 export const paths = {
   root: "/",
+  files: "/files",
+  fileTasks: "/files?view=tasks",
+  deletionSettings: "/files?view=settings",
   setup: "/setup/admin",
   login: "/login",
   libraries: "/settings/libraries",

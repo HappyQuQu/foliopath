@@ -59,6 +59,14 @@ func (s *Store) AdmitFullScan(
 			return fmt.Errorf("check removal before scan admission: %w", err)
 		}
 
+		var mutating bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM media_mutation_blocked_libraries WHERE library_id=?)`, libraryID).Scan(&mutating); err != nil {
+			return err
+		}
+		if mutating {
+			return scanner.ErrAdmissionConflict
+		}
+
 		run, err := scanAdmissionRun(tx.QueryRowContext(ctx, `
             SELECT `+admissionScanColumns+`
             FROM scan_runs
@@ -377,7 +385,7 @@ func upsertDirectory(
 		var id int64
 		if err := tx.QueryRowContext(ctx, `
             SELECT id
-            FROM directories
+            FROM visible_directories AS directories
             WHERE library_id = ? AND relative_path = ? AND last_seen_generation = ?`,
 			run.LibraryID, entry.ParentPath, run.Generation).Scan(&id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -520,10 +528,10 @@ func loadAssetUpsertStateChunk(
                ),
                directories.last_seen_generation = ?
         FROM requested
-		JOIN directories
+		JOIN visible_directories AS directories
 		  ON directories.library_id = ?
 		 AND directories.relative_path = requested.parent_path
-        LEFT JOIN assets
+        LEFT JOIN visible_assets AS assets
           ON assets.library_id = directories.library_id
          AND assets.relative_path = requested.relative_path`)
 	args = append(args, thumbnail.GridTransformVersion, run.Generation, run.LibraryID)
@@ -869,7 +877,7 @@ func (s *Store) CompleteFullScan(
 		var rootID int64
 		if err := tx.QueryRowContext(ctx, `
 			SELECT id
-			FROM directories
+			FROM visible_directories AS directories
 			WHERE library_id = ? AND relative_path = '' AND last_seen_generation = ?`,
 			run.LibraryID, run.Generation).Scan(&rootID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -897,12 +905,12 @@ func (s *Store) CompleteFullScan(
 			return fmt.Errorf("reconcile removed video semantic coverage: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `
-            DELETE FROM assets WHERE library_id = ? AND last_seen_generation < ?`,
+            DELETE FROM assets WHERE library_id = ? AND trash_entry_id IS NULL AND last_seen_generation < ?`,
 			run.LibraryID, run.Generation); err != nil {
 			return fmt.Errorf("remove stale assets: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `
-            DELETE FROM directories WHERE library_id = ? AND last_seen_generation < ?`,
+            DELETE FROM directories WHERE library_id = ? AND trash_entry_id IS NULL AND last_seen_generation < ?`,
 			run.LibraryID, run.Generation); err != nil {
 			return fmt.Errorf("remove stale directories: %w", err)
 		}
@@ -957,7 +965,7 @@ func scheduleGenerationCacheDeletionTx(
 		SELECT thumbnail.library_id, thumbnail.cache_rel_path,
 		       thumbnail.byte_size, ?
 		FROM thumbnails AS thumbnail
-		JOIN assets AS asset ON asset.id = thumbnail.asset_id
+		JOIN visible_assets AS asset ON asset.id = thumbnail.asset_id
 		WHERE asset.library_id = ?
 		  AND asset.last_seen_generation < ?
 		  AND thumbnail.status = 'ready'
@@ -984,8 +992,8 @@ func validateCatalogRelationshipsTx(
 	if err := tx.QueryRowContext(ctx, `
         SELECT EXISTS (
             SELECT 1
-            FROM directories AS child
-            LEFT JOIN directories AS parent ON parent.id = child.parent_id
+            FROM visible_directories AS child
+            LEFT JOIN visible_directories AS parent ON parent.id = child.parent_id
             WHERE child.parent_id IS NOT NULL
               AND (
                   (child.library_id = ? AND (
@@ -996,8 +1004,8 @@ func validateCatalogRelationshipsTx(
               )
             UNION ALL
             SELECT 1
-            FROM assets AS asset
-            LEFT JOIN directories AS directory ON directory.id = asset.directory_id
+            FROM visible_assets AS asset
+            LEFT JOIN visible_directories AS directory ON directory.id = asset.directory_id
             WHERE (
                 asset.library_id = ? AND (
                     directory.id IS NULL OR directory.library_id <> asset.library_id
@@ -1018,8 +1026,8 @@ func validateCatalogRelationshipsTx(
 	if err := tx.QueryRowContext(ctx, `
         SELECT EXISTS (
             SELECT 1
-            FROM directories AS child
-            JOIN directories AS parent
+            FROM visible_directories AS child
+            JOIN visible_directories AS parent
               ON parent.library_id = child.library_id
              AND parent.id = child.parent_id
             WHERE child.library_id = ?
@@ -1027,8 +1035,8 @@ func validateCatalogRelationshipsTx(
               AND parent.last_seen_generation <> ?
             UNION ALL
             SELECT 1
-            FROM assets AS asset
-            JOIN directories AS directory
+            FROM visible_assets AS asset
+            JOIN visible_directories AS directory
               ON directory.library_id = asset.library_id
              AND directory.id = asset.directory_id
             WHERE asset.library_id = ?
@@ -1036,11 +1044,11 @@ func validateCatalogRelationshipsTx(
               AND directory.last_seen_generation <> ?
             UNION ALL
             SELECT 1
-            FROM directories
+            FROM visible_directories AS directories
             WHERE library_id = ? AND last_seen_generation > ?
             UNION ALL
             SELECT 1
-            FROM assets
+            FROM visible_assets AS assets
             WHERE library_id = ? AND last_seen_generation > ?
             LIMIT 1
         )`,
@@ -1097,13 +1105,13 @@ func recalculateDirectoryCountsTx(
         WITH
         direct_counts(directory_id, asset_count) AS MATERIALIZED (
             SELECT directory_id, count(*)
-            FROM assets
+            FROM visible_assets AS assets
             WHERE library_id = ?
             GROUP BY directory_id
         ),
         child_counts(parent_id, child_count) AS MATERIALIZED (
             SELECT parent_id, count(*)
-            FROM directories
+            FROM visible_directories AS directories
             WHERE library_id = ? AND parent_id IS NOT NULL
             GROUP BY parent_id
         )
@@ -1117,7 +1125,7 @@ func recalculateDirectoryCountsTx(
             COALESCE(children.child_count, 0),
             COALESCE(direct.asset_count, 0),
             COALESCE(direct.asset_count, 0)
-        FROM directories AS directory
+        FROM visible_directories AS directory
         LEFT JOIN child_counts AS children ON children.parent_id = directory.id
         LEFT JOIN direct_counts AS direct ON direct.directory_id = directory.id
         WHERE directory.library_id = ?`,
@@ -1445,10 +1453,10 @@ func updateReconcileCountsTx(
 	var direct, children int64
 	if err := tx.QueryRowContext(ctx, `
 		SELECT
-		    (SELECT count(*) FROM assets
+		    (SELECT count(*) FROM visible_assets AS assets
 		     WHERE library_id = ? AND directory_id = ?),
 		    (SELECT COALESCE(sum(recursive_asset_count), 0)
-		     FROM directories
+		     FROM visible_directories AS directories
 		     WHERE library_id = ? AND parent_id = ?)
 	`, libraryID, directoryID, libraryID, directoryID).Scan(
 		&direct,
@@ -1473,7 +1481,7 @@ func updateReconcileCountsTx(
 		    SELECT ?
 		    UNION ALL
 		    SELECT directory.parent_id
-		    FROM directories AS directory
+		    FROM visible_directories AS directory
 		    JOIN ancestors ON directory.id = ancestors.id
 		    WHERE directory.library_id = ?
 		      AND directory.parent_id IS NOT NULL
@@ -1500,7 +1508,7 @@ func readReconcileCountTargetTx(
 	)
 	if err := tx.QueryRowContext(ctx, `
 		SELECT id, parent_id, recursive_asset_count
-		FROM directories
+		FROM visible_directories AS directories
 		WHERE library_id = ? AND relative_path = ?
 	`, libraryID, relativeDirectory).Scan(
 		&directoryID,

@@ -39,7 +39,7 @@ func (s *Store) CountVideoJobCandidates(ctx context.Context, libraryID int64, ge
 	var counts semantic.VideoJobCandidateCounts
 	err := s.db.QueryRowContext(ctx, `
         SELECT COUNT(*), COALESCE(SUM(CASE WHEN `+where+` THEN 1 ELSE 0 END), 0)
-        FROM assets asset
+        FROM visible_assets asset
         LEFT JOIN thumbnails thumbnail ON thumbnail.library_id=asset.library_id
           AND thumbnail.asset_id=asset.id AND thumbnail.variant='storyboard'
         WHERE asset.library_id=? AND asset.kind='video'`, args...).Scan(&counts.Eligible, &counts.Pending)
@@ -64,7 +64,7 @@ func (s *Store) ListVideoJobCandidates(ctx context.Context, libraryID int64, gen
 	}
 	rows, err := s.db.QueryContext(ctx, `
         SELECT asset.id
-        FROM assets asset
+        FROM visible_assets asset
         LEFT JOIN thumbnails thumbnail ON thumbnail.library_id=asset.library_id
           AND thumbnail.asset_id=asset.id AND thumbnail.variant='storyboard'
         WHERE asset.library_id=? AND asset.kind='video' AND asset.id>? AND `+where+`

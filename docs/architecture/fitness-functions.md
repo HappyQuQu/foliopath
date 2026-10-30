@@ -1,3 +1,5 @@
+2026-10-30 / DELETE-S2：make arch-check 已纳入媒体变更单一边界、Linux 内核隔离、基础 Compose ro、主进程组合及普通媒体查询必须使用 canonical visible catalog 的本地架构检查；files 原生行为和 SQLite/API 回归另证实际隔离。测试仍依仓库约定仅本地保留，fresh clone 不含完整套件。生产镜像/双原生/容量门禁尚未通过，见 [S2](../gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。
+
 # 架构适配度检查与质量门禁
 
 ## 状态

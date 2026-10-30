@@ -74,6 +74,7 @@ type storyboardReferenceResponse struct {
 }
 
 type assetResponse struct {
+	ArchiveMember      bool                        `json:"archiveMember,omitempty"`
 	SearchSources      []string                    `json:"searchSources,omitempty"`
 	ID                 string                      `json:"id"`
 	LibraryID          string                      `json:"libraryId"`
@@ -445,6 +446,7 @@ func assetIDString(id int64) string {
 
 func assetWire(item catalog.Asset) assetResponse {
 	return assetResponse{
+		ArchiveMember: media.SourceFingerprint(item.SourceFingerprint).IsArchiveMember(),
 		SearchSources: item.SearchSources,
 		ID:            assetIDString(item.ID), LibraryID: libraryID(item.LibraryID),
 		LibraryName: item.LibraryName, DirectoryID: directoryIDString(item.DirectoryID),

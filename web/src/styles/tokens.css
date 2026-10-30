@@ -45,6 +45,7 @@
   --size-settings-content: 54rem;
   --size-content: 70rem;
   --size-folder-card: 16rem;
+  --size-menu: 14rem;
 
   --radius-1: 0.4375rem;
   --radius-2: 0.5625rem;
@@ -69,8 +70,10 @@
     0 0.5rem 1.75rem rgb(0 0 0 / 0.1), 0 0.125rem 0.5rem rgb(0 0 0 / 0.04);
 
   --layer-base: 0;
+  --layer-card-control: 1;
   --layer-header: 20;
   --layer-drawer: 60;
+  --layer-menu: 70;
   --layer-dialog: 80;
   --layer-toast: 100;
 

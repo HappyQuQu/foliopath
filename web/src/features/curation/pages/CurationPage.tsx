@@ -1,3 +1,4 @@
+import { AssetDeletionAction, useDeletionFlow, useDeletionSelection } from "../../deletion";
 import { AssetExifPanel } from "../../media";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -64,6 +65,7 @@ export function CurationPage({
   tagId?: string;
 }) {
   const { locale, t } = useLocale();
+  const deletion = useDeletionFlow(session);
   const { tagName, language } = useTagDisplay();
   const location = useLocation();
   const navigate = useNavigate();
@@ -136,6 +138,7 @@ export function CurationPage({
     retainPinnedOutsideResults: false,
     resetKey: `${libraryId ?? "none"}:${kind}:${showingTags ? `tag:${tagId ?? "index"}` : "favorites"}`,
   });
+  const selection = useDeletionSelection({ flow: deletion, scope: `${location.pathname}:${searchParams}`, loadedTargets: assets.map(item => ({ type: "asset" as const, id: item.id })), assets, onEnter: preview.close, onAccepted: preview.close });
   const previewAsset = preview.previewItem;
   const previewItem = useMemo<MediaPreviewItem | undefined>(
     () =>
@@ -282,6 +285,7 @@ export function CurationPage({
       }
       title={heading}
     >
+      {deletion.dialog}
       <section className={styles.page} aria-labelledby="curation-heading">
         <div
           className={styles.workspace}
@@ -293,6 +297,7 @@ export function CurationPage({
           <p>{t("curation.quickAccess")}</p>
           <h1 id="curation-heading">{heading}</h1>
           <span>{t("curation.loadedCount").replace("{count}", String(assets.length))}</span>
+        {selection.toolbar}
         </header>
         {showingTags && <section className={styles.tagResultTools} aria-label={t("context.mediaFilters")}>
           {mediaFilters}
@@ -331,6 +336,7 @@ export function CurationPage({
           ) : (
             <MediaCollection
               ref={preview.collectionRef}
+              {...(selection.mediaSelection ? { selection: selection.mediaSelection } : {})}
               {...(showingTags ? { sizeControlContainer } : {})}
               {...(favoriteMutation.variables?.assetId
                 ? { favoritePendingId: favoriteMutation.variables.assetId }
@@ -403,10 +409,10 @@ export function CurationPage({
             metadataContent={<AssetExifPanel assetId={previewItem.id} kind={previewItem.kind} />}
               curationContent={
               previewAsset ? (
-                <AssetCurationControls
+                <><AssetCurationControls
                   assetId={previewAsset.id}
                   csrfToken={session.csrfToken}
-                />
+                /><AssetDeletionAction flow={deletion} asset={previewAsset} onAccepted={preview.close} /></>
               ) : undefined
             }
             item={previewItem}

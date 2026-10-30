@@ -129,6 +129,7 @@ export function GeneralSettingsPage({
           <Button onClick={() => navigate(`${paths.storageSettings}?section=cache`)} role="tab" variant="quiet">
             {t("configuration.cacheTab")}
           </Button>
+          <Button onClick={() => navigate(paths.deletionSettings)} role="tab" variant="quiet">{t("deletion.settings")}</Button>
         </div>
 
         <section aria-labelledby="appearance-title">

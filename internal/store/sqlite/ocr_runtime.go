@@ -15,7 +15,7 @@ func (s *Store) GetOCRCoverage(ctx context.Context, id int64) (ocr.Coverage, err
 func getOCRCoverage(ctx context.Context, q queryRower, id int64) (ocr.Coverage, error) {
 	var v ocr.Coverage
 	err := q.QueryRowContext(ctx, `SELECT COUNT(a.id),COALESCE(SUM(r.source_fingerprint=a.source_fingerprint AND r.outcome='ready'),0),COALESCE(SUM(r.source_fingerprint=a.source_fingerprint AND r.outcome='ready' AND r.lines_json='[]'),0),COALESCE(SUM(r.source_fingerprint=a.source_fingerprint AND r.outcome='failed'),0),COALESCE(SUM(r.source_fingerprint<>a.source_fingerprint),0)
- FROM libraries l LEFT JOIN ocr_library_settings s ON s.library_id=l.id LEFT JOIN assets a ON a.library_id=l.id AND a.kind IN ('image','animated') AND a.archive_path = '' LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=s.fingerprint WHERE l.id=? GROUP BY l.id`, id).Scan(&v.Eligible, &v.Ready, &v.Empty, &v.Failed, &v.Stale)
+ FROM libraries l LEFT JOIN ocr_library_settings s ON s.library_id=l.id LEFT JOIN visible_assets a ON a.library_id=l.id AND a.kind IN ('image','animated') AND a.archive_path = '' LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=s.fingerprint WHERE l.id=? GROUP BY l.id`, id).Scan(&v.Eligible, &v.Ready, &v.Empty, &v.Failed, &v.Stale)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = ocr.ErrNotFound
 	}

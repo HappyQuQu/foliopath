@@ -1,3 +1,6 @@
+2026-10-30 / ADR-0044：internal/deletion 继续拥有策略、持久操作和任务；files 在现有主进程 worker 内执行锚定的回收/恢复/分批删除，撤掉 Landlock 和变更子进程。SQLite adapter 拥有事务，app 唯一组合，不改部署单元。
+
+
 # FolioPath 模块、所有权与系统边界
 
 ## 状态

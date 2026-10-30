@@ -33,3 +33,5 @@ export {
 
 export { RadioOption, type RadioOptionProps } from "./RadioOption/RadioOption";
 export { Badge } from "./Badge/Badge";
+export { Menu, type MenuAction, type MenuProps } from "./Menu/Menu";
+export { Checkbox } from "./Checkbox/Checkbox";

@@ -1,0 +1,3 @@
+.checkbox { width: var(--space-5); height: var(--space-5); margin: 0; flex: none; accent-color: var(--color-accent); cursor: pointer; }
+.checkbox:focus-visible { outline: var(--focus-width) solid var(--color-accent); outline-offset: var(--space-1); }
+.checkbox:disabled { cursor: not-allowed; }

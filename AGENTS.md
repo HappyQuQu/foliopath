@@ -6,7 +6,24 @@ them.
 
 ## Product invariants
 
-- Treat original media as read-only. Never move, rename, edit, or delete it.
+- Treat original media as read-only by default. ADR-0042 accepts an opt-in,
+  authenticated media deletion capability; CR-2026-060 limits new actions to permanent deletion. CR-2026-058 / DELETE-S1/S2
+  contracts and backend plus S3 production-component UI have passed local gates;
+  general release remains gated by DELETE-S4; ADR-0044 accepts the explicitly
+  authorized 222/9090 candidate deployment. Ordinary scanning, browsing, analysis
+  and library configuration removal remain read-only; never edit media contents.
+  Writes require files-owned anchored operations, explicit deployment authorization
+  and administrator opt-in.
+- ADR-0044 supersedes ADR-0043: deletion runs in the existing main-process worker;
+  do not add Landlock, a mutation subprocess, or host/PVE boot changes. Keep openat2
+  and the single media mount. External programs must not move the target directory
+  or its ancestors during deletion; concurrent external rename containment is not
+  promised. Deletion owns durable operations and jobs admission.
+- CR-2026-060 supersedes the normal trash UX: new deletions are permanent after
+  one confirmation dialog, without typed words or an extra checkbox. New UI
+  settings always disable recycling and automatic retention. Remove trash UI and
+  admission APIs; retain only historical bytes/records and already accepted task
+  recovery. Never purge those files or reinterpret accepted operations implicitly.
 - Treat the filesystem as the source of truth for media existence and hierarchy;
   the SQLite catalog and thumbnails are derived state. User curation such as
   favorites and manual tags is application state under `/app/data`, never media truth.
@@ -14,8 +31,10 @@ them.
   or below the container's allowed media root (`/library`) and includes descendants by
   default. The empty allowed-root-relative value represents `/library` itself and then
   overlaps every possible additional library.
-- Support exactly one media mount target at `/library`. It may itself be a read-only
-  bind mount or volume, but its descendants must be ordinary directories, not nested
+- Support exactly one media mount target at `/library`. It is read-only by default;
+  ADR-0042/0044 and CR-2026-060 permit explicit writable deployment for permanent deletion.
+  It may itself be a bind mount or volume, but its descendants must be ordinary
+  directories, not nested
   volumes, bind mounts, or other mount points. UI libraries select directories inside
   that one tree; they are not deployment units.
 - Require non-empty, instance-unique library names. Allow renaming, but keep the
@@ -73,7 +92,7 @@ them.
 - `cmd/foliopath` is a minimal process entry point. Dependency composition,
   lifecycle, and graceful shutdown belong in `internal/app`.
 - Put business capabilities under `internal/` (`auth`, `settings`, `library`,
-  `catalog`, `scanner`, `thumbnail`, `media`, and `jobs`). Each capability defines the
+  `catalog`, `scanner`, `thumbnail`, `media`, `deletion`, and `jobs`). Each capability defines the
   interfaces it uses.
 - ADR-0031: `internal/search` owns fused ranking, literal/semantic source evidence
   and snapshot-bound keyset cursors. Reuse catalog normalization, semantic encoding
@@ -179,8 +198,15 @@ them.
   the Linux-equivalent mount boundary or expand the supported release platforms.
 - Do not follow directory symlinks during scanning unless an accepted ADR defines safe
   behavior. Never cross filesystem boundaries implicitly.
-- Keep `/library` read-only. Store the database, settings, scan state, and generated
-  cache under `/app/data`.
+- Keep `/library` read-only in the default deployment. ADR-0042 is the sole accepted
+  finite write exception: explicit deployment authorization plus administrator opt-in,
+  deletion-owned use cases and files-owned anchored Linux writes. The trash
+  area is an ordinary reserved directory within the same media filesystem, excluded
+  from every media discovery/read path; never add a mount or copy/delete fallback.
+  Read-boundary evidence alone does not prove write safety. DELETE-S1/S2 local
+  gates permit production-component UI development; DELETE-S4 must pass before
+  production writable deployment. Store the database, settings, scan
+  state, operation/recovery records and generated cache under `/app/data`.
 
 ## Scanning and jobs
 
@@ -235,9 +261,12 @@ them.
   with verified stopped backup/copy before switching. Keep the original host data as
   a detached historical copy; never synchronize it against the live volume. Native
   Linux local bind deployments remain subject to ADR-0023. Preserve every existing
-  AI overlay and the single read-only media mount.
+  AI overlay and the single media mount (read-only unless ADR-0042 was explicitly
+  enabled); never change its mode implicitly during data maintenance.
 - Every directory, asset, thumbnail, and scan row is scoped by `library_id`; enforce
-  uniqueness for normalized relative paths within a library.
+  uniqueness for active normalized relative paths within a library. ADR-0042 plans
+  separate trash namespaces so a replacement at the original path cannot inherit
+  the recycled asset's identity or curation; the schema change still requires S1/S2.
 - Serialize writes, batch scan mutations, keep transactions bounded, and set a busy
   timeout. Do not hold a transaction while doing filesystem or media processing.
 - Use keyset/cursor pagination with a stable unique tie-breaker; do not use `OFFSET`

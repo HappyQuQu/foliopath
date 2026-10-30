@@ -31,8 +31,9 @@ func ValidateLimits(limits Limits) error {
 // and derived-media work, plus an independent cap for long-lived content reads.
 // Existing holders are never cancelled when a limit is lowered.
 type Controller struct {
-	background *limiter
-	content    *limiter
+	background    *limiter
+	content       *limiter
+	mediaMutation *limiter
 }
 
 type Processor[T any] interface {
@@ -88,8 +89,9 @@ func NewController(limits Limits) (*Controller, error) {
 		return nil, err
 	}
 	return &Controller{
-		background: newLimiter(limits.Background),
-		content:    newLimiter(limits.Content),
+		background:    newLimiter(limits.Background),
+		content:       newLimiter(limits.Content),
+		mediaMutation: newLimiter(1),
 	}, nil
 }
 
@@ -108,6 +110,14 @@ func (controller *Controller) AcquireBackground(ctx context.Context) (func(), er
 
 func (controller *Controller) TryAcquireContent() (func(), bool) {
 	return controller.content.tryAcquire()
+}
+
+func (controller *Controller) TryAcquireMediaMutation() (func(), bool) {
+	return controller.mediaMutation.tryAcquire()
+}
+
+func (controller *Controller) AcquireMediaMutation(ctx context.Context) (func(), error) {
+	return controller.mediaMutation.acquire(ctx)
 }
 
 type limiter struct {

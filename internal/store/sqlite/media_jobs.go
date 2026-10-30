@@ -24,7 +24,7 @@ func (s *Store) GetMediaProcessingProgress(
         WITH library_jobs AS (
             SELECT job.variant, job.status, asset.kind
             FROM media_jobs AS job
-            JOIN assets AS asset
+            JOIN visible_assets AS asset
               ON asset.library_id = job.library_id
              AND asset.id = job.asset_id
             WHERE job.library_id = ?
@@ -41,7 +41,7 @@ func (s *Store) GetMediaProcessingProgress(
             COALESCE(SUM(variant = 'storyboard' AND status = 'failed'), 0),
 			(
 				SELECT COUNT(*)
-				FROM assets AS video
+				FROM visible_assets AS video
 				JOIN media_jobs AS grid
 				  ON grid.asset_id = video.id AND grid.variant = 'grid'
 				WHERE video.library_id = ? AND video.kind = 'video'
@@ -101,7 +101,7 @@ func (s *Store) AdmitStoryboardJobs(
             SELECT
                 asset.library_id, asset.id, 'storyboard', 100, ?,
                 asset.source_fingerprint, 'queued', ?, 0, ?
-            FROM assets AS asset
+            FROM visible_assets AS asset
             JOIN thumbnails AS grid
               ON grid.asset_id = asset.id
              AND grid.variant = 'grid'
@@ -226,7 +226,7 @@ func (s *Store) reconcileMediaJobTransform(
                     SELECT asset_id FROM media_jobs
                     WHERE variant = ? AND transform_version <> ?
                     ORDER BY id LIMIT ?
-                )`,
+                ) AND id IN (SELECT id FROM visible_assets)`,
 				string(variant), transformVersion, limit,
 			); err != nil {
 				return fmt.Errorf("reset old media transform metadata: %w", err)
@@ -652,7 +652,7 @@ func failMediaJobTx(
             )
             SELECT library_id, id, 'storyboard', source_fingerprint,
                    ?, 'failed', ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 source_fingerprint = excluded.source_fingerprint,
@@ -678,7 +678,7 @@ func failMediaJobTx(
             probe_status = 'failed', probe_error_code = ?,
             playback_status = 'unknown'
         WHERE id = ? AND source_fingerprint = ?
-          AND probe_status <> 'ready'`,
+          AND probe_status <> 'ready' AND id IN (SELECT id FROM visible_assets)`,
 		string(processingCode), job.AssetID, job.SourceFingerprint.String(),
 	); err != nil {
 		return fmt.Errorf("mark exhausted media asset failed: %w", err)
@@ -690,7 +690,7 @@ func failMediaJobTx(
         )
         SELECT library_id, id, 'grid', source_fingerprint,
                ?, 'failed', ?
-        FROM assets
+        FROM visible_assets AS assets
         WHERE id = ? AND source_fingerprint = ?
         ON CONFLICT(asset_id, variant) DO UPDATE SET
             source_fingerprint = excluded.source_fingerprint,

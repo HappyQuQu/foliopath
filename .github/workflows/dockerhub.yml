@@ -272,7 +272,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN || secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: README.dockerhub.md
-          short-description: Read-only self-hosted photo and video browser for NAS libraries.
+          short-description: Self-hosted photo and video browser with local AI, read-only by default.
 
   intelligent-media-native-evidence:
     name: Run intelligent media native evidence without publishing

@@ -1,3 +1,5 @@
+2026-10-30 / ADR-0042 / DELETE-S2：migration 00049 实现实例策略、预检、幂等请求、持久操作/条目/租约、回收命名空间及活动子树隔离。回收保留原 ID/人工关系，原路径新对象获得新 ID；普通读取使用 visible_assets / visible_directories，正常扫描不清理回收内容。事务和恢复证据见 [S2](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。
+
 2026-10-29 / CR-2026-057：目录封面是catalog查询时从当前源/变换匹配的ready grid缩略图推导的资产ID，可来自直接内容或后代；不新增列、表、封面文件或扫描任务。驱逐/过期后重新选可用候选，无候选返回null。见[变更](changes/CR-2026-057-directory-covers.md)。
 
 2026-10-29 / ARCHIVE-S2：7z复用migration48的归档定位、CRC和目录状态，v1:z来源族绑定归档路径/版本及成员；ZIP已有身份不改变，不增加migration。没有跨请求7z原图缓存。
@@ -663,3 +665,5 @@ CR-2026-030 / ADR-0019 / POST-MVP-5：migration 38 增加
 相同绑定可在 building 状态幂等重试。未激活新模型，未迁移旧 embedding。
 
 CR-2026-053不新增SQLite表。自动准备进度是AI进程内瞬时状态，重启根据已校验模型文件重建；完整文件是安装检查点，临时文件不表示完成。模型和用户data独立，旧结果不重标。
+
+2026-10-30：migration 50 在无活动媒体变更的库中跳过逐行子树检查，回收引用索引只覆盖非空项；有活动变更时沿用原范围判断，不改变数据、身份或可见性语义。发布验证见 [DELETE-S4](gates/POST-MVP-DELETE/delete-s4-release.md)。

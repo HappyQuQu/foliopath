@@ -26,7 +26,7 @@ import {
   type MediaLayoutPreference,
 } from "../../../lib/storage/preferences";
 import { useScrollPagination } from "../../../lib/useScrollPagination";
-import { Badge, Button, IconButton, InlineStatus, Slider } from "../../ui";
+import { Badge, Button, Checkbox, IconButton, InlineStatus, Slider } from "../../ui";
 import styles from "./MediaCollection.module.css";
 
 export type MediaCollectionLayout = MediaLayoutPreference;
@@ -73,6 +73,14 @@ export interface MediaCollectionLabels {
   removeFavorite?: string;
   unavailableThumbnail: string;
   video: string;
+}
+
+export interface MediaCollectionSelection {
+  ids: ReadonlySet<string>;
+  label: (name: string) => string;
+  onToggle: (id: string) => void;
+  disabled: (id: string) => boolean;
+  disabledDescription?: (id: string) => string | undefined;
 }
 
 export interface MediaCollectionHandle {
@@ -135,6 +143,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   previewItemId?: string;
   favoritePendingId?: string;
   selectedItemId?: string;
+  selection?: MediaCollectionSelection;
   /** Optional toolbar slot. null defers rendering until the slot mounts. */
   sizeControlContainer?: HTMLElement | null;
 }>(function MediaCollection(
@@ -152,6 +161,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     previewItemId,
     favoritePendingId,
     selectedItemId,
+    selection,
     sizeControlContainer,
   },
   ref,
@@ -353,7 +363,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
                   {...(onFavoriteToggle ? { onFavoriteToggle } : {})}
                   favoritePending={item.id === favoritePendingId}
                   previewing={item.id === previewItemId}
-                  selected={item.id === selectedItemId}
+                  selected={selection ? selection.ids.has(item.id) : item.id === selectedItemId}
+                  {...(selection ? { selection } : {})}
                   {...(storyboard.playback?.itemId === item.id
                     ? { storyboardFrame: storyboard.playback.frame }
                     : {})}
@@ -426,6 +437,7 @@ function MediaCard({
   onFavoriteToggle,
   selected,
   storyboardFrame,
+  selection,
 }: {
   item: MediaCollectionItem;
   labels: MediaCollectionLabels;
@@ -442,6 +454,7 @@ function MediaCard({
   previewing: boolean;
   selected: boolean;
   storyboardFrame?: number;
+  selection?: MediaCollectionSelection;
 }) {
   const kindLabel =
     item.kind === "video"
@@ -477,7 +490,8 @@ function MediaCard({
       onPointerEnter={() => onStoryboardEnter(item)}
       onPointerLeave={() => onStoryboardLeave(item.id)}
     >
-      {onActivate && (
+      {selection && <label className={styles.selectionTrigger} title={selection.disabledDescription?.(item.id)}><Checkbox aria-description={selection.disabledDescription?.(item.id)} aria-label={selection.label(item.name)} checked={selected} disabled={selection.disabled(item.id)} onChange={() => selection.onToggle(item.id)} /></label>}
+      {onActivate && !selection && (
         <button
           aria-label={labels.activatePreview.replace("{name}", item.name)}
           aria-pressed={selected}
@@ -564,7 +578,7 @@ function MediaCard({
             <span className={styles.visuallyHidden}>{labels.previewing}</span>
           </span>
         )}
-        {layout !== "seamless" && onFavoriteToggle && (
+        {layout !== "seamless" && onFavoriteToggle && !selection && (
           <IconButton
             className={styles.favoriteButton}
             disabled={favoritePending}
@@ -584,10 +598,10 @@ function MediaCard({
       {layout !== "seamless" && (
         <div className={styles.identity}>
           <strong title={item.name}>{item.name}</strong>
-          {item.sourceHref && item.sourceLabel ? (
+          {item.sourceHref && item.sourceLabel && !selection ? (
             <a href={item.sourceHref}>{item.sourceLabel}</a>
           ) : (
-            <span>{item.modifiedLabel}</span>
+            <span>{selection && item.sourceLabel ? item.sourceLabel : item.modifiedLabel}</span>
           )}
           {item.contextLabel && <span>{item.contextLabel}</span>}
         </div>

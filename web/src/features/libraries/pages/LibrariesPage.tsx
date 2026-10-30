@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ManagementShell } from "../../../components/patterns/ManagementShell/ManagementShell";
 import {
@@ -484,7 +484,7 @@ function LibraryRow({
         });
         setRemovalId(removal.id);
       } catch (error) {
-        setActionError(actionMessage(error, t));
+        setActionError(error instanceof ApiError && error.code === "forbidden" ? t("deletion.libraryRemovalBlocked") : actionMessage(error, t));
       }
     });
   }
@@ -660,6 +660,7 @@ function LibraryRow({
             {t("libraries.removalFailed")}
           </InlineStatus>
         )}
+        <p>{t("deletion.libraryRemovalHint")} <Link to={paths.fileTasks}>{t("deletion.tasks")}</Link></p>
         <ul className={styles.removalList}>
           <li>{t("libraries.removeConfiguration")}</li>
           <li>{t("libraries.removeIndex")}</li>

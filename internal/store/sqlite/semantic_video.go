@@ -39,7 +39,7 @@ func replaceVideoEmbeddingPlanTx(ctx context.Context, tx *sql.Tx, plan semantic.
 	var transformVersion, frameCount int
 	if err := tx.QueryRowContext(ctx, `
             SELECT a.source_fingerprint, t.status, t.transform_version, t.frame_count
-            FROM assets a
+            FROM visible_assets a
             JOIN thumbnails t ON t.library_id = a.library_id AND t.asset_id = a.id
                               AND t.variant = 'storyboard'
             WHERE a.library_id = ? AND a.id = ?`, plan.LibraryID, plan.AssetID,

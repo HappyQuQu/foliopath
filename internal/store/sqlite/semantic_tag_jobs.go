@@ -69,7 +69,7 @@ func (s *Store) CreateTagJob(ctx context.Context, v semantic.TagJobAdmission) (s
 			if err := tx.QueryRowContext(ctx, `SELECT
 				COALESCE(SUM(outcome='ready'),0),COALESCE(SUM(outcome='degraded'),0),
 				COALESCE(SUM(outcome='failed'),0),COALESCE(SUM(outcome='stale'),0)
-				FROM semantic_tag_asset_progress progress JOIN assets asset ON asset.library_id=progress.library_id AND asset.id=progress.asset_id
+				FROM semantic_tag_asset_progress progress JOIN visible_assets asset ON asset.library_id=progress.library_id AND asset.id=progress.asset_id
 				WHERE progress.generation_id=? AND progress.library_id=? AND progress.vocabulary_snapshot_id=?
 				AND progress.source_fingerprint=asset.source_fingerprint`, v.Job.GenerationID, v.Job.LibraryID, v.Job.VocabularySnapshotID).Scan(&ready, &degraded, &failed, &stale); err != nil {
 				return err
@@ -217,7 +217,7 @@ func (s *Store) CommitTagJobProgress(ctx context.Context, c semantic.TagJobProgr
 			if c.StaleCount == 1 {
 				outcome = "stale"
 			}
-			if err := tx.QueryRowContext(ctx, `SELECT source_fingerprint FROM assets WHERE library_id=? AND id=?`, library, c.NextCheckpointID).Scan(&fingerprint); err != nil {
+			if err := tx.QueryRowContext(ctx, `SELECT source_fingerprint FROM visible_assets AS assets WHERE library_id=? AND id=?`, library, c.NextCheckpointID).Scan(&fingerprint); err != nil {
 				return err
 			}
 		}

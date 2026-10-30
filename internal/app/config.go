@@ -13,15 +13,16 @@ import (
 )
 
 const (
-	allowedMediaRoot      = "/library"
-	persistentDataRoot    = "/app/data"
-	allowedModelRoot      = "/models"
-	defaultListen         = "127.0.0.1:8080"
-	listenEnvironment     = "FOLIOPATH_LISTEN"
-	proxiesEnvironment    = "FOLIOPATH_TRUSTED_PROXIES"
-	modelProxyEnvironment = "FOLIOPATH_MODEL_DOWNLOAD_PROXY"
-	listenArgument        = "--listen"
-	applicationEnvPrefix  = "FOLIOPATH_"
+	allowedMediaRoot         = "/library"
+	persistentDataRoot       = "/app/data"
+	allowedModelRoot         = "/models"
+	defaultListen            = "127.0.0.1:8080"
+	listenEnvironment        = "FOLIOPATH_LISTEN"
+	proxiesEnvironment       = "FOLIOPATH_TRUSTED_PROXIES"
+	modelProxyEnvironment    = "FOLIOPATH_MODEL_DOWNLOAD_PROXY"
+	mediaMutationEnvironment = "FOLIOPATH_MEDIA_MUTATIONS"
+	listenArgument           = "--listen"
+	applicationEnvPrefix     = "FOLIOPATH_"
 )
 
 var errInvalidConfiguration = errors.New("invalid application configuration")
@@ -35,9 +36,14 @@ type configuration struct {
 	trustedProxies     string
 	requireProxy       bool
 	modelDownloadProxy string
+	mediaMutations     bool
 }
 
 func loadConfiguration(input Input) (configuration, error) {
+	mediaMutations, err := mediaMutationsFromEnvironment(input.Environ)
+	if err != nil {
+		return configuration{}, err
+	}
 	deployment, err := deploymentFromEnvironment(input.Environ)
 	if err != nil {
 		return configuration{}, err
@@ -93,7 +99,28 @@ func loadConfiguration(input Input) (configuration, error) {
 		trustedProxies:     trustedProxies,
 		requireProxy:       requireProxy,
 		modelDownloadProxy: modelProxy,
+		mediaMutations:     mediaMutations,
 	}, nil
+}
+
+func mediaMutationsFromEnvironment(environ []string) (bool, error) {
+	found := false
+	enabled := false
+	for _, entry := range environ {
+		name, value, hasValue := strings.Cut(entry, "=")
+		if name != mediaMutationEnvironment {
+			continue
+		}
+		if found || !hasValue {
+			return false, errInvalidConfiguration
+		}
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return false, errInvalidConfiguration
+		}
+		found, enabled = true, parsed
+	}
+	return enabled, nil
 }
 
 func listenFromEnvironment(environ []string) (string, bool, error) {
@@ -113,7 +140,7 @@ func listenFromEnvironment(environ []string) (string, bool, error) {
 				name,
 			)
 		}
-		if name == proxiesEnvironment || name == modelProxyEnvironment || name == deploymentEnvironment || name == managedProfileEnvironment {
+		if name == proxiesEnvironment || name == modelProxyEnvironment || name == deploymentEnvironment || name == managedProfileEnvironment || name == mediaMutationEnvironment {
 			continue
 		}
 		if name != listenEnvironment {

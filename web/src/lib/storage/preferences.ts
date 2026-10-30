@@ -1,4 +1,5 @@
 const preferenceNamespace = "foliopath.preferences.v1";
+const notificationIdPattern = /^(?:scan_[1-9][0-9]*|deletion:deletion_[1-9][0-9]*:[1-9][0-9]*)$/;
 
 export type ThemePreference = "system" | "light" | "dark";
 export type LocalePreference = "en" | "zh-CN";
@@ -15,6 +16,7 @@ export type MediaSortPreference =
   | "size:desc";
 
 interface Preferences {
+  lastLibraryId?: string;
   aiOperationIds?: string[];
   locale?: LocalePreference;
   tagLanguage?: TagLanguagePreference;
@@ -31,6 +33,15 @@ interface Preferences {
   sidebarWidth?: number;
   quickAccessExpanded?: boolean;
   theme?: ThemePreference;
+}
+
+export function readLastLibraryId(): string | undefined {
+  const value = readPreferences().lastLibraryId;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function writeLastLibraryId(lastLibraryId: string): void {
+  writePreferences({ ...readPreferences(), lastLibraryId });
 }
 
 export function readAIOperationIds(): string[] {
@@ -211,7 +222,7 @@ export function readDismissedCompletedNotifications(): string[] {
   if (!Array.isArray(values)) return [];
   return values.filter(
     (value): value is string =>
-      typeof value === "string" && /^scan_[1-9][0-9]*$/.test(value),
+      typeof value === "string" && notificationIdPattern.test(value),
   ).slice(-200);
 }
 
@@ -219,7 +230,7 @@ export function writeDismissedCompletedNotifications(values: string[]): void {
   writePreferences({
     ...readPreferences(),
     dismissedCompletedNotifications: values
-      .filter((value) => /^scan_[1-9][0-9]*$/.test(value))
+      .filter((value) => notificationIdPattern.test(value))
       .slice(-200),
   });
 }

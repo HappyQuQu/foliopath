@@ -169,68 +169,6 @@
   font-weight: 700;
 }
 
-.menu {
-  position: absolute;
-  z-index: var(--layer-dialog);
-  top: calc(100% + 0.625rem);
-  right: 0;
-  width: 13.75rem;
-  padding: var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-3);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-2);
-}
-
-.menuHeader {
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  margin-bottom: var(--space-1);
-  border-bottom: var(--border-width) solid var(--color-border);
-}
-
-.menuHeader strong,
-.menuHeader span {
-  display: block;
-}
-
-.menuHeader span {
-  margin-top: 2px;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-1);
-}
-
-.menu a,
-.logout {
-  width: 100%;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-3);
-  color: var(--color-text);
-  border: 0;
-  border-radius: var(--radius-1);
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-  text-decoration: none;
-}
-
-.menu a:hover,
-.logout:hover:not(:disabled) {
-  background: var(--color-surface-subtle);
-}
-
-.logout {
-  color: var(--color-danger);
-}
-
-.logout:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .visuallyHidden {
   position: absolute;
   width: 1px;

@@ -20,6 +20,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/autotag"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/deletion"
 	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/files"
 	"github.com/HappyQuQu/foliopath/internal/inference/onnx"
@@ -63,6 +64,7 @@ type Input struct {
 // Run owns the process root context. All concrete dependency construction and
 // lifecycle wiring stays below this boundary.
 func Run(input Input) error {
+
 	signalContext, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -177,6 +179,25 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 	if err != nil {
 		return nil, fmt.Errorf("construct scan query service: %w", err)
 	}
+	mutationSource, err := newMediaMutationSource(directorySource, resourceController, configuration.mediaMutations)
+	if err != nil {
+		return nil, err
+	}
+	deletionSignal := jobs.NewSignal()
+	deletionService, err := deletion.NewService(database, mutationSource, deletionSignal, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	deletionProcessor, err := resourcecontrol.LimitBackground(resourceController, deletion.Processor{Repository: database, Source: mutationSource})
+	if err != nil {
+		return nil, err
+	}
+	deletionQueue := deletion.MaintainedQueue{Repository: database, Source: mutationSource, Reconciler: deletionReconciler{admission: scanAdmission, queries: scanQueries}}
+	deletionWorker, err := jobs.NewWorkerPool(deletionQueue, deletionProcessor, deletionSignal, jobs.WorkerOptions{Workers: 1})
+	if err != nil {
+		return nil, err
+	}
+	deletionComponent := newDeletionWorkerComponent(deletionWorker)
 	mediaDiagnostics, err := thumbnail.NewDiagnosticsService(database, mediaSignal)
 	if err != nil {
 		return nil, fmt.Errorf("construct media diagnostics service: %w", err)
@@ -841,6 +862,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 		Account:          authentication,
 		Cache:            cacheManager,
 		SystemStatus:     systemStatusProvider(input.Version, readiness, authentication),
+		Deletion:         deletionService,
 		LibraryPaths:     libraryPaths,
 		Libraries:        libraries,
 		ScanAdmission:    scanAdmission,
@@ -925,6 +947,7 @@ func composeConfiguration(input Input, configuration configuration) (*applicatio
 			scanComponent,
 			automaticDiscoveryComponent,
 			removalComponent,
+			deletionComponent,
 			httpComponent,
 			readinessLifecycle(readiness),
 		},

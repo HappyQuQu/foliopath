@@ -1,3 +1,5 @@
+2026-10-30 / DELETE-S2/S3：默认禁用、Linux 写隔离、分阶段强杀恢复、部分删除/暂停/校准、同路径新对象、恢复无覆盖、清空快照/策略撤回及 API 幂等已纳入本地真实实现回归。目录菜单已有中英/双主题/390/768/1440/1920px 的 16 组浏览器记录；新增删除 UI 见 [DELETE-S3 本地 UI 证据](gates/POST-MVP-DELETE/delete-s3-ui-ready.md)。make test-e2e 的生产镜像构建受 Docker Hub/Debian 网络失败阻断，不能记为通过；S4 容量与双原生证据待完成。见[S2](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。
+
 2026-10-29 / FR-BRW-001：目录封面沿用S3浏览合同；SQLite真实存储验证候选作用域/自然顺序/后代回退/缩略图身份/不可读压缩包，生产组件验证懒加载及失败保留导航，FolderCovers Story与四档实际浏览器截图覆盖显示。最终工程与容器冒烟结果见[CR-2026-057](changes/CR-2026-057-directory-covers.md)，普通测试仍本地专用。
 
 2026-10-29 / ARCHIVE-S2：7z验证覆盖真实固实/非固实包、中文/空目录、字面成员选择、Range、CRC/源更新、加密头/成员、坏包保留、输出限额取消与资源约束；ZIP回归必须保持。原生工具测试在Linux中执行，开发系统不替代发布双原生门禁；普通测试/夹具/输出继续仅本地。

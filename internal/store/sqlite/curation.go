@@ -51,7 +51,7 @@ func readAssetCurationState(ctx context.Context, tx *sql.Tx, assetID int64) (cur
 	var favoriteAt sql.NullInt64
 	if err := tx.QueryRowContext(ctx, `
         SELECT cs.revision, f.created_at_ms
-        FROM assets a
+        FROM visible_assets a
         CROSS JOIN curation_state cs
         LEFT JOIN asset_favorites f ON f.asset_id = a.id
         WHERE a.id = ? AND cs.singleton_key = 1`, assetID,
@@ -81,7 +81,7 @@ func (s *Store) SetFavorite(ctx context.Context, assetID int64, favorite bool, n
 	changed := false
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		var libraryID int64
-		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM visible_assets AS assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return curation.ErrAssetNotFound
 			}
@@ -229,7 +229,7 @@ func (s *Store) ReplaceAssetTags(ctx context.Context, assetID, expectedRevision 
 			return curation.ErrPreconditionFailed
 		}
 		var libraryID int64
-		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM visible_assets AS assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return curation.ErrAssetNotFound
 			}
@@ -296,7 +296,7 @@ func (s *Store) AddAssetTag(ctx context.Context, assetID, expectedRevision, tagI
 			return fmt.Errorf("read suggested tag precondition: %w", err)
 		}
 		var libraryID int64
-		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT library_id FROM visible_assets AS assets WHERE id = ?`, assetID).Scan(&libraryID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return curation.ErrAssetNotFound
 			}
@@ -377,7 +377,7 @@ func (s *Store) ListTagPage(ctx context.Context, params curation.TagListParams) 
 	        FROM tags t`
 	if params.LibraryID > 0 || len(params.Kinds) > 0 {
 		query += ` JOIN asset_tags at ON at.tag_id = t.id
-            JOIN assets a ON a.library_id = at.library_id AND a.id = at.asset_id`
+            JOIN visible_assets a ON a.library_id = at.library_id AND a.id = at.asset_id`
 	} else {
 		query += ` LEFT JOIN asset_tags at ON at.tag_id = t.id`
 	}
@@ -408,7 +408,7 @@ func (s *Store) ListTagPage(ctx context.Context, params curation.TagListParams) 
 				args = append(args, params.LibraryID)
 			}
 			if len(params.Kinds) > 0 {
-				query += ` AND EXISTS(SELECT 1 FROM assets aa WHERE aa.id=ai.asset_id AND aa.library_id=ai.library_id AND aa.kind IN (` + strings.TrimSuffix(strings.Repeat("?,", len(params.Kinds)), ",") + `))`
+				query += ` AND EXISTS(SELECT 1 FROM visible_assets aa WHERE aa.id=ai.asset_id AND aa.library_id=ai.library_id AND aa.kind IN (` + strings.TrimSuffix(strings.Repeat("?,", len(params.Kinds)), ",") + `))`
 				for _, kind := range params.Kinds {
 					args = append(args, string(kind))
 				}
@@ -570,7 +570,7 @@ func curatedAssetQuery(query curation.AssetQuery, after *curation.AssetPosition,
                storyboard.cell_height, l.status, favorite.created_at_ms`)
 	}
 	builder.WriteString(`
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id`)
 	if query.FavoriteOnly {
 		builder.WriteString(` JOIN asset_favorites selected_favorite ON selected_favorite.asset_id = a.id`)

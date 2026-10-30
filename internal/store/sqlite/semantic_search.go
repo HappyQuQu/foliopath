@@ -28,16 +28,16 @@ func (s *Store) SearchSemanticVectors(ctx context.Context, request semantic.Vect
 	prefix := ""
 	if request.DirectoryID > 0 && request.Recursive {
 		prefix = `WITH RECURSIVE subtree(id) AS (
-            SELECT id FROM directories WHERE library_id=? AND id=?
+            SELECT id FROM visible_directories AS directories WHERE library_id=? AND id=?
             UNION ALL
-            SELECT child.id FROM directories child JOIN subtree parent ON child.parent_id=parent.id
+            SELECT child.id FROM visible_directories child JOIN subtree parent ON child.parent_id=parent.id
             WHERE child.library_id=?
         ) `
 	}
 	statement := prefix + `
         SELECT embedding.library_id, embedding.asset_id, embedding.vector
         FROM semantic_embeddings embedding
-        JOIN assets asset ON asset.library_id=embedding.library_id AND asset.id=embedding.asset_id
+        JOIN visible_assets asset ON asset.library_id=embedding.library_id AND asset.id=embedding.asset_id
         JOIN libraries library ON library.id=embedding.library_id AND library.status <> 'offline'
         JOIN ai_library_settings setting ON setting.library_id=embedding.library_id AND setting.enabled=1
         WHERE embedding.generation_id=? AND embedding.source_fingerprint=asset.source_fingerprint`

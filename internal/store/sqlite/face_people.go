@@ -99,7 +99,7 @@ func (s *Store) ListPeople(ctx context.Context, limit int) ([]face.Person, error
 }
 
 // Shared with PersonAsset browsing: preview selection cannot widen its readable scope.
-const personAvailablePhotoJoins = ` JOIN assets asset ON asset.library_id=anchor.library_id AND asset.id=anchor.asset_id JOIN libraries library ON library.id=asset.library_id AND library.status='ready' `
+const personAvailablePhotoJoins = ` JOIN visible_assets asset ON asset.library_id=anchor.library_id AND asset.id=anchor.asset_id JOIN libraries library ON library.id=asset.library_id AND library.status='ready' `
 const personBoundPhotoPredicate = `anchor.state='bound' AND anchor.current_face_id IS NOT NULL`
 
 const personSelect = `SELECT person.id,person.name,

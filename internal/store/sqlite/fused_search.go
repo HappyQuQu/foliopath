@@ -22,7 +22,7 @@ func (s *Store) StreamSearchCandidates(ctx context.Context, scan search.Scan, of
 			return semantic.ErrSemanticGenerationUnavailable
 		}
 	}
-	sql := `SELECT a.source_fingerprint,a.library_id,a.id,a.name,a.relative_path,e.vector,CASE WHEN d.id IS NOT NULL THEN r.lines_json ELSE '[]' END FROM assets a
+	sql := `SELECT a.source_fingerprint,a.library_id,a.id,a.name,a.relative_path,e.vector,CASE WHEN d.id IS NOT NULL THEN r.lines_json ELSE '[]' END FROM visible_assets a
  JOIN libraries l ON l.id=a.library_id
  LEFT JOIN ai_library_settings setting ON setting.library_id=a.library_id
  LEFT JOIN semantic_embeddings e ON e.library_id=a.library_id AND e.asset_id=a.id
@@ -87,7 +87,7 @@ func searchScopeSQL(sql string, args []any, r search.Request) (string, []any) {
 	}
 	if r.DirectoryID > 0 {
 		if r.Recursive {
-			sql += ` AND a.directory_id IN (WITH RECURSIVE subtree(id) AS (SELECT id FROM directories WHERE library_id=? AND id=? UNION ALL SELECT d.id FROM directories d JOIN subtree p ON d.parent_id=p.id WHERE d.library_id=?) SELECT id FROM subtree)`
+			sql += ` AND a.directory_id IN (WITH RECURSIVE subtree(id) AS (SELECT id FROM visible_directories AS directories WHERE library_id=? AND id=? UNION ALL SELECT d.id FROM visible_directories d JOIN subtree p ON d.parent_id=p.id WHERE d.library_id=?) SELECT id FROM subtree)`
 			args = append(args, r.LibraryID, r.DirectoryID, r.LibraryID)
 		} else {
 			sql += ` AND a.directory_id=?`

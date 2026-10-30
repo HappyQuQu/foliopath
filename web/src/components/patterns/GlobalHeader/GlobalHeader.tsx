@@ -12,6 +12,7 @@ import { useLocale } from "../../../lib/i18n/LocaleProvider";
 import { BrandMark } from "../../ui/BrandMark/BrandMark";
 import { LocaleToggle } from "../../ui/LocaleToggle/LocaleToggle";
 import { ThemeToggle } from "../../ui/ThemeToggle/ThemeToggle";
+import { Menu } from "../../ui/Menu/Menu";
 import { useToast } from "../../ui/Toast/ToastProvider";
 import styles from "./GlobalHeader.module.css";
 import { useHeaderAddon } from "./HeaderAddonContext";
@@ -49,38 +50,12 @@ export function GlobalHeader({
   const [query, setQuery] = useState(
     () => new URLSearchParams(location.search).get("q") ?? "",
   );
-  const accountRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setQuery(new URLSearchParams(location.search).get("q") ?? "");
   }, [location.search]);
 
-  useEffect(() => {
-    if (!accountOpen) return;
-
-    function close(event: KeyboardEvent | PointerEvent) {
-      if (event instanceof KeyboardEvent) {
-        if (event.key !== "Escape") return;
-        setAccountOpen(false);
-        triggerRef.current?.focus();
-        return;
-      }
-      if (
-        event.target instanceof Node &&
-        !accountRef.current?.contains(event.target)
-      ) {
-        setAccountOpen(false);
-      }
-    }
-
-    document.addEventListener("keydown", close);
-    document.addEventListener("pointerdown", close);
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.removeEventListener("pointerdown", close);
-    };
-  }, [accountOpen]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,7 +104,7 @@ export function GlobalHeader({
         <LocaleToggle />
         <ThemeToggle />
         {headerAddon}
-        <div className={styles.account} ref={accountRef}>
+        <div className={styles.account}>
           <button
             aria-expanded={accountOpen}
             aria-haspopup="menu"
@@ -145,42 +120,19 @@ export function GlobalHeader({
             <span className={styles.identity}>{identity}</span>
             <CaretDown aria-hidden="true" size={14} />
           </button>
-          {accountOpen && (
-            <div className={styles.menu} role="menu">
-              <div className={styles.menuHeader}>
-                <strong>{identity}</strong>
-                <span>{t("account.administrator")}</span>
-              </div>
-              <Link
-                onClick={() => setAccountOpen(false)}
-                role="menuitem"
-                to={settingsHref}
-              >
-                <GearSix aria-hidden="true" size={18} />
-                {t("shell.settings")}
-              </Link>
-              <button
-                className={styles.logout}
-                disabled={!onLogout || logoutPending}
-                onClick={() => {
-                  if (!onLogout) return;
-                  void onLogout()
-                    .then(() => setAccountOpen(false))
-                    .catch(() =>
-                      toast.show({
-                        message: t("account.logoutFailed"),
-                        tone: "danger",
-                      }),
-                    );
-                }}
-                role="menuitem"
-                type="button"
-              >
-                <SignOut aria-hidden="true" size={18} />
-                {t("account.logout")}
-              </button>
-            </div>
-          )}
+          {accountOpen && triggerRef.current && <Menu
+            label={t("account.menu").replace("{name}", identity)}
+            heading={<>{identity} · {t("account.administrator")}</>}
+            anchor={triggerRef.current}
+            align="end"
+            returnFocusTo={triggerRef.current}
+            onClose={() => setAccountOpen(false)}
+            items={[
+              { id: "settings", label: t("shell.settings"), href: settingsHref, icon: <GearSix aria-hidden="true" size={18} />, onSelect: () => navigate(settingsHref) },
+              { id: "logout", label: t("account.logout"), icon: <SignOut aria-hidden="true" size={18} />, danger: true, disabled: !onLogout || logoutPending,
+                onSelect: () => { if (onLogout) void onLogout().catch(() => toast.show({ message: t("account.logoutFailed"), tone: "danger" })); } },
+            ]}
+          />}
         </div>
       </div>
     </header>

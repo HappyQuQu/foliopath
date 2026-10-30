@@ -12,7 +12,7 @@ import (
 // returned path preserves the caller's bytes; percent-decoded forms are checked
 // only to reject inputs that another layer could reinterpret as traversal.
 func Normalize(relative string) (string, error) {
-	normalized, err := pathpolicy.Normalize(relative)
+	normalized, err := pathpolicy.NormalizeMedia(relative)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrInvalidPath, err)
 	}

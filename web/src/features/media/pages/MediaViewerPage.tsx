@@ -1,3 +1,4 @@
+import { useDeletionFlow } from "../../deletion";
 import { AssetExifPanel } from "../AssetExifPanel";
 import { useMemo } from "react";
 import {
@@ -11,7 +12,7 @@ import {
   type MediaViewerItem,
 } from "../../../components/patterns/MediaViewer/MediaViewer";
 import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/mediaPreviewDetails";
-import { LoadingState } from "../../../components/ui";
+import { Button, LoadingState } from "../../../components/ui";
 import { assetContentUrl } from "../../../lib/api/catalog";
 import type { AuthenticatedSession } from "../../../lib/api/auth";
 import { ApiError } from "../../../lib/api/errors";
@@ -41,6 +42,7 @@ export function MediaViewerPage({
   session?: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
+  const deletion = useDeletionFlow(session);
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -143,6 +145,8 @@ export function MediaViewerPage({
     : undefined;
 
   return (
+    <>
+    {deletion.dialog}
     <MediaViewer
       availability={availability}
       canGoNext={Boolean(next)}
@@ -150,7 +154,7 @@ export function MediaViewerPage({
       metadataContent={asset && asset.libraryId === libraryId ? <AssetExifPanel assetId={asset.id} kind={asset.kind} /> : undefined}
       curationContent={
         asset && asset.libraryId === libraryId && session ? (
-          <AssetCurationControls assetId={asset.id} csrfToken={session.csrfToken} />
+          <><AssetCurationControls assetId={asset.id} csrfToken={session.csrfToken} />{!asset.archiveMember && <Button variant="danger" disabled={!deletion.canDelete} onClick={() => deletion.start([{ type: "asset", id: asset.id }], closeViewer)}>{t("deletion.delete")}</Button>}</>
         ) : undefined
       }
       item={usableViewerItem}
@@ -184,6 +188,7 @@ export function MediaViewerPage({
           : t("viewer.directPosition")
       }
     />
+    </>
   );
 }
 

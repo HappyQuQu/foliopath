@@ -493,6 +493,8 @@ func writeLibraryError(writer http.ResponseWriter, request *http.Request, err er
 		status, code, message = http.StatusNotFound, "library_not_found", "The media library was not found."
 	case errors.Is(err, library.ErrRemovalNotFound):
 		status, code, message = http.StatusNotFound, "removal_not_found", "The library removal was not found."
+	case errors.Is(err, library.ErrMediaDeletionPending):
+		status, code, message = http.StatusForbidden, "forbidden", "Finish media changes and restore or clear this library's recycle bin before removing the library."
 	case errors.Is(err, library.ErrInvalidLibraryCursor):
 		status, code, message = http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid."
 	case errors.Is(err, library.ErrInvalidName), errors.Is(err, library.ErrInvalidRoot):

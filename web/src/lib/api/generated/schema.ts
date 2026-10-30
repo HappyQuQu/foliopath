@@ -820,6 +820,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/deletion/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List durable media-change operations */
+        get: operations["listDeletionOperations"];
+        put?: never;
+        /** Queue the exact confirmed selection and policy */
+        post: operations["submitDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletion/operations/{operationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get durable media-change progress and per-item outcomes */
+        get: operations["getDeletionOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletion/operations/{operationId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explicitly continue unfinished original targets */
+        post: operations["resumeDeletionOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletion/operations/{operationId}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop future changes without rollback */
+        post: operations["stopDeletionOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletion/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check bounded selections without recursively counting files */
+        post: operations["preflightDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deletion/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get original-file deletion policy and availability */
+        get: operations["getDeletionSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Explicitly change original-file deletion policy */
+        patch: operations["updateDeletionSettings"];
+        trace?: never;
+    };
     "/api/v1/diagnostics/media-failures": {
         parameters: {
             query?: never;
@@ -971,7 +1075,9 @@ export interface paths {
          * @description Accepts an asynchronous, restart-safe cleanup of configuration, index,
          *     jobs, and derived cache only. It never moves, edits, or deletes original
          *     media. The library remains identifiable until cleanup succeeds; poll
-         *     the returned removal resource.
+         *     the returned removal resource. Libraries with trash or unfinished file
+         *     operations cannot be removed; complete those operations and restore or
+         *     clear trash first. This policy refusal returns `forbidden`.
          *
          *     Acceptance atomically creates the durable removal, prevents new scans,
          *     and requests cooperative cancellation of a queued or running scan.
@@ -2392,6 +2498,11 @@ export interface components {
          *     representation rules. Paths are display-only and library-relative.
          */
         Asset: {
+            /**
+             * @description Present and true for read-only ZIP/7z member assets; whole-archive actions belong to their containing directory.
+             * @enum {boolean}
+             */
+            archiveMember?: true;
             directoryId: components["schemas"]["ResourceID"];
             /** Format: int64 */
             durationMs: number | null;
@@ -2706,6 +2817,126 @@ export interface components {
          *     plaintext media-library or filesystem path and must not be parsed by a client.
          */
         Cursor: string;
+        DeletionErrorCode: components["schemas"]["ErrorCode"] | ("deletion_disabled" | "deletion_confirmation_required" | "deletion_confirmation_expired" | "deletion_busy" | "deletion_conflict" | "deletion_source_changed" | "deletion_not_found" | "deletion_permission_denied" | "deletion_unavailable");
+        DeletionErrorResponse: {
+            error: {
+                code: components["schemas"]["DeletionErrorCode"];
+                message: components["schemas"]["Error"]["message"];
+                requestId: components["schemas"]["Error"]["requestId"];
+            };
+        };
+        DeletionOperation: {
+            canResume: boolean;
+            canStop: boolean;
+            /** Format: int64 */
+            completedItems: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            failedItems: number;
+            id: string;
+            items: components["schemas"]["DeletionOperationItem"][];
+            itemsNextCursor: string | null;
+            /** @enum {string} */
+            kind: "trash" | "permanent" | "restore" | "purge";
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            state: "queued" | "running" | "reconciling" | "stopped" | "partial" | "failed" | "succeeded" | "needs_attention" | "cancelled";
+            /** Format: int64 */
+            totalItems: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DeletionOperationItem: {
+            errorCode: string | null;
+            id: string;
+            /** @enum {string} */
+            kind: "file" | "directory" | "archive";
+            libraryId: string;
+            libraryName: string;
+            name: string;
+            relativePath: string;
+            /** Format: int64 */
+            removedEntries: number;
+            /** @enum {string} */
+            state: "queued" | "running" | "trashed" | "restored" | "deleted" | "failed" | "partial" | "cancelled" | "needs_attention";
+            trashEntryId: string | null;
+        };
+        DeletionOperationPage: {
+            items: components["schemas"]["DeletionOperation"][];
+            nextCursor: string | null;
+        };
+        DeletionPreflight: {
+            canSubmit: boolean;
+            /** Format: date-time */
+            expiresAt: string | null;
+            id: string | null;
+            items: components["schemas"]["DeletionSelection"][];
+            /** @enum {string} */
+            mode: "permanent";
+            /**
+             * Format: int64
+             * @enum {integer|null}
+             */
+            retentionDays: null | 7 | 30 | 90;
+        };
+        DeletionPreflightRequest: {
+            targets: components["schemas"]["DeletionTarget"][];
+        };
+        DeletionResumeRequest: {
+            /** @enum {string} */
+            confirmation: "continue";
+        };
+        DeletionRetentionPreview: {
+            /** Format: int64 */
+            expiredEntries: number;
+        };
+        DeletionSelection: {
+            /** @enum {string|null} */
+            blockedReason: null | "root" | "archive_member" | "offline" | "changed" | "missing" | "busy" | "unreadable" | "unavailable";
+            /** @enum {string} */
+            kind: "file" | "directory" | "archive";
+            libraryId: string | null;
+            libraryName: string | null;
+            name: string | null;
+            relativePath: string | null;
+            target: components["schemas"]["DeletionTarget"];
+        };
+        DeletionSettings: {
+            available: boolean;
+            enabled: boolean;
+            recycleBinEnabled: boolean;
+            /**
+             * Format: int64
+             * @enum {integer|null}
+             */
+            retentionDays: null | 7 | 30 | 90;
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string|null} */
+            unavailableReason: null | "not_configured" | "read_only" | "unsupported" | "storage_unavailable";
+        };
+        DeletionSettingsUpdate: {
+            acknowledge: boolean;
+            enabled: boolean;
+            recycleBinEnabled: boolean;
+            /**
+             * Format: int64
+             * @enum {integer|null}
+             */
+            retentionDays: null | 7 | 30 | 90;
+        };
+        DeletionSubmit: {
+            /** @enum {string} */
+            confirmation: "permanently_delete";
+            preflightId: string;
+        };
+        DeletionTarget: {
+            id: string;
+            /** @enum {string} */
+            type: "asset" | "directory";
+        };
         DerivedCoverage: {
             complete: boolean;
             /** Format: int64 */
@@ -3685,7 +3916,11 @@ export interface components {
             /** @enum {string} */
             apiVersion: "v1";
             initialized: boolean;
-            /** @enum {boolean} */
+            /**
+             * @deprecated
+             * @description Legacy v1 constant retained for response compatibility. Finite directory-entry mutations require the separate deletion settings capability; media content bytes remain immutable.
+             * @enum {boolean}
+             */
             readOnlyMedia: true;
             /**
              * @description Degraded means the authenticated UI should inspect library and setting states.
@@ -3785,6 +4020,17 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description The media-change request could not be completed. The response uses the shared error envelope with deletion-specific codes. */
+        DeletionFailure: {
+            headers: {
+                "Cache-Control": components["headers"]["NoStore"];
+                "X-Request-ID": components["headers"]["RequestID"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["DeletionErrorResponse"];
             };
         };
         /** @description CSRF or same-origin validation failed. No protected action was executed. */
@@ -5565,6 +5811,311 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    listDeletionOperations: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                libraryId?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOperationPage"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    submitDeletion: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeletionSubmit"];
+            };
+        };
+        responses: {
+            /** @description Accepted durable operation. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOperation"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    getDeletionOperation: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOperation"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    resumeDeletionOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeletionResumeRequest"];
+            };
+        };
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOperation"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    stopDeletionOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated opaque key retained for at least 24 hours. Use a new
+                 *     key for a different logical action. Reuse with a different request body
+                 *     fails with `idempotency_conflict`. The server stores only a fixed-size
+                 *     digest of this value and never writes the plaintext key to logs.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyHeader"];
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path: {
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionOperation"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    preflightDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeletionPreflightRequest"];
+            };
+        };
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPreflight"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    getDeletionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionSettings"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
+        };
+    };
+    updateDeletionSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong ETag from the latest GET. Missing values fail with 428 and stale values with 412. */
+                "If-Match": components["parameters"]["IfMatchHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeletionSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current representation. */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionSettings"];
+                };
+            };
+            400: components["responses"]["DeletionFailure"];
+            401: components["responses"]["DeletionFailure"];
+            403: components["responses"]["DeletionFailure"];
+            404: components["responses"]["DeletionFailure"];
+            409: components["responses"]["DeletionFailure"];
+            412: components["responses"]["DeletionFailure"];
+            428: components["responses"]["DeletionFailure"];
+            429: components["responses"]["DeletionFailure"];
+            500: components["responses"]["DeletionFailure"];
+            503: components["responses"]["DeletionFailure"];
         };
     };
     listMediaFailures: {

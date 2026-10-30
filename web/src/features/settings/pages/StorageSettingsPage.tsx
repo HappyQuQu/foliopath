@@ -162,6 +162,7 @@ export function StorageSettingsPage({
           >
             {t("configuration.cacheTab")}
           </Button>
+          <Button onClick={() => navigate(paths.deletionSettings)} role="tab" variant="quiet">{t("deletion.settings")}</Button>
         </div>
 
         {(settingsQuery.isPending || cacheQuery.isPending) && (

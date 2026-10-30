@@ -55,9 +55,9 @@ func (s *Store) GetPersonMergeCheck(ctx context.Context, source, target string) 
 	}
 	if result.CannotLinkCount > 0 {
 		rows, queryErr := tx.QueryContext(ctx, `SELECT DISTINCT source.library_id,source.asset_id,target.library_id,target.asset_id`+personMergeCannotLinkFrom+`
-   JOIN assets source_asset ON source_asset.library_id=source.library_id AND source_asset.id=source.asset_id
+   JOIN visible_assets source_asset ON source_asset.library_id=source.library_id AND source_asset.id=source.asset_id
    JOIN libraries source_library ON source_library.id=source.library_id AND source_library.status='ready'
-   JOIN assets target_asset ON target_asset.library_id=target.library_id AND target_asset.id=target.asset_id
+   JOIN visible_assets target_asset ON target_asset.library_id=target.library_id AND target_asset.id=target.asset_id
    JOIN libraries target_library ON target_library.id=target.library_id AND target_library.status='ready'
    WHERE `+personMergePairPredicate+` AND source.state='bound' AND target.state='bound' AND source.current_face_id IS NOT NULL AND target.current_face_id IS NOT NULL
    ORDER BY source.library_id,source.asset_id,target.library_id,target.asset_id LIMIT ?`, source, target, face.MaxMergeConflictExamples)

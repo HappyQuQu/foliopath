@@ -64,6 +64,7 @@ export type SortOrder = "asc" | "desc";
 export type StoryboardReference = components["schemas"]["StoryboardReference"];
 
 export interface Asset {
+  archiveMember?: boolean;
   searchSources?: Array<"filename" | "path">;
   directoryId: string;
   durationMs: number | null;
@@ -401,17 +402,20 @@ export async function listDirectories({
   limit = 50,
   parentId,
   q,
+  signal,
 }: {
   cursor?: string;
   libraryId: string;
   limit?: number;
   parentId?: string;
   q?: string;
+  signal?: AbortSignal;
 }): Promise<DirectoryPage> {
   try {
     const { data, error, response } = await apiClient.GET(
       "/api/v1/libraries/{libraryId}/directories",
       {
+        ...(signal ? { signal } : {}),
         params: {
           path: { libraryId },
           query: {
