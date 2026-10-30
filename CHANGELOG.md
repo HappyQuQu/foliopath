@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.0](https://github.com/HappyQuQu/foliopath/compare/v1.9.1...v1.10.0) (2026-10-30)
+
+
+### ✨ 新功能
+
+* 支持原文件永久删除与文件管理 ([c644871](https://github.com/HappyQuQu/foliopath/commit/c6448713e8a8aa238bfbb66b9e089192c9daf051))
+
+
+### ⚠️ 注意事项
+
+* 永久删除无法恢复，目录包含隐藏和非媒体文件；升级前完整备份应用数据，回退旧版须恢复配对备份。自动发现反复完整扫描的已知问题仍未修复。 ([c644871](https://github.com/HappyQuQu/foliopath/commit/c6448713e8a8aa238bfbb66b9e089192c9daf051))
+
 ## [1.9.1](https://github.com/HappyQuQu/foliopath/compare/v1.9.0...v1.9.1) (2026-10-29)
 
 
