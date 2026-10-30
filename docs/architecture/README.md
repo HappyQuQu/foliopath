@@ -34,6 +34,7 @@ S1-101 Contract Ready，但当前仍没有可用的业务 handler。认证 servi
 
 | 关注点 | 权威入口 | 回答的问题 |
 | --- | --- | --- |
+| 媒体删除与回收站 | [删除交互与后台方案](media-deletion-contract.md)、[ADR-0042](../adr/0042-media-deletion-and-trash.md) | 默认只读如何扩展为显式删除；确认、恢复、任务、写边界及故障恢复如何协作；S1/S2 本地 Go、S3 页面接入、S4 发布 No-Go |
 | 系统边界与运行形态 | [系统上下文与运行视图](system-context.md) | 系统与用户、NAS、代理、卷、SQLite 和媒体工具如何交互 |
 | 模块与运行规则 | [模块、数据与运行时边界](modules.md) | 谁拥有规则、接口、事务、任务、错误、配置和并发 |
 | 范围与交付治理 | [交付与架构治理](delivery-governance.md) | 什么进入版本、如何变更、为何后端优先、何时能进入下一 Gate |

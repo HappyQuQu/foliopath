@@ -1,3 +1,4 @@
+import { AssetDeletionAction, useDeletionFlow, useDeletionSelection } from "../../deletion";
 import { AssetExifPanel } from "../../media";
 import {
   ArrowClockwise,
@@ -91,6 +92,7 @@ export function SearchPage({
   session: AuthenticatedSession;
 }) {
   const { locale, t } = useLocale();
+  const deletion = useDeletionFlow(session);
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -120,6 +122,7 @@ export function SearchPage({
     items: assets,
     resetKey: libraryId ?? "all-libraries",
   });
+  const selection = useDeletionSelection({ flow: deletion, scope: `${location.pathname}:${searchParams}`, loadedTargets: assets.map(item => ({ type: "asset" as const, id: item.id })), assets, onEnter: preview.close, onAccepted: preview.close });
   const previewAsset = preview.previewItem;
   const previewItem = useMemo<MediaPreviewItem | undefined>(
     () =>
@@ -266,6 +269,7 @@ export function SearchPage({
       topbarContent={<span>{t(state.scope === "all" ? "search.scopeAll" : state.scope === "directory" ? "search.scopeDirectory" : "search.scopeLibrary")}{state.scope !== "all" && currentLibrary ? ` · ${currentLibrary.name}` : ""}</span>}
       title={t("search.title")}
     >
+      {deletion.dialog}
       <section className={styles.page} aria-labelledby="search-heading">
         <div
           className={styles.workspace}
@@ -301,6 +305,7 @@ export function SearchPage({
             {t("search.refresh")}
           </Button>
         </div>
+        {selection.toolbar}
         </header>
 
           {!state.q && (
@@ -368,6 +373,7 @@ export function SearchPage({
               <div className={styles.media}>
               <MediaCollection
                 ref={preview.collectionRef}
+                {...(selection.mediaSelection ? { selection: selection.mediaSelection } : {})}
                 hasNextPage={resultsQuery.hasNextPage}
                 isFetchingNextPage={resultsQuery.isFetching}
                 items={mediaItems}
@@ -455,10 +461,10 @@ export function SearchPage({
                     </> : source !== "semantic" ? <p>{source === "filename" ? previewAsset.name : previewAsset.relativePath}</p> : null}
                   </div>)}
                 </section> : null}
-                <AssetCurationControls
+                <><AssetCurationControls
                   assetId={previewAsset.id}
                   csrfToken={session.csrfToken}
-                />
+                /><AssetDeletionAction flow={deletion} asset={previewAsset} onAccepted={preview.close} /></>
                 </>
               ) : undefined
             }

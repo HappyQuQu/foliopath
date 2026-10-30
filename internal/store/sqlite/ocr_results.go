@@ -16,7 +16,7 @@ func nextOCRCandidate(ctx context.Context, q queryRower, j ocr.Job) (ocr.Candida
 	var c ocr.Candidate
 	// A current failed source is excluded from missing to avoid poison loops.
 	// Explicit retry_failed revisits failures only, never already-ready images.
-	err := q.QueryRowContext(ctx, `SELECT a.id,a.source_fingerprint FROM assets a
+	err := q.QueryRowContext(ctx, `SELECT a.id,a.source_fingerprint FROM visible_assets a
  LEFT JOIN ocr_asset_results r ON r.library_id=a.library_id AND r.asset_id=a.id AND r.fingerprint=? AND r.source_fingerprint=a.source_fingerprint
  WHERE a.library_id=? AND a.kind IN ('image','animated') AND a.archive_path = '' AND a.id>? AND a.id<=?
  AND ((?='missing' AND r.asset_id IS NULL) OR (?='retry_failed' AND r.outcome='failed'))
@@ -98,7 +98,7 @@ func (s *Store) GetCurrentOCRResult(ctx context.Context, libraryID, assetID int6
 	}
 	err := s.db.QueryRowContext(ctx, `SELECT r.asset_id,r.source_fingerprint,r.fingerprint,r.outcome,r.error_code,r.width,r.height,r.lines_json
  FROM ocr_asset_results r JOIN ocr_library_settings s ON s.library_id=r.library_id AND s.fingerprint=r.fingerprint
- JOIN libraries l ON l.id=r.library_id JOIN assets a ON a.library_id=r.library_id AND a.id=r.asset_id AND a.source_fingerprint=r.source_fingerprint
+ JOIN libraries l ON l.id=r.library_id JOIN visible_assets a ON a.library_id=r.library_id AND a.id=r.asset_id AND a.source_fingerprint=r.source_fingerprint
  WHERE r.library_id=? AND r.asset_id=? AND s.enabled=1 AND s.clearing=0 AND l.status='ready' AND a.kind IN ('image','animated') AND a.archive_path = ''`, libraryID, assetID).Scan(&v.AssetID, &v.SourceFingerprint, &v.Fingerprint, &v.Outcome, &v.ErrorCode, &v.Width, &v.Height, &raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return v, false, nil

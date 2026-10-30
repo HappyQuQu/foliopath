@@ -28,6 +28,7 @@ var (
 	ErrInvalidLibraryCursor  = errors.New("invalid library cursor")
 	ErrPreconditionFailed    = errors.New("library precondition failed")
 	ErrRemovalActive         = errors.New("library removal is active")
+	ErrMediaDeletionPending  = errors.New("library has media deletion or trash entries")
 	ErrRemovalNotFound       = errors.New("library removal not found")
 	ErrRootUnavailable       = errors.New("library root is unavailable")
 	ErrRootSymlink           = errors.New("library root contains a symbolic link")

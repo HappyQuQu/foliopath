@@ -7,6 +7,7 @@ import {
   GearSix,
   Info,
   UserCircle,
+  Files,
 } from "@phosphor-icons/react";
 import type { ComponentType, ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
@@ -17,6 +18,7 @@ import styles from "./ManagementShell.module.css";
 
 export type ManagementSection =
   | "general"
+  | "files"
   | "libraries"
   | "ai"
   | "storage"
@@ -32,7 +34,8 @@ const navigation: Array<{
     | "generalHref"
     | "librariesHref"
     | "logsHref"
-    | "storageHref";
+    | "storageHref"
+    | "filesHref";
   icon: ComponentType<{ "aria-hidden": "true"; size: number }>;
   key: MessageKey;
   section: ManagementSection;
@@ -49,6 +52,7 @@ const navigation: Array<{
     key: "shell.libraries",
     section: "libraries",
   },
+  { hrefKey: "filesHref", icon: Files, key: "deletion.files", section: "files" },
   {
     hrefKey: "aiHref",
     icon: Brain,
@@ -86,6 +90,7 @@ export function ManagementShell({
   identity,
   librariesHref,
   logsHref = "/settings/logs",
+  filesHref = "/files?view=tasks",
   logoutPending,
   onLogout,
   peopleHref = "/intelligence?view=clusters",
@@ -102,6 +107,7 @@ export function ManagementShell({
   identity: string;
   librariesHref: string;
   logsHref?: string;
+  filesHref?: string;
   logoutPending?: boolean | undefined;
   onLogout?: (() => Promise<void>) | undefined;
   peopleHref?: string | undefined;
@@ -116,6 +122,7 @@ export function ManagementShell({
     generalHref,
     librariesHref,
     logsHref,
+    filesHref,
     storageHref,
   };
 

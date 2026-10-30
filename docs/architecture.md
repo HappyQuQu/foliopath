@@ -1,3 +1,5 @@
+2026-10-30：ADR-0042/0043 的 opt-in 删除/回收/恢复已实现合同和本地后端；deletion 用例、files 内核写隔离、持久操作、统一可见性保持单媒体根和既有部署单元。默认只读和真实实例不变，生产镜像/双原生/容量及发布仍待 S4。见[方案](architecture/media-deletion-contract.md)与[后端准入](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。
+
 2026-10-29：[ADR-0041](adr/0041-read-only-7z-images.md)接受7z图片来源和files拥有的有界原生解码器，复用ZIP目录/API/来源合同；实施见[CR-2026-056](changes/CR-2026-056-7z-image-browsing.md)。
 
 2026-10-29：[ADR-0040 ZIP 只读图片来源](adr/0040-read-only-zip-images.md)扩展派生目录/资产来源合同，复用模块边界、文件锚定及既有有界任务。[ZIP-S1 合同](architecture/zip-source-contract.md)与[实施 Gate](changes/CR-2026-055-zip-image-browsing.md)。

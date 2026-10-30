@@ -23,7 +23,7 @@ func (s *Store) ListMediaFailures(
                attempt.duration_ms, attempt.finished_at_ms
         FROM media_jobs AS job
         JOIN libraries AS library ON library.id = job.library_id
-        JOIN assets AS asset
+        JOIN visible_assets AS asset
           ON asset.library_id = job.library_id AND asset.id = job.asset_id
         LEFT JOIN media_job_attempts AS attempt
           ON attempt.id = (
@@ -121,7 +121,7 @@ func (s *Store) GetMediaFailure(
                job.attempt_count, job.finished_at_ms, job.created_at_ms
         FROM media_jobs AS job
         JOIN libraries AS library ON library.id = job.library_id
-        JOIN assets AS asset
+        JOIN visible_assets AS asset
           ON asset.library_id = job.library_id AND asset.id = job.asset_id
         WHERE job.id = ? AND job.status = 'failed'`, jobID,
 	).Scan(

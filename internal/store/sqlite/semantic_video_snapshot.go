@@ -53,7 +53,7 @@ func (s *Store) GetVideoSemanticSearchSnapshot(ctx context.Context, scope semant
 		}
 		if scope.DirectoryID > 0 {
 			var exists int
-			err = tx.QueryRowContext(ctx, `SELECT 1 FROM directories WHERE library_id=? AND id=?`, scope.LibraryID, scope.DirectoryID).Scan(&exists)
+			err = tx.QueryRowContext(ctx, `SELECT 1 FROM visible_directories AS directories WHERE library_id=? AND id=?`, scope.LibraryID, scope.DirectoryID).Scan(&exists)
 			if errors.Is(err, sql.ErrNoRows) {
 				return semantic.VideoSearchSnapshot{}, semantic.ErrSemanticScopeNotFound
 			}

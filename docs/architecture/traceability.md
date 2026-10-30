@@ -1,3 +1,7 @@
+2026-10-30 / FR-BRW-016/017 / POST-MVP NAV-S1：browse DirectoryTree 统一拥有展开状态与菜单目标，复用既有目录 query/游标和共享菜单/焦点 owner；删除转交 deletion 公共入口。顶部菜单、桌面右键及有界全展开/全收起见[CR-2026-059](../changes/CR-2026-059-directory-tree-actions.md)。生产组件和现有目录合同已接入，有界大树及 16 组响应式证据见 CR。
+
+2026-10-30 / FR-DEL-001～010、NFR-DEL-001～004、NFR-SAFE-001 / POST-MVP DELETE-S3：deletion 拥有删除/回收/恢复用例；files 独占真实写边界，SQLite 持有操作日志/隔离/回收命名空间，scanner/catalog/search 与各派生 owner 消费唯一隔离规则，app 复用 jobs/resourcecontrol。合同、迁移 00049、后台和本地 fitness 已实现；S1/S2 本地 Go，S3 UI 接入，S4 发布仍 No-Go，见[CR](../changes/CR-2026-058-media-deletion-and-trash.md)。
+
 2026-10-29 / FR-BRW-014/015、FR-UI-001～003/006、FR-OPS-001～006 / Post-MVP维护：沉浸浏览与关于页经PR #74/#75随v1.9.1发布，main/AI双原生验证及两个推广任务全部成功；222经停机完整备份/恢复验证升级主应用，AI身份及原挂载不变。Owner/合同和25项发行输入边界不变，见[发布记录](../changes/RELEASE-2026-10-29-v1.9.1.md)。
 
 2026-10-29 / FR-UI-001～003/006、FR-OPS-001～006 / Post-MVP维护：release-info/AboutPage拥有项目概览与资源导航，继续消费既有SystemStatus/ReleaseInformation；版本比较与缓存仍由releaseinfo拥有。无API、持久化或部署变化，沿用Backend Ready；生产Story、更新状态回归与响应式证据见[记录](../changes/FIX-2026-10-29-about-project-overview.md).
@@ -757,3 +761,5 @@ POST-MVP-5 P6；FR-INT-017/019/020、NFR-INT-007/009/010。Owner app配置装配
 ### CR-2026-054：精简拍摄信息与预览修正
 
 POST-MVP-5维护；FR-EXIF-001～003由media.ExifService、imagevips固定标签适配、API只读合同及media feature共同实现。ContentService/files拥有源打开与指纹，resourcecontrol/imagevips拥有既有内容/内存准入；不新增持久化或调度。S0合同先行，S1原生合成图片及HTTP/服务测试，S2正式预览/查看器组件和响应式验证。测试源保持本地，发行输入白名单不变。
+
+2026-10-30：原文件永久删除发布验收见 [DELETE-S4](../gates/POST-MVP-DELETE/delete-s4-release.md)；当前操作以 CR-2026-060 及 README 开启说明为准，旧回收阶段材料作为历史证据。

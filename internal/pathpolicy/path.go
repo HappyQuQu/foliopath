@@ -13,6 +13,21 @@ import (
 
 var ErrInvalid = errors.New("unsafe relative path")
 
+const TrashDirectory = ".foliopath-trash"
+
+func NormalizeMedia(relative string) (string, error) {
+	value, err := Normalize(relative)
+	if err != nil {
+		return "", err
+	}
+	for _, component := range strings.Split(value, "/") {
+		if component == TrashDirectory {
+			return "", invalid("reserved media directory")
+		}
+	}
+	return value, nil
+}
+
 // Normalize validates a slash-separated relative path while preserving its
 // original bytes. Percent-decoded views are inspected only for ambiguous path
 // controls and are never returned for filesystem access.

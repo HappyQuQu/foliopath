@@ -1,6 +1,7 @@
 import {
   type InfiniteData,
   type QueryClient,
+  infiniteQueryOptions,
   useInfiniteQuery,
   useQuery,
 } from "@tanstack/react-query";
@@ -102,7 +103,7 @@ export async function refreshCatalogScope(
   );
 }
 
-export function useDirectoriesQuery({
+export function directoryQueryOptions({
   enabled = true,
   libraryId,
   parentId,
@@ -113,11 +114,12 @@ export function useDirectoriesQuery({
   parentId?: string | undefined;
   q?: string | undefined;
 }) {
-  return useInfiniteQuery({
+  return infiniteQueryOptions({
     queryKey: catalogKeys.directories(libraryId, parentId, q),
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam, signal }) =>
       listDirectories({
         libraryId,
+        signal,
         ...(parentId ? { parentId } : {}),
         ...(q ? { q } : {}),
         ...(pageParam ? { cursor: pageParam } : {}),
@@ -127,6 +129,10 @@ export function useDirectoriesQuery({
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 15_000,
   });
+}
+
+export function useDirectoriesQuery(params: Parameters<typeof directoryQueryOptions>[0]) {
+  return useInfiniteQuery(directoryQueryOptions(params));
 }
 
 export function useAssetsQuery({

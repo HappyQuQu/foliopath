@@ -30,7 +30,7 @@ func (s *Store) CountSemanticBackfillCandidates(ctx context.Context, libraryID i
 	var counts semantic.BackfillCandidateCounts
 	err = s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*), COALESCE(SUM(CASE WHEN `+where+` THEN 1 ELSE 0 END), 0)
-        FROM assets AS asset
+        FROM visible_assets AS asset
         LEFT JOIN semantic_embeddings AS embedding
           ON embedding.generation_id = ? AND embedding.library_id = asset.library_id
          AND embedding.asset_id = asset.id
@@ -59,7 +59,7 @@ func (s *Store) ListSemanticBackfillCandidates(
 	}
 	rows, err := s.db.QueryContext(ctx, `
         SELECT asset.id, asset.source_fingerprint
-        FROM assets AS asset
+        FROM visible_assets AS asset
         LEFT JOIN semantic_embeddings AS embedding
           ON embedding.generation_id = ? AND embedding.library_id = asset.library_id
          AND embedding.asset_id = asset.id

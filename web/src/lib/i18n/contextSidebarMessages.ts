@@ -1,4 +1,9 @@
 export const contextSidebarZh = {
+  "context.directoryActions": "操作",
+  "context.expandAllDirectories": "全部展开",
+  "context.collapseAllDirectories": "全部收起",
+  "context.expandBranch": "展开此文件夹",
+  "context.collapseBranch": "收起此文件夹",
   "context.scope": "工作区范围",
   "context.backToMedia": "返回媒体库",
   "context.openManagement": "打开管理导航",
@@ -18,6 +23,11 @@ export const contextSidebarZh = {
   "context.similarityOrder": "按画面相似度排序",
 } as const;
 export const contextSidebarEn: Record<keyof typeof contextSidebarZh, string> = {
+  "context.directoryActions": "Actions",
+  "context.expandAllDirectories": "Expand all",
+  "context.collapseAllDirectories": "Collapse all",
+  "context.expandBranch": "Expand this folder",
+  "context.collapseBranch": "Collapse this folder",
   "context.scope": "Workspace scope",
   "context.backToMedia": "Back to library",
   "context.openManagement": "Open management navigation",

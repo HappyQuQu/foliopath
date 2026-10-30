@@ -22,12 +22,12 @@ func removeVideoSemanticCandidates(ctx context.Context, tx *sql.Tx, libraryID, g
  SELECT p.generation_id, COUNT(asset.id) AS eligible,
    COALESCE(SUM(CASE WHEN `+currentPlan+` THEN 1 ELSE 0 END),0) AS ready
  FROM semantic_video_progress p
- LEFT JOIN assets asset ON asset.library_id=p.library_id AND asset.kind='video'
+ LEFT JOIN visible_assets asset ON asset.library_id=p.library_id AND asset.kind='video'
    AND asset.last_seen_generation>=?
  LEFT JOIN thumbnails thumbnail ON thumbnail.library_id=asset.library_id
    AND thumbnail.asset_id=asset.id AND thumbnail.variant='storyboard'
  WHERE p.library_id=? AND EXISTS (
-   SELECT 1 FROM assets removed WHERE removed.library_id=p.library_id
+   SELECT 1 FROM visible_assets removed WHERE removed.library_id=p.library_id
      AND removed.kind='video' AND removed.last_seen_generation<?)
  GROUP BY p.generation_id
  ) UPDATE semantic_video_progress AS p SET
@@ -47,7 +47,7 @@ func invalidateVideoSemanticSource(ctx context.Context, tx *sql.Tx, libraryID, a
 	currentPlan := strings.ReplaceAll(completeCurrentVideoPlan, "?", "p.generation_id")
 	_, err := tx.ExecContext(ctx, `WITH live AS MATERIALIZED (
  SELECT p.generation_id, (
-   SELECT COUNT(*) FROM assets asset
+   SELECT COUNT(*) FROM visible_assets asset
    LEFT JOIN thumbnails thumbnail ON thumbnail.library_id=asset.library_id
      AND thumbnail.asset_id=asset.id AND thumbnail.variant='storyboard'
    WHERE asset.library_id=p.library_id AND asset.kind='video' AND (`+currentPlan+`)

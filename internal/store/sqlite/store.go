@@ -244,7 +244,7 @@ func (s *Store) backfillCatalogSearchKeys(ctx context.Context) error {
 	for {
 		rows, err := s.db.QueryContext(ctx, `
             SELECT id, name, relative_path
-            FROM assets
+            FROM visible_assets AS assets
             WHERE search_name_key = '' OR search_path_key = ''
             ORDER BY id
             LIMIT ?`,
@@ -295,7 +295,7 @@ func (s *Store) backfillDirectorySearchKeys(ctx context.Context) error {
 	for {
 		rows, err := s.db.QueryContext(ctx, `
             SELECT id, name
-            FROM directories
+            FROM visible_directories AS directories
             WHERE search_name_key = '' AND name <> ''
             ORDER BY id
             LIMIT ?`,

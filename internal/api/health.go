@@ -54,6 +54,7 @@ type RouteDependencies struct {
 	SystemLogs          SystemLogService
 	ReleaseInfo         ReleaseInfoService
 	Settings            SettingsService
+	Deletion            DeletionService
 	Catalog             CatalogService
 	Curation            CurationService
 	Thumbnails          ThumbnailService
@@ -140,6 +141,9 @@ func NewRoutes(dependencies RouteDependencies) (http.Handler, error) {
 	}
 	if dependencies.Settings != nil {
 		registerSettingsRoutes(mux, dependencies.Settings)
+	}
+	if dependencies.Deletion != nil {
+		registerDeletionRoutes(mux, dependencies.Deletion)
 	}
 	if dependencies.Catalog != nil {
 		registerCatalogRoutes(mux, dependencies.Catalog)

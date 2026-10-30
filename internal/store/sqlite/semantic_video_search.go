@@ -27,9 +27,9 @@ func (s *Store) SearchVideoSemanticVectors(ctx context.Context, request semantic
 	arguments := make([]any, 0, 6)
 	if request.DirectoryID > 0 && request.Recursive {
 		prefix = `WITH RECURSIVE subtree(id) AS (
-            SELECT id FROM directories WHERE library_id=? AND id=?
+            SELECT id FROM visible_directories AS directories WHERE library_id=? AND id=?
             UNION ALL
-            SELECT child.id FROM directories child JOIN subtree parent ON child.parent_id=parent.id
+            SELECT child.id FROM visible_directories child JOIN subtree parent ON child.parent_id=parent.id
             WHERE child.library_id=?
         ) `
 		arguments = append(arguments, request.LibraryID, request.DirectoryID, request.LibraryID)
@@ -38,7 +38,7 @@ func (s *Store) SearchVideoSemanticVectors(ctx context.Context, request semantic
         SELECT frame.library_id, frame.asset_id, frame.plan_size, frame.ordinal,
                frame.timestamp_ms, frame.vector
         FROM semantic_video_frames frame
-        JOIN assets asset ON asset.library_id=frame.library_id AND asset.id=frame.asset_id
+        JOIN visible_assets asset ON asset.library_id=frame.library_id AND asset.id=frame.asset_id
         JOIN libraries library ON library.id=frame.library_id AND library.status <> 'offline'
         JOIN ai_library_settings setting ON setting.library_id=frame.library_id AND setting.enabled=1
         JOIN thumbnails storyboard ON storyboard.library_id=frame.library_id

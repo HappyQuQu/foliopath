@@ -66,7 +66,7 @@ func (s *Store) ResolveScope(
 	var rootDirectoryID int64
 	err := s.db.QueryRowContext(ctx, `
         SELECT id
-        FROM directories
+        FROM visible_directories AS directories
         WHERE library_id = ? AND relative_path = ''`,
 		libraryID,
 	).Scan(&rootDirectoryID)
@@ -81,7 +81,7 @@ func (s *Store) ResolveScope(
 		var exists int64
 		if err := s.db.QueryRowContext(ctx, `
             SELECT id
-            FROM directories
+            FROM visible_directories AS directories
             WHERE library_id = ? AND id = ?`,
 			libraryID, selectedDirectoryID,
 		).Scan(&exists); err != nil {
@@ -121,11 +121,11 @@ func (s *Store) ListDirectoryPage(
         SELECT id, library_id, parent_id, relative_path, name, natural_name_key,
                direct_asset_count, recursive_asset_count,
                EXISTS(
-                   SELECT 1 FROM directories child
+                   SELECT 1 FROM visible_directories child
                    WHERE child.library_id = directories.library_id
                      AND child.parent_id = directories.id
                ), archive_path, archive_status, ` + directoryCoverSQL("directories") + `
-        FROM directories
+        FROM visible_directories AS directories
         WHERE library_id = ? AND parent_id = ?`
 	args := []any{params.Scope.LibraryID, params.Scope.DirectoryID}
 	for _, term := range params.SearchTerms {
@@ -203,7 +203,7 @@ func (s *Store) GetDirectoryLineage(
 	var libraryName string
 	if err := s.db.QueryRowContext(ctx, `
         SELECT d.library_id, l.name
-        FROM directories d
+        FROM visible_directories d
         JOIN libraries l ON l.id = d.library_id
         WHERE d.id = ?`,
 		directoryID,
@@ -237,11 +237,11 @@ func (s *Store) GetDirectoryLineage(
                    d.natural_name_key, d.direct_asset_count,
                    d.recursive_asset_count,
                    EXISTS(
-                       SELECT 1 FROM directories child
+                       SELECT 1 FROM visible_directories child
                        WHERE child.library_id = d.library_id
                          AND child.parent_id = d.id
                    ), d.archive_path, d.archive_status, `+directoryCoverSQL("d")+`
-            FROM directories d
+            FROM visible_directories d
             WHERE d.id = ? AND d.library_id = ?`,
 			currentID, libraryID,
 		).Scan(
@@ -278,13 +278,13 @@ func (s *Store) GetDirectoryLineage(
 }
 
 func directoryCoverSQL(directory string) string {
-	ready := `SELECT a.id FROM assets a
+	ready := `SELECT a.id FROM visible_assets a
         JOIN thumbnails t ON t.asset_id = a.id
           AND t.variant = 'grid' AND t.status = 'ready' AND t.source_fingerprint = a.source_fingerprint
           AND t.transform_version = ` + strconv.Itoa(thumbnail.GridTransformVersion) + `
         WHERE a.library_id = ` + directory + `.library_id
           AND (a.archive_path = '' OR EXISTS (
-            SELECT 1 FROM directories archive
+            SELECT 1 FROM visible_directories archive
             WHERE archive.library_id = a.library_id AND archive.relative_path = a.archive_path
               AND archive.archive_status = 'ready'
           ))`
@@ -353,7 +353,7 @@ func (s *Store) ListAssetPage(
             SELECT ?
             UNION
             SELECT d.id
-            FROM directories d
+            FROM visible_directories d
             JOIN subtree parent ON d.parent_id = parent.id
             WHERE d.library_id = ?
         )`)
@@ -373,6 +373,7 @@ func (s *Store) ListAssetPage(
                l.status,
                EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
         FROM assets a INDEXED BY ` + assetOrderIndex(params.Query) + `
+        JOIN visible_assets visibility ON visibility.id=a.id
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard
@@ -535,7 +536,7 @@ func (s *Store) CountAssets(
         WITH RECURSIVE subtree(id) AS (
             SELECT ?
             UNION
-            SELECT d.id FROM directories d
+            SELECT d.id FROM visible_directories d
             JOIN subtree parent ON d.parent_id = parent.id
             WHERE d.library_id = ?
         )`)
@@ -549,11 +550,11 @@ func (s *Store) CountAssets(
 		// Keep FTS as the driving table even with a library predicate. Otherwise
 		// SQLite may probe MATCH once per library asset via its library index.
 		builder.WriteString(`
-        FROM asset_search CROSS JOIN assets a
+        FROM asset_search CROSS JOIN visible_assets a
         WHERE asset_search.rowid = a.id AND asset_search MATCH ?`)
 		args = append(args, anchor)
 	} else {
-		builder.WriteString(` FROM assets a WHERE 1 = 1`)
+		builder.WriteString(` FROM visible_assets a WHERE 1 = 1`)
 	}
 	switch query.ScopeKind {
 	case catalog.ScopeGlobal:
@@ -681,7 +682,7 @@ const catalogAssetProjectionSQL = `
                storyboard.cell_height,
                l.status,
                EXISTS(SELECT 1 FROM asset_favorites favorite WHERE favorite.asset_id = a.id)
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = 'grid'
         LEFT JOIN thumbnails storyboard

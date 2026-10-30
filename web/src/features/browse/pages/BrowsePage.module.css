@@ -581,6 +581,23 @@
   padding-bottom: var(--space-5);
 }
 
+.directoryTreeHeader {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.directoryTreeHeader p { margin: 0; }
+.directoryTreeHeader button > span { display: flex; align-items: center; gap: var(--space-1); }
+.directoryTreeCanvas { position: relative; }
+.directoryTreePosition { position: absolute; top: 0; left: 0; width: 100%; }
+.directoryTreePosition .treeRow { min-height: var(--size-control-sm); }
+.treeRow.directoryTreeLoad { display: grid; justify-items: start; }
+
 .treeRow {
   display: flex;
   align-items: center;
@@ -1060,3 +1077,8 @@
 @media (prefers-reduced-motion: reduce) {
   .browseControlsSlot[data-compact] .browseControls { animation: none; }
 }
+
+.folderCardWrapper { position: relative; min-width: 0; }
+.folderSelection { position: absolute; inset: 0; padding: var(--space-3); z-index: var(--layer-card-control); cursor: pointer; }
+.folderCardWrapper:has(.folderSelection input:checked) { outline: var(--focus-width) solid var(--color-accent); border-radius: var(--radius-2); }
+.folderCardWrapper:has(.folderSelection input:focus-visible) { outline: var(--focus-width) solid var(--color-focus); }

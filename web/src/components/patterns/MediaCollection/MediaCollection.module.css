@@ -352,3 +352,6 @@
     animation: none;
   }
 }
+
+.selectionTrigger { position: absolute; inset: 0; z-index: var(--layer-card-control); padding: var(--space-3); cursor: pointer; }
+.card:has(.selectionTrigger input:focus-visible) { outline: var(--focus-width) solid var(--color-focus); }

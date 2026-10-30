@@ -1,0 +1,14 @@
+# Explicit opt-in for permanent deletion; see ADR-0044 / CR-2026-060.
+# The administrator must also enable deletion in File management settings.
+# Merge LAST with the chosen base and all existing AI/data overlays.
+services:
+  foliopath:
+    environment:
+      FOLIOPATH_MEDIA_MUTATIONS: "true"
+    volumes:
+      - type: bind
+        source: ${FOLIOPATH_LIBRARY_PATH:?Set the existing single media root explicitly}
+        target: /library
+        read_only: false
+        bind:
+          create_host_path: false

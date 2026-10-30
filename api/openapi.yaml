@@ -26,7 +26,7 @@ x-foliopath-contract:
   targetVersion: POST-MVP-5
   scopeRevision: 2
   baselineEvent: CR-2026-021
-  additiveChanges: [CR-2026-026, CR-2026-031, CR-2026-035, CR-2026-050, CR-2026-051]
+  additiveChanges: [CR-2026-026, CR-2026-031, CR-2026-035, CR-2026-050, CR-2026-051, CR-2026-058]
 x-foliopath-search-profile:
   version: 1
   fields: [name, libraryRelativePath]
@@ -44,6 +44,8 @@ servers:
 security:
   - cookieAuth: []
 tags:
+  - name: Deletion
+    description: Explicitly authorized original-file deletion, recovery and durable progress.
   - name: OCR
     description: Explicitly configured, per-library OCR administration; no plaintext or search.
   - name: Health
@@ -1056,7 +1058,9 @@ paths:
         Accepts an asynchronous, restart-safe cleanup of configuration, index,
         jobs, and derived cache only. It never moves, edits, or deletes original
         media. The library remains identifiable until cleanup succeeds; poll
-        the returned removal resource.
+        the returned removal resource. Libraries with trash or unfinished file
+        operations cannot be removed; complete those operations and restore or
+        clear trash first. This policy refusal returns `forbidden`.
 
         Acceptance atomically creates the durable removal, prevents new scans,
         and requests cooperative cancellation of a queued or running scan.
@@ -1068,11 +1072,11 @@ paths:
       security:
         - cookieAuth: []
           csrfToken: []
-      x-requirements: [FR-LIB-007, NFR-SAFE-001, MVP-AC-008]
+      x-requirements: [FR-LIB-007, FR-DEL-010, NFR-SAFE-001, MVP-AC-008]
       x-error-codes:
         '400': [invalid_request]
         '401': [authentication_required, session_expired]
-        '403': [csrf_invalid]
+        '403': [csrf_invalid, forbidden]
         '404': [library_not_found]
         '409': [idempotency_conflict]
         '412': [precondition_failed]
@@ -5153,6 +5157,364 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/deletion/settings":
+    "get":
+      "tags": ["Deletion"]
+      "operationId": "getDeletionSettings"
+      "summary": "Get original-file deletion policy and availability"
+      "x-requirements": ["FR-DEL-002", "FR-DEL-003", "FR-DEL-004", "FR-DEL-009", "NFR-DEL-001", "NFR-DEL-002"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionSettings"
+          "headers":
+            "ETag":
+              "$ref": "#/components/headers/ETag"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+    "patch":
+      "tags": ["Deletion"]
+      "operationId": "updateDeletionSettings"
+      "summary": "Explicitly change original-file deletion policy"
+      "x-requirements": ["FR-DEL-002", "FR-DEL-003", "FR-DEL-004", "FR-DEL-009", "NFR-DEL-001", "NFR-DEL-002"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionSettings"
+          "headers":
+            "ETag":
+              "$ref": "#/components/headers/ETag"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "$ref": "#/components/parameters/IfMatchHeader"
+      "requestBody":
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/DeletionSettingsUpdate"
+  "/api/v1/deletion/preflight":
+    "post":
+      "tags": ["Deletion"]
+      "operationId": "preflightDeletion"
+      "summary": "Check bounded selections without recursively counting files"
+      "x-requirements": ["FR-DEL-001", "FR-DEL-008", "NFR-DEL-001", "NFR-DEL-003"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionPreflight"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "requestBody":
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/DeletionPreflightRequest"
+  "/api/v1/deletion/operations":
+    "get":
+      "tags": ["Deletion"]
+      "operationId": "listDeletionOperations"
+      "summary": "List durable media-change operations"
+      "x-requirements": ["FR-DEL-001", "FR-DEL-005", "FR-DEL-007", "FR-DEL-008", "NFR-DEL-002", "NFR-DEL-003"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionOperationPage"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "name": "libraryId"
+          "in": "query"
+          "required": false
+          "schema":
+            "type": "string"
+        - "name": "cursor"
+          "in": "query"
+          "required": false
+          "schema":
+            "type": "string"
+        - "name": "limit"
+          "in": "query"
+          "required": false
+          "schema":
+            "type": "integer"
+            "minimum": 1
+            "maximum": 50
+            "default": 25
+    "post":
+      "tags": ["Deletion"]
+      "operationId": "submitDeletion"
+      "summary": "Queue the exact confirmed selection and policy"
+      "x-requirements": ["FR-DEL-001", "FR-DEL-005", "FR-DEL-007", "FR-DEL-008", "NFR-DEL-002", "NFR-DEL-003"]
+      "responses":
+        "202":
+          "description": "Accepted durable operation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionOperation"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "$ref": "#/components/parameters/IdempotencyKeyHeader"
+      "requestBody":
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/DeletionSubmit"
+  "/api/v1/deletion/operations/{operationId}":
+    "get":
+      "tags": ["Deletion"]
+      "operationId": "getDeletionOperation"
+      "summary": "Get durable media-change progress and per-item outcomes"
+      "x-requirements": ["FR-DEL-005", "NFR-DEL-002", "NFR-DEL-003"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionOperation"
+          "headers":
+            "ETag":
+              "$ref": "#/components/headers/ETag"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "name": "operationId"
+          "in": "path"
+          "required": true
+          "schema":
+            "type": "string"
+        - "name": "cursor"
+          "in": "query"
+          "schema":
+            "type": "string"
+            "maxLength": 2048
+        - "name": "limit"
+          "in": "query"
+          "schema":
+            "type": "integer"
+            "minimum": 1
+            "maximum": 50
+            "default": 25
+  "/api/v1/deletion/operations/{operationId}/stop":
+    "post":
+      "tags": ["Deletion"]
+      "operationId": "stopDeletionOperation"
+      "summary": "Stop future changes without rollback"
+      "x-requirements": ["FR-DEL-005", "FR-DEL-009", "NFR-DEL-002"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionOperation"
+          "headers":
+            "ETag":
+              "$ref": "#/components/headers/ETag"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "name": "operationId"
+          "in": "path"
+          "required": true
+          "schema":
+            "type": "string"
+        - "$ref": "#/components/parameters/IfMatchHeader"
+        - "$ref": "#/components/parameters/IdempotencyKeyHeader"
+  "/api/v1/deletion/operations/{operationId}/resume":
+    "post":
+      "tags": ["Deletion"]
+      "operationId": "resumeDeletionOperation"
+      "summary": "Explicitly continue unfinished original targets"
+      "x-requirements": ["FR-DEL-005", "FR-DEL-009", "NFR-DEL-002"]
+      "responses":
+        "200":
+          "description": "Current representation."
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/DeletionOperation"
+          "headers":
+            "ETag":
+              "$ref": "#/components/headers/ETag"
+        "400":
+          "$ref": "#/components/responses/DeletionFailure"
+        "401":
+          "$ref": "#/components/responses/DeletionFailure"
+        "403":
+          "$ref": "#/components/responses/DeletionFailure"
+        "404":
+          "$ref": "#/components/responses/DeletionFailure"
+        "409":
+          "$ref": "#/components/responses/DeletionFailure"
+        "412":
+          "$ref": "#/components/responses/DeletionFailure"
+        "428":
+          "$ref": "#/components/responses/DeletionFailure"
+        "429":
+          "$ref": "#/components/responses/DeletionFailure"
+        "500":
+          "$ref": "#/components/responses/DeletionFailure"
+        "503":
+          "$ref": "#/components/responses/DeletionFailure"
+      "parameters":
+        - "name": "operationId"
+          "in": "path"
+          "required": true
+          "schema":
+            "type": "string"
+        - "$ref": "#/components/parameters/IfMatchHeader"
+        - "$ref": "#/components/parameters/IdempotencyKeyHeader"
+      "requestBody":
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/DeletionResumeRequest"
 components:
   securitySchemes:
     cookieAuth:
@@ -5631,6 +5993,17 @@ components:
         enum: [nosniff]
 
   responses:
+    DeletionFailure:
+      description: The media-change request could not be completed. The response uses the shared error envelope with deletion-specific codes.
+      headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeletionErrorResponse'
     BadRequest:
       description: The request syntax, cursor, query combination, or encoded input is invalid.
       headers:
@@ -5895,6 +6268,263 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    DeletionErrorCode:
+      anyOf:
+        - $ref: '#/components/schemas/ErrorCode'
+        - type: string
+          enum: [deletion_disabled, deletion_confirmation_required, deletion_confirmation_expired, deletion_busy, deletion_conflict, deletion_source_changed, deletion_not_found, deletion_permission_denied, deletion_unavailable]
+    DeletionErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code:
+              $ref: '#/components/schemas/DeletionErrorCode'
+            message:
+              $ref: '#/components/schemas/Error/properties/message'
+            requestId:
+              $ref: '#/components/schemas/Error/properties/requestId'
+    "DeletionTarget":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["type", "id"]
+      "properties":
+        "type":
+          "type": "string"
+          "enum": ["asset", "directory"]
+        "id":
+          "type": "string"
+          "minLength": 1
+          "maxLength": 128
+    "DeletionSettings":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["enabled", "recycleBinEnabled", "retentionDays", "available", "unavailableReason", "revision"]
+      "properties":
+        "enabled":
+          "type": "boolean"
+        "recycleBinEnabled":
+          "type": "boolean"
+        "retentionDays":
+          "type": "integer"
+          "format": "int64"
+          "nullable": true
+          "enum": [null, 7, 30, 90]
+        "available":
+          "type": "boolean"
+        "unavailableReason":
+          "type": "string"
+          "nullable": true
+          "enum": [null, "not_configured", "read_only", "unsupported", "storage_unavailable"]
+        "revision":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 1
+    "DeletionSettingsUpdate":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["enabled", "recycleBinEnabled", "retentionDays", "acknowledge"]
+      "properties":
+        "enabled":
+          "type": "boolean"
+        "recycleBinEnabled":
+          "type": "boolean"
+        "retentionDays":
+          "type": "integer"
+          "format": "int64"
+          "nullable": true
+          "enum": [null, 7, 30, 90]
+        "acknowledge":
+          "type": "boolean"
+    "DeletionRetentionPreview":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["expiredEntries"]
+      "properties":
+        "expiredEntries":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 0
+    "DeletionPreflightRequest":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["targets"]
+      "properties":
+        "targets":
+          "type": "array"
+          "items":
+            "$ref": "#/components/schemas/DeletionTarget"
+          "minItems": 1
+          "maxItems": 200
+    "DeletionSelection":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["target", "libraryId", "libraryName", "name", "relativePath", "kind", "blockedReason"]
+      "properties":
+        "target":
+          "$ref": "#/components/schemas/DeletionTarget"
+        "libraryId":
+          "type": "string"
+          "nullable": true
+        "libraryName":
+          "type": "string"
+          "nullable": true
+        "name":
+          "type": "string"
+          "nullable": true
+        "relativePath":
+          "type": "string"
+          "nullable": true
+        "kind":
+          "type": "string"
+          "enum": ["file", "directory", "archive"]
+        "blockedReason":
+          "type": "string"
+          "nullable": true
+          "enum": [null, "root", "archive_member", "offline", "changed", "missing", "busy", "unreadable", "unavailable"]
+    "DeletionPreflight":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["id", "mode", "retentionDays", "canSubmit", "expiresAt", "items"]
+      "properties":
+        "id":
+          "type": "string"
+          "nullable": true
+        "mode":
+          "type": "string"
+          "enum": ["permanent"]
+        retentionDays:
+          type: integer
+          format: int64
+          nullable: true
+          enum: [null, 7, 30, 90]
+        "canSubmit":
+          "type": "boolean"
+        "expiresAt":
+          "type": "string"
+          "format": "date-time"
+          "nullable": true
+        "items":
+          "type": "array"
+          "items":
+            "$ref": "#/components/schemas/DeletionSelection"
+          "maxItems": 200
+    "DeletionSubmit":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["preflightId", "confirmation"]
+      "properties":
+        "preflightId":
+          "type": "string"
+          "minLength": 1
+          "maxLength": 128
+        "confirmation":
+          "type": "string"
+          "enum": ["permanently_delete"]
+    "DeletionOperationItem":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["id", "libraryId", "libraryName", "name", "relativePath", "kind", "state", "removedEntries", "errorCode", "trashEntryId"]
+      "properties":
+        "id":
+          "type": "string"
+        "libraryId":
+          "type": "string"
+        "libraryName":
+          "type": "string"
+        "name":
+          "type": "string"
+        "relativePath":
+          "type": "string"
+        "kind":
+          "type": "string"
+          "enum": ["file", "directory", "archive"]
+        "state":
+          "type": "string"
+          "enum": ["queued", "running", "trashed", "restored", "deleted", "failed", "partial", "cancelled", "needs_attention"]
+        "removedEntries":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 0
+        "errorCode":
+          "type": "string"
+          "nullable": true
+        "trashEntryId":
+          "type": "string"
+          "nullable": true
+    "DeletionOperation":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["id", "kind", "state", "createdAt", "updatedAt", "revision", "canStop", "canResume", "items", "itemsNextCursor", "totalItems", "completedItems", "failedItems"]
+      "properties":
+        "id":
+          "type": "string"
+        "kind":
+          "type": "string"
+          "enum": ["trash", "permanent", "restore", "purge"]
+        "state":
+          "type": "string"
+          "enum": ["queued", "running", "reconciling", "stopped", "partial", "failed", "succeeded", "needs_attention", "cancelled"]
+        "createdAt":
+          "type": "string"
+          "format": "date-time"
+        "updatedAt":
+          "type": "string"
+          "format": "date-time"
+        "revision":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 1
+        "canStop":
+          "type": "boolean"
+        "canResume":
+          "type": "boolean"
+        "items":
+          "type": "array"
+          "items":
+            "$ref": "#/components/schemas/DeletionOperationItem"
+          "maxItems": 50
+        "itemsNextCursor":
+          "type": "string"
+          "nullable": true
+        "totalItems":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 0
+        "completedItems":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 0
+        "failedItems":
+          "type": "integer"
+          "format": "int64"
+          "minimum": 0
+    "DeletionOperationPage":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["items", "nextCursor"]
+      "properties":
+        "items":
+          "type": "array"
+          "items":
+            "$ref": "#/components/schemas/DeletionOperation"
+          "maxItems": 50
+        "nextCursor":
+          "type": "string"
+          "nullable": true
+    "DeletionResumeRequest":
+      "type": "object"
+      "additionalProperties": false
+      "required": ["confirmation"]
+      "properties":
+        "confirmation":
+          "type": "string"
+          "enum": ["continue"]
     OCRJob:
       type: object
       additionalProperties: false
@@ -6275,6 +6905,8 @@ components:
         readOnlyMedia:
           type: boolean
           enum: [true]
+          deprecated: true
+          description: Legacy v1 constant retained for response compatibility. Finite directory-entry mutations require the separate deletion settings capability; media content bytes remain immutable.
         supportedLocales:
           type: array
           minItems: 2
@@ -7718,6 +8350,11 @@ components:
         - thumbnail
         - storyboard
       properties:
+        archiveMember:
+          type: boolean
+          enum: [true]
+          description: Present and true for read-only ZIP/7z member assets; whole-archive actions belong to their containing directory.
+
         searchSources:
           type: array
           maxItems: 2

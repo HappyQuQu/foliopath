@@ -57,7 +57,7 @@ func mergeAutomaticAssetTagsTx(ctx context.Context, tx *sql.Tx, input curation.A
 		return result, curation.ErrInvalidRequest
 	}
 	var fingerprint, kind string
-	if err := tx.QueryRowContext(ctx, `SELECT source_fingerprint,kind FROM assets WHERE library_id=? AND id=?`, plan.LibraryID, plan.AssetID).Scan(&fingerprint, &kind); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT source_fingerprint,kind FROM visible_assets AS assets WHERE library_id=? AND id=?`, plan.LibraryID, plan.AssetID).Scan(&fingerprint, &kind); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, curation.ErrAutomaticTagSourceChanged
 		}

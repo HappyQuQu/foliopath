@@ -1,8 +1,8 @@
 import type { components } from "./generated/schema";
 
-type WireErrorResponse = components["schemas"]["ErrorResponse"];
+type WireErrorResponse = components["schemas"]["ErrorResponse"] | components["schemas"]["DeletionErrorResponse"];
 
-export type ApiErrorCode = components["schemas"]["ErrorCode"] | "network_error";
+export type ApiErrorCode = components["schemas"]["ErrorCode"] | components["schemas"]["DeletionErrorCode"] | "network_error";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;

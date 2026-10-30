@@ -73,6 +73,7 @@ WHERE id = (
       AND cancel_requested_at_ms IS NULL
       AND available_at_ms <= ?1
       AND attempt_count < 3
+      AND NOT EXISTS (SELECT 1 FROM media_mutation_blocked_libraries WHERE library_id=scan_runs.library_id)
       AND NOT EXISTS (
           SELECT 1
           FROM catalog_reconcile_jobs

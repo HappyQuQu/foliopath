@@ -28,6 +28,8 @@ export function Dialog({
   const { t } = useLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const fallbackRef = useRef(fallbackFocusRef);
+  fallbackRef.current = fallbackFocusRef;
   const titleId = useId();
   const descriptionId = useId();
 
@@ -44,12 +46,13 @@ export function Dialog({
     }
   }, [open]);
 
-  useEffect(
-    () => () => {
-      restoreFocusRef.current?.focus();
-    },
-    [],
-  );
+  function restoreFocus() {
+    const trigger = restoreFocusRef.current;
+    if (trigger?.isConnected && !trigger.matches(":disabled")) trigger.focus();
+    if (!trigger?.isConnected || trigger.matches(":disabled") || document.activeElement !== trigger) fallbackRef.current?.current?.focus();
+  }
+
+  useEffect(() => () => restoreFocus(), []);
 
   return (
     <dialog
@@ -63,9 +66,7 @@ export function Dialog({
       }}
       onClose={() => {
         if (open) onOpenChange(false);
-        const trigger = restoreFocusRef.current;
-        if (trigger?.isConnected && !trigger.matches(":disabled")) trigger.focus();
-        if (!trigger?.isConnected || trigger.matches(":disabled") || document.activeElement !== trigger) fallbackFocusRef?.current?.focus();
+        restoreFocus();
       }}
     >
       <header className={styles.header}>

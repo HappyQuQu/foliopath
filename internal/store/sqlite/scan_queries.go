@@ -73,40 +73,61 @@ func (s *Store) GetScanDetails(ctx context.Context, scanID int64) (scanner.Detai
 func (s *Store) RequestScanCancellation(ctx context.Context, scanID int64) (scanner.ScanRun, error) {
 	var result scanner.ScanRun
 	err := s.withWriteTx(ctx, func(tx *sql.Tx) error {
-		queries := dbgen.New(tx)
-		row, err := queries.GetScanContractRun(ctx, scanID)
-		if errors.Is(err, sql.ErrNoRows) {
-			return scanner.ErrScanRunNotFound
-		}
+		row, err := s.cancelScanTx(ctx, tx, scanID)
 		if err != nil {
-			return fmt.Errorf("get scan for cancellation: %w", err)
-		}
-		switch scanner.RunStatus(row.Status) {
-		case scanner.RunStatusQueued:
-			row, err = queries.CancelQueuedScan(ctx, dbgen.CancelQueuedScanParams{
-				NowMs: sql.NullInt64{Int64: s.nowMS(), Valid: true},
-				ID:    scanID,
-			})
-			if err == nil {
-				_, err = tx.ExecContext(ctx, `
-					UPDATE libraries
-					SET status = CASE WHEN current_generation > 0 THEN 'ready' ELSE 'pending' END,
-					    revision = revision + 1, updated_at_ms = ?
-					WHERE id = ?`, s.nowMS(), row.LibraryID)
-			}
-		case scanner.RunStatusRunning:
-			row, err = queries.RequestRunningScanCancellation(ctx, dbgen.RequestRunningScanCancellationParams{
-				NowMs: sql.NullInt64{Int64: s.nowMS(), Valid: true},
-				ID:    scanID,
-			})
-		default:
-			return scanner.ErrScanAlreadyFinished
-		}
-		if err != nil {
-			return fmt.Errorf("request scan cancellation: %w", err)
+			return err
 		}
 		result, err = contractScanRun(row)
 		return err
 	})
 	return result, err
+}
+
+func (s *Store) cancelScanTx(ctx context.Context, tx *sql.Tx, scanID int64) (dbgen.ScanRun, error) {
+	queries := dbgen.New(tx)
+	row, err := queries.GetScanContractRun(ctx, scanID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return row, scanner.ErrScanRunNotFound
+	}
+	if err != nil {
+		return row, fmt.Errorf("get scan for cancellation: %w", err)
+	}
+	switch scanner.RunStatus(row.Status) {
+	case scanner.RunStatusQueued:
+		row, err = queries.CancelQueuedScan(ctx, dbgen.CancelQueuedScanParams{
+			NowMs: sql.NullInt64{Int64: s.nowMS(), Valid: true},
+			ID:    scanID,
+		})
+		if err == nil {
+			_, err = tx.ExecContext(ctx, `
+				UPDATE libraries
+				SET status = CASE WHEN current_generation > 0 THEN 'ready' ELSE 'pending' END,
+				    revision = revision + 1, updated_at_ms = ?
+				WHERE id = ?`, s.nowMS(), row.LibraryID)
+		}
+	case scanner.RunStatusRunning:
+		row, err = queries.RequestRunningScanCancellation(ctx, dbgen.RequestRunningScanCancellationParams{
+			NowMs: sql.NullInt64{Int64: s.nowMS(), Valid: true},
+			ID:    scanID,
+		})
+	default:
+		return row, scanner.ErrScanAlreadyFinished
+	}
+	if err != nil {
+		return row, fmt.Errorf("request scan cancellation: %w", err)
+	}
+	return row, nil
+}
+
+func (s *Store) cancelLibraryScansTx(ctx context.Context, tx *sql.Tx, libraryID int64) error {
+	var id int64
+	err := tx.QueryRowContext(ctx, `SELECT id FROM scan_runs WHERE library_id=? AND status IN ('queued','running') LIMIT 1`, libraryID).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = s.cancelScanTx(ctx, tx, id)
+	return err
 }

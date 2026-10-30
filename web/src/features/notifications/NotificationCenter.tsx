@@ -18,6 +18,7 @@ import {
 } from "../../lib/storage/preferences";
 import { paths } from "../../routes/paths";
 import { useMediaFailuresQuery } from "../diagnostics";
+import { deletionOperationIsActive, useDeletionOperationsQuery } from "../deletion";
 import {
   mediaProcessingIsActive,
   useLibrariesMediaProcessingProgressQueries,
@@ -38,6 +39,11 @@ export function NotificationCenter() {
   const librariesQuery = useLibrariesQuery(true);
   const failuresQuery = useMediaFailuresQuery();
   const releasesQuery = useReleaseInformationQuery();
+  const deletionQuery = useDeletionOperationsQuery("");
+  const deletionNotifications = (deletionQuery.data?.items ?? [])
+    .filter(operation => operation.kind === "permanent")
+    .map(operation => ({ operation, key: `deletion:${operation.id}:${operation.revision}`, active: deletionOperationIsActive(operation.state) }))
+    .filter(item => item.active || !dismissed.has(item.key));
   const libraries = librariesQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const mediaProgressQueries = useLibrariesMediaProcessingProgressQueries(libraries);
   const activeScans = libraries.filter((library) => library.status === "scanning");
@@ -68,7 +74,7 @@ export function NotificationCenter() {
     ...activeScans.map((library) => library.id),
     ...activeMedia.map(({ library }) => library.id),
   ]);
-  const badge = activeLibraryIds.size + (hasNewFailures ? 1 : 0) + (releasesQuery.data?.updateAvailable ? 1 : 0);
+  const badge = activeLibraryIds.size + deletionNotifications.length + (hasNewFailures ? 1 : 0) + (releasesQuery.data?.updateAvailable ? 1 : 0);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }),
     [locale],
@@ -103,6 +109,13 @@ export function NotificationCenter() {
   function clearCompleted() {
     const next = new Set(dismissed);
     for (const id of completedIDs) next.add(id);
+    for (const item of deletionNotifications) if (!item.active) next.add(item.key);
+    setDismissed(next);
+    writeDismissedCompletedNotifications([...next]);
+  }
+
+  function acknowledgeDeletion(key: string) {
+    const next = new Set(dismissed).add(key);
     setDismissed(next);
     writeDismissedCompletedNotifications([...next]);
   }
@@ -132,12 +145,29 @@ export function NotificationCenter() {
         <section className={styles.panel} aria-label={t("notifications.title")}>
           <header>
             <h2>{t("notifications.title")}</h2>
-            {completed.length > 0 && (
+            {(completed.length > 0 || deletionNotifications.some(item => !item.active)) && (
               <Button onClick={clearCompleted} size="small" variant="quiet">
                 {t("notifications.clearCompleted")}
               </Button>
             )}
           </header>
+
+          {deletionNotifications.map(({ operation, key, active }) => (
+            <Link className={styles.item} key={operation.id} to={paths.fileTasks} onClick={() => {
+              if (!active) acknowledgeDeletion(key);
+              setOpen(false);
+            }}>
+              {active ? <CircleNotch aria-hidden="true" className={styles.spinning} size={20} />
+                : operation.state === "succeeded" ? <CheckCircle aria-hidden="true" size={20} />
+                  : <WarningCircle aria-hidden="true" size={20} />}
+              <span>
+                <strong>{t("deletion.kind.permanent")} · {t(`deletion.state.${operation.state}`)}</strong>
+                {operation.items[0] && <small title={operation.items[0].relativePath}>{operation.items[0].libraryName} · {operation.items[0].name}</small>}
+                <small>{t("deletion.progress").replace("{done}", String(operation.completedItems)).replace("{total}", String(operation.totalItems)).replace("{failed}", String(operation.failedItems))}</small>
+                <time dateTime={operation.updatedAt}>{date.format(new Date(operation.updatedAt))}</time>
+              </span>
+            </Link>
+          ))}
 
           {releasesQuery.data?.updateAvailable && (
             <Link className={styles.item} onClick={() => setOpen(false)} to={paths.aboutSettings}>

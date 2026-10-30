@@ -1,3 +1,5 @@
+2026-10-30 / DELETE-S1/S2：删除设置、预检、持久任务、暂停/继续、回收站恢复/清理接口已进入 `api/openapi.yaml`，由生成客户端消费。新错误码仅扩展新增端点的错误类型，保留既有 v1 枚举兼容。契约及本地后端证据见 [S1](gates/POST-MVP-DELETE/delete-s1-contract-ready.md)、[S2](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)；真实可写部署仍等待 S4。
+
 2026-10-29 / ZIP-S1：目录列表及详情增加 archivePath、archiveStatus、coverAssetId，普通目录返回 null；包内资产复用原 ID/缩略图/内容/Range 端点。公开合同仍以 api/openapi.yaml 为准；[来源合同](architecture/zip-source-contract.md)解释虚拟层级及失败保留。
 
 # FolioPath API 设计与契约说明

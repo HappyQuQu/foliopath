@@ -35,7 +35,7 @@ func (s *Store) GetAssetForDerivation(
                      AND grid.source_fingerprint = a.source_fingerprint
                ), a.archive_path, a.archive_member_path, a.archive_size_bytes,
                a.archive_mtime_ns, a.archive_crc32
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id
         WHERE a.id = ?`,
 		assetID,
@@ -91,7 +91,7 @@ func (s *Store) CommitStoryboardReady(
 		var duration int64
 		if err := tx.QueryRowContext(ctx, `
             SELECT duration_ms
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
               AND kind = 'video' AND probe_status = 'ready'
               AND duration_ms >= ?`,
@@ -131,7 +131,7 @@ func (s *Store) CommitStoryboardReady(
             SELECT library_id, id, 'storyboard', source_fingerprint,
                    ?, ?, 'ready', NULL, ?, ?, ?, ?, ?,
                    ?, ?, ?, ?, ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 library_id = excluded.library_id,
@@ -196,7 +196,7 @@ func (s *Store) CommitStoryboardFailure(
             )
             SELECT library_id, id, 'storyboard', source_fingerprint,
                    ?, 'failed', ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 library_id = excluded.library_id,
@@ -237,7 +237,7 @@ func (s *Store) CommitReady(ctx context.Context, ready thumbnail.Ready) error {
 		var kind, format string
 		result := ready.Result
 		if err := tx.QueryRowContext(ctx, `
-            SELECT kind, media_format FROM assets
+            SELECT kind, media_format FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?`,
 			ready.AssetID, ready.SourceFingerprint.String(),
 		).Scan(&kind, &format); err != nil {
@@ -256,7 +256,7 @@ func (s *Store) CommitReady(ctx context.Context, ready thumbnail.Ready) error {
             SET width = ?, height = ?, duration_ms = ?,
                 probe_status = 'ready', probe_error_code = NULL,
                 playback_status = ?
-            WHERE id = ? AND source_fingerprint = ?`,
+            WHERE id = ? AND source_fingerprint = ? AND id IN (SELECT id FROM visible_assets)`,
 			result.Metadata.Width, result.Metadata.Height, result.Metadata.DurationMS,
 			string(result.Metadata.PlaybackStatus),
 			ready.AssetID, ready.SourceFingerprint.String(),
@@ -271,7 +271,7 @@ func (s *Store) CommitReady(ctx context.Context, ready thumbnail.Ready) error {
             )
             SELECT library_id, id, 'grid', source_fingerprint,
                    ?, ?, 'ready', NULL, ?, ?, ?, ?, ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 library_id = excluded.library_id,
@@ -314,7 +314,7 @@ func (s *Store) CommitFailure(ctx context.Context, failure thumbnail.Failure) er
             SET width = NULL, height = NULL, duration_ms = NULL,
                 probe_status = ?, probe_error_code = ?,
                 playback_status = 'unknown'
-            WHERE id = ? AND source_fingerprint = ?`,
+            WHERE id = ? AND source_fingerprint = ? AND id IN (SELECT id FROM visible_assets)`,
 			status, string(failure.Code),
 			failure.AssetID, failure.SourceFingerprint.String(),
 		)
@@ -335,7 +335,7 @@ func (s *Store) CommitFailure(ctx context.Context, failure thumbnail.Failure) er
             )
             SELECT library_id, id, 'grid', source_fingerprint,
                    ?, 'failed', ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 library_id = excluded.library_id,
@@ -376,7 +376,7 @@ func (s *Store) CommitMetadataReadyFailure(
             SET width = ?, height = ?, duration_ms = ?,
                 probe_status = 'ready', probe_error_code = NULL,
                 playback_status = ?
-            WHERE id = ? AND source_fingerprint = ? AND kind = 'video'`,
+            WHERE id = ? AND source_fingerprint = ? AND kind = 'video' AND id IN (SELECT id FROM visible_assets)`,
 			failure.Metadata.Width,
 			failure.Metadata.Height,
 			failure.Metadata.DurationMS,
@@ -401,7 +401,7 @@ func (s *Store) CommitMetadataReadyFailure(
             )
             SELECT library_id, id, 'grid', source_fingerprint,
                    ?, 'failed', ?
-            FROM assets
+            FROM visible_assets AS assets
             WHERE id = ? AND source_fingerprint = ?
             ON CONFLICT(asset_id, variant) DO UPDATE SET
                 library_id = excluded.library_id,
@@ -446,7 +446,7 @@ func (s *Store) GetThumbnailDelivery(
         SELECT a.id, a.source_fingerprint, l.status, a.kind, a.duration_ms,
                t.status, t.cache_rel_path, t.byte_size, t.error_code,
                j.status
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id
         LEFT JOIN thumbnails t ON t.asset_id = a.id AND t.variant = ?
         LEFT JOIN media_jobs j ON j.asset_id = a.id AND j.variant = ?
@@ -509,7 +509,7 @@ func (s *Store) GetCompleteSemanticStoryboard(
         SELECT a.library_id, a.id, a.source_fingerprint, a.duration_ms,
                t.transform_version, t.cache_rel_path, t.byte_size,
                t.frame_count, t.sprite_columns, t.sprite_rows, t.cell_width, t.cell_height
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id AND l.status <> 'offline'
         JOIN thumbnails t ON t.library_id = a.library_id AND t.asset_id = a.id
                          AND t.variant = 'storyboard' AND t.status = 'ready'
@@ -603,7 +603,7 @@ func (s *Store) RequeueMissingThumbnail(
             SET width = NULL, height = NULL, duration_ms = NULL,
                 probe_status = 'pending', probe_error_code = NULL,
                 playback_status = 'unknown'
-            WHERE id = ? AND source_fingerprint = ?`,
+            WHERE id = ? AND source_fingerprint = ? AND id IN (SELECT id FROM visible_assets)`,
 				state.AssetID, state.SourceFingerprint.String(),
 			); err != nil {
 				return fmt.Errorf("reset missing thumbnail metadata: %w", err)

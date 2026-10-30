@@ -20,7 +20,7 @@ func addSemanticCandidate(ctx context.Context, tx *sql.Tx, libraryID, now int64)
 // cascades remove their embeddings; never run this for partial/failed scans.
 func removeSemanticCandidates(ctx context.Context, tx *sql.Tx, libraryID, generation, now int64) error {
 	_, err := tx.ExecContext(ctx, `WITH removed AS (
-        SELECT id,source_fingerprint FROM assets
+        SELECT id,source_fingerprint FROM visible_assets AS assets
         WHERE library_id=? AND last_seen_generation<? AND kind IN ('image','animated') AND archive_path = ''
     ), counts AS (
         SELECT p.generation_id, COUNT(r.id) AS eligible,

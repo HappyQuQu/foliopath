@@ -15,6 +15,7 @@ import (
 	"github.com/HappyQuQu/foliopath/internal/autotag"
 	"github.com/HappyQuQu/foliopath/internal/catalog"
 	"github.com/HappyQuQu/foliopath/internal/curation"
+	"github.com/HappyQuQu/foliopath/internal/deletion"
 	"github.com/HappyQuQu/foliopath/internal/face"
 	"github.com/HappyQuQu/foliopath/internal/jobs"
 	"github.com/HappyQuQu/foliopath/internal/library"
@@ -32,6 +33,8 @@ import (
 const databaseFilename = "foliopath.db"
 
 type databaseStore interface {
+	deletion.Repository
+	deletion.Queue
 	ocr.Repository
 	search.Repository
 	search.OCRRepository

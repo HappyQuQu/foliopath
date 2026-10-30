@@ -2,7 +2,7 @@
 
 **把已有照片目录变成图库，用画面、文字、标签和人物找照片。**
 
-A self-hosted photo and video browser with local AI. Browse existing folders and ZIP/7z image sets, with folder covers and automatic loading as you scroll. Keep originals untouched.
+A self-hosted photo and video browser with local AI. Browse existing folders and ZIP/7z image sets, with folder covers and automatic loading as you scroll. Browsing stays read-only; original-file deletion is explicitly opt-in.
 
 [简体中文](#简体中文) · [English](#english) · [GitHub](https://github.com/HappyQuQu/foliopath) · [文档 / Docs](https://github.com/HappyQuQu/foliopath/blob/main/docs/README.md)
 
@@ -10,7 +10,7 @@ A self-hosted photo and video browser with local AI. Browse existing folders and
 
 ## 简体中文
 
-FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、摄影归档和套图收藏。文件夹和子目录可以一起浏览，原始照片和视频始终只读，无需重新上传或调整目录。
+FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、摄影归档和套图收藏。文件夹和子目录可以一起浏览，浏览、扫描和分析默认只读，无需重新上传或调整目录。
 
 ### 可以做什么
 
@@ -18,6 +18,7 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 | --- | --- |
 | ZIP / 7z 图集浏览 | 直接打开未加密单卷图集，保留内部目录、封面与图片数量，连续看图 |
 | 文件夹封面与滚动加载 | 普通文件夹也显示已有缩略图；目录树、展开后的子目录和媒体列表向下滚动自动加载 |
+| 目录操作与删除 | 顶部菜单／桌面右键展开、收起或删除目录；右侧选择批量永久删除，消息中心通知结果，需显式启用 |
 | 文件夹穿透浏览 | 查看当前目录及全部子目录，保留来源路径 |
 | 网格与瀑布流 | 自适应网格、瀑布流，以及零间距的无缝套图浏览；无缝模式下滑收起顶部、上滑恢复 |
 | 智能搜索 | 用中文或英文描述画面，结合文件名、路径和图片文字查找 |
@@ -28,6 +29,10 @@ FolioPath 直接读取你已经整理好的目录，适合 NAS、家庭影像、
 | 图片与视频查看 | 缩放、平移、1:1、全屏、前后切换和视频播放 |
 
 关于页提供项目介绍、支持格式与限额、文档和反馈入口，并在页内展示版本记录；检查更新失败时保留已有记录。
+
+### 原文件删除
+
+默认只读且删除关闭；需要时使用[删除覆盖配置](https://github.com/HappyQuQu/foliopath/blob/main/compose.media-mutations.yaml)，保留现有 AI／数据配置并把覆盖放在最后，再在 **管理中心 → 文件管理 → 删除设置** 开启。一次弹窗确认后后台永久删除，没有回收站，目录内隐藏和非媒体文件也包括在内。消息中心显示结果并进入文件任务；刷新、返回首页和重新登录保留选中的媒体库。删除期间其他程序不要移动同一目录或其父目录。[开启与升级说明](https://github.com/HappyQuQu/foliopath/blob/main/README.zh-CN.md#开启原文件删除)。
 
 ### ZIP 图集
 
@@ -120,7 +125,7 @@ docker compose up -d
 | `./models/ocr` | `/ocr-cache` | 图片文字识别模型 |
 | `./models/scratch` | `/verified-cache` | AI 运行时使用的已校验模型工作副本 |
 
-媒体根目录只挂载一次；在界面里添加其下多个互不重叠的目录作为媒体库。`/library` 内不支持嵌套挂载。FolioPath 不移动、重命名、编辑或删除原始媒体；媒体库离线、扫描失败或中断时保留最后可靠索引。`data` 请使用本地磁盘，勿放在 SMB/NFS 上。
+媒体根目录只挂载一次；在界面里添加其下多个互不重叠的目录作为媒体库。`/library` 内不支持嵌套挂载。普通浏览、扫描和分析不修改原始媒体；永久删除须按上述方式显式启用。媒体库离线、扫描失败或中断时保留最后可靠索引。`data` 请使用本地磁盘，勿放在 SMB/NFS 上。
 
 ### 支持格式与访问
 
@@ -133,13 +138,14 @@ docker compose up -d
 
 ## English
 
-FolioPath turns your existing directory tree into a photo and video library. Browse a folder and all its descendants together, with source paths preserved. Originals remain read-only.
+FolioPath turns your existing directory tree into a photo and video library. Browse a folder and all its descendants together, with source paths preserved. Browsing is read-only by default; permanent deletion requires explicit opt-in.
 
 ### Features
 
 - Browse ZIP and 7z image sets as read-only folders, preserving internal directories, covers, and image counts.
 - Folder cards reuse media thumbnails; directory and media lists load more automatically as you scroll.
 - Adaptive grid, masonry, and seamless photo-set browsing.
+- Opt-in permanent deletion, directory action/context menus, background tasks, and results in the notification bell. Your selected library is remembered.
 - Describe scenes in Chinese or English; search across filenames, paths, visual content, and recognized text.
 - Search Chinese and English text inside processed images and preview matching lines.
 - Automatic tags from 153 categories, with manual edits and removal choices preserved.
@@ -180,11 +186,11 @@ If needed, add `FOLIOPATH_MODEL_DOWNLOAD_PROXY: http://proxy-host:7890` under th
 | `evanqu/foliopath:latest` | Main application |
 | `evanqu/foliopath:latest-ai` | Local AI service |
 
-Before upgrading to ZIP support, stop the application and back up all application data. Rollback requires restoring the matching pre-upgrade backup with the old image. See the [upgrade and rollback guide](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md#升级与回滚).
+This release adds database migrations 49–50. Before upgrading, stop the application and back up all application data. Rollback requires restoring the matching pre-upgrade backup with the old image. See the [upgrade and rollback guide](https://github.com/HappyQuQu/foliopath/blob/main/docs/deployment.md#升级与回滚).
 
 Update both together with `docker compose pull` followed by `docker compose up -d`.
 
-Mount originals once at `/library:ro`; nested mounts are rejected. Keep persistent application data, curation, and thumbnails in `/app/data` on local storage. AI models use `/cache` and `/ocr-cache`; verified working copies use `/verified-cache`. An offline library or interrupted scan preserves the last reliable index. Original media is never moved, renamed, edited, or deleted.
+Mount originals once at `/library:ro`; nested mounts are rejected. Keep persistent application data, curation, and thumbnails in `/app/data` on local storage. AI models use `/cache` and `/ocr-cache`; verified working copies use `/verified-cache`. An offline library or interrupted scan preserves the last reliable index. Browsing and analysis never modify original media. Permanent deletion requires an explicitly writable deployment and administrator opt-in, uses one confirmation dialog, and has no recycle bin. Folder deletion includes hidden and non-media files; other programs must not move its target or ancestors during deletion. See the [enablement guide](https://github.com/HappyQuQu/foliopath/blob/main/README.md#enable-original-file-deletion).
 
 **Images:** JPEG, PNG, WebP, GIF. **Video:** MP4, MOV, MKV, AVI. Videos are not transcoded; playback depends on browser codec support. SVG, HEIC/HEIF, AVIF, and RAW are unsupported.
 

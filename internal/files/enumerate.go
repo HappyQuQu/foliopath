@@ -7,6 +7,7 @@ import (
 	"io/fs"
 
 	"github.com/HappyQuQu/foliopath/internal/library"
+	"github.com/HappyQuQu/foliopath/internal/pathpolicy"
 )
 
 const directoryEnumerationBatchSize = 256
@@ -90,6 +91,9 @@ func (source *DirectorySource) inspectDirectory(
 	raw fs.DirEntry,
 ) (library.DirectoryCandidate, bool, error) {
 	name := raw.Name()
+	if name == pathpolicy.TrashDirectory {
+		return library.DirectoryCandidate{}, false, nil
+	}
 	info, err := parent.root.Lstat(name)
 	if err != nil {
 		if raw.IsDir() || raw.Type()&fs.ModeSymlink != 0 {
@@ -139,6 +143,9 @@ func directoryHasChildren(directory *Dir) (bool, error) {
 		return false, err
 	}
 	for _, entry := range entries {
+		if entry.Name() == pathpolicy.TrashDirectory {
+			continue
+		}
 		if entry.IsDir() || entry.Type()&fs.ModeSymlink != 0 {
 			return true, nil
 		}

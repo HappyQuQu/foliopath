@@ -50,7 +50,7 @@ func (s *Store) GetTagSuggestionListSnapshot(ctx context.Context, libraryID int6
 		snapshot.GenerationID, libraryID, snapshot.VocabularyID).Scan(&snapshot.Coverage.Eligible, &snapshot.Coverage.Completed,
 		&snapshot.Coverage.Degraded, &snapshot.Coverage.Failed, &snapshot.Coverage.Stale, &progressRevision)
 	if errors.Is(err, sql.ErrNoRows) {
-		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM assets asset JOIN semantic_embeddings embedding
+		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM visible_assets asset JOIN semantic_embeddings embedding
 			ON embedding.library_id=asset.library_id AND embedding.asset_id=asset.id
 			AND embedding.source_fingerprint=asset.source_fingerprint
 			WHERE asset.library_id=? AND embedding.generation_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`,
@@ -93,7 +93,7 @@ func (s *Store) listPendingTagSuggestionViews(ctx context.Context, query semanti
 	rows, err := s.db.QueryContext(ctx, `SELECT suggestion.id,suggestion.library_id,suggestion.asset_id,suggestion.tag_id,tag.name,
             suggestion.confidence,suggestion.generation_id,vocabulary.revision,suggestion.revision
         FROM ai_tag_suggestions suggestion
-        JOIN assets asset ON asset.library_id=suggestion.library_id AND asset.id=suggestion.asset_id
+        JOIN visible_assets asset ON asset.library_id=suggestion.library_id AND asset.id=suggestion.asset_id
 		JOIN semantic_embeddings embedding ON embedding.generation_id=suggestion.generation_id
 		  AND embedding.library_id=suggestion.library_id AND embedding.asset_id=suggestion.asset_id
 		  AND embedding.source_fingerprint=asset.source_fingerprint
@@ -135,7 +135,7 @@ func (s *Store) listReviewedTagSuggestionViews(ctx context.Context, query semant
 	rows, err := s.db.QueryContext(ctx, `SELECT review.source_suggestion_id,review.library_id,review.asset_id,review.tag_id,tag.name,
             review.source_confidence,review.source_generation_id,review.source_vocabulary_revision,review.revision,review.reviewed_at_ms
         FROM ai_tag_reviews review
-        JOIN assets asset ON asset.library_id=review.library_id AND asset.id=review.asset_id
+        JOIN visible_assets asset ON asset.library_id=review.library_id AND asset.id=review.asset_id
         JOIN tags tag ON tag.id=review.tag_id
         WHERE review.library_id=? AND review.decision=? AND review.source_generation_id IS NOT NULL`+filter+`
         ORDER BY review.reviewed_at_ms DESC,review.source_suggestion_id ASC LIMIT ?`, args...)

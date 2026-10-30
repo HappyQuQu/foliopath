@@ -1,3 +1,5 @@
+2026-10-30 / DELETE：S1 合同及本地 S2 后端门禁通过，允许 S3 页面开发，见 [S1](gates/POST-MVP-DELETE/delete-s1-contract-ready.md)、[S2](gates/POST-MVP-DELETE/delete-s2-backend-ready.md)。用户已接受内核写隔离，不支持时保持不可用；生产镜像、双原生、容量及真实可写部署仍等待 S4，不因 UI 接入自动启用。
+
 2026-10-29 / ARCHIVE-S2：7z合同与资源边界先行，Backend Ready后已接入正式UI；本地Linux arm64镜像与浏览验收通过，后续v1.9.0双原生门禁和正式推广亦已通过。实际Gate见[CR-2026-056](changes/CR-2026-056-7z-image-browsing.md)。
 
 2026-10-29 / POST-MVP ZIP-S1：用户已授权独立分支实现并在试用后要求合并发布，S0 以 ADR-0040、CR-2026-055、zip-source-contract 和加法 OpenAPI 为输入；先完成真实扫描/读取/存储回归，再开始正式 UI，最终合成 Linux 实例和四档宽度验证。v1.8.0 原生双架构发布门禁已通过，见[正式记录](changes/RELEASE-2026-10-29-v1.8.0.md)；Gate 状态见[变更记录](changes/CR-2026-055-zip-image-browsing.md)。

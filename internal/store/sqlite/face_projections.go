@@ -97,7 +97,7 @@ func (s *Store) ListAssetFaceViews(ctx context.Context, assetID int64) ([]face.A
 	var generation, state, libraryState string
 	var enabled int
 	var published bool
-	err = tx.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(build.generation_id,settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status,build.id IS NOT NULL FROM assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState, &published)
+	err = tx.QueryRowContext(ctx, `SELECT asset.library_id,COALESCE(build.generation_id,settings.active_generation_id,''),COALESCE(settings.state,'disabled'),COALESCE(settings.enabled,0),library.status,build.id IS NOT NULL FROM visible_assets asset JOIN libraries library ON library.id=asset.library_id LEFT JOIN face_library_settings settings ON settings.library_id=asset.library_id LEFT JOIN face_cluster_builds build ON build.id=settings.active_cluster_build_id AND build.state='active' WHERE asset.id=?`, assetID).Scan(&libraryID, &generation, &state, &enabled, &libraryState, &published)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, face.ErrInvalidFaceProjection
 	}

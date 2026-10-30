@@ -24,7 +24,7 @@ func (s *Store) GetContentAsset(
                a.mime_type, a.size_bytes, a.mtime_ns, a.source_fingerprint,
                l.status, a.archive_path, a.archive_member_path, a.archive_size_bytes,
                a.archive_mtime_ns, a.archive_crc32
-        FROM assets a
+        FROM visible_assets a
         JOIN libraries l ON l.id = a.library_id
         WHERE a.id = ?`,
 		assetID,

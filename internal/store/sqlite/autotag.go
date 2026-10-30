@@ -45,7 +45,7 @@ func (s *Store) GetAutomaticTagSettings(ctx context.Context, id int64, identity 
 	if err != nil {
 		return v, err
 	}
-	err = s.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(SUM(run.source_fingerprint=asset.source_fingerprint AND run.model_identity=? AND run.outcome='ready'),0),COALESCE(SUM(run.source_fingerprint=asset.source_fingerprint AND run.model_identity=? AND run.outcome='failed'),0),COALESCE(SUM(run.asset_id IS NOT NULL AND (run.source_fingerprint<>asset.source_fingerprint OR run.model_identity<>? OR run.outcome='stale')),0) FROM assets asset LEFT JOIN autotag_asset_runs run ON run.library_id=asset.library_id AND run.asset_id=asset.id WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`, identity, identity, identity, id).Scan(&v.Coverage.Eligible, &v.Coverage.Completed, &v.Coverage.Failed, &v.Coverage.Stale)
+	err = s.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(SUM(run.source_fingerprint=asset.source_fingerprint AND run.model_identity=? AND run.outcome='ready'),0),COALESCE(SUM(run.source_fingerprint=asset.source_fingerprint AND run.model_identity=? AND run.outcome='failed'),0),COALESCE(SUM(run.asset_id IS NOT NULL AND (run.source_fingerprint<>asset.source_fingerprint OR run.model_identity<>? OR run.outcome='stale')),0) FROM visible_assets asset LEFT JOIN autotag_asset_runs run ON run.library_id=asset.library_id AND run.asset_id=asset.id WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = ''`, identity, identity, identity, id).Scan(&v.Coverage.Eligible, &v.Coverage.Completed, &v.Coverage.Failed, &v.Coverage.Stale)
 	if err != nil {
 		return v, err
 	}
@@ -190,12 +190,12 @@ func (s *Store) AdmitAutomaticTagJob(ctx context.Context, a autotag.Admission, n
 			if count >= autotag.MaximumActiveJobs {
 				return autotag.ErrConflict
 			}
-			if err = tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0) FROM assets WHERE library_id=? AND kind IN ('image','animated') AND archive_path = ''`, j.LibraryID).Scan(&j.UpperAssetID); err != nil {
+			if err = tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0) FROM visible_assets AS assets WHERE library_id=? AND kind IN ('image','animated') AND archive_path = ''`, j.LibraryID).Scan(&j.UpperAssetID); err != nil {
 				return err
 			}
 			if a.Automatic {
 				var exists bool
-				if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND NOT EXISTS(SELECT 1 FROM autotag_asset_runs run WHERE run.library_id=asset.library_id AND run.asset_id=asset.id AND run.source_fingerprint=asset.source_fingerprint AND run.model_identity=?))`, j.LibraryID, j.ModelIdentity).Scan(&exists); err != nil {
+				if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM visible_assets asset WHERE asset.library_id=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND NOT EXISTS(SELECT 1 FROM autotag_asset_runs run WHERE run.library_id=asset.library_id AND run.asset_id=asset.id AND run.source_fingerprint=asset.source_fingerprint AND run.model_identity=?))`, j.LibraryID, j.ModelIdentity).Scan(&exists); err != nil {
 					return err
 				}
 				if !exists {
@@ -294,7 +294,7 @@ func (s *Store) RefreshAutomaticTagLease(ctx context.Context, j autotag.Job, now
 }
 func (s *Store) NextAutomaticTagCandidate(ctx context.Context, j autotag.Job) (autotag.Candidate, bool, error) {
 	var v autotag.Candidate
-	err := s.db.QueryRowContext(ctx, `SELECT asset.id,asset.library_id,asset.source_fingerprint FROM assets asset WHERE asset.library_id=? AND asset.id>? AND asset.id<=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND (?='all' OR NOT EXISTS(SELECT 1 FROM autotag_asset_runs run WHERE run.library_id=asset.library_id AND run.asset_id=asset.id AND run.source_fingerprint=asset.source_fingerprint AND run.model_identity=?)) ORDER BY asset.id LIMIT 1`, j.LibraryID, j.CheckpointID, j.UpperAssetID, j.Mode, j.ModelIdentity).Scan(&v.ID, &v.LibraryID, &v.SourceFingerprint)
+	err := s.db.QueryRowContext(ctx, `SELECT asset.id,asset.library_id,asset.source_fingerprint FROM visible_assets asset WHERE asset.library_id=? AND asset.id>? AND asset.id<=? AND asset.kind IN ('image','animated') AND asset.archive_path = '' AND (?='all' OR NOT EXISTS(SELECT 1 FROM autotag_asset_runs run WHERE run.library_id=asset.library_id AND run.asset_id=asset.id AND run.source_fingerprint=asset.source_fingerprint AND run.model_identity=?)) ORDER BY asset.id LIMIT 1`, j.LibraryID, j.CheckpointID, j.UpperAssetID, j.Mode, j.ModelIdentity).Scan(&v.ID, &v.LibraryID, &v.SourceFingerprint)
 	if errors.Is(err, sql.ErrNoRows) {
 		return v, false, nil
 	}
@@ -327,7 +327,7 @@ func (s *Store) CommitAutomaticTagResult(ctx context.Context, c autotag.Commit, 
 		}
 		// The failed/stale attempt retains the attempted fingerprint, not a newer
 		// catalog identity; the new source remains eligible on the next bounded pass.
-		if _, err := tx.ExecContext(ctx, `INSERT INTO autotag_asset_runs(library_id,asset_id,source_fingerprint,model_identity,outcome,updated_at_ms) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM assets WHERE library_id=? AND id=?) ON CONFLICT(library_id,asset_id) DO UPDATE SET source_fingerprint=excluded.source_fingerprint,model_identity=excluded.model_identity,outcome=excluded.outcome,updated_at_ms=excluded.updated_at_ms`, c.Job.LibraryID, c.Asset.ID, c.Asset.SourceFingerprint, c.Job.ModelIdentity, outcome, now.UnixMilli(), c.Job.LibraryID, c.Asset.ID); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO autotag_asset_runs(library_id,asset_id,source_fingerprint,model_identity,outcome,updated_at_ms) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM visible_assets AS assets WHERE library_id=? AND id=?) ON CONFLICT(library_id,asset_id) DO UPDATE SET source_fingerprint=excluded.source_fingerprint,model_identity=excluded.model_identity,outcome=excluded.outcome,updated_at_ms=excluded.updated_at_ms`, c.Job.LibraryID, c.Asset.ID, c.Asset.SourceFingerprint, c.Job.ModelIdentity, outcome, now.UnixMilli(), c.Job.LibraryID, c.Asset.ID); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE autotag_jobs SET checkpoint_id=?,updated_at_ms=MAX(created_at_ms,?) WHERE id=?`, c.Asset.ID, now.UnixMilli(), c.Job.ID); err != nil {

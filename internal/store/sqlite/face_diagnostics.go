@@ -29,7 +29,7 @@ func readFaceDiagnostics(ctx context.Context, tx *sql.Tx, value *face.LibrarySet
 		task.ErrorCode, task.UpdatedAt = code.String, time.UnixMilli(updated).UTC()
 		d.LatestTask = &task
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT failure.error_code,COUNT(*) FROM face_asset_failures failure JOIN assets asset ON asset.id=failure.asset_id AND asset.library_id=failure.library_id AND asset.source_fingerprint=failure.source_fingerprint WHERE failure.library_id=? AND failure.generation_id=? AND failure.job_id=? GROUP BY failure.error_code ORDER BY failure.error_code`, value.LibraryID, value.ActiveGenerationID, jobID)
+	rows, err := tx.QueryContext(ctx, `SELECT failure.error_code,COUNT(*) FROM face_asset_failures failure JOIN visible_assets asset ON asset.id=failure.asset_id AND asset.library_id=failure.library_id AND asset.source_fingerprint=failure.source_fingerprint WHERE failure.library_id=? AND failure.generation_id=? AND failure.job_id=? GROUP BY failure.error_code ORDER BY failure.error_code`, value.LibraryID, value.ActiveGenerationID, jobID)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func readFaceDiagnostics(ctx context.Context, tx *sql.Tx, value *face.LibrarySet
 	}
 	rows.Close()
 	d.UnrecordedFailures = max(0, value.Coverage.Failed-d.RecordedFailures)
-	rows, err = tx.QueryContext(ctx, `SELECT failure.asset_id,asset.name,asset.size_bytes,failure.error_code,failure.updated_at_ms FROM face_asset_failures failure JOIN assets asset ON asset.id=failure.asset_id AND asset.library_id=failure.library_id AND asset.source_fingerprint=failure.source_fingerprint WHERE failure.library_id=? AND failure.generation_id=? AND failure.job_id=? ORDER BY failure.asset_id LIMIT ?`, value.LibraryID, value.ActiveGenerationID, jobID, face.FailureSampleLimit)
+	rows, err = tx.QueryContext(ctx, `SELECT failure.asset_id,asset.name,asset.size_bytes,failure.error_code,failure.updated_at_ms FROM face_asset_failures failure JOIN visible_assets asset ON asset.id=failure.asset_id AND asset.library_id=failure.library_id AND asset.source_fingerprint=failure.source_fingerprint WHERE failure.library_id=? AND failure.generation_id=? AND failure.job_id=? ORDER BY failure.asset_id LIMIT ?`, value.LibraryID, value.ActiveGenerationID, jobID, face.FailureSampleLimit)
 	if err != nil {
 		return err
 	}

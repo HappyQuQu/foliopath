@@ -1,3 +1,4 @@
+import { AssetDeletionAction, useDeletionFlow, useDeletionSelection } from "../../deletion";
 import { AssetExifPanel } from "../../media";
 import {
   ArrowClockwise,
@@ -52,6 +53,7 @@ import { mediaPreviewDetails } from "../../../components/patterns/MediaPreview/m
 import { useMediaPreviewController } from "../../../components/patterns/MediaPreview/useMediaPreviewController";
 import {
   Button,
+  Checkbox,
   EmptyState,
   ErrorState,
   IconButton,
@@ -83,6 +85,7 @@ import {
   readQuickAccessExpandedPreference,
   writeQuickAccessExpandedPreference,
   writeMediaLayoutPreference,
+  writeLastLibraryId,
 } from "../../../lib/storage/preferences";
 import { paths } from "../../../routes/paths";
 import {
@@ -113,6 +116,7 @@ import {
 } from "../urlState";
 import { BrowseControls } from "./BrowseControls";
 import styles from "./BrowsePage.module.css";
+import { DirectoryTree } from "./DirectoryTree";
 
 export function BrowsePage({
   directoryId,
@@ -144,6 +148,7 @@ export function BrowsePage({
   const [folderPreviewCount, setFolderPreviewCount] = useState(6);
   const [expandedFolderScope, setExpandedFolderScope] = useState<string | null>(null);
   const favoriteMutation = useFavoriteMutation();
+  const deletion = useDeletionFlow(session);
   const directoryQuery = useDirectoryQuery(directoryId);
   const defaultMediaSort = directoryQuery.data?.archivePath ? "name:asc" : mediaSortPreference;
   const browseState = useMemo(
@@ -271,11 +276,19 @@ export function BrowsePage({
   const canonicalSearch = serializeBrowseUrlState(browseState);
   const navigationScope = `${libraryId}:${directoryId ?? "root"}`;
   const previousNavigationScope = useRef(navigationScope);
+  function deleteDirectory(directory: Directory) {
+    deletion.start([{ type: "directory", id: directory.id }], () => {
+      preview.close();
+      const index = breadcrumbs.findIndex(item => item.id === directory.id);
+      if (directory.id === directoryId || index >= 0) navigate(browseUrl(libraryId, index > 0 ? breadcrumbs[index - 1]?.id : undefined, defaultBrowseUrlState()), { replace: true });
+    });
+  }
   const folderScope = `${navigationScope}:${browseState.q}`;
   const foldersExpanded = expandedFolderScope === folderScope;
   const visibleChildren = foldersExpanded
     ? children
     : children.slice(0, folderPreviewCount);
+  const selection = useDeletionSelection({ flow: deletion, scope: `${navigationScope}:${canonicalSearch}`, loadedTargets: [...visibleChildren.filter(item => !item.archivePath || item.archivePath === item.relativePath).map(item => ({ type: "directory" as const, id: item.id })), ...assets.map(item => ({ type: "asset" as const, id: item.id }))], assets, onEnter: preview.close, onAccepted: preview.close });
   const canExpandFolders =
     children.length > folderPreviewCount || childrenQuery.hasNextPage;
   const childPagination = useScrollPagination({
@@ -414,6 +427,9 @@ export function BrowsePage({
       showIdentityLabel={false}
       sidebarContent={
         <DirectoryNavigation
+          currentDirectory={directoryQuery.data}
+          canDelete={deletion.canDelete}
+          onDeleteDirectory={deleteDirectory}
           currentLibraryName={currentLibrary?.name}
           libraries={libraries}
           libraryId={libraryId}
@@ -437,6 +453,7 @@ export function BrowsePage({
       }
       title={t("browse.title")}
     >
+      {deletion.dialog}
       <section className={styles.page} aria-labelledby="browse-heading">
 
         <div
@@ -488,6 +505,7 @@ export function BrowsePage({
                 refreshPending={manualRefreshPending}
                 sizeControlRef={setSizeControlContainer}
               />
+            {selection.toolbar}
             </BrowseControls>
         {archiveProblem && (
           <div className={styles.banner}>
@@ -575,6 +593,7 @@ export function BrowsePage({
                             <DirectoryCard
                               browseState={browseState}
                               directory={directory}
+                              {...(selection.selecting ? { selection: { checked: selection.targets.some(item => item.type === "directory" && item.id === directory.id), disabled: Boolean(directory.archivePath && directory.archivePath !== directory.relativePath) || (selection.targets.length >= 200 && !selection.targets.some(item => item.id === directory.id)), onToggle: () => selection.toggle("directory", directory.id) } } : {})}
                               key={directory.id}
                               libraryId={libraryId}
                             />
@@ -673,6 +692,7 @@ export function BrowsePage({
                         hasNextPage={assetsQuery.hasNextPage}
                         isFetchingNextPage={assetsQuery.isFetching}
                         items={mediaItems}
+                        {...(selection.mediaSelection ? { selection: selection.mediaSelection } : {})}
                         labels={{
                           activatePreview: preview.pinned
                             ? t("browse.selectPinnedPreview")
@@ -751,10 +771,10 @@ export function BrowsePage({
               metadataContent={<AssetExifPanel assetId={previewItem.id} kind={previewItem.kind} />}
               curationContent={
                 previewAsset ? (
-                  <AssetCurationControls
+                  <><AssetCurationControls
                     assetId={previewAsset.id}
                     csrfToken={session.csrfToken}
-                  />
+                  /><AssetDeletionAction flow={deletion} asset={previewAsset} onAccepted={preview.close} /></>
                 ) : undefined
               }
               item={previewItem}
@@ -811,7 +831,8 @@ export function BrowsePage({
   );
 }
 
-function DirectoryCard({ browseState, directory, libraryId }: {
+function DirectoryCard({ browseState, directory, libraryId, selection }: {
+  selection?: { checked: boolean; disabled: boolean; onToggle: () => void };
   browseState: BrowseUrlState;
   directory: Directory;
   libraryId: string;
@@ -826,7 +847,11 @@ function DirectoryCard({ browseState, directory, libraryId }: {
     .replace("{count}", String(directory.recursiveAssetCount));
 
   return (
+    <div className={styles.folderCardWrapper}>
+      {selection && <label className={styles.folderSelection} title={selection.disabled ? t(directory.archivePath && directory.archivePath !== directory.relativePath ? "deletion.block.archive_member" : "deletion.limit") : undefined}><Checkbox aria-label={t("deletion.selectItem").replace("{name}", directory.name)} checked={selection.checked} disabled={selection.disabled} onChange={selection.onToggle} /></label>}
     <Link
+      tabIndex={selection ? -1 : undefined}
+      onClick={event => { if (selection) event.preventDefault(); }}
       className={styles.folderCard}
       title={directory.name}
       to={directoryBrowseUrl(libraryId, directory, browseState)}
@@ -844,7 +869,7 @@ function DirectoryCard({ browseState, directory, libraryId }: {
       </div>
       <strong>{directory.name}</strong>
       <span>{isArchive ? `${archiveFormat} · ${problem ? t(problem.label) : count}` : count}</span>
-    </Link>
+    </Link></div>
   );
 }
 
@@ -1217,7 +1242,11 @@ export function DirectoryNavigation({
   detailLayout = "scroll",
   selectedDirectoryId,
   selectedPathIds,
+  currentDirectory, canDelete, onDeleteDirectory,
 }: {
+  currentDirectory?: Directory | undefined;
+  canDelete?: boolean | undefined;
+  onDeleteDirectory?: ((directory: Directory) => void) | undefined;
   activeQuickAccess?: "allMedia" | "search" | "people" | "favorites" | "tags" | "suggestions";
   browseState: BrowseUrlState;
   currentLibraryName?: string | undefined;
@@ -1241,6 +1270,9 @@ export function DirectoryNavigation({
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
   const libraryOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const currentLibrary = libraries.find((library) => library.id === libraryId);
+  useEffect(() => {
+    if (libraryId) writeLastLibraryId(libraryId);
+  }, [libraryId]);
   const allMediaSelected = activeQuickAccess === "allMedia" || (
     !activeQuickAccess && !selectedDirectoryId && browseState.allMedia === true
   );
@@ -1523,199 +1555,18 @@ export function DirectoryNavigation({
       </nav>
       </div>
       {quickAccessDetail && <div className={styles.contextDetail} data-layout={detailLayout}>{quickAccessDetail}</div>}
-      {!hideDirectoryTree && (
-        <>
-          <p className={`${styles.treeLabel} ${styles.directoryLabel}`}>
-            {t("browse.directory")}
-          </p>
-          <nav
-            aria-label={t("browse.directoryNavigation")}
-            className={`${styles.tree} ${styles.directoryTree}`}
-          >
-            <div
-              className={styles.treeRow}
-              style={{ "--tree-depth": 0 } as CSSProperties}
-            >
-              <span className={styles.treeToggleStatic}>
-                <CaretDown aria-hidden="true" size={15} />
-              </span>
-              <Link
-                aria-current={libraryRootSelected ? "page" : undefined}
-                className={`${styles.treeLink} ${libraryRootSelected ? styles.treeLinkCurrent : ""}`}
-                to={browseUrl(libraryId, undefined, defaultBrowseUrlState())}
-              >
-                <Folder aria-hidden="true" size={17} />
-                <span>{currentLibraryName ?? t("browse.libraryFallback")}</span>
-              </Link>
-            </div>
-            <DirectoryChildren
-              browseState={browseState}
-              depth={1}
-              libraryId={libraryId}
-              selectedDirectoryId={selectedDirectoryId}
-              selectedPathIds={selectedPathIds}
-            />
-          </nav>
-        </>
-      )}
-    </div>
-  );
-}
-
-function DirectoryChildren({
-  browseState,
-  depth,
-  libraryId,
-  parentId,
-  selectedDirectoryId,
-  selectedPathIds,
-}: {
-  browseState: BrowseUrlState;
-  depth: number;
-  libraryId: string;
-  parentId?: string | undefined;
-  selectedDirectoryId?: string | undefined;
-  selectedPathIds: Set<string>;
-}) {
-  const { t } = useLocale();
-  const query = useDirectoriesQuery({ libraryId, parentId });
-  const { fetchNextPage: loadMoreDirectories, refetch: refreshDirectories } =
-    query;
-  const directories = useMemo(
-    () => query.data?.pages.flatMap((page) => page.items) ?? [],
-    [query.data],
-  );
-
-  const pagination = useScrollPagination({
-    failed: query.isFetchNextPageError,
-    hasNextPage: query.hasNextPage,
-    isFetching: query.isFetching,
-    onLoadMore: () => void loadMoreDirectories(),
-    onRetry: () => void retryInfiniteNextPage({ error: query.error, loadNextPage: loadMoreDirectories, refresh: refreshDirectories }),
-    progressKey: `${libraryId}:${parentId ?? "root"}:${directories.length}`,
-  });
-
-  if (query.isPending) {
-    return (
-      <span className={styles.treeState}>{t("browse.loadingDirectories")}</span>
-    );
-  }
-  if (query.isError && !query.data) {
-    return (
-      <Button
-        size="small"
-        variant="quiet"
-        onClick={() => void refreshDirectories()}
-      >
-        {t("common.retry")}
-      </Button>
-    );
-  }
-
-  return (
-    <>
-      {directories.map((directory) => (
-        <DirectoryTreeItem
-          browseState={browseState}
-          depth={depth}
-          directory={directory}
-          key={directory.id}
-          libraryId={libraryId}
-          selectedDirectoryId={selectedDirectoryId}
-          selectedPathIds={selectedPathIds}
-        />
-      ))}
-      {query.isFetchNextPageError && (
-        <InlineStatus tone="danger">{t("browse.loadMoreDirectoriesFailed")}</InlineStatus>
-      )}
-      {(query.hasNextPage || query.isFetchNextPageError) && (
-        <Button
-          loading={query.isFetching}
-          size="small"
-          variant="quiet"
-          ref={pagination.ref}
-          onClick={pagination.loadMore}
-        >
-          {t(query.isFetchNextPageError ? "browse.retryLoadMoreDirectories" : "browse.loadMoreDirectories")}
-        </Button>
-      )}
-    </>
-  );
-}
-
-function DirectoryTreeItem({
-  browseState,
-  depth,
-  directory,
-  libraryId,
-  selectedDirectoryId,
-  selectedPathIds,
-}: {
-  browseState: BrowseUrlState;
-  depth: number;
-  directory: Directory;
-  libraryId: string;
-  selectedDirectoryId?: string | undefined;
-  selectedPathIds: Set<string>;
-}) {
-  const { t } = useLocale();
-  const selected = selectedDirectoryId === directory.id;
-  const onSelectedPath = selectedPathIds.has(directory.id);
-  const [expanded, setExpanded] = useState(onSelectedPath);
-
-  useEffect(() => {
-    if (onSelectedPath) setExpanded(true);
-  }, [onSelectedPath]);
-
-  return (
-    <div>
-      <div
-        className={styles.treeRow}
-        style={{ "--tree-depth": depth } as CSSProperties}
-      >
-        {directory.hasChildren ? (
-          <IconButton
-            className={styles.treeToggle}
-            label={
-              expanded
-                ? t("browse.collapseDirectory").replace(
-                    "{name}",
-                    directory.name,
-                  )
-                : t("browse.expandDirectory").replace("{name}", directory.name)
-            }
-            onClick={() => setExpanded((value) => !value)}
-          >
-            {expanded ? (
-              <CaretDown aria-hidden="true" size={15} />
-            ) : (
-              <CaretRight aria-hidden="true" size={15} />
-            )}
-          </IconButton>
-        ) : (
-          <span className={styles.treeSpacer} />
-        )}
-        <Link
-          aria-current={selected ? "page" : undefined}
-          className={`${styles.treeLink} ${selected ? styles.treeLinkCurrent : ""}`}
-          to={directoryBrowseUrl(libraryId, directory, browseState)}
-        >
-          {directory.archivePath === directory.relativePath
-            ? <FileZip aria-hidden="true" size={17} />
-            : <Folder aria-hidden="true" size={17} />}
-          <span>{directory.name}</span>
-        </Link>
-      </div>
-      {expanded && directory.hasChildren && (
-        <DirectoryChildren
-          browseState={browseState}
-          depth={depth + 1}
-          libraryId={libraryId}
-          parentId={directory.id}
-          selectedDirectoryId={selectedDirectoryId}
-          selectedPathIds={selectedPathIds}
-        />
-      )}
+      {!hideDirectoryTree && Boolean(libraryId) && <DirectoryTree
+        currentDirectory={currentDirectory}
+        canDelete={canDelete}
+        onDeleteDirectory={onDeleteDirectory}
+        key={libraryId}
+        browseState={browseState}
+        libraryId={libraryId}
+        libraryName={currentLibraryLabel}
+        rootSelected={libraryRootSelected}
+        selectedDirectoryId={selectedDirectoryId}
+        selectedPathIds={selectedPathIds}
+      />}
     </div>
   );
 }

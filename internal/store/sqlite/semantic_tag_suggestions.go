@@ -82,7 +82,7 @@ func (s *Store) ReplacePendingTagSuggestions(
 	return s.withWriteTx(ctx, func(tx *sql.Tx) error {
 		var currentFingerprint string
 		if err := tx.QueryRowContext(ctx, `
-            SELECT source_fingerprint FROM assets WHERE library_id = ? AND id = ?`, libraryID, assetID,
+            SELECT source_fingerprint FROM visible_assets AS assets WHERE library_id = ? AND id = ?`, libraryID, assetID,
 		).Scan(&currentFingerprint); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return semantic.ErrInvalidTagSuggestion

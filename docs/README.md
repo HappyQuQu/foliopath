@@ -1,3 +1,7 @@
+2026-10-30：[目录操作菜单与全部展开收起](changes/CR-2026-059-directory-tree-actions.md)，顶部单菜单加桌面右键，目录行不加“⋯”；生产组件与 16 组浏览器矩阵已通过，见 CR-2026-059。
+
+2026-10-30：[媒体删除与回收站完整方案](architecture/media-deletion-contract.md)、[ADR-0042](adr/0042-media-deletion-and-trash.md)、[CR-2026-058](changes/CR-2026-058-media-deletion-and-trash.md)。已接受删除能力与默认只读的有限例外；S1/S2 合同和本地后端已通过，S3 生产页面已接入；S4 生产镜像、双原生、容量及真实可写部署仍未通过，现有实例不变。
+
 2026-10-29：[v1.9.1发布与222升级](changes/RELEASE-2026-10-29-v1.9.1.md)，本轮沉浸浏览及关于页的发布和部署结果记录。
 
 2026-10-29：[关于页项目概览](changes/FIX-2026-10-29-about-project-overview.md)，补充项目介绍、核心能力、格式限制与支持入口；已随[v1.9.1](changes/RELEASE-2026-10-29-v1.9.1.md)发布并升级222。
@@ -505,3 +509,5 @@ composition 与发行 UI 继续失败关闭。
 - [CR-2026-054：预览布局与精简拍摄信息](changes/CR-2026-054-preview-exif.md)（POST-MVP-5维护）
 
 - [v1.7.0 发布与222升级](changes/RELEASE-2026-10-28-v1.7.0.md)（已完成，预览布局与拍摄信息）
+
+2026-10-30：原文件永久删除发布验收见 [DELETE-S4](gates/POST-MVP-DELETE/delete-s4-release.md)；当前操作以 CR-2026-060 及 README 开启说明为准，旧回收阶段材料作为历史证据。

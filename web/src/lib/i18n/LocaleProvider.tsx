@@ -1,3 +1,4 @@
+import { deletionZh, deletionEn } from "./deletionMessages";
 import { exifZh, exifEn } from "./exifMessages";
 import {
   createContext,
@@ -26,6 +27,7 @@ import { taskWorkspaceEn, taskWorkspaceZh } from "./taskWorkspaceMessages";
 import { contextSidebarEn, contextSidebarZh } from "./contextSidebarMessages";
 
 const zhCN = {
+  ...deletionZh,
   ...exifZh,
   ...ocrZh,
   ...fusedSearchZh,
@@ -302,7 +304,7 @@ const zhCN = {
   "common.skipToMain": "跳到主要内容",
   "common.toastRegion": "通知",
   "common.tryAgain": "重新尝试",
-  "common.readOnlyFooter": "您的原始媒体始终保持只读",
+  "common.readOnlyFooter": "原始媒体默认只读",
   "error.confirmingSecurity": "正在确认安全状态…",
   "error.reload": "重新载入",
   "error.renderBody":
@@ -433,7 +435,7 @@ const zhCN = {
   "newLibrary.reviewDescription": "创建后会立即安排首次完整扫描。",
   "newLibrary.reviewName": "名称",
   "newLibrary.reviewOriginals": "原始媒体",
-  "newLibrary.reviewOriginalsValue": "只读，不移动、不删除",
+  "newLibrary.reviewOriginalsValue": "只读扫描，不移动或删除原文件",
   "newLibrary.reviewPath": "目录",
   "newLibrary.reviewScan": "首次扫描",
   "newLibrary.reviewScanValue": "创建后立即开始",
@@ -647,8 +649,8 @@ const zhCN = {
   "about.title": "关于 FolioPath",
   "about.description": "了解项目、支持的功能与格式，查看当前版本和更新记录。",
   "about.projectTitle": "让现有归档更好看，也更好找",
-  "about.projectDescription": "FolioPath 是只读、自托管的照片与视频浏览器。直接浏览已有文件夹和压缩图集，不必重新上传或调整目录。",
-  "about.projectPrivacy": "原始媒体始终只读；收藏、标签和缩略图独立保存。",
+  "about.projectDescription": "FolioPath 是默认只读、自托管的照片与视频浏览器。直接浏览已有文件夹和压缩图集，不必重新上传或调整目录。",
+  "about.projectPrivacy": "原始媒体默认只读；删除需明确开启。收藏、标签和缩略图独立保存。",
   "about.featuresTitle": "用现有目录，开始浏览",
   "about.foldersTitle": "顺着目录，连续看图",
   "about.foldersDescription": "保留层级与空目录，跨子目录浏览；网格、瀑布流和无缝瀑布流随时切换。",
@@ -690,7 +692,7 @@ const zhCN = {
   "about.checkFailed": "暂时无法检查更新。媒体浏览和后台任务不受影响。",
   "about.noPublishedReleases": "目前没有可显示的正式稳定版本记录。",
   "notifications.title": "消息中心",
-  "notifications.clearCompleted": "清除已完成",
+  "notifications.clearCompleted": "清除结果通知",
   "notifications.updateAvailable": "有新版本可用",
   "notifications.scanActive": "媒体库正在扫描",
   "notifications.mediaActive": "缩略图与视频预览生成中",
@@ -858,7 +860,7 @@ const zhCN = {
     "FolioPath 暂时无法完成启动，系统已安全停止。媒体目录没有被修改。",
   "unavailable.eyebrow": "服务暂不可用",
   "unavailable.noDiagnostics": "没有显示内部路径或诊断信息",
-  "unavailable.readOnly": "原始媒体保持只读",
+  "unavailable.readOnly": "原始媒体默认只读",
   "unavailable.safety": "安全状态",
   "unavailable.title": "FolioPath 无法完成启动",
   "validation.confirmPassword": "两次输入的密码不一致。",
@@ -874,6 +876,7 @@ export type MessageKey = keyof typeof zhCN;
 export type Locale = LocalePreference;
 
 const en: Record<MessageKey, string> = {
+  ...deletionEn,
   ...exifEn,
   ...ocrEn,
   ...fusedSearchEn,
@@ -1177,7 +1180,7 @@ const en: Record<MessageKey, string> = {
   "common.skipToMain": "Skip to main content",
   "common.toastRegion": "Notifications",
   "common.tryAgain": "Try again",
-  "common.readOnlyFooter": "Your original media always remains read-only",
+  "common.readOnlyFooter": "Original media is read-only by default",
   "error.confirmingSecurity": "Confirming security status…",
   "error.reload": "Reload",
   "error.renderBody":
@@ -1329,7 +1332,7 @@ const en: Record<MessageKey, string> = {
     "The first full scan will be queued immediately after creation.",
   "newLibrary.reviewName": "Name",
   "newLibrary.reviewOriginals": "Original media",
-  "newLibrary.reviewOriginalsValue": "Read-only; never moved or deleted",
+  "newLibrary.reviewOriginalsValue": "Read-only scanning; originals are not moved or deleted",
   "newLibrary.reviewPath": "Directory",
   "newLibrary.reviewScan": "First scan",
   "newLibrary.reviewScanValue": "Starts immediately after creation",
@@ -1555,8 +1558,8 @@ const en: Record<MessageKey, string> = {
   "about.title": "About FolioPath",
   "about.description": "Explore the project, supported features and formats, and check versions and releases.",
   "about.projectTitle": "Make your existing archives easier to browse and find",
-  "about.projectDescription": "FolioPath is a read-only, self-hosted photo and video browser. Explore existing folders and image archives without uploading them again or reorganizing your files.",
-  "about.projectPrivacy": "Original media stays read-only. Favorites, tags and thumbnails are stored separately.",
+  "about.projectDescription": "FolioPath is a self-hosted photo and video browser, read-only by default. Explore existing folders and image archives without uploading them again or reorganizing your files.",
+  "about.projectPrivacy": "Original media is read-only by default; deletion requires explicit opt-in. Favorites, tags and thumbnails are stored separately.",
   "about.featuresTitle": "Start with the folders you already have",
   "about.foldersTitle": "Browse folders and keep the pictures flowing",
   "about.foldersDescription": "Keep hierarchy and empty folders, browse across subfolders, and switch between grid, masonry and seamless masonry.",
@@ -1598,7 +1601,7 @@ const en: Record<MessageKey, string> = {
   "about.checkFailed": "Updates could not be checked. Media browsing and background work are unaffected.",
   "about.noPublishedReleases": "There are no published stable releases to display yet.",
   "notifications.title": "Notifications",
-  "notifications.clearCompleted": "Clear completed",
+  "notifications.clearCompleted": "Clear result notifications",
   "notifications.updateAvailable": "A new version is available",
   "notifications.scanActive": "Library scan in progress",
   "notifications.mediaActive": "Generating thumbnails and video previews",
@@ -1781,7 +1784,7 @@ const en: Record<MessageKey, string> = {
   "unavailable.eyebrow": "Service unavailable",
   "unavailable.noDiagnostics":
     "Internal paths and diagnostics are not displayed",
-  "unavailable.readOnly": "Original media remains read-only",
+  "unavailable.readOnly": "Original media is read-only by default",
   "unavailable.safety": "Safe state",
   "unavailable.title": "FolioPath could not finish starting",
   "validation.confirmPassword": "The passwords do not match.",

@@ -51,3 +51,8 @@ func archiveFingerprintFields(fingerprint SourceFingerprint) (int64, int64, bool
 	}
 	return size, mtime, true
 }
+
+func (fingerprint SourceFingerprint) IsArchiveMember() bool {
+	_, _, ok := archiveFingerprintFields(fingerprint)
+	return ok
+}
