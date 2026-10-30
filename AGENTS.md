@@ -9,8 +9,8 @@ them.
 - Treat original media as read-only by default. ADR-0042 accepts an opt-in,
   authenticated media deletion capability; CR-2026-060 limits new actions to permanent deletion. CR-2026-058 / DELETE-S1/S2
   contracts and backend plus S3 production-component UI have passed local gates;
-  general release remains gated by DELETE-S4; ADR-0044 accepts the explicitly
-  authorized 222/9090 candidate deployment. Ordinary scanning, browsing, analysis
+  DELETE-S4 passed for v1.10.0; later changes retain the native-image and
+  capacity/recovery gates. ADR-0044 also records the authorized 222/9090 preview. Ordinary scanning, browsing, analysis
   and library configuration removal remain read-only; never edit media contents.
   Writes require files-owned anchored operations, explicit deployment authorization
   and administrator opt-in.

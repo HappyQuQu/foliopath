@@ -19,3 +19,20 @@
 migration 50 的原生 amd64 候选 `foliopath:release-perf-20261030`（仅合成验收，未替换 9090）在同一 100k/10k 档通过全部原预算：扫描 111 秒，浏览及四种搜索 p95 213.818/161.918/159.710/213.780/225.133ms；峰值约 181.4MiB。完整 Go 检查、接口主分支兼容和 Linux 可见性/删除恢复回归通过。容量 JSON 在服务器 `release-checks/evidence/capacity-optimized.json`，相关本地日志留在 `/tmp/foliopath-direct-release`。
 
 旧 v1.9.1/schema 48 → 候选 schema 50、同版本重启、完整停机备份及旧镜像配对恢复回退全部通过；合成原件哨兵保持。测试使用专用 Linux named volume，未打开或复制线上数据库。服务器 Docker 27 的测试 stop 参数改用兼容的 `-t` 后执行通过；该普通测试源仅本地保留，不改变部署流程。
+
+## 正式发布结果
+
+- 开发提交 `ea8488a4487715ed2dc7b0097d9965d8abd17b50` 和验收记录经 [PR #76](https://github.com/HappyQuQu/foliopath/pull/76) 合并为 `c6448713e8a8aa238bfbb66b9e089192c9daf051`。Release Please 自动合并 [PR #77](https://github.com/HappyQuQu/foliopath/pull/77)，冻结发行源码 `6a9d482e93349e9ad2d991ce978ef38d06244cf4`，发布 [v1.10.0](https://github.com/HappyQuQu/foliopath/releases/tag/v1.10.0)。
+- [正式流水线 41030969021](https://github.com/HappyQuQu/foliopath/actions/runs/41030969021) success：main/AI × amd64/arm64 四个原生构建验证，以及两个多平台推广任务全部通过。每架构构建一次、同摘要验证，推广日志确认没有重建并保留 SPDX/SLSA attestations。Docker Hub 概览同步成功。
+- 四份原生验证记录的 source/version 一致。公开 Docker Hub tag API 的两组件各四个标签、Linux amd64/arm64 runtime manifest 均与这些原生 index 内的 runtime descriptor 一致。AI 的模型准备、恢复与实际合成推理证据随原生记录归档，没有用普通健康状态替代。
+- 主应用 `1.10.0`、`1.10`、`latest`、`sha-6a9d482` 索引：`sha256:3d7623b7db0948fc44588dcf3aacc88ffe200acec5fa8de3cb5b31b478ca677e`。
+- AI `1.10.0-ai`、`1.10-ai`、`latest-ai`、`sha-6a9d482-ai` 索引：`sha256:0657319eb4378daefad8c2ffc2c9a6693f7f57ee9620c237be5c40d7b2b8e20e`。
+
+| 组件 | 架构 | 已验证单平台 index | 发布 runtime manifest |
+| --- | --- | --- | --- |
+| ai | amd64 | `sha256:3008389810c2d0f3dd0006f39ada0cd75b5fcb2749bf648fa5ec96b44b19c381` | `sha256:fe50e2ac6dcc5339c2ecd2deb7f6e43eb8cf886dca9fe398aa8383d0644a7c48` |
+| ai | arm64 | `sha256:3ad2efe82daea3c7e113a08e3b9132c97d645f7252cd217252e515fb6a725244` | `sha256:0803a3f206e9b7c87e5b691b621b1f5fc61ded499a92f938a150014513963f05` |
+| main | amd64 | `sha256:111822a7a49f80dc9685d772ae096d29198569ddddca5f57510c4346d0ade095` | `sha256:2d5e12a0e55e28139ba54fb2b677afd295ec383bc300e6d905abba0600df33b7` |
+| main | arm64 | `sha256:8f2e190e3515e8740354aac7a6fea9886ee04eb8b1e53044844947439341a635` | `sha256:b950cb609c860fddfb37bf4f180f458de3624d7dc7c5a4d1e6242ecfeddd9307` |
+
+本地原始工程日志、正式 workflow 日志、image-plan、四份验证记录及公开标签核对位于 `/tmp/foliopath-direct-release/`；普通测试、日志、截图和产物不提交。此次未再次调整 222 的运行配置、PVE 或原件。收尾只补发行证据，使用 `[skip ci]` 文档提交；不重新构建、不移动既有发行标签。

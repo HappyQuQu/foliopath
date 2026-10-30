@@ -511,3 +511,5 @@ composition 与发行 UI 继续失败关闭。
 - [v1.7.0 发布与222升级](changes/RELEASE-2026-10-28-v1.7.0.md)（已完成，预览布局与拍摄信息）
 
 2026-10-30：原文件永久删除发布验收见 [DELETE-S4](gates/POST-MVP-DELETE/delete-s4-release.md)；当前操作以 CR-2026-060 及 README 开启说明为准，旧回收阶段材料作为历史证据。
+
+2026-10-30：永久删除、目录操作与通知已随 [v1.10.0 发布](changes/RELEASE-2026-10-30-direct-deletion.md#正式发布结果)，修订后的 DELETE-S4 为 Go。
