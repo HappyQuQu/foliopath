@@ -169,7 +169,11 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   const hostRef = useRef<HTMLDivElement>(null);
   const focusRestoreFrameRef = useRef<number | undefined>(undefined);
   const storyboard = useStoryboardPlayback();
-  const [geometry, setGeometry] = useState({ scrollMargin: 0, width: 960 });
+  const [geometry, setGeometry] = useState({
+    previewBelowCollection: true,
+    scrollMargin: 0,
+    width: 960,
+  });
   const [tileSize, setTileSize] = useState(readMediaTileSizePreference);
   const columns = columnCount(geometry.width, tileSize);
   const gap = layout === "seamless" ? 0 : 12;
@@ -273,6 +277,8 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
     const update = () => {
       const bounds = host.getBoundingClientRect();
       setGeometry({
+        previewBelowCollection:
+          getComputedStyle(host).getPropertyValue("--preview-below-collection").trim() === "1",
         scrollMargin: bounds.top + window.scrollY,
         width: Math.max(bounds.width, 280),
       });
@@ -293,7 +299,7 @@ export const MediaCollection = forwardRef<MediaCollectionHandle, {
   }, [columns, layout, virtualizer]);
 
   const pagination = useScrollPagination({
-    enabled: !previewItemId,
+    enabled: !previewItemId || !geometry.previewBelowCollection,
     failed: paginationError,
     hasNextPage,
     isFetching: isFetchingNextPage,
