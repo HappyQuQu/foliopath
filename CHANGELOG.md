@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/HappyQuQu/foliopath/compare/v1.10.0...v1.10.1) (2026-11-11)
+
+
+### 🐛 修复
+
+* 侧栏预览时继续自动加载媒体 ([#78](https://github.com/HappyQuQu/foliopath/issues/78)) ([e60a4e9](https://github.com/HappyQuQu/foliopath/commit/e60a4e9b68642bdb0bf54e88365d5118ff4ce128))
+
 ## [1.10.0](https://github.com/HappyQuQu/foliopath/compare/v1.9.1...v1.10.0) (2026-10-30)
 
 
