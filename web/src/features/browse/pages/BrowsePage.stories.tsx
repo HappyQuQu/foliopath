@@ -82,6 +82,7 @@ const meta = {
     (Story, context) => (
       <StoryApiBoundary
         manyDirectories={context.parameters.manyDirectories === true}
+        paginatedMedia={context.parameters.paginatedMedia === true}
         archiveFixtures={context.parameters.archiveFixtures === true}
         sevenZipFixtures={context.parameters.sevenZipFixtures === true}
         folderCoverFixtures={context.parameters.folderCoverFixtures === true}
@@ -133,6 +134,14 @@ export const ManyDirectories: Story = {
   parameters: { manyDirectories: true, docs: { description: { story: "Production directory tree and grid with paginated synthetic directory contracts. Scroll the tree near its bottom to append; expand the grid before scrolling to load subsequent pages. Manual buttons remain available." } } },
 };
 
+export const PreviewPagination: Story = {
+  name: "Preview and media pagination (synthetic contract fixtures)",
+  parameters: {
+    paginatedMedia: true,
+    docs: { description: { story: "Open Synthetic media 1 or 2 and scroll to the end of the loaded media. The next page loads automatically with a side-by-side preview. When the preview is below the list, use Load more media or close the preview to resume automatic loading." } },
+  },
+};
+
 export const FolderCovers: Story = {
   name: "Folder covers (synthetic contract fixtures)",
   parameters: { folderCoverFixtures: true, docs: { description: { story: "Production folder cards with synthetic directory contracts: existing thumbnail, cover selected from a descendant, no thumbnail, and thumbnail failure. Folder names, counts, navigation and the folder icon remain available." } } },
@@ -175,15 +184,15 @@ export const SevenZipContents: Story = {
   parameters: { archiveFixtures: true, sevenZipFixtures: true },
 };
 
-function StoryApiBoundary({ children, manyDirectories, archiveFixtures, sevenZipFixtures, folderCoverFixtures }: { children: ReactNode; manyDirectories: boolean; archiveFixtures: boolean; sevenZipFixtures: boolean; folderCoverFixtures: boolean }) {
-  window.fetch = storyFetch(passthroughFetch, manyDirectories, archiveFixtures, sevenZipFixtures, folderCoverFixtures);
+function StoryApiBoundary({ children, manyDirectories, paginatedMedia, archiveFixtures, sevenZipFixtures, folderCoverFixtures }: { children: ReactNode; manyDirectories: boolean; paginatedMedia: boolean; archiveFixtures: boolean; sevenZipFixtures: boolean; folderCoverFixtures: boolean }) {
+  window.fetch = storyFetch(passthroughFetch, manyDirectories, paginatedMedia, archiveFixtures, sevenZipFixtures, folderCoverFixtures);
   useEffect(() => () => {
     window.fetch = passthroughFetch;
   }, []);
   return children;
 }
 
-function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean, archiveFixtures: boolean, sevenZipFixtures: boolean, folderCoverFixtures: boolean): typeof window.fetch {
+function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean, paginatedMedia: boolean, archiveFixtures: boolean, sevenZipFixtures: boolean, folderCoverFixtures: boolean): typeof window.fetch {
   const archivePath = "旅行/日本/京都/京都图集.zip";
   const zipDirectories: Directory[] = [
     { ...directory("dir_zip", "京都图集.zip", archivePath, "dir_kyoto", 6, true), archivePath, archiveStatus: "ready", coverAssetId: "ast_zip_1", directAssetCount: 3 },
@@ -299,6 +308,23 @@ function storyFetch(originalFetch: typeof window.fetch, manyDirectories: boolean
       const q = url.searchParams.get("q")?.toLocaleLowerCase() ?? "";
       const kinds = url.searchParams.getAll("kind");
       const directoryId = url.searchParams.get("directoryId");
+      if (paginatedMedia) {
+        const start = Number(url.searchParams.get("cursor") ?? 0);
+        const items = Array.from({ length: 50 }, (_, index): Asset => {
+          const number = start + index + 1;
+          return {
+            ...assets[0]!,
+            id: number === 1 ? "asset-story" : number === 2 ? "asset-second" : `ast_page_${number}`,
+            height: 900,
+            mimeType: "image/png",
+            name: `Synthetic media ${number}.png`,
+            relativePath: `旅行/日本/京都/Synthetic media ${number}.png`,
+            thumbnail: { errorCode: null, status: "ready", url: "/test-media/viewer-blue-violet.png" },
+            width: 1440,
+          };
+        });
+        return json({ items, nextCursor: start < 100 ? String(start + items.length) : null });
+      }
       const fixtureAssets = archiveFixtures && directoryId?.startsWith("dir_zip")
         ? directoryId === "dir_zip_bad" || directoryId === "dir_zip_encrypted"
           ? []

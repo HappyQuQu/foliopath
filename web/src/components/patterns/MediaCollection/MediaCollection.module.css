@@ -2,6 +2,18 @@
   min-width: 0;
 }
 
+@media (max-width: 64rem) {
+  .host {
+    --preview-below-collection: 1;
+  }
+}
+
+@container workspace (max-width: 64rem) {
+  .host {
+    --preview-below-collection: 1;
+  }
+}
+
 .evidenceBadges {
   position: absolute;
   inset-inline-start: var(--space-2);
